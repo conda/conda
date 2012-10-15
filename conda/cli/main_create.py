@@ -56,7 +56,8 @@ def main_create(args, conda, display_help=False):
     opts, args = p.parse_args(args)
 
     if len(args) == 0 and not opts.file:
-        p.error('too few arguments, must supply command line packages versions or --file')
+        p.error('too few arguments, must supply command line packages '
+                'versions or --file')
 
     if len(args) > 0 and opts.file:
         p.error('must supply command line packages, or --file, but not both')
@@ -65,10 +66,8 @@ def main_create(args, conda, display_help=False):
         p.error('must supply --prefix')
 
     if exists(abspath(opts.prefix)):
-        p.error("'%s' already exists, must supply new directory for --prefix" % opts.prefix)
-
-    if opts.dry_run and opts.quiet:
-        p.error('--dry-run and --quiet are mutually exclusive')
+        p.error("'%s' already exists, must supply new directory for --prefix" %
+                opts.prefix)
 
     if opts.file:
         try:
@@ -91,15 +90,14 @@ def main_create(args, conda, display_help=False):
     plan = create_create_plan(abspath(expanduser(opts.prefix)), conda, reqs, opts.no_defaults)
 
     if plan.empty():
-        if not opts.quiet:
-            print 'No packages found, nothing to do'
+        print 'No packages found, nothing to do'
         return
 
     print plan
 
     if opts.dry_run: return
 
-    if opts.no_confirm:
+    if not opts.no_confirm:
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
