@@ -1,0 +1,10 @@
+# This is the default conda run configuration
+
+# repository locations
+repositories:
+  - http://repo.continuum.io/pkgs
+
+# environment locations
+locations:
+  - ~/envs
+
