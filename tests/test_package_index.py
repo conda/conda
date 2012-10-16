@@ -1,9 +1,8 @@
-
 import unittest
 import json
 import os
 from distutils.version import LooseVersion
-
+from os.path import dirname, join
 
 from conda.package import package
 from conda.requirement import requirement
@@ -14,9 +13,9 @@ from conda.naming import parse_package_filename
 class test_create(unittest.TestCase):
 
     def setUp(self):
-        f = open('index.json')
-        self.info = json.load(f)
-        f.close()
+        path = join(dirname(__file__), 'index.json')
+        with open(path) as fi:
+            self.info = json.load(fi)
 
     def test_create_from_local(self):
         idx = package_index(self.info)
@@ -137,9 +136,3 @@ class test_create(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-
-
-
-
