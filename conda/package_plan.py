@@ -155,7 +155,7 @@ def create_create_plan(prefix, conda, reqs, no_defaults):
 
     # handle multiple matches, keep only the latest version
     all_pkgs = sort_packages_by_name(all_pkgs)
-    all_pkgs = [max(g) for k,g in groupby(all_pkgs, key=lambda x: x.name)]
+    all_pkgs = [max(g) for k, g in groupby(all_pkgs, key=lambda x: x.name)]
     log.debug("final packages: %s" % all_pkgs)
 
     # check again for inconsistent requirements

@@ -71,6 +71,10 @@ class anaconda(object):
 
     @property
     def target(self):
+        env_target = getenv('TARGET')
+        if env_target:
+            return env_target
+
         if 'AnacondaPro' in sys.version:
             return 'pro'
         elif 'AnacondaCE' in sys.version:
