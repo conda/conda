@@ -74,11 +74,13 @@ class package_plan(object):
     def __str__(self):
         result = ''
         if self.downloads:
-            result += download_string % self._format_packages(self.downloads, lookup_repo=True)
+            result += download_string % self._format_packages(self.downloads,
+                                                              lookup_repo=True)
         if self.activations:
             result += activate_string % self._format_packages(self.activations)
         if self.deactivations:
-            result += deactivate_string % self._format_packages(self.deactivations)
+            result += deactivate_string % self._format_packages(
+                                                 self.deactivations)
         if self.broken:
             result += broken_string % self._format_packages(self.broken)
         if self.missing:
@@ -112,7 +114,8 @@ def create_create_plan(prefix, conda, reqs, no_defaults):
     inconsistent = find_inconsistent_requirements(reqs)
     if inconsistent:
         raise RuntimeError(
-            'cannot create environment, the following requirements are inconsistent: %s' % str(inconsistent)
+            'cannot create environment, the following requirements are '
+            'inconsistent: %s' % str(inconsistent)
         )
 
     log.debug("initial requirements: %s" % reqs)
@@ -158,9 +161,10 @@ def create_create_plan(prefix, conda, reqs, no_defaults):
     # check again for inconsistent requirements
     inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
     if inconsistent:
-        raise RuntimeError('cannot create environment, the following requirements are inconsistent: %s'
-            % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent)
-        )
+        raise RuntimeError('cannot create environment, the following '
+                           'requirements are inconsistent: %s'
+                           % ', '.join('%s-%s' % (req.name, req.version.vstring)
+                                       for req in inconsistent))
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -183,7 +187,7 @@ def create_install_plan(env, args):
 
     idx = env.conda.index
 
-    to_install= set()
+    to_install = set()
 
     for arg in args:
 
@@ -326,9 +330,9 @@ def create_deactivate_plan(env, pkg_names, follow_deps=False):
 
 def create_upgrade_plan(env, pkgs):
     '''
-    This function creates a package plan for upgrading specified packages to the latest
-    version in the given Anaconda environment prefix. Only versions compatible with the
-    existing environment are considered.
+    This function creates a package plan for upgrading specified packages to
+    the latest version in the given Anaconda environment prefix. Only versions
+    compatible with the existing environment are considered.
     '''
     plan = package_plan()
 
@@ -381,10 +385,10 @@ def create_upgrade_plan(env, pkgs):
 
 def create_download_plan(env, pkg_names, no_deps, force):
     '''
-    This function creates a package plan for downloading the specified packages
-    and their dependencies from remote Anaconda package repositories. By default,
-    packages already available are ignored, but this can be overriden with the
-    force argument.
+    This function creates a package plan for downloading the specified
+    packages and their dependencies from remote Anaconda package repositories.
+    By default, packages already available are ignored, but this can be
+    overriden with the force argument.
     '''
     plan = package_plan()
 

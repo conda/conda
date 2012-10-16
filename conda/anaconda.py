@@ -172,13 +172,13 @@ class anaconda(object):
 
     def __str__(self):
         return INFO_STRING % (
-           self.target,
-           self.platform,
-           self.conda_version,
-           self.root_dir,
-           self.packages_dir,
-           self.repo_package_urls,
-           self.locations,
+            self.target,
+            self.platform,
+            self.conda_version,
+            self.root_dir,
+            self.packages_dir,
+            self.repo_package_urls,
+            self.locations,
         )
 
     def __repr__(self):
@@ -208,7 +208,8 @@ class anaconda(object):
 
     def _build_local_index(self):
         try:
-            log.debug('building index from local packages repository at self.packages_dir')
+            log.debug('building index from local packages repository at'
+                      ' self.packages_dir')
             index = {}
             for fn in listdir(self.packages_dir):
                 if exists(join(self.packages_dir, fn, 'info', 'index.json')):
