@@ -71,7 +71,7 @@ class anaconda(object):
 
     @property
     def target(self):
-        env_target = getenv('TARGET')
+        env_target = getenv('CIO_TARGET')
         if env_target:
             return env_target
 
