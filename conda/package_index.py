@@ -1,4 +1,3 @@
-
 from constraints import satisfies
 from package import package
 from requirement import find_inconsistent_requirements
@@ -9,12 +8,13 @@ class package_index(object):
     def __init__(self, info):
 
         self.pkg_filenames = dict(
-            (pkg_filename, package(pkg_info)) for pkg_filename, pkg_info in info.items()
+            (pkg_filename, package(pkg_info))
+            for pkg_filename, pkg_info in info.items()
         )
 
-        self.pkgs = set([
+        self.pkgs = set(
             package(pkg_info) for pkg_info in info.values()
-        ])
+        )
 
         # compute on demand
         self._deps = None
@@ -105,7 +105,9 @@ class package_index(object):
         # include packages inconsistent with other requirements)
         for req in reqs:
             if req.build:
-                pkg_filename = "%s-%s-%s.tar.bz2" % (req.name, req.version.vstring, req.build)
+                pkg_filename = "%s-%s-%s.tar.bz2" % (req.name,
+                                                     req.version.vstring,
+                                                     req.build)
                 pkgs.add(self.lookup_from_filename(pkg_filename))
             else:
                 pkgs = pkgs | self.find_matches(satisfies(req))
@@ -136,4 +138,3 @@ class package_index(object):
                     rdeps[req] = set()
                 rdeps[req].add(pkg)
         return rdeps
-

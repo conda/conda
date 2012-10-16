@@ -1,5 +1,3 @@
-
-
 from os import getenv, listdir
 from os.path import abspath, exists, expanduser, isdir, join
 from urllib2 import urlopen
@@ -148,12 +146,14 @@ class anaconda(object):
         res = set()
         for fn in listdir(self.packages_dir):
 
-            if self.platform == 'win':
-                if not fn.endswith('.tar.bz2'): continue
+            if sys.platform == 'win32':
+                if not fn.endswith('.tar.bz2'):
+                    continue
                 pkg_filename = fn
             else:
-                if not isdir(join(self.packages_dir, fn)): continue
-                pkg_filename = fn+'.tar.bz2'
+                if not isdir(join(self.packages_dir, fn)):
+                    continue
+                pkg_filename = fn + '.tar.bz2'
 
             try:
                 res.add(self.index.lookup_from_filename(pkg_filename))
@@ -217,7 +217,5 @@ class anaconda(object):
                     )
             return index
         except IOError as e:
-            raise RuntimeError('Could not build index from local package respitory, reason: %s' % e)
-
-
-
+            raise RuntimeError('Could not build index from local package '
+                               'respitory, reason: %s' % e)

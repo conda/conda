@@ -1,4 +1,3 @@
-
 from os import mkdir
 from os.path import abspath, exists, expanduser
 from optparse import OptionParser
@@ -85,9 +84,12 @@ def main_create(args, conda, display_help=False):
             reqs.add(requirement(req_string))
         except RuntimeError:
             candidates = conda.index.lookup_from_name(req_string)
-            reqs = reqs | set(requirement("%s %s" % (pkg.name, pkg.version.vstring)) for pkg in candidates)
+            reqs = reqs | set(requirement(
+                                "%s %s" % (pkg.name, pkg.version.vstring))
+                                for pkg in candidates)
 
-    plan = create_create_plan(abspath(expanduser(opts.prefix)), conda, reqs, opts.no_defaults)
+    plan = create_create_plan(abspath(expanduser(opts.prefix)),
+                              conda, reqs, opts.no_defaults)
 
     if plan.empty():
         print 'No packages found, nothing to do'
@@ -103,5 +105,3 @@ def main_create(args, conda, display_help=False):
 
     mkdir(abspath(opts.prefix))
     plan.execute(conda.lookup_environment(opts.prefix), opts.no_progress_bar)
-
-
