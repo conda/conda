@@ -3,6 +3,7 @@ from optparse import OptionParser
 
 from package_plan import create_download_plan
 
+
 def main_download(args, conda, display_help=False):
     p = OptionParser(
         usage       = "usage: conda download [options] packages",
@@ -54,27 +55,21 @@ def main_download(args, conda, display_help=False):
     if len(args) == 0:
         p.error('too few arguments')
 
-    if opts.dry_run and opts.quiet:
-        p.error('--dry-run and --quiet are mutually exclusive')
-
     plan = create_download_plan(
         conda.lookup_environment(abspath(expanduser(opts.prefix))), args, opts.no_deps, opts.force
     )
 
     if plan.empty():
-        if not opts.quiet:
-            print 'All packages already downloaded, nothing to do'
+        print 'All packages already downloaded, nothing to do'
         return
 
     print plan
 
-    if opts.dry_run: return
+    if opts.dry_run:
+        return
 
-    if opts.no_confirm:
+    if not opts.no_confirm:
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
     plan.execute(conda.lookup_environment(opts.prefix), opts.no_progress_bar)
-
-
-
