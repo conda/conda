@@ -32,7 +32,7 @@ class anaconda(config):
 
     def _fetch_index(self):
         index = {}
-        for url in self.repo_package_urls:
+        for url in reversed(self.repo_package_urls):
             log.debug("fetching: index.json [%s] ..." % url)
             try:
                 fi = urlopen(url + 'index.json')
