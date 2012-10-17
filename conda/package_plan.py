@@ -46,17 +46,18 @@ class package_plan(object):
         self.missing       = set()
         self.upgrade       = None
 
-    def execute(self, env, no_progress_bar=False):
+    def execute(self, env, progress_bar=True):
         '''
         Perform the operations contained in the package plan
         '''
         for pkg in self.downloads:
-            if no_progress_bar:
-                progress = None
-            else:
-                widgets = [' ', Percentage(), ' ', Bar(), ' ', ETA(),
-                           ' ', FileTransferSpeed()]
+            if progress_bar:
+                widgets = [
+                    ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ', FileTransferSpeed()
+                ]
                 progress = ProgressBar(widgets=widgets)
+            else:
+                progress = None
             fetch_file(pkg.filename, progress=progress)
             if sys.platform != 'win32':
                 extract(pkg, env)
@@ -91,7 +92,7 @@ class package_plan(object):
         result = ''
         if lookup_repo:
             for pkg in sort_packages_by_name(pkgs):
-                result += '\n        %s' % pkg.filename
+                result += '\n        %s [%s]' % pkg.filename, pkg.location
         else:
             for pkg in sort_packages_by_name(pkgs):
                 result += '\n        %s' % pkg
