@@ -56,11 +56,13 @@ def main_install(args, conda, display_help=False):
     if not opts.prefix:
         p.error('must supply --prefix')
 
-    if not exists(abspath(opts.prefix)):
+    prefix = abspath(expanduser(opts.prefix))
+
+    if not exists(prefix):
         p.error("'%s' is not a valid Anaconda environment`" % opts.prefix)
 
-    if opts.dry_run and opts.quiet:
-        p.error('--dry-run and --quiet are mutually exclusive')
+    if opts.dry_run and opts.no_confirm:
+        p.error('--dry-run and --no-confirm are incompatible')
 
     if opts.file:
         try:
@@ -70,12 +72,12 @@ def main_install(args, conda, display_help=False):
         except:
             p.error('error reading file: %s', opts.file)
 
-    env = conda.lookup_environment(abspath(expanduser(opts.prefix)))
+    env = conda.lookup_environment(prefix)
+
     plan = create_install_plan(env, args)
 
     if plan.empty():
-        if not opts.quiet:
-            print 'No packages found, nothing to do'
+        print 'No packages found, nothing to do'
         return
 
     print plan
@@ -86,6 +88,7 @@ def main_install(args, conda, display_help=False):
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    plan.execute(conda.lookup_environment(opts.prefix), opts.no_progress_bar)
+    progress_bar = not opts.no_progress_bar
+    plan.execute(env, progress_bar)
 
 

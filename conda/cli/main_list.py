@@ -24,7 +24,8 @@ def main_list(args, conda, display_help=False):
     if len(args) > 0:
         p.error('no arguments expected')
 
-    env = conda.lookup_environment(abspath(expanduser(opts.prefix)))
+    prefix = abspath(expanduser(opts.prefix))
+    env = conda.lookup_environment(prefix)
 
     for pkg in sort_packages_by_name(env.activated):
         print '%-25s %s' % (pkg.name, pkg.version)

@@ -65,7 +65,8 @@ def main_search(args, conda, display_help=False):
         )
 
     if opts.prefix:
-        env = conda.lookup_environment(abspath(expanduser(opts.prefix)))
+        prefix = abspath(expanduser(opts.prefix))
+        env = conda.lookup_environment(prefix)
         pkgs = conda.index.find_matches(env.requirements, pkgs)
 
     if opts.prefix:

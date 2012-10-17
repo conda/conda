@@ -49,7 +49,8 @@ def main_depends(args, conda, display_help=False):
     if len(args) == 0:
         p.error('too few arguments')
 
-    env = conda.lookup_environment(abspath(expanduser(opts.prefix)))
+    prefix = abspath(expanduser(opts.prefix))
+    env = conda.lookup_environment(prefix)
 
     pkgs = [env.find_activated_package(arg) for arg in args]
 

@@ -31,8 +31,8 @@ def main_remove(args, conda, display_help=False):
     if len(args) == 0:
         p.error('too few arguments')
 
-    if opts.dry_run and opts.quiet:
-        p.error('--dry-run and --quiet are mutually exclusive')
+    if opts.dry_run and opts.no_confirm:
+        p.error('--dry-run and --no-confirm are incompatible')
 
     to_remove = []
     for fn in listdir(conda.packages_dir):
@@ -40,8 +40,7 @@ def main_remove(args, conda, display_help=False):
             to_remove.append(fn)
 
     if not to_remove:
-        if not opts.quiet:
-            print 'No packages found to remove, nothing to do'
+        print 'No packages found to remove, nothing to do'
         return
 
     print "    The following packages were found and will be removed (this action may break dependencies in Anaconda environments):"

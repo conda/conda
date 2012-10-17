@@ -64,7 +64,10 @@ def main_create(args, conda, display_help=False):
     if not opts.prefix:
         p.error('must supply --prefix')
 
-    if exists(abspath(opts.prefix)):
+    prefix = abspath(expanduser(opts.prefix))
+    env = conda.lookup_environment(prefix)
+
+    if exists(prefix):
         p.error("'%s' already exists, must supply new directory for --prefix" %
                 opts.prefix)
 
@@ -88,8 +91,7 @@ def main_create(args, conda, display_help=False):
                                 "%s %s" % (pkg.name, pkg.version.vstring))
                                 for pkg in candidates)
 
-    plan = create_create_plan(abspath(expanduser(opts.prefix)),
-                              conda, reqs, opts.no_defaults)
+    plan = create_create_plan(prefix, conda, reqs, opts.no_defaults)
 
     if plan.empty():
         print 'No packages found, nothing to do'
@@ -103,5 +105,7 @@ def main_create(args, conda, display_help=False):
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    mkdir(abspath(opts.prefix))
-    plan.execute(conda.lookup_environment(opts.prefix), opts.no_progress_bar)
+    mkdir(prefix)
+
+    progress_bar = not opts.no_progress_bar
+    plan.execute(env, progress_bar)
