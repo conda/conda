@@ -1,10 +1,12 @@
 from os.path import abspath, expanduser
 from optparse import OptionParser
 
+from anaconda import anaconda
+from config import ROOT_DIR
 from package_plan import create_download_plan
 
 
-def main_download(args, conda, display_help=False):
+def main_download(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda download [options] packages",
         description = "Download Anaconda packages and their dependencies.",
@@ -12,7 +14,7 @@ def main_download(args, conda, display_help=False):
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
+        default = ROOT_DIR,
         help    = "download packages compatible with a specified environment, defaults to %default",
     )
     p.add_option(
@@ -54,6 +56,8 @@ def main_download(args, conda, display_help=False):
 
     if len(args) == 0:
         p.error('too few arguments')
+
+    conda = anaconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)

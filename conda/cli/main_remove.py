@@ -4,7 +4,10 @@ from os import listdir
 from os.path import join
 from shutil import rmtree
 
-def main_remove(args, conda, display_help=False):
+from config import config
+
+
+def main_remove(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda remove [options] [packages]",
         description = "Remove packages from local availability."
@@ -34,8 +37,10 @@ def main_remove(args, conda, display_help=False):
     if opts.dry_run and opts.no_confirm:
         p.error('--dry-run and --no-confirm are incompatible')
 
+    conf = config()
+
     to_remove = []
-    for fn in listdir(conda.packages_dir):
+    for fn in listdir(conf.packages_dir):
         if fn in args:
             to_remove.append(fn)
 
@@ -56,6 +61,6 @@ def main_remove(args, conda, display_help=False):
         if proceed.lower() not in ['y', 'yes']: return
 
     for pkg_name in to_remove:
-        rmtree(join(conda.packages_dir, pkg_name))
+        rmtree(join(conf.packages_dir, pkg_name))
 
 

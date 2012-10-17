@@ -2,9 +2,11 @@
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
+from anaconda import anaconda
+from config import ROOT_DIR
 from package_plan import create_deactivate_plan
 
-def main_deactivate(args, conda, display_help=False):
+def main_deactivate(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda remove [options] packages",
         description = "Deactivate packages in an Anaconda environment.",
@@ -12,7 +14,7 @@ def main_deactivate(args, conda, display_help=False):
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
+        default = ROOT_DIR,
         help    = "deactivate from a specified environment, defaults to %default",
     )
     p.add_option(
@@ -46,6 +48,8 @@ def main_deactivate(args, conda, display_help=False):
 
     if opts.dry_run and opts.no_confirm:
         p.error('--dry-run and --no-confirm are incompatible')
+
+    conda = anaconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)

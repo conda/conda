@@ -1,8 +1,9 @@
 
 from optparse import OptionParser
 
+from config import config
 
-def main_envs(args, conda, display_help=False):
+def main_envs(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda envs",
         description = "List all known Anaconda environments."
@@ -17,7 +18,9 @@ def main_envs(args, conda, display_help=False):
     if len(args) > 0:
         p.error('too many arguments')
 
-    envs = conda.environments
+    conf = config()
+
+    envs = conf.environments
 
     print "Known Anaconda environments:"
     print

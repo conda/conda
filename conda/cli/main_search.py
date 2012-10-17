@@ -3,11 +3,12 @@ from difflib import get_close_matches
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
-
+from anaconda import anaconda
 from constraints import all_of, build_target, satisfies
 from requirement import requirement
 
-def main_search(args, conda, display_help=False):
+
+def main_search(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda search <package>",
         description = "Display information about a specified package."
@@ -21,7 +22,7 @@ def main_search(args, conda, display_help=False):
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = "",
+        default = None,
         help    = "only show results compatible with Anaconda environment at prefix locations",
     )
 
@@ -36,6 +37,8 @@ def main_search(args, conda, display_help=False):
 
     if len(args) > 1:
         p.error('too many arguments')
+
+    conda = anaconda()
 
     pkg_name = args[0]
 

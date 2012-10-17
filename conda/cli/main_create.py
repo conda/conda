@@ -2,11 +2,12 @@ from os import mkdir
 from os.path import abspath, exists, expanduser
 from optparse import OptionParser
 
+from anaconda import anaconda
 from package_plan import create_create_plan
 from requirement import requirement
 
 
-def main_create(args, conda, display_help=False):
+def main_create(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda create [options] [package versions]",
         description = "Create an Anaconda environment at a specified prefix from a list of package versions."
@@ -63,6 +64,8 @@ def main_create(args, conda, display_help=False):
 
     if not opts.prefix:
         p.error('must supply --prefix')
+
+    conda = anaconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)

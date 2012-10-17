@@ -2,9 +2,11 @@
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
+from anaconda import anaconda
+from config import ROOT_DIR
 from package import sort_packages_by_name
 
-def main_list(args, conda, display_help=False):
+def main_list(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda list [options]",
         description = "List activated packages in an Anaconda environment.",
@@ -12,7 +14,7 @@ def main_list(args, conda, display_help=False):
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
+        default = ROOT_DIR,
         help    = "list packages in a specified environment, defaults to %default",
     )
 
@@ -23,6 +25,8 @@ def main_list(args, conda, display_help=False):
     opts, args = p.parse_args(args)
     if len(args) > 0:
         p.error('no arguments expected')
+
+    conda = anaconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)

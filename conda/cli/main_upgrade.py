@@ -2,10 +2,12 @@
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
+from ananconda import ananconda
+from config import ROOT_DIR
 from package_plan import create_upgrade_plan
 
 
-def main_upgrade(args, conda, display_help=False):
+def main_upgrade(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda upgrade [options]",
         description = "Upgrade Anaconda version."
@@ -25,7 +27,7 @@ def main_upgrade(args, conda, display_help=False):
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
+        default = ROOT_DIR,
         help    = "upgrade Anaconda in a specified environment, defaults to %default",
     )
 
@@ -37,6 +39,8 @@ def main_upgrade(args, conda, display_help=False):
 
     if opts.dry_run and opts.no_confirm:
         p.error('--dry-run and --no-confirm are incompatible')
+
+    conda = ananconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)

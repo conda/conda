@@ -2,18 +2,22 @@
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
+from anaconda import anaconda
+from config import ROOT_DIR
 from package_plan import create_activate_plan
 
 
-def main_activate(args, conda, display_help=False):
+def main_activate(args, display_help=False):
+    conda = anaconda()
+
     p = OptionParser(
         usage       = "usage: conda activate [options] [packages]",
-        description = "Activate available packages in the specified Anaconda enviropnment."
+        description = "activate available packages in the specified Anaconda enviropnment."
     )
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
+        default = ROOT_DIR,
         help    = "environment to activate packages in, defaults to %default",
     )
     p.add_option(

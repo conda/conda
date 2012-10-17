@@ -2,19 +2,20 @@
 from os.path import abspath, exists, expanduser
 from optparse import OptionParser
 
+from anaconda import anaconda
 from package_plan import create_install_plan
 
 
-def main_install(args, conda, display_help=False):
+def main_install(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda install [options] [package versions]",
-        description = "Create an Anaconda environment at a specified prefix from a list of package versions."
+        description = "Install a list of packages into a specified Anaconda environment."
     )
     p.add_option(
         '-p', "--prefix",
         action  = "store",
         default = None,
-        help    = "new directory to create environment in",
+        help    = "environment to install packages into",
     )
     p.add_option(
         "--no-progress-bar",
@@ -71,6 +72,8 @@ def main_install(args, conda, display_help=False):
             f.close()
         except:
             p.error('error reading file: %s', opts.file)
+
+    conda = anaconda()
 
     env = conda.lookup_environment(prefix)
 

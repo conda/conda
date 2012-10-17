@@ -2,7 +2,11 @@
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
-def main_depends(args, conda, display_help=False):
+from anaconda import anaconda
+from config import ROOT_DIR
+
+
+def main_depends(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda depends [options] packages",
         description = "Query Anaconda package dependencies.",
@@ -29,7 +33,7 @@ def main_depends(args, conda, display_help=False):
     p.add_option(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
+        default = ROOT_DIR,
         help    = "return dependencies compatible with a specified environment, defaults to %default",
     )
     p.add_option(
@@ -48,6 +52,8 @@ def main_depends(args, conda, display_help=False):
 
     if len(args) == 0:
         p.error('too few arguments')
+
+    conda = anaconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)

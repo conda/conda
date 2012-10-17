@@ -2,8 +2,10 @@
 
 from optparse import OptionParser
 
+from config import config
 
-def main_locations(args, conda, display_help=False):
+
+def main_locations(args, display_help=False):
     p = OptionParser(
         usage       = "usage: conda locations [options]",
         description = "List or modify known locations for Anaconda environments.",
@@ -33,15 +35,17 @@ def main_locations(args, conda, display_help=False):
     # if opts.add and opts.remove:
     #     p.error('--add and --remove are mutually exclusive')
 
+    conf = config()
+
     print "System location for Anaconda environments:"
     print
-    print '    %s' % conda.system_location
+    print '    %s' % conf.system_location
 
-    if conda.user_locations:
+    if conf.user_locations:
         print
         print "User locations for Anaconda environments:"
         print
-        for location in conda.user_locations:
+        for location in conf.user_locations:
             print "    %s" % location
         print
 

@@ -5,6 +5,7 @@ import platform
 import sys
 import yaml
 
+from conda import __version__
 from environment import environment
 
 
@@ -25,13 +26,18 @@ conda command version : %s
 environment locations : %s
 '''
 
+VERSION = __version__
+
+ROOT_DIR = sys.prefix
+
+PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
+
 
 class config(object):
 
-    __slots__ = ['_rc', '_root']
+    __slots__ = ['_rc']
 
     def __init__(self):
-        self._root = sys.prefix
         self._rc = None
 
         # try to load .condarc file from users home directory
@@ -46,7 +52,7 @@ class config(object):
         # otherwise try to load the system .condarc
         if not self._rc:
             try:
-                self._rc = yaml.load(open(join(self._root, '.condarc')))
+                self._rc = yaml.load(open(join(ROOT_DIR, '.condarc')))
                 log.debug('loaded system .condarc')
                 # TODO: test validity of dict (check keys)
             except:
@@ -54,8 +60,7 @@ class config(object):
 
     @property
     def conda_version(self):
-        from conda import __version__
-        return __version__
+        return VERSION
 
     @property
     def target(self):
@@ -79,15 +84,15 @@ class config(object):
 
     @property
     def root_dir(self):
-        return self._root
+        return ROOT_DIR
 
     @property
     def packages_dir(self):
-        return join(self.root_dir, 'pkgs')
+        return PACKAGES_DIR
 
     @property
     def system_location(self):
-        return join(self.root_dir, 'envs')
+        return join(ROOT_DIR, 'envs')
 
     @property
     def user_locations(self):
@@ -102,7 +107,7 @@ class config(object):
 
     @property
     def default_environment(self):
-        return environment(self, self._root)
+        return environment(self, ROOT_DIR)
 
     @property
     def environments(self):

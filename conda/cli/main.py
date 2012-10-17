@@ -17,7 +17,7 @@ conda provides the following commands:
     Basic Package Management
     ========================
 
-    create     : create a new Anaconda environments from a list of specified packages
+    create     : create a new Anaconda environment from a list of specified packages
     install    : install new packages into an existing Anaconda environment
     upgrade    : upgrade packages in a sepcified Anaconda environment
 
@@ -38,7 +38,6 @@ import sys
 from optparse import OptionParser, SUPPRESS_HELP
 from difflib import get_close_matches
 
-from anaconda import anaconda
 from main_activate import main_activate
 from main_create import main_create
 from main_deactivate import main_deactivate
@@ -109,8 +108,7 @@ def main():
     }
 
     if cmd in commands:
-        conda = anaconda()
-        commands[cmd](args, conda, display_help=help)
+        commands[cmd](args, display_help=help)
     else:
         print "conda: %r is not a conda command, see 'conda -h'" % cmd
         close = get_close_matches(cmd, commands.keys())
