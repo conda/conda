@@ -133,7 +133,7 @@ class anaconda(object):
     @property
     def repo_base_urls(self):
         if getenv('CIO_TEST'):
-            return ['http://filer/pkgs']
+            return ['http://filer/test-pkgs', 'http://filer/pkgs']
         elif self._rc:
             return self._rc['repositories']
         else:

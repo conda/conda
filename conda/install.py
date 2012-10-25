@@ -9,7 +9,7 @@ from sfx import yield_lines, sfx_activate
 log = logging.getLogger(__name__)
 
 
-def extract(pkg, env, cleanup=True):
+def extract(pkg, env, cleanup=False):
     '''
     extract a package tarball into the conda packages directory, making
     it available
