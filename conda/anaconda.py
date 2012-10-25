@@ -141,9 +141,8 @@ class anaconda(object):
 
     @property
     def repo_package_urls(self):
-        return sorted([
-             '%s/%s/' % (url, self.platform) for url in self.repo_base_urls
-        ])
+        return ['%s/%s/' % (url, self.platform)
+                for url in self.repo_base_urls]
 
     @property
     def available_packages(self):
