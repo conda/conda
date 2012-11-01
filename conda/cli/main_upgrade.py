@@ -40,7 +40,7 @@ def main_upgrade(args, display_help=False):
     if opts.dry_run and opts.no_confirm:
         p.error('--dry-run and --no-confirm are incompatible')
 
-    conda = ananconda()
+    conda = anaconda()
 
     prefix = abspath(expanduser(opts.prefix))
     env = conda.lookup_environment(prefix)
