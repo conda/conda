@@ -2,7 +2,7 @@
 from optparse import OptionParser
 from os.path import abspath, expanduser
 
-from ananconda import anaconda
+from anaconda import anaconda
 from config import ROOT_DIR
 from package_plan import create_upgrade_plan
 
