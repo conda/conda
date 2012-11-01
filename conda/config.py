@@ -135,7 +135,7 @@ class config(object):
     @property
     def repo_package_urls(self):
         return [
-             '%s/%s/' % (url, self.platform) for url in self.repo_base_urls
+            '%s/%s/' % (url, self.platform) for url in self.repo_base_urls
         ]
 
     @property
@@ -180,4 +180,3 @@ class config(object):
 
     def __repr__(self):
         return 'config()'
-
