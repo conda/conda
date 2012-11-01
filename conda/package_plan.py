@@ -92,7 +92,7 @@ class package_plan(object):
         result = ''
         if lookup_repo:
             for pkg in sort_packages_by_name(pkgs):
-                result += '\n        %s [%s]' % pkg.filename, pkg.location
+                result += '\n        %s [%s]' % (pkg.filename, pkg.location)
         else:
             for pkg in sort_packages_by_name(pkgs):
                 result += '\n        %s' % pkg
