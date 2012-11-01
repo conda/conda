@@ -64,7 +64,7 @@ def main_deactivate(args, display_help=False):
 
     if opts.dry_run: return
 
-    if opts.no_confirm:
+    if not opts.no_confirm:
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
