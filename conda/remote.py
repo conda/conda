@@ -10,47 +10,6 @@ from config import config
 log = logging.getLogger(__name__)
 
 
-def ls_files(file_pat=re.compile(r'(([\w\.-]+)+\.tar\.bz2)')):
-    '''
-    Return a set of all files for the current architecture from all known repositories.
-    '''
-    res = set()
-    conf = config()
-    for url in conf.repo_package_urls:
-        log.debug("fetching files list [%s] ..." % url)
-        try:
-            fi = urllib2.urlopen(url)
-            for match in file_pat.finditer(fi.read()):
-                res.add(match.group(0))
-            fi.close()
-            log.debug("    ...succeeded.")
-        except:
-            log.debug("    ...failed.")
-    return res
-
-
-def file_locations(file_pat=re.compile(r'(([\w\.-]+)+\.tar\.bz2)')):
-    '''
-    Return a dictionary of all files for the current architecture from all known
-    repositories, together with their repository location.
-    '''
-    res = {}
-    conf = config()
-    for url in conf.repo_package_urls:
-        logging.debug("fetching files list [%s] ..." % url)
-        try:
-            fi = urllib2.urlopen(url)
-            for match in file_pat.finditer(fi.read()):
-                fn = match.group()
-                if not res.has_key(fn): res[fn] = url
-            fi.close()
-            log.debug("    ...succeeded.")
-        except:
-            log.debug("    ...failed.")
-
-    return res
-
-
 def fetch_file(fn, md5=None, progress=None):
     '''
     Search all known repositories (in order) for the specified file and
