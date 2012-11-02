@@ -35,110 +35,66 @@ class test_constraints(unittest.TestCase):
         )
 
     def test_satisfies(self):
+
+        d = {
+            "bitarray=0.8.0"   :   True,
+            "foo=0.8.0"        :   False,
+            "bitarray=0.8"     :   True,
+            "bitarray=0.9"     :   False
+
+        }
+
         p = package(bitarray)
-        r = requirement("bitarray=0.8.0")
-        c = constraints.satisfies(r)
-        self.assertEqual(
-            True,
-            c.match(p)
-        )
 
-        r = requirement("foo=0.8.0")
-        c = constraints.satisfies(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
-        r = requirement("bitarray=0.8")
-        c = constraints.satisfies(r)
-        self.assertEqual(
-            True,
-            c.match(p)
-        )
-
-        r = requirement("bitarray=0.9")
-        c = constraints.satisfies(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
+        for req, val in d.items():
+            r = requirement(req)
+            c = constraints.satisfies(r)
+            self.assertEqual(
+                val,
+                c.match(p)
+            )
 
     def test_strict_requires(self):
+
+        d = {
+            "python=2.6"   :   True,
+            "foo=2.6"      :   False,
+            "python=2.7"   :   False,
+            "python=3.1"   :   False,
+            "python=2"     :   False
+
+        }
+
         p = package(bitarray)
-        r = requirement("python=2.6")
-        c = constraints.strict_requires(r)
-        self.assertEqual(
-            True,
-            c.match(p)
-        )
 
-        r = requirement("foo=2.6")
-        c = constraints.strict_requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
-        r = requirement("python=2.7")
-        c = constraints.strict_requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
-        r = requirement("python=3.1")
-        c = constraints.strict_requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
-        # This may change
-        r = requirement("python=2")
-        c = constraints.strict_requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
+        for req, val in d.items():
+            r = requirement(req)
+            c = constraints.strict_requires(r)
+            self.assertEqual(
+                val,
+                c.match(p)
+            )
 
     def test_requires(self):
+
+        d = {
+            "python=2.6"   :   True,
+            "foo=2.6"      :   True,
+            "python=2.7"   :   False,
+            "python=3.1"   :   False,
+            "python=2"     :   False
+
+        }
+
         p = package(bitarray)
-        r = requirement("python=2.6")
-        c = constraints.requires(r)
-        self.assertEqual(
-            True,
-            c.match(p)
-        )
 
-        r = requirement("foo=2.6")
-        c = constraints.requires(r)
-        self.assertEqual(
-            True,
-            c.match(p)
-        )
-
-        r = requirement("python=2.7")
-        c = constraints.requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
-        r = requirement("python=3.1")
-        c = constraints.requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
-        r = requirement("python=2")
-        c = constraints.requires(r)
-        self.assertEqual(
-            False,
-            c.match(p)
-        )
-
+        for req, val in d.items():
+            r = requirement(req)
+            c = constraints.requires(r)
+            self.assertEqual(
+                val,
+                c.match(p)
+            )
 
 if __name__ == '__main__':
     unittest.main()
