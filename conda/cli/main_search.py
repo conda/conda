@@ -1,6 +1,6 @@
 
+from argparse import ArgumentDefaultsHelpFormatter
 from difflib import get_close_matches
-from optparse import OptionParser
 from os.path import abspath, expanduser
 
 from anaconda import anaconda
@@ -8,42 +8,38 @@ from constraints import all_of, build_target, satisfies
 from requirement import requirement
 
 
-def main_search(args, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda search <package>",
-        description = "Display information about a specified package."
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'search',
+        description = "Display information about a specified package.",
+        help        = "Display information about a specified package.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    p.add_option(
-        '-r', "--show-requires",
-        action  = "store_true",
-        default = False,
-        help    = "also display package requirements, default is False",
-    )
-    p.add_option(
+    p.add_argument(
         '-p', "--prefix",
         action  = "store",
         default = None,
         help    = "only show results compatible with Anaconda environment at prefix locations",
     )
+    p.add_argument(
+        '-s', "--show-requires",
+        action  = "store_true",
+        default = False,
+        help    = "also display package requirements",
+    )
+    p.add_argument(
+        'pkg_name',
+        action  = "store",
+        metavar = 'package_name',
+    )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-
-    if len(args) == 0:
-        p.error('too few arguments')
-
-    if len(args) > 1:
-        p.error('too many arguments')
-
+def execute(args, parser):
     conda = anaconda()
 
-    pkg_name = args[0]
-
-    if pkg_name not in conda.index.package_names:
-        print "Unknown package '%s'." % pkg_name,
+    if args.pkg_name not in conda.index.package_names:
+        print "Unknown package '%s'." % args.pkg_name,
         close = get_close_matches(args[0], conda.index.package_names)
         if close:
             print 'Did you mean one of these?'
@@ -54,7 +50,7 @@ def main_search(args, display_help=False):
         return
 
     try:
-        req = requirement(pkg_name)
+        req = requirement(args.pkg_name)
         pkgs = conda.index.find_matches(
             all_of(
                 satisfies(req), build_target(conda.target)
@@ -64,21 +60,19 @@ def main_search(args, display_help=False):
     except RuntimeError:
         pkgs = conda.index.find_matches(
             build_target(conda.target),
-            conda.index.lookup_from_name(pkg_name)
+            conda.index.lookup_from_name(args.pkg_name)
         )
 
-    if opts.prefix:
-        prefix = abspath(expanduser(opts.prefix))
+    if args.prefix:
+        prefix = abspath(expanduser(args.prefix))
         env = conda.lookup_environment(prefix)
         pkgs = conda.index.find_matches(env.requirements, pkgs)
-
-    if opts.prefix:
-        compat_string = ' compatible with environment %s' % opts.prefix
+        compat_string = ' compatible with environment %s' % args.prefix
     else:
         compat_string = ''
 
     if len(pkgs) == 0:
-        print "No matches found for '%s'%s" % (pkg_name, compat_string)
+        print "No matches found for '%s'%s" % (args.pkg_name, compat_string)
         return
 
     if len(pkgs) == 1:
@@ -88,5 +82,5 @@ def main_search(args, display_help=False):
 
     for pkg in pkgs:
         print
-        pkg.print_info(opts.show_requires)
+        pkg.print_info(args.show_requires)
     print

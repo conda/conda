@@ -1,5 +1,5 @@
 
-from optparse import OptionParser
+from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser
 
 from anaconda import anaconda
@@ -7,54 +7,55 @@ from config import ROOT_DIR
 from package_plan import create_activate_plan
 
 
-def main_activate(args, display_help=False):
-    conda = anaconda()
-
-    p = OptionParser(
-        usage       = "usage: conda activate [options] [packages]",
-        description = "activate available packages in the specified Anaconda enviropnment."
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'activate',
+        description     = "activate available packages in the specified Anaconda enviropnment.",
+        help            = "activate available packages in the specified Anaconda enviropnment.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    p.add_option(
-        '-p', "--prefix",
+    p.add_argument(
+        "--confirm",
         action  = "store",
-        default = ROOT_DIR,
-        help    = "environment to activate packages in, defaults to %default",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "ask for confirmation before activating packages in Anaconda environment",
     )
-    p.add_option(
-        '-f', "--follow-deps",
-        action  = "store_true",
-        default = False,
-        help    = "activate dependencies automatically",
-    )
-    p.add_option(
+    p.add_argument(
         "--dry-run",
         action  = "store_true",
         default = False,
         help    = "display packages to be modified, without actually executing",
     )
-    p.add_option(
-        "--no-confirm",
+    p.add_argument(
+        '-p', "--prefix",
+        action  = "store",
+        default = ROOT_DIR,
+        help    = "Anaconda environment to activate packages in",
+    )
+    p.add_argument(
+        '-f', "--follow-deps",
         action  = "store_true",
         default = False,
-        help    = "activate without confirmation",
+        help    = "activate dependencies automatically",
     )
+    p.add_argument(
+        'packages',
+        metavar = 'package_version',
+        action  = "store",
+        nargs   = '*',
+        help    = "package versions to install into Anaconda environment",
+    )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
+def execute(args, parser):
+    conda = anaconda()
 
-    if len(args) == 0:
-        p.error('too few arguments')
-
-    if opts.dry_run and opts.no_confirm:
-        p.error('--dry-run and --no-confirm are incompatible')
-
-    prefix = abspath(expanduser(opts.prefix))
+    prefix = abspath(expanduser(args.prefix))
     env = conda.lookup_environment(prefix)
 
-    plan = create_activate_plan(env, args, opts.follow_deps)
+    plan = create_activate_plan(env, args.packages, args.follow_deps)
 
     if plan.empty():
         print 'No packages found to activate, nothing to do'
@@ -62,9 +63,9 @@ def main_activate(args, display_help=False):
 
     print plan
 
-    if opts.dry_run: return
+    if args.dry_run: return
 
-    if not opts.no_confirm:
+    if args.confirm == "yes":
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 

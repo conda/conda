@@ -1,23 +1,20 @@
 
-from optparse import OptionParser
+from argparse import ArgumentDefaultsHelpFormatter
 
 from config import config
 
-def main_envs(args, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda envs",
-        description = "List all known Anaconda environments."
+
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'envs',
+        description     = "List all known Anaconda environments.",
+        help            = "List all known Anaconda environments.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-
-    if len(args) > 0:
-        p.error('too many arguments')
-
+def execute(args, parser):
     conf = config()
 
     envs = conf.environments

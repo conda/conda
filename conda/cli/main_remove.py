@@ -1,5 +1,5 @@
 
-from optparse import OptionParser
+from argparse import ArgumentDefaultsHelpFormatter
 from os import listdir
 from os.path import join
 from shutil import rmtree
@@ -7,56 +7,53 @@ from shutil import rmtree
 from config import config
 
 
-def main_remove(args, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda remove [options] [packages]",
-        description = "Remove packages from local availability."
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'remove',
+        description     = "Remove packages from local availability.",
+        help            = "Remove packages from local availability.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    p.add_option(
+    p.add_argument(
+        "--confirm",
+        action  = "store",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "ask for confirmation before removing packages",
+    )
+    p.add_argument(
         '-d', "--dry-run",
         action  = "store_true",
         default = False,
-        help    = "display packages to be modified, without actually executing",
+        help    = "display packages to be removed, without actually executing",
     )
-    p.add_option(
-        "--no-confirm",
-        action  = "store_true",
-        default = False,
-        help    = "activate without confirmation",
+    p.add_argument(
+        'canonical_names',
+        action  = "store",
+        metavar = 'canonical_name',
+        nargs   = '+',
     )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-
-    if len(args) == 0:
-        p.error('too few arguments')
-
-    if opts.dry_run and opts.no_confirm:
-        p.error('--dry-run and --no-confirm are incompatible')
-
+def execute(args, parser):
     conf = config()
 
-    to_remove = []
-    for fn in listdir(conf.packages_dir):
-        if fn in args:
-            to_remove.append(fn)
+    to_remove = set(listdir(conf.packages_dir)) & set(args.canonical_names)
 
     if not to_remove:
         print 'No packages found to remove, nothing to do'
         return
 
-    print "    The following packages were found and will be removed (this action may break dependencies in Anaconda environments):"
+    print "    The following packages were found and will be removed from local availability:"
     print
     for pkg_name in to_remove:
         print "         %s" % pkg_name
     print
 
-    if opts.dry_run: return
+    if args.dry_run: return
 
-    if not opts.no_confirm:
+    if args.confirm == "yes":
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 

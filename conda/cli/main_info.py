@@ -1,22 +1,20 @@
 
-from optparse import OptionParser
+from argparse import ArgumentDefaultsHelpFormatter
 
 from config import config
 
-def main_info(args, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda info",
-        description = "Display information about current Anaconda install."
+
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'info',
+        description     = "Display information about current Anaconda install.",
+        help            = "Display information about current Anaconda install.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-
-    if len(args) > 0:
-        p.error('too many arguments')
+def execute(args, parser):
 
     conf = config()
 

@@ -99,7 +99,7 @@ class package_plan(object):
         return result
 
 
-def create_create_plan(prefix, conda, reqs, no_defaults):
+def create_create_plan(prefix, conda, reqs, use_defaults):
     '''
     This functions creates a package plan for activating packages in a new
     Anaconda environement, including all of their required dependencies. The
@@ -130,7 +130,7 @@ def create_create_plan(prefix, conda, reqs, no_defaults):
     all_reqs = idx.get_deps(pkgs) | reqs
 
     # add default python and numpy requirements if needed
-    if not no_defaults:
+    if use_defaults:
         for req in all_reqs:
             if req.name == 'python':
                 apply_default_requirement(reqs, requirement('python 2.7'))

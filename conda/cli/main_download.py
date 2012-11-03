@@ -1,68 +1,73 @@
+
+from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser
-from optparse import OptionParser
 
 from anaconda import anaconda
 from config import ROOT_DIR
 from package_plan import create_download_plan
 
 
-def main_download(args, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda download [options] packages",
-        description = "Download Anaconda packages and their dependencies.",
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'download',
+        description     = "Download Anaconda packages and their dependencies.",
+        help            = "Download Anaconda packages and their dependencies.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    p.add_option(
-        '-p', "--prefix",
+    p.add_argument(
+        "--confirm",
         action  = "store",
-        default = ROOT_DIR,
-        help    = "download packages compatible with a specified environment, defaults to %default",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "ask for confirmation before downloading packages",
     )
-    p.add_option(
-        '-n', "--no-deps",
+    p.add_argument(
+        "--dry-run",
         action  = "store_true",
         default = False,
-        help    = "only download specified packages, no dependencies",
+        help    = "display packages to be downloaded, without actually executing",
     )
-    p.add_option(
+    p.add_argument(
         '-f', "--force",
         action  = "store_true",
         default = False,
         help    = "force package downloads even when specific package is already available",
     )
-    p.add_option(
-        "--no-progress-bar",
+    p.add_argument(
+        '-n', "--no-deps",
         action  = "store_true",
         default = False,
-        help    = "do not display progress bar for any downloads",
+        help    = "only download specified packages, no dependencies",
     )
-    p.add_option(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be modified, without actually executing",
+    p.add_argument(
+        '-p', "--prefix",
+        action  = "store",
+        default = ROOT_DIR,
+        help    = "download packages compatible with the specified environment",
     )
-    p.add_option(
-        "--no-confirm",
-        action  = "store_true",
-        default = False,
-        help    = "download without confirmation",
+    p.add_argument(
+        "--progress-bar",
+        action  = "store",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "display progress bar for package downloads",
     )
+    p.add_argument(
+        'canonical_names',
+        action  = "store",
+        metavar = 'canonical_name',
+        nargs   = '+',
+    )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-
-    if len(args) == 0:
-        p.error('too few arguments')
-
+def execute(args, parser):
     conda = anaconda()
 
-    prefix = abspath(expanduser(opts.prefix))
+    prefix = abspath(expanduser(args.prefix))
     env = conda.lookup_environment(prefix)
 
-    plan = create_download_plan(env, args, opts.no_deps, opts.force)
+    plan = create_download_plan(env, args.canonical_names, args.no_deps, args.force)
 
     if plan.empty():
         print 'All packages already downloaded, nothing to do'
@@ -70,12 +75,11 @@ def main_download(args, display_help=False):
 
     print plan
 
-    if opts.dry_run:
+    if args.dry_run:
         return
 
-    if not opts.no_confirm:
+    if args.confirm == "yes":
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    progress_bar = not opts.no_progress_bar
-    plan.execute(env, progress_bar)
+    plan.execute(env, args.progress_bar=="yes")
