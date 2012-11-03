@@ -10,8 +10,8 @@ from package_plan import create_activate_plan
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'activate',
-        description     = "activate available packages in the specified Anaconda enviropnment.",
-        help            = "activate available packages in the specified Anaconda enviropnment.",
+        description     = "Activate available packages in the specified Anaconda enviropnment.",
+        help            = "Activate available packages in the specified Anaconda enviropnment.",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
