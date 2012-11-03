@@ -32,9 +32,6 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 
-from difflib import get_close_matches
-import re
-
 import conda_argparse as argparse
 import main_activate
 import main_create
@@ -71,7 +68,6 @@ def main():
     )
 
     sub_parsers = p.add_subparsers(
-        title   = 'informational commands',
         metavar = 'command',
         dest    = 'cmd',
     )
@@ -93,22 +89,8 @@ def main():
     try:
         args = p.parse_args()
     except argparse.ArgumentError as e:
-        # this is incredibly lame, but argparse stupidly does not expose reasonable hooks
-        # for customizing error handling
-        m = re.compile(r"invalid choice: '(\w+)'").match(e.message)
-        if m:
-            cmd = m.group(1)
-            print "conda: error: %r is not a conda command, see 'conda -h'" % cmd
-            close = get_close_matches(cmd, sub_parsers.choices.keys())
-            if close:
-                print
-                print 'Did you mean one of these?'
-                print
-                for s in close:
-                    print '    %s' % s
-                print
-        else:
-            print e
+        p.print_usage()
+        print e.message
         raise SystemExit(1)
 
     log_level = getattr(logging, args.log_level.upper())

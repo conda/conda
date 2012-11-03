@@ -25,6 +25,21 @@ class ArgumentParser(__ArgumentParser):
         exc = sys.exc_info()[1]
         if exc:
             exc.argument = self._get_action_from_name(exc.argument_name)
+            # this is incredibly lame, but argparse stupidly does not expose reasonable hooks
+            # for customizing error handling
+            import re
+            m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
+            if m:
+                cmd = m.group(1)
+                msg = "conda: error: %r is not a conda command, see 'conda -h'" % cmd
+                from difflib import get_close_matches
+                close = get_close_matches(cmd, exc.argument.choices.keys())
+                if close:
+                    msg += '\n\nDid you mean one of these?\n\n'
+                    for s in close:
+                        msg += '    %s' % s
+                    msg += "\n"
+                exc.message = msg
             raise exc
         super(ArgumentParser, self).error(message)
 
