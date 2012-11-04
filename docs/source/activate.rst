@@ -2,7 +2,7 @@
 activate
 --------
 
-Activate locally available packages in the specified Anaconda enviropnment.
+Activate locally available packages in the specified Anaconda environment.
 
 **usage**: ``conda activate [-h] [--confirm {yes,no}] [--dry-run] [-p PREFIX] canonical_name [canonical_name ...]``
 
