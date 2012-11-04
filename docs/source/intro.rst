@@ -10,25 +10,33 @@ The conda command is the primary means of interacting with and manipulating Anac
 Anaconda Overview
 -----------------
 
-Anaconda is system for finding and installing software. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, programs, or other components. Anaconda keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An **environment** is a filesystem directory that contains a specfic collection of packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. Anacond makes this kind of mixing and matching easy.
+Anaconda is system for finding and installing software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. Anaconda keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An **environment** is a filesystem directory that contains a specfic collection of Anaconda packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. Anaconda makes this kind of mixing and matching easy.
 
-The primary interface to Anaconda package manangement is the **conda** command.
+
+Anaconda packages are downloaded from remote **repositories**. The conda command starts with a default set of repositories to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once and Anaconda package has been downloaded, it is said to be **locally available**.
+
+Anaconda environments are simply directories, and may be created anywhere. However, Anaconda has the notion of **locations** which are also simply directories. Anaconda environments created in these locations are known to Anaconda, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
+
+The primary interface for managing an Anaconda installation is the **conda** command. The conda command can query and search the package database and current Anaconda installation, create new Anaconda environments, and install and upgrade packages in Anaconda environments.
+
 
 --------------------------
 Package Naming Conventions
 --------------------------
 
+Names and versions of software packages do not follow any prescribed rules.  In order to facilitate communication and documentation, Anaconda employs the following naming conventions with respect to packages:
+
 **package name**
-    The name of a package, without any reference to a particular version. Anaconda package names may contain lowercase alpha characters, numeric digits, or "-".
+    The name of a package, without any reference to a particular version. Anaconda package names are normalized, and may contain only lowercase alpha characters, numeric digits, underscores, or hyphens. In usage documenation, these will be referred to by ``package_name``.
 
 **package version**
-    A version, often similar to *X.Y* or *X.Y.Z*, but may take other forms as well.
+    A version number or string, often similar to *X.Y* or *X.Y.Z*, but may take other forms as well.
 
 **build string**
-    An arbitrary string that identifies a particular build of a package. It may contain suggestive mnemonics but these are subject to change and should not be relied upon or attempted to be parsed.
+    An arbitrary string that identifies a particular build of a package for Anaconda. It may contain suggestive mnemonics but these are subject to change and should not be relied upon or attempted to be parsed for any specific information.
 
 **canonical name**
-    The canonical name consists of the package name, version, and build string joined together by hyphens: *name*-*version*-*buildstring*
+    The canonical name consists of the package name, version, and build string joined together by hyphens: *name*-*version*-*buildstring*. In usage documenation, these will be referred to by ``canonical_name``.
 
 **file name**
     Anaconda package filenames are canonical names, plus the suffix *.tar.bz2*.
@@ -43,10 +51,11 @@ These components are illustrated in the following figure:
 
 Additionally, a **package specification** is a package name, together with a package version (which may be partial, or absent), joined by "=". Here are some examples:
 
-* python=2.7.3
-* python=2.7
-* python
+* *python=2.7.3*
+* *python=2.7*
+* *python*
 
+In usage documenation, these will be referred to by ``package_spec``.
 
 -------------------
 Directory Structure
@@ -61,7 +70,7 @@ The Anaconda installation has the following directory structure:
         Also referred to as *PKGS_DIR*. This directory contains exploded packages, ready to be activated in Anaconda environments. Each package resides in a subdiretory corresponding to its canonical name.
 
     */envs*
-        A default location for additional Anaconda environments to be created.
+        The system location for additional Anaconda environments to be created.
 
     |   */bin*
     |   */include*
