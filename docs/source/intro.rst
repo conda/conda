@@ -10,14 +10,13 @@ The conda command is the primary means of interacting with and manipulating Anac
 Anaconda Overview
 -----------------
 
-Anaconda is system for finding and installing software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. Anaconda keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An **environment** is a filesystem directory that contains a specfic collection of Anaconda packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. Anaconda makes this kind of mixing and matching easy.
+Anaconda is system for finding and installing software packages. The primary interface for managing an Anaconda installation is the **conda** command. The conda command can query and search the package database and current Anaconda installation, create new Anaconda environments, and install and upgrade packages in Anaconda environments.
 
+An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. Anaconda keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specfic collection of Anaconda packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. Anaconda makes this kind of mixing and matching easy.
 
 Anaconda packages are downloaded from remote **repositories**. The conda command starts with a default set of repositories to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once and Anaconda package has been downloaded, it is said to be **locally available**.
 
-Anaconda environments are simply directories, and may be created anywhere. However, Anaconda has the notion of **locations** which are also simply directories. Anaconda environments created in these locations are known to Anaconda, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
-
-The primary interface for managing an Anaconda installation is the **conda** command. The conda command can query and search the package database and current Anaconda installation, create new Anaconda environments, and install and upgrade packages in Anaconda environments.
+Since naconda environments are simply directories, they may be created anywhere. However, Anaconda has a notion of **locations** which are also simply directories that are known to conda, and contain environments within. Anaconda environments created in such locations are said to be **known**, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
 
 
 --------------------------
