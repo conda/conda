@@ -2,7 +2,7 @@
 upgrade
 -------
 
-Upgrade Anaconda packges to their latest version.
+Upgrade Anaconda packages to their latest version.
 
 usage: ``conda upgrade [-h] [--confirm {yes,no}] [--dry-run] [-p PREFIX] [package_name [package_name ...]]``
 
@@ -12,6 +12,6 @@ usage: ``conda upgrade [-h] [--confirm {yes,no}] [--dry-run] [-p PREFIX] [packag
 optional arguments:
     -h, --help      show this help message and exit
     --confirm       ask for confirmation before upgrading packages (default: yes)
-    --dry-run       display packages to be modified, without actually exectuting
+    --dry-run       display packages to be modified, without actually executing
     -p PREFIX, --prefix PREFIX
                     upgrade packages in the specified Anaconda environment (default: ROOT_DIR)
