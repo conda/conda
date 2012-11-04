@@ -11,10 +11,7 @@ Activate locally available packages in the specified Anaconda enviropnment.
 
 optional arguments:
     -h, --help      show this help message and exit
-    --confirm       ask for confirmation before activating packages in
-                    Anaconda environment (default: yes)
-    --dry-run       display packages to be activated, without actually
-                    executing (default: False)
+    --confirm       ask for confirmation before activating packages in Anaconda environment (default: yes)
+    --dry-run       display packages to be activated, without actually executing
     -p PREFIX, --prefix PREFIX
-                    Anaconda environment to activate packages in (default:
-                    ROOT_DIR)
+                    Anaconda environment to activate packages in (default: ROOT_DIR)

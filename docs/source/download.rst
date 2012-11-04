@@ -11,11 +11,7 @@ Download Anaconda packages and their dependencies.
 
 optional arguments:
     -h, --help          show this help message and exit
-    --confirm           ask for confirmation before downloading packages
-                        (default: yes)
-    --dry-run           display packages to be downloaded, without actually
-                        executing (default: False)
-    -f, --force         force package downloads even when specific package is
-                        already available (default: False)
-    --progress-bar      display progress bar for package downloads (default:
-                        yes)
+    --confirm           ask for confirmation before downloading packages (default: yes)
+    --dry-run           display packages to be downloaded, without actually executing
+    -f, --force         force package downloads even when specific package is already available
+    --progress-bar      display progress bar for package downloads (default: yes)

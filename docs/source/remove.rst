@@ -14,7 +14,5 @@ Remove packages from local availability.
 
 optional arguments:
     -h, --help      show this help message and exit
-    --confirm       ask for confirmation before removing packages (default:
-                    yes)
-    -d, --dry-run   display packages to be removed, without actually
-                    executing (default: False)
+    --confirm       ask for confirmation before removing packages (default: yes)
+    -d, --dry-run   display packages to be removed, without actually executing
