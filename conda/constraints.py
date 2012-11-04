@@ -44,7 +44,7 @@ class any_of(package_constraint):
 
 class negate(package_constraint):
     '''
-    Matches if a package matches any of the specified constraints
+    Matches if a package does NOT match the specified constraint
     '''
     def __init__(self, constraint):
         self._constraint = constraint

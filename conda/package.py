@@ -56,6 +56,10 @@ class package(object):
     def filename(self):
         return self._filename
 
+    @property
+    def location(self):
+        return self._info.get('location', 'unkown')
+
     def matches(self, constraint):
         return constraint.match(self)
 

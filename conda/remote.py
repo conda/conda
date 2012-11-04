@@ -4,7 +4,7 @@ import urllib2
 import logging
 from os.path import join
 
-from anaconda import anaconda
+from config import config
 
 
 log = logging.getLogger(__name__)
@@ -15,11 +15,11 @@ def fetch_file(fn, md5=None, progress=None):
     Search all known repositories (in order) for the specified file and
     download it, optionally checking an md5 checksum.
     '''
-    conda = anaconda()
-    path = join(conda.packages_dir, fn)
+    conf = config()
+    path = join(conf.packages_dir, fn)
     pp = path + '.part'
     fi = None
-    for url in conda.repo_package_urls:
+    for url in conf.repo_package_urls:
         try:
             fi = urllib2.urlopen(url + fn)
             log.debug("fetching: %s [%s]" % (fn, url))

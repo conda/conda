@@ -1,30 +1,34 @@
 
-from optparse import OptionParser
+from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser
 
+from anaconda import anaconda
+from config import ROOT_DIR
 from package import sort_packages_by_name
 
-def main_list(args, conda, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda list [options]",
-        description = "List activated packages in an Anaconda environment.",
+
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'list',
+        description     = "List activated packages in an Anaconda environment.",
+        help            = "List activated packages in an Anaconda environment.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    p.add_option(
+    p.add_argument(
         '-p', "--prefix",
         action  = "store",
-        default = conda.root_dir,
-        help    = "list packages in a specified environment, defaults to %default",
+        default = ROOT_DIR,
+        help    = "list packages in the specified Anaconda environment",
     )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-    if len(args) > 0:
-        p.error('no arguments expected')
+def execute(args, parser):
+    conda = anaconda()
 
-    env = conda.lookup_environment(abspath(expanduser(opts.prefix)))
+    prefix = abspath(expanduser(args.prefix))
+
+    env = conda.lookup_environment(prefix)
 
     for pkg in sort_packages_by_name(env.activated):
         print '%-25s %s' % (pkg.name, pkg.version)

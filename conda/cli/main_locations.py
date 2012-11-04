@@ -1,47 +1,31 @@
 
 
-from optparse import OptionParser
+from argparse import ArgumentDefaultsHelpFormatter
 
+from config import config
 
-def main_locations(args, conda, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda locations [options]",
-        description = "List or modify known locations for Anaconda environments.",
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'locations',
+        description = "List known locations for Anaconda environments.",
+        help        = "List known locations for Anaconda environments.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    # p.add_option(
-    #     '-a', "--add",
-    #     action  = "store",
-    #     default = None,
-    #     help    = "path to add as an Anaconda location",
-    # )
-    # p.add_option(
-    #     '-r', "--remove",
-    #     action  = "store",
-    #     default = None,
-    #     help    = "path to remove as an Anaconda location",
-    # )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
-
-    if len(args) > 0:
-        p.error('too many arguments')
-
-    # if opts.add and opts.remove:
-    #     p.error('--add and --remove are mutually exclusive')
+def execute(args, parser):
+    conf = config()
 
     print "System location for Anaconda environments:"
     print
-    print '    %s' % conda.system_location
+    print '    %s' % conf.system_location
 
-    if conda.user_locations:
+    if conf.user_locations:
         print
         print "User locations for Anaconda environments:"
         print
-        for location in conda.user_locations:
+        for location in conf.user_locations:
             print "    %s" % location
         print
 

@@ -46,17 +46,18 @@ class package_plan(object):
         self.missing       = set()
         self.upgrade       = None
 
-    def execute(self, env, no_progress_bar=False):
+    def execute(self, env, progress_bar=True):
         '''
         Perform the operations contained in the package plan
         '''
         for pkg in self.downloads:
-            if no_progress_bar:
-                progress = None
-            else:
-                widgets = [' ', Percentage(), ' ', Bar(), ' ', ETA(),
-                           ' ', FileTransferSpeed()]
+            if progress_bar:
+                widgets = [
+                    ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ', FileTransferSpeed()
+                ]
                 progress = ProgressBar(widgets=widgets)
+            else:
+                progress = None
             fetch_file(pkg.filename, progress=progress)
             if sys.platform != 'win32':
                 extract(pkg, env)
@@ -91,14 +92,14 @@ class package_plan(object):
         result = ''
         if lookup_repo:
             for pkg in sort_packages_by_name(pkgs):
-                result += '\n        %s' % pkg.filename
+                result += '\n        %s [%s]' % (pkg.filename, pkg.location)
         else:
             for pkg in sort_packages_by_name(pkgs):
                 result += '\n        %s' % pkg
         return result
 
 
-def create_create_plan(prefix, conda, reqs, no_defaults):
+def create_create_plan(prefix, conda, reqs, use_defaults):
     '''
     This functions creates a package plan for activating packages in a new
     Anaconda environement, including all of their required dependencies. The
@@ -129,7 +130,7 @@ def create_create_plan(prefix, conda, reqs, no_defaults):
     all_reqs = idx.get_deps(pkgs) | reqs
 
     # add default python and numpy requirements if needed
-    if not no_defaults:
+    if use_defaults:
         for req in all_reqs:
             if req.name == 'python':
                 apply_default_requirement(reqs, requirement('python 2.7'))

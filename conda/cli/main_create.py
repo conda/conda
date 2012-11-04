@@ -1,82 +1,91 @@
+
+from argparse import ArgumentDefaultsHelpFormatter
 from os import mkdir
 from os.path import abspath, exists, expanduser
-from optparse import OptionParser
 
+from anaconda import anaconda
 from package_plan import create_create_plan
 from requirement import requirement
 
 
-def main_create(args, conda, display_help=False):
-    p = OptionParser(
-        usage       = "usage: conda create [options] [package versions]",
-        description = "Create an Anaconda environment at a specified prefix from a list of package versions."
+def configure_parser(sub_parsers):
+    p = sub_parsers.add_parser(
+        'create',
+        description     = "Create an Anaconda environment at a specified prefix from a list of package versions.",
+        help            = "Create an Anaconda environment at a specified prefix from a list of package versions.",
+        formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    p.add_option(
-        '-p', "--prefix",
+    group = p.add_mutually_exclusive_group()
+    p.add_argument(
+        "--confirm",
         action  = "store",
-        default = None,
-        help    = "new directory to create environment in",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "ask for confirmation before creating Anaconda environment",
     )
-    p.add_option(
-        '-f', "--file",
-        action  = "store",
-        default = None,
-        help    = "filename to read package versions from",
-    )
-    p.add_option(
-        '-n', "--no-defaults",
-        action  = "store_true",
-        default = False,
-        help    = "do not select default versions for unspecified requirements",
-    )
-    p.add_option(
-        "--no-progress-bar",
-        action  = "store_true",
-        default = False,
-        help    = "do not display progress bar for any downloads",
-    )
-    p.add_option(
+    p.add_argument(
         "--dry-run",
         action  = "store_true",
         default = False,
         help    = "display packages to be modified, without actually executing",
     )
-    p.add_option(
-        "--no-confirm",
-        action  = "store_true",
-        default = False,
-        help    = "create Anaconda environment without confirmation",
+    group.add_argument(
+        '-f', "--file",
+        action  = "store",
+        help    = "filename to read package versions from",
     )
+    group.add_argument(
+        '-p', "--packages",
+        action  = "store",
+        metavar = 'package_version',
+        nargs   = '*',
+        help    = "package versions to install into new Anaconda environment",
+    )
+    p.add_argument(
+        "--progress-bar",
+        action  = "store",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "display progress bar for package downloads",
+    )
+    p.add_argument(
+        "--use-defaults",
+        action  = "store",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "select default versions for unspecified requirements when possible",
+    )
+    p.add_argument(
+        'prefix',
+        action  = "store",
+        help    = "new directory to create Anaconda environment in",
+    )
+    p.set_defaults(func=execute)
 
-    if display_help:
-        p.print_help()
-        return
 
-    opts, args = p.parse_args(args)
+def execute(args, parser):
+    pkg_versions = args.packages
 
-    if len(args) == 0 and not opts.file:
-        p.error('too few arguments, must supply command line packages '
-                'versions or --file')
+    if len(pkg_versions) == 0 and not args.file:
+        parser.error('too few arguments, must supply command line packages versions or --file')
 
-    if len(args) > 0 and opts.file:
-        p.error('must supply command line packages, or --file, but not both')
+    conda = anaconda()
 
-    if not opts.prefix:
-        p.error('must supply --prefix')
+    prefix = abspath(expanduser(args.prefix))
+    env = conda.lookup_environment(prefix)
 
-    if exists(abspath(opts.prefix)):
-        p.error("'%s' already exists, must supply new directory for --prefix" %
-                opts.prefix)
+    if exists(prefix):
+        parser.error("'%s' already exists, must supply new directory for --prefix" % args.prefix)
 
-    if opts.file:
+    if args.file:
         try:
-            f = open(abspath(opts.file))
+            f = open(abspath(args.file))
             req_strings = [line for line in f]
             f.close()
         except:
-            p.error('error reading file: %s', opts.file)
+            parser.error('could not read file: %s', args.file)
     else:
-        req_strings = args
+        req_strings = pkg_versions
 
     reqs = set()
     for req_string in req_strings:
@@ -88,8 +97,7 @@ def main_create(args, conda, display_help=False):
                                 "%s %s" % (pkg.name, pkg.version.vstring))
                                 for pkg in candidates)
 
-    plan = create_create_plan(abspath(expanduser(opts.prefix)),
-                              conda, reqs, opts.no_defaults)
+    plan = create_create_plan(prefix, conda, reqs, args.use_defaults=="yes")
 
     if plan.empty():
         print 'No packages found, nothing to do'
@@ -97,11 +105,12 @@ def main_create(args, conda, display_help=False):
 
     print plan
 
-    if opts.dry_run: return
+    if args.dry_run: return
 
-    if not opts.no_confirm:
+    if args.confirm == "yes":
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    mkdir(abspath(opts.prefix))
-    plan.execute(conda.lookup_environment(opts.prefix), opts.no_progress_bar)
+    mkdir(prefix)
+
+    plan.execute(env, args.progress_bar=="yes")
