@@ -4,7 +4,7 @@ upgrade
 
 Upgrade Anaconda packges to their latest version.
 
-usage: conda upgrade [-h] [--confirm {yes,no}] [--dry-run] [-p PREFIX] [package_name [package_name ...]]
+usage: ``conda upgrade [-h] [--confirm {yes,no}] [--dry-run] [-p PREFIX] [package_name [package_name ...]]``
 
 *package_name*
     names of packages to upgrade (defaults to all if not specified)

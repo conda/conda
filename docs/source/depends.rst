@@ -4,7 +4,7 @@ depends
 
 Query Anaconda package dependencies.
 
-**usage**: conda depends [-h] [-m MAX_DEPTH] [-n] [-p PREFIX] [-r] [-v] package_name [package_name ...]
+**usage**: ``conda depends [-h] [-m MAX_DEPTH] [-n] [-p PREFIX] [-r] [-v] package_name [package_name ...]``
 
 *package_name*
     package name to query on

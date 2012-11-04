@@ -6,7 +6,7 @@ Remove packages from local availability.
 
 .. Note:: This command removes packages from PKGS_DIR, but this action will not affect any existing Anaconda environments.
 
-**usage**: conda remove [-h] [--confirm {yes,no}] [-d] canonical_name [canonical_name ...]
+**usage**: ``conda remove [-h] [--confirm {yes,no}] [-d] canonical_name [canonical_name ...]``
 
 *canonical_name*
     canonical name of package to remove from local availability

@@ -4,7 +4,7 @@ search
 
 Display information about a specified package.
 
-**usage**: conda search [-h] [-p PREFIX] [-s] package_name
+**usage**: ``conda search [-h] [-p PREFIX] [-s] package_name``
 
 *package_name*
     name of package to search and display information for

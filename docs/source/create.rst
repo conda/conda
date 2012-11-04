@@ -4,7 +4,7 @@ create
 
 Create an Anaconda environment at a specified prefix from a list of package versions.
 
-**usage**: conda create [-h] [--confirm {yes,no}] [--dry-run] [-f FILE | -p [package_spec [package_spec ...]]] [--progress-bar {yes,no}] [--use-defaults {yes,no}] prefix
+**usage**: ``conda create [-h] [--confirm {yes,no}] [--dry-run] [-f FILE | -p [package_spec [package_spec ...]]] [--progress-bar {yes,no}] [--use-defaults {yes,no}] prefix``
 
 *prefix*
     new directory to create Anaconda environment in

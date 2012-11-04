@@ -4,7 +4,7 @@ install
 
 Install packages into a specified Anaconda environment.
 
-**usage**: conda install [-h] [--confirm {yes,no}] [--dry-run] [-f FILE] [-p PREFIX] [--progress-bar {yes,no}] [package_spec [package_spec ...]]
+**usage**: ``conda install [-h] [--confirm {yes,no}] [--dry-run] [-f FILE] [-p PREFIX] [--progress-bar {yes,no}] [package_spec [package_spec ...]]``
 
 *package_spec*
     package name and (optional) version to install into a specified Anaconda environment

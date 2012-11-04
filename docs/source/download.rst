@@ -4,7 +4,7 @@ download
 
 Download Anaconda packages and their dependencies.
 
-**usage**: conda download [-h] [--confirm {yes,no}] [--dry-run] [-f] [--progress-bar {yes,no}] canonical_name [canonical_name ...]
+**usage**: ``conda download [-h] [--confirm {yes,no}] [--dry-run] [-f] [--progress-bar {yes,no}] canonical_name [canonical_name ...]``
 
 *canonical_name*
     canonical name of package to download and make locally available
