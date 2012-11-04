@@ -96,5 +96,103 @@ class test_constraints(unittest.TestCase):
                 c.match(p)
             )
 
+    def test_wildcard(self):
+        p = package(bitarray)
+        c = constraints.wildcard()
+        self.assertEqual(
+            True,
+            c.match(p)
+        )
+
+    def test_negate(self):
+        p = package(bitarray)
+        c = constraints.negate(constraints.named("bitarray"))
+        self.assertEqual(
+            False,
+            c.match(p)
+        )
+
+        c = constraints.negate(constraints.named("foo"))
+        self.assertEqual(
+            True,
+            c.match(p)
+        )
+
+    def test_any_of(self):
+
+        p = package(bitarray)
+        c = constraints.any_of(
+                constraints.named("bitarray"),
+                constraints.satisfies(requirement("python=2.7"))
+            )
+
+        self.assertEqual(
+            True,
+            c.match(p)
+        )
+
+        c = constraints.any_of(
+            constraints.named("bitarray"),
+            constraints.negate(constraints.named("bitarray"))
+        )
+
+        self.assertEqual(
+            True,
+            c.match(p)
+        )
+
+        c = constraints.any_of(
+            constraints.named("foo")
+        )
+
+        self.assertEqual(
+            False,
+            c.match(p)
+        )
+
+        c = constraints.any_of(
+            constraints.named("bitarray"),
+            constraints.negate(constraints.named("bitarray")),
+            constraints.wildcard()
+        )
+
+        self.assertEqual(
+            True,
+            c.match(p)
+        )
+
+    def test_all_of(self):
+        p = package(bitarray)
+        c = constraints.all_of(
+                constraints.named("bitarray"),
+                constraints.satisfies(requirement("python=2.7"))
+            )
+
+        self.assertEqual(
+            False,
+            c.match(p)
+        )
+
+        c = constraints.all_of(
+                constraints.named("bitarray"),
+                constraints.satisfies(requirement("python=2.7")),
+                constraints.negate(constraints.named("bitarray"))
+        )
+
+        self.assertEqual(
+            False,
+            c.match(p)
+        )
+
+        c = constraints.all_of(
+                constraints.named("bitarray"),
+                constraints.negate(constraints.named("foo"))
+        )
+
+        self.assertEqual(
+            True,
+            c.match(p)
+        )
+
 if __name__ == '__main__':
     unittest.main()
