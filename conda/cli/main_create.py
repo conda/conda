@@ -1,6 +1,6 @@
 
 from argparse import ArgumentDefaultsHelpFormatter
-from os import mkdir
+from os import makedirs
 from os.path import abspath, exists, expanduser
 
 from anaconda import anaconda
@@ -111,6 +111,6 @@ def execute(args, parser):
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    mkdir(prefix)
+    makedirs(prefix)
 
     plan.execute(env, args.progress_bar=="yes")
