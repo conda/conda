@@ -65,7 +65,7 @@ def main():
         '-l', "--log-level",
         action  = "store",
         default = "warning",
-        choices = ['info', 'warning', 'error', 'critical'],
+        choices = ['debug', 'info', 'warning', 'error', 'critical'],
         help    = argparse.SUPPRESS,
     )
 
