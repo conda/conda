@@ -2,6 +2,7 @@
 Examples
 ==================
 
+Below are a few examples using conda commands with a variety of optional arguments.
 
 -------------------
 Getting Information
@@ -9,6 +10,8 @@ Getting Information
 
 Info
 ----
+
+``conda info`` provides information about anaconda environments.
 
 .. code-block:: bash
 
@@ -28,6 +31,10 @@ Info
 List
 ----
 
+``conda list -p`` shows the packages and their versions in a specific 
+environment directory. ``--prefix`` also works.  If no prefix is provided,
+conda will look in the default environment.
+
 .. code-block:: bash
 
     $ conda list -p ~/envs/test2
@@ -42,6 +49,9 @@ List
 Depends
 -------
 
+By default ``conda depends`` will simply display all dependencies
+for a given package.
+
 .. code-block:: bash
 
     $ conda depends numpy
@@ -51,6 +61,8 @@ Depends
         readline 6.2
         sqlite 3.7.13
         zlib 1.2.7
+
+Running ``conda depends`` with the reverse dependency command shows all packages that require numpy.
 
 .. code-block:: bash
 
@@ -71,6 +83,9 @@ Depends
         statsmodels-0.4.3
         wiserf-0.9
 
+Using reverse dependency in addition to the verbose and no-prefix commands offers
+more information and includes packages that depend on any version of numpy.
+
 .. code-block:: bash
 
     $ conda depends -rvn numpy
@@ -88,6 +103,9 @@ Depends
         statsmodels-0.4.3-np17py26_0
         statsmodels-0.4.3-np17py27_0
         wiserf-0.9-np17py27_0
+
+conda ``depends`` with just ``-rn`` shows us any version of numpy's dependencies in a more easily parsed
+form, showing how many versions of numpy can be used to build that specific package.
 
 .. code-block:: bash
 
@@ -110,6 +128,10 @@ Depends
         statsmodels-0.4.3 (4 builds)
         wiserf-0.9
 
+Adding the ``MAX_DEPTH`` command allows greater control over how many levels 
+deep conda's dependency list will go.  By default, it is set to 0, but
+for the purposes of demonstration, it is made explicit here.
+
 .. code-block:: bash
 
     $ conda depends -rm 0 sqlite
@@ -131,6 +153,10 @@ Depends
         werkzeug-0.8.3
         wiserf-0.9
 
+In this example, setting the ``MAX_DEPTH`` to 1 shows only the packages 
+that depend on sqlite, while not displaying what these packages depend
+on, as well.
+
 .. code-block:: bash
 
     $ conda depends -rm 1 sqlite
@@ -142,6 +168,9 @@ Depends
 Search
 ------
 
+``conda search`` will find a specific package in the environment prefix
+supplied, and return information about it.
+
 .. code-block:: bash
 
     $ conda search numpy -p ~/anaconda/
@@ -152,6 +181,10 @@ Search
       filename: numpy-1.7.0b2-py27_0.tar.bz2
            md5: bba52e6a2350d4f8f9279434137452f0
 
+
+
+Here, ``-s`` shows the package requirements in a given environment,
+as well as the default information.
 
 .. code-block:: bash
 
@@ -197,6 +230,15 @@ Managing Environments and Packages
 Create
 ------
 
+In this example, we use ``conda create`` to make an environment in
+a specific directory, for a package, ``-p``.  We've also chosen to display
+a progress bar as it creates the environment.
+
+conda will also gather and activate all necessary package dependencies.
+
+If the package version is not specified, conda will choose the latest version by
+default.
+
 .. code-block:: bash
 
     $ conda create ~/anaconda/envs/test2 --progress-bar=yes -p numpy=1.5
@@ -220,6 +262,11 @@ Create
 
 Install
 -------
+
+``conda install`` places a package in an environment that may already exist,
+in this case ``~/envs/test2``, the environment created in the previous example.
+
+As before, conda will activate all necessary dependencies.
 
 .. code-block:: bash
 
