@@ -11,8 +11,8 @@ from requirement import requirement
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'create',
-        description     = "Create an Anaconda environment at a specified prefix from a list of package versions.",
-        help            = "Create an Anaconda environment at a specified prefix from a list of package versions.",
+        description     = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
+        help            = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
     group = p.add_mutually_exclusive_group()
@@ -27,19 +27,19 @@ def configure_parser(sub_parsers):
         "--dry-run",
         action  = "store_true",
         default = False,
-        help    = "display packages to be modified, without actually executing",
+        help    = "display packages to be activated, without actually executing",
     )
     group.add_argument(
         '-f', "--file",
         action  = "store",
-        help    = "filename to read package versions from",
+        help    = "filename to read package specs from",
     )
     group.add_argument(
         '-p', "--packages",
         action  = "store",
-        metavar = 'package_version',
+        metavar = 'package_spec',
         nargs   = '*',
-        help    = "package versions to install into new Anaconda environment",
+        help    = "package specification of package to install into new Anaconda environment",
     )
     p.add_argument(
         "--progress-bar",
@@ -67,7 +67,7 @@ def execute(args, parser):
     pkg_versions = args.packages
 
     if len(pkg_versions) == 0 and not args.file:
-        parser.error('too few arguments, must supply command line packages versions or --file')
+        parser.error('too few arguments, must supply command line packages specs or --file')
 
     conda = anaconda()
 
