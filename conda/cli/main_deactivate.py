@@ -11,7 +11,7 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'deactivate',
         description     = "Deactivate packages in an Anaconda environment.",
-        help            = "Deactivate packages in an Anaconda environment.",
+        help            = "Deactivate packages in an Anaconda environment. (ADVANCED)",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
@@ -28,12 +28,6 @@ def configure_parser(sub_parsers):
         help    = "display packages to be deactivated, without actually executing",
     )
     p.add_argument(
-        '-f', "--follow-deps",
-        action  = "store_true",
-        default = False,
-        help    = "deactivate dependencies automatically",
-    )
-    p.add_argument(
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
@@ -44,6 +38,8 @@ def configure_parser(sub_parsers):
         action  = "store",
         metavar = 'canonical_name',
         nargs   = '+',
+        help    = "canonical name of package to deactivate in the specified Anaconda environment",
+
     )
     p.set_defaults(func=execute)
 
@@ -54,7 +50,7 @@ def execute(args, parser):
     prefix = abspath(expanduser(args.prefix))
     env = conda.lookup_environment(prefix)
 
-    plan = create_deactivate_plan(env, args.canonical_names, args.follow_deps)
+    plan = create_deactivate_plan(env, args.canonical_names)
 
     if plan.empty():
         print 'All packages already deactivated, nothing to do'

@@ -11,7 +11,7 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'remove',
         description     = "Remove packages from local availability.",
-        help            = "Remove packages from local availability.",
+        help            = "Remove packages from local availability. (ADVANCED)",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
@@ -32,6 +32,7 @@ def configure_parser(sub_parsers):
         action  = "store",
         metavar = 'canonical_name',
         nargs   = '+',
+        help    = "canonical name of package to remove from local availability",
     )
     p.set_defaults(func=execute)
 

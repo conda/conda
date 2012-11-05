@@ -1,9 +1,7 @@
 
 from argparse import ArgumentDefaultsHelpFormatter
-from os.path import abspath, expanduser
 
 from anaconda import anaconda
-from config import ROOT_DIR
 from package_plan import create_download_plan
 
 
@@ -11,7 +9,7 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'download',
         description     = "Download Anaconda packages and their dependencies.",
-        help            = "Download Anaconda packages and their dependencies.",
+        help            = "Download Anaconda packages and their dependencies. (ADVANCED)",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
@@ -34,18 +32,6 @@ def configure_parser(sub_parsers):
         help    = "force package downloads even when specific package is already available",
     )
     p.add_argument(
-        '-n', "--no-deps",
-        action  = "store_true",
-        default = False,
-        help    = "only download specified packages, no dependencies",
-    )
-    p.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = ROOT_DIR,
-        help    = "download packages compatible with the specified environment",
-    )
-    p.add_argument(
         "--progress-bar",
         action  = "store",
         default = "yes",
@@ -57,6 +43,7 @@ def configure_parser(sub_parsers):
         action  = "store",
         metavar = 'canonical_name',
         nargs   = '+',
+        help    = "canonical name of package to download and make locally available",
     )
     p.set_defaults(func=execute)
 
@@ -64,10 +51,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     conda = anaconda()
 
-    prefix = abspath(expanduser(args.prefix))
-    env = conda.lookup_environment(prefix)
-
-    plan = create_download_plan(env, args.canonical_names, args.no_deps, args.force)
+    plan = create_download_plan(conda, args.canonical_names, args.force)
 
     if plan.empty():
         print 'All packages already downloaded, nothing to do'
@@ -82,4 +66,5 @@ def execute(args, parser):
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    plan.execute(env, args.progress_bar=="yes")
+    # pass default environment because some env is required, but it is unused here
+    plan.execute(conda.default_environment, args.progress_bar=="yes")

@@ -41,6 +41,9 @@ class package_index(object):
     def lookup_from_filename(self, pkg_filename):
         return self.pkg_filenames[pkg_filename]
 
+    def lookup_from_canonical_name(self, canonical_name):
+        return self.pkg_filenames[canonical_name+'.tar.bz2']
+
     def lookup_from_name(self, pkg_name):
         return set([pkg for pkg in self.pkgs if pkg.name == pkg_name])
 

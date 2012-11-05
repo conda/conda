@@ -11,7 +11,7 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'activate',
         description     = "Activate available packages in the specified Anaconda enviropnment.",
-        help            = "Activate available packages in the specified Anaconda enviropnment.",
+        help            = "Activate available packages in the specified Anaconda enviropnment. (ADVANCED)",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
@@ -34,17 +34,11 @@ def configure_parser(sub_parsers):
         help    = "Anaconda environment to activate packages in",
     )
     p.add_argument(
-        '-f', "--follow-deps",
-        action  = "store_true",
-        default = False,
-        help    = "activate dependencies automatically",
-    )
-    p.add_argument(
-        'packages',
-        metavar = 'package_version',
+        'canonical_names',
+        metavar = 'canonical_name',
         action  = "store",
-        nargs   = '*',
-        help    = "package versions to install into Anaconda environment",
+        nargs   = '+',
+        help    = "canonical name of package to activate in the specified Anaconda environment",
     )
     p.set_defaults(func=execute)
 
@@ -55,7 +49,7 @@ def execute(args, parser):
     prefix = abspath(expanduser(args.prefix))
     env = conda.lookup_environment(prefix)
 
-    plan = create_activate_plan(env, args.packages, args.follow_deps)
+    plan = create_activate_plan(env, args.canonical_names)
 
     if plan.empty():
         print 'No packages found to activate, nothing to do'

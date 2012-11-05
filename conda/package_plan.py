@@ -255,80 +255,6 @@ def create_install_plan(env, args):
     return plan
 
 
-def create_activate_plan(env, pkg_names, follow_deps=False):
-    '''
-    This function creates a package plan for activating the specified packages
-    in the given Anaconda environment prefix. By default, dependent packages are
-    not inlcuded, but may be ignored by setting the follow_deps argument
-    '''
-    plan = package_plan()
-
-    idx = env.conda.index
-
-    for pkg_name in pkg_names:
-
-        # if package is already activated, there is nothing to do
-        pkg = env.find_activated_package(pkg_name)
-        if pkg: continue  # TODO warn?
-
-        # find packages that match name and build target
-        pkgs = idx.find_matches(
-            build_target(env.conda.target),
-            idx.lookup_from_name(pkg_name)
-        )
-
-        # pick the newest version if there are multiple matches
-        if len(pkgs) == 0: continue
-        if len(pkgs) == 1: pkg = pkgs.pop()
-        else: pkg = max(pkgs)
-
-        plan.activations.add(pkg)
-
-        # add or warn about missing dependencies
-        deps = idx.find_compatible_packages(idx.get_deps(pkgs))
-        deps = idx.find_matches(env.requirements, deps)
-        for dep in deps:
-            if dep not in env.activated:
-                if follow_deps:
-                    plan.activations.add(dep)
-                else:
-                    plan.missing.add(dep)
-
-    return plan
-
-
-def create_deactivate_plan(env, pkg_names, follow_deps=False):
-    '''
-    This function creates a package plan for deactivating the specified packages
-    in the given Anaconda environment prefix. By default, dependent packages are
-    not inlcuded, but may be by setting the follow_deps argument
-    '''
-    plan = package_plan()
-
-    idx = env.conda.index
-
-    for pkg_name in pkg_names:
-
-        # if package is not already activated, there is nothing to do
-        pkg = env.find_activated_package(pkg_name)
-        if not pkg: continue  # TODO warn?
-
-        plan.deactivations.add(pkg)
-
-    # find a requirement for this package that we can use to lookup reverse deps
-    reqs = idx.find_compatible_requirements(plan.deactivations)
-
-    # add or warn about broken reverse dependencies
-    for rdep in idx.get_reverse_deps(reqs):
-        if rdep in env.activated:
-            if follow_deps:
-                plan.deactivations.add(rdep)
-            else:
-                plan.broken.add(rdep)
-
-    return plan
-
-
 def create_upgrade_plan(env, pkgs):
     '''
     This function creates a package plan for upgrading specified packages to
@@ -384,47 +310,95 @@ def create_upgrade_plan(env, pkgs):
     return plan
 
 
-def create_download_plan(env, pkg_names, no_deps, force):
+def create_activate_plan(env, canonical_names):
     '''
-    This function creates a package plan for downloading the specified
-    packages and their dependencies from remote Anaconda package repositories.
-    By default, packages already available are ignored, but this can be
-    overriden with the force argument.
+    This function creates a package plan for activating the specified packages
+    in the given Anaconda environment prefix.
     '''
     plan = package_plan()
 
     idx = env.conda.index
 
-    for pkg_name in pkg_names:
+    for canonical_name in canonical_names:
 
-        # lookup by explicit filename supported mainly for testing
-        if pkg_name.endswith('.tar.bz2'):
-            candidates = [idx.lookup_from_filename(pkg_name)]
+        try:
+            pkg = idx.lookup_from_canonical_name(canonical_name)
+        except:
+            # can't activate a package we know nothing about
+            continue  # TODO warn?
 
-        # find packages that match name and build target, etc
-        else:
-            candidates = idx.lookup_from_name(pkg_name)
-            candidates = idx.find_matches(env.requirements, candidates)
+        # if package is already activated, there is nothing to do
+        if pkg in env.activated:
+            continue  # TODO warn?
 
-        # bail if one of the names fails to produce a match
-        if len(candidates) == 0:
+        plan.activations.add(pkg)
+
+        # add or warn about missing dependencies
+        deps = idx.find_compatible_packages(idx.get_deps(plan.activations))
+        deps = idx.find_matches(env.requirements, deps)
+        for dep in deps:
+            if dep not in env.activated:
+                plan.missing.add(dep)
+
+    return plan
+
+
+def create_deactivate_plan(env, canonical_names):
+    '''
+    This function creates a package plan for deactivating the specified packages
+    in the given Anaconda environment prefix.
+    '''
+    plan = package_plan()
+
+    idx = env.conda.index
+
+    for canonical_name in canonical_names:
+
+        try:
+            pkg = idx.lookup_from_canonical_name(canonical_name)
+        except:
+            # can't deactivate a package we know nothing about
+            continue  # TODO warn?
+
+        # if package is not already activated, there is nothing to do
+        if pkg not in env.activated:
+            continue  # TODO warn?
+
+        plan.deactivations.add(pkg)
+
+    # find a requirement for this package that we can use to lookup reverse deps
+    reqs = idx.find_compatible_requirements(plan.deactivations)
+
+    # warn about broken reverse dependencies
+    for rdep in idx.get_reverse_deps(reqs):
+        if rdep in env.activated:
+           plan.broken.add(rdep)
+
+    return plan
+
+
+def create_download_plan(conda, canonical_names, force):
+    '''
+    This function creates a package plan for downloading the specified
+    packages from remote Anaconda package repositories. By default,
+    packages already available are ignored, but this can be overriden
+    with the force argument.
+    '''
+    plan = package_plan()
+
+    idx = conda.index
+
+    for canonical_name in canonical_names:
+
+        try:
+            pkg = idx.lookup_from_canonical_name(canonical_name)
+        except:
             raise RuntimeError(
-                "download of '%s' failed, no match found" % pkg_name
+                "download of '%s' failed, no match found" % canonical_name
             )
 
-        # add to downloads if not already available, or user requests force
-        for candidate in candidates:
-            if force or candidate not in env.conda.available_packages:
-                plan.downloads.add(candidate)
-
-        # download dependencies too, if requested
-        if not no_deps:
-            pkgs = idx.find_compatible_packages(idx.get_deps(candidates))
-            pkgs = idx.find_matches(env.requirements, pkgs)
-
-            for pkg in pkgs:
-                if force or pkg not in env.conda.available_packages:
-                    plan.downloads.add(pkg)
+        if force or pkg not in conda.available_packages:
+            plan.downloads.add(pkg)
 
     return plan
 
