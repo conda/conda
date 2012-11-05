@@ -53,7 +53,9 @@ def main():
     import logging
     from .. import __version__
 
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(
+        description='conda is a tool for managing Anaconda environments and packages.'
+    )
     p.add_argument(
         '-v', '--version',
         action='version',
