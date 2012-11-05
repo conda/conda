@@ -97,7 +97,11 @@ def execute(args, parser):
                                 "%s %s" % (pkg.name, pkg.version.vstring))
                                 for pkg in candidates)
 
-    plan = create_create_plan(prefix, conda, reqs, args.use_defaults=="yes")
+    try:
+        plan = create_create_plan(prefix, conda, reqs, args.use_defaults=="yes")
+    except RuntimeError as e:
+        print "conda: error:", e
+        return
 
     if plan.empty():
         print 'No packages found, nothing to do'
