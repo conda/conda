@@ -25,6 +25,7 @@ class ArgumentParser(__ArgumentParser):
         exc = sys.exc_info()[1]
         if exc:
             exc.argument = self._get_action_from_name(exc.argument_name)
+            if exc.argument.dest != "cmd": raise exc
             # this is incredibly lame, but argparse stupidly does not expose reasonable hooks
             # for customizing error handling
             import re
