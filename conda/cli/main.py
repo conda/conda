@@ -88,12 +88,7 @@ def main():
     main_download.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
 
-    try:
-        args = p.parse_args()
-    except argparse.ArgumentError as e:
-        p.print_usage()
-        print e.message
-        raise SystemExit(1)
+    args = p.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
     logging.basicConfig(level=log_level)
