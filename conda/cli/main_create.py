@@ -1,9 +1,10 @@
 
 from argparse import ArgumentDefaultsHelpFormatter
 from os import makedirs
-from os.path import abspath, exists, expanduser
+from os.path import abspath, exists, expanduser, join
 
 from anaconda import anaconda
+from config import ROOT_DIR
 from package_plan import create_create_plan
 from requirement import requirement
 
@@ -15,7 +16,6 @@ def configure_parser(sub_parsers):
         help            = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
         formatter_class = ArgumentDefaultsHelpFormatter,
     )
-    group = p.add_mutually_exclusive_group()
     p.add_argument(
         "--confirm",
         action  = "store",
@@ -29,17 +29,21 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "display packages to be activated, without actually executing",
     )
-    group.add_argument(
+    p.add_argument(
         '-f', "--file",
         action  = "store",
         help    = "filename to read package specs from",
     )
-    group.add_argument(
-        '-p', "--packages",
+    npgroup = p.add_mutually_exclusive_group(required=True)
+    npgroup.add_argument(
+        '-n', "--name",
         action  = "store",
-        metavar = 'package_spec',
-        nargs   = '*',
-        help    = "package specification of package to install into new Anaconda environment",
+        help    = "name of new directory (in %s/envs) to create Anaconda environment in" % ROOT_DIR,
+    )
+    npgroup.add_argument(
+        '-p', "--prefix",
+        action  = "store",
+        help    = "full path of new directory to create Anaconda environment in",
     )
     p.add_argument(
         "--progress-bar",
@@ -56,26 +60,32 @@ def configure_parser(sub_parsers):
         help    = "select default versions for unspecified requirements when possible",
     )
     p.add_argument(
-        'prefix',
+        'package_specs',
+        metavar = 'package_spec',
         action  = "store",
-        help    = "new directory to create Anaconda environment in",
+        nargs   ='*',
+        help    = "package specification of package to install into new Anaconda environment",
     )
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    pkg_versions = args.packages
-
-    if len(pkg_versions) == 0 and not args.file:
-        parser.error('too few arguments, must supply command line packages specs or --file')
+    if len(args.package_specs) == 0 and not args.file:
+        parser.error('too few arguments, must supply command line package specs or --file')
 
     conda = anaconda()
 
-    prefix = abspath(expanduser(args.prefix))
+    if args.prefix:
+        prefix = abspath(expanduser(args.prefix))
+    else:
+        prefix = join(ROOT_DIR, 'envs', args.name)
     env = conda.lookup_environment(prefix)
 
     if exists(prefix):
-        parser.error("'%s' already exists, must supply new directory for --prefix" % args.prefix)
+        if args.prefix:
+            parser.error("'%s' already exists, must supply new directory for -p/--prefix" % prefix)
+        else:
+            parser.error("'%s' already exists, must supply new directory for -n/--name" % prefix)
 
     if args.file:
         try:
@@ -85,7 +95,7 @@ def execute(args, parser):
         except:
             parser.error('could not read file: %s', args.file)
     else:
-        req_strings = pkg_versions
+        req_strings = args.package_specs
 
     reqs = set()
     for req_string in req_strings:
@@ -104,7 +114,7 @@ def execute(args, parser):
         return
 
     if plan.empty():
-        print 'No packages found, nothing to do'
+        print 'No matching packages could be found, nothing to do'
         return
 
     print plan
