@@ -231,10 +231,15 @@ def create_install_plan(env, args):
 
     # find the associated dependencies
     reqs = idx.get_deps(pkgs)
+    to_remove = set()
+    for req in reqs:
+        if env.requirement_is_satisfied(req):
+            to_remove.add(req)
+    reqs = reqs - to_remove
 
     # find packages compatible with the full requirements and build target
     all_pkgs = idx.find_compatible_packages(reqs) | to_install
-    all_pkgs = idx.find_matches(build_target(env.conda.target), all_pkgs)
+    all_pkgs = idx.find_matches(env.requirements, all_pkgs)
 
     # download any packages that are not available
     for pkg in all_pkgs:
