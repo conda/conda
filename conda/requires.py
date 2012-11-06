@@ -22,7 +22,7 @@ def get_all_deps():
 
 def get_deps(pkgs):
     all_deps = get_all_deps()
-    if isinstance(pkgs, str):
+    if isinstance(pkgs, str) or isinstance(pkgs, unicode):
         return all_deps[pkgs]
     deps = set([])
     for pkg in pkgs:
@@ -43,7 +43,7 @@ def get_all_reverse_deps():
 
 def get_reverse_deps(pkgs):
     all_rdeps = get_all_reverse_deps()
-    if isinstance(pkgs, str):
+    if isinstance(pkgs, str) or isinstance(pkgs, unicode):
         return all_rdeps[pkgs]
     rdeps = set([])
     for pkg in pkgs:
