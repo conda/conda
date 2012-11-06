@@ -21,7 +21,7 @@ def configure_parser(sub_parsers):
         help    = "maximum depth to search dependencies (0 searches all depths)",
     )
     p.add_argument(
-        '-n', "--no-prefix",
+        "--no-prefix",
         action  = "store_true",
         default = False,
         help    = "return reverse dependencies compatible with any specified environment, overrides --prefix",
