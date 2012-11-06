@@ -93,7 +93,11 @@ def main():
     log_level = getattr(logging, args.log_level.upper())
     logging.basicConfig(level=log_level)
 
-    args.func(args, p)
+    try:
+        args.func(args, p)
+    except RuntimeError as e:
+        print "conda: error: ", e
+        exit(2)
 
 if __name__ == '__main__':
     main()
