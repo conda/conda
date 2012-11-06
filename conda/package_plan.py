@@ -119,12 +119,12 @@ def create_create_plan(prefix, conda, reqs, use_defaults):
             'inconsistent: %s' % str(inconsistent)
         )
 
-    log.debug("initial requirements: %s" % reqs)
+    log.debug("initial requirements: %s\n" % reqs)
 
     # find packages compatible with the initial requirements and build target
     pkgs = idx.find_compatible_packages(reqs)
     pkgs = idx.find_matches(build_target(conda.target), pkgs)
-    log.debug("initial compatible packages: %s" % pkgs)
+    log.debug("initial compatible packages: %s\n" % pkgs)
 
     # find the associated dependencies
     all_reqs = idx.get_deps(pkgs) | reqs
@@ -143,21 +143,21 @@ def create_create_plan(prefix, conda, reqs, use_defaults):
     # find packages compatible with the updated requirements and build target
     pkgs = idx.find_compatible_packages(reqs)
     pkgs = idx.find_matches(build_target(conda.target), pkgs)
-    log.debug("updated compatible packages: %s" % pkgs)
+    log.debug("updated compatible packages: %s\n" % pkgs)
 
     # find the associated dependencies
     all_reqs = idx.get_deps(pkgs) | reqs
-    log.debug("all requirements: %s" % all_reqs)
+    log.debug("all requirements: %s\n" % all_reqs)
 
     # find packages compatible with the full requirements and build target
     all_pkgs = idx.find_compatible_packages(all_reqs)
     all_pkgs = idx.find_matches(build_target(conda.target), all_pkgs)
-    log.debug("all compatible packages: %s" % all_pkgs)
+    log.debug("all compatible packages: %s\n" % all_pkgs)
 
     # handle multiple matches, keep only the latest version
     all_pkgs = sort_packages_by_name(all_pkgs)
     all_pkgs = [max(g) for k, g in groupby(all_pkgs, key=lambda x: x.name)]
-    log.debug("final packages: %s" % all_pkgs)
+    log.debug("final packages: %s\n" % all_pkgs)
 
     # check again for inconsistent requirements
     inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
