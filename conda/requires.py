@@ -11,7 +11,7 @@ from anaconda import anaconda
 def get_all_deps():
     conda = anaconda()
     res = {}
-    for pkg in conda.pkgs:
+    for pkg in conda.index.pkgs:
         res[pkg.canonical_name] = list()
         for req in pkg.requires:
             req_string = "%s-%s-none" % (req.name, req.version.vstring)
