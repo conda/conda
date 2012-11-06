@@ -107,6 +107,19 @@ def execute(args, parser):
                                 "%s %s" % (pkg.name, pkg.version.vstring))
                                 for pkg in candidates)
 
+    for req in reqs:
+        if req.name not in conda.index.package_names:
+            print "conda: error: unknown package name '%s'" % req.name
+            from difflib import get_close_matches
+            close = get_close_matches(req.name, conda.index.package_names)
+            if close:
+                message = '\nnDid you mean one of these?\n'
+                for s in close:
+                    message += '    %s' % s
+                message += "\n"
+                print message
+            return
+
     try:
         plan = create_create_plan(prefix, conda, reqs, args.use_defaults=="yes")
     except RuntimeError as e:
