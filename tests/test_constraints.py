@@ -82,7 +82,7 @@ class test_constraints(unittest.TestCase):
             "foo=2.6"      :   True,
             "python=2.7"   :   False,
             "python=3.1"   :   False,
-            "python=2"     :   False
+            "python=2"     :   True
 
         }
 
