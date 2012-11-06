@@ -1,0 +1,53 @@
+'''
+This module is for backwards compatibility with the Launcher. All
+functions contained are deprecated and should not be usd for any
+new development.
+'''
+
+from os import listdir, makedirs
+from os.path import exists, isdir, join
+from shutil import rmtree
+
+from config import ROOT_DIR, PACKAGES_DIR
+from sfx import sfx_activate
+
+ENVS_DIR = join(ROOT_DIR, 'envs')
+
+
+def get_installed(prefix=ROOT_DIR):
+    """
+    Return the set of installed packages, where each element in the set is
+    a tuple(name, version, build).  The optional argument prefix specifies
+    the prefix for list of packages is returned.
+    """
+    index_path = join(prefix, '.index')
+    res = set()
+    if isdir(index_path):
+        for fn in sorted(listdir(index_path)):
+            res.add(tuple(fn.rsplit('-', 2)))
+    return res
+
+
+def create_env(envname, dists):
+    dir_name = join(ENVS_DIR, envname)
+    makedirs(dir_name)
+    for dist in dists:
+        sfx_activate(PACKAGES_DIR, dist, dir_name)
+
+
+def remove_env(envname):
+    rmtree(join(ROOT_DIR, 'envs', envname))
+
+def get_envs():
+    return listdir(ENVS_DIR)
+
+
+# TODO
+def get_env_packages(envname):
+    return get_installed(join(ENVS_DIR, envname))
+
+
+def get_env_path(envname):
+    dir_name = join(ENVS_DIR, envname)
+    if not exists(dir_name): return ''
+    return dir_name
