@@ -110,8 +110,9 @@ class requires(package_constraint):
     def match(self, pkg):
         # package never requires itself
         if pkg.name == self._req.name: return False
+        vlen = len(self._req.version.version)
         for req in pkg.requires:
-            if req.name == self._req.name and req.version != self._req.version:
+            if req.name == self._req.name and req.version.version[:vlen] != self._req.version.version[:vlen]:
                 return False
         return True
 

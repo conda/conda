@@ -5,6 +5,7 @@ from os.path import abspath, expanduser
 
 from anaconda import anaconda
 from constraints import all_of, build_target, satisfies
+from package import sort_packages_by_name
 from requirement import requirement
 
 
@@ -30,7 +31,10 @@ def configure_parser(sub_parsers):
     p.add_argument(
         'pkg_name',
         action  = "store",
+        nargs   = "?",
         metavar = 'package_name',
+        help    = "omit to display all packages",
+
     )
     p.set_defaults(func=execute)
 
@@ -38,9 +42,16 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     conda = anaconda()
 
+    if not args.pkg_name:
+        for pkg in sort_packages_by_name(conda.index.pkgs):
+            print
+            pkg.print_info(args.show_requires)
+        print
+        return
+
     if args.pkg_name not in conda.index.package_names:
         print "Unknown package '%s'." % args.pkg_name,
-        close = get_close_matches(args[0], conda.index.package_names)
+        close = get_close_matches(args.pkg_name, conda.index.package_names)
         if close:
             print 'Did you mean one of these?'
             print

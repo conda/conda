@@ -36,7 +36,7 @@ class environment(object):
         if isdir(index_path):
             for fn in listdir(index_path):
                 try:
-                    res.add(self._conda.index.lookup_from_filename(fn+'.tar.bz2'))
+                    res.add(self._conda.index.lookup_from_canonical_name(fn))
                 except:  # TODO better except spec
                     msg = "cannot find activated package '%s' in pacakge index" % fn
                     log.warn(msg)
@@ -55,7 +55,13 @@ class environment(object):
         for fn in listdir(index_path):
             name, version, build = split_canonical_name(fn)
             if name == pkg_name:
-                return self._conda.index.lookup_from_filename(fn+'.tar.bz2')
+                return self._conda.index.lookup_from_canonical_name(fn)
+
+    def requirement_is_satisfied(self, req):
+        c = satisfies(req)
+        for pkg in self.activated:
+            if c.match(pkg):
+                return True
 
     def _python_requirement(self):
         try:

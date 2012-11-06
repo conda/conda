@@ -1,5 +1,5 @@
 import os
-import subprocess
+import tarfile
 import logging
 from os.path import isdir, isfile, join
 
@@ -16,10 +16,9 @@ def extract(pkg, env, cleanup=False):
     '''
     dirpath = join(env.conda.packages_dir, pkg.canonical_name)
     bz2path = join(env.conda.packages_dir, pkg.filename)
-    assert isfile(bz2path), bz2path
-    if not isdir(dirpath):
-        os.mkdir(dirpath)
-    subprocess.check_call(['tar', 'xjf', bz2path], cwd=dirpath)
+    t = tarfile.open(bz2path)
+    t.extractall(path=dirpath)
+    t.close()
     if cleanup:
         os.unlink(bz2path)
 
