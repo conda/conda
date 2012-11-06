@@ -3,7 +3,7 @@ import sys
 from itertools import groupby
 
 if sys.platform == 'win32':
-    from win_install import activate, deactivate
+    from win_install import activate, deactivate, extract
 else:
     from install import activate, deactivate, extract
 
@@ -59,8 +59,7 @@ class package_plan(object):
             else:
                 progress = None
             fetch_file(pkg.filename, progress=progress)
-            if sys.platform != 'win32':
-                extract(pkg, env)
+            extract(pkg, env)
         for pkg in self.deactivations:
             deactivate(pkg, env)
         for pkg in self.activations:

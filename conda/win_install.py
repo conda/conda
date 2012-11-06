@@ -6,6 +6,10 @@ from os.path import isfile, join
 log = logging.getLogger(__name__)
 
 
+def extract(pkg, env):
+    pass
+
+
 def activate(pkg, env):
     '''
     set up link farm for the specified package, in the specified Anaconda
