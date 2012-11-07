@@ -88,28 +88,7 @@ def create_meta(prefix, dist, info_dir, files):
 
 # ========================== begin API functions =========================
 
-def activated(prefix):
-    """
-    Return the (set of canonical names) of activated packages in prefix.
-    """
-    meta_dir = join(prefix, 'conda-meta')
-    if not isdir(meta_dir):
-        return set()
-    return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
-
-
-def get_meta(dist, prefix):
-    """
-    Return the install meta-data for an active package in a prefix, or None
-    if the package is not active in the prefix.
-    """
-    meta_path = join(prefix, 'conda-meta', dist + '.json')
-    try:
-        with open(meta_path) as fi:
-            return json.load(fi)
-    except OSError:
-        return None
-
+# ------- thing about available
 
 def available(pkgs_dir):
     """
@@ -147,6 +126,30 @@ def remove_available(pkgs_dir, dist):
     rm_rf(bz2path)
     if use_hard_links:
         rm_rf(join(pkgs_dir, dist))
+
+# ------- thing about activation
+
+def activated(prefix):
+    """
+    Return the (set of canonical names) of activated packages in prefix.
+    """
+    meta_dir = join(prefix, 'conda-meta')
+    if not isdir(meta_dir):
+        return set()
+    return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
+
+
+def get_meta(dist, prefix):
+    """
+    Return the install meta-data for an active package in a prefix, or None
+    if the package is not active in the prefix.
+    """
+    meta_path = join(prefix, 'conda-meta', dist + '.json')
+    try:
+        with open(meta_path) as fi:
+            return json.load(fi)
+    except OSError:
+        return None
 
 
 def activate(pkgs_dir, dist, prefix):
