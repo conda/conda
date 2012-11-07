@@ -33,7 +33,7 @@ from os.path import basename, isdir, isfile, islink, join
 log = logging.getLogger(__name__)
 
 
-can_hard_link = bool(sys.platform != 'win32')
+use_hard_links = bool(sys.platform != 'win32')
 
 
 def rm_rf(path):
@@ -115,7 +115,7 @@ def extracted(pkgs_dir):
     """
     Return, the set of canonical names of, all extracted (available) packages.
     """
-    if can_hard_link:
+    if use_hard_links:
         return set(fn for fn in os.listdir(pkgs_dir)
                    if isdir(join(pkgs_dir, fn)))
     else:
@@ -131,7 +131,7 @@ def extract(pkgs_dir, dist, cleanup=False):
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     assert isfile(bz2path), bz2path
-    if not can_hard_link:
+    if not use_hard_links:
         return
     t = tarfile.open(bz2path)
     t.extractall(path=join(pkgs_dir, dist))
@@ -146,7 +146,7 @@ def remove(pkgs_dir, dist):
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     rm_rf(bz2path)
-    if can_hard_link:
+    if use_hard_links:
         rm_rf(join(pkgs_dir, dist))
 
 
@@ -155,7 +155,7 @@ def activate(pkgs_dir, dist, prefix):
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
     '''
-    if can_hard_link:
+    if use_hard_links:
         dist_dir = join(pkgs_dir, dist)
         info_dir = join(dist_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
