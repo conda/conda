@@ -9,7 +9,7 @@ optional arguments:
     -h, --help          show this help message and exit
     --confirm           ask for confirmation before creating Anaconda environment (default: yes)
     --dry-run           display packages to be modified, without actually executing
-    -f FILE, --file FILE    filename to read package versions from (default: None)
+    -f FILE, --file FILE    filename of text file to read package specifications from (default: None)
     -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs)
                         to create Anaconda environment in (default: None)
     -p PREFIX, --prefix PREFIX
