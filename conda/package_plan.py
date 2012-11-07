@@ -1,11 +1,7 @@
 import logging
-import sys
 from itertools import groupby
 
-if sys.platform == 'win32':
-    from win_install import activate, deactivate, extract
-else:
-    from install import activate, deactivate, extract
+from install import activate, deactivate, extract
 
 from remote import fetch_file
 from package import sort_packages_by_name

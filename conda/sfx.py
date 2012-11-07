@@ -1,6 +1,8 @@
 """
 this module is directly invoked by the (self extracting (sfx)) tarball
-installer to create the initial environment
+installer to create the initial environment, therefore it needs to be
+standalone, i.e. not import any other parts of conda (only depend of
+the standard library).
 """
 import os
 import stat
