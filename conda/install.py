@@ -239,7 +239,7 @@ def main():
 
     p.add_option('-i', '--info',
                  action="store_true",
-                 help="display the mata-data information of a package")
+                 help="display mata-data information of an active package")
 
     p.add_option('-m', '--make-available',
                  action="store_true",
