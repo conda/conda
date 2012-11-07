@@ -5,10 +5,11 @@ new development.
 '''
 
 from os import listdir, makedirs
-from os.path import exists, isdir, join
+from os.path import exists, join
 from shutil import rmtree
 
 from config import ROOT_DIR, PACKAGES_DIR
+from installed import activated
 from sfx import sfx_activate
 
 ENVS_DIR = join(ROOT_DIR, 'envs')
@@ -20,11 +21,10 @@ def get_installed(prefix=ROOT_DIR):
     a tuple(name, version, build).  The optional argument prefix specifies
     the prefix for list of packages is returned.
     """
-    index_path = join(prefix, '.index')
+    canonical_names = activated(prefix)
     res = set()
-    if isdir(index_path):
-        for fn in sorted(listdir(index_path)):
-            res.add(tuple(fn.rsplit('-', 2)))
+    for name in sorted(canonical_names):
+        res.add(tuple(name.rsplit('-', 2)))
     return res
 
 

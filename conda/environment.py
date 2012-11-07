@@ -8,6 +8,7 @@ from requirement import requirement
 from constraints import (
     all_of, any_of, build_target, requires, satisfies, wildcard
 )
+from install import activated
 
 
 log = logging.getLogger(__name__)
@@ -31,15 +32,14 @@ class environment(object):
 
     @property
     def activated(self):
-        index_path = join(self.prefix, '.index')
+        canonical_names = activated(self.prefix)
         res = set()
-        if isdir(index_path):
-            for fn in listdir(index_path):
-                try:
-                    res.add(self._conda.index.lookup_from_canonical_name(fn))
-                except:  # TODO better except spec
-                    msg = "cannot find activated package '%s' in pacakge index" % fn
-                    log.warn(msg)
+        for name in canonical_names:
+            try:
+                res.add(self._conda.index.lookup_from_canonical_name(name))
+            except:  # TODO better except spec
+                msg = "cannot find activated package '%s' in pacakge index" % name
+                log.warn(msg)
         return res
 
     @property
