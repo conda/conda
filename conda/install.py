@@ -1,4 +1,5 @@
 import os
+import sys
 import tarfile
 import logging
 from os.path import join
@@ -24,10 +25,11 @@ def extract(pkgs_dir, dist, cleanup=False):
     extract a package tarball into the conda packages directory, making
     it available
     '''
-    dirpath = join(pkgs_dir, dist)
+    if sys.platform == 'win32':
+        return
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     t = tarfile.open(bz2path)
-    t.extractall(path=dirpath)
+    t.extractall(path=join(pkgs_dir, dist))
     t.close()
     if cleanup:
         os.unlink(bz2path)
@@ -38,6 +40,11 @@ def activate(pkgs_dir, dist, env_prefix):
     set up link farm for the specified package, in the specified conda
     environment
     '''
+    if sys.platform == 'win32':
+        t = tarfile.open(join(pkgs_dir, dist + '.tar.bz2'))
+        t.extractall(path=env_prefix)
+        t.close()
+        return
     sfx_activate(pkgs_dir, dist, env_prefix)
 
 
@@ -63,4 +70,3 @@ def deactivate(pkgs_dir, dist, env_prefix):
             os.rmdir(path)
         except OSError: # directory might not exist or not be empty
             log.debug("could not remove directory: '%s'" % dst)
-
