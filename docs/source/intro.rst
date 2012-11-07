@@ -76,6 +76,8 @@ The Anaconda installation has the following directory structure:
 
 Other Anaconda environments contain the same subdirectories as the default environment, and may be located anywhere on the same filesystem as *PKGS_DIR*.
 
+.. _config:
+
 -------------
 Configuration
 -------------
