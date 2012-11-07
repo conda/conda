@@ -34,7 +34,7 @@ class package(object):
     arch         = dict_property('arch')
     platform     = dict_property('platform')
     md5          = dict_property('md5')
-
+    size         = dict_property('size')
 
     @property
     def build_target(self):

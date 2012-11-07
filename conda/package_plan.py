@@ -54,7 +54,8 @@ class package_plan(object):
                 progress = ProgressBar(widgets=widgets)
             else:
                 progress = None
-            fetch_file(pkg.filename, pkg.md5, progress=progress)
+            fetch_file(pkg.filename, md5=pkg.md5, size=pkg.size,
+                       progress=progress)
             make_available(env.conda.packages_dir, pkg.canonical_name)
         for pkg in self.deactivations:
             deactivate(pkg.canonical_name, env.prefix)
