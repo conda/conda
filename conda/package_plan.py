@@ -213,7 +213,8 @@ def create_install_plan(env, args):
             except RuntimeError:
                 pkgs = idx.lookup_from_name(arg)
                 pkgs = idx.find_matches(env.requirements, pkgs)
-                pkgs = set([max(pkgs)])
+                if pkgs:
+                    pkgs = set([max(pkgs)])
 
         if len(pkgs) == 0:
             raise RuntimeError("could not find package match for '%s'" % arg)
