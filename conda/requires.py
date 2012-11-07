@@ -1,28 +1,36 @@
-'''
-This module is for backwards compatibility with the Launcher. All
-functions contained are deprecated and should not be usd for any
-new development.
-'''
+import os
+import sys
+from os.path import join
 
 
-from anaconda import anaconda
+PKGS_DIR = join(sys.prefix, 'pkgs')
+
+def read_requires(pkg):
+    res = []
+    for line in open(join(PKGS_DIR, pkg, 'info/requires')):
+        r = line.strip()
+        if r.endswith(('pro0', 'ce0')):
+            if r.endswith('pro0'):
+                x = r[:-4]
+            else:
+                x = r[:-3]
+            r = x + ('ce0' if 'AnacondaCE' in sys.version else 'pro0')
+        if r.startswith('mkl-') or not r:
+            continue
+        res.append(r)
+    return res
 
 
 def get_all_deps():
-    conda = anaconda()
     res = {}
-    for pkg in conda.index.pkgs:
-        res[pkg.canonical_name] = list()
-        for req in pkg.requires:
-            req_string = "%s-%s-none" % (req.name, req.version.vstring)
-            res[pkg.canonical_name].append(req_string)
-
+    for fn in os.listdir(PKGS_DIR):
+        res[fn] = read_requires(fn)
     return res
 
 
 def get_deps(pkgs):
     all_deps = get_all_deps()
-    if isinstance(pkgs, str) or isinstance(pkgs, unicode):
+    if isinstance(pkgs, str):
         return all_deps[pkgs]
     deps = set([])
     for pkg in pkgs:
@@ -43,7 +51,7 @@ def get_all_reverse_deps():
 
 def get_reverse_deps(pkgs):
     all_rdeps = get_all_reverse_deps()
-    if isinstance(pkgs, str) or isinstance(pkgs, unicode):
+    if isinstance(pkgs, str):
         return all_rdeps[pkgs]
     rdeps = set([])
     for pkg in pkgs:
