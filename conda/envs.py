@@ -9,7 +9,7 @@ from os.path import exists, join
 from shutil import rmtree
 
 from config import ROOT_DIR, PACKAGES_DIR
-from installed import activated
+from install import activated
 from sfx import sfx_activate
 
 ENVS_DIR = join(ROOT_DIR, 'envs')
