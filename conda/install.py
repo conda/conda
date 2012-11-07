@@ -95,13 +95,13 @@ def activated(prefix):
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         return set()
-    return set(fn[:-5] for fn in meta_dir if fn.endswith('.json'))
+    return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
 
 def get_meta(dist, prefix):
     """
-    Return the install meta-data for a given packages in a prefix, or None
-    if the package does not exist in the prefix.
+    Return the install meta-data for an active package in a prefix, or None
+    if the package is not active in the prefix.
     """
     meta_path = join(prefix, 'conda-meta', dist + '.json')
     try:
@@ -109,6 +109,18 @@ def get_meta(dist, prefix):
             return json.load(fi)
     except OSError:
         return None
+
+
+def extracted(pkgs_dir):
+    """
+    Return, the set of canonical names of, all extracted (available) packages.
+    """
+    if can_hard_link:
+        return set(fn for fn in os.listdir(pkgs_dir)
+                   if isdir(join(pkgs_dir, fn)))
+    else:
+        return set(fn[:-8] for fn in os.listdir(pkgs_dir)
+                   if fn.endswith('.tar.bz2'))
 
 
 def extract(pkgs_dir, dist, cleanup=False):
@@ -126,6 +138,16 @@ def extract(pkgs_dir, dist, cleanup=False):
     t.close()
     if cleanup:
         os.unlink(bz2path)
+
+
+def remove(pkgs_dir, dist):
+    '''
+    Remove a package from the packages directory.
+    '''
+    bz2path = join(pkgs_dir, dist + '.tar.bz2')
+    rm_rf(bz2path)
+    if can_hard_link:
+        rm_rf(join(pkgs_dir, dist))
 
 
 def activate(pkgs_dir, dist, prefix):
@@ -197,11 +219,126 @@ def deactivate(dist, prefix):
 # =========================== end API functions ==========================
 
 def main():
-    prefix = sys.argv[1]
-    pkgs_dir = join(prefix, 'pkgs')
+    from pprint import pprint
+    from optparse import OptionParser
 
-    for dist in sorted(os.listdir(pkgs_dir)):
-        activate(pkgs_dir, dist, prefix)
+    p = OptionParser(
+        usage="usage: %prog [options] [TARBALL/NAME]",
+        description="low-level conda install tool, by default extracts "
+                    "(if necessary) and activates a TARBALL")
+
+    p.add_option('-l', '--list',
+                 action="store_true",
+                 help="list all activated packages")
+
+    p.add_option('--list-extracted',
+                 action="store_true",
+                 help="list all extracted packages")
+
+    p.add_option('-m', '--meta',
+                 action="store_true",
+                 help="display the mata-data of a package")
+
+    p.add_option('-e', '--extract',
+                 action="store_true",
+                 help="extract a package")
+
+    p.add_option('-a', '--activate',
+                 action="store_true",
+                 help="activate a package")
+
+    p.add_option('-d', '--deactivate',
+                 action="store_true",
+                 help="deactivate a package")
+
+    p.add_option('-r', '--remove',
+                 action="store_true",
+                 help="remove a package (from being available)")
+
+    p.add_option('-p', '--prefix',
+                 action="store",
+                 default=sys.prefix,
+                 help="prefix (defulats to %default)")
+
+    p.add_option('--pkgs-dir',
+                 action="store",
+                 default=join(sys.prefix, 'pkgs'),
+                 help="packages directory (defulats to %default)")
+
+    p.add_option('--activate-all',
+                 action="store_true",
+                 help="activate all extracted packages")
+
+    p.add_option('-v', '--verbose',
+                 action="store_true")
+
+    opts, args = p.parse_args()
+
+    if opts.list or opts.list_extracted or opts.activate_all:
+        if args:
+            p.error('no arguments expected')
+    else:
+        if len(args) == 1:
+            dist = args[0]
+            if dist.endswith('.tar.bz2'):
+                dist = dist[:-8]
+        else:
+            p.error('exactly one argument expected')
+
+    if opts.verbose:
+        print "pkgs_dir: %r" % opts.pkgs_dir
+        print "prefix  : %r" % opts.prefix
+
+    if opts.list:
+        pprint(sorted(activated(opts.prefix)))
+        return
+
+    if opts.list_extracted:
+        pprint(sorted(extracted(opts.pkgs_dir)))
+        return
+
+    if opts.meta:
+        meta = get_meta(dist, opts.prefix)
+        pprint(meta)
+        return
+
+    if opts.activate_all:
+        for d in sorted(extracted(opts.pkgs_dir)):
+            activate(opts.pkgs_dir, d, opts.prefix)
+        return
+
+    do_steps = not (opts.remove or opts.extract or opts.activate or
+                    opts.deactivate)
+    if opts.verbose:
+        print "do_steps: %r" % do_steps
+
+    if do_steps:
+        path = args[0]
+        if not (path.endswith('.tar.bz2') and isfile(path)):
+            p.error('path .tar.bz2 package expected')
+
+    if do_steps or opts.remove:
+        if opts.verbose:
+            print "removing: %r" % dist
+        remove(opts.pkgs_dir, dist)
+
+    if do_steps:
+        shutil.copyfile(path, join(opts.pkgs_dir, dist + '.tar.bz2'))
+
+    if do_steps or opts.extract:
+        if opts.verbose:
+            print "extracting: %r" % dist
+        extract(opts.pkgs_dir, dist)
+
+    if (do_steps and dist in activated(opts.prefix)) or opts.deactivate:
+        if opts.verbose:
+            print "deactivating: %r" % dist
+        deactivate(dist, opts.prefix)
+
+    if do_steps or opts.activate:
+        if opts.verbose:
+            print "activating: %r" % dist
+        activate(opts.pkgs_dir, dist, opts.prefix)
 
 
 if __name__ == '__main__':
