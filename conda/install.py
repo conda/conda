@@ -19,10 +19,6 @@ installer to create the initial environment, therefore it needs to be
 standalone, i.e. not import any other parts of conda (only depend of
 the standard library).
 """
-# Byran:
-#   * use this API (not .index/, etc.)
-#   * should we expose main() in conda, either conda-ll or conda ll ?
-#   * No handlers could be found for logger "__main__" ?
 
 import os
 import json
