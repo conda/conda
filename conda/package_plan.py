@@ -212,13 +212,21 @@ def create_install_plan(env, args):
             # attempt to parse as package name
             except RuntimeError:
                 pkgs = idx.lookup_from_name(arg)
-                pkgs = idx.find_matches(env.requirements, pkgs)
                 if pkgs:
-                    pkgs = set([max(pkgs)])
+                    pkgs = idx.find_matches(env.requirements, pkgs)
+                    if pkgs: pkgs = set([max(pkgs)])
+                else:
+                    message = "unknown package name '%s'" % arg
+                    from difflib import get_close_matches
+                    close = get_close_matches(arg, idx.package_names)
+                    if close:
+                        message += '\n\nDid you mean one of these?\n'
+                        for s in close:
+                            message += '    %s' % s
+                        message += "\n"
+                    raise RuntimeError(message)
 
-        if len(pkgs) == 0:
-            raise RuntimeError("could not find package match for '%s'" % arg)
-        elif len(pkgs) > 1:
+        if len(pkgs) > 1:
             raise RuntimeError("found multiple package matches for '%s'" % arg)
 
         to_install.add(pkgs.pop())
