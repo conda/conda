@@ -1,8 +1,7 @@
 """
-this module is directly invoked by the (self extracting (sfx)) tarball
-installer to create the initial environment, therefore it needs to be
-standalone, i.e. not import any other parts of conda (only depend of
-the standard library).
+This module is for backwards compatibility with the Launcher. All
+functions contained are deprecated and should not be usd for any
+new development.
 """
 import os
 import stat
