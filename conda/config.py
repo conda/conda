@@ -7,6 +7,7 @@ import yaml
 
 from conda import __version__
 from environment import environment
+from install import available
 
 
 log = logging.getLogger(__name__)
@@ -143,22 +144,12 @@ class config(object):
     @property
     def available_packages(self):
         res = set()
-        for fn in listdir(self.packages_dir):
-
-            if sys.platform == 'win32':
-                if not fn.endswith('.tar.bz2'):
-                    continue
-                pkg_filename = fn
-            else:
-                if not isdir(join(self.packages_dir, fn)):
-                    continue
-                pkg_filename = fn + '.tar.bz2'
-
+        canonical_names = available(self.packages_dir)
+        for name in canonical_names:
             try:
-                res.add(self.index.lookup_from_filename(pkg_filename))
+                res.add(self.index.lookup_from_canonical_name(name))
             except KeyError:
-                pass
-
+                log.debug("unknown available package '%s'" % name)
         return res
 
     def lookup_environment(self, prefix):
