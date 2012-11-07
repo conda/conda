@@ -111,9 +111,9 @@ def get_meta(dist, prefix):
         return None
 
 
-def extracted(pkgs_dir):
+def available(pkgs_dir):
     """
-    Return, the set of canonical names of, all extracted (available) packages.
+    Return, the set of canonical names of, all available packages.
     """
     if use_hard_links:
         return set(fn for fn in os.listdir(pkgs_dir)
@@ -123,11 +123,10 @@ def extracted(pkgs_dir):
                    if fn.endswith('.tar.bz2'))
 
 
-def extract(pkgs_dir, dist, cleanup=False):
+def make_available(pkgs_dir, dist, cleanup=False):
     '''
-    Extract a package tarball into the conda packages directory, making
-    it available.  We assume that the compressed packages is located in the
-    packages directory.
+    Make a package available for activation.  We assume that the
+    compressed packages is located in the packages directory.
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     assert isfile(bz2path), bz2path
@@ -140,7 +139,7 @@ def extract(pkgs_dir, dist, cleanup=False):
         os.unlink(bz2path)
 
 
-def remove(pkgs_dir, dist):
+def remove_available(pkgs_dir, dist):
     '''
     Remove a package from the packages directory.
     '''
@@ -153,7 +152,7 @@ def remove(pkgs_dir, dist):
 def activate(pkgs_dir, dist, prefix):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
-    the packages has been extracted (using extract() above).
+    the packages has been make available (using make_available() above).
     '''
     if use_hard_links:
         dist_dir = join(pkgs_dir, dist)
@@ -231,17 +230,18 @@ def main():
                  action="store_true",
                  help="list all activated packages")
 
-    p.add_option('--list-extracted',
+    p.add_option('--list-available',
                  action="store_true",
-                 help="list all extracted packages")
+                 help="list all available packages")
 
-    p.add_option('-m', '--meta',
+    p.add_option('-i', '--info',
                  action="store_true",
-                 help="display the mata-data of a package")
+                 help="display the mata-data information of a package")
 
-    p.add_option('-e', '--extract',
+    p.add_option('-m', '--make-available',
                  action="store_true",
-                 help="extract a package")
+                 help="make a package available (when we use hard liks this "
+                      "means extracting it)")
 
     p.add_option('-a', '--activate',
                  action="store_true",
@@ -267,7 +267,7 @@ def main():
 
     p.add_option('--activate-all',
                  action="store_true",
-                 help="activate all extracted packages")
+                 help="activate all available (extracted) packages")
 
     p.add_option('-v', '--verbose',
                  action="store_true")
@@ -276,7 +276,7 @@ def main():
 
     logging.basicConfig()
 
-    if opts.list or opts.list_extracted or opts.activate_all:
+    if opts.list or opts.list_available or opts.activate_all:
         if args:
             p.error('no arguments expected')
     else:
@@ -296,21 +296,20 @@ def main():
         pprint(sorted(activated(opts.prefix)))
         return
 
-    if opts.list_extracted:
-        pprint(sorted(extracted(opts.pkgs_dir)))
+    if opts.list_available:
+        pprint(sorted(available(opts.pkgs_dir)))
         return
 
-    if opts.meta:
-        meta = get_meta(dist, opts.prefix)
-        pprint(meta)
+    if opts.info:
+        pprint(get_meta(dist, opts.prefix))
         return
 
     if opts.activate_all:
-        for d in sorted(extracted(opts.pkgs_dir)):
+        for d in sorted(available(opts.pkgs_dir)):
             activate(opts.pkgs_dir, d, opts.prefix)
         return
 
-    do_steps = not (opts.remove or opts.extract or opts.activate or
+    do_steps = not (opts.remove or opts.make_available or opts.activate or
                     opts.deactivate)
     if opts.verbose:
         print "do_steps: %r" % do_steps
@@ -322,16 +321,16 @@ def main():
 
     if do_steps or opts.remove:
         if opts.verbose:
-            print "removing: %r" % dist
-        remove(opts.pkgs_dir, dist)
+            print "removing available package: %r" % dist
+        remove_available(opts.pkgs_dir, dist)
 
     if do_steps:
         shutil.copyfile(path, join(opts.pkgs_dir, dist + '.tar.bz2'))
 
-    if do_steps or opts.extract:
+    if do_steps or opts.make_available:
         if opts.verbose:
-            print "extracting: %r" % dist
-        extract(opts.pkgs_dir, dist)
+            print "making available: %r" % dist
+        make_available(opts.pkgs_dir, dist)
 
     if (do_steps and dist in activated(opts.prefix)) or opts.deactivate:
         if opts.verbose:
