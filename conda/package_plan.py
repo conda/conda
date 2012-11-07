@@ -270,17 +270,19 @@ def create_upgrade_plan(env, pkgs):
     to_remove = set()
     for pkg in pkgs:
         newest = max(idx.lookup_from_name(pkg.name))
-        log.debug("%s > %s == %s" % (newest, pkg, newest>pkg))
+        log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
             upgrades.add(newest)
             to_remove.add(pkg)
 
     upgrades = idx.find_matches(env.requirements, upgrades)
+    log.debug('initial upgrades: %s' %  upgrades)
 
     if len(upgrades) == 0: return plan  # nothing to do
 
     # get all the dependencies of the upgrades
     all_reqs = idx.get_deps(upgrades)
+    log.debug('upgrade requirements: %s' %  all_reqs)
 
     # find packages compatible with these requirements and the build target
     all_pkgs = idx.find_compatible_packages(all_reqs) | upgrades
@@ -289,6 +291,7 @@ def create_upgrade_plan(env, pkgs):
     # handle multiple matches, find the latest version
     all_pkgs = sort_packages_by_name(all_pkgs)
     all_pkgs = [max(g) for k,g in groupby(all_pkgs, key=lambda x: x.name)]
+    log.debug('all packages: %s' %  all_pkgs)
 
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
