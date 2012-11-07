@@ -26,17 +26,30 @@ the standard library).
 """
 
 import os
+import json
+import shutil
 import stat
 import sys
 import tarfile
 import logging
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile, islink, join
 
 
 log = logging.getLogger(__name__)
 
 
-no_hard_links = bool(sys.platform == 'win32')
+can_hard_link = True # bool(sys.platform != 'win32')
+
+
+def rm_rf(path):
+    if islink(path) or isfile(path):
+        # Note that we have to check if the destination is a link because
+        # exists('/path/to/dead-link') will return False, although
+        # islink('/path/to/dead-link') is True.
+        os.unlink(path)
+
+    elif isdir(path):
+        shutil.rmtree(path)
 
 
 def yield_lines(path):
@@ -64,6 +77,20 @@ def update_prefix(path, new_prefix):
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
+def create_conda_meta(prefix, dist, info_dir, files):
+    """
+    Create the conda metadata, in a given prefix, for a given package.
+    """
+    meta_dir = join(prefix, 'conda-meta')
+    with open(join(info_dir, 'index.json')) as fi:
+        meta = json.load(fi)
+    meta['files'] = files
+    if not isdir(meta_dir):
+        os.mkdir(meta_dir)
+    with open(join(meta_dir, dist + '.json'), 'w') as fo:
+        json.dump(meta, fo, indent=2, sort_keys=True)
+
+
 # ========================== begin API functions =========================
 
 def extract(pkgs_dir, dist, cleanup=False):
@@ -74,7 +101,7 @@ def extract(pkgs_dir, dist, cleanup=False):
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     assert isfile(bz2path), bz2path
-    if no_hard_links:
+    if not can_hard_link:
         return
     t = tarfile.open(bz2path)
     t.extractall(path=join(pkgs_dir, dist))
@@ -88,30 +115,38 @@ def activate(pkgs_dir, dist, prefix):
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
     '''
-    if no_hard_links:
+    if can_hard_link:
+        dist_dir = join(pkgs_dir, dist)
+        info_dir = join(dist_dir, 'info')
+        files = list(yield_lines(join(info_dir, 'files')))
+        for f in files:
+            src = join(dist_dir, f)
+            fdn, fbn = os.path.split(f)
+            dst_dir = join(prefix, fdn)
+            if not isdir(dst_dir):
+                os.makedirs(dst_dir)
+            dst = join(dst_dir, fbn)
+            if os.path.exists(dst):
+                log.warn("file already exists: '%s'" % dst)
+            else:
+                try:
+                    os.link(src, dst)
+                except OSError:
+                    log.error('failed to link (src=%r, dst=%r)' % (src, dst))
+
+    else: # cannot hard link files
+        info_dir = join(prefix, 'info')
+        rm_rf(info_dir)
         t = tarfile.open(join(pkgs_dir, dist + '.tar.bz2'))
         t.extractall(path=prefix)
         t.close()
-        return
+        files = list(yield_lines(join(info_dir, 'files')))        
 
-    dist_path = join(pkgs_dir, dist)
-    for f in yield_lines(join(dist_path, 'info/files')):
-        src = join(dist_path, f)
-        fdn, fbn = os.path.split(f)
-        dst_dir = join(prefix, fdn)
-        if not isdir(dst_dir):
-            os.makedirs(dst_dir)
-        dst = join(dst_dir, fbn)
-        if os.path.exists(dst):
-            log.warn("file already exists: '%s'" % dst)
-        else:
-            try:
-                os.link(src, dst)
-            except OSError:
-                log.error('failed to link (src=%r, dst=%r)' % (src, dst))
-
-    for f in yield_lines(join(dist_path, 'info/has_prefix')):
+    for f in yield_lines(join(info_dir, 'has_prefix')):
         update_prefix(join(prefix, f), prefix)
+
+    create_conda_meta(prefix, dist, info_dir, files)
+        
 
 
 def deactivate(pkgs_dir, dist, prefix):
