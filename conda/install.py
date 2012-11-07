@@ -140,22 +140,26 @@ def activate(pkgs_dir, dist, prefix):
         t = tarfile.open(join(pkgs_dir, dist + '.tar.bz2'))
         t.extractall(path=prefix)
         t.close()
-        files = list(yield_lines(join(info_dir, 'files')))        
+        files = list(yield_lines(join(info_dir, 'files')))
 
     for f in yield_lines(join(info_dir, 'has_prefix')):
         update_prefix(join(prefix, f), prefix)
 
     create_conda_meta(prefix, dist, info_dir, files)
-        
 
 
-def deactivate(pkgs_dir, dist, prefix):
+def deactivate(dist, prefix):
     '''
-    Tear down a package, in the specified environment.
+    Remove a package from the specified environment.
     '''
-    dist_path = join(pkgs_dir, dist)
+    meta_dir = join(prefix, 'conda-meta')
+    meta_path = join(meta_dir, dist + '.json')
+    with open(meta_path) as fi:
+        meta = json.load(fi)
+    files = meta['files']
+
     dst_dirs = set()
-    for f in yield_lines(join(dist_path, 'info/files')):
+    for f in files:
         fdn, fbn = os.path.split(f)
         dst_dir = join(prefix, fdn)
         dst_dirs.add(dst_dir)
@@ -170,6 +174,8 @@ def deactivate(pkgs_dir, dist, prefix):
             os.rmdir(path)
         except OSError: # directory might not exist or not be empty
             log.debug("could not remove directory: '%s'" % dst)
+
+    os.unlink(meta_path)
 
 # =========================== end API functions ==========================
 

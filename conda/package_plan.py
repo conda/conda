@@ -57,7 +57,7 @@ class package_plan(object):
             fetch_file(pkg.filename, progress=progress)
             extract(env.conda.packages_dir, pkg.canonical_name)
         for pkg in self.deactivations:
-            deactivate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
+            deactivate(pkg.canonical_name, env.prefix)
         for pkg in self.activations:
             activate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
 
