@@ -3,11 +3,6 @@ This module contains:
   * all low-level code for extracting, activating and deactivating packages
   * a very simple CLI
 
-The API functions are:
-  - extract
-  - activate
-  - deactivate
-
 These API functions  have argument names referring to:
 
     dist:        canonical package name (e.g. 'numpy-1.6.2-py26_0')
@@ -38,7 +33,7 @@ from os.path import isdir, isfile, islink, join
 log = logging.getLogger(__name__)
 
 
-can_hard_link = True # bool(sys.platform != 'win32')
+can_hard_link = bool(sys.platform != 'win32')
 
 
 def rm_rf(path):
@@ -77,7 +72,7 @@ def update_prefix(path, new_prefix):
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
-def create_conda_meta(prefix, dist, info_dir, files):
+def create_meta(prefix, dist, info_dir, files):
     """
     Create the conda metadata, in a given prefix, for a given package.
     """
@@ -92,6 +87,29 @@ def create_conda_meta(prefix, dist, info_dir, files):
 
 
 # ========================== begin API functions =========================
+
+def activated(prefix):
+    """
+    Return the (set of canonical names) of activated packages in prefix.
+    """
+    meta_dir = join(prefix, 'conda-meta')
+    if not isdir(meta_dir):
+        return set()
+    return set(fn[:-5] for fn in meta_dir if fn.endswith('.json'))
+
+
+def get_meta(dist, prefix):
+    """
+    Return the install meta-data for a given packages in a prefix, or None
+    if the package does not exist in the prefix.
+    """
+    meta_path = join(prefix, 'conda-meta', dist + '.json')
+    try:
+        with open(meta_path) as fi:
+            return json.load(fi)
+    except OSError:
+        return None
+
 
 def extract(pkgs_dir, dist, cleanup=False):
     '''
@@ -145,21 +163,20 @@ def activate(pkgs_dir, dist, prefix):
     for f in yield_lines(join(info_dir, 'has_prefix')):
         update_prefix(join(prefix, f), prefix)
 
-    create_conda_meta(prefix, dist, info_dir, files)
+    create_meta(prefix, dist, info_dir, files)
 
 
 def deactivate(dist, prefix):
     '''
-    Remove a package from the specified environment.
+    Remove a package from the specified environment, it is an error of the
+    package does not exist in the prefix.
     '''
-    meta_dir = join(prefix, 'conda-meta')
-    meta_path = join(meta_dir, dist + '.json')
+    meta_path = join(prefix, 'conda-meta', dist + '.json')
     with open(meta_path) as fi:
         meta = json.load(fi)
-    files = meta['files']
 
     dst_dirs = set()
-    for f in files:
+    for f in meta['files']:
         fdn, fbn = os.path.split(f)
         dst_dir = join(prefix, fdn)
         dst_dirs.add(dst_dir)
