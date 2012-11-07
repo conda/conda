@@ -8,6 +8,8 @@ Below are a few examples using conda commands with a variety of optional argumen
 Getting Information
 -------------------
 
+.. _info_example:
+
 Info
 ----
 
@@ -28,6 +30,8 @@ Info
     environment locations : ['/Users/test/anaconda/envs']
 
 
+.. _list_example:
+
 List
 ----
 
@@ -45,6 +49,7 @@ conda will look in the default environment.
     sqlite                    3.7.13
     zlib                      1.2.7
 
+.. _depends_example:
 
 Depends
 -------
@@ -165,6 +170,8 @@ on, as well.
 
 
 
+.. _search_example:
+
 Search
 ------
 
@@ -200,6 +207,8 @@ as well as the default information.
             python-2.7
 
 
+.. _location_example:
+
 Locations
 ---------
 
@@ -210,6 +219,7 @@ Locations
 
         /Users/test/anaconda/envs
 
+.. _envs_example:
 
 Envs
 ----
@@ -226,6 +236,7 @@ Envs
 Managing Environments and Packages
 ----------------------------------
 
+.. _create_example:
 
 Create
 ------
@@ -259,6 +270,7 @@ default.
     Proceed (y/n)? y
     numpy-1.5.1-py27_0.tar.bz2 100% |#####################################| Time: 0:00:06 321.12 kB/s
 
+.. _install_example:
 
 Install
 -------
@@ -282,3 +294,10 @@ As before, conda will activate all necessary dependencies.
 
     Proceed (y/n)? y
     scipy-0.11.0-np16py27_pro0.tar.bz2 100% |###############################| Time: 0:00:12 690.46 kB/s
+
+.. _upgrade_example:
+
+Upgrade
+-------
+
+Need an upgrade example.

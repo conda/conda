@@ -2,9 +2,6 @@
 info
 ----
 
-Display information about current Anaconda install.
+.. include:: info.txt
 
-**usage**: ``conda info [-h]``
-
-optional arguments:
-    -h, --help  show this help message and exit
+Look here for :ref:`examples <info_example>`

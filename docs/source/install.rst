@@ -2,20 +2,6 @@
 install
 -------
 
-Install packages into a specified Anaconda environment.
+.. include:: install.txt
 
-**usage**: ``conda install [-h] [--confirm {yes,no}] [--dry-run] [-f FILE] [-p PREFIX] [--progress-bar {yes,no}] [package_spec [package_spec ...]]``
-
-*package_spec*
-    package name and (optional) version to install into a specified Anaconda environment
-
-
-optional arguments:
-    -h, --help              show this help message and exit
-    --confirm               ask for confirmation before installing packages into
-                            Anaconda environment (default: yes)
-    --dry-run               display packages to be modified, without actually executing
-    -f FILE, --file FILE    filename to read package versions from (default: None)
-    -p PREFIX, --prefix PREFIX
-                            Anaconda environment to install packages into (default: ROOT_DIR)
-    --progress-bar          display progress bar for package downloads (default: yes)
+Look here for :ref:`examples <install_example>`

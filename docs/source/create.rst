@@ -4,4 +4,4 @@ create
 
 .. include:: create.txt
 
-Link to example goes here
+Look here for :ref:`examples <create_example>`

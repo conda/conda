@@ -98,3 +98,8 @@ There is very little user configuration that conda requires, however conda will 
 
 
 .. _YAML syntax: http://en.wikipedia.org/wiki/YAML
+
+-------
+License
+-------
+conda is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.

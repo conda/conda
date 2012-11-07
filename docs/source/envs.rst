@@ -2,11 +2,6 @@
 envs
 ----
 
-List all known Anaconda environments.
+.. include:: envs.txt
 
-.. Note:: conda looks for Anaconda environments in all the locations reported by the *location* command. Any environments created elsewhere will not be listed here.
-
-**usage**: ``conda envs [-h]``
-
-optional arguments:
-    -h, --help    show this help message and exit
+Look here for :ref:`examples <envs_example>`
