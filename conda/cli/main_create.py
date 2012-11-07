@@ -103,21 +103,20 @@ def execute(args, parser):
             reqs.add(requirement(req_string))
         except RuntimeError:
             candidates = conda.index.lookup_from_name(req_string)
-            reqs = reqs | set(requirement(
-                                "%s %s" % (pkg.name, pkg.version.vstring))
-                                for pkg in candidates)
-
-    for req in reqs:
-        if req.name not in conda.index.package_names:
-            message = "unknown package name '%s'" % req.name
-            from difflib import get_close_matches
-            close = get_close_matches(req.name, conda.index.package_names)
-            if close:
-                message += '\n\nDid you mean one of these?\n'
-                for s in close:
-                    message += '    %s' % s
-                message += "\n"
-            raise RuntimeError(message)
+            if candidates:
+                reqs = reqs | set(requirement(
+                                    "%s %s" % (pkg.name, pkg.version.vstring))
+                                    for pkg in candidates)
+            else:
+                message = "unknown package name '%s'" % req_string
+                from difflib import get_close_matches
+                close = get_close_matches(req_string, conda.index.package_names)
+                if close:
+                    message += '\n\nDid you mean one of these?\n'
+                    for s in close:
+                        message += '    %s' % s
+                    message += "\n"
+                raise RuntimeError(message)
 
     plan = create_create_plan(prefix, conda, reqs, args.use_defaults=="yes")
 
