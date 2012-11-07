@@ -278,6 +278,8 @@ def main():
 
     opts, args = p.parse_args()
 
+    logging.basicConfig()
+
     if opts.list or opts.list_extracted or opts.activate_all:
         if args:
             p.error('no arguments expected')
