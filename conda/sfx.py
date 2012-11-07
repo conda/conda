@@ -41,8 +41,6 @@ def sfx_activate(pkgs_dir, dist, prefix):
     dist_path = join(pkgs_dir, dist)
     for f in yield_lines(join(dist_path, 'info/files')):
         src = join(dist_path, f)
-#        if isdir(src):
-#            continue
         fdn, fbn = os.path.split(f)
         dst_dir = join(prefix, fdn)
         if not isdir(dst_dir):

@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 # Note: in the functions below the following argument names refer to:
 #
-#     pkg:         canonical package name (e.g. 'numpy-1.6.2-py26_0')
+#     dist:        canonical package name (e.g. 'numpy-1.6.2-py26_0')
 #
 #     pkgs_dir:    the "packages directory" (e.g. '/opt/anaconda/pkgs')
 #
@@ -19,13 +19,13 @@ log = logging.getLogger(__name__)
 #                  but is otherwise something like '/opt/anaconda/envs/foo',
 #                  or even any prefix, e.g. '/home/joe/myenv'
 
-def extract(pkgs_dir, pkg, cleanup=False):
+def extract(pkgs_dir, dist, cleanup=False):
     '''
     extract a package tarball into the conda packages directory, making
     it available
     '''
-    dirpath = join(pkgs_dir, pkg)
-    bz2path = join(pkgs_dir, pkg + '.tar.bz2')
+    dirpath = join(pkgs_dir, dist)
+    bz2path = join(pkgs_dir, dist + '.tar.bz2')
     t = tarfile.open(bz2path)
     t.extractall(path=dirpath)
     t.close()
@@ -33,20 +33,20 @@ def extract(pkgs_dir, pkg, cleanup=False):
         os.unlink(bz2path)
 
 
-def activate(pkgs_dir, pkg, env_prefix):
+def activate(pkgs_dir, dist, env_prefix):
     '''
     set up link farm for the specified package, in the specified conda
     environment
     '''
-    sfx_activate(pkgs_dir, pkg, env_prefix)
+    sfx_activate(pkgs_dir, dist, env_prefix)
 
 
-def deactivate(pkgs_dir, pkg, env_prefix):
+def deactivate(pkgs_dir, dist, env_prefix):
     '''
     tear down link farm for the specified package, in the specified
     Anaconda environment
     '''
-    dist_path = join(pkgs_dir, pkg)
+    dist_path = join(pkgs_dir, dist)
     dst_dirs = set()
     for f in yield_lines(join(dist_path, 'info/files')):
         fdn, fbn = os.path.split(f)
