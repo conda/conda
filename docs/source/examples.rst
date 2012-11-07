@@ -146,7 +146,7 @@ that begin with ``l`` followed by any number of characters, and ending with ``py
 While the previous examples have illustrated conda's basic usefulness, they have only scratched
 the surface of what this option can do.
 
-For this example, we will use an environment containing scipy=0.11.0, numpy=1.7, and python=2.7 and their dependencies.
+For this example, we will use an environment containing scipy=0.11.0, numpy=1.7, python=2.7 and their dependencies.
 Using the prefix option (``-p``), we can select an environment, and search for all packages that are compatible with it.
 
 .. code-block:: bash
@@ -402,7 +402,7 @@ not locally available will also be downloaded.
 If the package version is not specified, conda will choose the latest version by
 default.
 
-We'll start with something simple, a bare bones create.  
+We'll start with a simple bare bones create.  
 
 .. code-block:: bash
 
@@ -418,7 +418,7 @@ We'll start with something simple, a bare bones create.
         sqlite-3.7.13
         zlib-1.2.7
 
-Proceed (y/n)? y
+    Proceed (y/n)? y
 
 It is also possible to enable a progress bar (``--progress-bar=yes``) to show the status of any
 packages conda has to download.
