@@ -1,7 +1,7 @@
 import logging
 from itertools import groupby
 
-from install import activate, deactivate, extract
+from install import make_available, activate, deactivate
 
 from remote import fetch_file
 from package import sort_packages_by_name
@@ -55,7 +55,7 @@ class package_plan(object):
             else:
                 progress = None
             fetch_file(pkg.filename, progress=progress)
-            extract(env.conda.packages_dir, pkg.canonical_name)
+            make_available(env.conda.packages_dir, pkg.canonical_name)
         for pkg in self.deactivations:
             deactivate(pkg.canonical_name, env.prefix)
         for pkg in self.activations:
