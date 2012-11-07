@@ -10,7 +10,7 @@ from config import config
 log = logging.getLogger(__name__)
 
 
-def fetch_file(fn, md5=None, progress=None):
+def fetch_file(fn, md5=None, size=None, progress=None):
     '''
     Search all known repositories (in order) for the specified file and
     download it, optionally checking an md5 checksum.
@@ -32,7 +32,10 @@ def fetch_file(fn, md5=None, progress=None):
         )
     n = 0
     h = hashlib.new('md5')
-    length = int(fi.headers["Content-Length"])
+    if size is None:
+        length = int(fi.headers["Content-Length"])
+    else:
+        length = size
 
     if progress:
         progress.widgets.insert(0, fn)
