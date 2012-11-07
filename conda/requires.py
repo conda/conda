@@ -1,3 +1,8 @@
+"""
+This module is for backwards compatibility with the Launcher. All
+functions contained are deprecated and should not be usd for any
+new development.
+"""
 import os
 import sys
 from os.path import join
