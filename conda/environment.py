@@ -1,7 +1,5 @@
 
 from naming import split_canonical_name
-from os import listdir
-from os.path import isdir, join
 import logging
 from requirement import requirement
 
@@ -50,18 +48,19 @@ class environment(object):
         return all_of(bt, py, np)
 
     def find_activated_package(self, pkg_name):
-        index_path = join(self.prefix, '.index')
-        if not isdir(index_path): return None
-        for fn in listdir(index_path):
-            name, version, build = split_canonical_name(fn)
+        canonical_names = activated(self.prefix)
+        for canonical_name in canonical_names:
+            name, version, build = split_canonical_name(canonical_name)
             if name == pkg_name:
-                return self._conda.index.lookup_from_canonical_name(fn)
+                return self._conda.index.lookup_from_canonical_name(canonical_name)
+        return None
 
     def requirement_is_satisfied(self, req):
         c = satisfies(req)
         for pkg in self.activated:
             if c.match(pkg):
                 return True
+        return False
 
     def _python_requirement(self):
         try:
