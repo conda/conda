@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 #     pkgs_dir:    the "packages directory" (e.g. '/opt/anaconda/pkgs')
 #
 #     env_prefix:  the prefix of a particular environment, which may also
-#                  be the "default" environment (i.e. '/opt/anaconda'),
+#                  be the "default" environment (i.e. sys.prefix),
 #                  but is otherwise something like '/opt/anaconda/envs/foo',
 #                  or even any prefix, e.g. '/home/joe/myenv'
 
