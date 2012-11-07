@@ -59,11 +59,11 @@ class package_plan(object):
             else:
                 progress = None
             fetch_file(pkg.filename, progress=progress)
-            extract(pkg, env)
+            extract(env.conda.packages_dir, pkg.canonical_name)
         for pkg in self.deactivations:
-            deactivate(pkg, env)
+            deactivate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
         for pkg in self.activations:
-            activate(pkg, env)
+            activate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
 
     def empty(self):
         '''
