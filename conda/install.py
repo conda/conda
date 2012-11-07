@@ -31,7 +31,7 @@ import stat
 import sys
 import tarfile
 import logging
-from os.path import isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, islink, join
 
 
 log = logging.getLogger(__name__)
@@ -283,7 +283,7 @@ def main():
             p.error('no arguments expected')
     else:
         if len(args) == 1:
-            dist = args[0]
+            dist = basename(args[0])
             if dist.endswith('.tar.bz2'):
                 dist = dist[:-8]
         else:
@@ -292,6 +292,7 @@ def main():
     if opts.verbose:
         print "pkgs_dir: %r" % opts.pkgs_dir
         print "prefix  : %r" % opts.prefix
+        print "dist    : %r" % dist
 
     if opts.list:
         pprint(sorted(activated(opts.prefix)))
