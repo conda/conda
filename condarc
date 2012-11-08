@@ -1,10 +1,11 @@
 # This is the default conda run configuration
 
-# repository locations
+# repository locations. These override conda defaults, i.e., conda will
+# search *only* the repositories listed here, in the order given.
 repositories:
   - http://repo.continuum.io/pkgs
 
-# environment locations
-locations:
-  - ~/envs
-
+# environment locations. These locations are in *addition* to the system
+# location at $ROOT_DIR/envs.
+#locations:
+#  - ~/envs
