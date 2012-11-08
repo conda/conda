@@ -67,12 +67,12 @@ def execute(args, parser):
 
         fmt = '%s' if len(args.pkg_names) == 1 else '{%s}'
 
+        if not args.no_prefix:
+            rdeps = rdeps & env.activated
+
         if len(rdeps) == 0:
             print 'No packages depend on ' + fmt % ', '.join(args.pkg_names)
             return
-
-        if not args.no_prefix:
-            rdeps = rdeps & env.activated
 
         if args.verbose:
             names = sorted([pkg.canonical_name for pkg in rdeps])
