@@ -56,7 +56,10 @@ def execute(args, parser):
         for pkg_name in args.pkg_names:
             pkg = env.find_activated_package(pkg_name)
             if not pkg:
-                raise RuntimeError("unknown package '%s', cannot upgrade" % pkg_name)
+                if pkg_name in conda.index.package_names:
+                    raise RuntimeError("package '%s' is not installed, cannot upgrade (see conda install -h)" % pkg_name)
+                else:
+                    raise RuntimeError("unknown package '%s', cannot upgrade" % pkg_name)
             pkgs.add(pkg)
 
     plan = create_upgrade_plan(env, pkgs)
