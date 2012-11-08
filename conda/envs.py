@@ -9,8 +9,7 @@ from os.path import exists, join
 from shutil import rmtree
 
 from config import ROOT_DIR, PACKAGES_DIR
-from install import activated
-from sfx import sfx_activate
+from install import activate, activated
 
 ENVS_DIR = join(ROOT_DIR, 'envs')
 
@@ -32,7 +31,7 @@ def create_env(envname, dists):
     dir_name = join(ENVS_DIR, envname)
     makedirs(dir_name)
     for dist in dists:
-        sfx_activate(PACKAGES_DIR, dist, dir_name)
+        activate(PACKAGES_DIR, dist, dir_name)
 
 
 def remove_env(envname):
