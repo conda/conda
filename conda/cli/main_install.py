@@ -78,6 +78,10 @@ def execute(args, parser):
     else:
         req_strings = pkg_versions
 
+    for req_string in req_strings:
+        if req_string.startswith('conda'):
+            raise RuntimeError("Package 'conda' may only be installed in the default environment")
+
     conda = anaconda()
 
     plan = create_install_plan(env, req_strings)

@@ -79,7 +79,6 @@ def execute(args, parser):
         prefix = abspath(expanduser(args.prefix))
     else:
         prefix = join(ROOT_DIR, 'envs', args.name)
-    env = conda.lookup_environment(prefix)
 
     if exists(prefix):
         if args.prefix:
@@ -99,6 +98,8 @@ def execute(args, parser):
 
     reqs = set()
     for req_string in req_strings:
+        if req_string.startswith('conda'):
+            raise RuntimeError("Package 'conda' may only be installed in the default environment")
         try:
             reqs.add(requirement(req_string))
         except RuntimeError:
@@ -133,5 +134,6 @@ def execute(args, parser):
         if proceed.lower() not in ['y', 'yes']: return
 
     makedirs(prefix)
+    env = conda.lookup_environment(prefix)
 
     plan.execute(env, args.progress_bar=="yes")
