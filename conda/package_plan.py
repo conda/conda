@@ -306,7 +306,7 @@ def create_upgrade_plan(env, pkgs):
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
     if inconsistent:
-        raise RuntimeError('cannot upgrade pacakges, the following requirements are inconsistent: %s'
+        raise RuntimeError('cannot upgrade packages, the following requirements are inconsistent: %s'
             % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent)
         )
 
