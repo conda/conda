@@ -1,5 +1,5 @@
 from os import getenv, listdir
-from os.path import abspath, expanduser, isdir, join
+from os.path import abspath, exists, expanduser, isdir, join
 import logging
 import platform
 import sys
@@ -116,6 +116,9 @@ class config(object):
     def environments(self):
         envs = []
         for location in self.locations:
+            if not exists(location):
+                log.warning("location '%s' does not exist" % location)
+                continue
             for fn in listdir(location):
                 prefix = join(location, fn)
                 if isdir(prefix):
