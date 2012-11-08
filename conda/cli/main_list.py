@@ -30,6 +30,8 @@ def execute(args, parser):
 
     env = conda.lookup_environment(prefix)
 
+    print 'packages and versions in environment at %s:' % env.prefix
+
     for pkg in sort_packages_by_name(env.activated):
         print '%-25s %s' % (pkg.name, pkg.version)
 
