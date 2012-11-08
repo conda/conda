@@ -96,7 +96,7 @@ def main():
     try:
         args.func(args, p)
     except RuntimeError as e:
-        print "conda: error: ", e
+        print "conda: error:", e
         exit(2)
 
 if __name__ == '__main__':
