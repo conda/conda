@@ -1,6 +1,7 @@
 
 from naming import split_canonical_name
 import logging
+from os.path import isdir
 from requirement import requirement
 
 from constraints import (
@@ -17,6 +18,8 @@ class environment(object):
     __slots__ = ['_conda', '_prefix']
 
     def __init__(self, conda, prefix):
+        if not isdir(prefix):
+            raise RuntimeError("no environment found at location '%s'" % prefix)
         self._conda = conda
         self._prefix = prefix
 
