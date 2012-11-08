@@ -5,14 +5,17 @@ new development.
 """
 import os
 import sys
-from os.path import join
+from os.path import exists, join
 
 
 PKGS_DIR = join(sys.prefix, 'pkgs')
 
 def read_requires(pkg):
     res = []
-    for line in open(join(PKGS_DIR, pkg, 'info/requires')):
+    path = join(PKGS_DIR, pkg, 'info/requires')
+    if not exists(path):
+        return res
+    for line in open(path):
         r = line.strip()
         if r.endswith(('pro0', 'ce0')):
             if r.endswith('pro0'):
