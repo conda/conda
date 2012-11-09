@@ -35,6 +35,9 @@ ROOT = ROOT_DIR # This is deprecated, do not use in new code
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 
 
+DEFAULT_PYTHON_SPEC='python=2.7'
+DEFAULT_NUMPY_SPEC='numpy=1.7'
+
 def _load_condarc(path):
     try:
         import yaml
