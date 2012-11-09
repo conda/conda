@@ -6,7 +6,6 @@ from os.path import abspath, exists, expanduser, join
 from anaconda import anaconda
 from config import ROOT_DIR
 from package_plan import create_create_plan
-from requirement import requirement
 
 
 def configure_parser(sub_parsers):
@@ -89,37 +88,18 @@ def execute(args, parser):
     if args.file:
         try:
             f = open(abspath(args.file))
-            req_strings = [line for line in f]
+            spec_strings = [line for line in f]
             f.close()
         except:
             parser.error('could not read file: %s', args.file)
     else:
-        req_strings = args.package_specs
+        spec_strings = args.package_specs
 
-    reqs = set()
-    for req_string in req_strings:
-        if req_string.startswith('conda'):
+    for spec_string in spec_strings:
+        if spec_string.startswith('conda'):
             raise RuntimeError("Package 'conda' may only be installed in the default environment")
-        try:
-            reqs.add(requirement(req_string))
-        except RuntimeError:
-            candidates = conda.index.lookup_from_name(req_string)
-            if candidates:
-                reqs = reqs | set(requirement(
-                                    "%s %s" % (pkg.name, pkg.version.vstring))
-                                    for pkg in candidates)
-            else:
-                message = "unknown package name '%s'" % req_string
-                from difflib import get_close_matches
-                close = get_close_matches(req_string, conda.index.package_names)
-                if close:
-                    message += '\n\nDid you mean one of these?\n'
-                    for s in close:
-                        message += '    %s' % s
-                    message += "\n"
-                raise RuntimeError(message)
 
-    plan = create_create_plan(prefix, conda, reqs, args.use_defaults=="yes")
+    plan = create_create_plan(prefix, conda, spec_strings, args.use_defaults=="yes")
 
     if plan.empty():
         print 'No matching packages could be found, nothing to do'

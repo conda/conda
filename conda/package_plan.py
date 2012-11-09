@@ -1,14 +1,16 @@
-import logging
+
+from difflib import get_close_matches
 from itertools import groupby
+import logging
 
-from install import make_available, activate, deactivate
 
-from remote import fetch_file
-from package import sort_packages_by_name
-from requirement import (apply_default_requirement, requirement,
-                         find_inconsistent_requirements)
+from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
 from constraints import build_target, satisfies
+from install import make_available, activate, deactivate
+from package import sort_packages_by_name
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
+from remote import fetch_file
+from requirement import apply_default_requirement, requirement, find_inconsistent_requirements
 
 
 __all__ = [
@@ -95,7 +97,7 @@ class package_plan(object):
         return result
 
 
-def create_create_plan(prefix, conda, reqs, use_defaults):
+def create_create_plan(prefix, conda, spec_strings, use_defaults):
     '''
     This functions creates a package plan for activating packages in a new
     Anaconda environement, including all of their required dependencies. The
@@ -105,7 +107,35 @@ def create_create_plan(prefix, conda, reqs, use_defaults):
 
     idx = conda.index
 
-    reqs = set(reqs)
+    reqs = set()
+
+    for spec_string in spec_strings:
+
+        if spec_string == 'python':
+            reqs.add(requirement(DEFAULT_PYTHON_SPEC))
+            continue
+
+        if spec_string == 'numpy':
+            reqs.add(requirement(DEFAULT_NUMPY_SPEC))
+            continue
+
+        try:
+            reqs.add(requirement(spec_string))
+        except RuntimeError:
+            candidates = conda.index.lookup_from_name(spec_string)
+            if candidates:
+                reqs = reqs | set(requirement("%s %s" % (pkg.name, pkg.version.vstring)) for pkg in candidates)
+            else:
+                message = "unknown package name '%s'" % spec_string
+                close = get_close_matches(spec_string, conda.index.package_names)
+                if close:
+                    message += '\n\nDid you mean one of these?\n'
+                    for s in close:
+                        message += '    %s' % s
+                    message += "\n"
+                raise RuntimeError(message)
+
+
 
     # abort if requirements are already incondsistent at this point
     inconsistent = find_inconsistent_requirements(reqs)
