@@ -27,7 +27,7 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "display packages to be modified, without actually exectuting",
     )
-    npgroup = p.add_mutually_exclusive_group(required=True)
+    npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
         action  = "store",
@@ -36,6 +36,7 @@ def configure_parser(sub_parsers):
     npgroup.add_argument(
         '-p', "--prefix",
         action  = "store",
+        default = ROOT_DIR,
         help    = "full path to Anaconda environment to upgrade packages in",
     )
     p.add_argument(
@@ -51,10 +52,10 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     conda = anaconda()
 
-    if args.prefix:
-        prefix = abspath(expanduser(args.prefix))
-    else:
+    if args.name:
         prefix = join(ROOT_DIR, 'envs', args.name)
+    else:
+        prefix = abspath(expanduser(args.prefix))
 
     env = conda.lookup_environment(prefix)
 
