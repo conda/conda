@@ -309,13 +309,14 @@ def create_upgrade_plan(env, pkgs):
     upgrades = set()
     to_remove = set()
     for pkg in pkgs:
-        newest = max(idx.lookup_from_name(pkg.name))
+        candidates = idx.lookup_from_name(pkg.name)
+        candidates = idx.find_matches(env.requirements, candidates)
+        newest = max(candidates)
         log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
             upgrades.add(newest)
             to_remove.add(pkg)
 
-    upgrades = idx.find_matches(env.requirements, upgrades)
     log.debug('initial upgrades: %s' %  upgrades)
 
     if len(upgrades) == 0: return plan  # nothing to do
