@@ -4,9 +4,8 @@ import logging
 from os.path import isdir
 from requirement import requirement
 
-from constraints import (
-    all_of, any_of, build_target, requires, satisfies, wildcard
-)
+import config
+from constraints import all_of, any_of, build_target, requires, satisfies
 from install import activated
 
 
@@ -72,8 +71,9 @@ class environment(object):
             sat = requirement('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return any_of(requires(req), satisfies(sat))
         except: # TODO
-            log.debug('found no python requirement, returning wildcard()')
-            return wildcard()
+            log.debug('found no python requirement, returning default spec: %s' % config.DEFAULT_PYTHON_SPEC)
+            req = requirement(config.DEFAULT_PYTHON_SPEC)
+            return any_of(requires(req), satisfies(req))
 
     def _numpy_requirement(self):
         try:
@@ -82,8 +82,9 @@ class environment(object):
             sat = requirement('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return any_of(requires(req), satisfies(sat))
         except: #TODO
-            log.debug('found no numpy requirement, returning wildcard()')
-            return wildcard()
+            log.debug('found no numpy requirement, returning default spec: %s' % config.DEFAULT_NUMPY_SPEC)
+            req = requirement(config.DEFAULT_NUMPY_SPEC)
+            return any_of(requires(req), satisfies(req))
 
     def __str__(self):
         return 'env[%s]' % self.prefix
