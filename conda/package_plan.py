@@ -159,9 +159,9 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     if use_defaults:
         for req in all_reqs:
             if req.name == 'python':
-                apply_default_requirement(reqs, requirement('python 2.7'))
+                apply_default_requirement(reqs, requirement(DEFAULT_PYTHON_SPEC))
             elif req.name == 'numpy':
-                apply_default_requirement(reqs, requirement('numpy 1.7'))
+                apply_default_requirement(reqs, requirement(DEFAULT_NUMPY_SPEC))
 
     # OK, so we need to re-do the compatible packages computation using
     # the updated requirements
