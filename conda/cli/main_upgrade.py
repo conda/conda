@@ -1,6 +1,6 @@
 
 from argparse import ArgumentDefaultsHelpFormatter
-from os.path import abspath, expanduser
+from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
 from config import ROOT_DIR
@@ -27,11 +27,16 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "display packages to be modified, without actually exectuting",
     )
-    p.add_argument(
+    npgroup = p.add_mutually_exclusive_group(required=True)
+    npgroup.add_argument(
+        '-n', "--name",
+        action  = "store",
+        help    = "name of new directory (in %s/envs) to upgrade packages in" % ROOT_DIR,
+    )
+    npgroup.add_argument(
         '-p', "--prefix",
         action  = "store",
-        default = ROOT_DIR,
-        help    = "upgrade packages in the specified Anaconda environment",
+        help    = "full path to Anaconda environment to upgrade packages in",
     )
     p.add_argument(
         'pkg_names',
@@ -46,7 +51,11 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     conda = anaconda()
 
-    prefix = abspath(expanduser(args.prefix))
+    if args.prefix:
+        prefix = abspath(expanduser(args.prefix))
+    else:
+        prefix = join(ROOT_DIR, 'envs', args.name)
+
     env = conda.lookup_environment(prefix)
 
     if len(args.pkg_names) == 0:
