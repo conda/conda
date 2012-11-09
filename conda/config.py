@@ -3,7 +3,6 @@ from os.path import abspath, exists, expanduser, isdir, join
 import logging
 import platform
 import sys
-import yaml
 
 from conda import __version__
 from environment import environment
@@ -36,6 +35,20 @@ ROOT = ROOT_DIR # This is deprecated, do not use in new code
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 
 
+def _load_condarc(path):
+    try:
+        import yaml
+    except ImportError:
+        log.warn("yaml module missing, cannot read .condarc files")
+        return None
+    try:
+        rc = yaml.load(open(path))
+    except IOError:
+        return None
+    log.debug("loaded: %s" % path)
+    return rc
+
+
 class config(object):
 
     __slots__ = ['_rc']
@@ -44,22 +57,11 @@ class config(object):
         self._rc = None
 
         # try to load .condarc file from users home directory
-        try:
-            home = getenv('USERPROFILE') or getenv('HOME')
-            self._rc = yaml.load(open(join(home, '.condarc')))
-            log.debug('loaded user .condarc')
-            # TODO: test validity of dict (check keys)
-        except:
-            pass
+        home = getenv('USERPROFILE') or getenv('HOME')
+        self._rc = _load_condarc(join(home, '.condarc'))
 
-        # otherwise try to load the system .condarc
         if not self._rc:
-            try:
-                self._rc = yaml.load(open(join(ROOT_DIR, '.condarc')))
-                log.debug('loaded system .condarc')
-                # TODO: test validity of dict (check keys)
-            except:
-                pass
+            self._rc = _load_condarc(join(ROOT_DIR, '.condarc'))
 
     @property
     def conda_version(self):
