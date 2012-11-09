@@ -1,6 +1,6 @@
 
 from argparse import ArgumentDefaultsHelpFormatter
-from os.path import abspath, exists, expanduser
+from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
 from config import ROOT_DIR
@@ -32,11 +32,16 @@ def configure_parser(sub_parsers):
         action  = "store",
         help    = "filename to read package versions from",
     )
-    p.add_argument(
+    npgroup = p.add_mutually_exclusive_group(required=True)
+    npgroup.add_argument(
+        '-n', "--name",
+        action  = "store",
+        help    = "name of new directory (in %s/envs) to install packages into" % ROOT_DIR,
+    )
+    npgroup.add_argument(
         '-p', "--prefix",
         action  = "store",
-        default = ROOT_DIR,
-        help    = "Anaconda environment to install packages into",
+        help    = "full path to Anaconda environment to install packages into",
     )
     p.add_argument(
         "--progress-bar",
@@ -62,11 +67,12 @@ def execute(args, parser):
 
     conda = anaconda()
 
-    prefix = abspath(expanduser(args.prefix))
-    env = conda.lookup_environment(prefix)
+    if args.prefix:
+        prefix = abspath(expanduser(args.prefix))
+    else:
+        prefix = join(ROOT_DIR, 'envs', args.name)
 
-    if not exists(prefix):
-        parser.error("'%s' is not a valid Anaconda environment" % args.prefix)
+    env = conda.lookup_environment(prefix)
 
     if args.file:
         try:
