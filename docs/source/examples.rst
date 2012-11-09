@@ -256,12 +256,12 @@ Running ``conda depends`` with the reverse dependency command shows all packages
         statsmodels-0.4.3
         wiserf-0.9
 
-Using reverse dependency in addition to the verbose and no-prefix commands offers
+Using reverse dependency in addition to the verbose (``-v``) and ``no-prefix`` commands offers
 more information and includes packages that depend on any version of numpy.
 
 .. code-block:: bash
 
-    $ conda depends -rvn numpy
+    $ conda depends --no-prefix -rv numpy
     The following packages depend on numpy:
         chaco-4.2.1.dev-np17py27_0
         h5py-2.0.1-np17py26_0
@@ -277,12 +277,12 @@ more information and includes packages that depend on any version of numpy.
         statsmodels-0.4.3-np17py27_0
         wiserf-0.9-np17py27_0
 
-conda ``depends`` with just ``-rn`` shows us any version of numpy's dependencies in a more easily parsed
+conda ``depends`` with just ``--no-prefix -r`` shows us any version of numpy's dependencies in a more easily parsed
 form, showing how many versions of numpy can be used to build that specific package.
 
 .. code-block:: bash
 
-    $ conda depends -rn numpy
+    $ conda depends --no-prefix -r numpy
     The following packages depend on numpy:
         chaco-4.2.1.dev
         h5py-2.0.1 (2 builds)
@@ -396,17 +396,21 @@ In this example, we use ``conda create`` to make an environment in
 a directory (specified with ``-p/--prefix``), for one or more packages.  We have also chosen to display
 a progress bar, displayed as it creates the environment.
 
+
 conda will also gather and activate all necessary package dependencies.  Those that are
 not locally available will also be downloaded.
 
 If the package version is not specified, conda will choose the latest version by
 default.
 
+It is also possible to disable a progress bar (``--progress-bar=no``) if you don't wish to show the status of any
+packages conda has to download.
+
 We'll start with a simple bare bones create.  
 
 .. code-block:: bash
 
-    conda create -n onlyScipy scipy
+    conda create -n onlyScipy --progress-bar=no scipy
 
     The following packages will be activated:
         
@@ -420,12 +424,10 @@ We'll start with a simple bare bones create.
 
     Proceed (y/n)? y
 
-It is also possible to enable a progress bar (``--progress-bar=yes``) to show the status of any
-packages conda has to download.
 
 .. code-block:: bash
 
-    $ conda create -p ~/anaconda/envs/test2 --progress-bar=yes anaconda=1.1.4 python=2.7 numpy=1.6
+    $ conda create -p ~/anaconda/envs/test2 anaconda=1.1.4 python=2.7 numpy=1.6
 
         The following packages will be downloaded:
             
@@ -495,7 +497,7 @@ This will create an environment in the default Anaconda/envs ROOT_DIR (which can
 
 .. code-block:: bash
 
-    $ conda create -n test3 --progress-bar=yes scipy 
+    $ conda create -n test3 scipy 
 
     The following packages will be activated:
         
