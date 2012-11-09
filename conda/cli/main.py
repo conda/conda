@@ -94,7 +94,7 @@ def main():
     logging.basicConfig(level=log_level)
 
     try:
-        args.func(args, p)
+        args.func(args)
     except RuntimeError as e:
         print "conda: error:", e
         exit(2)

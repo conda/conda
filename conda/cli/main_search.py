@@ -1,4 +1,4 @@
-from argparse import ArgumentDefaultsHelpFormatter
+
 from os.path import abspath, expanduser
 import re
 
@@ -13,13 +13,12 @@ def configure_parser(sub_parsers):
         'search',
         description = "Search for packages and display their information.",
         help        = "Search for packages and display their information.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         '-p', "--prefix",
         action  = "store",
         default = None,
-        help    = "only show results compatible with Anaconda environment at prefix locations",
+        help    = "only show results compatible with Anaconda environment at specified prefix location",
     )
     p.add_argument(
         '-s', "--show-requires",
@@ -32,13 +31,13 @@ def configure_parser(sub_parsers):
         action  = "store",
         nargs   = "?",
         metavar = 'package_name',
-        help    = "package specification or regular expression to search for (omit to display all packages)",
+        help    = "package specification or regular expression to search for (default: display all packages)",
 
     )
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conda = anaconda()
 
     if not args.search_expression:
@@ -68,7 +67,7 @@ def execute(args, parser):
                 pkg_names = set()
                 pat = re.compile(args.search_expression)
             except:
-                parser.error("Could not understand search expression '%s'" % args.search_expression)
+                raise RuntimeError("Could not understand search expression '%s'" % args.search_expression)
             pkg_names = set()
             for name in conda.index.package_names:
                 if pat.search(name):

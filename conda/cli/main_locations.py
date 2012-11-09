@@ -1,7 +1,5 @@
 
 
-from argparse import ArgumentDefaultsHelpFormatter
-
 from config import config
 
 def configure_parser(sub_parsers):
@@ -9,12 +7,11 @@ def configure_parser(sub_parsers):
         'locations',
         description = "List known locations for Anaconda environments.",
         help        = "List known locations for Anaconda environments.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conf = config()
 
     print "System location for Anaconda environments:"

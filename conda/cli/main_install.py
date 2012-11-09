@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
@@ -12,14 +11,13 @@ def configure_parser(sub_parsers):
         'install',
         description     = "Install a list of packages into a specified Anaconda environment.",
         help            = "Install a list of packages into a specified Anaconda environment.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         "--confirm",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "ask for confirmation before installing packages into Anaconda environment",
+        help    = "ask for confirmation before installing packages into Anaconda environment (default: yes)",
     )
     p.add_argument(
         "--dry-run",
@@ -42,14 +40,14 @@ def configure_parser(sub_parsers):
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
-        help    = "full path to Anaconda environment to install packages into",
+        help    = "full path to Anaconda environment to install packages into (default: %s)" % ROOT_DIR,
     )
     p.add_argument(
         "--progress-bar",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "display progress bar for package downloads",
+        help    = "display progress bar for package downloads (default: yes)",
     )
     p.add_argument(
         'packages',
@@ -60,11 +58,11 @@ def configure_parser(sub_parsers):
     )
     p.set_defaults(func=execute)
 
-def execute(args, parser):
+def execute(args):
     pkg_versions = args.packages
 
     if len(pkg_versions) == 0 and not args.file:
-        parser.error('too few arguments, must supply command line packages versions or --file')
+        raise RuntimeError('too few arguments, must supply command line package specifications or --file')
 
     conda = anaconda()
 
@@ -81,13 +79,16 @@ def execute(args, parser):
             req_strings = [line for line in f]
             f.close()
         except:
-            parser.error('could not read file: %s', args.file)
+            raise RuntimeError('could not read file: %s', args.file)
     else:
         req_strings = pkg_versions
 
     for req_string in req_strings:
         if req_string.startswith('conda'):
-            raise RuntimeError("Package 'conda' may only be installed in the default environment")
+            raise RuntimeError("package 'conda' may only be installed in the default environment")
+
+    if len(req_strings) == 0:
+        raise RuntimeError('no package specifications supplied')
 
     conda = anaconda()
 

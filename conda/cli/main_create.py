@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os import makedirs
 from os.path import abspath, exists, expanduser, join
 
@@ -13,14 +12,13 @@ def configure_parser(sub_parsers):
         'create',
         description     = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
         help            = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         "--confirm",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "ask for confirmation before creating Anaconda environment",
+        help    = "ask for confirmation before creating Anaconda environment (default: yes)",
     )
     p.add_argument(
         "--dry-run",
@@ -49,14 +47,14 @@ def configure_parser(sub_parsers):
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "display progress bar for package downloads",
+        help    = "display progress bar for package downloads (default: yes)",
     )
     p.add_argument(
         "--use-defaults",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "select default versions for unspecified requirements when possible",
+        help    = "select default versions for unspecified requirements when possible (default: yes)",
     )
     p.add_argument(
         'package_specs',
@@ -68,9 +66,9 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     if len(args.package_specs) == 0 and not args.file:
-        parser.error('too few arguments, must supply command line package specs or --file')
+        raise RuntimeError('too few arguments, must supply command line package specs or --file')
 
     conda = anaconda()
 
@@ -81,9 +79,9 @@ def execute(args, parser):
 
     if exists(prefix):
         if args.prefix:
-            parser.error("'%s' already exists, must supply new directory for -p/--prefix" % prefix)
+            raise RuntimeError("'%s' already exists, must supply new directory for -p/--prefix" % prefix)
         else:
-            parser.error("'%s' already exists, must supply new directory for -n/--name" % prefix)
+            raise RuntimeError("'%s' already exists, must supply new directory for -n/--name" % prefix)
 
     if args.file:
         try:
@@ -91,13 +89,16 @@ def execute(args, parser):
             spec_strings = [line for line in f]
             f.close()
         except:
-            parser.error('could not read file: %s', args.file)
+            raise RuntimeError('could not read file: %s', args.file)
     else:
         spec_strings = args.package_specs
 
     for spec_string in spec_strings:
         if spec_string.startswith('conda'):
             raise RuntimeError("Package 'conda' may only be installed in the default environment")
+
+    if len(spec_strings) == 0:
+        raise RuntimeError('no package specifications supplied')
 
     plan = create_create_plan(prefix, conda, spec_strings, args.use_defaults=="yes")
 

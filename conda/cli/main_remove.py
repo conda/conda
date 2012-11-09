@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os import listdir
 from os.path import join
 from shutil import rmtree
@@ -12,14 +11,13 @@ def configure_parser(sub_parsers):
         'remove',
         description     = "Remove packages from local availability.",
         help            = "Remove packages from local availability. (ADVANCED)",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         "--confirm",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "ask for confirmation before removing packages",
+        help    = "ask for confirmation before removing packages (default: yes)",
     )
     p.add_argument(
         '-d', "--dry-run",
@@ -37,7 +35,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conf = config()
 
     to_remove = set(listdir(conf.packages_dir)) & set(args.canonical_names)

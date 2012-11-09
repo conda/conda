@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
@@ -12,7 +11,6 @@ def configure_parser(sub_parsers):
         'list',
         description     = "List activated packages in an Anaconda environment.",
         help            = "List activated packages in an Anaconda environment.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
@@ -24,12 +22,12 @@ def configure_parser(sub_parsers):
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
-        help    = "full path to Anaconda environment to list packages in",
+        help    = "full path to Anaconda environment to list packages in (default: %s)" % ROOT_DIR,
     )
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conda = anaconda()
 
     if args.name:

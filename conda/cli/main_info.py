@@ -1,6 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
-
 from config import config
 
 
@@ -9,12 +7,11 @@ def configure_parser(sub_parsers):
         'info',
         description     = "Display information about current Anaconda install.",
         help            = "Display information about current Anaconda install.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
 
     conf = config()
 

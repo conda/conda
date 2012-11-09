@@ -1,6 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
-
 from anaconda import anaconda
 from package_plan import create_download_plan
 
@@ -10,14 +8,13 @@ def configure_parser(sub_parsers):
         'download',
         description     = "Download Anaconda packages and their dependencies.",
         help            = "Download Anaconda packages and their dependencies. (ADVANCED)",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         "--confirm",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "ask for confirmation before downloading packages",
+        help    = "ask for confirmation before downloading packages (default: yes)",
     )
     p.add_argument(
         "--dry-run",
@@ -36,7 +33,7 @@ def configure_parser(sub_parsers):
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "display progress bar for package downloads",
+        help    = "display progress bar for package downloads (default: yes)",
     )
     p.add_argument(
         'canonical_names',
@@ -48,7 +45,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conda = anaconda()
 
     plan = create_download_plan(conda, args.canonical_names, args.force)

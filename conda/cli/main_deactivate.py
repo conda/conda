@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser
 
 from anaconda import anaconda
@@ -12,14 +11,13 @@ def configure_parser(sub_parsers):
         'deactivate',
         description     = "Deactivate packages in an Anaconda environment.",
         help            = "Deactivate packages in an Anaconda environment. (ADVANCED)",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         "--confirm",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "ask for confirmation before deactivating packages",
+        help    = "ask for confirmation before deactivating packages (default: yes)",
     )
     p.add_argument(
         "--dry-run",
@@ -31,7 +29,7 @@ def configure_parser(sub_parsers):
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
-        help    = "deactivate from a specified environment",
+        help    = "deactivate from a specified environment (default: %s)" % ROOT_DIR,
     )
     p.add_argument(
         'canonical_names',
@@ -44,7 +42,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conda = anaconda()
 
     prefix = abspath(expanduser(args.prefix))

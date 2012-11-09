@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
@@ -12,14 +11,13 @@ def configure_parser(sub_parsers):
         'upgrade',
         description     = "Upgrade Anaconda packges.",
         help            = "Upgrade Anaconda packges.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         "--confirm",
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "ask for confirmation before upgrading packages",
+        help    = "ask for confirmation before upgrading packages (default: yes)",
     )
     p.add_argument(
         "--dry-run",
@@ -37,19 +35,19 @@ def configure_parser(sub_parsers):
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
-        help    = "full path to Anaconda environment to upgrade packages in",
+        help    = "full path to Anaconda environment to upgrade packages in (default: %s)" % ROOT_DIR,
     )
     p.add_argument(
         'pkg_names',
         metavar = 'package_name',
         action  = "store",
         nargs   = '*',
-        help    = "names of packages to upgrade (defaults to all)",
+        help    = "names of packages to upgrade (default: all packages)",
     )
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conda = anaconda()
 
     if args.name:

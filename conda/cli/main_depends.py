@@ -1,5 +1,4 @@
 
-from argparse import ArgumentDefaultsHelpFormatter
 from os.path import abspath, expanduser
 
 from anaconda import anaconda
@@ -11,14 +10,13 @@ def configure_parser(sub_parsers):
         'depends',
         description = "Query Anaconda package dependencies.",
         help        = "Query Anaconda package dependencies.",
-        formatter_class = ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
         '-m', "--max-depth",
         action  = "store",
         type    = int,
         default = 0,
-        help    = "maximum depth to search dependencies (0 searches all depths)",
+        help    = "maximum depth to search dependencies, 0 searches all depths (default: 0)",
     )
     p.add_argument(
         "--no-prefix",
@@ -30,7 +28,7 @@ def configure_parser(sub_parsers):
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
-        help    = "return dependencies compatible with a specified environment",
+        help    = "return dependencies compatible with a specified environment (default: %s)" % ROOT_DIR,
     )
     p.add_argument(
         '-r', "--reverse",
@@ -53,7 +51,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def execute(args):
     conda = anaconda()
 
     prefix = abspath(expanduser(args.prefix))
