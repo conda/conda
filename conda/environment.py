@@ -49,6 +49,18 @@ class environment(object):
         np = self._numpy_requirement()
         return all_of(bt, py, np)
 
+    def get_requirements(self, target=None):
+        '''
+        This function is analogous to the requirements property, but it allows the build tartget to be overridden if necessary.
+        '''
+        if target:
+            bt = build_target(target)
+        else:
+            bt = build_target(self._conda.target)
+        py = self._python_requirement()
+        np = self._numpy_requirement()
+        return all_of(bt, py, np)
+
     def find_activated_package(self, pkg_name):
         canonical_names = activated(self.prefix)
         for canonical_name in canonical_names:

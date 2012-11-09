@@ -33,6 +33,7 @@ Additional help for each command can be accessed by using:
 """
 
 import conda_argparse as argparse
+from config import config
 import main_activate
 import main_create
 import main_deactivate
@@ -46,6 +47,7 @@ import main_locations
 import main_remove
 import main_search
 import main_upgrade
+import main_upgrade2pro
 
 
 def main():
@@ -83,6 +85,8 @@ def main():
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_upgrade.configure_parser(sub_parsers)
+    if config().target == 'ce':
+        main_upgrade2pro.configure_parser(sub_parsers)
     main_activate.configure_parser(sub_parsers)
     main_deactivate.configure_parser(sub_parsers)
     main_download.configure_parser(sub_parsers)
@@ -98,6 +102,10 @@ def main():
     except RuntimeError as e:
         print "conda: error:", e
         exit(2)
+    except Exception as e:
+        print "An unexcpeted exceptional error has occurred, please consider sending the following traceback to the conda GitHub issue tracker at https://github.com/ContinuumIO/conda/issues"
+        print
+        raise e
 
 if __name__ == '__main__':
     main()
