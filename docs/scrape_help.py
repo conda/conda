@@ -17,12 +17,12 @@ cmd_names = [
     'deactivate',
     'download',
     'remove',
-    #'upgrade2pro'
+    'upgrade2pro'
 ]
 
 def scrape_help(cmd_name):
 
-    cmd = "COLUMNS=1000 conda %s -h" % cmd_name
+    cmd = "CIO_TARGET='ce' COLUMNS=1000 conda %s -h" % cmd_name
 
     p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
 
