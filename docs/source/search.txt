@@ -1,13 +1,12 @@
-Display information about a specified package.
+Search for packages and display their information.
 
-**usage**: ``conda search [-h] [-p PREFIX] [-s] package_name``
+**usage**: ``conda search [-h] [-p PREFIX] [-s] [package_name]``
 
 *package_name*
-    name of package to search and display information for
+	package specification or regular expression to search for (default: display all packages)
 
 optional arguments:
-    -h, --help              show this help message and exit
-    -p PREFIX, --prefix PREFIX
-                            only show results compatible with Anaconda environment
-                            at specified prefix location (default: None)
-    -s, --show-requires     also display package requirements
+  -h, --help            show this help message and exit
+  -p PREFIX, --prefix PREFIX
+                        only show results compatible with Anaconda environment at specified prefix location
+  -s, --show-requires   also display package requirements

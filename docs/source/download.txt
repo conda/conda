@@ -3,11 +3,12 @@ Download Anaconda packages and their dependencies.
 **usage**: ``conda download [-h] [--confirm {yes,no}] [--dry-run] [-f] [--progress-bar {yes,no}] canonical_name [canonical_name ...]``
 
 *canonical_name*
-    canonical name of package to download and make locally available
+	canonical name of package to download and make locally available
 
 optional arguments:
-    -h, --help          show this help message and exit
-    --confirm           ask for confirmation before downloading packages (default: yes)
-    --dry-run           display packages to be downloaded, without actually executing
-    -f, --force         force package downloads even when specific package is already available
-    --progress-bar      display progress bar for package downloads (default: yes)
+  -h, --help            show this help message and exit
+  --confirm     ask for confirmation before downloading packages (default: yes)
+  --dry-run             display packages to be downloaded, without actually executing
+  -f, --force           force package downloads even when specific package is already available
+  --progress-bar 
+                        display progress bar for package downloads (default: yes)

@@ -1,20 +1,19 @@
-Create an Anaconda environment at a specified prefix from a list of package versions.
+Create an Anaconda environment at a specified prefix from a list of package specifications.
 
-**usage**: ``[-h] [--confirm {yes,no}] [--dry-run] [-f FILE] (-n NAME | -p PREFIX) [--progress-bar {yes,no}] [--use-defaults {yes,no}] [package_spec [package_spec ...]]``
+**usage**: ``conda create [-h] [--confirm {yes,no}] [--dry-run] [-f FILE] (-n NAME | -p PREFIX) [--progress-bar {yes,no}] [--use-defaults {yes,no}] [package_spec [package_spec ...]]``
 
 *package_spec*
-    package specification of package to install into new Anaconda environment (default: None)
+	package specification of package to install into new Anaconda environment
 
 optional arguments:
-    -h, --help          show this help message and exit
-    --confirm           ask for confirmation before creating Anaconda environment (default: yes)
-    --dry-run           display packages to be modified, without actually executing
-    -f FILE, --file FILE    filename of text file to read package specifications from (default: None)
-    -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs)
-                        to create Anaconda environment in (default: None)
-    -p PREFIX, --prefix PREFIX
-                        full path of new directory to create Anaconda
-                        environment in (default: None)
-    --progress-bar      display progress bar for package downloads (default: yes)
-    --use-defaults      select default versions for unspecified requirements
-                        when possible (default: yes)
+  -h, --help            show this help message and exit
+  --confirm     ask for confirmation before creating Anaconda environment (default: yes)
+  --dry-run             display packages to be activated, without actually executing
+  -f FILE, --file FILE  filename to read package specs from
+  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to create Anaconda environment in
+  -p PREFIX, --prefix PREFIX
+                        full path of new directory to create Anaconda environment in
+  --progress-bar 
+                        display progress bar for package downloads (default: yes)
+  --use-defaults 
+                        select default versions for unspecified requirements when possible (default: yes)

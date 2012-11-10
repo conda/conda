@@ -1,9 +1,9 @@
 List activated packages in an Anaconda environment.
 
-**usage**: ``conda list [-h] [-p PREFIX]``
+**usage**: ``conda list [-h] [-n NAME | -p PREFIX]``
 
 optional arguments:
-    -h, --help            show this help message and exit
-    -p PREFIX, --prefix PREFIX
-                        list packages in the specified Anaconda environment
-                        (default: ROOT_DIR)
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to list packages in
+  -p PREFIX, --prefix PREFIX
+                        full path to Anaconda environment to list packages in (default: ROOT_DIR)
