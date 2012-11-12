@@ -2,7 +2,6 @@
 import logging
 
 from anaconda import anaconda
-from constraints import build_target
 from package_plan import package_plan
 
 
