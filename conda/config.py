@@ -36,7 +36,10 @@ PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 
 
 DEFAULT_PYTHON_SPEC='python=2.7'
-DEFAULT_NUMPY_SPEC='numpy=1.7'
+if sys.platform == 'win32':
+    DEFAULT_NUMPY_SPEC='numpy=1.6'
+else:
+    DEFAULT_NUMPY_SPEC='numpy=1.7'
 
 def _load_condarc(path):
     try:
