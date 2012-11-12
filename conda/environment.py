@@ -6,7 +6,8 @@ from requirement import requirement
 
 import config
 from constraints import all_of, any_of, build_target, requires, satisfies
-from install import activated
+from install import activated, get_meta
+from package import package
 
 
 log = logging.getLogger(__name__)
@@ -66,7 +67,11 @@ class environment(object):
         for canonical_name in canonical_names:
             name, version, build = split_canonical_name(canonical_name)
             if name == pkg_name:
-                return self._conda.index.lookup_from_canonical_name(canonical_name)
+                try:
+                    return self._conda.index.lookup_from_canonical_name(canonical_name)
+                except KeyError:
+                    log.debug("could not look up canonical_name '%s', using conda-meta" % canonical_name)
+                    return package(get_meta(canonical_name, self._prefix))
         return None
 
     def requirement_is_satisfied(self, req):
