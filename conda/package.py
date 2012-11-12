@@ -60,6 +60,12 @@ class package(object):
     def location(self):
         return self._info.get('location', 'unkown')
 
+    @property
+    def is_meta(self):
+        for req in self._requires:
+            if req.build is None: return False
+        return True
+
     def matches(self, constraint):
         return constraint.match(self)
 
