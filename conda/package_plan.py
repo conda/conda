@@ -124,7 +124,8 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
         except RuntimeError:
             candidates = conda.index.lookup_from_name(spec_string)
             if candidates:
-                reqs = reqs | set(requirement("%s %s" % (pkg.name, pkg.version.vstring)) for pkg in candidates)
+                candidate = max(candidates)
+                reqs.add(requirement("%s %s" % (candidate.name, candidate.version.vstring)))
             else:
                 message = "unknown package name '%s'" % spec_string
                 close = get_close_matches(spec_string, conda.index.package_names)
@@ -141,8 +142,7 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     inconsistent = find_inconsistent_requirements(reqs)
     if inconsistent:
         raise RuntimeError(
-            'cannot create environment, the following requirements are '
-            'inconsistent: %s' % str(inconsistent)
+            'cannot create environment, the following requirements are inconsistent: %s' % str(inconsistent)
         )
 
     log.debug("initial requirements: %s\n" % reqs)
@@ -188,9 +188,8 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     # check again for inconsistent requirements
     inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
     if inconsistent:
-        raise RuntimeError('cannot create environment, the following '
-                           'requirements are inconsistent: %s'
-                           % ', '.join('%s-%s' % (req.name, req.version.vstring)
+        raise RuntimeError('cannot create environment, the following requirements are inconsistent: %s'
+                                % ', '.join('%s-%s' % (req.name, req.version.vstring)
                                        for req in inconsistent))
 
     # download any packages that are not available
@@ -220,7 +219,7 @@ def create_install_plan(env, args):
 
         if arg.startswith('python-') or arg.startswith('python ') or arg.startswith('python='):
             raise RuntimeError('changing python versions in an existing Anaconda environment is not supported (create a new environment)')
-        if arg.startswith('numpy'):
+        if arg.startswith('numpy') and env.find_activated_package('numpy'):
             raise RuntimeError('changing numpy versions in an existing Anaconda environment is not supported (create a new environment)')
 
         # attempt to parse as filename

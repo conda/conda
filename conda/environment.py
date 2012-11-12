@@ -5,7 +5,7 @@ from os.path import isdir
 from requirement import requirement
 
 import config
-from constraints import all_of, any_of, build_target, requires, satisfies
+from constraints import all_of, any_of, build_target, requires, satisfies, wildcard
 from install import activated, get_meta
 from package import package
 
@@ -87,9 +87,8 @@ class environment(object):
             sat = requirement('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return any_of(requires(req), satisfies(sat))
         except: # TODO
-            log.debug('found no python requirement, returning default spec: %s' % config.DEFAULT_PYTHON_SPEC)
-            req = requirement(config.DEFAULT_PYTHON_SPEC)
-            return any_of(requires(req), satisfies(req))
+            log.debug('found no python requirement, returning wildcard()')
+            return wildcard()
 
     def _numpy_requirement(self):
         try:
@@ -98,9 +97,8 @@ class environment(object):
             sat = requirement('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return any_of(requires(req), satisfies(sat))
         except: #TODO
-            log.debug('found no numpy requirement, returning default spec: %s' % config.DEFAULT_NUMPY_SPEC)
-            req = requirement(config.DEFAULT_NUMPY_SPEC)
-            return any_of(requires(req), satisfies(req))
+            log.debug('found no numpy requirement, returning wildcard()')
+            return wildcard()
 
     def __str__(self):
         return 'env[%s]' % self.prefix
@@ -113,6 +111,4 @@ class environment(object):
 
     def __cmp__(self, other):
         return cmp(self._prefix, other._prefix)
-
-
 
