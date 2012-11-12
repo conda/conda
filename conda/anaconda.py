@@ -33,13 +33,14 @@ class anaconda(config):
     def _fetch_index(self):
         index = {}
         for url in reversed(self.repo_package_urls):
-            log.debug("fetching: index.json [%s] ..." % url)
+            log.debug("fetching: repodata.json [%s] ..." % url)
             try:
-                fi = urlopen(url + 'index.json')
+                fi = urlopen(url + 'repodata.json')
             except:  # TODO better exception spec
                 log.debug("    ...failed.")
                 continue
-            new_index = json.loads(fi.read())
+            repodata = json.loads(fi.read())
+            new_index = repodata['packages']
             for pkg_info in new_index.itervalues():
                 pkg_info['location'] = url
             index.update(new_index)
