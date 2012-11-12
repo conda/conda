@@ -1,5 +1,6 @@
 
 from os.path import abspath, expanduser, join
+import re
 
 from anaconda import anaconda
 from config import ROOT_DIR
@@ -24,6 +25,13 @@ def configure_parser(sub_parsers):
         default = ROOT_DIR,
         help    = "full path to Anaconda environment to list packages in (default: %s)" % ROOT_DIR,
     )
+    p.add_argument(
+        'search_expression',
+        action  = "store",
+        nargs   = "?",
+        help    = "list only packages matching this regular expression",
+
+    )
     p.set_defaults(func=execute)
 
 
@@ -37,8 +45,22 @@ def execute(args):
 
     env = conda.lookup_environment(prefix)
 
-    print 'packages and versions in environment at %s:' % env.prefix
+    matching = ""
+    pkgs = env.activated
+    if args.search_expression:
+        try:
+            pat = re.compile(args.search_expression)
+        except:
+            raise RuntimeError("Could not understand search expression '%s'" % args.search_expression)
+        matching = " matching the expression '%s'" % args.search_expression
+        pkgs = [pkg for pkg in env.activated if pat.search(pkg.name)]
 
-    for pkg in sort_packages_by_name(env.activated):
+    if len(pkgs) == 0:
+        print 'no packages and %s found in environment at %s:' % (matching, env.prefix)
+        return
+
+    print 'packages and versions%s in environment at %s:' % (matching, env.prefix)
+
+    for pkg in sort_packages_by_name(pkgs):
         print '%-25s %s' % (pkg.name, pkg.version)
 
