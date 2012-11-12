@@ -103,9 +103,11 @@ def main():
         print "conda: error:", e
         exit(2)
     except Exception as e:
-        print "An unexcpeted exceptional error has occurred, please consider sending the following traceback to the conda GitHub issue tracker at https://github.com/ContinuumIO/conda/issues"
+        print "An unexpected exceptional error has occurred, please consider sending the following traceback to the conda GitHub issue tracker at https://github.com/ContinuumIO/conda/issues"
         print
-        raise e
+        import sys
+        exc_info = sys.exc_info()
+        raise exc_info[1], None, exc_info[2]
 
 if __name__ == '__main__':
     main()
