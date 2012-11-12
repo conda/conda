@@ -39,8 +39,7 @@ class environment(object):
             try:
                 res.add(self._conda.index.lookup_from_canonical_name(name))
             except:  # TODO better except spec
-                msg = "cannot find activated package '%s' in package index" % name
-                log.warn(msg)
+                log.debug("cannot find activated package '%s' in package index" % name)
         return res
 
     @property
