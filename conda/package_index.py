@@ -62,7 +62,7 @@ class package_index(object):
             if max_depth and iterations >= max_depth: break
             for pkg in pkgs:
                 reqs = reqs.union(self.deps.get(pkg, set()))
-            if last_reqs is not None and reqs == last_reqs: break
+            if reqs == last_reqs: break
             pkgs = self.find_compatible_packages(reqs) - pkgs
             last_reqs = reqs
             iterations += 1
@@ -79,7 +79,7 @@ class package_index(object):
             if max_depth and iterations >= max_depth: break
             for req in reqs:
                 pkgs = pkgs.union(self.rdeps.get(req, set()))
-            if last_pkgs is not None and pkgs == last_pkgs: break
+            if pkgs == last_pkgs: break
             reqs = self.find_compatible_requirements(pkgs) - reqs
             last_pkgs = pkgs
             iterations += 1
