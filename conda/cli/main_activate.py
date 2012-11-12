@@ -50,7 +50,10 @@ def execute(args):
     plan = create_activate_plan(env, args.canonical_names)
 
     if plan.empty():
-        print 'No packages found to activate, nothing to do'
+        if len(args.canonical_names) == 1:
+            print "Could not find package with canonical name '%s' to activate (already activated or unknown)." % args.canonical_names
+        else:
+            print "Could not find packages with canonical names %s to activate." % args.canonical_names
         return
 
     print plan
