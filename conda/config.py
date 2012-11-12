@@ -139,8 +139,10 @@ class config(object):
 
     @property
     def repo_base_urls(self):
-        if getenv('CIO_TEST'):
+        if getenv('CIO_TEST') == "2":
             return ['http://filer/test-pkgs', 'http://filer/pkgs']
+        elif getenv('CIO_TEST') == "1":
+            return ['http://filer/pkgs']
         elif self._rc:
             return self._rc['repositories']
         else:
