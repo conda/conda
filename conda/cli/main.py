@@ -85,8 +85,7 @@ def main():
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_upgrade.configure_parser(sub_parsers)
-    if config().target == 'ce':
-        main_upgrade2pro.configure_parser(sub_parsers)
+    main_upgrade2pro.configure_parser(sub_parsers)
     main_activate.configure_parser(sub_parsers)
     main_deactivate.configure_parser(sub_parsers)
     main_download.configure_parser(sub_parsers)

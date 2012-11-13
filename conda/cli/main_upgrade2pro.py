@@ -33,6 +33,10 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
+    if conda.target == 'pro':
+        print "AnacondaPro already activated!"
+        return
+
     idx = conda.index
 
     env = conda.default_environment
