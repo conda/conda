@@ -9,8 +9,8 @@ from package_plan import create_upgrade_plan
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'upgrade',
-        description     = "Upgrade Anaconda packges.",
-        help            = "Upgrade Anaconda packges.",
+        description     = "Upgrade Anaconda packages.",
+        help            = "Upgrade Anaconda packages.",
     )
     p.add_argument(
         "--confirm",
