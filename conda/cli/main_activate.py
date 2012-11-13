@@ -64,6 +64,9 @@ def execute(args):
         proceed = raw_input("Proceed (y/n)? ")
         if proceed.lower() not in ['y', 'yes']: return
 
-    plan.execute(env)
+    try:
+        plan.execute(env)
+    except IOError:
+        raise RuntimeError('One of more of the packages is not locally available, see conda download -h')
 
 
