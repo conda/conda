@@ -81,7 +81,9 @@ Other Anaconda environments contain the same subdirectories as the default envir
 -------------
 Configuration
 -------------
-There is very little user configuration that conda requires, however conda will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_, here is an example:
+There is very little user configuration that conda requires, however conda will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_ 
+
+Here is an example:
 
 .. code-block:: bash
 
