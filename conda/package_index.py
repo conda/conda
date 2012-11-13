@@ -124,7 +124,6 @@ class package_index(object):
             if inconsistent: to_remove.add(pkg)
         pkgs = pkgs - to_remove
 
-
         return pkgs
 
     def _compute_dependencies(self):

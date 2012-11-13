@@ -169,6 +169,8 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     # find packages compatible with the updated requirements and build target
     pkgs = idx.find_compatible_packages(reqs)
     pkgs = idx.find_matches(build_target(conda.target), pkgs)
+    pkgs = sort_packages_by_name(pkgs)
+    pkgs = [max(g) for k, g in groupby(pkgs, key=lambda x: x.name)]
     log.debug("updated compatible packages: %s\n" % pkgs)
 
     # find the associated dependencies
