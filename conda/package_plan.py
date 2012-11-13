@@ -123,7 +123,6 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
             reqs.add(requirement(spec_string))
         except RuntimeError:
             candidates = conda.index.lookup_from_name(spec_string)
-            candidates = idx.find_matches(env.requirements, candidates)
             if candidates:
                 candidate = max(candidates)
                 reqs.add(requirement("%s %s" % (candidate.name, candidate.version.vstring)))
