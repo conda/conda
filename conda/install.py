@@ -184,8 +184,10 @@ def activate(pkgs_dir, dist, prefix):
         t.close()
         files = list(yield_lines(join(info_dir, 'files')))
 
-    for f in yield_lines(join(info_dir, 'has_prefix')):
-        update_prefix(join(prefix, f), prefix)
+    has_prefix_path = join(info_dir, 'has_prefix')
+    if isfile(has_prefix_path):
+        for f in yield_lines(has_prefix_path):
+            update_prefix(join(prefix, f), prefix)
 
     create_meta(prefix, dist, info_dir, files)
 
