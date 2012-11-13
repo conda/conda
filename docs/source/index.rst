@@ -2,6 +2,9 @@
    sphinx-quickstart on Sat Nov  3 16:08:12 2012.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
+=====
+Conda
+=====
 
 Welcome to conda's documentation!
 =================================
