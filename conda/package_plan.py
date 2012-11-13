@@ -289,6 +289,7 @@ def create_install_plan(env, args):
         if active:
             if pkg != active:
                 plan.deactivations.add(active)
+            else: raise RuntimeError("package '%s' is already activated in environment: %s" % (pkg, env.prefix))
 
         if pkg not in env.activated:
             plan.activations.add(pkg)
