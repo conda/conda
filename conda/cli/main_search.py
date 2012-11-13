@@ -30,7 +30,6 @@ def configure_parser(sub_parsers):
         'search_expression',
         action  = "store",
         nargs   = "?",
-        metavar = 'package_name',
         help    = "package specification or regular expression to search for (default: display all packages)",
 
     )

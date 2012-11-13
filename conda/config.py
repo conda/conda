@@ -36,7 +36,10 @@ PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 
 
 DEFAULT_PYTHON_SPEC='python=2.7'
-DEFAULT_NUMPY_SPEC='numpy=1.7'
+if sys.platform == 'win32':
+    DEFAULT_NUMPY_SPEC='numpy=1.6'
+else:
+    DEFAULT_NUMPY_SPEC='numpy=1.7'
 
 def _load_condarc(path):
     try:
@@ -136,8 +139,10 @@ class config(object):
 
     @property
     def repo_base_urls(self):
-        if getenv('CIO_TEST'):
+        if getenv('CIO_TEST') == "2":
             return ['http://filer/test-pkgs', 'http://filer/pkgs']
+        elif getenv('CIO_TEST') == "1":
+            return ['http://filer/pkgs']
         elif self._rc:
             return self._rc['repositories']
         else:

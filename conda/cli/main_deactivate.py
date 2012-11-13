@@ -52,6 +52,10 @@ def execute(args):
 
     if plan.empty():
         print 'All packages already deactivated, nothing to do'
+        if len(args.canonical_names) == 1:
+            print "Could not find package with canonical name '%s' to deactivate (already deactivated or unknown)." % args.canonical_names
+        else:
+            print "Could not find packages with canonical names %s to deactivate." % args.canonical_names
         return
 
     print plan

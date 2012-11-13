@@ -41,7 +41,10 @@ def execute(args):
     to_remove = set(listdir(conf.packages_dir)) & set(args.canonical_names)
 
     if not to_remove:
-        print 'No packages found to remove, nothing to do'
+        if len(args.canonical_names) == 1:
+            print "Could not find package with canonical name '%s' to remove (already removed or unknown)." % args.canonical_names
+        else:
+            print 'Could not find packages with canonical names %s to remove.' % args.canonical_names
         return
 
     print "    The following packages were found and will be removed from local availability:"

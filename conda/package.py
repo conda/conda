@@ -31,8 +31,6 @@ class package(object):
     name         = dict_property('name')
     build        = dict_property('build')
     build_number = dict_property('build_number')
-    arch         = dict_property('arch')
-    platform     = dict_property('platform')
     md5          = dict_property('md5')
     size         = dict_property('size')
 
@@ -60,13 +58,18 @@ class package(object):
     def location(self):
         return self._info.get('location', 'unkown')
 
+    @property
+    def is_meta(self):
+        for req in self._requires:
+            if req.build is None: return False
+        return True
+
     def matches(self, constraint):
         return constraint.match(self)
 
     def print_info(self, show_requires=True):
         print "   package: %s-%s" % (self.name, self.version),
         print "[%s]" % self._build_target if self.build_target else ""
-        print "      arch: %s" % self.arch
         print "  filename: %s" % self.filename
         print "       md5: %s" % self.md5
         if show_requires:
