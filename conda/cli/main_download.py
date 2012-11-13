@@ -52,7 +52,7 @@ def execute(args):
 
     if plan.empty():
         if len(args.canonical_names) == 1:
-            print "Could not find package with canonical name '%s' to download (already downloaded or unknown)." % args.canonical_names
+            print "Could not find package with canonical name '%s' to download (already downloaded or unknown)." % args.canonical_names[0]
         else:
             print 'Could not find packages with canonical names %s to download (already downloaded or unknown).' % args.canonical_names
         return

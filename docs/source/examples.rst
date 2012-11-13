@@ -71,6 +71,16 @@ In this next example, we leave off the prefix and search for packages starting w
     pyyaml                    3.10
     pyzmq                     2.2.0.1
 
+With this final example, we will use a more complex search expression to illustrate conda's
+list capabilities.
+
+.. code-block:: bash
+
+  $ conda list ^m.*lib$
+  packages and versions matching the expression '^m.*lib$' in environment at /Users/test/anaconda:
+  matplotlib                1.2.0
+
+
 
 .. _search_example:
 
@@ -198,7 +208,7 @@ Using the prefix option (``-p``), we can select an environment, and search for a
 
     ...
 
-    ackage: wakaridata-1.0 
+       package: wakaridata-1.0 
           arch: x86_64
       filename: wakaridata-1.0-py26_0.tar.bz2
            md5: 36e06413d215e9db75ffda561ecd6642
@@ -541,7 +551,7 @@ Install
 -------
 
 ``conda install`` places a package in an environment that may already exist,
-in this case ``~/envs/test2``, the environment created in the previous example.
+in this case ``~/envs/test2``, the environment created in a previous example.
 
 As before, conda will activate all necessary dependencies.
 
@@ -565,7 +575,45 @@ As before, conda will activate all necessary dependencies.
 Upgrade
 -------
 
-Need an upgrade example.
+``conda upgrade`` replaces old packages in a given environment with the latest versions.
+
+For this first example, we will use an environment ``/tmp/matplotlib11`` , which we can select using the prefix (``-p``) option.
+
+.. code-block:: bash
+  
+  $ conda upgrade -p /tmp/matplotlib11
+  Upgrading Anaconda environment at /tmp/matplotlib11
+
+    The following packages will be activated:
+          
+        matplotlib-1.2.0
+
+    The following packages will be DE-activated:
+          
+        matplotlib-1.1.1
+
+  Proceed (y/n)? y
+
+
+
+For this next example, we will do almost the same thing, but instead of using the prefix option, we will use name (``-n``)
+on an environment ``/home/test/anaconda/envs/matplotlib11``.
+
+.. code-block:: bash
+  
+  $ conda upgrade -n matplotlib11 
+  Upgrading Anaconda environment at /home/test/anaconda
+
+      The following packages will be activated:
+          
+          matplotlib-1.2.0
+
+      The following packages will be DE-activated:
+          
+          matplotlib-1.1.1
+
+  Proceed (y/n)? 
+
 
 .. _deactivate_example:
 

@@ -42,7 +42,7 @@ def execute(args):
 
     if not to_remove:
         if len(args.canonical_names) == 1:
-            print "Could not find package with canonical name '%s' to remove (already removed or unknown)." % args.canonical_names
+            print "Could not find package with canonical name '%s' to remove (already removed or unknown)." % args.canonical_names[0]
         else:
             print 'Could not find packages with canonical names %s to remove.' % args.canonical_names
         return

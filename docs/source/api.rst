@@ -2,4 +2,4 @@
 API Reference
 =============
 
-.. Note:: To be written.
+Coming soon!
