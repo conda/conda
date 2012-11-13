@@ -57,7 +57,16 @@ def execute(args):
     prefix = abspath(expanduser(args.prefix))
     env = conda.lookup_environment(prefix)
 
-    pkgs = [env.find_activated_package(pkg_name) for pkg_name in args.pkg_names]
+    pkgs = set()
+    for pkg_name in args.pkg_names:
+        pkg = env.find_activated_package(pkg_name)
+        if pkg:
+            pkgs.add(pkg)
+        else:
+            if args.no_prefix:
+                pkgs = pkgs | conda.index.lookup_from_name(pkg_name)
+            else:
+                raise RuntimeError("package '%s' not installed in environment at: %s" % (pkg_name, prefix))
 
     if args.reverse:
         reqs = conda.index.find_compatible_requirements(pkgs)
