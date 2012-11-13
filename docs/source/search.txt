@@ -1,8 +1,8 @@
 Search for packages and display their information.
 
-**usage**: ``conda search [-h] [-p PREFIX] [-s] [package_name]``
+**usage**: ``conda search [-h] [-p PREFIX] [-s] [search_expression]``
 
-*package_name*
+*search_expression*
 	package specification or regular expression to search for (default: display all packages)
 
 optional arguments:

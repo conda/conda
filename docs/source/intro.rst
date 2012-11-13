@@ -101,12 +101,14 @@ There is very little user configuration that conda requires, however conda will 
 -------------------------
 Upgrading to Anaconda Pro
 -------------------------
-The process of upgrading from Anaconda Community Edition to Pro is as simple as using the ``upgrade2pro``.  The command reference is show below.
+The process of upgrading from Anaconda Community Edition to Pro is as simple as using ``upgrade2pro``.  The command reference is show below.
 
 ----
 
 .. include:: upgrade2pro.txt
 
+
+Look here for :ref:`examples <upgrade2pro_example>`.
 
 .. _YAML syntax: http://en.wikipedia.org/wiki/YAML
 

@@ -1,6 +1,9 @@
 List activated packages in an Anaconda environment.
 
-**usage**: ``conda list [-h] [-n NAME | -p PREFIX]``
+**usage**: ``conda list [-h] [-n NAME | -p PREFIX] [search_expression]``
+
+*search_expression*
+	list only packages matching this regular expression
 
 optional arguments:
   -h, --help            show this help message and exit

@@ -35,7 +35,7 @@ Info
 List
 ----
 
-``conda list -p`` shows the packages and their versions in a specific 
+``conda list -p`` shows the activated packages and their versions in a specific 
 environment directory. ``--prefix`` also works.  If no prefix is provided,
 conda will look in the default environment.
 
@@ -48,6 +48,28 @@ conda will look in the default environment.
     readline                  6.2
     sqlite                    3.7.13
     zlib                      1.2.7
+
+In this next example, we leave off the prefix and search for packages starting with ``py`` in the default directory.
+
+.. code-block:: bash
+
+    $ conda list ^py
+    packages and versions matching the expression '^py' in environment at /Users/test/anaconda:
+    py                        2.4.12
+    pyaudio                   0.2.6
+    pycurl                    7.19.0
+    pyflakes                  0.5.0
+    pygments                  1.5
+    pysal                     1.4.0
+    pysam                     0.6
+    pyside                    1.1.2
+    pytables                  2.4.0
+    pytest                    2.3.3
+    python                    2.7.3
+    python.app                1.0
+    pytz                      2012d
+    pyyaml                    3.10
+    pyzmq                     2.2.0.1
 
 
 .. _search_example:
