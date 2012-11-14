@@ -9,7 +9,7 @@ if sys.version[:3] != '2.7':
 
 setup(
     name = "conda",
-    version = '1.1.0',
+    version = '1.1.1',
     author = "Continuum Analytics, Inc.",
     author_email = "ilan@continuum.io",
     description = "Conda tool",
