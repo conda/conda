@@ -10,6 +10,20 @@ from os.path import exists, join
 
 PKGS_DIR = join(sys.prefix, 'pkgs')
 
+NAME_MAP = {}
+for fn in os.listdir(PKGS_DIR):
+    if fn.endswith('.tar.bz2'):
+        dist = fn[:-8]
+    else:
+        dist = fn
+    n, v, b = dist.rsplit('-', 2)
+    NAME_MAP[n] = dist
+
+def find(dist):
+    n, v, b = dist.rsplit('-', 2)
+    return NAME_MAP[n]
+
+
 def read_requires(pkg):
     res = []
     path = join(PKGS_DIR, pkg, 'info/requires')
@@ -25,14 +39,14 @@ def read_requires(pkg):
             r = x + ('ce0' if 'AnacondaCE' in sys.version else 'pro0')
         if r.startswith('mkl-') or not r:
             continue
-        res.append(r)
+        res.append(find(r))
     return res
 
 
 def get_all_deps():
     res = {}
     for fn in os.listdir(PKGS_DIR):
-        res[fn] = read_requires(fn)
+        res[find(fn)] = read_requires(fn)
     return res
 
 
