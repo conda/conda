@@ -14,6 +14,22 @@ log = logging.getLogger(__name__)
 
 
 class environment(object):
+    ''' Provides information about a given :ref:`Anaconda environment <environment>`
+
+    Parameters
+    ----------
+    conda : :py:class:`anaconda <conda.anaconda.anaconda>` object
+    prefix : str
+        full path to Anaconda environment
+
+    Attributes
+    ----------
+    activated : set of packages
+    conda : anaconda object
+    prefix : str
+    requirements : package_constraint object
+
+    '''
 
     __slots__ = ['_conda', '_prefix']
 
@@ -25,14 +41,17 @@ class environment(object):
 
     @property
     def conda(self):
+        ''' Return associated :py:class:`anaconda <conda.anaconda.anaconda>` object '''
         return self._conda
 
     @property
     def prefix(self):
+        ''' Return directory location of this environement '''
         return self._prefix
 
     @property
     def activated(self):
+        ''' Return the set of :ref:`activated <activated>` packages in this environement '''
         canonical_names = activated(self.prefix)
         res = set()
         for name in canonical_names:
@@ -44,14 +63,28 @@ class environment(object):
 
     @property
     def requirements(self):
+        ''' Return a baseline :py:class:`package constaint <conda.constraints.package_constraint` that packages in this environement must match
+
+        Returns
+        -------
+        requirements : py:class:`package constaint <conda.constraints.package_constraint>`
+        '''
         bt = build_target(self._conda.target)
         py = self._python_requirement()
         np = self._numpy_requirement()
         return all_of(bt, py, np)
 
     def get_requirements(self, target=None):
-        '''
-        This function is analogous to the requirements property, but it allows the build tartget to be overridden if necessary.
+        ''' This function is analogous to the requirements property, but it allows the build target to be overridden if necessary.
+
+        Parameters
+        ----------
+        target : str
+            build target to include in environment requirements, or None
+
+        Returns
+        -------
+        requirements : py:class:`package constaint <conda.constraints.package_constraint>`
         '''
         if target:
             bt = build_target(target)
@@ -62,6 +95,18 @@ class environment(object):
         return all_of(bt, py, np)
 
     def find_activated_package(self, pkg_name):
+        ''' find and return an :ref:`activated <activated>` packages in the environment with the specified :ref:`package name <package_name>`
+
+        Parameters
+        ----------
+        pkg_name : str
+            :ref:`package name <package_name>` to match when searching activated packages
+
+        Returns
+        -------
+        activated : :py:class:`package <conda.package.package>` object, or None
+
+        '''
         canonical_names = activated(self.prefix)
         for canonical_name in canonical_names:
             name, version, build = split_canonical_name(canonical_name)

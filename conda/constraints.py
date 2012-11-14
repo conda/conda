@@ -1,14 +1,34 @@
 
 class package_constraint(object):
+    ''' Base class for specific package_constraint objects that match packages with
+    specified criteria.
+    '''
     def match(self, info):
+        '''
+        match criteria against package info
+
+        Parameters
+        ----------
+        info : dict
+            package info dictionary
+
+        Returns
+        -------
+        matches : bool
+            whether the specified package matches this constraint
+
+        '''
         raise NotImplementedError()
     def __hash__(self):
         return hash(str(self))
 
 
 class all_of(package_constraint):
-    '''
-    Matches if a package matches all the specified constraints
+    ''' Match if a package matches all the specified constraints
+
+    Parameters
+    ----------
+    *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
     '''
     def __init__(self, *constraints):
         self._constraints = tuple(set(constraints))
@@ -25,8 +45,11 @@ class all_of(package_constraint):
 
 
 class any_of(package_constraint):
-    '''
-    Matches if a package matches any of the specified constraints
+    ''' Match if a package matches any of the specified constraints
+
+    Parameters
+    ----------
+    *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
     '''
     def __init__(self, *constraints):
         self._constraints = tuple(set(constraints))
@@ -43,8 +66,11 @@ class any_of(package_constraint):
 
 
 class negate(package_constraint):
-    '''
-    Matches if a package does NOT match the specified constraint
+    ''' Match if a package does NOT match the specified constraint
+
+    Parameters
+    ----------
+    constraint : :py:class:`package_constraint <conda.constraints.package_constraint>` object
     '''
     def __init__(self, constraint):
         self._constraint = constraint
@@ -59,8 +85,12 @@ class negate(package_constraint):
 
 
 class named(package_constraint):
-    '''
-    Matches if a package has the specified name
+    ''' Match if a package has the specified name
+
+    Parameters
+    ----------
+    name : str
+        :ref:`package name <package_name>` to match
     '''
     def __init__(self, name):
         self._name = name
@@ -75,8 +105,11 @@ class named(package_constraint):
 
 
 class strict_requires(package_constraint):
-    '''
-    Matches if a package contains the specified requirement
+    ''' Match if a package contains the specified requirement
+
+    Parameters
+    ----------
+    req : :py:class:`requirement <conda.requirement.requirement>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -96,8 +129,11 @@ class strict_requires(package_constraint):
 
 
 class requires(package_constraint):
-    '''
-    Matches if a package contains the specified requirement, or no requirement
+    ''' Match if a package contains the specified requirement, or no requirement
+
+    Parameters
+    ----------
+    req : :py:class:`requirement <conda.requirement.requirement>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -118,8 +154,11 @@ class requires(package_constraint):
 
 
 class satisfies(package_constraint):
-    '''
-    Matches if a package satisfies the specified requirement
+    ''' Match if a package satisfies the specified requirement
+
+    Parameters
+    ----------
+    req : :py:class:`requirement <conda.requirement.requirement>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -138,8 +177,11 @@ class satisfies(package_constraint):
             return False
 
 class weak_satisfies(package_constraint):
-    '''
-    Matches if a package satisfies the specified requirement
+    ''' Match if a package satisfies the specified requirement
+
+    Parameters
+    ----------
+    req : :py:class:`requirement <conda.requirement.requirement>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -159,8 +201,7 @@ class weak_satisfies(package_constraint):
 
 
 class package_version(package_constraint):
-    '''
-    Matches if specific package versions (excluding build) agree
+    ''' Match if specific package versions (excluding build) agree
     '''
     def __init__(self, pkg):
         self._pkg = pkg
@@ -175,8 +216,7 @@ class package_version(package_constraint):
 
 
 class build_version(package_constraint):
-    '''
-    Matches if specific package versions (including build) agree
+    ''' Match if specific package versions (including build) agree
     '''
     def __init__(self, pkg):
         self._pkg = pkg
@@ -191,8 +231,12 @@ class build_version(package_constraint):
 
 
 class build_target(package_constraint):
-    '''
-    Matches if a package has the specified build target, or no build target
+    ''' Match if a package has the specified build target, or no build target
+
+    Parameters
+    ----------
+    req : str ``{'ce', 'pro'}``
+        build target to match
     '''
     def __init__(self, target):
         self._target = target
@@ -207,8 +251,7 @@ class build_target(package_constraint):
 
 
 class wildcard(package_constraint):
-    '''
-    Matches all packages
+    ''' Match all packages
     '''
     def __str__(self):
         return 'wildcard'

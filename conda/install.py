@@ -3,7 +3,7 @@ This module contains:
   * all low-level code for extracting, activating and deactivating packages
   * a very simple CLI
 
-These API functions  have argument names referring to:
+These API functions have argument names referring to:
 
     dist:        canonical package name (e.g. 'numpy-1.6.2-py26_0')
 

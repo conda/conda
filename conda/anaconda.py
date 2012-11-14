@@ -1,3 +1,8 @@
+''' The anaconda modude provides the `anaconda` class, which provides configuration information about an
+Anaconda installation, including the Anaconda package index.
+
+'''
+
 from os import listdir
 from os.path import exists, join
 from urllib2 import urlopen
@@ -12,7 +17,13 @@ log = logging.getLogger(__name__)
 
 
 class anaconda(config):
+    ''' Provides configuration for an Anaconda installation, including the appropriate package index.
 
+    Attributes
+    ----------
+    index
+
+    '''
     __slots__ = ['_index']
 
     def __init__(self):
@@ -25,6 +36,7 @@ class anaconda(config):
 
     @property
     def index(self):
+        ''' Anaconda package index '''
         return self._index
 
     def __repr__(self):

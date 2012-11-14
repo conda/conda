@@ -47,6 +47,14 @@ class package_plan(object):
     def execute(self, env, progress_bar=True):
         '''
         Perform the operations contained in the package plan
+
+        Parameters
+        ----------
+        env : :py:class:`environment <conda.environment.environment>` object
+            Anaconda environment to execute plan in
+        progress_bar : bool, optional
+            whether to show a progress bar during any downloads
+
         '''
         for pkg in self.downloads:
             if progress_bar:
@@ -65,8 +73,12 @@ class package_plan(object):
             activate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
 
     def empty(self):
-        '''
-        Return True if the package plan contains no operations to perform
+        ''' Return whether the package plan has any operations to perform or not
+
+        Returns
+        -------
+        empty bool
+            True if the package plan contains no operations to perform
         '''
         return not (self.downloads or self.activations or self.deactivations)
 
@@ -102,6 +114,22 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     This functions creates a package plan for activating packages in a new
     Anaconda environement, including all of their required dependencies. The
     desired packages are specified as constraints.
+
+    Parameters
+    ----------
+    prefix : str
+        directory to create new Anaconda environment in
+    conda : :py:class:`anaconda <conda.anaconda.anaconda>` object
+    spec_strings : iterable of str
+        string package specifications of packages to install in new Anaconda environment
+    use_defaults : bool
+        whether to automatically apply default versions for base packages
+
+    Raises
+    ------
+    RuntimeError
+        if the environment cannot be created
+
     '''
     plan = package_plan()
 
@@ -210,6 +238,19 @@ def create_install_plan(env, args):
     existing Anaconda environement, including removing existing verions and
     also activating all required dependencies. The desired packages are
     specified as package names, package filenames, or requirements strings.
+
+    Parameters
+    ----------
+    env : :py:class:`environment <conda.environment.environment>` object
+        Anaconda environment to install packages into
+    args : iterable of str
+        string package specifications of packages to install in Anaconda environment
+
+    Raises
+    ------
+    RuntimeError
+        if the install cannot be performed
+
     '''
     plan = package_plan()
 
@@ -302,6 +343,19 @@ def create_upgrade_plan(env, pkgs):
     This function creates a package plan for upgrading specified packages to
     the latest version in the given Anaconda environment prefix. Only versions
     compatible with the existing environment are considered.
+
+    Parameters
+    ----------
+    env : :py:class:`environment <conda.environment.environment>` object
+        Anaconda environment to upgrade packages in
+    pkgs : iterable of :py:class:`packages <conda.package.package>`
+        packages to upgrade
+
+    Raises
+    ------
+    RuntimeError
+        if the upgrade cannot be performed
+
     '''
     plan = package_plan()
 
@@ -360,6 +414,14 @@ def create_activate_plan(env, canonical_names):
     '''
     This function creates a package plan for activating the specified packages
     in the given Anaconda environment prefix.
+
+    Parameters
+    ----------
+    env : :py:class:`environment <conda.environment.environment>` object
+        Anaconda environment to activate packages in
+    canonical_names : iterable of str
+        canonical names of packages to activate
+
     '''
     plan = package_plan()
 
@@ -393,6 +455,14 @@ def create_deactivate_plan(env, canonical_names):
     '''
     This function creates a package plan for deactivating the specified packages
     in the given Anaconda environment prefix.
+
+    Parameters
+    ----------
+    env : :py:class:`environment <conda.environment.environment>` object
+        Anaconda environment to deactivate packages in
+    canonical_names : iterable of str
+        canonical names of packages to deactivate
+
     '''
     plan = package_plan()
 
@@ -429,6 +499,16 @@ def create_download_plan(conda, canonical_names, force):
     packages from remote Anaconda package repositories. By default,
     packages already available are ignored, but this can be overriden
     with the force argument.
+
+    Parameters
+    ----------
+    conda : :py:class:`anaconda <conda.anaconda.anaconda>` object
+        Anaconda installation to download packages into
+    canonical_names : iterable of str
+        canonical names of packages to download
+    force : bool
+        whether to force download even if package is already locally available
+
     '''
     plan = package_plan()
 

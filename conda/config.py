@@ -1,3 +1,9 @@
+''' The config module provides the `config` class, which exposes all the configuration information about an Anaconda installation
+that does not require the Anaconda package index.
+
+'''
+
+
 from os import getenv, listdir
 from os.path import abspath, exists, expanduser, isdir, join
 import logging
@@ -56,6 +62,24 @@ def _load_condarc(path):
 
 
 class config(object):
+    ''' The config object collects a variety of configuration about an Anaconda installation.
+
+    Attributes
+    ----------
+    conda_version
+    default_environment
+    environments
+    locations
+    packages_dir
+    platform
+    repo_base_urls
+    repo_package_urls
+    root_dir
+    system_location
+    target
+    user_locations
+
+    '''
 
     __slots__ = ['_rc']
 
@@ -71,10 +95,21 @@ class config(object):
 
     @property
     def conda_version(self):
+        ''' Current version of the conda command '''
         return VERSION
 
     @property
     def target(self):
+        ''' Current build target of this Anaconda installation
+
+        The possible values are:
+            ``ce``
+                Community Edition
+            ``pro``
+                Anaconda pro
+            ``unknown``
+                non-Anaconda python
+        '''
         env_target = getenv('CIO_TARGET')
         if env_target:
             return env_target
@@ -88,6 +123,16 @@ class config(object):
 
     @property
     def platform(self):
+        '''
+        The current platform of this Anaconda installation
+
+        Platorm values are expressed as `system`-`bits`.
+
+        The possible system values are:
+            - ``win``
+            - ``osx``
+            - ``linux``
+        '''
         sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
         bits = int(platform.architecture()[0][:2])
         system = sys_map.get(sys.platform, 'unknown')
@@ -95,18 +140,22 @@ class config(object):
 
     @property
     def root_dir(self):
+        ''' Root directory for this Anaconda installation '''
         return ROOT_DIR
 
     @property
     def packages_dir(self):
+        ''' Packages directory for this Anaconda installation '''
         return PACKAGES_DIR
 
     @property
     def system_location(self):
+        ''' Default system :ref:`location <location>` for new :ref:`Anaconda environments <environment>` '''
         return join(ROOT_DIR, 'envs')
 
     @property
     def user_locations(self):
+        ''' Additional user supplied :ref:`locations <location>` for new :ref:`Anaconda environments <environment>` '''
         locations = []
         if self._rc:
             locations.extend(self._rc.get('locations', []))
@@ -114,14 +163,21 @@ class config(object):
 
     @property
     def locations(self):
+        ''' All :ref:`locations <location>`, system and user '''
         return sorted(self.user_locations + [self.system_location])
 
     @property
     def default_environment(self):
+        ''' Default :ref:`Anaconda environment <environment>` '''
         return environment(self, ROOT_DIR)
 
     @property
     def environments(self):
+        ''' All known Anaconda environments
+
+        :ref:`Anaconda environments <environment>` are serached for in the directories specified by `config.locations`.
+        Environments located elswhere are unknown to Anaconda.
+        '''
         envs = []
         for location in self.locations:
             if not exists(location):
@@ -139,6 +195,7 @@ class config(object):
 
     @property
     def repo_base_urls(self):
+        ''' Base URLS of :ref:`Anaconda repositories <repository>` '''
         if getenv('CIO_TEST') == "2":
             return ['http://filer/test-pkgs', 'http://filer/pkgs']
         elif getenv('CIO_TEST') == "1":
@@ -150,12 +207,14 @@ class config(object):
 
     @property
     def repo_package_urls(self):
+        ''' Platorm-specific package URLS of :ref:`Anaconda repositories <repository>` '''
         return [
             '%s/%s/' % (url, self.platform) for url in self.repo_base_urls
         ]
 
     @property
     def available_packages(self):
+        ''' All :ref:`locally available <locally_available>` packages '''
         res = set()
         canonical_names = available(self.packages_dir)
         for name in canonical_names:
@@ -166,6 +225,20 @@ class config(object):
         return res
 
     def lookup_environment(self, prefix):
+        '''
+        Return an environment object for the :ref:`Anaconda environment <environment>` located at `prefix`.
+
+        Parameters
+        ----------
+        prefix : str
+            full path to find Anaconda environment
+
+        Returns
+        -------
+        env : environment
+            environment object for Anaconda environment located at `prefix`
+
+        '''
         envs = dict((env.prefix, env) for env in self.environments)
         try:
             return envs[prefix]

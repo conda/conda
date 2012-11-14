@@ -11,8 +11,10 @@ def split_req_string(req_string):
     Parameters
     ----------
     req_string : str
-               string containing a package name and version separated by a space
+        string containing a package name and version separated by a space
 
+    Examples
+    --------
     >>> split_req_string('python 2.7')
     ('python', '2.7')
     >>>
@@ -35,8 +37,10 @@ def split_canonical_name(pkg_name):
     Parameters
     ----------
     pkg_name : str
-             string containing package name, version, and build string separated by dashes
+        string containing package name, version, and build string separated by dashes
 
+    Examples
+    --------
     >>> split_canonical_name('anaconda-1.1-np17py27_ce0')
     ('anaconda', '1.1', 'np17py27_ce0')
     >>>
@@ -51,9 +55,11 @@ def get_canonical_name(pkg_filename):
     Parameters
     ----------
     pkg_filename : str
-                  string containing a package name, version and build string separated by dashes,
-                  as well as a '.tar.bz2' extension
+        string containing a package name, version and build string separated by dashes,
+        as well as a '.tar.bz2' extension
 
+    Examples
+    --------
     >>> get_canonical_name('anaconda-1.1-np17py27_ce0.tar.bz2')
     'anaconda-1.1-np17py27_ce0'
     >>>
@@ -68,9 +74,11 @@ def parse_package_filename(pkg_filename):
     Parameters
     ----------
     pkg_filename : str
-                 string containing a package name, version and build string separated by dashes,
-                  as well as a '.tar.bz2' extension
+        string containing a package name, version and build string separated by dashes,
+        as well as a '.tar.bz2' extension
 
+    Examples
+    --------
     >>> parse_package_filename('anaconda-1.1-np17py27_ce0.tar.bz2')
     ('anaconda', '1.1', 'np17py27_ce0')
     >>>

@@ -1,20 +1,43 @@
+''' The package module provides the `package` class, which encapsulates information about an Anaconda package,
+as well as utility functions for manipulating collections of packages.
+
+'''
+
 from distutils.version import LooseVersion
 
 from requirement import requirement
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
-
 __all__ = ['package', 'sort_packages_by_version', 'sort_packages_by_name']
 
 
-def dict_property(name):
-    @property
+def dict_property(name, doc):
+    property
     def prop(self):
         return self._info[name]
-    return prop
+    return property(fget=prop, doc=doc)
+
 
 class package(object):
+    ''' The package class encapsulates information about an Anaconda package
+
+    Attributes
+    ----------
+    build
+    build_number
+    build_target
+    canonical_name
+    filename
+    is_meta
+    location
+    md5
+    name
+    requires
+    size
+    version
+
+    '''
 
     __slots__ = ['_filename', '_info', '_version', '_requires', '_build_target']
 
@@ -28,38 +51,55 @@ class package(object):
                              for req_string in self._info['requires'])
         self._build_target = self._info.get('build_target', None)
 
-    name         = dict_property('name')
-    build        = dict_property('build')
-    build_number = dict_property('build_number')
-    md5          = dict_property('md5')
-    size         = dict_property('size')
+    name         = dict_property('name', ':ref:`Package name <package_name>` of this package')
+    build        = dict_property('build', ':ref:`Build string <build_string>` of this package')
+    build_number = dict_property('build_number', 'build number for this package')
+    md5          = dict_property('md5', 'md5 hash of package file')
+    size         = dict_property('size', 'package file size in bytes')
 
     @property
     def build_target(self):
+        ''' Build target for this package (if it has one)
+
+        The possible values are:
+            ``ce``
+                package works with Community Edition
+            ``pro``
+                package works with Anaconda Pro
+            None
+                package works with any build target
+
+        '''
         return self._build_target
 
     @property
     def version(self):
+        ''' :ref:`Package version <package_version>` of this package '''
         return self._version
 
     @property
     def requires(self):
+        ''' Set of package requirements for this package '''
         return self._requires
 
     @property
     def canonical_name(self):
+        ''' :ref:`Cannonical name <canonical_name>` of this package '''
         return "%s-%s-%s" % (self.name, self.version.vstring, self.build)
 
     @property
     def filename(self):
+        ''' :ref:`Filename <filename>` of this Anaconda package '''
         return self._filename
 
     @property
     def location(self):
+        ''' URL of the Anaconda :ref:`package repository <repository>` this package came from '''
         return self._info.get('location', 'unkown')
 
     @property
     def is_meta(self):
+        ''' Whether or not this package is a meta package '''
         for req in self._requires:
             if req.build is None: return False
         return True
@@ -103,6 +143,21 @@ class package(object):
 
 
 def sort_packages_by_version(pkgs, reverse=False):
+    ''' sort a collection of packages by their :ref`package versions <package_version>`
+
+    Parameters
+    ----------
+    pkgs : iterable
+        a collection of packages
+    reverse : bool, optional
+        whether to sort in reverse order
+
+    Returns
+    -------
+    sorted : list
+        list of packages
+
+    '''
     return sorted(
         list(pkgs),
         reverse=reverse,
@@ -110,6 +165,21 @@ def sort_packages_by_version(pkgs, reverse=False):
     )
 
 def sort_packages_by_name(pkgs, reverse=False):
+    ''' sort a collection of packages by their :ref`package names <package_name>`
+
+    Parameters
+    ----------
+    pkgs : iterable
+        a collection of packages
+    reverse : bool, optional
+        whether to sort in reverse order
+
+    Returns
+    -------
+    sorted : list
+        list of packages
+
+    '''
     return sorted(
         list(pkgs),
         reverse=reverse,
