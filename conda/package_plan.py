@@ -10,7 +10,7 @@ from install import make_available, activate, deactivate
 from package import sort_packages_by_name
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from remote import fetch_file
-from requirement import apply_default_requirement, requirement, find_inconsistent_requirements
+from package_spec import apply_default_spec, package_spec, find_inconsistent_specs
 
 
 __all__ = [
@@ -140,20 +140,20 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     for spec_string in spec_strings:
 
         if spec_string == 'python':
-            reqs.add(requirement(DEFAULT_PYTHON_SPEC))
+            reqs.add(package_spec(DEFAULT_PYTHON_SPEC))
             continue
 
         if spec_string == 'numpy':
-            reqs.add(requirement(DEFAULT_NUMPY_SPEC))
+            reqs.add(package_spec(DEFAULT_NUMPY_SPEC))
             continue
 
         try:
-            reqs.add(requirement(spec_string))
+            reqs.add(package_spec(spec_string))
         except RuntimeError:
             candidates = conda.index.lookup_from_name(spec_string)
             if candidates:
                 candidate = max(candidates)
-                reqs.add(requirement("%s %s" % (candidate.name, candidate.version.vstring)))
+                reqs.add(package_spec("%s %s" % (candidate.name, candidate.version.vstring)))
             else:
                 message = "unknown package name '%s'" % spec_string
                 close = get_close_matches(spec_string, conda.index.package_names)
@@ -167,7 +167,7 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
 
 
     # abort if requirements are already incondsistent at this point
-    inconsistent = find_inconsistent_requirements(reqs)
+    inconsistent = find_inconsistent_specs(reqs)
     if inconsistent:
         raise RuntimeError(
             'cannot create environment, the following requirements are inconsistent: %s' % str(inconsistent)
@@ -187,9 +187,9 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     if use_defaults:
         for req in all_reqs:
             if req.name == 'python':
-                apply_default_requirement(reqs, requirement(DEFAULT_PYTHON_SPEC))
+                apply_default_spec(reqs, package_spec(DEFAULT_PYTHON_SPEC))
             elif req.name == 'numpy':
-                apply_default_requirement(reqs, requirement(DEFAULT_NUMPY_SPEC))
+                apply_default_spec(reqs, package_spec(DEFAULT_NUMPY_SPEC))
 
     # OK, so we need to re-do the compatible packages computation using
     # the updated requirements
@@ -216,11 +216,10 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     log.debug("final packages: %s\n" % all_pkgs)
 
     # check again for inconsistent requirements
-    inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
+    inconsistent = find_inconsistent_specs(idx.get_deps(all_pkgs))
     if inconsistent:
         raise RuntimeError('cannot create environment, the following requirements are inconsistent: %s'
-                                % ', '.join('%s-%s' % (req.name, req.version.vstring)
-                                       for req in inconsistent))
+                                % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent))
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -237,7 +236,7 @@ def create_install_plan(env, args):
     This functions creates a package plan for activating packages in an
     existing Anaconda environement, including removing existing verions and
     also activating all required dependencies. The desired packages are
-    specified as package names, package filenames, or requirements strings.
+    specified as package names, package filenames, or package_spec strings.
 
     Parameters
     ----------
@@ -278,7 +277,7 @@ def create_install_plan(env, args):
         else:
             # attempt to parse as requirement string
             try:
-                req = requirement(arg)
+                req = package_spec(arg)
                 pkgs = idx.find_matches(satisfies(req))
                 pkgs = idx.find_matches(env.requirements, pkgs)
 
@@ -391,7 +390,7 @@ def create_upgrade_plan(env, pkgs):
     log.debug('all packages: %s' %  all_pkgs)
 
     # check for any inconsistent requirements the set of packages
-    inconsistent = find_inconsistent_requirements(idx.get_deps(all_pkgs))
+    inconsistent = find_inconsistent_specs(idx.get_deps(all_pkgs))
     if inconsistent:
         raise RuntimeError('cannot upgrade packages, the following requirements are inconsistent: %s'
             % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent)

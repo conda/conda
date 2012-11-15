@@ -1,13 +1,12 @@
+
 import unittest
 import json
-import os
-from distutils.version import LooseVersion
 from os.path import dirname, join
 
-from conda.package import package
-from conda.requirement import requirement
-from conda.package_index import package_index
 from conda.naming import parse_package_filename
+from conda.package import package
+from conda.package_index import package_index
+from conda.package_spec import package_spec
 
 
 class test_create(unittest.TestCase):
@@ -49,37 +48,37 @@ class test_create(unittest.TestCase):
         self.assertEqual(
             idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])], 0),
             set([
-                requirement('readline 6.2'),
-                requirement('zlib 1.2.7'),
-                requirement('python 2.7'),
-                requirement('sqlite 3.7.13'),
+                package_spec('readline 6.2'),
+                package_spec('zlib 1.2.7'),
+                package_spec('python 2.7'),
+                package_spec('sqlite 3.7.13'),
             ])
         )
         self.assertEqual(
             idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])], 1),
-            set([requirement('python 2.7')])
+            set([package_spec('python 2.7')])
         )
         self.assertEqual(
             idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])], 2),
             set([
-                requirement('readline 6.2'),
-                requirement('zlib 1.2.7'),
-                requirement('python 2.7'),
-                requirement('sqlite 3.7.13'),
+                package_spec('readline 6.2'),
+                package_spec('zlib 1.2.7'),
+                package_spec('python 2.7'),
+                package_spec('sqlite 3.7.13'),
             ])
         )
         self.assertEqual(
             idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])]),
             set([
-                requirement('readline 6.2'),
-                requirement('zlib 1.2.7'),
-                requirement('python 2.7'),
-                requirement('sqlite 3.7.13'),
+                package_spec('readline 6.2'),
+                package_spec('zlib 1.2.7'),
+                package_spec('python 2.7'),
+                package_spec('sqlite 3.7.13'),
             ])
         )
 
         def test_get_reverse_deps(self):
-            dx = package_index(self.info)
+            idx = package_index(self.info)
             self.assertEqual(
                 idx.get_reverse_deps([package(self.info['bzip2-1.0.6-0.tar.bz2'])]),
                 set()
@@ -88,11 +87,11 @@ class test_create(unittest.TestCase):
     def test_get_reverse_deps(self):
         idx = package_index(self.info)
         self.assertEqual(
-            idx.get_reverse_deps([requirement('flask 0.9')]),
+            idx.get_reverse_deps([package_spec('flask 0.9')]),
             set()
         )
         self.assertEqual(
-            idx.get_reverse_deps([requirement('libevent 2.0.20')], 0),
+            idx.get_reverse_deps([package_spec('libevent 2.0.20')], 0),
             set([
                 package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
                 package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
@@ -103,14 +102,14 @@ class test_create(unittest.TestCase):
             ])
         )
         self.assertEqual(
-            idx.get_reverse_deps([requirement('libevent 2.0.20')], 1),
+            idx.get_reverse_deps([package_spec('libevent 2.0.20')], 1),
             set([
                 package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
                 package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
             ])
         )
         self.assertEqual(
-            idx.get_reverse_deps([requirement('libevent 2.0.20')], 2),
+            idx.get_reverse_deps([package_spec('libevent 2.0.20')], 2),
             set([
                 package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
                 package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
@@ -121,7 +120,7 @@ class test_create(unittest.TestCase):
             ])
         )
         self.assertEqual(
-            idx.get_reverse_deps([requirement('libevent 2.0.20')]),
+            idx.get_reverse_deps([package_spec('libevent 2.0.20')]),
             set([
                 package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
                 package(self.info['gevent-0.13.7-py27_0.tar.bz2']),

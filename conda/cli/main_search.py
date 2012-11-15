@@ -5,7 +5,7 @@ import re
 from anaconda import anaconda
 from constraints import all_of, build_target, satisfies
 from package import sort_packages_by_name
-from requirement import requirement
+from package_spec import package_spec
 
 
 def configure_parser(sub_parsers):
@@ -54,12 +54,12 @@ def execute(args):
 
     else:
         try:
-           req = requirement(args.search_expression)
+           spec = package_spec(args.search_expression)
            pkgs = conda.index.find_matches(
                 all_of(
-                    satisfies(req), build_target(conda.target)
+                    satisfies(spec), build_target(conda.target)
                 ),
-                conda.index.lookup_from_name(req.name)
+                conda.index.lookup_from_name(spec.name)
             )
         except:
             try:

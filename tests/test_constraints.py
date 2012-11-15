@@ -1,7 +1,8 @@
 import unittest
-from conda.package import package
-from conda.requirement import requirement
+
 import conda.constraints as constraints
+from conda.package import package
+from conda.package_spec import package_spec
 
 bitarray = {
     "arch": "x86_64",
@@ -46,9 +47,9 @@ class test_constraints(unittest.TestCase):
 
         p = package(bitarray)
 
-        for req, val in d.items():
-            r = requirement(req)
-            c = constraints.satisfies(r)
+        for spec_string, val in d.items():
+            spec = package_spec(spec_string)
+            c = constraints.satisfies(spec)
             self.assertEqual(
                 val,
                 c.match(p)
@@ -67,9 +68,9 @@ class test_constraints(unittest.TestCase):
 
         p = package(bitarray)
 
-        for req, val in d.items():
-            r = requirement(req)
-            c = constraints.strict_requires(r)
+        for spec_string, val in d.items():
+            spec = package_spec(spec_string)
+            c = constraints.strict_requires(spec)
             self.assertEqual(
                 val,
                 c.match(p)
@@ -88,9 +89,9 @@ class test_constraints(unittest.TestCase):
 
         p = package(bitarray)
 
-        for req, val in d.items():
-            r = requirement(req)
-            c = constraints.requires(r)
+        for spec_string, val in d.items():
+            spec = package_spec(spec_string)
+            c = constraints.requires(spec)
             self.assertEqual(
                 val,
                 c.match(p)
@@ -123,7 +124,7 @@ class test_constraints(unittest.TestCase):
         p = package(bitarray)
         c = constraints.any_of(
                 constraints.named("bitarray"),
-                constraints.satisfies(requirement("python=2.7"))
+                constraints.satisfies(package_spec("python=2.7"))
             )
 
         self.assertEqual(
@@ -165,7 +166,7 @@ class test_constraints(unittest.TestCase):
         p = package(bitarray)
         c = constraints.all_of(
                 constraints.named("bitarray"),
-                constraints.satisfies(requirement("python=2.7"))
+                constraints.satisfies(package_spec("python=2.7"))
             )
 
         self.assertEqual(
@@ -175,7 +176,7 @@ class test_constraints(unittest.TestCase):
 
         c = constraints.all_of(
                 constraints.named("bitarray"),
-                constraints.satisfies(requirement("python=2.7")),
+                constraints.satisfies(package_spec("python=2.7")),
                 constraints.negate(constraints.named("bitarray"))
         )
 

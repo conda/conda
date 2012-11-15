@@ -33,7 +33,6 @@ Additional help for each command can be accessed by using:
 """
 
 import conda_argparse as argparse
-from config import config
 import main_activate
 import main_create
 import main_deactivate

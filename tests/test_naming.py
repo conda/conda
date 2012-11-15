@@ -4,15 +4,15 @@ from conda.naming import *
 
 class test_naming(unittest.TestCase):
 
-    def test_split_req_string(self):
+    def test_split_spec_string(self):
         self.assertEqual(
-            split_req_string('python 2.7'), 
+            split_spec_string('python 2.7'), 
             ('python', '2.7')
         )
 
         # test when name has numbers in it
         self.assertEqual(
-            split_req_string('python111 2.7.1'),
+            split_spec_string('python111 2.7.1'),
             ('python111', '2.7.1')
         )
 

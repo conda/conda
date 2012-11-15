@@ -56,13 +56,13 @@ conda.package_plan
     :members:
 
 
-conda.remote
-------------
-.. automodule:: conda.remote
+conda.package_spec
+------------------
+.. automodule:: conda.package_spec
     :members:
 
 
-conda.requirement
------------------
-.. automodule:: conda.requirement
+conda.remote
+------------
+.. automodule:: conda.remote
     :members:

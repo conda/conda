@@ -4,31 +4,31 @@
 # where the name may contains one or more '-' characters.
 # the build number is always a positive integer value.
 
-def split_req_string(req_string):
+def split_spec_string(spec_string):
     '''
-    Split a requirement string into (name, version) or (name, version, build) tuples.
+    Split a package specification string into (name, version) or (name, version, build) tuples.
 
     Parameters
     ----------
-    req_string : str
-        string containing a package name and version separated by a space
+    spec_string : str
+        string containing a package name and version separated by a space, or by '='
 
     Examples
     --------
-    >>> split_req_string('python 2.7')
+    >>> split_spec_string('python 2.7')
     ('python', '2.7')
     >>>
 
     '''
-    space_split = req_string.split()
+    space_split = spec_string.split()
     if len(space_split) in [2,3]:
         return tuple(space_split)
 
-    eq_split = req_string.split('=')
+    eq_split = spec_string.split('=')
     if len(eq_split) in [2,3]:
         return tuple(eq_split)
 
-    raise RuntimeError("Cannot split string '%s' into requirement components" % req_string)
+    raise RuntimeError("Cannot split string '%s' into package spec components" % spec_string)
 
 def split_canonical_name(pkg_name):
     '''

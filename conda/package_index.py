@@ -6,7 +6,7 @@ dependencies, matching packages to constraints, etc.
 
 from constraints import satisfies
 from package import package
-from requirement import find_inconsistent_requirements
+from package_spec import find_inconsistent_specs
 
 
 class package_index(object):
@@ -62,7 +62,7 @@ class package_index(object):
         return set([pkg.name for pkg in self.pkgs])
 
     def lookup_from_filename(self, pkg_filename):
-        ''' Return a :py:class`package <conda`.package.package>` object corresponding to the given package filename
+        ''' Return a :py:class`package <conda.package.package>` object corresponding to the given package filename
 
         Parameters
         ----------
@@ -71,14 +71,14 @@ class package_index(object):
 
         Returns
         -------
-        package : :py:class`package <conda`.package.package>` object
+        package : :py:class`package <conda.package.package>` object
             matching package, if one is found
 
         '''
         return self.pkg_filenames[pkg_filename]
 
     def lookup_from_canonical_name(self, canonical_name):
-        ''' Return a :py:class`package <conda`.package.package>` object corresponding to the given canonical name
+        ''' Return a :py:class`package <conda.package.package>` object corresponding to the given canonical name
 
         Parameters
         ----------
@@ -87,14 +87,14 @@ class package_index(object):
 
         Returns
         -------
-        package : :py:class`package <conda`.package.package>` object
+        package : :py:class`package <conda.package.package>` object
             matching package, if one is found
 
         '''
         return self.pkg_filenames[canonical_name+'.tar.bz2']
 
     def lookup_from_name(self, pkg_name):
-        ''' Return a set of :py:class`package <conda`.package.package>` objects with the given package name
+        ''' Return a set of :py:class`package <conda.package.package>` objects with the given package name
 
         Parameters
         ----------
@@ -103,25 +103,25 @@ class package_index(object):
 
         Returns
         -------
-        package : set of :py:class`package <conda`.package.package>` objects
+        package : set of :py:class`package <conda.package.package>` objects
             matching packages
 
         '''
         return set([pkg for pkg in self.pkgs if pkg.name == pkg_name])
 
     def find_matches(self, constraint, pkgs=None):
-        ''' Return a set of :py:class`package <conda`.package.package>` objects that match the given constraint
+        ''' Return a set of :py:class`package <conda.package.package>` objects that match the given constraint
 
         Parameters
         ----------
         constraint : :py:class:`constraint <conda.constraints.package_constraint>` object
             constraint to match
-        pkgs : iterable of :py:class`package <conda`.package.package>` objects, optional
+        pkgs : iterable of :py:class`package <conda.package.package>` objects, optional
             if supplied, search only packages in this collection
 
         Returns
         -------
-        matches : set of iterable of :py:class`package <conda`.package.package>` objects
+        matches : set of iterable of :py:class`package <conda.package.package>` objects
             matching packages
 
         '''
@@ -248,7 +248,7 @@ class package_index(object):
         # user specified requirements
         to_remove = set()
         for pkg in pkgs:
-            inconsistent = find_inconsistent_requirements(reqs | pkg.requires)
+            inconsistent = find_inconsistent_specs(reqs | pkg.requires)
             if inconsistent: to_remove.add(pkg)
         pkgs = pkgs - to_remove
 

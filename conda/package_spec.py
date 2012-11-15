@@ -1,22 +1,22 @@
-''' The requirements module contains the requirement class, and utility functions for manipulating sets of requirements.
+''' The package_spec module contains the package_spec class, and utility functions for manipulating sets of package specifications.
 
 '''
 
 
 from distutils.version import LooseVersion
 
-from naming import split_req_string
+from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
-class requirement(object):
+class package_spec(object):
     '''
     Encapsulates a package name and version (or partial version) along with an optional build string for
     use as a package specification.
 
     Parameters
     ----------
-    req_string : str
+    spec_string : str
         a string containing a package name and version and (optional) build string, separated by a spaces or by '='
 
 
@@ -28,18 +28,18 @@ class requirement(object):
 
     Examples
     --------
-    >>> r = requirement("python 2.7")
-    >>> r.name
+    >>> spec = package_spec("python 2.7")
+    >>> spec.name
     'python'
-    >>> r.version
+    >>> spec.version
     LooseVersion('2.7')
 
     '''
 
     __slots__ = ['__name', '__version', '__build']
 
-    def __init__(self, req_string):
-        components = split_req_string(req_string)
+    def __init__(self, spec_string):
+        components = split_spec_string(spec_string)
         self.__name = components[0]
         self.__version = LooseVersion(components[1])
         self.__build = None
@@ -69,15 +69,15 @@ class requirement(object):
 
     def __str__(self):
         if self.build:
-            return 'req[%s %s %s]' % (self.name, self.version.vstring, self.build)
+            return 'spec[%s %s %s]' % (self.name, self.version.vstring, self.build)
         else:
-            return 'req[%s %s]' % (self.name, self.version.vstring)
+            return 'spec[%s %s]' % (self.name, self.version.vstring)
 
     def __repr__(self):
         if self.build:
-            return "requirement('%s %s %s')" % (self.name, self.version.vstring, self.build)
+            return "package_spec('%s %s %s')" % (self.name, self.version.vstring, self.build)
         else:
-            return "requirement('%s %s')" % (self.name, self.version.vstring)
+            return "package_spec('%s %s')" % (self.name, self.version.vstring)
 
     def __hash__(self):
         return hash((self.name, self.version.vstring, self.build))
@@ -98,36 +98,36 @@ class requirement(object):
             )
 
 
-def find_inconsistent_requirements(reqs):
-    '''
-    Iterates over a set of requirements, finding those that share a name but have a different version
+def find_inconsistent_specs(specs):
+    ''' Iterates over a set of package specifications, finding those that share a name
+    but have a different version
 
     Parameters
     ----------
-    reqs : iterable collection of :py:class:`requirement <conda.requirement.requirement>` objects
-        requirements to check for inconsistencies
+    specs : iterable collection of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+        package specifications to check for inconsistencies
 
     Returns
     -------
-    inconsistent_reqs : set of :py:class:`requirement <conda.requirement.requirement>` objects
-        all inconsistent requirements present in `reqs`
+    inconsistent_specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+        all inconsistent package specifications present in `specs`
 
     Examples
     --------
-    >>> r,s,t = requirement('python 2.7'), requirement('python 3.1'), requirement('numpy 1.2.3')
-    >>> reqs = [r,s,t]
-    >>> find_inconsistent_requirements(reqs)
-    set([requirement('python 3.1'), requirement('python 2.7')])
+    >>> r,s,t = package_spec('python 2.7'), package_spec('python 3.1'), package_spec('numpy 1.2.3')
+    >>> specs = [r,s,t]
+    >>> find_inconsistent_specs(specs)
+    set([package_spec('python 3.1'), package_spec('python 2.7')])
 
     '''
 
     results = set()
 
     tmp = {}
-    for req in reqs:
-        if req.name not in tmp:
-            tmp[req.name] = set()
-        tmp[req.name].add((tuple(req.version.version), req))
+    for spec in specs:
+        if spec.name not in tmp:
+            tmp[spec.name] = set()
+        tmp[spec.name].add((tuple(spec.version.version), spec))
 
     for name, tup in tmp.items():
         versions = [t[0] for t in tup]
@@ -141,31 +141,31 @@ def find_inconsistent_requirements(reqs):
     return results
 
 
-def apply_default_requirement(reqs, default_req):
+def apply_default_spec(specs, default_spec):
     '''
-    Examines a collection of requirements and adds default_req to it, if no
-    other requirement for the same package specified by default_req is already present.
+    Examines a collection of package specifications and adds default_spec to it, if no
+    other package specification for the same package specified by default_spec is already present.
 
     Parameters
     ----------
-    reqs : set of :py:class:`requirement <conda.requirement.requirement>` objects
-        requirements to apply defaults to
-    default_req : :py:class:`requirement <conda.requirement.requirement>` object
-        default requirement to apply
+    specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+        package specifications to apply defaults to
+    default_spec : :py:class:`package_spec <conda.package_spec.package_spec>` object
+        default package specification to apply to `specs`
 
     Returns
     -------
-    updated_reqs : set of :py:class:`requirement <conda.requirement.requirement>` objects
-        `reqs` with `default_req` applied, if necessary
+    updated_specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+        `specs` with `default_sepc` applied, if necessary
 
     '''
 
     needs_default = True
-    for req in reqs:
-        if req.name == default_req.name:
+    for spec in specs:
+        if spec.name == default_spec.name:
             needs_default = False
             break
-    if needs_default: reqs.add(default_req)
+    if needs_default: specs.add(default_spec)
 
 
 

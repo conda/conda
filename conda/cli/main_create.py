@@ -54,7 +54,7 @@ def configure_parser(sub_parsers):
         action  = "store",
         default = "yes",
         choices = ["yes", "no"],
-        help    = "select default versions for unspecified requirements when possible (default: yes)",
+        help    = "select default versions for unspecified package specifications when possible (default: yes)",
     )
     p.add_argument(
         'package_specs',

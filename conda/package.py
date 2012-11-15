@@ -5,7 +5,7 @@ as well as utility functions for manipulating collections of packages.
 
 from distutils.version import LooseVersion
 
-from requirement import requirement
+from package_spec import package_spec
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
@@ -47,8 +47,8 @@ class package(object):
                                                self._info['version'],
                                                self._info['build'])
         self._version = LooseVersion(self._info['version'])
-        self._requires = set(requirement(req_string)
-                             for req_string in self._info['requires'])
+        self._requires = set(package_spec(spec_string)
+                             for spec_string in self._info['requires'])
         self._build_target = self._info.get('build_target', None)
 
     name         = dict_property('name', ':ref:`Package name <package_name>` of this package')
@@ -79,7 +79,7 @@ class package(object):
 
     @property
     def requires(self):
-        ''' Set of package requirements for this package '''
+        ''' Set of package specification requirements for this package '''
         return self._requires
 
     @property
@@ -100,8 +100,8 @@ class package(object):
     @property
     def is_meta(self):
         ''' Whether or not this package is a meta package '''
-        for req in self._requires:
-            if req.build is None: return False
+        for spec in self._requires:
+            if spec.build is None: return False
         return True
 
     def matches(self, constraint):
@@ -114,8 +114,8 @@ class package(object):
         print "       md5: %s" % self.md5
         if show_requires:
             print "  requires:"
-            for req in sorted('%s-%s' % (r.name, r.version.vstring) for r in self.requires):
-                print"        %s" % req
+            for spec_string in sorted('%s-%s' % (req.name, req.version.vstring) for req in self.requires):
+                print"        %s" % spec_string
 
     def __str__(self):
         return '%s-%s' % (self.name, self.version.vstring)

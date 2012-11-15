@@ -2,12 +2,11 @@
 from naming import split_canonical_name
 import logging
 from os.path import isdir
-from requirement import requirement
 
-import config
 from constraints import all_of, any_of, build_target, requires, satisfies, wildcard
 from install import activated, get_meta
 from package import package
+from package_spec import package_spec
 
 
 log = logging.getLogger(__name__)
@@ -70,8 +69,8 @@ class environment(object):
         requirements : py:class:`package constaint <conda.constraints.package_constraint>`
         '''
         bt = build_target(self._conda.target)
-        py = self._python_requirement()
-        np = self._numpy_requirement()
+        py = self._python_constraint()
+        np = self._numpy_constraint()
         return all_of(bt, py, np)
 
     def get_requirements(self, target=None):
@@ -90,8 +89,8 @@ class environment(object):
             bt = build_target(target)
         else:
             bt = build_target(self._conda.target)
-        py = self._python_requirement()
-        np = self._numpy_requirement()
+        py = self._python_constraint()
+        np = self._numpy_constraint()
         return all_of(bt, py, np)
 
     def find_activated_package(self, pkg_name):
@@ -118,31 +117,31 @@ class environment(object):
                     return package(get_meta(canonical_name, self._prefix))
         return None
 
-    def requirement_is_satisfied(self, req):
-        c = satisfies(req)
+    def requirement_is_satisfied(self, spec):
+        c = satisfies(spec)
         for pkg in self.activated:
             if c.match(pkg):
                 return True
         return False
 
-    def _python_requirement(self):
+    def _python_constraint(self):
         try:
             pkg = self.find_activated_package('python')
-            req = requirement('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
-            sat = requirement('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
+            req = package_spec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
+            sat = package_spec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return any_of(requires(req), satisfies(sat))
         except: # TODO
-            log.debug('found no python requirement, returning wildcard()')
+            log.debug('no python constraint, returning wildcard()')
             return wildcard()
 
-    def _numpy_requirement(self):
+    def _numpy_constraint(self):
         try:
             pkg = self.find_activated_package('numpy')
-            req = requirement('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
-            sat = requirement('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
+            req = package_spec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
+            sat = package_spec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return any_of(requires(req), satisfies(sat))
         except: #TODO
-            log.debug('found no numpy requirement, returning wildcard()')
+            log.debug('no numpy constraint, returning wildcard()')
             return wildcard()
 
     def __str__(self):

@@ -109,7 +109,7 @@ class strict_requires(package_constraint):
 
     Parameters
     ----------
-    req : :py:class:`requirement <conda.requirement.requirement>` object
+    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -133,7 +133,7 @@ class requires(package_constraint):
 
     Parameters
     ----------
-    req : :py:class:`requirement <conda.requirement.requirement>` object
+    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -158,7 +158,7 @@ class satisfies(package_constraint):
 
     Parameters
     ----------
-    req : :py:class:`requirement <conda.requirement.requirement>` object
+    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
     '''
     def __init__(self, req):
         self._req = req
@@ -181,7 +181,7 @@ class weak_satisfies(package_constraint):
 
     Parameters
     ----------
-    req : :py:class:`requirement <conda.requirement.requirement>` object
+    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
     '''
     def __init__(self, req):
         self._req = req
