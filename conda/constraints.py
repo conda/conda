@@ -170,6 +170,7 @@ class satisfies(package_constraint):
         return cmp(self._req, other._req)
     def match(self, pkg):
         if self._req.name != pkg.name: return False
+        if not self._req.version: return True
         vlen = len(self._req.version.version)
         try:
             return self._req.version.version[:vlen] == pkg.version.version[:vlen]
@@ -193,6 +194,7 @@ class weak_satisfies(package_constraint):
         return cmp(self._req, other._req)
     def match(self, pkg):
         if self._req.name != pkg.name: return True
+        if not self._req.version: return True
         vlen = len(self._req.version.version)
         try:
             return self._req.version.version[:vlen] == pkg.version.version[:vlen]

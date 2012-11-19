@@ -1,13 +1,12 @@
 
 from difflib import get_close_matches
-from itertools import groupby
 import logging
 
 
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
 from constraints import build_target, satisfies
 from install import make_available, activate, deactivate
-from package import sort_packages_by_name
+from package import newest_packages, sort_packages_by_name
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from remote import fetch_file
 from package_spec import apply_default_spec, package_spec, find_inconsistent_specs
@@ -121,7 +120,7 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
         directory to create new Anaconda environment in
     conda : :py:class:`anaconda <conda.anaconda.anaconda>` object
     spec_strings : iterable of str
-        string package specifications of packages to install in new Anaconda environment
+        package specification strings for packages to install in new Anaconda environment
     use_defaults : bool
         whether to automatically apply default versions for base packages
 
@@ -135,91 +134,73 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
 
     idx = conda.index
 
-    reqs = set()
+    specs = set()
 
     for spec_string in spec_strings:
 
         if spec_string == 'python':
-            reqs.add(package_spec(DEFAULT_PYTHON_SPEC))
+            specs.add(package_spec(DEFAULT_PYTHON_SPEC))
             continue
 
         if spec_string == 'numpy':
-            reqs.add(package_spec(DEFAULT_NUMPY_SPEC))
+            specs.add(package_spec(DEFAULT_NUMPY_SPEC))
             continue
 
-        try:
-            reqs.add(package_spec(spec_string))
-        except RuntimeError:
-            candidates = conda.index.lookup_from_name(spec_string)
-            if candidates:
-                candidate = max(candidates)
-                reqs.add(package_spec("%s %s" % (candidate.name, candidate.version.vstring)))
-            else:
-                message = "unknown package name '%s'" % spec_string
-                close = get_close_matches(spec_string, conda.index.package_names)
-                if close:
-                    message += '\n\nDid you mean one of these?\n'
-                    for s in close:
-                        message += '    %s' % s
-                    message += "\n"
-                raise RuntimeError(message)
+        spec = package_spec(spec_string)
 
+        _check_unknown_spec(idx, spec)
 
+        specs.add(spec)
 
-    # abort if requirements are already incondsistent at this point
-    inconsistent = find_inconsistent_specs(reqs)
+    # abort if specifications are already incondsistent at this point
+    inconsistent = find_inconsistent_specs(specs)
     if inconsistent:
         raise RuntimeError(
             'cannot create environment, the following requirements are inconsistent: %s' % str(inconsistent)
         )
 
-    log.debug("initial requirements: %s\n" % reqs)
+    log.debug("initial package specifications: %s\n" % specs)
 
-    # find packages compatible with the initial requirements and build target
-    pkgs = idx.find_compatible_packages(reqs)
+    # find packages compatible with the initial specifications and build target
+    pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(build_target(conda.target), pkgs)
-    log.debug("initial compatible packages: %s\n" % pkgs)
+    log.debug("initial packages: %s\n" % pkgs)
 
     # find the associated dependencies
-    all_reqs = idx.get_deps(pkgs) | reqs
+    deps = idx.get_deps(pkgs)
+    deps = idx.find_matches(build_target(conda.target), deps)
+    log.debug("initial dependencies: %s\n" % deps)
 
     # add default python and numpy requirements if needed
     if use_defaults:
-        for req in all_reqs:
-            if req.name == 'python':
-                apply_default_spec(reqs, package_spec(DEFAULT_PYTHON_SPEC))
-            elif req.name == 'numpy':
-                apply_default_spec(reqs, package_spec(DEFAULT_NUMPY_SPEC))
+        dep_names = [dep.name for dep in deps]
+        if 'python' in dep_names:
+            specs = apply_default_spec(specs, package_spec(DEFAULT_PYTHON_SPEC))
+        if 'numpy' in dep_names:
+            specs = apply_default_spec(specs, package_spec(DEFAULT_NUMPY_SPEC))
 
-    # OK, so we need to re-do the compatible packages computation using
-    # the updated requirements
+    log.debug("updated package specifications: %s\n" % specs)
 
-    # find packages compatible with the updated requirements and build target
-    pkgs = idx.find_compatible_packages(reqs)
+    # now we need to recompute the compatible packages using the updated package specifications
+    pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(build_target(conda.target), pkgs)
-    pkgs = sort_packages_by_name(pkgs)
-    pkgs = [max(g) for k, g in groupby(pkgs, key=lambda x: x.name)]
-    log.debug("updated compatible packages: %s\n" % pkgs)
+    pkgs = newest_packages(pkgs)
+    log.debug("updated packages: %s\n" % pkgs)
 
     # find the associated dependencies
-    all_reqs = idx.get_deps(pkgs) | reqs
-    log.debug("all requirements: %s\n" % all_reqs)
+    deps = idx.get_deps(pkgs)
+    deps = idx.find_matches(build_target(conda.target), deps)
+    deps = newest_packages(deps)
+    log.debug("updated dependencies: %s\n" % deps)
 
-    # find packages compatible with the full requirements and build target
-    all_pkgs = idx.find_compatible_packages(all_reqs)
-    all_pkgs = idx.find_matches(build_target(conda.target), all_pkgs)
-    log.debug("all compatible packages: %s\n" % all_pkgs)
+    all_pkgs = pkgs | deps
+    all_pkgs = newest_packages(all_pkgs)
+    log.debug("all packages: %s\n" % all_pkgs)
 
-    # handle multiple matches, keep only the latest version
-    all_pkgs = sort_packages_by_name(all_pkgs)
-    all_pkgs = [max(g) for k, g in groupby(all_pkgs, key=lambda x: x.name)]
-    log.debug("final packages: %s\n" % all_pkgs)
-
-    # check again for inconsistent requirements
-    inconsistent = find_inconsistent_specs(idx.get_deps(all_pkgs))
-    if inconsistent:
-        raise RuntimeError('cannot create environment, the following requirements are inconsistent: %s'
-                                % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent))
+    # make sure all user supplied specs were satisfied
+    for spec in specs:
+        if not idx.find_matches(satisfies(spec), all_pkgs):
+            raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -231,7 +212,7 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     return plan
 
 
-def create_install_plan(env, args):
+def create_install_plan(env, spec_strings):
     '''
     This functions creates a package plan for activating packages in an
     existing Anaconda environement, including removing existing verions and
@@ -242,7 +223,7 @@ def create_install_plan(env, args):
     ----------
     env : :py:class:`environment <conda.environment.environment>` object
         Anaconda environment to install packages into
-    args : iterable of str
+    spec_strings : iterable of str
         string package specifications of packages to install in Anaconda environment
 
     Raises
@@ -255,67 +236,73 @@ def create_install_plan(env, args):
 
     idx = env.conda.index
 
-    to_install = set()
+    specs = set()
 
-    for arg in args:
+    for spec_string in spec_strings:
 
-        if arg.startswith('python-') or arg.startswith('python ') or arg.startswith('python='):
+        spec = package_spec(spec_string)
+
+        _check_unknown_spec(idx, spec)
+
+        if spec.name == 'python' and env.find_activated_package('python'):
             raise RuntimeError('changing python versions in an existing Anaconda environment is not supported (create a new environment)')
-        if arg.startswith('numpy') and env.find_activated_package('numpy'):
+        if spec.name == 'numpy' and env.find_activated_package('numpy'):
             raise RuntimeError('changing numpy versions in an existing Anaconda environment is not supported (create a new environment)')
 
-        # attempt to parse as filename
-        if arg.endswith('.tar.bz2'):
-            try:
-                pkg = idx.lookup_from_filename(arg)
-                if not pkg.matches(env.requirements):
-                    raise RuntimeError("package '%s' does not satisfy requirements for environment at: %s, which are: %s" % (arg, env.prefix, env.requirements))
-                pkgs = set([pkg])
-            except KeyError:
-                pkgs = set()
+        specs.add(spec)
 
-        else:
-            # attempt to parse as requirement string
-            try:
-                req = package_spec(arg)
-                pkgs = idx.find_matches(satisfies(req))
-                pkgs = idx.find_matches(env.requirements, pkgs)
+    # abort if specifications are already incondsistent at this point
+    inconsistent = find_inconsistent_specs(specs)
+    if inconsistent:
+        raise RuntimeError(
+            'cannot create environment, the following requirements are inconsistent: %s' % str(inconsistent)
+        )
 
-            # attempt to parse as package name
-            except RuntimeError:
-                pkgs = idx.lookup_from_name(arg)
-                if pkgs:
-                    pkgs = idx.find_matches(env.requirements, pkgs)
-                    if pkgs: pkgs = set([max(pkgs)])
-                else:
-                    message = "unknown package name '%s'" % arg
-                    from difflib import get_close_matches
-                    close = get_close_matches(arg, idx.package_names)
-                    if close:
-                        message += '\n\nDid you mean one of these?\n'
-                        for s in close:
-                            message += '    %s' % s
-                        message += "\n"
-                    raise RuntimeError(message)
+    log.debug("initial package specifications: %s\n" % specs)
 
-        if len(pkgs) > 1:
-            raise RuntimeError("found multiple package matches for '%s'" % arg)
-
-        to_install.add(pkgs.pop())
-
-    pkgs = to_install
+    # find packages compatible with the initial specifications and build target
+    pkgs = idx.find_compatible_packages(specs)
+    pkgs = idx.find_matches(env.requirements, pkgs)
+    log.debug("initial packages: %s\n" % pkgs)
 
     # find the associated dependencies
-    reqs = idx.get_deps(pkgs)
-    to_remove = set()
-    for req in reqs:
-        if env.requirement_is_satisfied(req):
-            to_remove.add(req)
-    reqs = reqs - to_remove
+    deps = idx.get_deps(pkgs)
+    deps = idx.find_matches(env.requirements, deps)
+    log.debug("initial dependencies: %s\n" % deps)
 
-    # find packages compatible with the full requirements and build target
-    all_pkgs = idx.find_compatible_packages(reqs) | to_install
-    all_pkgs = idx.find_matches(env.requirements, all_pkgs)
+    # add default python and numpy requirements if needed
+    if True:
+        dep_names = [dep.name for dep in deps]
+        if 'python' in dep_names and not env.find_activated_package('python'):
+            specs = apply_default_spec(specs, package_spec(DEFAULT_PYTHON_SPEC))
+        if 'numpy' in dep_names and not env.find_activated_package('python'):
+            specs = apply_default_spec(specs, package_spec(DEFAULT_NUMPY_SPEC))
+
+    log.debug("updated package specifications: %s\n" % specs)
+
+    # now we need to recompute the compatible packages using the updated package specifications
+    pkgs = idx.find_compatible_packages(specs)
+    pkgs = idx.find_matches(env.requirements, pkgs)
+    pkgs = newest_packages(pkgs)
+    log.debug("updated packages: %s\n" % pkgs)
+
+    # find the associated dependencies
+    deps = idx.get_deps(pkgs)
+    deps = idx.find_matches(env.requirements, deps)
+    deps = newest_packages(deps)
+    log.debug("updated dependencies: %s\n" % deps)
+
+    all_pkgs = pkgs | deps
+    all_pkgs = newest_packages(all_pkgs)
+    log.debug("all packages: %s\n" % all_pkgs)
+
+    # make sure all user supplied specs were satisfied
+    for spec in specs:
+        if not idx.find_matches(satisfies(spec), all_pkgs):
+            if idx.find_matches(satisfies(spec)):
+                raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
+            else:
+                raise RuntimeError("could not find package for package specification '%s'" % spec)
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -326,10 +313,8 @@ def create_install_plan(env, args):
 
         # see if the package is already active
         active = env.find_activated_package(pkg.name)
-        if active:
-            if pkg != active:
-                plan.deactivations.add(active)
-            else: raise RuntimeError("package '%s' is already activated in environment: %s" % (pkg, env.prefix))
+        if active and pkg != active:
+            plan.deactivations.add(active)
 
         if pkg not in env.activated:
             plan.activations.add(pkg)
@@ -337,7 +322,7 @@ def create_install_plan(env, args):
     return plan
 
 
-def create_upgrade_plan(env, pkgs):
+def create_upgrade_plan(env, pkg_names):
     '''
     This function creates a package plan for upgrading specified packages to
     the latest version in the given Anaconda environment prefix. Only versions
@@ -347,8 +332,8 @@ def create_upgrade_plan(env, pkgs):
     ----------
     env : :py:class:`environment <conda.environment.environment>` object
         Anaconda environment to upgrade packages in
-    pkgs : iterable of :py:class:`packages <conda.package.package>`
-        packages to upgrade
+    pkg_names : iterable of str
+        package names of packages to upgrade
 
     Raises
     ------
@@ -356,9 +341,23 @@ def create_upgrade_plan(env, pkgs):
         if the upgrade cannot be performed
 
     '''
+
     plan = package_plan()
 
     idx = env.conda.index
+
+    if len(pkg_names) == 0:
+        pkgs = env.activated
+    else:
+        pkgs = set()
+        for pkg_name in pkg_names:
+            pkg = env.find_activated_package(pkg_name)
+            if not pkg:
+                if pkg_name in env.conda.index.package_names:
+                    raise RuntimeError("package '%s' is not installed, cannot upgrade (see conda install -h)" % pkg_name)
+                else:
+                    raise RuntimeError("unknown package '%s', cannot upgrade" % pkg_name)
+            pkgs.add(pkg)
 
     # find any packages that have newer versions
     upgrades = set()
@@ -378,23 +377,20 @@ def create_upgrade_plan(env, pkgs):
 
     # get all the dependencies of the upgrades
     all_reqs = idx.get_deps(upgrades)
-    log.debug('upgrade requirements: %s' %  all_reqs)
+    log.debug('upgrade dependencies: %s' %  all_reqs)
 
-    # find packages compatible with these requirements and the build target
+    # find newest packages compatible with these requirements and the build target
     all_pkgs = idx.find_compatible_packages(all_reqs) | upgrades
     all_pkgs = idx.find_matches(build_target(env.conda.target), all_pkgs)
-
-    # handle multiple matches, find the latest version
-    all_pkgs = sort_packages_by_name(all_pkgs)
-    all_pkgs = [max(g) for k,g in groupby(all_pkgs, key=lambda x: x.name)]
+    all_pkgs = newest_packages(all_pkgs)
     log.debug('all packages: %s' %  all_pkgs)
 
     # check for any inconsistent requirements the set of packages
-    inconsistent = find_inconsistent_specs(idx.get_deps(all_pkgs))
-    if inconsistent:
-        raise RuntimeError('cannot upgrade packages, the following requirements are inconsistent: %s'
-            % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent)
-        )
+    # inconsistent = find_inconsistent_specs(idx.get_deps(all_pkgs))
+    # if inconsistent:
+    #     raise RuntimeError('cannot upgrade packages, the following requirements are inconsistent: %s'
+    #         % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent)
+    #     )
 
     # deactivate original packages and activate new versions
     plan.deactivations = to_remove
@@ -526,6 +522,21 @@ def create_download_plan(conda, canonical_names, force):
             plan.downloads.add(pkg)
 
     return plan
+
+
+
+def _check_unknown_spec(idx, spec):
+
+    if spec.name not in idx.package_names:
+        message = "unknown package name '%s'" % spec.name
+        close = get_close_matches(spec.name, idx.package_names)
+        if close:
+            message += '\n\nDid you mean one of these?\n'
+            for s in close:
+                message += '    %s' % s
+            message += "\n"
+        raise RuntimeError(message)
+
 
 
 download_string = '''

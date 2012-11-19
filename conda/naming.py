@@ -19,16 +19,26 @@ def split_spec_string(spec_string):
     ('python', '2.7')
     >>>
 
+    Raises
+    ------
+    RuntimeError
+        if the spec_string cannot be meaningfully split
+
     '''
     space_split = spec_string.split()
-    if len(space_split) in [2,3]:
-        return tuple(space_split)
-
     eq_split = spec_string.split('=')
-    if len(eq_split) in [2,3]:
+
+    if len(space_split) > 3 or len(eq_split) > 3:
+        raise RuntimeError("Cannot split string '%s' into package spec components" % spec_string)
+
+    if len(space_split) > 1 and len(eq_split) > 1:
+        raise RuntimeError("Cannot split string '%s' into package spec components" % spec_string)
+
+    if len(space_split) > len(eq_split):
+        return tuple(space_split)
+    else:
         return tuple(eq_split)
 
-    raise RuntimeError("Cannot split string '%s' into package spec components" % spec_string)
 
 def split_canonical_name(pkg_name):
     '''

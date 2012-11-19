@@ -4,12 +4,10 @@ as well as utility functions for manipulating collections of packages.
 '''
 
 from distutils.version import LooseVersion
+from itertools import groupby
 
 from package_spec import package_spec
 from verlib import NormalizedVersion, suggest_normalized_version
-
-
-__all__ = ['package', 'sort_packages_by_version', 'sort_packages_by_name']
 
 
 def dict_property(name, doc):
@@ -100,6 +98,7 @@ class package(object):
     @property
     def is_meta(self):
         ''' Whether or not this package is a meta package '''
+        if len(self._requires) == 0: return False
         for spec in self._requires:
             if spec.build is None: return False
         return True
@@ -142,42 +141,54 @@ class package(object):
             )
 
 
-def sort_packages_by_version(pkgs, reverse=False):
-    ''' sort a collection of packages by their :ref`package versions <package_version>`
+def find_inconsistent_packages(pkgs):
+    ''' Iterates over a set of packages, finding those that share a name but have inconsistent versions
 
     Parameters
     ----------
-    pkgs : iterable
-        a collection of packages
-    reverse : bool, optional
-        whether to sort in reverse order
+    pkgs : iterable collection of :py:class:`package_spec <conda.package.package>` objects
+        packages to check for inconsistencies
 
     Returns
     -------
-    sorted : list
-        list of packages
+    inconsistent_pkgs : set of :py:class:`package_spec <conda.package.package>` objects
+        all inconsistent packages present in `pkgs`
 
     '''
-    return sorted(
-        list(pkgs),
-        reverse=reverse,
-        key=lambda pkg: pkg.version
-    )
+
+    inconsistent = dict()
+
+    grouped = group_packages_by_name(pkgs)
+
+    for name, pkg in grouped.items():
+        if len(specs) < 2: continue
+        for s1, s2 in _pairwise(specs):
+
+            if not s1.version or not s2.version: continue
+
+            v1, v2 = tuple(s1.version.version), tuple(s2.version.version)
+            vlen = min(len(v1), len(v2))
+            if v1[:vlen] != v2[:vlen]:
+                inconsistent[name] = specs
+                break
+
+    return inconsistent
+
 
 def sort_packages_by_name(pkgs, reverse=False):
-    ''' sort a collection of packages by their :ref`package names <package_name>`
+    ''' sort a collection of packages by their :ref:`package names <package_name>`
 
     Parameters
     ----------
-    pkgs : iterable
-        a collection of packages
+    pkgs : iterable of :py:class:`package <conda.package.package>`
+        a collection of packages to sort by package name
     reverse : bool, optional
         whether to sort in reverse order
 
     Returns
     -------
-    sorted : list
-        list of packages
+    sorted : list of :py:class:`package <conda.package.package>`
+        packages sorted by package name
 
     '''
     return sorted(
@@ -185,3 +196,41 @@ def sort_packages_by_name(pkgs, reverse=False):
         reverse=reverse,
         key=lambda pkg: pkg.name
     )
+
+def group_packages_by_name(pkgs):
+    ''' group a collection of packages by their :ref:`package names <package_name>`
+
+    Parameters
+    ----------
+    pkgs : iterable of :py:class:`package <conda.package.package>`
+        packages to group by package name
+
+    Returns
+    -------
+    grouped : dict of (str, set of :py:class:`package <conda.package.package>`)
+        dictionary of sets of packages, indexed by package name
+
+    '''
+    return dict((k, set(list(g))) for k,g in groupby(sort_packages_by_name(pkgs), key=lambda pkg: pkg.name))
+
+
+def newest_packages(pkgs):
+    ''' from a collection of packages, return a set with only the newest version of each package
+
+    Parameters
+    ----------
+    pkgs : iterable of :py:class:`package_spec <conda.package.package>`
+        packages to select newest versions from
+
+    Returns
+    -------
+    newest : set of :py:class:`package_spec <conda.package.package>`
+        newest packages for each package in `pkgs`
+
+    '''
+    grouped = group_packages_by_name(pkgs)
+
+    return set(max(pkgs) for pkgs in grouped.values())
+
+
+

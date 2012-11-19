@@ -57,20 +57,7 @@ def execute(args):
 
     env = conda.lookup_environment(prefix)
 
-    if len(args.pkg_names) == 0:
-        pkgs = env.activated
-    else:
-        pkgs = set()
-        for pkg_name in args.pkg_names:
-            pkg = env.find_activated_package(pkg_name)
-            if not pkg:
-                if pkg_name in conda.index.package_names:
-                    raise RuntimeError("package '%s' is not installed, cannot upgrade (see conda install -h)" % pkg_name)
-                else:
-                    raise RuntimeError("unknown package '%s', cannot upgrade" % pkg_name)
-            pkgs.add(pkg)
-
-    plan = create_upgrade_plan(env, pkgs)
+    plan = create_upgrade_plan(env, args.pkg_names)
 
     if plan.empty():
         print 'All packages already at latest version'

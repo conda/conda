@@ -4,6 +4,7 @@
 
 
 from distutils.version import LooseVersion
+from itertools import groupby, izip, tee
 
 from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
@@ -11,13 +12,13 @@ from verlib import NormalizedVersion, suggest_normalized_version
 
 class package_spec(object):
     '''
-    Encapsulates a package name and version (or partial version) along with an optional build string for
+    Encapsulates a package name and an optional version (or partial version) along with an optional build string for
     use as a package specification.
 
     Parameters
     ----------
     spec_string : str
-        a string containing a package name and version and (optional) build string, separated by a spaces or by '='
+        a string containing a package name and (optional) version and (optional) build string, separated by a spaces or by '='
 
 
     Attributes
@@ -40,8 +41,13 @@ class package_spec(object):
 
     def __init__(self, spec_string):
         components = split_spec_string(spec_string)
+
         self.__name = components[0]
-        self.__version = LooseVersion(components[1])
+
+        self.__version = None
+        if len(components) > 1:
+            self.__version = LooseVersion(components[1])
+
         self.__build = None
         if len(components) == 3:
             self.__build = components[2]
@@ -69,23 +75,30 @@ class package_spec(object):
 
     def __str__(self):
         if self.build:
-            return 'spec[%s %s %s]' % (self.name, self.version.vstring, self.build)
+            return '%s=%s=%s' % (self.name, self.version.vstring, self.build)
+        elif self.version:
+            return '%s=%s' % (self.name, self.version.vstring)
         else:
-            return 'spec[%s %s]' % (self.name, self.version.vstring)
+            return '%s' % self.name
 
     def __repr__(self):
         if self.build:
             return "package_spec('%s %s %s')" % (self.name, self.version.vstring, self.build)
-        else:
+        elif self.version:
             return "package_spec('%s %s')" % (self.name, self.version.vstring)
+        else:
+            return "package_spec('%s')" % self.name
 
     def __hash__(self):
-        return hash((self.name, self.version.vstring, self.build))
+        if self.version:
+            return hash((self.name, self.version.vstring, self.build))
+        else:
+            return hash((self.name, self.version, self.build))
 
     def __cmp__(self, other):
         # NormalizedVersion seems to not work perfectly if 'rc' is adjacent to the last version digit
-        sv = self.version.vstring.replace('rc', '.rc')
-        ov = other.version.vstring.replace('rc', '.rc')
+        sv = self.version.vstring.replace('rc', '.rc') if self.version else None
+        ov = other.version.vstring.replace('rc', '.rc') if other.version else None
         try:
             return cmp(
                 (self.name, NormalizedVersion(suggest_normalized_version(sv)), self.build),
@@ -93,14 +106,14 @@ class package_spec(object):
             )
         except:
             return cmp(
-                (self.name, self.version.vstring, self.build),
-                (other.name, other.version.vstring, other.build)
+                (self.name, sv, self.build),
+                (other.name, ov, other.build)
             )
 
 
 def find_inconsistent_specs(specs):
     ''' Iterates over a set of package specifications, finding those that share a name
-    but have a different version
+    but have inconsistent versions
 
     Parameters
     ----------
@@ -121,24 +134,23 @@ def find_inconsistent_specs(specs):
 
     '''
 
-    results = set()
+    inconsistent = dict()
 
-    tmp = {}
-    for spec in specs:
-        if spec.name not in tmp:
-            tmp[spec.name] = set()
-        tmp[spec.name].add((tuple(spec.version.version), spec))
+    grouped = group_package_specs_by_name(specs)
 
-    for name, tup in tmp.items():
-        versions = [t[0] for t in tup]
-        reqs = set([t[1] for t in tup])
-        if len(versions) < 2: continue
-        vlen = min(len(v) for v in versions)
-        for v1 in versions:
-            for v2 in versions:
-                if v1[:vlen] != v2[:vlen]: results = results | reqs
+    for name, specs in grouped.items():
+        if len(specs) < 2: continue
+        for s1, s2 in _pairwise(specs):
 
-    return results
+            if not s1.version or not s2.version: continue
+
+            v1, v2 = tuple(s1.version.version), tuple(s2.version.version)
+            vlen = min(len(v1), len(v2))
+            if v1[:vlen] != v2[:vlen]:
+                inconsistent[name] = specs
+                break
+
+    return inconsistent
 
 
 def apply_default_spec(specs, default_spec):
@@ -148,7 +160,7 @@ def apply_default_spec(specs, default_spec):
 
     Parameters
     ----------
-    specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+    specs : iterable of :py:class:`package_spec <conda.package_spec.package_spec>` objects
         package specifications to apply defaults to
     default_spec : :py:class:`package_spec <conda.package_spec.package_spec>` object
         default package specification to apply to `specs`
@@ -156,18 +168,58 @@ def apply_default_spec(specs, default_spec):
     Returns
     -------
     updated_specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
-        `specs` with `default_sepc` applied, if necessary
+        `specs` with `default_spec` applied, if necessary
 
     '''
-
-    needs_default = True
-    for spec in specs:
-        if spec.name == default_spec.name:
-            needs_default = False
-            break
-    if needs_default: specs.add(default_spec)
+    specs = set(specs)
+    grouped = group_package_specs_by_name(specs)
+    if default_spec.name not in grouped.keys():
+        specs.add(default_spec)
+    return specs
 
 
+def sort_package_specs_by_name(specs, reverse=False):
+    ''' sort a collection of package specifications by their :ref:`package names <package_name>`
+
+    Parameters
+    ----------
+    specs : iterable of :py:class:`package_spec <conda.package_spec.package_spec>`
+        package specifications to sort by package name
+    reverse : bool, optional
+        whether to sort in reverse order
+
+    Returns
+    -------
+    sorted : list of :py:class:`package_spec <conda.package_spec.package_spec>`
+        package specifications sorted by package name
+
+    '''
+    return sorted(
+        list(specs),
+        reverse=reverse,
+        key=lambda spec: spec.name
+    )
 
 
+def group_package_specs_by_name(specs):
+    ''' group a collection of package specifications by their :ref:`package names <package_name>`
 
+    Parameters
+    ----------
+    specs : iterable of :py:class:`package_spec <conda.package_spec.package_spec>`
+        package specifications to group by package name
+
+    Returns
+    -------
+    grouped : dict of (str, set of :py:class:`package_spec <conda.package_spec.package_spec>`)
+        dictionary of sets of package specifications, indexed by package name
+
+    '''
+    return dict((k, set(list(g))) for k, g in groupby(sort_package_specs_by_name(specs), key=lambda spec: spec.name))
+
+
+def _pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return izip(a, b)

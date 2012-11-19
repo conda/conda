@@ -63,19 +63,21 @@ def execute(args):
         if pkg:
             pkgs.add(pkg)
         else:
+            tmp = conda.index.lookup_from_name(pkg_name)
+            if not tmp:
+                raise RuntimeError("package name '%s' is unknown" % pkg_name)
             if args.no_prefix:
-                pkgs = pkgs | conda.index.lookup_from_name(pkg_name)
+                pkgs |= conda.index.lookup_from_name(pkg_name)
             else:
                 raise RuntimeError("package '%s' not installed in environment at: %s" % (pkg_name, prefix))
 
     if args.reverse:
-        reqs = conda.index.find_compatible_requirements(pkgs)
-        rdeps = conda.index.get_reverse_deps(reqs, args.max_depth)
+        rdeps = conda.index.get_reverse_deps(pkgs, args.max_depth)
 
         fmt = '%s' if len(args.pkg_names) == 1 else '{%s}'
 
         if not args.no_prefix:
-            rdeps = rdeps & env.activated
+            rdeps &= env.activated
 
         if len(rdeps) == 0:
             print 'No packages depend on ' + fmt % ', '.join(args.pkg_names)
@@ -90,24 +92,32 @@ def execute(args):
 
         activated = '' if args.no_prefix else 'activated '
         print 'The following %spackages depend on ' % activated + fmt % ', '.join(args.pkg_names) + ':'
-        for name in names:
-            if args.verbose or names_count[name]==1:
-                print '    %s' % name
-            else:
-                print '    %s (%d builds)' % (name, names_count[name])
 
     else:
         deps = conda.index.get_deps(pkgs, args.max_depth)
+
+        if not args.no_prefix:
+            deps &= env.activated
 
         if len(deps) == 0:
             suffix, fmt = ('es', '%s') if len(args.pkg_names) == 1 else ('', '{%s}')
             print (fmt + ' do%s not depend on any packages') % (', '.join(args.pkg_names), suffix)
             return
 
-        names = sorted(['%s %s' % (dep.name, dep.version.vstring) for dep in deps])
+        if args.verbose:
+            names = sorted([pkg.canonical_name for pkg in deps])
+        else:
+            names = [str(pkg) for pkg in deps]
+            names_count = dict((k, names.count(k)) for k in names)
+            names = sorted(list(set(names)))
 
+        activated = '' if args.no_prefix else 'activated '
         suffix, fmt = ('s', '%s') if len(args.pkg_names) == 1 else ('', '{%s}')
         print (fmt + ' depend%s on the following packages:') % (', '.join(args.pkg_names), suffix)
-        for name in names:
+
+    for name in names:
+        if args.verbose or names_count[name]==1:
             print '    %s' % name
+        else:
+            print '    %s (%d builds)' % (name, names_count[name])
 

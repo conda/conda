@@ -4,16 +4,61 @@ from conda.naming import *
 
 class test_naming(unittest.TestCase):
 
-    def test_split_spec_string(self):
+    def test_split_spec_string_name_only(self):
         self.assertEqual(
-            split_spec_string('python 2.7'), 
+            split_spec_string('python'),
+            ('python',)
+        )
+
+    def test_split_spec_string_spaces(self):
+
+        self.assertEqual(
+            split_spec_string('python 2.7'),
             ('python', '2.7')
+        )
+
+        self.assertEqual(
+            split_spec_string('python 2.7 foo'),
+            ('python', '2.7', 'foo')
         )
 
         # test when name has numbers in it
         self.assertEqual(
             split_spec_string('python111 2.7.1'),
             ('python111', '2.7.1')
+        )
+
+        # test too many components
+        self.assertRaises(
+            RuntimeError,
+            split_spec_string,
+            'python 2.7 foo bar',
+        )
+
+    def test_split_spec_string_equals(self):
+        self.assertEqual(
+            split_spec_string('python=2.7'),
+            ('python', '2.7')
+        )
+
+        # test when name has numbers in it
+        self.assertEqual(
+            split_spec_string('python111=2.7.1'),
+            ('python111', '2.7.1')
+        )
+
+        # test too many components
+        self.assertRaises(
+            RuntimeError,
+            split_spec_string,
+            'python=2.7=foo=bar',
+        )
+
+    def test_split_spec_string_mixed(self):
+        self.assertRaises(
+            RuntimeError,
+            split_spec_string,
+            'python=2.7 foo',
         )
 
     def test_split_canonical_name(self):

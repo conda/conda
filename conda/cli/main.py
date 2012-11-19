@@ -17,7 +17,7 @@ conda provides the following commands:
 
     create     : create a new Anaconda environment from a list of specified packages
     install    : install new packages into an existing Anaconda environment
-    upgrade    : upgrade packages in a sepcified Anaconda environment
+    upgrade    : upgrade packages in a specified Anaconda environment
 
     Advanced Package Management
     ===========================

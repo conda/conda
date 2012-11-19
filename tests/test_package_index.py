@@ -9,7 +9,7 @@ from conda.package_index import package_index
 from conda.package_spec import package_spec
 
 
-class test_create(unittest.TestCase):
+class test_package_index(unittest.TestCase):
 
     def setUp(self):
         path = join(dirname(__file__), 'index.json')
@@ -42,95 +42,52 @@ class test_create(unittest.TestCase):
     def test_get_deps(self):
         idx = package_index(self.info)
         self.assertEqual(
-            idx.get_deps([package(self.info['bzip2-1.0.6-0.tar.bz2'])]),
+            idx.get_deps([package(self.info['foo-0.8.0-0.tar.bz2'])]),
             set()
         )
         self.assertEqual(
-            idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])], 0),
+            idx.get_deps([package(self.info['baz-2.0.1-0.tar.bz2'])], 0),
             set([
-                package_spec('readline 6.2'),
-                package_spec('zlib 1.2.7'),
-                package_spec('python 2.7'),
-                package_spec('sqlite 3.7.13'),
+                package(self.info['bar-1.1-0.tar.bz2']),
+                package(self.info['foo-1.0.0-0.tar.bz2'])
             ])
         )
         self.assertEqual(
-            idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])], 1),
-            set([package_spec('python 2.7')])
-        )
-        self.assertEqual(
-            idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])], 2),
+            idx.get_deps([package(self.info['baz-2.0.1-0.tar.bz2'])], 1),
             set([
-                package_spec('readline 6.2'),
-                package_spec('zlib 1.2.7'),
-                package_spec('python 2.7'),
-                package_spec('sqlite 3.7.13'),
+                package(self.info['bar-1.1-0.tar.bz2'])
             ])
         )
         self.assertEqual(
-            idx.get_deps([package(self.info['conda-1.0-py27_0.tar.bz2'])]),
+            idx.get_deps([package(self.info['baz-2.0.1-0.tar.bz2'])], 2),
             set([
-                package_spec('readline 6.2'),
-                package_spec('zlib 1.2.7'),
-                package_spec('python 2.7'),
-                package_spec('sqlite 3.7.13'),
+                package(self.info['bar-1.1-0.tar.bz2']),
+                package(self.info['foo-1.0.0-0.tar.bz2'])
             ])
         )
-
-        def test_get_reverse_deps(self):
-            idx = package_index(self.info)
-            self.assertEqual(
-                idx.get_reverse_deps([package(self.info['bzip2-1.0.6-0.tar.bz2'])]),
-                set()
-            )
 
     def test_get_reverse_deps(self):
         idx = package_index(self.info)
         self.assertEqual(
-            idx.get_reverse_deps([package_spec('flask 0.9')]),
-            set()
-        )
-        self.assertEqual(
-            idx.get_reverse_deps([package_spec('libevent 2.0.20')], 0),
+            idx.get_reverse_deps([package(self.info['foo-0.8.0-0.tar.bz2'])]),
             set([
-                package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
-                package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
-                package(self.info['gevent_zeromq-0.2.5-py26_0.tar.bz2']),
-                package(self.info['gevent_zeromq-0.2.5-py27_0.tar.bz2']),
-                package(self.info['gevent-websocket-0.3.6-py26_0.tar.bz2']),
-                package(self.info['gevent-websocket-0.3.6-py27_0.tar.bz2']),
+                package(self.info['bar-0.9-0.tar.bz2']),
+                package(self.info['baz-2.0-0.tar.bz2']),
             ])
         )
         self.assertEqual(
-            idx.get_reverse_deps([package_spec('libevent 2.0.20')], 1),
+            idx.get_reverse_deps([package(self.info['foo-0.8.0-0.tar.bz2'])], 1),
             set([
-                package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
-                package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
+                package(self.info['bar-0.9-0.tar.bz2']),
             ])
         )
         self.assertEqual(
-            idx.get_reverse_deps([package_spec('libevent 2.0.20')], 2),
+            idx.get_reverse_deps([package(self.info['foo-0.8.0-0.tar.bz2'])], 2),
             set([
-                package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
-                package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
-                package(self.info['gevent_zeromq-0.2.5-py26_0.tar.bz2']),
-                package(self.info['gevent_zeromq-0.2.5-py27_0.tar.bz2']),
-                package(self.info['gevent-websocket-0.3.6-py26_0.tar.bz2']),
-                package(self.info['gevent-websocket-0.3.6-py27_0.tar.bz2']),
+                package(self.info['bar-0.9-0.tar.bz2']),
+                package(self.info['baz-2.0-0.tar.bz2']),
             ])
         )
-        self.assertEqual(
-            idx.get_reverse_deps([package_spec('libevent 2.0.20')]),
-            set([
-                package(self.info['gevent-0.13.7-py26_0.tar.bz2']),
-                package(self.info['gevent-0.13.7-py27_0.tar.bz2']),
-                package(self.info['gevent_zeromq-0.2.5-py26_0.tar.bz2']),
-                package(self.info['gevent_zeromq-0.2.5-py27_0.tar.bz2']),
-                package(self.info['gevent-websocket-0.3.6-py26_0.tar.bz2']),
-                package(self.info['gevent-websocket-0.3.6-py27_0.tar.bz2']),
-            ])
-        )
-
 
 
 if __name__ == '__main__':

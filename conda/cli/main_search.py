@@ -53,15 +53,15 @@ def execute(args):
         )
 
     else:
-        try:
-           spec = package_spec(args.search_expression)
+        spec = package_spec(args.search_expression)
+        if spec.version:
            pkgs = conda.index.find_matches(
                 all_of(
                     satisfies(spec), build_target(conda.target)
                 ),
                 conda.index.lookup_from_name(spec.name)
             )
-        except:
+        else:
             try:
                 pkg_names = set()
                 pat = re.compile(args.search_expression)
