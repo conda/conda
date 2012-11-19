@@ -4,7 +4,7 @@
 
 
 from distutils.version import LooseVersion
-from itertools import groupby, izip, tee
+from itertools import combinations, groupby, izip, tee
 
 from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
@@ -140,7 +140,7 @@ def find_inconsistent_specs(specs):
 
     for name, specs in grouped.items():
         if len(specs) < 2: continue
-        for s1, s2 in _pairwise(specs):
+        for s1, s2 in combinations(specs, 2):
 
             if not s1.version or not s2.version: continue
 
@@ -217,9 +217,3 @@ def group_package_specs_by_name(specs):
     '''
     return dict((k, set(list(g))) for k, g in groupby(sort_package_specs_by_name(specs), key=lambda spec: spec.name))
 
-
-def _pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
-    next(b, None)
-    return izip(a, b)

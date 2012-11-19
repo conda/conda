@@ -4,7 +4,7 @@ as well as utility functions for manipulating collections of packages.
 '''
 
 from distutils.version import LooseVersion
-from itertools import groupby
+from itertools import combinations, groupby
 
 from package_spec import package_spec
 from verlib import NormalizedVersion, suggest_normalized_version
@@ -162,7 +162,7 @@ def find_inconsistent_packages(pkgs):
 
     for name, pkg in grouped.items():
         if len(specs) < 2: continue
-        for s1, s2 in _pairwise(specs):
+        for s1, s2 in combinations(specs, 2):
 
             if not s1.version or not s2.version: continue
 
