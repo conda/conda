@@ -62,7 +62,7 @@ class environment(object):
 
     @property
     def requirements(self):
-        ''' Return a baseline :py:class:`package constaint <conda.constraints.package_constraint` that packages in this environement must match
+        ''' Return a baseline :py:class:`package_constaint <conda.constraints.package_constraint>` that packages in this environement must match
 
         Returns
         -------

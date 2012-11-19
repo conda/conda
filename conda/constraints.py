@@ -1,16 +1,22 @@
+''' The constraints module provides a variety of package contraint classes that can be used to search and match
+pacakges in the package index.
+
+'''
 
 class package_constraint(object):
     ''' Base class for specific package_constraint objects that match packages with
     specified criteria.
+
     '''
-    def match(self, info):
+    def match(self, pkg):
         '''
         match criteria against package info
 
+
         Parameters
         ----------
-        info : dict
-            package info dictionary
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
 
         Returns
         -------
@@ -24,11 +30,14 @@ class package_constraint(object):
 
 
 class all_of(package_constraint):
-    ''' Match if a package matches all the specified constraints
+    ''' logical AND for matching multiple constraints
 
     Parameters
     ----------
     *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
+        package contraints to AND together
+
+
     '''
     def __init__(self, *constraints):
         self._constraints = tuple(set(constraints))
@@ -39,17 +48,32 @@ class all_of(package_constraint):
     def __cmp__(self, other):
         return cmp(self._constraints, other._constraints)
     def match(self, pkg):
+        ''' Match if a package matches all the specified constraints
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if all of the `contraints` match, False otherwise
+
+        '''
         for constraint in self._constraints:
             if not pkg.matches(constraint): return False
         return True
 
 
 class any_of(package_constraint):
-    ''' Match if a package matches any of the specified constraints
+    ''' logical OR for matching multiple constraints
 
     Parameters
     ----------
     *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
+        package contraints to OR together
+
     '''
     def __init__(self, *constraints):
         self._constraints = tuple(set(constraints))
@@ -60,17 +84,32 @@ class any_of(package_constraint):
     def __cmp__(self, other):
         return cmp(self._constraints, other._constraints)
     def match(self, pkg):
+        ''' Match if a package matches any of the specified constraints
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if any of the `contraints` match, False otherwise
+
+        '''
         for constraint in self._constraints:
             if pkg.matches(constraint): return True
         return False
 
 
 class negate(package_constraint):
-    ''' Match if a package does NOT match the specified constraint
+    ''' logical NOT for matching constraints
 
     Parameters
     ----------
     constraint : :py:class:`package_constraint <conda.constraints.package_constraint>` object
+        package constraint to negate
+
     '''
     def __init__(self, constraint):
         self._constraint = constraint
@@ -81,16 +120,30 @@ class negate(package_constraint):
     def __cmp__(self, other):
         return cmp(self._constraint, other._constraint)
     def match(self, pkg):
+        ''' Match if a package does NOT match the specified constraint
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `contraint` does *not* match, False otherwise
+
+        '''
         return not pkg.matches(self._constraint)
 
 
 class named(package_constraint):
-    ''' Match if a package has the specified name
+    ''' constraint for matching package names
 
     Parameters
     ----------
     name : str
-        :ref:`package name <package_name>` to match
+        :ref:`package name <package_name>` to match against
+
     '''
     def __init__(self, name):
         self._name = name
@@ -101,15 +154,30 @@ class named(package_constraint):
     def __cmp__(self, other):
         return cmp(self._name, other._name)
     def match(self, pkg):
+        ''' Match if a package has the specified name
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if the package name matches, False otherwise
+
+        '''
         return pkg.name == self._name
 
 
 class strict_requires(package_constraint):
-    ''' Match if a package contains the specified requirement
+    ''' constraint for strictly matching package dependencies
 
     Parameters
     ----------
     req : :py:class:`package_spec <conda.package_spec.package_spec>` object
+        package specification to match against
+
     '''
     def __init__(self, req):
         self._req = req
@@ -120,6 +188,19 @@ class strict_requires(package_constraint):
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
+        ''' Match if a package contains a specified requirement
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `req` is an exact requirement for `pkg`, False otherwise
+
+        '''
         # package never requires itself
         if pkg.name == self._req.name: return False
         for req in pkg.requires:
@@ -129,11 +210,13 @@ class strict_requires(package_constraint):
 
 
 class requires(package_constraint):
-    ''' Match if a package contains the specified requirement, or no requirement
+    ''' constraint for matching package dependencies
 
     Parameters
     ----------
     req : :py:class:`package_spec <conda.package_spec.package_spec>` object
+        package specification to match against
+
     '''
     def __init__(self, req):
         self._req = req
@@ -144,6 +227,21 @@ class requires(package_constraint):
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
+        ''' Match if a `req` is comaptible with the requirements for `pkg`
+
+        .. note:: matching includes the case when `pkg` has no requirement at all for the package specified by `req`
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `req` is comaptible requirement for `pkg`, has False otherwise
+
+        '''
         # package never requires itself
         if pkg.name == self._req.name: return False
         vlen = len(self._req.version.version)
@@ -154,11 +252,13 @@ class requires(package_constraint):
 
 
 class satisfies(package_constraint):
-    ''' Match if a package satisfies the specified requirement
+    ''' constraint for matching whether a package satisfies a package specification
 
     Parameters
     ----------
     req : :py:class:`package_spec <conda.package_spec.package_spec>` object
+        pacakge specification to match against
+
     '''
     def __init__(self, req):
         self._req = req
@@ -169,31 +269,20 @@ class satisfies(package_constraint):
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
+        ''' Match if a package satisfies the specified requirement
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `pkg` is compatible with the package specification `req`
+
+        '''
         if self._req.name != pkg.name: return False
-        if not self._req.version: return True
-        vlen = len(self._req.version.version)
-        try:
-            return self._req.version.version[:vlen] == pkg.version.version[:vlen]
-        except:
-            return False
-
-class weak_satisfies(package_constraint):
-    ''' Match if a package satisfies the specified requirement
-
-    Parameters
-    ----------
-    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
-    '''
-    def __init__(self, req):
-        self._req = req
-    def __str__(self):
-        return 'weak_satisfies[%s]' % str(self._req)
-    def __repr__(self):
-        return 'weak_satisfies[%s]' % str(self._req)
-    def __cmp__(self, other):
-        return cmp(self._req, other._req)
-    def match(self, pkg):
-        if self._req.name != pkg.name: return True
         if not self._req.version: return True
         vlen = len(self._req.version.version)
         try:
@@ -203,7 +292,13 @@ class weak_satisfies(package_constraint):
 
 
 class package_version(package_constraint):
-    ''' Match if specific package versions (excluding build) agree
+    ''' constraint for matching package versions
+
+    Parameters
+    ----------
+    req : :py:class:`package_spec <conda.package.package>` object
+        pacakge to match against
+
     '''
     def __init__(self, pkg):
         self._pkg = pkg
@@ -214,11 +309,30 @@ class package_version(package_constraint):
     def __cmp__(self, other):
         return cmp(self._pkg, other._pkg)
     def match(self, pkg):
+        ''' Match if specific package versions (excluding build) agree
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `pkg` matches the specified package version exactly, False otherwise
+
+        '''
         return self._pkg.name == pkg.name and self._pkg.version == pkg.version
 
 
-class build_version(package_constraint):
-    ''' Match if specific package versions (including build) agree
+class exact_package(package_constraint):
+    ''' constraint for matching exact packages
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match against
+
     '''
     def __init__(self, pkg):
         self._pkg = pkg
@@ -229,16 +343,30 @@ class build_version(package_constraint):
     def __cmp__(self, other):
         return cmp(self._pkg, other._pkg)
     def match(self, pkg):
+        ''' Match if specific package versions (including build) agree
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `pkg` matches the specified package exactly, False otherwise
+
+        '''
         return self._pkg == pkg
 
 
 class build_target(package_constraint):
-    ''' Match if a package has the specified build target, or no build target
+    ''' constraint for matching package build targets
 
     Parameters
     ----------
     req : str ``{'ce', 'pro'}``
-        build target to match
+        build target to match against
+
     '''
     def __init__(self, target):
         self._target = target
@@ -249,11 +377,25 @@ class build_target(package_constraint):
     def __cmp__(self, other):
         return cmp(self._target, other._target)
     def match(self, pkg):
+        ''' Match if a package has the specified build target, or no build target
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if `pkg` matches the specified build target, False otherwise
+
+        '''
         return (not pkg.build_target) or pkg.build_target == self._target
 
 
 class wildcard(package_constraint):
-    ''' Match all packages
+    ''' constraint that always matches everything
+
     '''
     def __str__(self):
         return 'wildcard'
@@ -262,4 +404,17 @@ class wildcard(package_constraint):
     def __cmp__(self, other):
         return 0
     def match(self, pkg):
+        ''' Match all packages
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True
+
+        '''
         return True
