@@ -1,5 +1,5 @@
 
-from os.path import abspath, expanduser
+from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
 from config import ROOT_DIR
@@ -24,7 +24,13 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "return reverse dependencies compatible with any specified environment, overrides --prefix",
     )
-    p.add_argument(
+    npgroup = p.add_mutually_exclusive_group()
+    npgroup.add_argument(
+        '-n', "--name",
+        action  = "store",
+        help    = "return dependencies compatible with a specified named environment (in %s/envs)" % ROOT_DIR,
+    )
+    npgroup.add_argument(
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
@@ -54,7 +60,11 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
-    prefix = abspath(expanduser(args.prefix))
+    if args.name:
+        prefix = join(ROOT_DIR, 'envs', args.name)
+    else:
+        prefix = abspath(expanduser(args.prefix))
+
     env = conda.lookup_environment(prefix)
 
     pkgs = set()
