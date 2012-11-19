@@ -84,27 +84,27 @@ class package_plan(object):
     def __str__(self):
         result = ''
         if self.downloads:
-            result += download_string % self._format_packages(self.downloads,
-                                                              lookup_repo=True)
+            result += download_string % self._format_packages(self.downloads, use_location=True)
         if self.activations:
             result += activate_string % self._format_packages(self.activations)
         if self.deactivations:
-            result += deactivate_string % self._format_packages(
-                                                 self.deactivations)
+            result += deactivate_string % self._format_packages(self.deactivations)
         if self.broken:
             result += broken_string % self._format_packages(self.broken)
         if self.missing:
             result += missing_string % self._format_packages(self.missing)
         return result
 
-    def _format_packages(self, pkgs, lookup_repo=False):
+    def _format_packages(self, pkgs, use_location=False):
         result = ''
-        if lookup_repo:
+        if use_location:
             for pkg in sort_packages_by_name(pkgs):
-                result += '\n        %s [%s]' % (pkg.filename, pkg.location)
+                result += '    %s [%s]\n' % (pkg.filename, pkg.location)
         else:
+            result += "    %-25s  |  %-15s\n" % ('package', 'build')
+            result += "    %-25s  |  %-15s\n" % ('-'*25, '-'*15)
             for pkg in sort_packages_by_name(pkgs):
-                result += '\n        %s  (build: %s)' % (pkg, pkg.build)
+                result += '    %-25s  |  %15s\n' % (pkg, pkg.build)
         return result
 
 
@@ -316,13 +316,13 @@ def create_install_plan(env, spec_strings):
 
     # now we need to recompute the compatible packages using the updated package specifications
     pkgs = idx.find_compatible_packages(specs)
-    pkgs = idx.find_matches(env.requirements, pkgs)
+    pkgs = idx.find_matches(env_constraints, pkgs)
     pkgs = newest_packages(pkgs)
     log.debug("updated packages: %s\n" % pkgs)
 
     # find the associated dependencies
     deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(env.requirements, deps)
+    deps = idx.find_matches(env_constraints, deps)
     deps = newest_packages(deps)
     log.debug("updated dependencies: %s\n" % deps)
 
@@ -609,26 +609,31 @@ def _default_constraint(spec):
 
 
 download_string = '''
-    The following packages will be downloaded:
-        %s
+The following packages will be downloaded:
+
+%s
 '''
 
 activate_string = '''
-    The following packages will be activated:
-        %s
+The following packages will be activated:
+
+%s
 '''
 
 deactivate_string = '''
-    The following packages will be DE-activated:
-        %s
+The following packages will be DE-activated:
+
+%s
 '''
 
 broken_string = '''
-    The following packages will be left with BROKEN dependencies after this operation:
-        %s
+The following packages will be left with BROKEN dependencies after this operation:
+
+%s
 '''
 
 missing_string = '''
-    After this operation, the following dependencies will be MISSING:
-        %s
+After this operation, the following dependencies will be MISSING:
+
+%s
 '''
