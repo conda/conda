@@ -6,7 +6,7 @@ import logging
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
 from constraints import build_target, satisfies
 from install import make_available, activate, deactivate
-from package import newest_packages, sort_packages_by_name
+from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from remote import fetch_file
 from package_spec import apply_default_spec, package_spec, find_inconsistent_specs
@@ -386,11 +386,11 @@ def create_upgrade_plan(env, pkg_names):
     log.debug('all packages: %s' %  all_pkgs)
 
     # check for any inconsistent requirements the set of packages
-    # inconsistent = find_inconsistent_specs(idx.get_deps(all_pkgs))
-    # if inconsistent:
-    #     raise RuntimeError('cannot upgrade packages, the following requirements are inconsistent: %s'
-    #         % ', '.join('%s-%s' % (req.name, req.version.vstring) for req in inconsistent)
-    #     )
+    inconsistent = find_inconsistent_packages(all_pkgs)
+    if inconsistent:
+        raise RuntimeError('cannot upgrade, the following packages are inconsistent: %s'
+            % ', '.join('%s-%s' % (pkg.name, pkg.version.vstring) for pkg in inconsistent)
+        )
 
     # deactivate original packages and activate new versions
     plan.deactivations = to_remove
