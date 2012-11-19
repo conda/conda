@@ -153,31 +153,6 @@ def find_inconsistent_specs(specs):
     return inconsistent
 
 
-def apply_default_spec(specs, default_spec):
-    '''
-    Examines a collection of package specifications and adds default_spec to it, if no
-    other package specification for the same package specified by default_spec is already present.
-
-    Parameters
-    ----------
-    specs : iterable of :py:class:`package_spec <conda.package_spec.package_spec>` objects
-        package specifications to apply defaults to
-    default_spec : :py:class:`package_spec <conda.package_spec.package_spec>` object
-        default package specification to apply to `specs`
-
-    Returns
-    -------
-    updated_specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
-        `specs` with `default_spec` applied, if necessary
-
-    '''
-    specs = set(specs)
-    grouped = group_package_specs_by_name(specs)
-    if default_spec.name not in grouped.keys():
-        specs.add(default_spec)
-    return specs
-
-
 def sort_package_specs_by_name(specs, reverse=False):
     ''' sort a collection of package specifications by their :ref:`package names <package_name>`
 

@@ -1,15 +1,16 @@
 
 from difflib import get_close_matches
+from itertools import imap
 import logging
 
 
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
-from constraints import build_target, satisfies
+from constraints import all_of, any_of, build_target, requires, satisfies
 from install import make_available, activate, deactivate
 from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from remote import fetch_file
-from package_spec import apply_default_spec, package_spec, find_inconsistent_specs
+from package_spec import package_spec, find_inconsistent_specs
 
 
 __all__ = [
@@ -108,7 +109,7 @@ class package_plan(object):
         return result
 
 
-def create_create_plan(prefix, conda, spec_strings, use_defaults):
+def create_create_plan(prefix, conda, spec_strings):
     '''
     This functions creates a package plan for activating packages in a new
     Anaconda environement, including all of their required dependencies. The
@@ -121,8 +122,6 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     conda : :py:class:`anaconda <conda.anaconda.anaconda>` object
     spec_strings : iterable of str
         package specification strings for packages to install in new Anaconda environment
-    use_defaults : bool
-        whether to automatically apply default versions for base packages
 
     Returns
     -------
@@ -141,17 +140,20 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
 
     specs = set()
 
+    py_spec = None
+    np_spec = None
+
     for spec_string in spec_strings:
 
-        if spec_string == 'python':
-            specs.add(package_spec(DEFAULT_PYTHON_SPEC))
-            continue
-
-        if spec_string == 'numpy':
-            specs.add(package_spec(DEFAULT_NUMPY_SPEC))
-            continue
-
         spec = package_spec(spec_string)
+
+        if spec.name == 'python':
+            if spec.version: py_spec = spec
+            continue
+
+        if spec.name == 'numpy':
+            if spec.version: np_spec = spec
+            continue
 
         _check_unknown_spec(idx, spec)
 
@@ -176,25 +178,33 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     deps = idx.find_matches(build_target(conda.target), deps)
     log.debug("initial dependencies: %s\n" % deps)
 
-    # add default python and numpy specifications if needed
-    if use_defaults:
-        dep_names = [dep.name for dep in deps]
-        if 'python' in dep_names:
-            specs = apply_default_spec(specs, package_spec(DEFAULT_PYTHON_SPEC))
-        if 'numpy' in dep_names:
-            specs = apply_default_spec(specs, package_spec(DEFAULT_NUMPY_SPEC))
+    # add constraints for default python and numpy specifications if needed
+    constraints = [build_target(conda.target)]
 
-    log.debug("updated package specifications: %s\n" % specs)
+    dep_names = [dep.name for dep in deps]
 
-    # now we need to recompute the compatible packages using the updated package specifications
+    if py_spec:
+        constraints.append(_default_constraint(py_spec))
+    elif 'python' in dep_names:
+        constraints.append(_default_constraint(package_spec(DEFAULT_PYTHON_SPEC)))
+
+    if np_spec:
+        constraints.append(_default_constraint(np_spec))
+    elif 'numpy' in dep_names:
+        constraints.append(_default_constraint(package_spec(DEFAULT_NUMPY_SPEC)))
+
+    env_constraints = all_of(*constraints)
+    log.debug("computed environment constraints: %s\n" % env_constraints)
+
+    # now we need to recompute the compatible packages using the computed environment constraints
     pkgs = idx.find_compatible_packages(specs)
-    pkgs = idx.find_matches(build_target(conda.target), pkgs)
+    pkgs = idx.find_matches(env_constraints, pkgs)
     pkgs = newest_packages(pkgs)
     log.debug("updated packages: %s\n" % pkgs)
 
     # find the associated dependencies
     deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(build_target(conda.target), deps)
+    deps = idx.find_matches(env_constraints, deps)
     deps = newest_packages(deps)
     log.debug("updated dependencies: %s\n" % deps)
 
@@ -247,16 +257,25 @@ def create_install_plan(env, spec_strings):
 
     specs = set()
 
+    py_spec = None
+    np_spec = None
+
     for spec_string in spec_strings:
 
         spec = package_spec(spec_string)
 
-        _check_unknown_spec(idx, spec)
+        if spec.name == 'python':
+            if env.find_activated_package('python'):
+                raise RuntimeError('changing python versions in an existing Anaconda environment is not supported (create a new environment)')
+            if spec.version: py_spec = spec
+            continue
+        if spec.name == 'numpy':
+            if env.find_activated_package('numpy'):
+                raise RuntimeError('changing numpy versions in an existing Anaconda environment is not supported (create a new environment)')
+            if spec.version: np_spec = spec
+            continue
 
-        if spec.name == 'python' and env.find_activated_package('python'):
-            raise RuntimeError('changing python versions in an existing Anaconda environment is not supported (create a new environment)')
-        if spec.name == 'numpy' and env.find_activated_package('numpy'):
-            raise RuntimeError('changing numpy versions in an existing Anaconda environment is not supported (create a new environment)')
+        _check_unknown_spec(idx, spec)
 
         specs.add(spec)
 
@@ -280,14 +299,21 @@ def create_install_plan(env, spec_strings):
     log.debug("initial dependencies: %s\n" % deps)
 
     # add default python and numpy requirements if needed
-    if True:
-        dep_names = [dep.name for dep in deps]
-        if 'python' in dep_names and not env.find_activated_package('python'):
-            specs = apply_default_spec(specs, package_spec(DEFAULT_PYTHON_SPEC))
-        if 'numpy' in dep_names and not env.find_activated_package('python'):
-            specs = apply_default_spec(specs, package_spec(DEFAULT_NUMPY_SPEC))
+    constraints = [env.requirements]
+    dep_names = [dep.name for dep in deps]
 
-    log.debug("updated package specifications: %s\n" % specs)
+    if py_spec:
+        constraints.append(_default_constraint(py_spec))
+    elif 'python' in dep_names:
+        constraints.append(_default_constraint(package_spec(DEFAULT_PYTHON_SPEC)))
+
+    if np_spec:
+        constraints.append(_default_constraint(np_spec))
+    elif 'numpy' in dep_names:
+        constraints.append(_default_constraint(package_spec(DEFAULT_NUMPY_SPEC)))
+
+    env_constraints = all_of(*constraints)
+    log.debug("computed environment constraints: %s\n" % env_constraints)
 
     # now we need to recompute the compatible packages using the updated package specifications
     pkgs = idx.find_compatible_packages(specs)
@@ -576,6 +602,11 @@ def _check_unknown_spec(idx, spec):
             message += "\n"
         raise RuntimeError(message)
 
+
+def _default_constraint(spec):
+    req = package_spec('%s %s.%s' % (spec.name,spec.version.version[0], spec.version.version[1]))
+    sat = package_spec('%s %s %s' % (spec.name, spec.version.vstring, spec.build))
+    return any_of(requires(req), satisfies(sat))
 
 
 download_string = '''

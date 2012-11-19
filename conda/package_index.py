@@ -255,7 +255,6 @@ class package_index(object):
     def _compute_dependencies(self):
         deps = dict()
         for pkg in self.pkgs:
-            if pkg.is_meta: continue
             deps[pkg] = set()
             for req in pkg.requires:
                 deps[pkg] |= self.find_matches(satisfies(req))
@@ -264,6 +263,7 @@ class package_index(object):
     def _compute_reverse_dependencies(self):
         rdeps = dict()
         for pkg, deps in self.deps.items():
+            if pkg.is_meta: continue
             for dep in deps:
                 if dep not in rdeps:
                     rdeps[dep] = set()

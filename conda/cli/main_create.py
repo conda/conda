@@ -50,13 +50,6 @@ def configure_parser(sub_parsers):
         help    = "display progress bar for package downloads (default: yes)",
     )
     p.add_argument(
-        "--use-defaults",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "select default versions for unspecified package specifications when possible (default: yes)",
-    )
-    p.add_argument(
         'package_specs',
         metavar = 'package_spec',
         action  = "store",
@@ -100,7 +93,7 @@ def execute(args):
     if len(spec_strings) == 0:
         raise RuntimeError('no package specifications supplied')
 
-    plan = create_create_plan(prefix, conda, spec_strings, args.use_defaults=="yes")
+    plan = create_create_plan(prefix, conda, spec_strings)
 
     if plan.empty():
         print 'No matching packages could be found, nothing to do'

@@ -3,7 +3,7 @@ from distutils.version import LooseVersion
 import unittest
 
 from conda.package_spec import (
-    apply_default_spec, find_inconsistent_specs, group_package_specs_by_name, package_spec, sort_package_specs_by_name
+    find_inconsistent_specs, group_package_specs_by_name, package_spec, sort_package_specs_by_name
 )
 
 class test_package_spec(unittest.TestCase):
@@ -71,89 +71,6 @@ class test_find_inconsistent_specs(unittest.TestCase):
                                 package_spec('python 2.7'),
                             ])
             }
-        )
-
-
-class test_apply_default_spec(unittest.TestCase):
-
-    def test_present(self):
-        a, b, c = package_spec('python'), package_spec('numpy 1.7'), package_spec('scipy 0.11 bld')
-        specs = [a, b, c]
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('python')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('python 2.7')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('python 2.7 bld')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('numpy')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('numpy 1.6')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('numpy 1.6 bld')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('scipy')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('scipy 0.11')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('scipy 0.11 bld')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
-        )
-
-    def test_not_present(self):
-        a, b = package_spec('python'), package_spec('numpy 1.7')
-        specs = [a, b]
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('scipy')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('scipy 0.11')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11')])
-        )
-        self.assertEqual(
-            apply_default_spec(specs, package_spec('scipy 0.11 bld')),
-            set([package_spec('python'),
-                 package_spec('numpy 1.7'),
-                 package_spec('scipy 0.11 bld')])
         )
 
 
