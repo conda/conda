@@ -1,6 +1,6 @@
 Query Anaconda package dependencies.
 
-**usage**: ``conda depends [-h] [-m MAX_DEPTH] [--no-prefix] [-p PREFIX] [-r] [-v] package_name [package_name ...]``
+**usage**: ``conda depends [-h] [-m MAX_DEPTH] [--no-prefix] [-n NAME | -p PREFIX] [-r] [-v] package_name [package_name ...]``
 
 *package_name*
 	optional arguments:
@@ -10,6 +10,7 @@ optional arguments:
   -m MAX_DEPTH, --max-depth MAX_DEPTH
                         maximum depth to search dependencies, 0 searches all depths (default: 0)
   --no-prefix           return reverse dependencies compatible with any specified environment, overrides --prefix
+  -n NAME, --name NAME  return dependencies compatible with a specified named environment (in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
                         return dependencies compatible with a specified environment (default: ROOT_DIR)
   -r, --reverse         generate reverse dependencies

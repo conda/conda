@@ -1,4 +1,4 @@
-Upgrade Anaconda packges.
+Upgrade Anaconda packages.
 
 **usage**: ``conda upgrade [-h] [--confirm {yes,no}] [--dry-run] [-n NAME | -p PREFIX] [package_name [package_name ...]]``
 

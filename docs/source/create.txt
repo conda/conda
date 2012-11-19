@@ -16,4 +16,4 @@ optional arguments:
   --progress-bar 
                         display progress bar for package downloads (default: yes)
   --use-defaults 
-                        select default versions for unspecified requirements when possible (default: yes)
+                        select default versions for unspecified package specifications when possible (default: yes)
