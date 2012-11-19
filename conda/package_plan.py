@@ -176,7 +176,7 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     deps = idx.find_matches(build_target(conda.target), deps)
     log.debug("initial dependencies: %s\n" % deps)
 
-    # add default python and numpy requirements if needed
+    # add default python and numpy specifications if needed
     if use_defaults:
         dep_names = [dep.name for dep in deps]
         if 'python' in dep_names:
@@ -198,8 +198,7 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     deps = newest_packages(deps)
     log.debug("updated dependencies: %s\n" % deps)
 
-    all_pkgs = pkgs | deps
-    all_pkgs = newest_packages(all_pkgs)
+    all_pkgs = newest_packages(pkgs | deps)
     log.debug("all packages: %s\n" % all_pkgs)
 
     # make sure all user supplied specs were satisfied
@@ -437,6 +436,11 @@ def create_activate_plan(env, canonical_names):
     plan: :py:class:`package_plan <conda.package_plan.package_plan>`
         package plan for activating packages in an existing Anaconda environment
 
+    Raises
+    ------
+    RuntimeError
+        if the activations cannot be performed
+
     '''
     plan = package_plan()
 
@@ -447,12 +451,10 @@ def create_activate_plan(env, canonical_names):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            # can't activate a package we know nothing about
-            continue  # TODO warn?
+            raise RuntimeError("cannot activate unknown package '%s'" % canonical_name)
 
-        # if package is already activated, there is nothing to do
         if pkg in env.activated:
-            continue  # TODO warn?
+            raise RuntimeError("package '%s' is already activated in environment: %s" % (canonical_name, env.prefix))
 
         plan.activations.add(pkg)
 
@@ -483,6 +485,11 @@ def create_deactivate_plan(env, canonical_names):
     plan: :py:class:`package_plan <conda.package_plan.package_plan>`
         package plan for de-activating packages in an existing Anaconda environment
 
+    Raises
+    ------
+    RuntimeError
+        if the deactivations cannot be performed
+
     '''
     plan = package_plan()
 
@@ -493,12 +500,11 @@ def create_deactivate_plan(env, canonical_names):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            # can't deactivate a package we know nothing about
-            continue  # TODO warn?
+            raise RuntimeError("cannot deactivate unknown package '%s'" % canonical_name)
 
         # if package is not already activated, there is nothing to do
         if pkg not in env.activated:
-            continue  # TODO warn?
+            raise RuntimeError("package '%s' is not activated in environment: %s" % (canonical_name, env.prefix))
 
         plan.deactivations.add(pkg)
 
@@ -534,6 +540,11 @@ def create_download_plan(conda, canonical_names, force):
     plan: :py:class:`package_plan <conda.package_plan.package_plan>`
         package plan for downloading packages into :ref:`local availability <locally_available>`.
 
+    Raises
+    ------
+    RuntimeError
+        if the downloads cannot be performed
+
     '''
     plan = package_plan()
 
@@ -544,9 +555,7 @@ def create_download_plan(conda, canonical_names, force):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            raise RuntimeError(
-                "download of '%s' failed, no match found" % canonical_name
-            )
+            raise RuntimeError("cannot download unknown package '%s'" % canonical_name)
 
         if force or pkg not in conda.available_packages:
             plan.downloads.add(pkg)
