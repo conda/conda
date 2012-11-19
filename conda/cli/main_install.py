@@ -95,7 +95,7 @@ def execute(args):
     plan = create_install_plan(env, req_strings)
 
     if plan.empty():
-        print 'No packages found, nothing to do'
+        print 'All requested packages already installed into environment: %s' % prefix
         return
 
     print plan
