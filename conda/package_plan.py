@@ -124,6 +124,11 @@ def create_create_plan(prefix, conda, spec_strings, use_defaults):
     use_defaults : bool
         whether to automatically apply default versions for base packages
 
+    Returns
+    -------
+    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+        package plan for creating new Anaconda environment
+
     Raises
     ------
     RuntimeError
@@ -225,6 +230,11 @@ def create_install_plan(env, spec_strings):
         Anaconda environment to install packages into
     spec_strings : iterable of str
         string package specifications of packages to install in Anaconda environment
+
+    Returns
+    -------
+    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+        package plan for installing packages in an existing Anaconda environment
 
     Raises
     ------
@@ -335,6 +345,11 @@ def create_upgrade_plan(env, pkg_names):
     pkg_names : iterable of str
         package names of packages to upgrade
 
+    Returns
+    -------
+    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+        package plan for upgrading packages in an existing Anaconda environment
+
     Raises
     ------
     RuntimeError
@@ -417,6 +432,11 @@ def create_activate_plan(env, canonical_names):
     canonical_names : iterable of str
         canonical names of packages to activate
 
+    Returns
+    -------
+    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+        package plan for activating packages in an existing Anaconda environment
+
     '''
     plan = package_plan()
 
@@ -457,6 +477,11 @@ def create_deactivate_plan(env, canonical_names):
         Anaconda environment to deactivate packages in
     canonical_names : iterable of str
         canonical names of packages to deactivate
+
+    Returns
+    -------
+    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+        package plan for de-activating packages in an existing Anaconda environment
 
     '''
     plan = package_plan()
@@ -503,6 +528,11 @@ def create_download_plan(conda, canonical_names, force):
         canonical names of packages to download
     force : bool
         whether to force download even if package is already locally available
+
+    Returns
+    -------
+    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+        package plan for downloading packages into :ref:`local availability <locally_available>`.
 
     '''
     plan = package_plan()

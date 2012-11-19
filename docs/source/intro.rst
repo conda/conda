@@ -114,6 +114,14 @@ Additionally, a **package specification** is a package name, together with a pac
 
 In usage documentation, these will be referred to by ``package_spec``.
 
+.. _meta_package:
+
+-------------
+Meta Pacakges
+-------------
+Conda also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
+packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an anaconda environment. When creating, upgrading, or installing into environments, only one meta-package may be specified, and no additional packages my be specified.
+
 .. _directory_structure:
 
 -------------------
