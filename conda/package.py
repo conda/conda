@@ -160,16 +160,16 @@ def find_inconsistent_packages(pkgs):
 
     grouped = group_packages_by_name(pkgs)
 
-    for name, pkg in grouped.items():
-        if len(specs) < 2: continue
-        for s1, s2 in combinations(specs, 2):
+    for name, pkgs in grouped.items():
+        if len(pkgs) < 2: continue
+        for s1, s2 in combinations(pkgs, 2):
 
             if not s1.version or not s2.version: continue
 
             v1, v2 = tuple(s1.version.version), tuple(s2.version.version)
             vlen = min(len(v1), len(v2))
             if v1[:vlen] != v2[:vlen]:
-                inconsistent[name] = specs
+                inconsistent[name] = pkgs
                 break
 
     return inconsistent

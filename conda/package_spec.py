@@ -4,7 +4,7 @@
 
 
 from distutils.version import LooseVersion
-from itertools import combinations, groupby, izip, tee
+from itertools import combinations, groupby
 
 from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
