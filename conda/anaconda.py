@@ -3,6 +3,7 @@ Anaconda installation, including the Anaconda package index.
 
 '''
 
+from bz2 import decompress
 from os import listdir
 from os.path import exists, join
 from urllib2 import urlopen
@@ -45,13 +46,18 @@ class anaconda(config):
     def _fetch_index(self):
         index = {}
         for url in reversed(self.repo_package_urls):
-            log.debug("fetching: repodata.json [%s] ..." % url)
             try:
-                fi = urlopen(url + 'repodata.json')
-            except:  # TODO better exception spec
-                log.debug("    ...failed.")
-                continue
-            repodata = json.loads(fi.read())
+                fi = urlopen(url + 'repodata.json.bz2')
+                log.debug("fetched: repodata.json.bz2 [%s] ..." % url)
+                repodata = json.loads(decompress(fi.read()))
+            except:
+                try:
+                    fi = urlopen(url + 'repodata.json.bz2')
+                    log.debug("fetched: repodata.json [%s] ..." % url)
+                    repodata = json.loads(fi.read())
+                except:
+                    log.debug("failed to fetch repo data at url %s" % url)
+                    continue
             new_index = repodata['packages']
             for pkg_info in new_index.itervalues():
                 pkg_info['location'] = url
