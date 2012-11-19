@@ -1,6 +1,5 @@
 
 from difflib import get_close_matches
-from itertools import imap
 import logging
 
 
