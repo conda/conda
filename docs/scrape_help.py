@@ -12,12 +12,12 @@ cmd_names = [
     'envs',
     'create',
     'install',
-    'upgrade',
+    'update',
     'activate',
     'deactivate',
     'download',
     'remove',
-    'upgrade2pro'
+    'upgrade'
 ]
 
 def scrape_help(cmd_name):
