@@ -45,7 +45,7 @@ import main_list
 import main_locations
 import main_remove
 import main_search
-import main_upgrade
+import main_update
 import main_upgrade2pro
 
 
@@ -83,7 +83,7 @@ def main():
     main_envs.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
-    main_upgrade.configure_parser(sub_parsers)
+    main_update.configure_parser(sub_parsers)
     main_upgrade2pro.configure_parser(sub_parsers)
     main_activate.configure_parser(sub_parsers)
     main_deactivate.configure_parser(sub_parsers)

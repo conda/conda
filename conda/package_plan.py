@@ -16,7 +16,7 @@ __all__ = [
     'package_plan',
     'create_create_plan',
     'create_deactivate_plan',
-    'create_upgrade_plan',
+    'create_update_plan',
     'create_download_plan'
 ]
 
@@ -33,7 +33,7 @@ class package_plan(object):
     result of this action.
     '''
 
-    __slots__ = ['downloads', 'activations', 'deactivations', 'broken', 'missing', 'upgrade']
+    __slots__ = ['downloads', 'activations', 'deactivations', 'broken', 'missing', 'update']
 
     def __init__(self):
         self.downloads     = set()
@@ -41,7 +41,7 @@ class package_plan(object):
         self.deactivations = set()
         self.broken        = set()
         self.missing       = set()
-        self.upgrade       = None
+        self.update       = None
 
     def execute(self, env, progress_bar=True):
         '''
@@ -356,28 +356,28 @@ def create_install_plan(env, spec_strings):
     return plan
 
 
-def create_upgrade_plan(env, pkg_names):
+def create_update_plan(env, pkg_names):
     '''
-    This function creates a package plan for upgrading specified packages to
+    This function creates a package plan for updating specified packages to
     the latest version in the given Anaconda environment prefix. Only versions
     compatible with the existing environment are considered.
 
     Parameters
     ----------
     env : :py:class:`environment <conda.environment.environment>` object
-        Anaconda environment to upgrade packages in
+        Anaconda environment to update packages in
     pkg_names : iterable of str
-        package names of packages to upgrade
+        package names of packages to update
 
     Returns
     -------
     plan: :py:class:`package_plan <conda.package_plan.package_plan>`
-        package plan for upgrading packages in an existing Anaconda environment
+        package plan for updating packages in an existing Anaconda environment
 
     Raises
     ------
     RuntimeError
-        if the upgrade cannot be performed
+        if the update cannot be performed
 
     '''
 
@@ -393,37 +393,37 @@ def create_upgrade_plan(env, pkg_names):
             pkg = env.find_activated_package(pkg_name)
             if not pkg:
                 if pkg_name in env.conda.index.package_names:
-                    raise RuntimeError("package '%s' is not installed, cannot upgrade (see conda install -h)" % pkg_name)
+                    raise RuntimeError("package '%s' is not installed, cannot update (see conda install -h)" % pkg_name)
                 else:
-                    raise RuntimeError("unknown package '%s', cannot upgrade" % pkg_name)
+                    raise RuntimeError("unknown package '%s', cannot update" % pkg_name)
             pkgs.add(pkg)
 
     # find any initial packages that have newer versions
-    upgrades = set()
+    updates = set()
     for pkg in sort_packages_by_name(pkgs):
         candidates = idx.lookup_from_name(pkg.name)
         candidates = idx.find_matches(env.requirements, candidates)
         newest = max(candidates)
         log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
-            upgrades.add(newest)
-    log.debug('initial upgrades: %s' %  upgrades)
+            updates.add(newest)
+    log.debug('initial updates: %s' %  updates)
 
-    if len(upgrades) == 0: return plan  # nothing to do
+    if len(updates) == 0: return plan  # nothing to do
 
-    # get all the dependencies of the upgrades
-    all_deps = idx.get_deps(upgrades)
-    log.debug('upgrade dependencies: %s' %  all_deps)
+    # get all the dependencies of the updates
+    all_deps = idx.get_deps(updates)
+    log.debug('update dependencies: %s' %  all_deps)
 
     # find newest packages compatible with these requirements and the build target
-    all_pkgs = all_deps | upgrades
+    all_pkgs = all_deps | updates
     all_pkgs = idx.find_matches(env.requirements, all_pkgs)
     all_pkgs = newest_packages(all_pkgs)
 
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_packages(all_pkgs)
     if inconsistent:
-        raise RuntimeError('cannot upgrade, the following packages are inconsistent: %s'
+        raise RuntimeError('cannot update, the following packages are inconsistent: %s'
             % ', '.join('%s-%s' % (pkg.name, pkg.version.vstring) for pkg in inconsistent)
         )
 
