@@ -17,7 +17,7 @@ conda provides the following commands:
 
     create     : create a new Anaconda environment from a list of specified packages
     install    : install new packages into an existing Anaconda environment
-    upgrade    : upgrade packages in a specified Anaconda environment
+    update     : update packages in a specified Anaconda environment
 
     Advanced Package Management
     ===========================
@@ -46,7 +46,7 @@ import main_locations
 import main_remove
 import main_search
 import main_update
-import main_upgrade2pro
+import main_upgrade
 
 
 def main():
@@ -84,7 +84,7 @@ def main():
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
-    main_upgrade2pro.configure_parser(sub_parsers)
+    main_upgrade.configure_parser(sub_parsers)
     main_activate.configure_parser(sub_parsers)
     main_deactivate.configure_parser(sub_parsers)
     main_download.configure_parser(sub_parsers)

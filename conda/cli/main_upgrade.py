@@ -1,16 +1,18 @@
 
-from os.path import abspath, expanduser, join
+import logging
 
 from anaconda import anaconda
-from config import ROOT_DIR
-from package_plan import create_upgrade_plan
+from package_plan import package_plan
+
+
+log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'upgrade',
-        description     = "Upgrade Anaconda packages.",
-        help            = "Upgrade Anaconda packages.",
+        description     = "Upgrade Anaconda install to AnacondaPro trial.",
+        help            = "Upgrade Anaconda install to AnacondaPro trial.",
     )
     p.add_argument(
         "--confirm",
@@ -23,26 +25,7 @@ def configure_parser(sub_parsers):
         "--dry-run",
         action  = "store_true",
         default = False,
-        help    = "display packages to be modified, without actually exectuting",
-    )
-    npgroup = p.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "name of new directory (in %s/envs) to upgrade packages in" % ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = ROOT_DIR,
-        help    = "full path to Anaconda environment to upgrade packages in (default: %s)" % ROOT_DIR,
-    )
-    p.add_argument(
-        'pkg_names',
-        metavar = 'package_name',
-        action  = "store",
-        nargs   = '*',
-        help    = "names of packages to upgrade (default: all packages)",
+        help    = "display packages to be modified, without actually executing",
     )
     p.set_defaults(func=execute)
 
@@ -50,20 +33,55 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
-    if args.name:
-        prefix = join(ROOT_DIR, 'envs', args.name)
-    else:
-        prefix = abspath(expanduser(args.prefix))
-
-    env = conda.lookup_environment(prefix)
-
-    plan = create_upgrade_plan(env, args.pkg_names)
-
-    if plan.empty():
-        print 'All packages already at latest version'
+    if conda.target == 'pro':
+        print "AnacondaPro already activated!"
         return
 
-    print "Upgrading Anaconda environment at %s" % args.prefix
+    idx = conda.index
+
+    env = conda.default_environment
+    env_reqs = env.get_requirements('pro')
+
+    candidates = idx.lookup_from_name('anaconda')
+    candidates = idx.find_matches(env_reqs, candidates)
+    candidate = max(candidates)
+
+    log.debug('anaconda version to upgrade to: %s' % candidate.canonical_name)
+
+    plan = package_plan()
+
+    to_install = set([candidate])
+    pkgs = to_install
+
+    # find the associated dependencies
+    reqs = idx.get_deps(pkgs)
+    to_remove = set()
+    for req in reqs:
+        if env.requirement_is_satisfied(req):
+            to_remove.add(req)
+    reqs = reqs - to_remove
+
+    # find packages compatible with the full requirements and build target
+    all_pkgs = idx.find_compatible_packages(reqs) | to_install
+    all_pkgs = idx.find_matches(env_reqs, all_pkgs)
+
+    # download any packages that are not available
+    for pkg in all_pkgs:
+
+        # download any currently unavailable packages
+        if pkg not in env.conda.available_packages:
+            plan.downloads.add(pkg)
+
+        # see if the package is already active
+        active = env.find_activated_package(pkg.name)
+        if active:
+            if pkg != active or pkg.name == 'anaconda':
+                plan.deactivations.add(active)
+
+        if pkg not in env.activated:
+            plan.activations.add(pkg)
+
+    print "Upgrading Anaconda installation to AnacondaPro"
 
     print plan
 
@@ -74,4 +92,3 @@ def execute(args):
         if proceed.lower() not in ['y', 'yes']: return
 
     plan.execute(env)
-
