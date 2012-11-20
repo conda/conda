@@ -41,7 +41,7 @@ def configure_parser(sub_parsers):
         'pkg_names',
         metavar = 'package_name',
         action  = "store",
-        nargs   = '*',
+        nargs   = '+',
         help    = "names of packages to update (default: all packages)",
     )
     p.set_defaults(func=execute)

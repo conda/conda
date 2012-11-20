@@ -201,19 +201,23 @@ def create_create_plan(prefix, conda, spec_strings):
     pkgs = newest_packages(pkgs)
     log.debug("updated packages: %s\n" % pkgs)
 
-    # find the associated dependencies
-    deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(env_constraints, deps)
-    deps = newest_packages(deps)
-    log.debug("updated dependencies: %s\n" % deps)
+    # check to see if this is a meta-package situtaion (and handle it if so)
+    all_pkgs = _handle_meta_create(conda, pkgs)
 
-    all_pkgs = newest_packages(pkgs | deps)
-    log.debug("all packages: %s\n" % all_pkgs)
+    if not all_pkgs:
+        # find the associated dependencies
+        deps = idx.get_deps(pkgs)
+        deps = idx.find_matches(env_constraints, deps)
+        deps = newest_packages(deps)
+        log.debug("updated dependencies: %s\n" % deps)
 
-    # make sure all user supplied specs were satisfied
-    for spec in specs:
-        if not idx.find_matches(satisfies(spec), all_pkgs):
-            raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
+        all_pkgs = newest_packages(pkgs | deps)
+        log.debug("all packages: %s\n" % all_pkgs)
+
+        # make sure all user supplied specs were satisfied
+        for spec in specs:
+            if not idx.find_matches(satisfies(spec), all_pkgs):
+                raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -292,51 +296,56 @@ def create_install_plan(env, spec_strings):
     pkgs = idx.find_matches(env.requirements, pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
-    # find the associated dependencies
-    deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(env.requirements, deps)
-    log.debug("initial dependencies: %s\n" % deps)
+    # check to see if this is a meta-package situtaion (and handle it if so)
+    log.info("%s" % pkgs)
+    all_pkgs = _handle_meta_install(env.conda, pkgs)
 
-    # add default python and numpy requirements if needed
-    constraints = [env.requirements]
-    dep_names = [dep.name for dep in deps]
+    if not all_pkgs:
+        # find the associated dependencies
+        deps = idx.get_deps(pkgs)
+        deps = idx.find_matches(env.requirements, deps)
+        log.debug("initial dependencies: %s\n" % deps)
 
-    if py_spec:
-        constraints.append(_default_constraint(py_spec))
-    elif 'python' in dep_names:
-        constraints.append(_default_constraint(package_spec(DEFAULT_PYTHON_SPEC)))
+        # add default python and numpy requirements if needed
+        constraints = [env.requirements]
+        dep_names = [dep.name for dep in deps]
 
-    if np_spec:
-        constraints.append(_default_constraint(np_spec))
-    elif 'numpy' in dep_names:
-        constraints.append(_default_constraint(package_spec(DEFAULT_NUMPY_SPEC)))
+        if py_spec:
+            constraints.append(_default_constraint(py_spec))
+        elif 'python' in dep_names:
+            constraints.append(_default_constraint(package_spec(DEFAULT_PYTHON_SPEC)))
 
-    env_constraints = all_of(*constraints)
-    log.debug("computed environment constraints: %s\n" % env_constraints)
+        if np_spec:
+            constraints.append(_default_constraint(np_spec))
+        elif 'numpy' in dep_names:
+            constraints.append(_default_constraint(package_spec(DEFAULT_NUMPY_SPEC)))
 
-    # now we need to recompute the compatible packages using the updated package specifications
-    pkgs = idx.find_compatible_packages(specs)
-    pkgs = idx.find_matches(env_constraints, pkgs)
-    pkgs = newest_packages(pkgs)
-    log.debug("updated packages: %s\n" % pkgs)
+        env_constraints = all_of(*constraints)
+        log.debug("computed environment constraints: %s\n" % env_constraints)
 
-    # find the associated dependencies
-    deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(env_constraints, deps)
-    deps = newest_packages(deps)
-    log.debug("updated dependencies: %s\n" % deps)
+        # now we need to recompute the compatible packages using the updated package specifications
+        pkgs = idx.find_compatible_packages(specs)
+        pkgs = idx.find_matches(env_constraints, pkgs)
+        pkgs = newest_packages(pkgs)
+        log.debug("updated packages: %s\n" % pkgs)
 
-    all_pkgs = pkgs | deps
-    all_pkgs = newest_packages(all_pkgs)
-    log.debug("all packages: %s\n" % all_pkgs)
+        # find the associated dependencies
+        deps = idx.get_deps(pkgs)
+        deps = idx.find_matches(env_constraints, deps)
+        deps = newest_packages(deps)
+        log.debug("updated dependencies: %s\n" % deps)
 
-    # make sure all user supplied specs were satisfied
-    for spec in specs:
-        if not idx.find_matches(satisfies(spec), all_pkgs):
-            if idx.find_matches(satisfies(spec)):
-                raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
-            else:
-                raise RuntimeError("could not find package for package specification '%s'" % spec)
+        all_pkgs = pkgs | deps
+        all_pkgs = newest_packages(all_pkgs)
+        log.debug("all packages: %s\n" % all_pkgs)
+
+        # make sure all user supplied specs were satisfied
+        for spec in specs:
+            if not idx.find_matches(satisfies(spec), all_pkgs):
+                if idx.find_matches(satisfies(spec)):
+                    raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
+                else:
+                    raise RuntimeError("could not find package for package specification '%s'" % spec)
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -385,18 +394,15 @@ def create_update_plan(env, pkg_names):
 
     idx = env.conda.index
 
-    if len(pkg_names) == 0:
-        pkgs = env.activated
-    else:
-        pkgs = set()
-        for pkg_name in pkg_names:
-            pkg = env.find_activated_package(pkg_name)
-            if not pkg:
-                if pkg_name in env.conda.index.package_names:
-                    raise RuntimeError("package '%s' is not installed, cannot update (see conda install -h)" % pkg_name)
-                else:
-                    raise RuntimeError("unknown package '%s', cannot update" % pkg_name)
-            pkgs.add(pkg)
+    pkgs = set()
+    for pkg_name in pkg_names:
+        pkg = env.find_activated_package(pkg_name)
+        if not pkg:
+            if pkg_name in env.conda.index.package_names:
+                raise RuntimeError("package '%s' is not installed, cannot update (see conda install -h)" % pkg_name)
+            else:
+                raise RuntimeError("unknown package '%s', cannot update" % pkg_name)
+        pkgs.add(pkg)
 
     # find any initial packages that have newer versions
     updates = set()
@@ -411,14 +417,17 @@ def create_update_plan(env, pkg_names):
 
     if len(updates) == 0: return plan  # nothing to do
 
-    # get all the dependencies of the updates
-    all_deps = idx.get_deps(updates)
-    log.debug('update dependencies: %s' %  all_deps)
+    all_pkgs = _handle_meta_update(env.conda, updates)
 
-    # find newest packages compatible with these requirements and the build target
-    all_pkgs = all_deps | updates
-    all_pkgs = idx.find_matches(env.requirements, all_pkgs)
-    all_pkgs = newest_packages(all_pkgs)
+    if not all_pkgs:
+        # get all the dependencies of the updates
+        all_deps = idx.get_deps(updates)
+        log.debug('update dependencies: %s' %  all_deps)
+
+        # find newest packages compatible with these requirements and the build target
+        all_pkgs = all_deps | updates
+        all_pkgs = idx.find_matches(env.requirements, all_pkgs)
+        all_pkgs = newest_packages(all_pkgs)
 
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_packages(all_pkgs)
@@ -426,7 +435,6 @@ def create_update_plan(env, pkg_names):
         raise RuntimeError('cannot update, the following packages are inconsistent: %s'
             % ', '.join('%s-%s' % (pkg.name, pkg.version.vstring) for pkg in inconsistent)
         )
-
 
     # download any activations that are not already availabls
     for pkg in all_pkgs:
@@ -597,6 +605,75 @@ def _check_unknown_spec(idx, spec):
                 message += '    %s' % s
             message += "\n"
         raise RuntimeError(message)
+
+
+
+
+
+def _handle_meta_create(conda, pkgs):
+    n_meta = sum(map(lambda pkg: pkg.is_meta, pkgs))
+
+    if n_meta == 0:
+        return set()
+
+    if n_meta == 1 and len(pkgs) > 1:
+        raise RuntimeError("create operation does not support mixing meta-packages and standard packages")
+
+    if n_meta > 1:
+        raise RuntimeError("create operation only supports one meta-package at a time")
+
+    pkg = pkgs.pop()
+    pkgs.add(pkg)
+
+    for spec in pkg.requires:
+        canonical_name = "%s-%s-%s" % (spec.name, spec.version.vstring, spec.build)
+        pkgs.add(conda.index.lookup_from_canonical_name(canonical_name))
+
+    return pkgs
+
+
+def _handle_meta_install(conda, pkgs):
+    n_meta = sum(map(lambda pkg: pkg.is_meta, pkgs))
+
+    if n_meta == 0:
+        return set()
+
+    if n_meta == 1 and len(pkgs) > 1:
+        raise RuntimeError("install operation does not support mixing meta-packages and standard packages")
+
+    if n_meta > 1:
+        raise RuntimeError("install operation only supports one meta-package at a time")
+
+    pkg = pkgs.pop()
+    pkgs.add(pkg)
+
+    for spec in pkg.requires:
+        canonical_name = "%s-%s-%s" % (spec.name, spec.version.vstring, spec.build)
+        pkgs.add(conda.index.lookup_from_canonical_name(canonical_name))
+
+    return pkgs
+
+
+def _handle_meta_update(conda, pkgs):
+    n_meta = sum(map(lambda pkg: pkg.is_meta, pkgs))
+
+    if n_meta == 0:
+        return set()
+
+    if n_meta == 1 and len(pkgs) > 1:
+        raise RuntimeError("update operation does not support mixing meta-packages and standard packages")
+
+    if n_meta > 1:
+        raise RuntimeError("update operation only supports one meta-package at a time")
+
+    pkg = pkgs.pop()
+    pkgs.add(pkg)
+
+    for spec in pkg.requires:
+        canonical_name = "%s-%s-%s" % (spec.name, spec.version.vstring, spec.build)
+        pkgs.add(conda.index.lookup_from_canonical_name(canonical_name))
+
+    return pkgs
 
 
 def _default_constraint(spec):
