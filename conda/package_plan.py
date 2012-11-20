@@ -398,31 +398,27 @@ def create_upgrade_plan(env, pkg_names):
                     raise RuntimeError("unknown package '%s', cannot upgrade" % pkg_name)
             pkgs.add(pkg)
 
-    # find any packages that have newer versions
+    # find any initial packages that have newer versions
     upgrades = set()
-    to_remove = set()
-    for pkg in pkgs:
+    for pkg in sort_packages_by_name(pkgs):
         candidates = idx.lookup_from_name(pkg.name)
         candidates = idx.find_matches(env.requirements, candidates)
         newest = max(candidates)
         log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
             upgrades.add(newest)
-            to_remove.add(pkg)
-
     log.debug('initial upgrades: %s' %  upgrades)
 
     if len(upgrades) == 0: return plan  # nothing to do
 
     # get all the dependencies of the upgrades
-    all_reqs = idx.get_deps(upgrades)
-    log.debug('upgrade dependencies: %s' %  all_reqs)
+    all_deps = idx.get_deps(upgrades)
+    log.debug('upgrade dependencies: %s' %  all_deps)
 
     # find newest packages compatible with these requirements and the build target
-    all_pkgs = idx.find_compatible_packages(all_reqs) | upgrades
-    all_pkgs = idx.find_matches(build_target(env.conda.target), all_pkgs)
+    all_pkgs = all_deps | upgrades
+    all_pkgs = idx.find_matches(env.requirements, all_pkgs)
     all_pkgs = newest_packages(all_pkgs)
-    log.debug('all packages: %s' %  all_pkgs)
 
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_packages(all_pkgs)
@@ -431,15 +427,16 @@ def create_upgrade_plan(env, pkg_names):
             % ', '.join('%s-%s' % (pkg.name, pkg.version.vstring) for pkg in inconsistent)
         )
 
-    # deactivate original packages and activate new versions
-    plan.deactivations = to_remove
 
     # download any activations that are not already availabls
     for pkg in all_pkgs:
-        if pkg not in env.conda.available_packages:
-            plan.downloads.add(pkg)
-        if pkg not in env.activated:
+
+        active = env.find_activated_package(pkg.name)
+        if active and pkg > active:
+            if pkg not in env.conda.available_packages:
+                plan.downloads.add(pkg)
             plan.activations.add(pkg)
+            plan.deactivations.add(active)
 
     return plan
 
