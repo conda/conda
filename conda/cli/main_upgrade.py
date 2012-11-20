@@ -11,8 +11,8 @@ log = logging.getLogger(__name__)
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'upgrade',
-        description     = "Upgrade Anaconda install to AnacondaPro trial.",
-        help            = "Upgrade Anaconda install to AnacondaPro trial.",
+        description     = "Upgrade Anaconda CE install to full Anaconda trial.",
+        help            = "Upgrade Anaconda CE install to full Anaconda trial.",
     )
     p.add_argument(
         "--confirm",
@@ -34,7 +34,7 @@ def execute(args):
     conda = anaconda()
 
     if conda.target == 'pro':
-        print "AnacondaPro already activated!"
+        print "Full Anaconda already activated!"
         return
 
     idx = conda.index
@@ -81,7 +81,7 @@ def execute(args):
         if pkg not in env.activated:
             plan.activations.add(pkg)
 
-    print "Upgrading Anaconda installation to AnacondaPro"
+    print "Upgrading Anaconda CE installation to full Anaconda"
 
     print plan
 
