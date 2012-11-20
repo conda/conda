@@ -114,10 +114,10 @@ class config(object):
         if env_target:
             return env_target
 
-        if 'AnacondaPro' in sys.version:
-            return 'pro'
-        elif 'AnacondaCE' in sys.version:
+        if 'AnacondaCE' in sys.version:
             return 'ce'
+        elif 'Anaconda' in sys.version:
+            return 'pro'
         else:
             return 'unknown'
 
