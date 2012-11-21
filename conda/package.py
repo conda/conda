@@ -110,7 +110,10 @@ class package(object):
         print "   package: %s-%s" % (self.name, self.version),
         print "[%s]" % self._build_target if self.build_target else ""
         print "  filename: %s" % self.filename
-        print "       md5: %s" % self.md5
+        try:
+            print "       md5: %s" % self.md5
+        except KeyError:
+            pass
         if show_requires:
             print "  requires:"
             for spec_string in sorted('%s-%s' % (req.name, req.version.vstring) for req in self.requires):
