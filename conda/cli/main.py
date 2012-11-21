@@ -66,7 +66,7 @@ def main():
     p.add_argument(
         '-v', '--version',
         action='version',
-        version=' ' .join(['%(prog)s', '%s' % __version__])
+        version='conda %s' % __version__,
     )
     p.add_argument(
         '-l', "--log-level",
