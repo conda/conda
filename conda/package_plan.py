@@ -349,6 +349,7 @@ def create_install_plan(env, spec_strings):
     # find packages compatible with the initial specifications and build target
     pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(env.requirements, pkgs)
+    pkgs = newest_packages(pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
     # check to see if this is a meta-package situtaion (and handle it if so)
@@ -665,16 +666,16 @@ def _check_unknown_spec(idx, spec):
 
 
 def _handle_meta_create(conda, pkgs):
-    n_meta = sum(map(lambda pkg: pkg.is_meta, pkgs))
+    metas = set([pkg for pkg in pkgs if pkg.is_meta])
 
-    if n_meta == 0:
+    if len(metas) == 0:
         return set()
 
-    if n_meta == 1 and len(pkgs) > 1:
+    if len(metas) == 1 and len(pkgs) > 1:
         raise RuntimeError("create operation does not support mixing meta-packages and standard packages")
 
-    if n_meta > 1:
-        raise RuntimeError("create operation only supports one meta-package at a time")
+    if len(metas) > 1:
+        raise RuntimeError("create operation only supports one meta-package at a time, was given: %s" % metas)
 
     pkg = pkgs.pop()
     pkgs.add(pkg)
@@ -687,16 +688,16 @@ def _handle_meta_create(conda, pkgs):
 
 
 def _handle_meta_install(conda, pkgs):
-    n_meta = sum(map(lambda pkg: pkg.is_meta, pkgs))
+    metas = set([pkg for pkg in pkgs if pkg.is_meta])
 
-    if n_meta == 0:
+    if len(metas) == 0:
         return set()
 
-    if n_meta == 1 and len(pkgs) > 1:
+    if len(metas) == 1 and len(pkgs) > 1:
         raise RuntimeError("install operation does not support mixing meta-packages and standard packages")
 
-    if n_meta > 1:
-        raise RuntimeError("install operation only supports one meta-package at a time")
+    if len(metas) > 1:
+        raise RuntimeError("install operation only supports one meta-package at a time, was given: %s" % metas)
 
     pkg = pkgs.pop()
     pkgs.add(pkg)
@@ -709,16 +710,16 @@ def _handle_meta_install(conda, pkgs):
 
 
 def _handle_meta_update(conda, pkgs):
-    n_meta = sum(map(lambda pkg: pkg.is_meta, pkgs))
+    metas = set([pkg for pkg in pkgs if pkg.is_meta])
 
-    if n_meta == 0:
+    if len(metas) == 0:
         return set()
 
-    if n_meta == 1 and len(pkgs) > 1:
+    if len(metas) == 1 and len(pkgs) > 1:
         raise RuntimeError("update operation does not support mixing meta-packages and standard packages")
 
-    if n_meta > 1:
-        raise RuntimeError("update operation only supports one meta-package at a time")
+    if len(metas) > 1:
+        raise RuntimeError("update operation only supports one meta-package at a time, was given: %s" % metas)
 
     pkg = pkgs.pop()
     pkgs.add(pkg)
