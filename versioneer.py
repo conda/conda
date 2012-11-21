@@ -80,7 +80,10 @@ To use it:
  6: add both versioneer.py and the generated _version.py to your VCS
 """
 
-import os, sys, re
+import os
+import sys
+import re
+import subprocess
 from distutils.core import Command
 from distutils.command.sdist import sdist as _sdist
 from distutils.command.build import build as _build
@@ -92,6 +95,7 @@ parentdir_prefix = None
 
 VCS = "git"
 IN_LONG_VERSION_PY = False
+GIT = "git"
 
 
 LONG_VERSION_PY = '''
@@ -222,9 +226,6 @@ def versions_from_vcs(tag_prefix, versionfile_source, verbose=False):
             print("no .git in %%s" %% root)
         return {}
 
-    GIT = "git"
-    if sys.platform == "win32":
-        GIT = "git.cmd"
     stdout = run_command([GIT, "describe", "--tags", "--dirty", "--always"],
                          cwd=root)
     if stdout is None:
@@ -293,10 +294,6 @@ def get_versions(default={"version": "unknown", "full": ""}, verbose=False):
 
 '''
 
-
-import subprocess
-import sys
-
 def run_command(args, cwd=None, verbose=False):
     try:
         # remember shell=False, so use git.cmd on windows, not just git
@@ -316,10 +313,6 @@ def run_command(args, cwd=None, verbose=False):
         return None
     return stdout
 
-
-import sys
-import re
-import os.path
 
 def get_expanded_variables(versionfile_source):
     # the code embedded in _version.py can just fetch the value of these
@@ -406,9 +399,6 @@ def versions_from_vcs(tag_prefix, versionfile_source, verbose=False):
             print("no .git in %s" % root)
         return {}
 
-    GIT = "git"
-    if sys.platform == "win32":
-        GIT = "git.cmd"
     stdout = run_command([GIT, "describe", "--tags", "--dirty", "--always"],
                          cwd=root)
     if stdout is None:
@@ -459,12 +449,8 @@ def versions_from_parentdir(parentdir_prefix, versionfile_source, verbose=False)
         return None
     return {"version": dirname[len(parentdir_prefix):], "full": ""}
 
-import sys
 
 def do_vcs_install(versionfile_source, ipy):
-    GIT = "git"
-    if sys.platform == "win32":
-        GIT = "git.cmd"
     run_command([GIT, "add", "versioneer.py"])
     run_command([GIT, "add", versionfile_source])
     run_command([GIT, "add", ipy])
