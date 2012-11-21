@@ -55,21 +55,67 @@ class package_plan(object):
             whether to show a progress bar during any downloads
 
         '''
+        if progress_bar:
+            download_widgets = [
+                '', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ', FileTransferSpeed()
+            ]
+            download_progress = ProgressBar(widgets=download_widgets)
+
+            package_widgets = ['', ' ', Bar(), ' ', Percentage()]
+            package_progress = ProgressBar(widgets=package_widgets)
+        else:
+            download_progress = None
+            package_progress = None
+
+        self._handle_downloads(env, download_progress)
+        self._handle_deactivations(env, package_progress)
+        self._handle_activations(env, package_progress)
+
+    def _handle_downloads(self, env, progress):
+        if progress and self.downloads:
+            print
+            print "Fetching packages..."
+            print
+
         for pkg in self.downloads:
-            if progress_bar:
-                widgets = [
-                    ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ', FileTransferSpeed()
-                ]
-                progress = ProgressBar(widgets=widgets)
-            else:
-                progress = None
-            fetch_file(pkg.filename, md5=pkg.md5, size=pkg.size,
-                       progress=progress)
+            fetch_file(pkg.filename, md5=pkg.md5, size=pkg.size, progress=progress)
             make_available(env.conda.packages_dir, pkg.canonical_name)
-        for pkg in self.deactivations:
+
+    def _handle_deactivations(self, env, progress):
+        if progress and self.deactivations:
+            print
+            print "Deactivating packages..."
+            print
+            progress.maxval = len(self.deactivations)
+            progress.start()
+
+        for i, pkg in enumerate(self.deactivations):
+            if progress:
+                progress.widgets[0] = '[%-20s]' % pkg.name
+                progress.update(i)
             deactivate(pkg.canonical_name, env.prefix)
-        for pkg in self.activations:
+
+        if progress and self.deactivations:
+            progress.widgets[0] = '[      COMPLETE      ]'
+            progress.finish()
+
+    def _handle_activations(self, env, progress):
+        if progress and self.activations:
+            print
+            print "Activating packages..."
+            print
+            progress.maxval = len(self.activations)
+            progress.start()
+
+        for i, pkg in enumerate(self.activations):
+            if progress:
+                progress.widgets[0] = '[%-20s]' % pkg.name
+                progress.update(i)
             activate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
+
+        if progress and self.activations:
+            progress.widgets[0] = '[      COMPLETE      ]'
+            progress.finish()
 
     def empty(self):
         ''' Return whether the package plan has any operations to perform or not

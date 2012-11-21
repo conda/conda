@@ -38,7 +38,7 @@ def fetch_file(fn, md5=None, size=None, progress=None):
         length = size
 
     if progress:
-        progress.widgets.insert(0, fn)
+        progress.widgets[0] = fn
         progress.maxval = length
         progress.start()
 
