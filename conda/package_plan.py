@@ -140,10 +140,10 @@ class package_plan(object):
         result = ''
         if self.downloads:
             result += download_string % self._format_packages(self.downloads, use_location=True)
-        if self.activations:
-            result += activate_string % self._format_packages(self.activations)
         if self.deactivations:
             result += deactivate_string % self._format_packages(self.deactivations)
+        if self.activations:
+            result += activate_string % self._format_packages(self.activations)
         if self.broken:
             result += broken_string % self._format_packages(self.broken)
         if self.missing:
