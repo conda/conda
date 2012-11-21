@@ -50,6 +50,9 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
+    if conda.local_index_only:
+        raise RuntimeError('Updating packages requires access to package indices on remote package repositories. (Check network connection?)')
+
     if args.name:
         prefix = join(ROOT_DIR, 'envs', args.name)
     else:

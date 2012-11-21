@@ -25,20 +25,29 @@ class anaconda(config):
     index
 
     '''
-    __slots__ = ['_index']
+    __slots__ = ['_index', '_local_index_only']
 
     def __init__(self):
         super(anaconda, self).__init__()
 
+        index = self._build_local_index()
         try:
-            self._index = package_index(self._fetch_index())
+            index.update(self._fetch_index())
+            self._local_index_only = False
         except RuntimeError:
-            self._index = package_index(self._build_local_index())
+            self._local_index_only = True
+
+        self._index = package_index(index)
 
     @property
     def index(self):
         ''' Anaconda package index '''
         return self._index
+
+    @property
+    def local_index_only(self):
+        ''' Whether the package index contains only local information '''
+        return self._local_index_only
 
     def __repr__(self):
         return 'anaconda()'
