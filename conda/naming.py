@@ -1,8 +1,16 @@
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+''' The naming module contains various functions for manipulating and parsing Anaconda
+package filenames, canonical names, specification strings, etc.
 
+Package names are always of the form <name>-<version>-<build>, where the name may
+contain one or more '-' characters. The build number is always a positive integer value.
 
-# the package names we use are always of the form <name>-<version>-<build>,
-# where the name may contains one or more '-' characters.
-# the build number is always a positive integer value.
+'''
+
 
 def split_spec_string(spec_string):
     '''

@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 #
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+#
 # conda documentation build configuration file, created by
 # sphinx-quickstart on Sat Nov  3 16:08:12 2012.
 #

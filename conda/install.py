@@ -1,5 +1,9 @@
-"""
-This module contains:
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+''' This module contains:
   * all low-level code for extracting, activating and deactivating packages
   * a very simple CLI
 
@@ -18,7 +22,8 @@ Also, this module is directly invoked by the (self extracting (sfx)) tarball
 installer to create the initial environment, therefore it needs to be
 standalone, i.e. not import any other parts of conda (only depend of
 the standard library).
-"""
+
+'''
 
 import os
 import json

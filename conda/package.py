@@ -1,5 +1,11 @@
-''' The package module provides the `package` class, which encapsulates information about an Anaconda package,
-as well as utility functions for manipulating collections of packages.
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+''' The package module provides the `package` class, which encapsulates
+information about an Anaconda package, as well as utility functions for
+manipulating collections of packages.
 
 '''
 

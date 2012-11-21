@@ -1,5 +1,11 @@
-''' The package_index module provides the package_index class, which is the primary interface for looking up packages and their
-dependencies, matching packages to constraints, etc.
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+''' The package_index module provides the `package_index` class, which is the
+primary interface for looking up packages and their dependencies, matching
+packages to constraints, etc.
 
 '''
 

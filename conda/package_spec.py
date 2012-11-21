@@ -1,4 +1,10 @@
-''' The package_spec module contains the package_spec class, and utility functions for manipulating sets of package specifications.
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+''' The package_spec module provides the `package_spec` class, and utility
+functions for manipulating sets of package specifications.
 
 '''
 

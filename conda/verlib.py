@@ -1,5 +1,6 @@
 # This module implements PEP 386
 # 2010-04-20: hg clone http://bitbucket.org/tarek/distutilsversion/
+# Public Domain
 
 """
 "Rational" version definition and parsing for DistutilsVersionFight

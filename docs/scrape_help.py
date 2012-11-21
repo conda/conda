@@ -1,3 +1,9 @@
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+
 from subprocess import *
 from os.path import join
 import re
@@ -70,7 +76,7 @@ def scrape_help(cmd_name):
 
     return output
 
-    
+
 
 if __name__ == '__main__':
     for name in cmd_names:

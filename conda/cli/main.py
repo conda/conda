@@ -1,4 +1,9 @@
-"""conda is a tool for managing Anaconda environments and packages.
+# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+'''conda is a tool for managing Anaconda environments and packages.
 
 conda provides the following commands:
 
@@ -18,6 +23,7 @@ conda provides the following commands:
     create     : create a new Anaconda environment from a list of specified packages
     install    : install new packages into an existing Anaconda environment
     update     : update packages in a specified Anaconda environment
+    upgrade    : upgrade Anaconda installation from CE to full Anaconda
 
     Advanced Package Management
     ===========================
@@ -30,7 +36,7 @@ conda provides the following commands:
 Additional help for each command can be accessed by using:
 
     conda <command> -h
-"""
+'''
 
 import conda_argparse as argparse
 import main_activate
