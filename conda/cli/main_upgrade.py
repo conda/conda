@@ -49,26 +49,16 @@ def execute(args):
 
     candidates = idx.lookup_from_name('anaconda')
     candidates = idx.find_matches(env_reqs, candidates)
-    candidate = max(candidates)
+    pkg = max(candidates)
 
-    log.debug('anaconda version to upgrade to: %s' % candidate.canonical_name)
+    log.debug('anaconda version to upgrade to: %s' % pkg.canonical_name)
 
     plan = package_plan()
 
-    to_install = set([candidate])
-    pkgs = to_install
-
-    # find the associated dependencies
-    reqs = idx.get_deps(pkgs)
-    to_remove = set()
-    for req in reqs:
-        if env.requirement_is_satisfied(req):
-            to_remove.add(req)
-    reqs = reqs - to_remove
-
-    # find packages compatible with the full requirements and build target
-    all_pkgs = idx.find_compatible_packages(reqs) | to_install
-    all_pkgs = idx.find_matches(env_reqs, all_pkgs)
+    all_pkgs = set([pkg])
+    for spec in pkg.requires:
+        canonical_name = "%s-%s-%s" % (spec.name, spec.version.vstring, spec.build)
+        all_pkgs.add(conda.index.lookup_from_canonical_name(canonical_name))
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -79,9 +69,9 @@ def execute(args):
 
         # see if the package is already active
         active = env.find_activated_package(pkg.name)
-        if active:
-            if pkg != active or pkg.name == 'anaconda':
-                plan.deactivations.add(active)
+        # need to compare canonical names since ce/pro packages might compare equal
+        if active and pkg.canonical_name != active.canonical_name:
+            plan.deactivations.add(active)
 
         if pkg not in env.activated:
             plan.activations.add(pkg)
