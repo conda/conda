@@ -352,7 +352,6 @@ def create_install_plan(env, spec_strings):
     log.debug("initial packages: %s\n" % pkgs)
 
     # check to see if this is a meta-package situtaion (and handle it if so)
-    log.info("%s" % pkgs)
     all_pkgs = _handle_meta_install(env.conda, pkgs)
 
     if not all_pkgs:

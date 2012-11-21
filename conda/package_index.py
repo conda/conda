@@ -129,7 +129,7 @@ class package_index(object):
             matching packages
 
         '''
-        if not pkgs is not None: pkgs = self.pkgs
+        if pkgs is None: pkgs = self.pkgs
         return set([pkg for pkg in pkgs if pkg.matches(constraint)])
 
     def get_deps(self, pkgs, max_depth=0):
