@@ -14,8 +14,8 @@ from package_plan import create_activate_plan
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'activate',
-        description     = "Activate available packages in the specified Anaconda enviropnment.",
-        help            = "Activate available packages in the specified Anaconda enviropnment. (ADVANCED)",
+        description     = "Activate available packages in the specified Anaconda environment.",
+        help            = "Activate available packages in the specified Anaconda environment. (ADVANCED)",
     )
     p.add_argument(
         "--confirm",
@@ -34,7 +34,7 @@ def configure_parser(sub_parsers):
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
-        help    = "Anaconda environment to activate packages ini (default: %s)" % ROOT_DIR,
+        help    = "Anaconda environment to activate packages in (default: %s)" % ROOT_DIR,
     )
     p.add_argument(
         'canonical_names',
