@@ -49,6 +49,7 @@ import main_info
 import main_install
 import main_list
 import main_locations
+import main_path
 import main_remove
 import main_search
 import main_update
@@ -83,6 +84,7 @@ def main():
 
     main_info.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
+    main_path.configure_parser(sub_parsers)
     main_depends.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
     main_locations.configure_parser(sub_parsers)
