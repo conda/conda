@@ -1,4 +1,4 @@
-Activate available packages in the specified Anaconda enviropnment.
+Activate available packages in the specified Anaconda environment.
 
 **usage**: ``conda activate [-h] [--confirm {yes,no}] [--dry-run] [-p PREFIX] canonical_name [canonical_name ...]``
 
@@ -10,4 +10,4 @@ optional arguments:
   --confirm     ask for confirmation before activating packages in Anaconda environment (default: yes)
   --dry-run             display packages to be modified, without actually executing
   -p PREFIX, --prefix PREFIX
-                        Anaconda environment to activate packages ini (default: ROOT_DIR)
+                        Anaconda environment to activate packages in (default: ROOT_DIR)

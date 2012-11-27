@@ -175,14 +175,14 @@ Here is an example:
 Upgrading to Anaconda Pro
 -------------------------
 
-The process of upgrading from Anaconda Community Edition to Pro is as simple as using ``upgrade2pro``.  The command reference is show below.
+The process of upgrading from Anaconda Community Edition to the full version is as simple as using ``upgrade``.  The command reference is shown below.
 
 ----
 
-.. include:: upgrade2pro.txt
+.. include:: upgrade.txt
 
 
-Look here for :ref:`examples <upgrade2pro_example>`.
+Look here for :ref:`examples <upgrade_example>`.
 
 .. _YAML syntax: http://en.wikipedia.org/wiki/YAML
 

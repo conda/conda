@@ -570,18 +570,18 @@ As before, conda will activate all necessary dependencies.
     Proceed (y/n)? y
     scipy-0.11.0-np16py27_pro0.tar.bz2 100% |###############################| Time: 0:00:12 690.46 kB/s
 
-.. _upgrade_example:
+.. _update_example:
 
-Upgrade
+Update
 -------
 
-``conda upgrade`` replaces old packages in a given environment with the latest versions.
+``conda update`` replaces old packages in a given environment with the latest versions.
 
 For this first example, we will use an environment ``/tmp/matplotlib11`` , which we can select using the prefix (``-p``) option.
 
 .. code-block:: bash
   
-  $ conda upgrade -p /tmp/matplotlib11
+  $ conda update -p /tmp/matplotlib11
   Upgrading Anaconda environment at /tmp/matplotlib11
 
     The following packages will be activated:
@@ -601,7 +601,7 @@ on an environment ``/home/test/anaconda/envs/matplotlib11``.
 
 .. code-block:: bash
   
-  $ conda upgrade -n matplotlib11 
+  $ conda update -n matplotlib11 
   Upgrading Anaconda environment at /home/test/anaconda
 
       The following packages will be activated:
@@ -630,14 +630,14 @@ Deactivate
 
   Proceed (y/n)? y
 
-.. _upgrade2pro_example:
+.. _upgrade_example:
 
-upgrade2pro
+upgrade
 -----------
 
 .. code-block:: bash
 
-  $ conda upgrade2pro
+  $ conda upgrade
   Upgrading Anaconda installation to AnacondaPro
 
     The following packages will be downloaded:
