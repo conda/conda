@@ -3,10 +3,10 @@
 Introduction
 ============
 
-The **conda** command is the primary interface for managing an Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
+The ``conda`` command is the primary interface for managing an Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
 
 -----------------
-Anaconda Overview
+``conda`` Overview
 -----------------
 
 .. _package:
@@ -17,7 +17,7 @@ Anaconda Overview
 .. index::
     pair: terminology; environment
 
-Anaconda is a system for finding and installing software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. Anaconda keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. Anaconda makes this kind of mixing and matching easy.
+``conda`` is an application for finding and installing Anaconda software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. ``conda`` keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. ``conda`` makes this kind of mixing and matching easy.
 
 .. _repository:
 .. index::
@@ -35,7 +35,7 @@ Anaconda is a system for finding and installing software packages. An Anaconda *
 .. index::
     pair: terminology; deactivated
 
-Anaconda packages are downloaded from remote **repositories**. The conda command starts with a default set of repositories to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once and Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
+Anaconda packages are downloaded from remote **repositories**. The ``conda`` command starts with a default set of repositories to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
 
 .. _location:
 .. index::
@@ -45,14 +45,14 @@ Anaconda packages are downloaded from remote **repositories**. The conda command
 .. index::
     pair: terminology; known
 
-Since Anaconda environments are simply directories, they may be created anywhere. However, Anaconda has a notion of **locations** which are also simply directories that are known to conda, and contain environments within. Anaconda environments created in such locations are said to be **known**, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
+Since Anaconda environments are simply directories, they may be created anywhere. However, Anaconda has a notion of **locations** which are also simply directories that are known to ``conda``, and contain environments within. Anaconda environments created in such locations are said to be **known**, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
 
 
 --------------------------
 Package Naming Conventions
 --------------------------
 
-Names and versions of software packages do not follow any prescribed rules.  In order to facilitate communication and documentation, Anaconda employs the following naming conventions with respect to packages:
+Names and versions of software packages do not follow any prescribed rules.  However, in order to facilitate communication and documentation, Anaconda employs the following naming conventions with respect to packages:
 
 .. _package_name:
 .. index::
@@ -119,7 +119,7 @@ In usage documentation, these will be referred to by ``package_spec``.
 -------------
 Meta Pacakges
 -------------
-Conda also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
+``conda`` also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
 packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an anaconda environment. When creating, upgrading, or installing into environments, only one meta-package may be specified, and no additional packages my be specified.
 
 .. _directory_structure:
@@ -152,7 +152,7 @@ Other Anaconda environments contain the same subdirectories as the default envir
 -------------
 Configuration
 -------------
-There is very little user configuration that conda requires, however conda will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_
+There is very little user configuration that ``conda`` requires, however ``conda`` will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_.
 
 Here is an example:
 
@@ -172,10 +172,10 @@ Here is an example:
       - ~/envs
 
 -------------------------
-Upgrading to Anaconda Pro
+Upgrade AnacondaCE installation to Anaconda (trial)
 -------------------------
 
-The process of upgrading from Anaconda Community Edition to the full version is as simple as using ``upgrade``.  The command reference is shown below.
+The process of upgrading from Anaconda Community Edition to the full trial version is as simple as using ``upgrade``.  The command reference is shown below.
 
 ----
 
@@ -190,4 +190,4 @@ Look here for :ref:`examples <upgrade_example>`.
 License
 -------
 
-conda is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
+``conda`` is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
