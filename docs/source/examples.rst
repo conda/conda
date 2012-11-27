@@ -51,6 +51,7 @@ conda will look in the default environment.
 
 In this next example, we leave off the prefix and search for packages starting with ``py`` in the default directory.
 
+
 .. code-block:: bash
 
     $ conda list ^py
@@ -71,6 +72,17 @@ In this next example, we leave off the prefix and search for packages starting w
     pyyaml                    3.10
     pyzmq                     2.2.0.1
 
+.. note::
+
+  The previous example (and any others that involve regular expressions) may not work correctly on a Windows system unless the regular expression pattern is enclosed in quotation marks.  For this reason,
+  all regular expressions on the command line should be enclosed in quotes.
+
+  For example:
+
+  .. code-block:: bash
+
+    $ conda list "^py"
+    
 With this final example, we will use a more complex search expression to illustrate conda's
 list capabilities.
 
