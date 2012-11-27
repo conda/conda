@@ -7,8 +7,8 @@ Basic Package Management
 
     create
     install
-    upgrade
+    update
 
 .. include:: create.rst
 .. include:: install.rst
-.. include:: upgrade.rst
+.. include:: update.rst

@@ -79,9 +79,13 @@ In this next example, we leave off the prefix and search for packages starting w
 
   For example:
 
-  .. code-block:: bash
+  .. code-block:: powershell
 
-    $ conda list "^py"
+    D:\Test>conda list “^py”
+    packages and versions matching the expression ‘^py’ in environment at C:\Anaconda:
+    py                        1.4.12
+    pyaudio                   0.2.6
+    ...
     
 With this final example, we will use a more complex search expression to illustrate conda's
 list capabilities.
