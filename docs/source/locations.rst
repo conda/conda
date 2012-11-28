@@ -4,4 +4,4 @@ locations
 
 .. include:: locations.txt
 
-Look here for :ref:`examples <location_example>`
+Look here for :ref:`examples <locations_example>`
