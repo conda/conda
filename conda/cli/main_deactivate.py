@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from os.path import abspath, expanduser
+from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
 from config import ROOT_DIR
@@ -30,7 +30,13 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "display packages to be deactivated, without actually executing",
     )
-    p.add_argument(
+    npgroup = p.add_mutually_exclusive_group()
+    npgroup.add_argument(
+        '-n', "--name",
+        action  = "store",
+        help    = "deactivate from a named environment (in %s/envs)" % ROOT_DIR,
+    )
+    npgroup.add_argument(
         '-p', "--prefix",
         action  = "store",
         default = ROOT_DIR,
@@ -50,7 +56,11 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
-    prefix = abspath(expanduser(args.prefix))
+    if args.name:
+        prefix = join(ROOT_DIR, 'envs', args.name)
+    else:
+        prefix = abspath(expanduser(args.prefix))
+
     env = conda.lookup_environment(prefix)
 
     plan = create_deactivate_plan(env, args.canonical_names)
