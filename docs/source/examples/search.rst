@@ -89,6 +89,35 @@ that begin with ``l`` followed by any number of characters, and ending with ``py
             llvm-3.1
             python-2.6
 
+.. note::
+
+  The previous example (and any others that involve regular expressions) may not work correctly on a Windows system unless the regular expression pattern is enclosed in quotation marks.  For this reason,
+  all regular expressions on the command line should be enclosed in quotes.
+
+  For example:
+
+  .. code-block:: powershell
+
+    D:\Test>conda search -s "^l.*py$"
+    6 matches found:
+
+       package: llvmpy-0.8.3 
+          arch: x86_64
+      filename: llvmpy-0.8.3-py27_0.tar.bz2
+           md5: 3d154f02354b22ac2e0ad76e73073f4e
+      requires:
+            llvm-3.1
+            python-2.7
+            
+        ...
+
+       package: llvmpy-0.8.3 
+          arch: x86_64
+      filename: llvmpy-0.8.3-py26_0.tar.bz2
+           md5: d0edc507d66dd34e32dc9d277c68fe36
+      requires:
+            llvm-3.1
+            python-2.6
 
 
 While the previous examples have illustrated conda's basic usefulness, they have only scratched
