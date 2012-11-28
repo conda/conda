@@ -105,6 +105,9 @@ def execute(args):
         print 'No matching packages could be found, nothing to do'
         return
 
+    print
+    print "Package plan for creating environment at %s:" % prefix
+    
     print plan
 
     if args.dry_run: return

@@ -103,6 +103,8 @@ def execute(args):
         print 'All requested packages already installed into environment: %s' % prefix
         return
 
+    print
+    print "Package plan for installation in environment %s:" % prefix
     print plan
 
     if args.dry_run: return
