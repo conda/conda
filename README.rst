@@ -19,7 +19,7 @@ Examples
 
 .. code-block:: bash
 
-    $ conda update -n matplotlib11 
+    $ conda update -n foo
 
 =======
 License
