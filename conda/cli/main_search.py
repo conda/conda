@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from argparse import RawDescriptionHelpFormatter
 from os.path import abspath, expanduser
 import re
 
@@ -16,8 +17,10 @@ from package_spec import package_spec
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'search',
+        formatter_class = RawDescriptionHelpFormatter,
         description = "Search for packages and display their information.",
         help        = "Search for packages and display their information.",
+        epilog          = activate_example,
     )
     p.add_argument(
         '-p', "--prefix",
@@ -104,3 +107,9 @@ def execute(args):
         print
         pkg.print_info(args.show_requires)
     print
+
+activate_example = '''
+examples:
+    conda search -p ~/anaconda/envs/myenv/ scipy
+
+'''

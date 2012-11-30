@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from argparse import RawDescriptionHelpFormatter
 from anaconda import anaconda
 from package_plan import create_download_plan
 
@@ -11,8 +12,10 @@ from package_plan import create_download_plan
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'download',
+        formatter_class = RawDescriptionHelpFormatter,
         description     = "Download Anaconda packages and their dependencies.",
         help            = "Download Anaconda packages and their dependencies. (ADVANCED)",
+        epilog          = activate_example,
     )
     p.add_argument(
         "--confirm",
@@ -73,3 +76,9 @@ def execute(args):
 
     # pass default environment because some env is required, but it is unused here
     plan.execute(conda.default_environment, args.progress_bar=="yes")
+
+activate_example = '''
+examples:
+    conda download zeromq-2.2.0-0
+
+'''
