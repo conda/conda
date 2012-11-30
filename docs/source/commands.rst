@@ -2,7 +2,7 @@
 Command Reference
 =================
 
-Conda provides many commands for querying and searching the package database, or Anaconda environments, as well as for common and advanced package management tasks.
+``conda`` provides many commands for querying and searching the package database, or Anaconda environments, as well as for common and advanced package management tasks.
 
 Contents:
 

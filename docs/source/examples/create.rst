@@ -21,86 +21,158 @@ We'll start with a simple bare bones create.
 
 .. code-block:: bash
 
-    conda create -n onlyScipy --progress-bar=no scipy
+    $ conda create -n onlyScipy --progress-bar=no scipy
+
+    Package plan for creating environment at /Users/maggie/anaconda/envs/onlyScipy:
 
     The following packages will be activated:
-        
-        nose-1.1.2
-        numpy-1.7.0b2
-        python-2.7.3
-        readline-6.2
-        scipy-0.11.0
-        sqlite-3.7.13
-        zlib-1.2.7
 
-    Proceed (y/n)? y
+        package                    |  build          
+        -------------------------  |  ---------------
+        nose-1.1.2                 |           py27_0
+        numpy-1.7.0b2              |           py27_0
+        python-2.7.3               |                4
+        readline-6.2               |                0
+        scipy-0.11.0               |       np17py27_1
+        sqlite-3.7.13              |                0
+        zlib-1.2.7                 |                0
+
+
+    Proceed (y/n)?
 
 
 .. code-block:: bash
 
     $ conda create -p ~/anaconda/envs/test2 anaconda=1.1.4 python=2.7 numpy=1.6
 
-        The following packages will be downloaded:
-            
-            anaconda-1.1.4-np16py27_pro0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            boto-2.6.0-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            h5py-2.1.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            imaging-1.1.7-py27_2.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            iopro-1.2rc1-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            libpng-1.5.13-0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            llvmpy-0.8.4.dev-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            matplotlib-1.1.1-np16py27_1.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            mdp-3.3-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            numexpr-2.0.1-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            pandas-0.9.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            pyflakes-0.5.0-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            pysal-1.4.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            pytables-2.4.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            pyzmq-2.2.0.1-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            scikit-learn-0.11-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            scikits-image-0.6.1-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
-            wakaridata-1.0-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+    Package plan for creating environment at /Users/maggie/anaconda/envs/test2:
 
-        The following packages will be activated:
-            
-            anaconda-1.1.4
-            anaconda-launcher-0.0
-            ...
-            numpy-1.6.2
-            pandas-0.9.0
-            pip-1.1
-            pyflakes-0.5.0
-            pygments-1.5
-            pysal-1.4.0
-            pysam-0.6
-            pyside-1.1.2
-            pytables-2.4.0
-            python-2.7.3
-            python.app-1.0
-            ...
-            yaml-0.1.4
-            zeromq-2.2.0
-            zlib-1.2.7
+    The following packages will be downloaded:
 
-    Proceed (y/n)? y
-    pyzmq-2.2.0.1-py27_0.tar.bz2 100% |######################################################################| Time: 0:00:00   1.26 MB/s
-    pandas-0.9.0-np16py27_0.tar.bz2 100% |###################################################################| Time: 0:00:01   1.64 MB/s
-    pysal-1.4.0-np16py27_0.tar.bz2 100% |####################################################################| Time: 0:00:00   1.28 MB/s
-    mdp-3.3-np16py27_0.tar.bz2 100% |########################################################################| Time: 0:00:00   1.11 MB/s
-    h5py-2.1.0-np16py27_0.tar.bz2 100% |#####################################################################| Time: 0:00:00   1.07 MB/s
-    scikit-learn-0.11-np16py27_0.tar.bz2 100% |##############################################################| Time: 0:00:02 976.39 kB/s
-    iopro-1.2rc1-np16py27_0.tar.bz2 100% |###################################################################| Time: 0:00:00 483.86 kB/s
-    boto-2.6.0-py27_0.tar.bz2 100% |#########################################################################| Time: 0:00:00   1.84 MB/s
-    llvmpy-0.8.4.dev-py27_0.tar.bz2 100% |###################################################################| Time: 0:00:00 239.90 kB/s
-    pyflakes-0.5.0-py27_0.tar.bz2 100% |#####################################################################| Time: 0:00:00 162.98 kB/s
-    numexpr-2.0.1-np16py27_0.tar.bz2 100% |##################################################################| Time: 0:00:00 212.51 kB/s
-    libpng-1.5.13-0.tar.bz2 100% |###########################################################################| Time: 0:00:00   2.07 MB/s
-    pytables-2.4.0-np16py27_0.tar.bz2 100% |#################################################################| Time: 0:00:01   1.16 MB/s
-    wakaridata-1.0-py27_0.tar.bz2 100% |#####################################################################| Time: 0:00:00  85.65 kB/s
-    imaging-1.1.7-py27_2.tar.bz2 100% |######################################################################| Time: 0:00:01 252.94 kB/s
-    matplotlib-1.1.1-np16py27_1.tar.bz2 100% |###############################################################| Time: 0:00:23   1.14 MB/s
-    anaconda-1.1.4-np16py27_pro0.tar.bz2 100% |##############################################################| Time: 0:00:00   5.13 MB/s
-    scikits-image-0.6.1-np16py27_0.tar.bz2 100% |############################################################| Time: 0:00:04 592.53 kB/s
+        anaconda-1.1.4-np16py27_pro0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        conda-1.0-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        gevent_zeromq-0.2.5-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        h5py-2.1.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        iopro-1.2rc1-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        matplotlib-1.1.1-np16py27_1.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        mdp-3.3-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        numba-0.2-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        numbapro-0.6-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        numexpr-2.0.1-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        numpy-1.6.2-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        pandas-0.9.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        pip-1.1-py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        pysal-1.4.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        pytables-2.4.0-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        python-2.7.3-pro0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        scikit-learn-0.11-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        scikits-image-0.6.1-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        scipy-0.11.0-np16py27_pro0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+        statsmodels-0.4.3-np16py27_0.tar.bz2 [http://repo.continuum.io/pkgs/osx-64/]
+
+
+    The following packages will be activated:
+
+        package                    |  build          
+        -------------------------  |  ---------------
+        anaconda-1.1.4             |    np16py27_pro0
+        anaconda-launcher-0.0      |           py27_0
+        bitarray-0.8.0             |           py27_0
+        bitey-0.0                  |           py27_0
+        boto-2.6.0                 |           py27_0
+        conda-1.0                  |           py27_0
+        cython-0.17.1              |           py27_0
+        dateutil-1.5               |           py27_0
+        flask-0.9                  |           py27_0
+        freetype-2.4.10            |                0
+        gevent-0.13.7              |           py27_0
+        gevent-websocket-0.3.6     |           py27_0
+        gevent_zeromq-0.2.5        |           py27_0
+        greenlet-0.4.0             |           py27_0
+        grin-1.2.1                 |           py27_0
+        h5py-2.1.0                 |       np16py27_0
+        hdf5-1.8.9                 |                0
+        imaging-1.1.7              |           py27_2
+        iopro-1.2rc1               |       np16py27_0
+        ipython-0.13               |           py27_0
+        jinja2-2.6                 |           py27_0
+        jpeg-8d                    |                0
+        libevent-2.0.20            |                0
+        libpng-1.5.13              |                0
+        llvm-3.1                   |                0
+        llvmpy-0.8.4.dev           |           py27_0
+        matplotlib-1.1.1           |       np16py27_1
+        mdp-3.3                    |       np16py27_0
+        meta-0.4.2.dev             |           py27_0
+        networkx-1.7               |           py27_0
+        nose-1.1.2                 |           py27_0
+        numba-0.2                  |       np16py27_0
+        numbapro-0.6               |       np16py27_0
+        numexpr-2.0.1              |       np16py27_0
+        numpy-1.6.2                |           py27_0
+        pandas-0.9.0               |       np16py27_0
+        pip-1.1                    |           py27_0
+        pyflakes-0.5.0             |           py27_0
+        pygments-1.5               |           py27_0
+        pysal-1.4.0                |       np16py27_0
+        pysam-0.6                  |           py27_0
+        pyside-1.1.2               |           py27_0
+        pytables-2.4.0             |       np16py27_0
+        python-2.7.3               |             pro0
+        python.app-1.0             |           py27_0
+        pytz-2012d                 |           py27_0
+        pyyaml-3.10                |           py27_0
+        pyzmq-2.2.0.1              |           py27_0
+        qt-4.7.4                   |                0
+        readline-6.2               |                0
+        requests-0.13.9            |           py27_0
+        scikit-learn-0.11          |       np16py27_0
+        scikits-image-0.6.1        |       np16py27_0
+        scipy-0.11.0               |    np16py27_pro0
+        shiboken-1.1.2             |           py27_0
+        spyder-2.1.11              |           py27_0
+        sqlalchemy-0.7.8           |           py27_0
+        sqlite-3.7.13              |                0
+        statsmodels-0.4.3          |       np16py27_0
+        sympy-0.7.1                |           py27_0
+        tornado-2.3                |           py27_0
+        wakaridata-1.0             |           py27_0
+        werkzeug-0.8.3             |           py27_0
+        yaml-0.1.4                 |                0
+        zeromq-2.2.0               |                0
+        zlib-1.2.7                 |                0
+
+
+    Proceed (y/n)? 
+
+    Fetching packages...
+
+    conda-1.0-py27_0.tar.bz2 100% |##################################################################################| Time: 0:00:00  95.36 kB/s
+    h5py-2.1.0-np16py27_0.tar.bz2 100% |#############################################################################| Time: 0:00:01 561.13 kB/s
+    mdp-3.3-np16py27_0.tar.bz2 100% |################################################################################| Time: 0:00:00   1.25 MB/s
+    matplotlib-1.1.1-np16py27_1.tar.bz2 100% |#######################################################################| Time: 0:00:19   1.36 MB/s
+    iopro-1.2rc1-np16py27_0.tar.bz2 100% |###########################################################################| Time: 0:00:00   1.48 MB/s
+    python-2.7.3-pro0.tar.bz2 100% |#################################################################################| Time: 0:00:10 896.98 kB/s
+    numexpr-2.0.1-np16py27_0.tar.bz2 100% |##########################################################################| Time: 0:00:00 312.23 kB/s
+    numba-0.2-np16py27_0.tar.bz2 100% |##############################################################################| Time: 0:00:00 694.58 kB/s
+    pysal-1.4.0-np16py27_0.tar.bz2 100% |############################################################################| Time: 0:00:00   1.37 MB/s
+    gevent_zeromq-0.2.5-py27_0.tar.bz2 100% |########################################################################| Time: 0:00:00 212.40 kB/s
+    numpy-1.6.2-py27_0.tar.bz2 100% |################################################################################| Time: 0:00:01   2.08 MB/s
+    numbapro-0.6-np16py27_0.tar.bz2 100% |###########################################################################| Time: 0:00:00 607.65 kB/s
+    scipy-0.11.0-np16py27_pro0.tar.bz2 100% |########################################################################| Time: 0:00:04   1.75 MB/s
+    scikit-learn-0.11-np16py27_0.tar.bz2 100% |######################################################################| Time: 0:00:01   1.41 MB/s
+    pip-1.1-py27_0.tar.bz2 100% |####################################################################################| Time: 0:00:00 867.01 kB/s
+    pandas-0.9.0-np16py27_0.tar.bz2 100% |###########################################################################| Time: 0:00:01   1.47 MB/s
+    pytables-2.4.0-np16py27_0.tar.bz2 100% |#########################################################################| Time: 0:00:01 730.17 kB/s
+    statsmodels-0.4.3-np16py27_0.tar.bz2 100% |######################################################################| Time: 0:00:04 964.62 kB/s
+    anaconda-1.1.4-np16py27_pro0.tar.bz2 100% |######################################################################| Time: 0:00:00   4.48 MB/s
+    scikits-image-0.6.1-np16py27_0.tar.bz2 100% |####################################################################| Time: 0:00:02   1.24 MB/s
+
+    Activating packages...
+
+    [      COMPLETE      ] |##############################################################################################################| 100%
+
+
 
 In this next example, rather than selecting an environment directory with a prefix, we will use the name option (``-n/--name``).
 This will create an environment in the default Anaconda/envs ROOT_DIR (which can be displayed by using conda's :ref:`locations <location_example>` option), where it will be discoverable by using conda's
@@ -110,17 +182,27 @@ This will create an environment in the default Anaconda/envs ROOT_DIR (which can
 
     $ conda create -n test3 scipy 
 
+    Package plan for creating environment at /Users/maggie/anaconda/envs/test3:
+
     The following packages will be activated:
-        
-        nose-1.1.2
-        numpy-1.7.0b2
-        python-2.7.3
-        readline-6.2
-        scipy-0.11.0
-        sqlite-3.7.13
-        zlib-1.2.7
+
+        package                    |  build          
+        -------------------------  |  ---------------
+        nose-1.1.2                 |           py27_0
+        numpy-1.7.0b2              |           py27_0
+        python-2.7.3               |                4
+        readline-6.2               |                0
+        scipy-0.11.0               |       np17py27_1
+        sqlite-3.7.13              |                0
+        zlib-1.2.7                 |                0
+
 
     Proceed (y/n)? y
+
+    Activating packages...
+
+    [      COMPLETE      ] |##############################################################################################################| 100%
+
 
 
 
