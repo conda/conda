@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from argparse import RawDescriptionHelpFormatter
 from os.path import abspath, expanduser
 
 from anaconda import anaconda
@@ -14,8 +15,10 @@ from package_plan import create_activate_plan
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'activate',
+        formatter_class = RawDescriptionHelpFormatter,
         description     = "Activate available packages in the specified Anaconda environment.",
         help            = "Activate available packages in the specified Anaconda environment. (ADVANCED)",
+        epilog          = activate_example,
     )
     p.add_argument(
         "--confirm",
@@ -75,3 +78,8 @@ def execute(args):
         raise RuntimeError('One of more of the packages is not locally available, see conda download -h')
 
 
+activate_example = '''
+examples:
+  conda activate -p ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
+
+'''
