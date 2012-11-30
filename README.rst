@@ -1,7 +1,3 @@
-============
-Introduction
-============
-
 The ``conda`` command is the primary interface for managing an Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
 
 
