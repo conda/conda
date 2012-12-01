@@ -5,7 +5,7 @@ Activate
 
 
 .. warning::
-    conda activate performs low level operations on Anaconda installations and environments, and can potentially leave Anaconda environments in inconsistent or unusable states. It should not be needed for any common tasks.
+    conda activate performs low level operations on Anaconda environments, and can potentially leave them in inconsistent or unusable states. It should not be needed for any common tasks.
 
 ``conda activate`` installs an Anaconda package with a specified :ref:`canonical names <canonical_name>` into an Anaconda environment at a given path, using the prefix option (``-p``).
 

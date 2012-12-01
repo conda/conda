@@ -5,7 +5,7 @@ Download
 
 
 .. warning::
-    conda download performs low level operations on Anaconda installations and environments. It should not be needed for any common tasks.
+    conda download performs low level operations on Anaconda installations. It should not be needed for any common tasks.
 
 
 ``conda download`` takes as an argument a specified :ref:`canonical names <canonical_name>` and downloads it from available or known Anaconda repositories.

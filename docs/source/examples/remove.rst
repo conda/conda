@@ -5,7 +5,7 @@ Remove
 
 
 .. warning::
-    conda remove performs low level operations on Anaconda installations and environments, and can potentially leave Anaconda environments in inconsistent or unusable states. It should not be needed for any common tasks.
+    conda remove performs low level operations on Anaconda installations. It should not be needed for any common tasks.
 
 
 ``conda remove`` takes one or more :ref:`canonical names <canonical_name>` as arguments and removes them from local availability.

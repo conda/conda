@@ -5,7 +5,7 @@ Deactivate
 
 
 .. warning::
-    conda deactivate performs low level operations on Anaconda installations and environments, and can potentially leave Anaconda environments in inconsistent or unusable states. It should not be needed for any common tasks.
+    conda deactivate performs low level operations on Anaconda environments, and can potentially leave them in inconsistent or unusable states. It should not be needed for any common tasks.
 
 ``conda deactivate`` removes one or more packages specified by :ref:`canonical names <canonical_name>` from an Anaconda environment at a given path, using the prefix option (``-p``).
 
