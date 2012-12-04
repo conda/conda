@@ -35,14 +35,10 @@ def walk_files(dir_path):
 
 def new_files(prefix):
     conda_files = conda_installed_files(prefix)
-    res = set()
-    for path in walk_files(prefix) - conda_files:
-        if (path.startswith(('pkgs/', 'envs/', 'conda-meta/'))  or
-                  path == 'LICENSE.txt'  or
-                  path.endswith('.pyc') and path[:-1] in conda_files):
-            continue
-        res.add(path)
-    return sorted(res)
+    return {path for path in walk_files(prefix) - conda_files
+            if not (path.startswith(('pkgs/', 'envs/', 'conda-meta/')) or
+                    path.endswith('~') or path == 'LICENSE.txt' or
+                    path.endswith('.pyc') and path[:-1] in conda_files)}
 
 
 if __name__ == '__main__':
