@@ -5,6 +5,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from argparse import RawDescriptionHelpFormatter
 from os import makedirs
 from os.path import abspath, exists, expanduser, join
 
@@ -16,8 +17,10 @@ from package_plan import create_create_plan
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'create',
+        formatter_class = RawDescriptionHelpFormatter,
         description     = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
         help            = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
+        epilog          = activate_example,
     )
     p.add_argument(
         "--confirm",
@@ -120,3 +123,9 @@ def execute(args):
     env = conda.lookup_environment(prefix)
 
     plan.execute(env, args.progress_bar=="yes")
+
+activate_example = '''
+examples:
+    conda create -n myenv sqlite
+
+'''

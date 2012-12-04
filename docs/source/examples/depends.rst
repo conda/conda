@@ -16,6 +16,32 @@ for a given package.
         sqlite 3.7.13
         zlib 1.2.7
 
+To check a package dependency in a specific named environment in /anaconda/envs, the name option (``-n``) is used.
+
+.. code-block:: bash
+
+    $ conda depends -n foo numpy
+        numpy depends on the following packages:
+        nose-1.1.2
+        python-2.7.3
+        readline-6.2
+        sqlite-3.7.13
+        zlib-1.2.7
+
+Running ``conda depends`` with the prefix option (``-p``) checks a specified packages dependencies within an Anaconda environment
+located at a given path.
+
+.. code-block:: bash
+
+    $ conda depends -p ~/anaconda/envs/foo/ numpy
+        numpy depends on the following packages:
+        nose-1.1.2
+        python-2.7.3
+        readline-6.2
+        sqlite-3.7.13
+        zlib-1.2.7
+
+    
 Running ``conda depends`` with the reverse dependency command shows all packages that require numpy.
 
 .. code-block:: bash

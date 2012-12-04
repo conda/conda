@@ -5,9 +5,9 @@ Introduction
 
 The ``conda`` command is the primary interface for managing an Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
 
------------------
+------------------
 ``conda`` Overview
------------------
+------------------
 
 .. _package:
 .. index::
@@ -171,9 +171,9 @@ Here is an example:
     locations:
       - ~/envs
 
--------------------------
+---------------------------------------------------
 Upgrade AnacondaCE installation to Anaconda (trial)
--------------------------
+---------------------------------------------------
 
 The process of upgrading from Anaconda Community Edition to the full trial version is as simple as using ``upgrade``.  The command reference is shown below.
 

@@ -18,5 +18,8 @@ Contents:
    examples/create
    examples/install
    examples/update
+   examples/activate
    examples/deactivate
+   examples/remove
+   examples/download
    examples/upgrade
