@@ -38,7 +38,7 @@ def new_files(prefix):
     return {path for path in walk_files(prefix) - conda_files
             if not (path.startswith(('pkgs/', 'envs/', 'conda-meta/')) or
                     path.endswith('~') or path == 'LICENSE.txt' or
-                    path.endswith('.pyc') and path[:-1] in conda_files)}
+                    (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
 if __name__ == '__main__':
