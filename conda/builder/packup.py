@@ -1,6 +1,9 @@
 import os
+import json
+import shutil
 import tarfile
-from os.path import abspath, islink, join
+import tempfile
+from os.path import abspath, basename, islink, join
 
 from conda.install import activated, get_meta
 
@@ -42,6 +45,12 @@ def new_files(prefix):
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
+def get_info(dist):
+    d = {}
+    d['name'], d['version'], d['build'] = dist.rsplit('-', 2)
+    return d
+
+
 def make_tarbz2(prefix, tarbz2_path):
     assert tarbz2_path.endswith('.tar.bz2')
     files = sorted(new_files(prefix))
@@ -49,6 +58,19 @@ def make_tarbz2(prefix, tarbz2_path):
     t = tarfile.open(tarbz2_path, 'w:bz2')
     for f in files:
         t.add(join(prefix, f), f)
+
+    tmp_dir = tempfile.mkdtemp()
+    with open(join(tmp_dir, 'files'), 'w') as fo:
+        for f in files:
+            fo.write(f + '\n')
+
+    with open(join(tmp_dir, 'index.json'), 'w') as fo:
+        json.dump(get_info(basename(tarbz2_path)[:-8]),
+                  fo, indent=2, sort_keys=True)
+
+    t.add(join(tmp_dir, 'files'), 'info/files')
+    t.add(join(tmp_dir, 'index.json'), 'info/index.json')
+    shutil.rmtree(tmp_dir)
     t.close()
 
 
