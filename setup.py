@@ -26,6 +26,6 @@ setup(
     author = "Continuum Analytics, Inc.",
     author_email = "ilan@continuum.io",
     description = "Conda tool",
-    packages = ['conda', 'conda.cli', 'conda.progressbar'],
+    packages = ['conda', 'conda.cli', 'conda.builder', 'conda.progressbar'],
     scripts = ['bin/conda'],
 )
