@@ -93,7 +93,7 @@ def create_meta(prefix, dist, info_dir, files):
 
 # ========================== begin API functions =========================
 
-# ------- thing about available
+# ------- things about available packages
 
 def available(pkgs_dir):
     """
@@ -132,7 +132,7 @@ def remove_available(pkgs_dir, dist):
     if use_hard_links:
         rm_rf(join(pkgs_dir, dist))
 
-# ------- thing about activation
+# ------- things about activation of packages
 
 def activated(prefix):
     """
