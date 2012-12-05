@@ -1,11 +1,14 @@
 import os
+import sys
 import json
 import shutil
 import tarfile
 import tempfile
-from os.path import abspath, basename, islink, join
+from os.path import abspath, islink, join
 
 from conda.install import activated, get_meta
+
+import utils
 
 
 def conda_installed_files(prefix):
@@ -45,17 +48,33 @@ def new_files(prefix):
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
-def get_info(dist):
-    d = {}
-    d['name'], d['version'], d['build'] = dist.rsplit('-', 2)
+def get_info(files, name, version, build_number):
+    if any('site-packages' in f for f in files):
+        requires_py = sys.version_info[:2]
+    else:
+        requires_py = False
+
+    d = dict(
+        name = name,
+        version = version,
+        platform = utils.PLATFORM,
+        arch = utils.ARCH_NAME,
+        build_number = build_number,
+        build = str(build_number),
+        requires = [],
+    )
+    if requires_py:
+        d['build'] = ('py%d%d_' % requires_py) + d['build']
+        d['requires'].append('python %d.%d' % requires_py)
     return d
 
 
-def make_tarbz2(prefix, tarbz2_path):
-    assert tarbz2_path.endswith('.tar.bz2')
+def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     files = sorted(new_files(prefix))
+    info = get_info(files, name, version, build_number)
+    fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
-    t = tarfile.open(tarbz2_path, 'w:bz2')
+    t = tarfile.open(fn, 'w:bz2')
     for f in files:
         t.add(join(prefix, f), f)
 
@@ -65,8 +84,7 @@ def make_tarbz2(prefix, tarbz2_path):
             fo.write(f + '\n')
 
     with open(join(tmp_dir, 'index.json'), 'w') as fo:
-        json.dump(get_info(basename(tarbz2_path)[:-8]),
-                  fo, indent=2, sort_keys=True)
+        json.dump(info, fo, indent=2, sort_keys=True)
 
     t.add(join(tmp_dir, 'files'), 'info/files')
     t.add(join(tmp_dir, 'index.json'), 'info/index.json')
@@ -75,7 +93,4 @@ def make_tarbz2(prefix, tarbz2_path):
 
 
 if __name__ == '__main__':
-    import sys
-    #from pprint import pprint
-    #pprint(new_files(sys.prefix))
-    make_tarbz2(sys.prefix, 'xyz-1.0-0.tar.bz2')
+    make_tarbz2(sys.prefix)
