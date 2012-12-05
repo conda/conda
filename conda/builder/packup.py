@@ -76,11 +76,14 @@ def create_info(name, version, build_number, requires_py):
 
 shebang_pat = re.compile(r'^#!.+$', re.M)
 def fix_shebang(tmp_dir, path):
+    if open(path, 'rb').read(2) != '#!':
+        return False
+
     with open(path) as fi:
         data = fi.read()
     m = shebang_pat.match(data)
     if not (m and 'python' in m.group()):
-        return path
+        return False
 
     data = shebang_pat.sub('#!%s/bin/python' % prefix_placeholder,
                            data, count=1)
@@ -88,7 +91,7 @@ def fix_shebang(tmp_dir, path):
     with open(tmp_path, 'w') as fo:
         fo.write(data)
     os.chmod(tmp_path, 0755)
-    return tmp_path
+    return True
 
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
@@ -102,23 +105,34 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     info = create_info(name, version, build_number, requires_py)
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
+    has_prefix = []
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(fn, 'w:bz2')
     for f in files:
         path = join(prefix, f)
-        if f.startswith('bin/') and open(path, 'rb').read(2) == '#!':
-            path = fix_shebang(tmp_dir, path)
+        if f.startswith('bin/') and fix_shebang(tmp_dir, path):
+            path = join(tmp_dir, basename(path))
+            has_prefix.apped(f)
         t.add(path, f)
 
-    with open(join(tmp_dir, 'files'), 'w') as fo:
+    info_dir = join(tmp_dir, 'info')
+    os.mkdir(info_dir)
+
+    with open(join(info_dir, 'files'), 'w') as fo:
         for f in files:
             fo.write(f + '\n')
 
-    with open(join(tmp_dir, 'index.json'), 'w') as fo:
+    with open(join(info_dir, 'index.json'), 'w') as fo:
         json.dump(info, fo, indent=2, sort_keys=True)
 
-    t.add(join(tmp_dir, 'files'), 'info/files')
-    t.add(join(tmp_dir, 'index.json'), 'info/index.json')
+    if has_prefix:
+        with open(join(info_dir, 'has_prefix'), 'w') as fo:
+            for f in has_prefix:
+                fo.write(f + '\n')
+
+    for fn in os.listdir(info_dir):
+        t.add(join(info_dir, fn), 'info/' + fn)
+
     t.close()
     shutil.rmtree(tmp_dir)
 
