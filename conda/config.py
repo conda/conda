@@ -132,7 +132,7 @@ class config(object):
         '''
         The current platform of this Anaconda installation
 
-        Platorm values are expressed as `system`-`bits`.
+        Platform values are expressed as `system`-`bits`.
 
         The possible system values are:
             - ``win``
@@ -181,8 +181,8 @@ class config(object):
     def environments(self):
         ''' All known Anaconda environments
 
-        :ref:`Anaconda environments <environment>` are serached for in the directories specified by `config.locations`.
-        Environments located elswhere are unknown to Anaconda.
+        :ref:`Anaconda environments <environment>` are searched for in the directories specified by `config.locations`.
+        Environments located elsewhere are unknown to Anaconda.
         '''
         envs = []
         for location in self.locations:
@@ -213,7 +213,7 @@ class config(object):
 
     @property
     def repo_package_urls(self):
-        ''' Platorm-specific package URLS of :ref:`Anaconda repositories <repository>` '''
+        ''' Platform-specific package URLS of :ref:`Anaconda repositories <repository>` '''
         return [
             '%s/%s/' % (url, self.platform) for url in self.repo_base_urls
         ]

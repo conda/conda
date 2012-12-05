@@ -5,7 +5,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """
 This module is for backwards compatibility with the Launcher. All
-functions contained are deprecated and should not be usd for any
+functions contained are deprecated and should not be used for any
 new development.
 """
 import os

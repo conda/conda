@@ -3,8 +3,8 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-''' The constraints module provides a variety of package `contraint` classes that
-can be used to search and match pacakges in the package index.
+''' The constraints module provides a variety of package `constraint` classes that
+can be used to search and match packages in the package index.
 
 '''
 
@@ -40,7 +40,7 @@ class all_of(package_constraint):
     Parameters
     ----------
     *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
-        package contraints to AND together
+        package constraints to AND together
 
 
     '''
@@ -63,7 +63,7 @@ class all_of(package_constraint):
         Returns
         -------
         matches : bool
-            True if all of the `contraints` match, False otherwise
+            True if all of the `constraints` match, False otherwise
 
         '''
         for constraint in self._constraints:
@@ -77,7 +77,7 @@ class any_of(package_constraint):
     Parameters
     ----------
     *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
-        package contraints to OR together
+        package constraints to OR together
 
     '''
     def __init__(self, *constraints):
@@ -99,7 +99,7 @@ class any_of(package_constraint):
         Returns
         -------
         matches : bool
-            True if any of the `contraints` match, False otherwise
+            True if any of the `constraints` match, False otherwise
 
         '''
         for constraint in self._constraints:
@@ -135,7 +135,7 @@ class negate(package_constraint):
         Returns
         -------
         matches : bool
-            True if `contraint` does *not* match, False otherwise
+            True if `constraint` does *not* match, False otherwise
 
         '''
         return not pkg.matches(self._constraint)
@@ -232,7 +232,7 @@ class requires(package_constraint):
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
-        ''' Match if a `req` is comaptible with the requirements for `pkg`
+        ''' Match if a `req` is compatible with the requirements for `pkg`
 
         .. note:: matching includes the case when `pkg` has no requirement at all for the package specified by `req`
 
@@ -244,7 +244,7 @@ class requires(package_constraint):
         Returns
         -------
         matches : bool
-            True if `req` is comaptible requirement for `pkg`, has False otherwise
+            True if `req` is compatible requirement for `pkg`, has False otherwise
 
         '''
         # package never requires itself
@@ -262,7 +262,7 @@ class satisfies(package_constraint):
     Parameters
     ----------
     req : :py:class:`package_spec <conda.package_spec.package_spec>` object
-        pacakge specification to match against
+        package specification to match against
 
     '''
     def __init__(self, req):

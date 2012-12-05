@@ -166,7 +166,7 @@ class package_plan(object):
 def create_create_plan(prefix, conda, spec_strings):
     '''
     This functions creates a package plan for activating packages in a new
-    Anaconda environement, including all of their required dependencies. The
+    Anaconda environment, including all of their required dependencies. The
     desired packages are specified as constraints.
 
     Parameters
@@ -287,7 +287,7 @@ def create_create_plan(prefix, conda, spec_strings):
 def create_install_plan(env, spec_strings):
     '''
     This functions creates a package plan for activating packages in an
-    existing Anaconda environement, including removing existing verions and
+    existing Anaconda environment, including removing existing versions and
     also activating all required dependencies. The desired packages are
     specified as package names, package filenames, or package_spec strings.
 
@@ -491,7 +491,7 @@ def create_update_plan(env, pkg_names):
             % ', '.join('%s-%s' % (pkg.name, pkg.version.vstring) for pkg in inconsistent)
         )
 
-    # download any activations that are not already availabls
+    # download any activations that are not already available
     for pkg in all_pkgs:
 
         active = env.find_activated_package(pkg.name)
@@ -568,7 +568,7 @@ def create_deactivate_plan(env, canonical_names):
     Returns
     -------
     plan: :py:class:`package_plan <conda.package_plan.package_plan>`
-        package plan for de-activating packages in an existing Anaconda environment
+        package plan for deactivating packages in an existing Anaconda environment
 
     Raises
     ------
@@ -608,7 +608,7 @@ def create_download_plan(conda, canonical_names, force):
     '''
     This function creates a package plan for downloading the specified
     packages from remote Anaconda package repositories. By default,
-    packages already available are ignored, but this can be overriden
+    packages already available are ignored, but this can be overridden
     with the force argument.
 
     Parameters

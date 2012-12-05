@@ -54,12 +54,12 @@ class environment(object):
 
     @property
     def prefix(self):
-        ''' Return directory location of this environement '''
+        ''' Return directory location of this environment '''
         return self._prefix
 
     @property
     def activated(self):
-        ''' Return the set of :ref:`activated <activated>` packages in this environement '''
+        ''' Return the set of :ref:`activated <activated>` packages in this environment '''
         canonical_names = activated(self.prefix)
         res = set()
         for name in canonical_names:
@@ -75,7 +75,7 @@ class environment(object):
 
         Returns
         -------
-        requirements : py:class:`package constaint <conda.constraints.package_constraint>`
+        requirements : py:class:`package constraint <conda.constraints.package_constraint>`
         '''
         bt = build_target(self._conda.target)
         py = self._python_constraint()
@@ -92,7 +92,7 @@ class environment(object):
 
         Returns
         -------
-        requirements : py:class:`package constaint <conda.constraints.package_constraint>`
+        requirements : py:class:`package constraint <conda.constraints.package_constraint>`
         '''
         if target:
             bt = build_target(target)

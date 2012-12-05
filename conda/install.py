@@ -20,7 +20,7 @@ These API functions have argument names referring to:
 
 Also, this module is directly invoked by the (self extracting (sfx)) tarball
 installer to create the initial environment, therefore it needs to be
-standalone, i.e. not import any other parts of conda (only depend of
+standalone, i.e. not import any other parts of `conda` (only depend on
 the standard library).
 
 '''
@@ -98,7 +98,7 @@ def create_meta(prefix, dist, info_dir, files):
 
 def available(pkgs_dir):
     """
-    Return, the set of canonical names of, all available packages.
+    Return the (set of canonical names) of all available packages.
     """
     if use_hard_links:
         return set(fn for fn in os.listdir(pkgs_dir)
@@ -247,11 +247,11 @@ def main():
 
     p.add_option('-i', '--info',
                  action="store_true",
-                 help="display mata-data information of an active package")
+                 help="display meta-data information of an active package")
 
     p.add_option('-m', '--make-available',
                  action="store_true",
-                 help="make a package available (when we use hard liks this "
+                 help="make a package available (when we use hard like this "
                       "means extracting it)")
 
     p.add_option('-a', '--activate',
@@ -269,12 +269,12 @@ def main():
     p.add_option('-p', '--prefix',
                  action="store",
                  default=sys.prefix,
-                 help="prefix (defulats to %default)")
+                 help="prefix (defaults to %default)")
 
     p.add_option('--pkgs-dir',
                  action="store",
                  default=join(sys.prefix, 'pkgs'),
-                 help="packages directory (defulats to %default)")
+                 help="packages directory (defaults to %default)")
 
     p.add_option('--activate-all',
                  action="store_true",

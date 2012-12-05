@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-''' The anaconda modude provides the `anaconda` class, which provides configuration
+''' The anaconda module provides the `anaconda` class, which provides configuration
 information about an Anaconda installation, including the Anaconda package index.
 
 '''
@@ -98,4 +98,4 @@ class anaconda(config):
             return index
         except IOError as e:
             raise RuntimeError('Could not build index from local package '
-                               'respitory, reason: %s' % e)
+                               'repository, reason: %s' % e)

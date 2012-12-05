@@ -99,7 +99,7 @@ class package(object):
     @property
     def location(self):
         ''' URL of the Anaconda :ref:`package repository <repository>` this package came from '''
-        return self._info.get('location', 'unkown')
+        return self._info.get('location', 'unknown')
 
     @property
     def is_meta(self):
