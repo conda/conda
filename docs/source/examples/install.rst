@@ -30,7 +30,7 @@ As before, conda will activate all necessary dependencies.
 
     Activating packages...
 
-    [      COMPLETE      ] |##############################################################################################################| 100%
+    [      COMPLETE      ] |###########################################| 100%
 
 In this next example, using the name option (``-n``) will install a package or packages in an existing environment located in
 ``~/anaconda/envs``.
@@ -58,8 +58,8 @@ In this next example, using the name option (``-n``) will install a package or p
 
     Fetching packages...
 
-    pandas-0.9.1-np17py27_0.tar.bz2 100% |###########################################################################| Time: 0:00:01   1.66 MB/s
+    pandas-0.9.1-np17py27_0.tar.bz2 100% |################################| Time: 0:00:01   1.66 MB/s
 
     Activating packages...
 
-    [      COMPLETE      ] |##############################################################################################################| 100%
+    [      COMPLETE      ] |##############################################| 100%
