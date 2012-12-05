@@ -7,6 +7,7 @@ import tempfile
 from os.path import abspath, islink, join
 
 from conda.install import activated, get_meta
+from conda.naming import split_canonical_name
 
 import utils
 
@@ -22,6 +23,14 @@ def conda_installed_files(prefix):
         files = meta['files']
         res.update(set(files))
     return res
+
+
+def get_installed_version(prefix, name):
+    for dist in activated(prefix):
+        n, v, b = split_canonical_name(dist)
+        if n == name:
+            return v
+    return None
 
 
 def walk_files(dir_path):
@@ -48,9 +57,11 @@ def new_files(prefix):
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
-def create_info(files, name, version, build_number):
+def create_info(prefix, files, name, version, build_number):
     if any('site-packages' in f for f in files):
-        requires_py = sys.version_info[:2]
+        python_version = get_installed_version(prefix, 'python')
+        assert python_version is not None
+        requires_py = tuple(map(int, python_version[:3].split('.')))
     else:
         requires_py = False
 
@@ -71,7 +82,7 @@ def create_info(files, name, version, build_number):
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     files = sorted(new_files(prefix))
-    info = create_info(files, name, version, build_number)
+    info = create_info(prefix, files, name, version, build_number)
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
     t = tarfile.open(fn, 'w:bz2')
