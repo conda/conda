@@ -112,7 +112,7 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
-            has_prefix.apped(f)
+            has_prefix.append(f)
         t.add(path, f)
 
     info_dir = join(tmp_dir, 'info')
