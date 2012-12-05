@@ -1,12 +1,13 @@
 import os
+import re
 import sys
 import json
 import shutil
 import tarfile
 import tempfile
-from os.path import abspath, islink, join
+from os.path import abspath, basename, islink, join
 
-from conda.install import activated, get_meta
+from conda.install import activated, get_meta, prefix_placeholder
 from conda.naming import split_canonical_name
 
 import utils
@@ -57,14 +58,7 @@ def new_files(prefix):
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
-def create_info(prefix, files, name, version, build_number):
-    if any('site-packages' in f for f in files):
-        python_version = get_installed_version(prefix, 'python')
-        assert python_version is not None
-        requires_py = tuple(map(int, python_version[:3].split('.')))
-    else:
-        requires_py = False
-
+def create_info(name, version, build_number, requires_py):
     d = dict(
         name = name,
         version = version,
@@ -80,16 +74,42 @@ def create_info(prefix, files, name, version, build_number):
     return d
 
 
+shebang_pat = re.compile(r'^#!.+$', re.M)
+def fix_shebang(tmp_dir, path):
+    with open(path) as fi:
+        data = fi.read()
+    m = shebang_pat.match(data)
+    if not (m and 'python' in m.group()):
+        return path
+
+    data = shebang_pat.sub('#!%s/bin/python' % prefix_placeholder,
+                           data, count=1)
+    tmp_path = join(tmp_dir, basename(path))
+    with open(tmp_path, 'w') as fo:
+        fo.write(data)
+    os.chmod(tmp_path, 0755)
+    return tmp_path
+
+
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     files = sorted(new_files(prefix))
-    info = create_info(prefix, files, name, version, build_number)
+    if any('/site-packages/' in f for f in files):
+        python_version = get_installed_version(prefix, 'python')
+        assert python_version is not None
+        requires_py = tuple(int(x) for x in python_version[:3].split('.'))
+    else:
+        requires_py = False
+    info = create_info(name, version, build_number, requires_py)
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
+    tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(fn, 'w:bz2')
     for f in files:
-        t.add(join(prefix, f), f)
+        path = join(prefix, f)
+        if f.startswith('bin/') and open(path, 'rb').read(2) == '#!':
+            path = fix_shebang(tmp_dir, path)
+        t.add(path, f)
 
-    tmp_dir = tempfile.mkdtemp()
     with open(join(tmp_dir, 'files'), 'w') as fo:
         for f in files:
             fo.write(f + '\n')
@@ -99,8 +119,8 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
 
     t.add(join(tmp_dir, 'files'), 'info/files')
     t.add(join(tmp_dir, 'index.json'), 'info/index.json')
-    shutil.rmtree(tmp_dir)
     t.close()
+    shutil.rmtree(tmp_dir)
 
 
 if __name__ == '__main__':
