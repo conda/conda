@@ -60,14 +60,15 @@ def yield_lines(path):
         yield line
 
 
+prefix_placeholder = ('/opt/anaconda1anaconda2'
+                      # this is intentionally split into parts,
+                      # such that running this program on itself
+                      # will leave it unchanged
+                      'anaconda3')
 def update_prefix(path, new_prefix):
     with open(path) as fi:
         data = fi.read()
-    new_data = data.replace('/opt/anaconda1anaconda2'
-                            # the build prefix is intentionally split into
-                            # parts, such that running this program on itself
-                            # will leave it unchanged
-                            'anaconda3', new_prefix)
+    new_data = data.replace(prefix_placeholder, new_prefix)
     if new_data == data:
         return
     st = os.stat(path)
