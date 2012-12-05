@@ -48,7 +48,7 @@ def new_files(prefix):
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
-def get_info(files, name, version, build_number):
+def create_info(files, name, version, build_number):
     if any('site-packages' in f for f in files):
         requires_py = sys.version_info[:2]
     else:
@@ -71,7 +71,7 @@ def get_info(files, name, version, build_number):
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     files = sorted(new_files(prefix))
-    info = get_info(files, name, version, build_number)
+    info = create_info(files, name, version, build_number)
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
     t = tarfile.open(fn, 'w:bz2')
