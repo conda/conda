@@ -7,13 +7,14 @@
 
 2012-11-21   1.2.1:
 -------------------
-  * minor bug fixes
+  * remove ambiguity from conda update command
 
 
 2012-11-20   1.2.0:
 -------------------
   * "conda upgrade" now updates from AnacondaCE to Anaconda (removed
     upgrade2pro
+  * add versioneer
 
 
 2012-11-13   1.1.0:
@@ -21,6 +22,6 @@
   * Many new features implemented by Bryan
 
 
-September 2012   1.0.0:
------------------------
+2012-09-06   1.0.0:
+-------------------
   * initial release
