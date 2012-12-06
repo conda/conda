@@ -54,6 +54,7 @@ import main_remove
 import main_search
 import main_update
 import main_upgrade
+import main_package
 
 
 def main():
@@ -97,6 +98,7 @@ def main():
     main_deactivate.configure_parser(sub_parsers)
     main_download.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
+    main_package.configure_parser(sub_parsers)
 
     args = p.parse_args()
 
