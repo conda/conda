@@ -110,7 +110,7 @@ def execute(args):
 
     print
     print "Package plan for creating environment at %s:" % prefix
-    
+
     print plan
 
     if args.dry_run: return
