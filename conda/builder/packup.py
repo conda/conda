@@ -103,11 +103,11 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     else:
         requires_py = False
     info = create_info(name, version, build_number, requires_py)
-    fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
+    tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
     has_prefix = []
     tmp_dir = tempfile.mkdtemp()
-    t = tarfile.open(fn, 'w:bz2')
+    t = tarfile.open(tarbz2_fn, 'w:bz2')
     for f in files:
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
@@ -135,6 +135,7 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
 
     t.close()
     shutil.rmtree(tmp_dir)
+    return tarbz2_fn
 
 
 if __name__ == '__main__':
