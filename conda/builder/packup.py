@@ -96,6 +96,11 @@ def fix_shebang(tmp_dir, path):
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     files = sorted(new_files(prefix))
+    print "Number of files: %d" % len(files)
+    if len(files) == 0:
+        print "Nothing to package up."
+        return None
+
     if any('/site-packages/' in f for f in files):
         python_version = get_installed_version(prefix, 'python')
         assert python_version is not None

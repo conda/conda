@@ -62,4 +62,5 @@ def execute(args):
                      name = args.pkg_name,
                      version = args.pkg_version,
                      build_number = args.pkg_build)
-    print '%s created successfully' % fn
+    if fn is not None:
+        print '%s created successfully' % fn
