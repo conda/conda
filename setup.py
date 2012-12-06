@@ -5,11 +5,10 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import sys
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+if 'develop' in sys.argv:
+    import setuptools
 
+from distutils.core import setup
 import versioneer
 
 
