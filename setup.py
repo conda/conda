@@ -27,7 +27,9 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author = "Continuum Analytics, Inc.",
     author_email = "ilan@continuum.io",
-    description = "Conda tool",
+    license = "BSD",
+    description = "package management tool",
+    long_description = open('README.rst').read(),
     packages = ['conda', 'conda.cli', 'conda.builder', 'conda.progressbar'],
     scripts = ['bin/conda'],
 )
