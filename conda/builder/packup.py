@@ -64,7 +64,7 @@ def create_info(name, version, build_number, requires_py):
         version = version,
         platform = utils.PLATFORM,
         arch = utils.ARCH_NAME,
-        build_number = build_number,
+        build_number = int(build_number),
         build = str(build_number),
         requires = [],
     )

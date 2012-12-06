@@ -61,6 +61,6 @@ def execute(args):
     fn = make_tarbz2(prefix,
                      name = args.pkg_name,
                      version = args.pkg_version,
-                     build_number = args.pkg_build)
+                     build_number = int(args.pkg_build))
     if fn is not None:
         print '%s created successfully' % fn
