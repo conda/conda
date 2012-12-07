@@ -56,11 +56,12 @@ def walk_prefix(prefix):
     return res
 
 
-def new_files(prefix):
+def untracked(prefix):
     conda_files = conda_installed_files(prefix)
-    return {path for path in walk_prefix(prefix) - conda_files
-            if not (path.endswith('~') or (path.endswith('.pyc') and
-                                           path[:-1] in conda_files))}
+    res= {path for path in walk_prefix(prefix) - conda_files
+          if not (path.endswith('~') or (path.endswith('.pyc') and
+                                         path[:-1] in conda_files))}
+    return sorted(res)
 
 
 def create_info(name, version, build_number, requires_py):
@@ -100,10 +101,10 @@ def fix_shebang(tmp_dir, path):
 
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
-    files = sorted(new_files(prefix))
+    files = untracked(prefix)
     print "Number of files: %d" % len(files)
     if len(files) == 0:
-        print "Nothing to package up."
+        print "Nothing to package up (no untracked files)."
         return None
 
     if any('/site-packages/' in f for f in files):
