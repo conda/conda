@@ -20,13 +20,20 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = "Search for packages and display their information.",
         help        = "Search for packages and display their information.",
-        epilog          = activate_example,
+        epilog      = activate_example,
     )
     p.add_argument(
         '-p', "--prefix",
         action  = "store",
         default = None,
-        help    = "only show results compatible with Anaconda environment at specified prefix location",
+        help    = "only show results compatible with Anaconda environment at "
+                  "specified prefix location",
+    )
+    p.add_argument(
+        '-c', "--canonical",
+        action  = "store_true",
+        default = False,
+        help    = "output canonical names of packages only",
     )
     p.add_argument(
         '-s', "--show-requires",
@@ -38,8 +45,8 @@ def configure_parser(sub_parsers):
         'search_expression',
         action  = "store",
         nargs   = "?",
-        help    = "package specification or regular expression to search for (default: display all packages)",
-
+        help    = "package specification or regular expression to search for "
+                  "(default: display all packages)",
     )
     p.set_defaults(func=execute)
 
@@ -47,14 +54,10 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
-    if not args.search_expression:
-        for pkg in sort_packages_by_name(conda.index.pkgs):
-            print
-            pkg.print_info(args.show_requires)
-        print
-        return
+    if args.search_expression is None:
+        pkgs = sort_packages_by_name(conda.index.pkgs)
 
-    if args.search_expression in conda.index.package_names:
+    elif args.search_expression in conda.index.package_names:
         pkgs = conda.index.find_matches(
             build_target(conda.target),
             conda.index.lookup_from_name(args.search_expression)
@@ -74,7 +77,8 @@ def execute(args):
                 pkg_names = set()
                 pat = re.compile(args.search_expression)
             except:
-                raise RuntimeError("Could not understand search expression '%s'" % args.search_expression)
+                raise RuntimeError("Could not understand search "
+                                   "expression '%s'" % args.search_expression)
             pkg_names = set()
             for name in conda.index.package_names:
                 if pat.search(name):
@@ -94,8 +98,14 @@ def execute(args):
     else:
         compat_string = ''
 
+    if args.canonical:
+        for pkg in pkgs:
+            print pkg.canonical_name
+        return
+
     if len(pkgs) == 0:
-        print "No matches found for '%s'%s" % (args.search_expression, compat_string)
+        print "No matches found for '%s'%s" % (args.search_expression,
+                                               compat_string)
         return
 
     if len(pkgs) == 1:

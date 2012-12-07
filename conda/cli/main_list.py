@@ -36,7 +36,7 @@ def configure_parser(sub_parsers):
         '-c', "--canonical",
         action  = "store_true",
         default = False,
-        help    = "output canonical names of packages",
+        help    = "output canonical names of packages only",
     )
     p.add_argument(
         'search_expression',
