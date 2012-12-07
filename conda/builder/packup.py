@@ -34,28 +34,33 @@ def get_installed_version(prefix, name):
     return None
 
 
-def walk_files(dir_path):
+def walk_prefix(prefix):
     """
-    Return the set of all files in a given directory.
+    Return the set of all files in a given prefix directory.
     """
     res = set()
-    dir_path = abspath(dir_path)
-    for root, dirs, files in os.walk(dir_path):
-        for fn in files:
-            res.add(join(root, fn)[len(dir_path) + 1:])
-        for dn in dirs:
-            path = join(root, dn)
-            if islink(path):
-                res.add(path[len(dir_path) + 1:])
+    prefix = abspath(prefix)
+    ignore = {'pkgs', 'envs', 'conda-meta', 'LICENSE.txt',
+              '.index', '.unionfs'}
+    for fn in os.listdir(prefix):
+        if fn in ignore:
+            continue
+        dir_path = join(prefix, fn)
+        for root, dirs, files in os.walk(dir_path):
+            for fn in files:
+                res.add(join(root, fn)[len(prefix) + 1:])
+            for dn in dirs:
+                path = join(root, dn)
+                if islink(path):
+                    res.add(path[len(prefix) + 1:])
     return res
 
 
 def new_files(prefix):
     conda_files = conda_installed_files(prefix)
-    return {path for path in walk_files(prefix) - conda_files
-            if not (path.startswith(('pkgs/', 'envs/', 'conda-meta/')) or
-                    path.endswith('~') or path == 'LICENSE.txt' or
-                    (path.endswith('.pyc') and path[:-1] in conda_files))}
+    return {path for path in walk_prefix(prefix) - conda_files
+            if not (path.endswith('~') or (path.endswith('.pyc') and
+                                           path[:-1] in conda_files))}
 
 
 def create_info(name, version, build_number, requires_py):
