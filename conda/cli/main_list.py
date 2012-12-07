@@ -33,6 +33,12 @@ def configure_parser(sub_parsers):
                   "(default: %s)" % ROOT_DIR,
     )
     p.add_argument(
+        '-c', "--canonical",
+        action  = "store_true",
+        default = False,
+        help    = "output canonical names of packages",
+    )
+    p.add_argument(
         'search_expression',
         action  = "store",
         nargs   = "?",
@@ -63,6 +69,11 @@ def execute(args):
         matching = " matching '%s'" % args.search_expression
         pkgs = [pkg for pkg in env.activated if pat.search(pkg.name)]
 
+    if args.canonical:
+        for pkg in sort_packages_by_name(pkgs):
+            print pkg.canonical_name
+        return
+
     if len(pkgs) == 0:
         print('no packages and %s found in environment at %s:' %
               (matching, env.prefix))
@@ -71,4 +82,4 @@ def execute(args):
     print 'packages%s in environment at %s:' % (matching, env.prefix)
     print
     for pkg in sort_packages_by_name(pkgs):
-        print '%-25s %-20s %s' % (pkg.name, pkg.version, pkg.build)
+        print '%-25s %s' % (pkg.name, pkg.version)
