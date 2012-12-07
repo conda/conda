@@ -2,7 +2,7 @@ import bz2
 import sys
 import hashlib
 import platform
-from os.path import normpath
+from os.path import normpath, getmtime, getsize
 
 
 
@@ -41,6 +41,12 @@ def md5_file(path):
                 break
             h.update(chunk)
     return h.hexdigest()
+
+
+def file_info(path):
+    return {'size': getsize(path),
+            'md5': md5_file(path),
+            'mtime': getmtime(path)}
 
 
 if __name__ == '__main__':

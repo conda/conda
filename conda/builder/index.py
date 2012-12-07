@@ -1,15 +1,9 @@
 import os
 import json
 import tarfile
-from os.path import join, getmtime, getsize
+from os.path import join, getmtime
 
-from utils import bzip2, md5_file
-
-
-def file_info(path):
-    return dict(size = getsize(path),
-                md5 = md5_file(path),
-                mtime = getmtime(path))
+from utils import bzip2, file_info
 
 
 def read_index_tar(tar_path):
