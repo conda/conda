@@ -2,6 +2,7 @@
 -------------------
   * added conda package command
   * added conda index command
+  * added -c, --canonical option to list and search commands
   * fixed conda --version on Windows
   * add this changelog
 
