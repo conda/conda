@@ -32,7 +32,7 @@ import stat
 import sys
 import tarfile
 import logging
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, dirname, isdir, isfile, islink, join
 
 
 log = logging.getLogger(__name__)
@@ -209,10 +209,8 @@ def deactivate(dist, prefix):
 
     dst_dirs = set()
     for f in meta['files']:
-        fdn, fbn = os.path.split(f)
-        dst_dir = join(prefix, fdn)
-        dst_dirs.add(dst_dir)
-        dst = join(dst_dir, fbn)
+        dst = join(prefix, f)
+        dst_dirs.add(dirname(dst))
         try:
             os.unlink(dst)
         except OSError: # file might not exist
