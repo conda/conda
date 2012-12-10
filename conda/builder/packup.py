@@ -34,28 +34,34 @@ def get_installed_version(prefix, name):
     return None
 
 
-def walk_files(dir_path):
+def walk_prefix(prefix):
     """
-    Return the set of all files in a given directory.
+    Return the set of all files in a given prefix directory.
     """
     res = set()
-    dir_path = abspath(dir_path)
-    for root, dirs, files in os.walk(dir_path):
-        for fn in files:
-            res.add(join(root, fn)[len(dir_path) + 1:])
-        for dn in dirs:
-            path = join(root, dn)
-            if islink(path):
-                res.add(path[len(dir_path) + 1:])
+    prefix = abspath(prefix)
+    ignore = {'pkgs', 'envs', 'conda-meta', 'LICENSE.txt',
+              '.index', '.unionfs'}
+    for fn in os.listdir(prefix):
+        if fn in ignore:
+            continue
+        dir_path = join(prefix, fn)
+        for root, dirs, files in os.walk(dir_path):
+            for fn in files:
+                res.add(join(root, fn)[len(prefix) + 1:])
+            for dn in dirs:
+                path = join(root, dn)
+                if islink(path):
+                    res.add(path[len(prefix) + 1:])
     return res
 
 
-def new_files(prefix):
+def untracked(prefix):
     conda_files = conda_installed_files(prefix)
-    return {path for path in walk_files(prefix) - conda_files
-            if not (path.startswith(('pkgs/', 'envs/', 'conda-meta/')) or
-                    path.endswith('~') or path == 'LICENSE.txt' or
-                    (path.endswith('.pyc') and path[:-1] in conda_files))}
+    res= {path for path in walk_prefix(prefix) - conda_files
+          if not (path.endswith('~') or (path.endswith('.pyc') and
+                                         path[:-1] in conda_files))}
+    return sorted(res)
 
 
 def create_info(name, version, build_number, requires_py):
@@ -64,7 +70,7 @@ def create_info(name, version, build_number, requires_py):
         version = version,
         platform = utils.PLATFORM,
         arch = utils.ARCH_NAME,
-        build_number = build_number,
+        build_number = int(build_number),
         build = str(build_number),
         requires = [],
     )
@@ -95,7 +101,12 @@ def fix_shebang(tmp_dir, path):
 
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
-    files = sorted(new_files(prefix))
+    files = untracked(prefix)
+    print "Number of files: %d" % len(files)
+    if len(files) == 0:
+        print "Nothing to package up (no untracked files)."
+        return None
+
     if any('/site-packages/' in f for f in files):
         python_version = get_installed_version(prefix, 'python')
         assert python_version is not None
@@ -103,11 +114,11 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     else:
         requires_py = False
     info = create_info(name, version, build_number, requires_py)
-    fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
+    tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
 
     has_prefix = []
     tmp_dir = tempfile.mkdtemp()
-    t = tarfile.open(fn, 'w:bz2')
+    t = tarfile.open(tarbz2_fn, 'w:bz2')
     for f in files:
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
@@ -135,6 +146,7 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
 
     t.close()
     shutil.rmtree(tmp_dir)
+    return tarbz2_fn
 
 
 if __name__ == '__main__':
