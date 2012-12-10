@@ -9,7 +9,7 @@ from os.path import abspath, expanduser, join
 
 from anaconda import anaconda
 from config import ROOT_DIR
-from package_plan import create_update_plan
+from planners import create_update_plan
 
 
 def configure_parser(sub_parsers):

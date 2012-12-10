@@ -5,7 +5,6 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from os.path import abspath, join
-import re
 
 from config import ROOT_DIR
 

@@ -11,7 +11,7 @@ from os.path import abspath, exists, expanduser, join
 
 from anaconda import anaconda
 from config import ROOT_DIR
-from package_plan import create_create_plan
+from planners import create_create_plan
 
 
 def configure_parser(sub_parsers):

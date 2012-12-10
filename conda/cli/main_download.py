@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 from anaconda import anaconda
-from package_plan import create_download_plan
+from planners import create_download_plan
 
 
 def configure_parser(sub_parsers):
