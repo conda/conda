@@ -7,8 +7,7 @@
 from subprocess import check_call
 from os.path import abspath, expanduser, join
 
-from config import ROOT_DIR
-
+from conda.config import ROOT_DIR
 from conda.builder.packup import make_tarbz2, untracked
 
 descr = "Call pip and create a conda package in an environment. (ADVANCED)"
