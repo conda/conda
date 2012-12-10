@@ -57,11 +57,31 @@ def walk_prefix(prefix):
 
 
 def untracked(prefix):
+    """
+    Return (a sorted list) of all untracked files for a given prefix.
+    """
     conda_files = conda_installed_files(prefix)
     res= {path for path in walk_prefix(prefix) - conda_files
           if not (path.endswith('~') or (path.endswith('.pyc') and
                                          path[:-1] in conda_files))}
     return sorted(res)
+
+
+def remove_untracked(prefix):
+    """
+    Remove all untracked files for a given prefix
+    """
+    dst_dirs = set()
+    for f in untracked(prefix):
+        dst = join(prefix, f)
+        dst_dirs.add(dirname(dst))
+        os.unlink(dst)
+
+    for path in sorted(dst_dirs, key=len, reverse=True):
+        try:
+            os.rmdir(path)
+        except OSError: # directory might not be empty
+            pass
 
 
 def create_info(name, version, build_number, requires_py):
@@ -147,20 +167,6 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     t.close()
     shutil.rmtree(tmp_dir)
     return tarbz2_fn
-
-
-def remove_untracked(prefix):
-    dst_dirs = set()
-    for f in untracked(prefix):
-        dst = join(prefix, f)
-        dst_dirs.add(dirname(dst))
-        os.unlink(dst)
-
-    for path in sorted(dst_dirs, key=len, reverse=True):
-        try:
-            os.rmdir(path)
-        except OSError: # directory might not be empty
-            pass
 
 
 if __name__ == '__main__':
