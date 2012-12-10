@@ -121,8 +121,10 @@ def fix_shebang(tmp_dir, path):
     return True
 
 
-def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
-    files = untracked(prefix)
+def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
+                files=None):
+    if files is None:
+        files = untracked(prefix)
     print "Number of files: %d" % len(files)
     if len(files) == 0:
         print "Nothing to package up (no untracked files)."
@@ -176,14 +178,15 @@ def pip(prefix, pkg_name):
 
     pkg_version = '0.0'
     pat = re.compile(pkg_name + r'-([^\-]+)-', re.I)
-    for f in untracked(prefix):
+    files = untracked(prefix)
+    for f in files:
         if 'site-packages' in f:
             m = pat.search(f)
             if m:
                 pkg_version = m.group(1)
                 break
 
-    make_tarbz2(prefix, name=pkg_name, version=pkg_version)
+    make_tarbz2(prefix, name=pkg_name, version=pkg_version, files=files)
 
 
 if __name__ == '__main__':
