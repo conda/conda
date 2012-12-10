@@ -5,7 +5,7 @@ import json
 import shutil
 import tarfile
 import tempfile
-from os.path import abspath, basename, islink, join
+from os.path import abspath, basename, dirname, islink, join
 
 from conda.install import activated, get_meta, prefix_placeholder
 from conda.naming import split_canonical_name
@@ -147,6 +147,20 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0):
     t.close()
     shutil.rmtree(tmp_dir)
     return tarbz2_fn
+
+
+def remove_untracked(prefix):
+    dst_dirs = set()
+    for f in untracked(prefix):
+        dst = join(prefix, f)
+        dst_dirs.add(dirname(dst))
+        os.unlink(dst)
+
+    for path in sorted(dst_dirs, key=len, reverse=True):
+        try:
+            os.rmdir(path)
+        except OSError: # directory might not be empty
+            pass
 
 
 if __name__ == '__main__':

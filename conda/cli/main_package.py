@@ -4,11 +4,10 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import os
 from os.path import abspath, expanduser, join
 
 from conda.config import ROOT_DIR
-from conda.builder.packup import make_tarbz2, untracked
+from conda.builder.packup import make_tarbz2, untracked, remove_untracked
 
 descr = "Create a conda package in an environment. (ADVANCED)"
 
@@ -72,8 +71,7 @@ def execute(args):
         prefix = abspath(expanduser(args.prefix))
 
     if args.reset:
-        for fn in untracked(prefix):
-            os.unlink(join(prefix, fn))
+        remove_untracked(prefix)
         return
 
     if args.untracked:
