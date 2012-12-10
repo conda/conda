@@ -6,7 +6,7 @@
 
 from os.path import abspath, join
 
-from config import ROOT_DIR
+from conda.config import ROOT_DIR
 
 
 def configure_parser(sub_parsers):

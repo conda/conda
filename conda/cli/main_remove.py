@@ -9,7 +9,7 @@ from os import listdir
 from os.path import join
 from shutil import rmtree
 
-from config import config
+from conda.config import config
 
 
 def configure_parser(sub_parsers):

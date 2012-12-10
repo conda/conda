@@ -7,9 +7,9 @@
 from os.path import abspath, expanduser, join
 import re
 
-from anaconda import anaconda
-from config import ROOT_DIR
-from package import sort_packages_by_name
+from conda.anaconda import anaconda
+from conda.config import ROOT_DIR
+from conda.package import sort_packages_by_name
 
 
 def configure_parser(sub_parsers):

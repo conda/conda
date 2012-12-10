@@ -8,10 +8,10 @@ from argparse import RawDescriptionHelpFormatter
 from os.path import abspath, expanduser
 import re
 
-from anaconda import anaconda
-from constraints import all_of, build_target, satisfies
-from package import sort_packages_by_name
-from package_spec import package_spec
+from conda.anaconda import anaconda
+from conda.constraints import all_of, build_target, satisfies
+from conda.package import sort_packages_by_name
+from conda.package_spec import package_spec
 
 
 def configure_parser(sub_parsers):

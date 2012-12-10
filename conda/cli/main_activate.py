@@ -7,9 +7,9 @@
 from argparse import RawDescriptionHelpFormatter
 from os.path import abspath, expanduser
 
-from anaconda import anaconda
-from config import ROOT_DIR
-from planners import create_activate_plan
+from conda.anaconda import anaconda
+from conda.config import ROOT_DIR
+from conda.planners import create_activate_plan
 
 
 def configure_parser(sub_parsers):

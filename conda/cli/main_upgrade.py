@@ -6,8 +6,8 @@
 
 import logging
 
-from anaconda import anaconda
-from package_plan import package_plan
+from conda.anaconda import anaconda
+from conda.package_plan import package_plan
 
 
 log = logging.getLogger(__name__)

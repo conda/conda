@@ -9,9 +9,9 @@ from argparse import RawDescriptionHelpFormatter
 from os import makedirs
 from os.path import abspath, exists, expanduser, join
 
-from anaconda import anaconda
-from config import ROOT_DIR
-from planners import create_create_plan
+from conda.anaconda import anaconda
+from conda.config import ROOT_DIR
+from conda.planners import create_create_plan
 
 
 def configure_parser(sub_parsers):
