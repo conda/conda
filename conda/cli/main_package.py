@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+import os
 from os.path import abspath, expanduser, join
 
 from config import ROOT_DIR
@@ -31,6 +32,12 @@ def configure_parser(sub_parsers):
                   "(default: %s)" % ROOT_DIR,
     )
 
+    p.add_argument(
+        '-r', "--reset",
+        action  = "store_true",
+        default = False,
+        help    = "remove all untracked files and exit",
+    )
     p.add_argument(
         '-u', "--untracked",
         action  = "store_true",
@@ -64,6 +71,11 @@ def execute(args):
         prefix = join(ROOT_DIR, 'envs', args.name)
     else:
         prefix = abspath(expanduser(args.prefix))
+
+    if args.reset:
+        for fn in untracked(prefix):
+            os.unlink(join(prefix, fn))
+        return
 
     if args.untracked:
         for fn in untracked(prefix):
