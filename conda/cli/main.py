@@ -55,6 +55,7 @@ import main_search
 import main_update
 import main_upgrade
 import main_package
+import main_pip
 import main_index
 
 
@@ -100,6 +101,7 @@ def main():
     main_download.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
+    main_pip.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 
     args = p.parse_args()

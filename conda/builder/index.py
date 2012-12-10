@@ -53,10 +53,7 @@ def update_index(dir_path, verbose=False, force=False):
             except KeyError:
                 pass
 
-    repodata = dict(
-        packages=index,
-        info={},
-    )
+    repodata = {'packages': index, 'info': {}}
     repodata_path = join(dir_path, 'repodata.json')
     with open(repodata_path, 'w') as fo:
         json.dump(repodata, fo, indent=2, sort_keys=True)
