@@ -7,7 +7,7 @@
 from os.path import abspath, expanduser, join
 
 from conda.config import ROOT_DIR
-from conda.builder.packup import make_tarbz2, untracked, remove_untracked
+from conda.builder.packup import make_tarbz2, untracked, remove
 
 descr = "Create a conda package in an environment. (ADVANCED)"
 
@@ -71,7 +71,7 @@ def execute(args):
         prefix = abspath(expanduser(args.prefix))
 
     if args.reset:
-        remove_untracked(prefix)
+        remove(prefix, untracked(prefix))
         return
 
     if args.untracked:

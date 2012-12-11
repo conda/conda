@@ -68,12 +68,12 @@ def untracked(prefix):
     return sorted(res)
 
 
-def remove_untracked(prefix):
+def remove(prefix, files):
     """
     Remove all untracked files for a given prefix
     """
     dst_dirs = set()
-    for f in untracked(prefix):
+    for f in files:
         dst = join(prefix, f)
         dst_dirs.add(dirname(dst))
         os.unlink(dst)
