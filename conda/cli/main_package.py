@@ -79,8 +79,12 @@ def execute(args):
     if args.check:
         from conda.builder.tarcheck import check_all
 
-        check_all(args.check)
-        print '%s OK' % basename(args.check)
+        try:
+            check_all(args.check)
+            print '%s OK' % basename(args.check)
+        except Exception as e:
+            print e
+            print '%s FAILED' % basename(args.check)
         return
 
     if args.reset:
