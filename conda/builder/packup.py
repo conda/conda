@@ -70,7 +70,7 @@ def untracked(prefix):
 
 def remove(prefix, files):
     """
-    Remove all untracked files for a given prefix
+    Remove files for a given prefix
     """
     dst_dirs = set()
     for f in files:
