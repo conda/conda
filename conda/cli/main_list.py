@@ -43,7 +43,6 @@ def configure_parser(sub_parsers):
         action  = "store",
         nargs   = "?",
         help    = "list only packages matching this regular expression",
-
     )
     p.set_defaults(func=execute)
 
