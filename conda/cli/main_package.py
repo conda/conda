@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from os.path import abspath, expanduser, join
+from os.path import abspath, basename, expanduser, join
 
 from conda.config import ROOT_DIR
 from conda.builder.packup import make_tarbz2, untracked, remove
@@ -30,6 +30,12 @@ def configure_parser(sub_parsers):
                   "(default: %s)" % ROOT_DIR,
     )
 
+    p.add_argument(
+        '-c', "--check",
+        action  = "store",
+        help    = "check (validate) the given tar package",
+        metavar = 'PATH',
+    )
     p.add_argument(
         '-r', "--reset",
         action  = "store_true",
@@ -69,6 +75,13 @@ def execute(args):
         prefix = join(ROOT_DIR, 'envs', args.name)
     else:
         prefix = abspath(expanduser(args.prefix))
+
+    if args.check:
+        from conda.builder.tarcheck import check_all
+
+        check_all(args.check)
+        print '%s OK' % basename(args.check)
+        return
 
     if args.reset:
         remove(prefix, untracked(prefix))
