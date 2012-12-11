@@ -4,4 +4,4 @@
 build/
 dist/
 docs/build
-conda-testlog.txt
+*-testlog.txt

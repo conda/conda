@@ -1,5 +1,7 @@
 import os
 
+from shutil import rmtree
+
 pys = [
     "python=2.6",
     "python=2.7"
@@ -24,4 +26,4 @@ for py in pys:
     for num in nums:
         envTest(py, num)
         
-os.system("rm -rf ~/anaconda/envs/test")
+rmtree(test)
