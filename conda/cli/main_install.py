@@ -83,11 +83,14 @@ def execute(args):
 
     if args.file:
         try:
-            f = open(abspath(args.file))
-            req_strings = [line for line in f]
-            f.close()
-        except:
-            raise RuntimeError('could not read file: %s', args.file)
+            req_strings = []
+            with open(args.file) as fi:
+                for line in fi:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        req_strings.append(line)
+        except IOError:
+            raise RuntimeError('could not read file: %s' % args.file)
     else:
         req_strings = pkg_versions
 
