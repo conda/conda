@@ -12,3 +12,4 @@ Contents:
    information
    basic
    advanced
+   packaging

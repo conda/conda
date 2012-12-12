@@ -1,0 +1,12 @@
+Call pip and create a conda package in an environment. (ADVANCED)
+
+**usage**: ``conda pip [-h] [-n NAME | -p PREFIX] name [name ...]``
+
+*name*
+	name of package to pip install
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to list packages in
+  -p PREFIX, --prefix PREFIX
+                        full path to Anaconda environment to list packages in (default: ROOT_DIR)

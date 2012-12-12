@@ -1,0 +1,18 @@
+Create a conda package in an environment. (ADVANCED)
+
+**usage**: ``conda package [-h] [-n NAME | -p PREFIX] [-c PATH] [-r] [-u] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD]``
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to list packages in
+  -p PREFIX, --prefix PREFIX
+                        full path to Anaconda environment to list packages in (default: ROOT_DIR)
+  -c PATH, --check PATH
+                        check (validate) the given tar package and exit
+  -r, --reset           remove all untracked files and exit
+  -u, --untracked       display all untracked files and exit
+  --pkg-name PKG_NAME   package name of the created package
+  --pkg-version PKG_VERSION
+                        package version of the created package
+  --pkg-build PKG_BUILD
+                        package build number of the created package

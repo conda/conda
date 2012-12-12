@@ -3,12 +3,8 @@ Basic Package Management
 ========================
 
 .. toctree::
-    :hidden:
 
-    create
-    install
-    update
+    commands/create
+    commands/install
+    commands/update
 
-.. include:: create.rst
-.. include:: install.rst
-.. include:: update.rst

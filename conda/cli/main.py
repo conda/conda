@@ -33,6 +33,13 @@ conda provides the following commands:
     download   : download and make available packages from remote repositories
     remove     : remove specified packages from the local packages repository
 
+    Packaging
+    =========
+
+    package    : create a conda package in an environment
+    pip        : call pip and create a conda package in an environment
+    index      : updates repodata.json in repository directories
+
 Additional help for each command can be accessed by using:
 
     conda <command> -h

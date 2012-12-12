@@ -23,7 +23,10 @@ cmd_names = [
     'deactivate',
     'download',
     'remove',
-    'upgrade'
+    'upgrade',
+    'package',
+    'pip',
+    'index'
 ]
 
 def scrape_help(cmd_name):
@@ -82,7 +85,7 @@ if __name__ == '__main__':
     for name in cmd_names:
         output = scrape_help(name)
 
-        path = "/tmp"
+        path = "source/commands/"
         if len(sys.argv) > 1:
             path = sys.argv[1]
         outpath = join(path, "%s.txt" % name)

@@ -10,7 +10,7 @@ from os.path import abspath
 from conda.builder.index import update_index
 
 
-descr = "updates repodata.json in repository directories (ADVANCED)"
+descr = "Updates repodata.json in repository directories. (ADVANCED)"
 
 
 def configure_parser(sub_parsers):

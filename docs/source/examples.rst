@@ -23,3 +23,6 @@ Contents:
    examples/remove
    examples/download
    examples/upgrade
+   examples/package
+   examples/pip
+   examples/index

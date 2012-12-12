@@ -179,7 +179,7 @@ The process of upgrading from Anaconda Community Edition to the full trial versi
 
 ----
 
-.. include:: upgrade.txt
+.. include:: commands/upgrade.txt
 
 
 Look here for :ref:`examples <upgrade_example>`.
