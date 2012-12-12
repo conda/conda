@@ -26,3 +26,4 @@ Update all specified packages to latest versions in ``myenv``
 .. code-block:: bash
 
     $ conda update -n myenv anaconda
+
