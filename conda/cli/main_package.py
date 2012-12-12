@@ -33,7 +33,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-c', "--check",
         action  = "store",
-        help    = "check (validate) the given tar package",
+        help    = "check (validate) the given tar package and exit",
         metavar = 'PATH',
     )
     p.add_argument(
