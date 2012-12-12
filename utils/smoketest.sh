@@ -5,13 +5,9 @@ TESTLOG="conda-testlog.txt"
 echo "rm -rf ~/anaconda/envs/myenv"
 rm -rf ~/anaconda/envs/myenv
 
-# Check if TESTLOG exists, removes it
-
 if [[ -f $TESTLOG ]]; then 
     rm $TESTLOG
 fi
-
-#Prints the command and error that failed to TESTLOG
 
 function log()
 {

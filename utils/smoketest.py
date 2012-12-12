@@ -1,6 +1,6 @@
 import os
 
- 
+from subprocess import call
 from os.path import exists, join
 from shutil import rmtree
 from tempfile import mkdtemp
@@ -13,6 +13,8 @@ TESTLOG="conda-testlog.txt"
 
 if exists(TESTLOG):
     os.remove(TESTLOG)
+
+f = open(TESTLOG, "w")
 
 cmds = [
     "conda info",
@@ -29,10 +31,32 @@ cmds = [
     "conda download --confirm=no zeromq-2.2.0-0"
 ]
 
-for cmd in cmds:
+fails = []
+
+for i in cmds:
+    cmd = i
     print "-"*61
     print "%s" % cmd 
     print "-"*61 
-    os.system(cmd)
+    try:
+        ret = call(cmd.split())
+        if ret != 0:
+            print "\nFAILED\n"
+            f.write("\n%s" % cmd)
+            fails.append(cmd)
+        else:
+            print "\nPASSED\n"
+    except Exception as e:
+        print e
+        f.write("\nThe script had the following error running %s: %s" % (cmd, e))
 
-rmtree(myenv)
+if fails:
+    print "These commands failed: \n"
+    for line, fail in enumerate(fails, 1):
+        print "%d: %s\n" % (line, fail)
+    print "Writing failed commands to conda-testlog.txt"
+
+try:
+    rmtree(myenv)
+except:
+    pass
