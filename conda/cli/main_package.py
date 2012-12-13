@@ -4,10 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from os.path import abspath, basename, expanduser, join
+from os.path import basename
 
 from conda.config import ROOT_DIR
 from conda.builder.packup import make_tarbz2, untracked, remove
+from utils import get_default_prefix, get_prefix
 
 descr = "Create a conda package in an environment. (ADVANCED)"
 
@@ -19,15 +20,14 @@ def configure_parser(sub_parsers):
     npgroup.add_argument(
         '-n', "--name",
         action  = "store",
-        help    = "name of new directory (in %s/envs) to list packages in" %
+        help    = "name of environment (directory in %s/envs) to package in" %
                   ROOT_DIR,
     )
     npgroup.add_argument(
         '-p', "--prefix",
         action  = "store",
-        default = ROOT_DIR,
-        help    = "full path to Anaconda environment to list packages in "
-                  "(default: %s)" % ROOT_DIR,
+        help    = "full path to environment prefix to package in "
+                  "(default: %s)" % get_default_prefix(),
     )
 
     p.add_argument(
@@ -71,10 +71,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    if args.name:
-        prefix = join(ROOT_DIR, 'envs', args.name)
-    else:
-        prefix = abspath(expanduser(args.prefix))
+    prefix = get_prefix(args)
 
     if args.check:
         from conda.builder.tarcheck import check_all
@@ -86,6 +83,8 @@ def execute(args):
             print e
             print '%s FAILED' % basename(args.check)
         return
+
+    print 'prefix:', prefix
 
     if args.reset:
         remove(prefix, untracked(prefix))
