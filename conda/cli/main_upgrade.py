@@ -8,6 +8,7 @@ import logging
 
 from conda.anaconda import anaconda
 from conda.package_plan import package_plan
+from utils import add_parser_yes
 
 
 log = logging.getLogger(__name__)
@@ -19,13 +20,7 @@ def configure_parser(sub_parsers):
         description     = "Upgrade Anaconda CE install to full Anaconda trial.",
         help            = "Upgrade Anaconda CE install to full Anaconda trial.",
     )
-    p.add_argument(
-        "--confirm",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "ask for confirmation before upgrading packages (default: yes)",
-    )
+    add_parser_yes(p)
     p.add_argument(
         "--dry-run",
         action  = "store_true",
@@ -80,10 +75,12 @@ def execute(args):
 
     print plan
 
-    if args.dry_run: return
+    if args.dry_run:
+        return
 
-    if args.confirm == "yes":
+    if not args.yes:
         proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']: return
+        if proceed.lower() not in ['y', 'yes']:
+            return
 
     plan.execute(env)

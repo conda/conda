@@ -16,15 +16,14 @@ def add_parser_prefix(p):
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
-        action  = "store",
-        help    = "name of environment (directory in %s/envs)" %
-                  ROOT_DIR,
+        action = "store",
+        help = "name of environment (directory in %s/envs)" % ROOT_DIR,
     )
     npgroup.add_argument(
         '-p', "--prefix",
-        action  = "store",
-        help    = "full path to environment prefix (default: %s)" %
-                  get_default_prefix(),
+        action = "store",
+        help = "full path to environment prefix (default: %s)" %
+                    get_default_prefix(),
     )
 
 
@@ -36,3 +35,12 @@ def get_prefix(args):
         return abspath(expanduser(args.prefix))
 
     return get_default_prefix()
+
+
+def add_parser_yes(p):
+    p.add_argument(
+        "--yes",
+        action = "store_true",
+        default = False,
+        help = "do not ask for confirmation",
+    )

@@ -10,7 +10,7 @@ from os.path import abspath, exists
 
 from conda.anaconda import anaconda
 from conda.planners import create_create_plan
-from utils import add_parser_prefix, get_prefix
+from utils import add_parser_prefix, get_prefix, add_parser_yes
 
 
 def configure_parser(sub_parsers):
@@ -21,13 +21,7 @@ def configure_parser(sub_parsers):
         help            = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
         epilog          = activate_example,
     )
-    p.add_argument(
-        "--confirm",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "ask for confirmation before creating Anaconda environment (default: yes)",
-    )
+    add_parser_yes(p)
     p.add_argument(
         "--dry-run",
         action  = "store_true",
@@ -99,11 +93,13 @@ def execute(args):
 
     print plan
 
-    if args.dry_run: return
+    if args.dry_run:
+        return
 
-    if args.confirm == "yes":
+    if not args.yes:
         proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']: return
+        if proceed.lower() not in ['y', 'yes']:
+            return
 
     makedirs(prefix)
     env = conda.lookup_environment(prefix)
