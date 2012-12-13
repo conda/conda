@@ -5,10 +5,9 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from argparse import RawDescriptionHelpFormatter
-from os.path import abspath, expanduser, join
 
 from conda.anaconda import anaconda
-from conda.config import ROOT_DIR
+from utils import add_parser_prefix, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -27,23 +26,12 @@ def configure_parser(sub_parsers):
         help    = "maximum depth to search dependencies, 0 searches all depths (default: 0)",
     )
     p.add_argument(
-        "--no-prefix",
+        "--all",
         action  = "store_true",
         default = False,
-        help    = "return reverse dependencies compatible with any specified environment, overrides --prefix",
+        help    = "return reverse dependencies compatible with any specified environment, overrides --name and --prefix",
     )
-    npgroup = p.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "return dependencies compatible with a specified named environment (in %s/envs)" % ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = ROOT_DIR,
-        help    = "return dependencies compatible with a specified environment (default: %s)" % ROOT_DIR,
-    )
+    add_parser_prefix(p)
     p.add_argument(
         '-r', "--reverse",
         action  = "store_true",
@@ -68,10 +56,7 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
-    if args.name:
-        prefix = join(ROOT_DIR, 'envs', args.name)
-    else:
-        prefix = abspath(expanduser(args.prefix))
+    prefix = get_prefix(args)
 
     env = conda.lookup_environment(prefix)
 
@@ -84,7 +69,7 @@ def execute(args):
             tmp = conda.index.lookup_from_name(pkg_name)
             if not tmp:
                 raise RuntimeError("package name '%s' is unknown" % pkg_name)
-            if args.no_prefix:
+            if args.all:
                 pkgs |= conda.index.lookup_from_name(pkg_name)
             else:
                 raise RuntimeError("package '%s' not installed in environment at: %s" % (pkg_name, prefix))
@@ -94,7 +79,7 @@ def execute(args):
 
         fmt = '%s' if len(args.pkg_names) == 1 else '{%s}'
 
-        if not args.no_prefix:
+        if not args.all:
             rdeps &= env.activated
 
         if len(rdeps) == 0:
@@ -108,13 +93,13 @@ def execute(args):
             names_count = dict((k, names.count(k)) for k in names)
             names = sorted(list(set(names)))
 
-        activated = '' if args.no_prefix else 'activated '
+        activated = '' if args.all else 'activated '
         print 'The following %spackages depend on ' % activated + fmt % ', '.join(args.pkg_names) + ':'
 
     else:
         deps = conda.index.get_deps(pkgs, args.max_depth)
 
-        if not args.no_prefix:
+        if not args.all:
             deps &= env.activated
 
         if len(deps) == 0:
@@ -129,7 +114,7 @@ def execute(args):
             names_count = dict((k, names.count(k)) for k in names)
             names = sorted(list(set(names)))
 
-        activated = '' if args.no_prefix else 'activated '
+        activated = '' if args.all else 'activated '
         suffix, fmt = ('s', '%s') if len(args.pkg_names) == 1 else ('', '{%s}')
         print (fmt + ' depend%s on the following packages:') % (', '.join(args.pkg_names), suffix)
 

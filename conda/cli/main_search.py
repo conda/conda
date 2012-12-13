@@ -4,14 +4,14 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from argparse import RawDescriptionHelpFormatter
-from os.path import abspath, expanduser
 import re
+from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import anaconda
 from conda.constraints import all_of, build_target, satisfies
 from conda.package import sort_packages_by_name
 from conda.package_spec import package_spec
+from utils import add_parser_prefix, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -22,12 +22,11 @@ def configure_parser(sub_parsers):
         help        = "Search for packages and display their information.",
         epilog      = activate_example,
     )
+    add_parser_prefix(p)
     p.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = None,
-        help    = "only show results compatible with Anaconda environment at "
-                  "specified prefix location",
+        "--all",
+        action  = "store_true",
+        help    = "show all results compatible with any environment",
     )
     p.add_argument(
         '-c', "--canonical",
@@ -90,13 +89,13 @@ def execute(args):
                     conda.index.lookup_from_name(name)
                 )
 
-    if args.prefix:
-        prefix = abspath(expanduser(args.prefix))
+    if args.all:
+        compat_string = ''
+    else:
+        prefix = get_prefix(args)
         env = conda.lookup_environment(prefix)
         pkgs = conda.index.find_matches(env.requirements, pkgs)
-        compat_string = ' compatible with environment %s' % args.prefix
-    else:
-        compat_string = ''
+        compat_string = ' compatible with environment %s' % prefix
 
     if args.canonical:
         for pkg in pkgs:
