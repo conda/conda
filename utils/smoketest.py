@@ -6,7 +6,7 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 base = mkdtemp()
-myenv = join(base, "myenv")
+myenv = join(base, "env")
 
 cmds = [
     (
@@ -65,9 +65,9 @@ def tester(commands):
     for i in cmds:
         cmd = i[0]
         out = i[1]
-        print "-"*61
+        print "-"*120
         print "%s" % cmd 
-        print "-"*61 
+        print "-"*120
         try:
             child = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE)
             data, err = child.communicate()
@@ -79,8 +79,7 @@ def tester(commands):
             else:
                 print "\nPASSED\n"
                 g = open("%s.txt" % out, "w")
-                g.write("$ %s\n\n" % cmd)
-                g.write(data)
+                g.write("$ %s\n\n %s" % (cmd, data))
                 g.close()
         except Exception as e:
             print e
@@ -95,7 +94,7 @@ if __name__ == '__main__':
         os.remove(TESTLOG)
     f = open(TESTLOG, "w")
     fails = tester(cmds)
-
+    f.close()
     if fails:
         print "These commands failed: \n"
         for line, fail in enumerate(fails, 1):
