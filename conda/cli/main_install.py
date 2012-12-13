@@ -6,6 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
+from conda.config import ROOT_DIR
 from conda.anaconda import anaconda
 from conda.planners import create_install_plan
 from utils import add_parser_prefix, get_prefix, add_parser_yes
@@ -73,9 +74,9 @@ def execute(args):
     else:
         req_strings = pkg_versions
 
-    for req_string in req_strings:
-        if req_string.startswith('conda'):
-            raise RuntimeError("package 'conda' may only be installed in the default environment")
+    if prefix != ROOT_DIR and any(s.startswith('conda') for s in req_strings):
+        raise RuntimeError("package 'conda' may only be installed in the "
+                           "root environment")
 
     if len(req_strings) == 0:
         raise RuntimeError('no package specifications supplied')
