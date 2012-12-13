@@ -6,9 +6,8 @@
 
 from os.path import basename
 
-from conda.config import ROOT_DIR
 from conda.builder.packup import make_tarbz2, untracked, remove
-from utils import get_default_prefix, get_prefix
+from utils import add_parser_prefix, get_prefix
 
 descr = "Create a conda package in an environment. (ADVANCED)"
 
@@ -16,19 +15,7 @@ descr = "Create a conda package in an environment. (ADVANCED)"
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('package', description=descr, help=descr)
 
-    npgroup = p.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "name of environment (directory in %s/envs) to package in" %
-                  ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        help    = "full path to environment prefix to package in "
-                  "(default: %s)" % get_default_prefix(),
-    )
+    add_parser_prefix(p)
 
     p.add_argument(
         '-c', "--check",
