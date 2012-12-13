@@ -75,9 +75,9 @@ def execute(args):
     else:
         spec_strings = args.package_specs
 
-    for spec_string in spec_strings:
-        if spec_string.startswith('conda'):
-            raise RuntimeError("Package 'conda' may only be installed in the default environment")
+    if any(s.startswith('conda') for s in spec_strings):
+        raise RuntimeError("Package 'conda' may only be installed in the "
+                           "root environment")
 
     if len(spec_strings) == 0:
         raise RuntimeError('no package specifications supplied')
