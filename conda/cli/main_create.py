@@ -1,4 +1,3 @@
-
 # (c) 2012 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
@@ -7,11 +6,11 @@
 
 from argparse import RawDescriptionHelpFormatter
 from os import makedirs
-from os.path import abspath, exists, expanduser, join
+from os.path import abspath, exists
 
 from conda.anaconda import anaconda
-from conda.config import ROOT_DIR
 from conda.planners import create_create_plan
+from utils import add_parser_prefix, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -40,17 +39,7 @@ def configure_parser(sub_parsers):
         action  = "store",
         help    = "filename to read package specs from",
     )
-    npgroup = p.add_mutually_exclusive_group(required=True)
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "name of new directory (in %s/envs) to create Anaconda environment in" % ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        help    = "full path of new directory to create Anaconda environment in",
-    )
+    add_parser_prefix(p)
     p.add_argument(
         "--progress-bar",
         action  = "store",
@@ -74,10 +63,7 @@ def execute(args):
 
     conda = anaconda()
 
-    if args.prefix:
-        prefix = abspath(expanduser(args.prefix))
-    else:
-        prefix = join(ROOT_DIR, 'envs', args.name)
+    prefix = get_prefix(args)
 
     if exists(prefix):
         if args.prefix:

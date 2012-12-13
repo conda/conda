@@ -5,11 +5,10 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from argparse import RawDescriptionHelpFormatter
-from os.path import abspath, expanduser, join
 
 from conda.anaconda import anaconda
-from conda.config import ROOT_DIR
 from conda.planners import create_update_plan
+from utils import add_parser_prefix, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -33,18 +32,7 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "display packages to be modified, without actually exectuting",
     )
-    npgroup = p.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "name of new directory (in %s/envs) to update packages in" % ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = ROOT_DIR,
-        help    = "full path to Anaconda environment to update packages in (default: %s)" % ROOT_DIR,
-    )
+    add_parser_prefix(p)
     p.add_argument(
         'pkg_names',
         metavar = 'package_name',
@@ -61,10 +49,7 @@ def execute(args):
     if conda.local_index_only:
         raise RuntimeError('Updating packages requires access to package indices on remote package repositories. (Check network connection?)')
 
-    if args.name:
-        prefix = join(ROOT_DIR, 'envs', args.name)
-    else:
-        prefix = abspath(expanduser(args.prefix))
+    prefix = get_prefix(args)
 
     env = conda.lookup_environment(prefix)
 

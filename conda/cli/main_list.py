@@ -4,12 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from os.path import abspath, expanduser, join
 import re
 
 from conda.anaconda import anaconda
-from conda.config import ROOT_DIR
 from conda.package import sort_packages_by_name
+from utils import add_parser_prefix, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -18,20 +17,7 @@ def configure_parser(sub_parsers):
         description = "List activated packages in an Anaconda environment.",
         help        = "List activated packages in an Anaconda environment.",
     )
-    npgroup = p.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "name of new directory (in %s/envs) to list packages in" %
-                  ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = ROOT_DIR,
-        help    = "full path to Anaconda environment to list packages in "
-                  "(default: %s)" % ROOT_DIR,
-    )
+    add_parser_prefix(p)
     p.add_argument(
         '-c', "--canonical",
         action  = "store_true",
@@ -50,10 +36,7 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = anaconda()
 
-    if args.name:
-        prefix = join(ROOT_DIR, 'envs', args.name)
-    else:
-        prefix = abspath(expanduser(args.prefix))
+    prefix = get_prefix(args)
 
     env = conda.lookup_environment(prefix)
 
