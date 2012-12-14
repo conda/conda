@@ -8,7 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import anaconda
 from conda.planners import create_download_plan
-from utils import add_parser_yes, confirm
+from utils import add_parser_yes, confirm, add_parser_progress
 
 
 def configure_parser(sub_parsers):
@@ -26,13 +26,7 @@ def configure_parser(sub_parsers):
         default = False,
         help    = "force package downloads even when specific package is already available",
     )
-    p.add_argument(
-        "--progress-bar",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "display progress bar for package downloads (default: yes)",
-    )
+    add_parser_progress(p)
     p.add_argument(
         'canonical_names',
         action  = "store",
@@ -61,7 +55,8 @@ def execute(args):
 
     # pass default environment because some env is required,
     # but it is unused here
-    plan.execute(conda.default_environment, args.progress_bar=="yes")
+    plan.execute(conda.default_environment, args.progress_bar == "yes")
+
 
 activate_example = '''
 examples:

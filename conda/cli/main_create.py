@@ -10,7 +10,8 @@ from os.path import abspath, exists
 
 from conda.anaconda import anaconda
 from conda.planners import create_create_plan
-from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
+from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
+                   add_parser_progress)
 
 
 def configure_parser(sub_parsers):
@@ -28,13 +29,7 @@ def configure_parser(sub_parsers):
         help    = "filename to read package specs from",
     )
     add_parser_prefix(p)
-    p.add_argument(
-        "--progress-bar",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "display progress bar for package downloads (default: yes)",
-    )
+    add_parser_progress(p)
     p.add_argument(
         'package_specs',
         metavar = 'package_spec',
@@ -91,7 +86,8 @@ def execute(args):
     makedirs(prefix)
     env = conda.lookup_environment(prefix)
 
-    plan.execute(env, args.progress_bar=="yes")
+    plan.execute(env, args.progress_bar == "yes")
+
 
 activate_example = '''
 examples:

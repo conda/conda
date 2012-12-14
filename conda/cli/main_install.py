@@ -9,7 +9,8 @@ from argparse import RawDescriptionHelpFormatter
 from conda.config import ROOT_DIR
 from conda.anaconda import anaconda
 from conda.planners import create_install_plan
-from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
+from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
+                   add_parser_progress)
 
 
 descr = "Install a list of packages into a specified Anaconda environment."
@@ -30,13 +31,7 @@ def configure_parser(sub_parsers):
         help    = "filename to read package versions from",
     )
     add_parser_prefix(p)
-    p.add_argument(
-        "--progress-bar",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "display progress bar for package downloads (default: yes)",
-    )
+    add_parser_progress(p)
     p.add_argument(
         'packages',
         metavar = 'package_version',
@@ -48,10 +43,9 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    pkg_versions = args.packages
-
-    if len(pkg_versions) == 0 and not args.file:
-        raise RuntimeError('too few arguments, must supply command line package specifications or --file')
+    if len(args.packages) == 0 and not args.file:
+        raise RuntimeError('too few arguments, must supply command line '
+                           'package specifications or --file')
 
     conda = anaconda()
 
@@ -70,7 +64,7 @@ def execute(args):
         except IOError:
             raise RuntimeError('could not read file: %s' % args.file)
     else:
-        req_strings = pkg_versions
+        req_strings = args.packages
 
     if prefix != ROOT_DIR and any(s.startswith('conda') for s in req_strings):
         raise RuntimeError("package 'conda' may only be installed in the "
@@ -93,7 +87,7 @@ def execute(args):
 
     confirm(args)
 
-    plan.execute(env, args.progress_bar=="yes")
+    plan.execute(env, args.progress_bar == "yes")
 
 
 activate_example = '''

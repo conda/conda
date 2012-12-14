@@ -62,3 +62,13 @@ def confirm(args):
     if proceed.strip().lower() in ('y', 'yes'):
         return
     sys.exit(0)
+
+
+def add_parser_progress(p):
+    p.add_argument(
+        "--progress-bar",
+        action  = "store",
+        default = "yes",
+        choices = ["yes", "no"],
+        help    = "display progress bar (default: yes)",
+    )
