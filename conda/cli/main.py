@@ -26,8 +26,7 @@ conda provides the following commands:
     Advanced Package Management
     ===========================
 
-    activate   : activate available packages in a specified Anaconda environment
-    deactivate : deactivate packages in a specified Anaconda environment
+    env        : activate or deactivate available packages in the specified Anaconda environment
     local      : add and remove Anaconda packages from local availability
 
     Packaging
@@ -43,10 +42,9 @@ Additional help for each command can be accessed by using:
 '''
 
 import conda_argparse as argparse
-import main_activate
 import main_create
-import main_deactivate
 import main_depends
+import main_env
 import main_info
 import main_install
 import main_list
@@ -95,8 +93,7 @@ def main():
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
     main_upgrade.configure_parser(sub_parsers)
-    main_activate.configure_parser(sub_parsers)
-    main_deactivate.configure_parser(sub_parsers)
+    main_env.configure_parser(sub_parsers)
     main_local.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_pip.configure_parser(sub_parsers)
