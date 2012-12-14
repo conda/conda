@@ -10,12 +10,11 @@ def guess_pkg_version(files, pkg_name):
     """
     Guess the package version from (usually untracked) files.
     """
-    pat = re.compile(pkg_name + r'-([^\-]+)-', re.I)
+    pat = re.compile(r'site-packages[/\\]' + pkg_name + r'-([^\-]+)-', re.I)
     for f in files:
-        if 'site-packages' in f:
-            m = pat.search(f)
-            if m:
-                return m.group(1)
+        m = pat.search(f)
+        if m:
+            return m.group(1)
     return '0.0'
 
 
