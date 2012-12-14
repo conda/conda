@@ -3,6 +3,8 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+import sys
+from os.path import isdir, isfile
 
 from conda.builder.commands import pip
 from utils import add_parser_prefix, get_prefix
@@ -15,13 +17,13 @@ def configure_parser(sub_parsers):
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument("--git",
                          action="store_true",
-                         help="build from git")
+                         help="build from git url")
     npgroup.add_argument("--tar",
                          action="store_true",
-                         help="build from source tarball")
+                         help="build from local source tarball")
     npgroup.add_argument("--zip",
                          action="store_true",
-                         help="build from source zipfile")
+                         help="build from local source zipfile")
     npgroup.add_argument("--svn",
                          action="store_true",
                          help = "build from svn")
@@ -52,11 +54,24 @@ def get_source_type(args):
         return 'dir'
     # try to determine source from url
     url = args.url[0]
-    # TODO...
-    #if url.ends
+    if isfile(url):
+        if url.endswith(('.tar.gz', '.tar.bz2', '.tgz', '.tar')):
+            return 'tar'
+        if url.endswith('.zip'):
+            return 'zip'
+    if isdir(url):
+        return 'dir'
+    if url.endswith('.git'):
+        return 'git'
+    # we don't know
+    return None
 
 
 def execute(args):
     prefix = get_prefix(args)
     source_type = get_source_type(args)
+    if source_type is None:
+        sys.exit('Error: Could not determine source type, please provide one '
+                 'of the following options: --git, --tar, --zip, --svn, --dir')
+
     print 'source_type:', source_type
