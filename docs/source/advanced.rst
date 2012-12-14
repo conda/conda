@@ -7,7 +7,5 @@ Advanced Package Management
 
 .. toctree::
 
-    commands/activate
-    commands/deactivate
-    commands/download
-    commands/remove
+    commands/env
+    commands/local

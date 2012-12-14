@@ -13,15 +13,11 @@ Contents:
    examples/list
    examples/search
    examples/depends
-   examples/locations
-   examples/envs
    examples/create
    examples/install
    examples/update
-   examples/activate
-   examples/deactivate
-   examples/remove
-   examples/download
+   examples/env
+   examples/local
    examples/upgrade
    examples/package
    examples/pip

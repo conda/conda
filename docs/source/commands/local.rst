@@ -1,7 +1,7 @@
---------
-download
---------
+-----
+local
+-----
 
-.. include:: download.txt
+.. include:: local.txt
 
-Look here for :ref:`examples <download_example>`.
+Look here for :ref:`examples <local_example>`.

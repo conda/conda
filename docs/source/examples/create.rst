@@ -8,38 +8,13 @@ a directory (specified with ``-p/--prefix``), for one or more packages.  We have
 a progress bar, displayed as it creates the environment.
 
 
-conda will also gather and activate all necessary package dependencies.  Those that are
+`conda` will also gather and activate all necessary package dependencies.  Those that are
 not locally available will also be downloaded.
 
-If the package version is not specified, conda will choose the latest version by
+If the package version is not specified, `conda` will choose the latest version by
 default.
 
-It is also possible to disable a progress bar (``--progress-bar=no``) if you don't wish to show the status of any
-packages conda has to download.
-
-We'll start with a simple bare bones create.  
-
-.. code-block:: bash
-
-    $ conda create -n onlyScipy --progress-bar=no scipy
-
-    Package plan for creating environment at /Users/maggie/anaconda/envs/onlyScipy:
-
-    The following packages will be activated:
-
-        package                    |  build          
-        -------------------------  |  ---------------
-        nose-1.1.2                 |           py27_0
-        numpy-1.7.0b2              |           py27_0
-        python-2.7.3               |                4
-        readline-6.2               |                0
-        scipy-0.11.0               |       np17py27_1
-        sqlite-3.7.13              |                0
-        zlib-1.2.7                 |                0
-
-
-    Proceed (y/n)?
-
+We'll start with an environment created in a specific path (``~/anaconda/envs/test2``) using the --prefix option (``-p``).  
 
 .. code-block:: bash
 
@@ -175,12 +150,16 @@ We'll start with a simple bare bones create.
 
 
 In this next example, rather than selecting an environment directory with a prefix, we will use the name option (``-n/--name``).
-This will create an environment in the default Anaconda/envs ROOT_DIR (which can be displayed by using conda's :ref:`locations <locations_example>` option), where it will be discoverable by using conda's
-:ref:`envs <envs_example>` option.
+This will create an environment in the default Anaconda/envs ROOT_DIR (which can be displayed by using `conda's` :ref:`info --locations <locations_example>` option), 
+where it will be discoverable by using `conda's`
+:ref:`info --envs <envs_example>` option.
+
+It is also possible to disable a progress bar (``--quiet``) if you don't wish to show the status of any
+packages `conda` has to download.
 
 .. code-block:: bash
 
-    $ conda create -n test3 scipy 
+    $ conda create --quiet -n test3 scipy 
 
     Package plan for creating environment at /Users/maggie/anaconda/envs/test3:
 

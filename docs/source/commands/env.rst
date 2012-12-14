@@ -1,7 +1,7 @@
---------
-activate
---------
+---
+env
+---
 
-.. include:: activate.txt
+.. include:: env.txt
 
-Look here for :ref:`examples <activate_example>`.
+Look here for :ref:`examples <env_example>`.
