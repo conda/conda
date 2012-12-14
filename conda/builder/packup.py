@@ -7,7 +7,9 @@ import tarfile
 import tempfile
 from os.path import abspath, basename, dirname, islink, join
 
-from conda.install import activated, get_meta, prefix_placeholder
+from conda.config import PACKAGES_DIR
+from conda.install import (activated, get_meta, prefix_placeholder,
+                           install_local_package)
 from conda.naming import split_canonical_name
 
 import utils
@@ -170,6 +172,29 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     shutil.rmtree(tmp_dir)
     print '%s created successfully' % tarbz2_fn
     return tarbz2_fn
+
+
+def guess_pkg_version(files, pkg_name):
+    """
+    Guess the package version from (usually untracked) files.
+    """
+    pat = re.compile(r'site-packages[/\\]' + pkg_name + r'-([^\-]+)-', re.I)
+    for f in files:
+        m = pat.search(f)
+        if m:
+            return m.group(1)
+    return '0.0'
+
+
+def packup_and_reinstall(prefix, pkg_name, pkg_version=None):
+    files = untracked(prefix)
+    if pkg_version is None:
+        pkg_version = guess_pkg_version(files, pkg_name)
+    fn = make_tarbz2(prefix, name=pkg_name, version=pkg_version, files=files)
+    if fn is None:
+        return
+    remove(prefix, files)
+    install_local_package(fn, PACKAGES_DIR, prefix)
 
 
 if __name__ == '__main__':
