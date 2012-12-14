@@ -6,11 +6,13 @@ from conda.config import ROOT_DIR
 
 
 def get_default_prefix():
-    name = os.getenv('CONDA_DEFAULT_ENV')
-    if name:
-        return join(ROOT_DIR, 'envs', name)
-    else:
+    default_env = os.getenv('CONDA_DEFAULT_ENV')
+    if not default_env:
         return ROOT_DIR
+    if os.sep in default_env:
+        return abspath(default_env)
+    else:
+        return join(ROOT_DIR, 'envs', default_env)
 
 
 def add_parser_prefix(p):
