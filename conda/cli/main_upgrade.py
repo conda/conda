@@ -33,7 +33,7 @@ def execute(args):
 
     idx = conda.index
 
-    env = conda.default_environment
+    env = conda.root_environment
     env_reqs = env.get_requirements('pro')
 
     candidates = idx.lookup_from_name('anaconda')

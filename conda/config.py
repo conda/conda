@@ -8,9 +8,7 @@ configuration information about an Anaconda installation that does not require
 the Anaconda package index.
 
 '''
-
-
-from os import getenv, listdir
+import os
 from os.path import abspath, exists, expanduser, isdir, join
 import logging
 import platform
@@ -73,6 +71,7 @@ class config(object):
     Attributes
     ----------
     conda_version
+    root_environment
     default_environment
     environments
     locations
@@ -93,7 +92,7 @@ class config(object):
         self._rc = None
 
         # try to load .condarc file from users home directory
-        home = getenv('USERPROFILE') or getenv('HOME')
+        home = os.getenv('USERPROFILE') or os.getenv('HOME')
         self._rc = _load_condarc(join(home, '.condarc'))
 
         if not self._rc:
@@ -116,7 +115,7 @@ class config(object):
             ``unknown``
                 non-Anaconda python
         '''
-        env_target = getenv('CIO_TARGET')
+        env_target = os.getenv('CIO_TARGET')
         if env_target:
             return env_target
 
@@ -173,9 +172,20 @@ class config(object):
         return sorted(self.user_locations + [self.system_location])
 
     @property
+    def root_environment(self):
+        ''' Root :ref:`Anaconda environment <environment>` '''
+        return environment(self, ROOT_DIR)
+
+    @property
     def default_environment(self):
         ''' Default :ref:`Anaconda environment <environment>` '''
-        return environment(self, ROOT_DIR)
+        default_env = os.getenv('CONDA_DEFAULT_ENV')
+        if not default_env:
+            return self.root_environment
+        if os.sep in default_env:
+            return environment(self, abspath(default_env))
+        else:
+            return environment(self, join(ROOT_DIR, 'envs', default_env))
 
     @property
     def environments(self):
@@ -189,7 +199,7 @@ class config(object):
             if not exists(location):
                 log.warning("location '%s' does not exist" % location)
                 continue
-            for fn in listdir(location):
+            for fn in os.listdir(location):
                 prefix = join(location, fn)
                 if isdir(prefix):
                     try:
@@ -202,9 +212,9 @@ class config(object):
     @property
     def repo_base_urls(self):
         ''' Base URLS of :ref:`Anaconda repositories <repository>` '''
-        if getenv('CIO_TEST') == "2":
+        if os.getenv('CIO_TEST') == "2":
             return ['http://filer/test-pkgs', 'http://filer/pkgs']
-        elif getenv('CIO_TEST') == "1":
+        elif os.getenv('CIO_TEST') == "1":
             return ['http://filer/pkgs']
         elif self._rc:
             return self._rc['repositories']
