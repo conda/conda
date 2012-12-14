@@ -57,7 +57,7 @@ def execute(args):
         return
 
     if len(pkgs) == 0:
-        print('no packages and %s found in environment at %s:' %
+        print('no packages%s found in environment at %s:' %
               (matching, env.prefix))
         return
 
