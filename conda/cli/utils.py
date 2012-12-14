@@ -66,11 +66,10 @@ def confirm(args):
     sys.exit(0)
 
 
-def add_parser_progress(p):
+def add_parser_quiet(p):
     p.add_argument(
-        "--progress-bar",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "display progress bar (default: yes)",
+        '-q', "--quiet",
+        action = "store_true",
+        default = False,
+        help = "do not display progress bar",
     )

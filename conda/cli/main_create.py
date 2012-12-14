@@ -11,7 +11,7 @@ from os.path import abspath, exists
 from conda.anaconda import anaconda
 from conda.planners import create_create_plan
 from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
-                   add_parser_progress)
+                   add_parser_quiet)
 
 
 def configure_parser(sub_parsers):
@@ -29,7 +29,7 @@ def configure_parser(sub_parsers):
         help    = "filename to read package specs from",
     )
     add_parser_prefix(p)
-    add_parser_progress(p)
+    add_parser_quiet(p)
     p.add_argument(
         'package_specs',
         metavar = 'package_spec',
@@ -86,7 +86,7 @@ def execute(args):
     makedirs(prefix)
     env = conda.lookup_environment(prefix)
 
-    plan.execute(env, args.progress_bar == "yes")
+    plan.execute(env, not args.quiet)
 
 
 activate_example = '''

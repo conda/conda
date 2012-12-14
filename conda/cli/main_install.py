@@ -10,7 +10,7 @@ from conda.config import ROOT_DIR, PACKAGES_DIR
 from conda.anaconda import anaconda
 from conda.planners import create_install_plan
 from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
-                   add_parser_progress)
+                   add_parser_quiet)
 
 
 descr = "Install a list of packages into a specified Anaconda environment."
@@ -31,7 +31,7 @@ def configure_parser(sub_parsers):
         help    = "filename to read package versions from",
     )
     add_parser_prefix(p)
-    add_parser_progress(p)
+    add_parser_quiet(p)
     p.add_argument(
         'packages',
         metavar = 'package_version',
@@ -93,7 +93,7 @@ def execute(args):
 
     confirm(args)
 
-    plan.execute(env, args.progress_bar == "yes")
+    plan.execute(env, not args.quiet)
 
 
 activate_example = '''
