@@ -2,17 +2,10 @@ import os
 import sys
 from os.path import abspath, expanduser, join
 
-from conda.config import ROOT_DIR
+from conda.config import ROOT_DIR, config
 
 
-def get_default_prefix():
-    default_env = os.getenv('CONDA_DEFAULT_ENV')
-    if not default_env:
-        return ROOT_DIR
-    if os.sep in default_env:
-        return abspath(default_env)
-    else:
-        return join(ROOT_DIR, 'envs', default_env)
+default_prefix = config().default_environment
 
 
 def add_parser_prefix(p):
@@ -26,7 +19,7 @@ def add_parser_prefix(p):
         '-p', "--prefix",
         action = "store",
         help = "full path to environment prefix (default: %s)" %
-                    get_default_prefix(),
+                        default_prefix,
     )
 
 
@@ -37,7 +30,7 @@ def get_prefix(args):
     if args.prefix:
         return abspath(expanduser(args.prefix))
 
-    return get_default_prefix()
+    return default_prefix
 
 
 def add_parser_yes(p):
