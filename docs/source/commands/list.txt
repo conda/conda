@@ -1,12 +1,13 @@
 List activated packages in an Anaconda environment.
 
-**usage**: ``conda list [-h] [-n NAME | -p PREFIX] [search_expression]``
+**usage**: ``conda list [-h] [-n NAME | -p PREFIX] [-c] [search_expression]``
 
 *search_expression*
 	list only packages matching this regular expression
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to list packages in
+  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
-                        full path to Anaconda environment to list packages in (default: ROOT_DIR)
+                        full path to environment prefix (default: ROOT_DIR)
+  -c, --canonical       output canonical names of packages only

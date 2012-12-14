@@ -4,9 +4,9 @@ Create a conda package in an environment. (ADVANCED)
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to list packages in
+  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
-                        full path to Anaconda environment to list packages in (default: ROOT_DIR)
+                        full path to environment prefix (default: ROOT_DIR)
   -c PATH, --check PATH
                         check (validate) the given tar package and exit
   -r, --reset           remove all untracked files and exit

@@ -1,7 +1,7 @@
 ----
-info
+envs
 ----
 
-.. include:: info.txt
+.. include:: envs.txt
 
-Look here for :ref:`examples <info_example>`
+Look here for :ref:`examples <envs_example>`

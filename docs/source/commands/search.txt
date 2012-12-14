@@ -1,12 +1,18 @@
 Search for packages and display their information.
 
-**usage**: ``conda search [-h] [-p PREFIX] [-s] [search_expression]``
+**usage**: ``conda search [-h] [-n NAME | -p PREFIX] [--all] [-c] [-s] [search_expression]``
 
 *search_expression*
 	package specification or regular expression to search for (default: display all packages)
 
 optional arguments:
   -h, --help            show this help message and exit
+  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
-                        only show results compatible with Anaconda environment at specified prefix location
+                        full path to environment prefix (default: ROOT_DIR)
+  --all                 show all results compatible with any environment
+  -c, --canonical       output canonical names of packages only
   -s, --show-requires   also display package requirements
+
+examples:
+    conda search -p ~/anaconda/envs/myenv/ scipy

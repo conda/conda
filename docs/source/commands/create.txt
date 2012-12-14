@@ -1,17 +1,19 @@
 Create an Anaconda environment at a specified prefix from a list of package specifications.
 
-**usage**: ``conda create [-h] [--confirm {yes,no}] [--dry-run] [-f FILE] (-n NAME | -p PREFIX) [--progress-bar {yes,no}] [package_spec [package_spec ...]]``
+**usage**: ``conda create [-h] [--yes] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]``
 
 *package_spec*
 	package specification of package to install into new Anaconda environment
 
 optional arguments:
   -h, --help            show this help message and exit
-  --confirm     ask for confirmation before creating Anaconda environment (default: yes)
-  --dry-run             display packages to be activated, without actually executing
+  --yes                 do not ask for confirmation
+  --dry-run             only display what would have been done
   -f FILE, --file FILE  filename to read package specs from
-  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to create Anaconda environment in
+  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
-                        full path of new directory to create Anaconda environment in
-  --progress-bar 
-                        display progress bar for package downloads (default: yes)
+                        full path to environment prefix (default: ROOT_DIR)
+  -q, --quiet           do not display progress bar
+
+examples:
+    conda create -n myenv sqlite

@@ -1,6 +1,0 @@
-List all known Anaconda environments.
-
-**usage**: ``conda envs [-h]``
-
-optional arguments:
-  -h, --help  show this help message and exit

@@ -1,14 +1,17 @@
 Update Anaconda packages.
 
-**usage**: ``conda update [-h] [--confirm {yes,no}] [--dry-run] [-n NAME | -p PREFIX] package_name [package_name ...]``
+**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] package_name [package_name ...]``
 
 *package_name*
 	names of packages to update (default: all packages)
 
 optional arguments:
   -h, --help            show this help message and exit
-  --confirm     ask for confirmation before updating packages (default: yes)
-  --dry-run             display packages to be modified, without actually exectuting
-  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to update packages in
+  --yes                 do not ask for confirmation
+  --dry-run             only display what would have been done
+  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
-                        full path to Anaconda environment to update packages in (default: ROOT_DIR)
+                        full path to environment prefix (default: ROOT_DIR)
+
+examples:
+    conda update -p ~/anaconda/envs/myenv scipy

@@ -1,6 +1,0 @@
-List known locations for Anaconda environments.
-
-**usage**: ``conda locations [-h]``
-
-optional arguments:
-  -h, --help  show this help message and exit

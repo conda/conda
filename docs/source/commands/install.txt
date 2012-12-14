@@ -1,17 +1,19 @@
 Install a list of packages into a specified Anaconda environment.
 
-**usage**: ``conda install [-h] [--confirm {yes,no}] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [--progress-bar {yes,no}] [package_version [package_version ...]]``
+**usage**: ``conda install [-h] [--yes] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [-q] [package_version [package_version ...]]``
 
 *package_version*
 	package versions to install into Anaconda environment
 
 optional arguments:
   -h, --help            show this help message and exit
-  --confirm     ask for confirmation before installing packages into Anaconda environment (default: yes)
-  --dry-run             display packages to be modified, without actually executing
+  --yes                 do not ask for confirmation
+  --dry-run             only display what would have been done
   -f FILE, --file FILE  filename to read package versions from
-  -n NAME, --name NAME  name of new directory (in ROOT_DIR/envs) to install packages into
+  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
-                        full path to Anaconda environment to install packages into (default: ROOT_DIR)
-  --progress-bar 
-                        display progress bar for package downloads (default: yes)
+                        full path to environment prefix (default: ROOT_DIR)
+  -q, --quiet           do not display progress bar
+
+examples:
+    conda install -n myenv scipy
