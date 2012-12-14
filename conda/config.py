@@ -44,6 +44,13 @@ ROOT = ROOT_DIR # This is deprecated, do not use in new code
 
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 
+_default_env = os.getenv('CONDA_DEFAULT_ENV')
+if not _default_env:
+    DEFAULT_ENV_PREFIX = ROOT_DIR
+elif os.sep in _default_env:
+    DEFAULT_ENV_PREFIX = abspath(_default_env)
+else:
+    DEFAULT_ENV_PREFIX = join(ROOT_DIR, 'envs', _default_env)
 
 DEFAULT_PYTHON_SPEC='python=2.7'
 if sys.platform == 'win32':
@@ -179,13 +186,7 @@ class config(object):
     @property
     def default_environment(self):
         ''' Default :ref:`Anaconda environment <environment>` '''
-        default_env = os.getenv('CONDA_DEFAULT_ENV')
-        if not default_env:
-            return self.root_environment
-        if os.sep in default_env:
-            return environment(self, abspath(default_env))
-        else:
-            return environment(self, join(ROOT_DIR, 'envs', default_env))
+        return environment(self, DEFAULT_ENV_PREFIX)
 
     @property
     def environments(self):
