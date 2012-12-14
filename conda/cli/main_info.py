@@ -13,6 +13,19 @@ def configure_parser(sub_parsers):
         description     = "Display information about current Anaconda install.",
         help            = "Display information about current Anaconda install.",
     )
+    elgroup = p.add_mutually_exclusive_group()
+    elgroup.add_argument(
+        '-e', "--envs",
+        action  = "store_true",
+        default = False,
+        help    = "list all known Anaconda environments.",
+    )
+    elgroup.add_argument(
+        '-l', "--locations",
+        action  = "store_true",
+        default = False,
+        help    = "list known locations for Anaconda environments.",
+    )
     p.set_defaults(func=execute)
 
 
@@ -20,8 +33,30 @@ def execute(args):
 
     conf = config()
 
-    print
-    print "Current Anaconda install:"
-    print conf
-    print
+    if args.envs:
+        envs = conf.environments
+
+        print "Known Anaconda environments:"
+        print
+
+        for env in envs:
+            print "    %s" % env.prefix
+        print
+
+    elif args.locations:
+        print
+        print "Locations for Anaconda environments:"
+        print
+        for location in conf.locations:
+            print "    %s" % location,
+            if location == conf.system_location:
+                print " (system location)",
+            print
+        print
+
+    else:
+        print
+        print "Current Anaconda install:"
+        print conf
+        print
 

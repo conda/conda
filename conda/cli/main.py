@@ -14,8 +14,6 @@ conda provides the following commands:
     list       : list packages activated in a specified Anaconda environment
     depends    : find package dependencies
     search     : print information about a specificed package
-    locations  : display the locations conda will search for known Anaconda environments
-    envs       : list all known Anaconda environments
 
     Basic Package Management
     ========================
@@ -51,11 +49,9 @@ import main_create
 import main_deactivate
 import main_depends
 import main_download
-import main_envs
 import main_info
 import main_install
 import main_list
-import main_locations
 import main_path
 import main_remove
 import main_search
@@ -97,8 +93,6 @@ def main():
     main_path.configure_parser(sub_parsers)
     main_depends.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
-    main_locations.configure_parser(sub_parsers)
-    main_envs.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
