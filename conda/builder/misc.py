@@ -3,7 +3,9 @@ import sys
 import subprocess
 from os.path import isfile, join
 
-from packup import untracked, make_tarbz2
+from conda.config import PACKAGES_DIR
+from conda.install import install_local_package
+from packup import untracked, remove, make_tarbz2
 
 
 def guess_pkg_version(files, pkg_name):
@@ -34,7 +36,11 @@ def pip(prefix, pkg_name):
         return
 
     files = untracked(prefix)
-    make_tarbz2(prefix,
-                name=pkg_name,
-                version=guess_pkg_version(files, pkg_name),
-                files=files)
+    fn = make_tarbz2(prefix,
+                     name=pkg_name,
+                     version=guess_pkg_version(files, pkg_name),
+                     files=files)
+    if fn is None:
+        return
+    remove(prefix, files)
+    install_local_package(fn, PACKAGES_DIR, prefix)
