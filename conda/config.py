@@ -26,16 +26,6 @@ CIO_DEFAULT_REPOS = [
     'http://repo.continuum.io/pkgs'
 ]
 
-INFO_STRING = '''
-               target : %s
-             platform : %s
-conda command version : %s
-       root directory : %s
-   packages directory : %s
-      repository URLS : %s
-environment locations : %s
-'''
-
 VERSION = __version__
 
 ROOT_DIR = sys.prefix
@@ -264,12 +254,20 @@ class config(object):
             return environment(self, prefix)
 
     def __str__(self):
-        return INFO_STRING % (
+        return '''
+               target : %s
+             platform : %s
+conda command version : %s
+       root directory : %s
+       default prefix : %s
+      repository URLS : %s
+environment locations : %s
+'''  % (
             self.target,
             self.platform,
             self.conda_version,
-            self.root_dir,
-            self.packages_dir,
+            ROOT_DIR,
+            DEFAULT_ENV_PREFIX,
             self.repo_package_urls,
             self.locations,
         )
