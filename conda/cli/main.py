@@ -28,8 +28,7 @@ conda provides the following commands:
 
     activate   : activate available packages in a specified Anaconda environment
     deactivate : deactivate packages in a specified Anaconda environment
-    download   : download and make available packages from remote repositories
-    remove     : remove specified packages from the local packages repository
+    local      : add and remove Anaconda packages from local availability
 
     Packaging
     =========
@@ -48,12 +47,11 @@ import main_activate
 import main_create
 import main_deactivate
 import main_depends
-import main_download
 import main_info
 import main_install
 import main_list
+import main_local
 import main_path
-import main_remove
 import main_search
 import main_update
 import main_upgrade
@@ -99,8 +97,7 @@ def main():
     main_upgrade.configure_parser(sub_parsers)
     main_activate.configure_parser(sub_parsers)
     main_deactivate.configure_parser(sub_parsers)
-    main_download.configure_parser(sub_parsers)
-    main_remove.configure_parser(sub_parsers)
+    main_local.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_pip.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
