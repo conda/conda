@@ -5,12 +5,10 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from argparse import RawDescriptionHelpFormatter
-from os.path import abspath, expanduser, join
 
 from conda.anaconda import anaconda
-from conda.config import ROOT_DIR
 from conda.planners import create_activate_plan, create_deactivate_plan
-from utils import add_parser_yes, confirm, get_prefix
+from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -22,18 +20,7 @@ def configure_parser(sub_parsers):
         epilog          = env_example,
     )
     add_parser_yes(p)
-    npgroup = p.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action  = "store",
-        help    = "activate or deactivate from a named environment (in %s/envs)" % ROOT_DIR,
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action  = "store",
-        default = ROOT_DIR,
-        help    = "activate or deactivate from a specified environment (default: %s)" % ROOT_DIR,
-    )
+    add_parser_prefix(p)
     adgroup = p.add_mutually_exclusive_group()
     adgroup.add_argument(
         '-a', "--activate",
@@ -81,7 +68,7 @@ def execute(args):
         try:
             plan.execute(env)
         except IOError:
-            
+
             raise RuntimeError('One of more of the packages is not locally available, see conda download -h')
 
     elif args.deactivate:
