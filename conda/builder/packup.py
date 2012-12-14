@@ -5,7 +5,6 @@ import json
 import shutil
 import tarfile
 import tempfile
-from subprocess import check_call
 from os.path import abspath, basename, dirname, islink, join
 
 from conda.install import activated, get_meta, prefix_placeholder
@@ -171,22 +170,6 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     shutil.rmtree(tmp_dir)
     print '%s created successfully' % tarbz2_fn
     return tarbz2_fn
-
-
-def pip(prefix, pkg_name):
-    check_call([join(prefix, 'bin', 'pip'), 'install', pkg_name])
-
-    pkg_version = '0.0'
-    pat = re.compile(pkg_name + r'-([^\-]+)-', re.I)
-    files = untracked(prefix)
-    for f in files:
-        if 'site-packages' in f:
-            m = pat.search(f)
-            if m:
-                pkg_version = m.group(1)
-                break
-
-    make_tarbz2(prefix, name=pkg_name, version=pkg_version, files=files)
 
 
 if __name__ == '__main__':
