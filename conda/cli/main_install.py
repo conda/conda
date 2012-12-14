@@ -79,6 +79,9 @@ def execute(args):
             install_local_package(path, PACKAGES_DIR, prefix)
         return
 
+    if any(s.endswith('.tar.bz2') for s in req_strings):
+        raise RuntimeError("mixing specifications and filename not supported")
+
     conda = anaconda()
 
     plan = create_install_plan(env, req_strings)
