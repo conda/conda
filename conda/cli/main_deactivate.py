@@ -10,6 +10,7 @@ from os.path import abspath, expanduser, join
 from conda.anaconda import anaconda
 from conda.config import ROOT_DIR
 from conda.planners import create_deactivate_plan
+from utils import add_parser_yes, confirm
 
 
 def configure_parser(sub_parsers):
@@ -20,19 +21,7 @@ def configure_parser(sub_parsers):
         help            = "Deactivate packages in an Anaconda environment. (ADVANCED)",
         epilog          = activate_example,
     )
-    p.add_argument(
-        "--confirm",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "ask for confirmation before deactivating packages (default: yes)",
-    )
-    p.add_argument(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be deactivated, without actually executing",
-    )
+    add_parser_yes(p)
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
@@ -78,11 +67,7 @@ def execute(args):
 
     print plan
 
-    if args.dry_run: return
-
-    if args.confirm == "yes":
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']: return
+    confirm(args)
 
     plan.execute(env)
 

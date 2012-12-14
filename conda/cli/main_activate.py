@@ -10,6 +10,7 @@ from os.path import abspath, expanduser
 from conda.anaconda import anaconda
 from conda.config import ROOT_DIR
 from conda.planners import create_activate_plan
+from utils import add_parser_yes, confirm
 
 
 def configure_parser(sub_parsers):
@@ -20,19 +21,7 @@ def configure_parser(sub_parsers):
         help            = "Activate available packages in the specified Anaconda environment. (ADVANCED)",
         epilog          = activate_example,
     )
-    p.add_argument(
-        "--confirm",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "ask for confirmation before activating packages in Anaconda environment (default: yes)",
-    )
-    p.add_argument(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be modified, without actually executing",
-    )
+    add_parser_yes(p)
     p.add_argument(
         '-p', "--prefix",
         action  = "store",
@@ -66,11 +55,7 @@ def execute(args):
 
     print plan
 
-    if args.dry_run: return
-
-    if args.confirm == "yes":
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']: return
+    confirm(args)
 
     try:
         plan.execute(env)

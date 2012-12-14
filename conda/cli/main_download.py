@@ -8,6 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import anaconda
 from conda.planners import create_download_plan
+from utils import add_parser_yes, confirm
 
 
 def configure_parser(sub_parsers):
@@ -18,19 +19,7 @@ def configure_parser(sub_parsers):
         help            = "Download Anaconda packages and their dependencies. (ADVANCED)",
         epilog          = activate_example,
     )
-    p.add_argument(
-        "--confirm",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "ask for confirmation before downloading packages (default: yes)",
-    )
-    p.add_argument(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be downloaded, without actually executing",
-    )
+    add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
         action  = "store_true",
@@ -68,14 +57,10 @@ def execute(args):
 
     print plan
 
-    if args.dry_run:
-        return
+    confirm(args)
 
-    if args.confirm == "yes":
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']: return
-
-    # pass default environment because some env is required, but it is unused here
+    # pass default environment because some env is required,
+    # but it is unused here
     plan.execute(conda.default_environment, args.progress_bar=="yes")
 
 activate_example = '''

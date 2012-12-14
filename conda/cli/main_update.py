@@ -8,7 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import anaconda
 from conda.planners import create_update_plan
-from utils import add_parser_prefix, get_prefix, add_parser_yes
+from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
 
 
 def configure_parser(sub_parsers):
@@ -20,12 +20,6 @@ def configure_parser(sub_parsers):
         epilog          = activate_example,
     )
     add_parser_yes(p)
-    p.add_argument(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be modified, without actually exectuting",
-    )
     add_parser_prefix(p)
     p.add_argument(
         'pkg_names',
@@ -57,14 +51,9 @@ def execute(args):
 
     print plan
 
-    if args.dry_run: return
-
-    if not args.yes:
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']:
-            return
-
+    confirm(args)
     plan.execute(env)
+
 
 activate_example = '''
 examples:

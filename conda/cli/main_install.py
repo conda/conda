@@ -9,24 +9,21 @@ from argparse import RawDescriptionHelpFormatter
 from conda.config import ROOT_DIR
 from conda.anaconda import anaconda
 from conda.planners import create_install_plan
-from utils import add_parser_prefix, get_prefix, add_parser_yes
+from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
+
+
+descr = "Install a list of packages into a specified Anaconda environment."
 
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'install',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Install a list of packages into a specified Anaconda environment.",
-        help            = "Install a list of packages into a specified Anaconda environment.",
-        epilog          = activate_example,
+        description = descr,
+        help        = descr,
+        epilog      = activate_example,
     )
     add_parser_yes(p)
-    p.add_argument(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be modified, without actually executing",
-    )
     p.add_argument(
         '-f', "--file",
         action  = "store",
@@ -48,6 +45,7 @@ def configure_parser(sub_parsers):
         help    = "package versions to install into Anaconda environment",
     )
     p.set_defaults(func=execute)
+
 
 def execute(args):
     pkg_versions = args.packages
@@ -93,12 +91,7 @@ def execute(args):
     print "Package plan for installation in environment %s:" % prefix
     print plan
 
-    if args.dry_run: return
-
-    if not args.yes:
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']:
-            return
+    confirm(args)
 
     plan.execute(env, args.progress_bar=="yes")
 

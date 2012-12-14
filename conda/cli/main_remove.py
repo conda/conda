@@ -10,6 +10,7 @@ from os.path import join
 from shutil import rmtree
 
 from conda.config import config
+from utils import add_parser_yes, confirm
 
 
 def configure_parser(sub_parsers):
@@ -20,19 +21,7 @@ def configure_parser(sub_parsers):
         help            = "Remove packages from local availability. (ADVANCED)",
         epilog          = activate_example,
     )
-    p.add_argument(
-        "--confirm",
-        action  = "store",
-        default = "yes",
-        choices = ["yes", "no"],
-        help    = "ask for confirmation before removing packages (default: yes)",
-    )
-    p.add_argument(
-        '-d', "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be removed, without actually executing",
-    )
+    add_parser_yes(p)
     p.add_argument(
         'canonical_names',
         action  = "store",
@@ -61,11 +50,7 @@ def execute(args):
         print "         %s" % pkg_name
     print
 
-    if args.dry_run: return
-
-    if args.confirm == "yes":
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']: return
+    confirm(args)
 
     for pkg_name in to_remove:
         rmtree(join(conf.packages_dir, pkg_name))

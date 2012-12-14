@@ -10,7 +10,7 @@ from os.path import abspath, exists
 
 from conda.anaconda import anaconda
 from conda.planners import create_create_plan
-from utils import add_parser_prefix, get_prefix, add_parser_yes
+from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
 
 
 def configure_parser(sub_parsers):
@@ -22,12 +22,6 @@ def configure_parser(sub_parsers):
         epilog          = activate_example,
     )
     add_parser_yes(p)
-    p.add_argument(
-        "--dry-run",
-        action  = "store_true",
-        default = False,
-        help    = "display packages to be activated, without actually executing",
-    )
     p.add_argument(
         '-f', "--file",
         action  = "store",
@@ -93,14 +87,7 @@ def execute(args):
 
     print plan
 
-    if args.dry_run:
-        return
-
-    if not args.yes:
-        proceed = raw_input("Proceed (y/n)? ")
-        if proceed.lower() not in ['y', 'yes']:
-            return
-
+    confirm(args)
     makedirs(prefix)
     env = conda.lookup_environment(prefix)
 
