@@ -24,7 +24,6 @@ standalone, i.e. not import any other parts of `conda` (only depend on
 the standard library).
 
 '''
-
 import os
 import json
 import shutil
@@ -225,6 +224,23 @@ def deactivate(dist, prefix):
     os.unlink(meta_path)
 
 # =========================== end API functions ==========================
+
+def install_local_package(path, pkgs_dir, prefix):
+    assert path.endswith('.tar.bz2')
+    dist = basename(path)[:-8]
+    print '%s:' % dist
+    if dist in available(pkgs_dir):
+        print "    already available - removing"
+        remove_available(pkgs_dir, dist)
+    shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
+    print "    making available"
+    make_available(pkgs_dir, dist)
+    if dist in activated(prefix):
+        print "    already active - deactivating"
+        deactivate(dist, prefix)
+    print "    activating"
+    activate(pkgs_dir, dist, prefix)
+
 
 def main():
     from pprint import pprint
