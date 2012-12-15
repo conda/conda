@@ -31,6 +31,10 @@ def get_source(url, source_type):
         z.close()
     elif source_type == 'git':
         check_call(['git', 'clone', url], cwd=tmp_dir)
+    elif source_type == 'svn':
+        check_call(['svn', 'co', url], cwd=tmp_dir)
+    else:
+        raise Exception('No source type: %r' % source_type)
 
     src_dir = find_source_dir(tmp_dir)
     if not src_dir:
