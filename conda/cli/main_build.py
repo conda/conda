@@ -6,7 +6,7 @@
 import sys
 from os.path import isdir, isfile
 
-from conda.builder.commands import pip
+from conda.builder.source import get_source
 from utils import add_parser_prefix, get_prefix
 
 descr = "Build a package from source. (EXPERIMENTAL)"
@@ -69,3 +69,5 @@ def execute(args):
                  ', '.join('--' + s for s in source_types))
 
     print 'source_type:', source_type
+    src_dir = get_source(args.url[0], source_type)
+    print 'src_dir:', src_dir
