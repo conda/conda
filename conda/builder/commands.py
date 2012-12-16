@@ -38,15 +38,15 @@ def build(prefix, url, source_type):
         p = Popen([python_path, 'setup.py', '--fullname'],
                   cwd=src_dir, stdout=PIPE, stderr=PIPE)
         fullname = p.communicate()[0].split()[-1]
-        name, version = fullname.rsplit('-', 1)
+        pkg_name, pkg_version = fullname.rsplit('-', 1)
     except:
-        name, version = 'unknown', '0.0'
+        pkg_name, pkg_version = 'unknown', '0.0'
 
     try:
         check_call([python_path, 'setup.py', 'install'], cwd=src_dir)
     except CalledProcessError:
         return
-    packup_and_reinstall(prefix, name, version)
+    packup_and_reinstall(prefix, pkg_name, pkg_version)
 
     if tmp_dir:
         shutil.rmtree(tmp_dir)
