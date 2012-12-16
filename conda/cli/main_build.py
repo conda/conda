@@ -3,11 +3,13 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+
 import sys
 from os.path import isdir, isfile
 
-from conda.builder.source import get_source
+from conda.builder.commands import build
 from utils import add_parser_prefix, get_prefix
+
 
 descr = "Build a package from source. (EXPERIMENTAL)"
 
@@ -68,6 +70,4 @@ def execute(args):
                  'of the following options: %s' %
                  ', '.join('--' + s for s in source_types))
 
-    print 'source_type:', source_type
-    src_dir = get_source(args.url[0], source_type)
-    print 'src_dir:', src_dir
+    build(prefix, args.url[0], source_type)

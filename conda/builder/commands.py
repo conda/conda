@@ -1,9 +1,10 @@
 import sys
-import subprocess
+import shutil
+from subprocess import Popen, PIPE, check_call, CalledProcessError
 from os.path import isfile, join
 
 from packup import packup_and_reinstall
-
+from source import get_source
 
 
 def pip(prefix, pkg_name):
@@ -17,7 +18,35 @@ def pip(prefix, pkg_name):
                         % prefix)
 
     try:
-        subprocess.check_call([pip_path, 'install', pkg_name])
-    except subprocess.CalledProcessError:
+        check_call([pip_path, 'install', pkg_name])
+    except CalledProcessError:
         return
     packup_and_reinstall(prefix, pkg_name)
+
+
+def build(prefix, url, source_type):
+    print 'source_type:', source_type
+    tmp_dir, src_dir = get_source(url, source_type)
+    print 'src_dir:', src_dir
+
+    if sys.platform == 'win32':
+        python_path = join(prefix, 'python.exe')
+    else:
+        python_path = join(prefix, 'bin', 'python')
+
+    try:
+        p = Popen([python_path, 'setup.py', '--fullname'],
+                  cwd=src_dir, stdout=PIPE, stderr=PIPE)
+        fullname = p.communicate()[0].split()[-1]
+        name, version = fullname.rsplit('-', 1)
+    except:
+        name, version = 'unknown', '0.0'
+
+    try:
+        check_call([python_path, 'setup.py', 'install'], cwd=src_dir)
+    except CalledProcessError:
+        return
+    packup_and_reinstall(prefix, name, version)
+
+    if tmp_dir:
+        shutil.rmtree(tmp_dir)
