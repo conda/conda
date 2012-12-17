@@ -26,35 +26,35 @@ cmds = [
         "depends-1"
     ),
     (
-        "conda envs",
+        "conda info -e",
         "envs-1"
     ),
     (
-        "conda create --confirm=no -p %s sqlite" % myenv,
+        "conda create --yes -p %s sqlite" % myenv,
         "create-1"
     ),
     (
-        "conda install --confirm=no -p %s pandas=0.8.1" % myenv,
+        "conda install --yes -p %s pandas=0.8.1" % myenv,
         "install-1"
     ),
     (
-        "conda update --confirm=no -p %s pandas" % myenv,
+        "conda update --yes -p %s pandas" % myenv,
         "update-1"
     ),
     (
-        "conda activate --confirm=no -p %s numba-0.3.1-np17py27_0" % myenv,
+        "conda env --yes -ap %s numba-0.3.1-np17py27_0" % myenv,
         "activate-1"
     ),
     (
-        "conda deactivate --confirm=no -p %s sqlite-3.7.13-0" % myenv,
+        "conda env --yes -dp %s sqlite-3.7.13-0" % myenv,
         "deactivate-1"
     ),
     (
-        "conda remove --confirm=no zeromq-2.2.0-0",
+        "conda local --yes -r zeromq-2.2.0-0",
         "remove-1"
     ),
     (
-        "conda download --confirm=no zeromq-2.2.0-0",
+        "conda local --yes -d zeromq-2.2.0-0",
         "download-1"
     )
 ]

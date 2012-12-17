@@ -38,14 +38,14 @@ declare -a COND=(
     "conda list ^m.*lib$" 
     "conda search ^m.*lib$" 
     "conda depends numpy" 
-    "conda envs" 
-    "conda create --confirm=no -n myenv sqlite" 
-    "conda install --confirm=no -n myenv pandas=0.8.1"
-    "conda update --confirm=no -n myenv pandas"
-    "conda activate --confirm=no -p ~/anaconda/envs/myenv numba-0.3.1-np17py27_0"
-    "conda deactivate --confirm=no -n myenv sqlite-3.7.13-0"
-    "conda remove --confirm=no zeromq-2.2.0-0"
-    "conda download --confirm=no zeromq-2.2.0-0"
+    "conda info -e" 
+    "conda create --yes -n myenv sqlite" 
+    "conda install --yes -n myenv pandas=0.8.1"
+    "conda update --yes -n myenv pandas"
+    "conda env --yes -ap ~/anaconda/envs/myenv numba-0.3.1-np17py27_0"
+    "conda env --yes -dn myenv sqlite-3.7.13-0"
+    "conda local --yes -r zeromq-2.2.0-0"
+    "conda local --yes -d zeromq-2.2.0-0"
 )
 
 for i in "${COND[@]}"; do
