@@ -4,4 +4,4 @@ pip
 
 .. include:: pip.txt
 
-Look here for :ref:`examples <pip_example>`
+ Look here for more :ref:`examples <pip_example>`

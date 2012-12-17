@@ -4,4 +4,4 @@ list
 
 .. include:: list.txt
 
-Look here for :ref:`examples <list_example>`
+ Look here for more :ref:`examples <list_example>`

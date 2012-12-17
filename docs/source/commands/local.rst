@@ -4,4 +4,4 @@ local
 
 .. include:: local.txt
 
-Look here for :ref:`examples <local_example>`.
+ Look here for more :ref:`examples <local_example>`.

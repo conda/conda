@@ -4,4 +4,4 @@ index
 
 .. include:: index.txt
 
-Look here for :ref:`examples <index_example>`
+ Look here for more :ref:`examples <index_example>`
