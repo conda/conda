@@ -27,6 +27,9 @@ def pip(prefix, pkg_name):
 def build(prefix, url, source_type):
     print 'source_type:', source_type
     tmp_dir, src_dir = get_source(url, source_type)
+    if src_dir is None:
+        print "Could not locate source directory"
+        return
     print 'src_dir:', src_dir
 
     if sys.platform == 'win32':

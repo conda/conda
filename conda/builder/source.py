@@ -36,8 +36,4 @@ def get_source(url, source_type):
     else:
         raise Exception('No source type: %r' % source_type)
 
-    src_dir = find_source_dir(tmp_dir)
-    if not src_dir:
-        print "Could not find setup.py"
-        return
-    return tmp_dir, src_dir
+    return tmp_dir, find_source_dir(tmp_dir)
