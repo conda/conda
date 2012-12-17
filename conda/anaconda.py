@@ -66,7 +66,7 @@ class anaconda(config):
                 repodata = json.loads(decompress(fi.read()))
             except:
                 try:
-                    fi = urlopen(url + 'repodata.json.bz2')
+                    fi = urlopen(url + 'repodata.json')
                     log.debug("fetched: repodata.json [%s] ..." % url)
                     repodata = json.loads(fi.read())
                 except:

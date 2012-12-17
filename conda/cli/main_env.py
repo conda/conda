@@ -51,7 +51,6 @@ def execute(args):
     env = conda.lookup_environment(prefix)
 
     if args.activate:
-
         plan = create_activate_plan(env, args.canonical_names)
 
         if plan.empty():
@@ -68,7 +67,6 @@ def execute(args):
         try:
             plan.execute(env)
         except IOError:
-
             raise RuntimeError('One of more of the packages is not locally available, see conda download -h')
 
     elif args.deactivate:
