@@ -9,7 +9,7 @@ the Anaconda package index.
 
 '''
 import os
-from os.path import abspath, exists, expanduser, isdir, join
+from os.path import abspath, exists, expanduser, isdir, isfile, join
 import logging
 import platform
 import sys
@@ -34,6 +34,10 @@ ROOT = ROOT_DIR # This is deprecated, do not use in new code
 
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
+
+TARGET_ORDER = {'ce':  ['ce',  None],
+                'pro': ['pro', None],
+                'w':   ['w',   'pro', None]}
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
@@ -120,7 +124,9 @@ class config(object):
         if 'AnacondaCE' in sys.version:
             return 'ce'
         elif 'Anaconda' in sys.version:
-            return 'pro'
+            path = join(sys.prefix, 'lib/python%d.%d' % sys.version_info[:2],
+                        'wakari.txt')
+            return 'w' if isfile(path) else 'pro'
         else:
             return 'unknown'
 
