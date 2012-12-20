@@ -32,7 +32,7 @@ def configure_parser(sub_parsers):
                          help = "build from svn")
     npgroup.add_argument("--dir",
                          action="store_true",
-                         help="build from local source directoriy")
+                         help="build from local source directory")
     add_parser_prefix(p)
     p.add_argument('url',
                    action="store",
