@@ -140,13 +140,13 @@ class package(object):
         ov = other.version.vstring.replace('rc', '.rc')
         try:
             return cmp(
-                (self.name, NormalizedVersion(suggest_normalized_version(sv)), self.build_number),
-                (other.name, NormalizedVersion(suggest_normalized_version(ov)), other.build_number)
+                (self.name, self.build_target, NormalizedVersion(suggest_normalized_version(sv)), self.build_number),
+                (other.name, self.build_target, NormalizedVersion(suggest_normalized_version(ov)), other.build_number)
             )
         except:
             return cmp(
-                (self.name, self.version.vstring, self.build_number),
-                (other.name, other.version.vstring, other.build_number)
+                (self.name, self.build_tartget, self.version.vstring, self.build_number),
+                (other.name, self.build_target, other.version.vstring, other.build_number)
             )
 
 

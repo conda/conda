@@ -15,8 +15,6 @@ import platform
 import sys
 
 from conda import __version__
-from environment import environment
-from install import available
 
 
 log = logging.getLogger(__name__)
@@ -35,9 +33,11 @@ ROOT = ROOT_DIR # This is deprecated, do not use in new code
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
 
-TARGET_ORDER = {'ce':  ['ce',  None],
-                'pro': ['pro', None],
-                'w':   ['w',   'pro', None]}
+TARGET_ORDER = {
+    'ce'  : ['ce',  None],
+    'pro' : ['pro', None],
+    'w'   : ['w',   'pro', None]
+}
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
@@ -113,7 +113,9 @@ class config(object):
             ``ce``
                 Community Edition
             ``pro``
-                Anaconda pro
+                Anaconda Full
+            ``w``
+                Wakari Installation
             ``unknown``
                 non-Anaconda python
         '''
@@ -124,8 +126,9 @@ class config(object):
         if 'AnacondaCE' in sys.version:
             return 'ce'
         elif 'Anaconda' in sys.version:
-            path = join(sys.prefix, 'lib/python%d.%d' % sys.version_info[:2],
-                        'wakari.txt')
+            path = join(
+                sys.prefix, 'lib/python%d.%d' % sys.version_info[:2], 'wakari.txt'
+            )
             return 'w' if isfile(path) else 'pro'
         else:
             return 'unknown'
@@ -178,11 +181,13 @@ class config(object):
     @property
     def root_environment(self):
         ''' Root :ref:`Anaconda environment <environment>` '''
+        from environment import environment
         return environment(self, ROOT_DIR)
 
     @property
     def default_environment(self):
         ''' Default :ref:`Anaconda environment <environment>` '''
+        from environment import environment
         return environment(self, DEFAULT_ENV_PREFIX)
 
     @property
@@ -192,6 +197,7 @@ class config(object):
         :ref:`Anaconda environments <environment>` are searched for in the directories specified by `config.locations`.
         Environments located elsewhere are unknown to Anaconda.
         '''
+        from environment import environment
         envs = []
         for location in self.locations:
             if not exists(location):
@@ -229,6 +235,7 @@ class config(object):
     @property
     def available_packages(self):
         ''' All :ref:`locally available <locally_available>` packages '''
+        from install import available
         res = set()
         canonical_names = available(self.packages_dir)
         for name in canonical_names:
@@ -258,6 +265,7 @@ class config(object):
             return envs[prefix]
         except:
             log.debug('creating environment for prefix: %s' % prefix)
+            from environment import environment
             return environment(self, prefix)
 
     def __str__(self):

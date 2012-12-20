@@ -8,6 +8,10 @@ can be used to search and match packages in the package index.
 
 '''
 
+
+from config import TARGET_ORDER
+
+
 class package_constraint(object):
     ''' Base class for specific package_constraint objects that match packages with
     specified criteria.
@@ -369,7 +373,7 @@ class build_target(package_constraint):
 
     Parameters
     ----------
-    req : str ``{'ce', 'pro'}``
+    req : str ``{'ce', 'pro', 'w'}``
         build target to match against
 
     '''
@@ -395,7 +399,7 @@ class build_target(package_constraint):
             True if `pkg` matches the specified build target, False otherwise
 
         '''
-        return (not pkg.build_target) or pkg.build_target == self._target
+        return pkg.build_target in TARGET_ORDER[self._target]
 
 
 class wildcard(package_constraint):
