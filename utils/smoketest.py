@@ -78,9 +78,6 @@ def tester(commands):
                 fails.append(cmd)
             else:
                 print "\nPASSED\n"
-                g = open("%s.txt" % out, "w")
-                g.write("$ %s\n\n %s" % (cmd, data))
-                g.close()
         except Exception as e:
             print e
             f.write("\nThe script had the following error running %s: %s" % (cmd, e))
