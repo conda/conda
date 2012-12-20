@@ -302,7 +302,7 @@ class package_version(package_constraint):
     Parameters
     ----------
     req : :py:class:`package_spec <conda.package.package>` object
-        pacakge to match against
+        package to match against
 
     '''
     def __init__(self, pkg):

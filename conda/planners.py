@@ -110,7 +110,7 @@ def create_create_plan(prefix, conda, spec_strings):
     pkgs = newest_packages(pkgs)
     log.debug("updated packages: %s\n" % pkgs)
 
-    # check to see if this is a meta-package situtaion (and handle it if so)
+    # check to see if this is a meta-package situation (and handle it if so)
     all_pkgs = _handle_meta_create(conda, pkgs)
 
     if not all_pkgs:
@@ -191,7 +191,7 @@ def create_install_plan(env, spec_strings):
 
         specs.add(spec)
 
-    # abort if specifications are already incondsistent at this point
+    # abort if specifications are already inconsistent at this point
     inconsistent = find_inconsistent_specs(specs)
     if inconsistent:
         raise RuntimeError(
@@ -206,7 +206,7 @@ def create_install_plan(env, spec_strings):
     pkgs = newest_packages(pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
-    # check to see if this is a meta-package situtaion (and handle it if so)
+    # check to see if this is a meta-package situation (and handle it if so)
     all_pkgs = _handle_meta_install(env.conda, pkgs)
 
     if not all_pkgs:
