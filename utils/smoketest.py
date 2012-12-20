@@ -10,61 +10,56 @@ myenv = join(base, "env")
 
 cmds = [
     (
-        "conda info", 
-        "info-1"
+        "conda info"
     ),
     (
-        "conda list ^m.*lib$",
-        "list-1"
+        "conda list ^m.*lib$"
     ),
     (
-        "conda search ^m.*lib$",
-        "search-1"
+        "conda search ^m.*lib$"
     ),
     (
-        "conda depends numpy",
-        "depends-1"
+        "conda depends numpy"
     ),
     (
-        "conda info -e",
-        "envs-1"
+        "conda info -e"
     ),
     (
-        "conda create --yes -p %s sqlite" % myenv,
-        "create-1"
+        "conda create --yes -p %s sqlite" % myenv
     ),
     (
-        "conda install --yes -p %s pandas=0.8.1" % myenv,
-        "install-1"
+        "conda install --yes -p %s pandas=0.8.1" % myenv
     ),
     (
-        "conda update --yes -p %s pandas" % myenv,
-        "update-1"
+        "conda install --yes -p %s numba=0.1.1" % myenv
     ),
     (
-        "conda env --yes -ap %s numba-0.3.1-np17py27_0" % myenv,
-        "activate-1"
+        "conda install --yes -p %s cython=0.16" % myenv
     ),
     (
-        "conda env --yes -dp %s sqlite-3.7.13-0" % myenv,
-        "deactivate-1"
+        "conda install --yes -p %s cython=0.17.3" % myenv
     ),
     (
-        "conda local --yes -r zeromq-2.2.0-0",
-        "remove-1"
+        "conda update --yes -p %s pandas" % myenv
     ),
     (
-        "conda local --yes -d zeromq-2.2.0-0",
-        "download-1"
+        "conda env --yes -ap %s numba-0.3.1-np17py27_0" % myenv
+    ),
+    (
+        "conda env --yes -dp %s sqlite-3.7.13-0" % myenv
+    ),
+    (
+        "conda local --yes -r zeromq-2.2.0-0"
+    ),
+    (
+        "conda local --yes -d zeromq-2.2.0-0"
     )
 ]
 
 def tester(commands):
     cmds = commands
     fails = []
-    for i in cmds:
-        cmd = i[0]
-        out = i[1]
+    for cmd in cmds:
         print "-"*120
         print "%s" % cmd 
         print "-"*120
