@@ -9,7 +9,15 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   information
-   basic
-   advanced
-   packaging
+   commands/create
+   commands/depends
+   commands/env
+   commands/index
+   commands/info
+   commands/install
+   commands/list
+   commands/local
+   commands/package
+   commands/pip
+   commands/search_
+   commands/update

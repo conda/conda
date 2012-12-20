@@ -4,7 +4,7 @@ Informational Commands
 
 .. toctree::
 
-    commands/depends
-    commands/info
-    commands/list
-    commands/search_
+    depends
+    info
+    list
+    search

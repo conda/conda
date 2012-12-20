@@ -7,5 +7,5 @@ Advanced Package Management
 
 .. toctree::
 
-    commands/env
-    commands/local
+    env
+    local
