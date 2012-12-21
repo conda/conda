@@ -91,6 +91,39 @@
     ],
     "version": "2.0.1"
   },
+  "baz-2.0.1-ce0.tar.bz2": {
+    "arch": "x86_64",
+    "build": "ce0",
+    "build_number": 0,
+    "build_target": "ce",
+    "name": "baz",
+    "requires": [
+      "bar 1.1"
+    ],
+    "version": "2.1"
+  },
+  "baz-2.0.1-pro0.tar.bz2": {
+    "arch": "x86_64",
+    "build": "pro0",
+    "build_number": 0,
+    "build_target": "pro",
+    "name": "baz",
+    "requires": [
+      "bar 1.1"
+    ],
+    "version": "2.1"
+  },
+  "baz-2.0.1-w0.tar.bz2": {
+    "arch": "x86_64",
+    "build": "w0",
+    "build_number": 0,
+    "build_target": "w",
+    "name": "baz",
+    "requires": [
+      "bar 1.1"
+    ],
+    "version": "2.1"
+  },
 
   "meta-0.1-0.tar.bz2": {
     "arch": "x86_64",
