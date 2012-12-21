@@ -14,8 +14,8 @@ def pip(prefix, pkg_name):
         pip_path = join(prefix, 'bin', 'pip')
 
     if not isfile(pip_path):
-        raise Exception('pip does not appear to be installed in prefix: %r'
-                        % prefix)
+        raise RuntimeError('pip does not appear to be installed in prefix: '
+                           '%r' % prefix)
 
     try:
         check_call([pip_path, 'install', pkg_name])
