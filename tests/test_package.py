@@ -74,6 +74,16 @@ class test_sort_packages_by_name(unittest.TestCase):
             [foo, baz, bar]
         )
 
+    def test_with_build_target(self):
+        none, ce, pro, w = (
+            package(info["baz-2.0.1-0.tar.bz2"]),
+            package(info["baz-2.0.1-ce0.tar.bz2"]),
+            package(info["baz-2.0.1-pro0.tar.bz2"]),
+            package(info["baz-2.0.1-w0.tar.bz2"]),
+        )
+        self.assertTrue(none < ce)
+        self.assertTrue(ce < pro)
+        self.assertTrue(pro < w)
 
 class test_group_packages_by_name(unittest.TestCase):
 
