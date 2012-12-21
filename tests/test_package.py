@@ -70,20 +70,25 @@ class test_sort_packages_by_name(unittest.TestCase):
         )
         pkgs = [foo, baz, bar]
         self.assertEqual(
-            sort_packages_by_name(pkgs, reverse=True),
-            [foo, baz, bar]
+            sort_packages_by_name(pkgs),
+            [bar, baz, foo]
         )
 
     def test_with_build_target(self):
-        none, ce, pro, w = (
+        bar, b1, b2, b3, b4, foo = (
+            package(info["bar-1.1-0.tar.bz2"]),
             package(info["baz-2.0.1-0.tar.bz2"]),
             package(info["baz-2.0.1-ce0.tar.bz2"]),
             package(info["baz-2.0.1-pro0.tar.bz2"]),
             package(info["baz-2.0.1-w0.tar.bz2"]),
+            package(info["foo-0.8.0-0.tar.bz2"]),
         )
-        self.assertTrue(none < ce)
-        self.assertTrue(ce < pro)
-        self.assertTrue(pro < w)
+        pkgs = [b4, b2, foo, b1, bar, b3]
+        self.assertEqual(
+            sort_packages_by_name(pkgs),
+            [bar, b1, b2, b3, b4, foo]
+        )
+
 
 class test_group_packages_by_name(unittest.TestCase):
 
