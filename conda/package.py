@@ -70,6 +70,8 @@ class package(object):
                 package works with Community Edition
             ``pro``
                 package works with Anaconda Pro
+            ``w``
+                package works with Wakari installation
             None
                 package works with any build target
 
@@ -138,15 +140,18 @@ class package(object):
         # NormalizedVersion seems to not work perfectly if 'rc' is adjacent to the last version digit
         sv = self.version.vstring.replace('rc', '.rc')
         ov = other.version.vstring.replace('rc', '.rc')
+
+        # regarding the build target, we are taking advantage of the fact that: None < 'ce' < 'pro' < 'w'. If more
+        # build targets are added, the logic here should be made to utilize config.TARGET_ORDER explicitly
         try:
             return cmp(
                 (self.name, self.build_target, NormalizedVersion(suggest_normalized_version(sv)), self.build_number),
-                (other.name, self.build_target, NormalizedVersion(suggest_normalized_version(ov)), other.build_number)
+                (other.name, other.build_target, NormalizedVersion(suggest_normalized_version(ov)), other.build_number)
             )
         except:
             return cmp(
-                (self.name, self.build_tartget, self.version.vstring, self.build_number),
-                (other.name, self.build_target, other.version.vstring, other.build_number)
+                (self.name, self.build_target, self.version.vstring, self.build_number),
+                (other.name, other.build_target, other.version.vstring, other.build_number)
             )
 
 
