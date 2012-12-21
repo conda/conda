@@ -1,5 +1,7 @@
 import os
+import sys
 
+from os.path import exists, join, abspath, expanduser
 from shutil import rmtree
 
 pys = [
@@ -14,16 +16,31 @@ nums = [
 ]
 
 
-def envTest(pyver, numver):
-    os.system("rm -rf ~/anaconda/envs/test")
-    print "\nconda create -n test %s %s anaconda\n --------------\n" % (pyver, numver)
-    os.system("conda create --confirm=no -n test %s %s anaconda" % (pyver, numver))
-    os.system("conda install --confirm=no -n test test")
-    os.system("./../anaconda/envs/test/bin/anaconda-test | tee -a %s-%s-testlog.txt" % (pyver, numver))
+def envTest(pyver, numver, gui=False):
+    if gui == True:
+        os.system("ipython --pylab -ic 'plot(randn(99))'")
+        os.system("ipython qtconsole")
+        os.system("ipython notebook")
+        os.system("spyder")
+    testdir = abspath(expanduser(join("~", "anaconda", "envs", "test")))
+    if exists(testdir):
+        rmtree(testdir)
+    print "\nconda create -n test %s %s anaconda\n"  % (pyver, numver)
+    print "-"*60
+    print
+    os.system("conda create --yes -n test %s %s anaconda" % (pyver, numver))
+    os.system("conda install --yes -n test test")
+    logname = "%s-%s-testlog.txt" % (pyver, numver)
+    testcmd = "%s 2>&1 >> %s" % (join(testdir, "bin", "anaconda-test"), logname)
+    os.system(testcmd)
 
 
-for py in pys:
-    for num in nums:
-        envTest(py, num)
-        
-rmtree(test)
+if __name__ == '__main__':
+    for py in pys:
+        for num in nums:
+            if len(sys.argv) == 2:
+                if sys.argv[1] in ["-g", "--gui"]:
+                    envTest(py, num, gui=True)
+            else:
+                envTest(py, num)
+    
