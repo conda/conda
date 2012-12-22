@@ -42,7 +42,7 @@ located at a given path.
         zlib-1.2.7
 
     
-Running ``conda depends`` with the reverse dependency command shows all packages that require numpy.
+Running ``conda depends`` with the reverse dependency command shows all packages that require NumPy.
 
 .. code-block:: bash
 
@@ -64,7 +64,7 @@ Running ``conda depends`` with the reverse dependency command shows all packages
         wiserf-0.9
 
 Using reverse dependency in addition to the verbose (``-v``) and ``no-prefix`` commands offers
-more information and includes packages that depend on any version of numpy.
+more information and includes packages that depend on any version of NumPy.
 
 .. code-block:: bash
 
@@ -84,8 +84,8 @@ more information and includes packages that depend on any version of numpy.
         statsmodels-0.4.3-np17py27_0
         wiserf-0.9-np17py27_0
 
-conda ``depends`` with just ``--no-prefix -r`` shows us any version of numpy's dependencies in a more easily parsed
-form, showing how many versions of numpy can be used to build that specific package.
+``conda depends`` with just ``--no-prefix -r`` shows us any version of NumPy's dependencies in a more easily parsed
+form, showing how many versions of NumPy can be used to build that specific package.
 
 .. code-block:: bash
 
