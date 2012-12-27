@@ -3,7 +3,7 @@ import logging
 from difflib import get_close_matches
 
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
-from constraints import AllOf, AnyOf, BuildTarget, Requires, Satisfies
+from constraints import AllOf, AnyOf, Requires, Satisfies
 from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
 from package_plan import package_plan
 from package_spec import PackageSpec, find_inconsistent_specs
@@ -78,16 +78,14 @@ def create_create_plan(prefix, conda, spec_strings):
 
     # find packages compatible with the initial specifications and build target
     pkgs = idx.find_compatible_packages(specs)
-    pkgs = idx.find_matches(BuildTarget(conda.target), pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
     # find the associated dependencies
     deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(BuildTarget(conda.target), deps)
     log.debug("initial dependencies: %s\n" % deps)
 
     # add constraints for default python and numpy specifications if needed
-    constraints = [BuildTarget(conda.target)]
+    constraints = []
 
     dep_names = [dep.name for dep in deps]
 

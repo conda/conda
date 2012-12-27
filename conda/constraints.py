@@ -368,40 +368,6 @@ class ExactPackage(PackageConstraint):
         return self._pkg == pkg
 
 
-class BuildTarget(PackageConstraint):
-    ''' constraint for matching package build targets
-
-    Parameters
-    ----------
-    req : str ``{'ce', 'pro', 'w'}``
-        build target to match against
-
-    '''
-    def __init__(self, target):
-        self._target = target
-    def __str__(self):
-        return 'BuildTarget[%s]' % self._target
-    def __repr__(self):
-        return 'BuildTarget[%s]' % self._target
-    def __cmp__(self, other):
-        return cmp(self._target, other._target)
-    def match(self, pkg):
-        ''' Match if a package has the specified build target, or no build target
-
-        Parameters
-        ----------
-        pkg : :py:class:`package <conda.package.package>` object
-            package to match
-
-        Returns
-        -------
-        matches : bool
-            True if `pkg` matches the specified build target, False otherwise
-
-        '''
-        return pkg.build_target in TARGET_ORDER[self._target]
-
-
 class Wildcard(PackageConstraint):
     ''' constraint that always matches everything
 

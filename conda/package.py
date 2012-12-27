@@ -30,7 +30,6 @@ class Package(object):
     ----------
     build
     build_number
-    build_target
     canonical_name
     filename
     is_meta
@@ -43,7 +42,7 @@ class Package(object):
 
     '''
 
-    __slots__ = ['_filename', '_info', '_version', '_requires', '_build_target']
+    __slots__ = ['_filename', '_info', '_version', '_requires']
 
     def __init__(self, pkg_info):
         self._info = pkg_info
@@ -53,30 +52,12 @@ class Package(object):
         self._version = LooseVersion(self._info['version'])
         self._requires = set(PackageSpec(spec_string)
                              for spec_string in self._info['requires'])
-        self._build_target = self._info.get('build_target', None)
 
     name         = dict_property('name', ':ref:`Package name <package_name>` of this package')
     build        = dict_property('build', ':ref:`Build string <build_string>` of this package')
     build_number = dict_property('build_number', 'build number for this package')
     md5          = dict_property('md5', 'md5 hash of package file')
     size         = dict_property('size', 'package file size in bytes')
-
-    @property
-    def build_target(self):
-        ''' Build target for this package (if it has one)
-
-        The possible values are:
-            ``ce``
-                package works with Community Edition
-            ``pro``
-                package works with Anaconda Pro
-            ``w``
-                package works with Wakari installation
-            None
-                package works with any build target
-
-        '''
-        return self._build_target
 
     @property
     def version(self):
@@ -116,7 +97,6 @@ class Package(object):
 
     def print_info(self, show_requires=True):
         print "   package: %s-%s" % (self.name, self.version),
-        print "[%s]" % self._build_target if self.build_target else ""
         print "  filename: %s" % self.filename
         try:
             print "       md5: %s" % self.md5
@@ -145,13 +125,13 @@ class Package(object):
         # build targets are added, the logic here should be made to utilize config.TARGET_ORDER explicitly
         try:
             return cmp(
-                (self.name, self.build_target, NormalizedVersion(suggest_normalized_version(sv)), self.build_number),
-                (other.name, other.build_target, NormalizedVersion(suggest_normalized_version(ov)), other.build_number)
+                (self.name, NormalizedVersion(suggest_normalized_version(sv)), self.build_number),
+                (other.name, NormalizedVersion(suggest_normalized_version(ov)), other.build_number)
             )
         except:
             return cmp(
-                (self.name, self.build_target, self.version.vstring, self.build_number),
-                (other.name, other.build_target, other.version.vstring, other.build_number)
+                (self.name, self.version.vstring, self.build_number),
+                (other.name, other.version.vstring, other.build_number)
             )
 
 

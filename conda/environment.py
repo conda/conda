@@ -12,7 +12,7 @@ from naming import split_canonical_name
 import logging
 from os.path import isdir
 
-from constraints import AllOf, AnyOf, BuildTarget, Requires, Satisfies, Wildcard
+from constraints import AllOf, AnyOf, Requires, Satisfies, Wildcard
 from install import activated, get_meta
 from package import Package
 from package_spec import PackageSpec
@@ -77,10 +77,9 @@ class Environment(object):
         -------
         requirements : py:class:`package constraint <conda.constraints.package_constraint>`
         '''
-        bt = BuildTarget(self._conda.target)
         py = self._python_constraint()
         np = self._numpy_constraint()
-        return AllOf(bt, py, np)
+        return AllOf(py, np)
 
     def get_requirements(self, target=None):
         ''' This function is analogous to the requirements property, but it allows the build target to be overridden if necessary.
@@ -94,13 +93,9 @@ class Environment(object):
         -------
         requirements : py:class:`package constraint <conda.constraints.package_constraint>`
         '''
-        if target:
-            bt = BuildTarget(target)
-        else:
-            bt = BuildTarget(self._conda.target)
         py = self._python_constraint()
         np = self._numpy_constraint()
-        return AllOf(bt, py, np)
+        return AllOf(py, np)
 
     def find_activated_package(self, pkg_name):
         ''' find and return an :ref:`activated <activated>` packages in the environment with the specified :ref:`package name <package_name>`
