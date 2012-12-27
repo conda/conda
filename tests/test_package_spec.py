@@ -8,13 +8,13 @@ from distutils.version import LooseVersion
 import unittest
 
 from conda.package_spec import (
-    find_inconsistent_specs, group_package_specs_by_name, package_spec, sort_package_specs_by_name
+    find_inconsistent_specs, group_package_specs_by_name, PackageSpec, sort_package_specs_by_name
 )
 
 class test_package_spec(unittest.TestCase):
 
     def test_init_name(self):
-        spec = package_spec("foo-bar")
+        spec = PackageSpec("foo-bar")
         self.assertEqual(
             spec.name,
             "foo-bar"
@@ -31,7 +31,7 @@ class test_package_spec(unittest.TestCase):
     def test_init_name_version(self):
         spec_strings = ["foo-bar 2.7.1.abc", "foo-bar=2.7.1.abc"]
         for spec_string in spec_strings:
-            spec = package_spec(spec_string)
+            spec = PackageSpec(spec_string)
             self.assertEqual(
                 spec.name,
                 "foo-bar"
@@ -48,7 +48,7 @@ class test_package_spec(unittest.TestCase):
     def test_init_name_version_build(self):
         spec_strings = ["foo-bar 2.7.1.abc bld", "foo-bar=2.7.1.abc=bld"]
         for spec_string in spec_strings:
-            spec = package_spec(spec_string)
+            spec = PackageSpec(spec_string)
             self.assertEqual(
                 spec.name,
                 "foo-bar"
@@ -65,15 +65,15 @@ class test_package_spec(unittest.TestCase):
 class test_find_inconsistent_specs(unittest.TestCase):
 
     def test_simple(self):
-        a, b, c = package_spec('python 2.7'), package_spec('python 3.1'), package_spec('python 2.7.1')
+        a, b, c = PackageSpec('python 2.7'), PackageSpec('python 3.1'), PackageSpec('python 2.7.1')
         specs = [a, b, c]
         self.assertEqual(
             find_inconsistent_specs(specs),
             {
                 'python' :  set([
-                                package_spec('python 2.7.1'),
-                                package_spec('python 3.1'),
-                                package_spec('python 2.7'),
+                                PackageSpec('python 2.7.1'),
+                                PackageSpec('python 3.1'),
+                                PackageSpec('python 2.7'),
                             ])
             }
         )
@@ -83,9 +83,9 @@ class test_sort_package_specs_by_name(unittest.TestCase):
 
     def test_simple(self):
         a, b, c = (
-            package_spec('numpy 1.7'),
-            package_spec('python'),
-            package_spec('scipy 0.11 bld'),
+            PackageSpec('numpy 1.7'),
+            PackageSpec('python'),
+            PackageSpec('scipy 0.11 bld'),
         )
         specs = [c, a, b]
         self.assertEqual(
@@ -94,9 +94,9 @@ class test_sort_package_specs_by_name(unittest.TestCase):
         )
     def test_reverse(self):
         a, b, c = (
-            package_spec('numpy 1.7'),
-            package_spec('python'),
-            package_spec('scipy 0.11 bld'),
+            PackageSpec('numpy 1.7'),
+            PackageSpec('python'),
+            PackageSpec('scipy 0.11 bld'),
         )
         specs = [c, a, b]
         self.assertEqual(
@@ -109,18 +109,18 @@ class test_group_package_specs_by_name(unittest.TestCase):
 
     def test_simple(self):
         specs = [
-            package_spec('scipy 0.11 bld'),
-            package_spec('python 2.7'),
-            package_spec('numpy 1.7'),
-            package_spec('scipy'),
-            package_spec('numpy 1.6'),
+            PackageSpec('scipy 0.11 bld'),
+            PackageSpec('python 2.7'),
+            PackageSpec('numpy 1.7'),
+            PackageSpec('scipy'),
+            PackageSpec('numpy 1.6'),
         ]
         self.assertEqual(
             group_package_specs_by_name(specs),
             {
-                'scipy' : set([package_spec('scipy'), package_spec('scipy 0.11 bld')]),
-                'numpy' : set([package_spec('numpy 1.6'), package_spec('numpy 1.7')]),
-                'python' : set([package_spec('python 2.7')]),
+                'scipy' : set([PackageSpec('scipy'), PackageSpec('scipy 0.11 bld')]),
+                'numpy' : set([PackageSpec('numpy 1.6'), PackageSpec('numpy 1.7')]),
+                'python' : set([PackageSpec('python 2.7')]),
             }
         )
 

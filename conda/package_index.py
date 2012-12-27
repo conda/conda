@@ -3,19 +3,19 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-''' The package_index module provides the `package_index` class, which is the
+''' The package_index module provides the `PackageIndex` class, which is the
 primary interface for looking up packages and their dependencies, matching
 packages to constraints, etc.
 
 '''
 
 
-from constraints import satisfies
-from package import package
+from constraints import Satisfies
+from package import Package
 from package_spec import find_inconsistent_specs
 
 
-class package_index(object):
+class PackageIndex(object):
     ''' Encapsulates an Anaconda package index
 
     Parameters
@@ -34,12 +34,12 @@ class package_index(object):
     def __init__(self, info):
 
         self.pkg_filenames = dict(
-            (pkg_filename, package(pkg_info))
+            (pkg_filename, Package(pkg_info))
             for pkg_filename, pkg_info in info.items()
         )
 
         self.pkgs = set(
-            package(pkg_info) for pkg_info in info.values()
+            Package(pkg_info) for pkg_info in info.values()
         )
 
         # compute on demand
@@ -215,7 +215,7 @@ class package_index(object):
         reqs = set()
         for pkg in pkgs:
             for req in self.rdeps:
-                if pkg.matches(satisfies(req)):
+                if pkg.matches(Satisfies(req)):
                     reqs.add(req)
         return reqs
 
@@ -246,7 +246,7 @@ class package_index(object):
                                                      req.build)
                 pkgs.add(self.lookup_from_filename(pkg_filename))
             else:
-                pkgs = pkgs | self.find_matches(satisfies(req))
+                pkgs = pkgs | self.find_matches(Satisfies(req))
 
         # remove any packages whose requirements are inconsistent with the
         # user specified requirements
@@ -263,7 +263,7 @@ class package_index(object):
         for pkg in self.pkgs:
             deps[pkg] = set()
             for req in pkg.requires:
-                deps[pkg] |= self.find_matches(satisfies(req))
+                deps[pkg] |= self.find_matches(Satisfies(req))
         return deps
 
     def _compute_reverse_dependencies(self):

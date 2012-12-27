@@ -9,7 +9,7 @@ from os import listdir
 from os.path import join
 from shutil import rmtree
 
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.planners import create_download_plan
 from utils import add_parser_yes, confirm, add_parser_quiet
 
@@ -54,7 +54,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = anaconda()
+    conda = Anaconda()
 
     if args.download:
         plan = create_download_plan(conda, args.canonical_names, args.force)

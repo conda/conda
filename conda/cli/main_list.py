@@ -6,7 +6,7 @@
 
 import re
 
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.package import sort_packages_by_name
 from utils import add_parser_prefix, get_prefix
 
@@ -34,7 +34,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = anaconda()
+    conda = Anaconda()
 
     prefix = get_prefix(args)
 

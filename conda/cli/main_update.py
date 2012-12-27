@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.planners import create_update_plan
 from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
 
@@ -32,7 +32,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = anaconda()
+    conda = Anaconda()
 
     if conda.local_index_only:
         raise RuntimeError('Updating packages requires access to package indices on remote package repositories. (Check network connection?)')

@@ -3,10 +3,10 @@ import logging
 from difflib import get_close_matches
 
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
-from constraints import all_of, any_of, build_target, requires, satisfies
+from constraints import AllOf, AnyOf, BuildTarget, Requires, Satisfies
 from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
 from package_plan import package_plan
-from package_spec import package_spec, find_inconsistent_specs
+from package_spec import PackageSpec, find_inconsistent_specs
 
 __all__ = [
     'create_create_plan',
@@ -53,7 +53,7 @@ def create_create_plan(prefix, conda, spec_strings):
 
     for spec_string in spec_strings:
 
-        spec = package_spec(spec_string)
+        spec = PackageSpec(spec_string)
 
         if spec.name == 'python':
             if spec.version: py_spec = spec
@@ -78,30 +78,30 @@ def create_create_plan(prefix, conda, spec_strings):
 
     # find packages compatible with the initial specifications and build target
     pkgs = idx.find_compatible_packages(specs)
-    pkgs = idx.find_matches(build_target(conda.target), pkgs)
+    pkgs = idx.find_matches(BuildTarget(conda.target), pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
     # find the associated dependencies
     deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(build_target(conda.target), deps)
+    deps = idx.find_matches(BuildTarget(conda.target), deps)
     log.debug("initial dependencies: %s\n" % deps)
 
     # add constraints for default python and numpy specifications if needed
-    constraints = [build_target(conda.target)]
+    constraints = [BuildTarget(conda.target)]
 
     dep_names = [dep.name for dep in deps]
 
     if py_spec:
         constraints.append(_default_constraint(py_spec))
     elif 'python' in dep_names:
-        constraints.append(_default_constraint(package_spec(DEFAULT_PYTHON_SPEC)))
+        constraints.append(_default_constraint(PackageSpec(DEFAULT_PYTHON_SPEC)))
 
     if np_spec:
         constraints.append(_default_constraint(np_spec))
     elif 'numpy' in dep_names:
-        constraints.append(_default_constraint(package_spec(DEFAULT_NUMPY_SPEC)))
+        constraints.append(_default_constraint(PackageSpec(DEFAULT_NUMPY_SPEC)))
 
-    env_constraints = all_of(*constraints)
+    env_constraints = AllOf(*constraints)
     log.debug("computed environment constraints: %s\n" % env_constraints)
 
     # now we need to recompute the compatible packages using the computed environment constraints
@@ -125,7 +125,7 @@ def create_create_plan(prefix, conda, spec_strings):
 
         # make sure all user supplied specs were satisfied
         for spec in specs:
-            if not idx.find_matches(satisfies(spec), all_pkgs):
+            if not idx.find_matches(Satisfies(spec), all_pkgs):
                 raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
 
     # download any packages that are not available
@@ -143,7 +143,7 @@ def create_install_plan(env, spec_strings):
     This functions creates a package plan for activating packages in an
     existing Anaconda environment, including removing existing versions and
     also activating all required dependencies. The desired packages are
-    specified as package names, package filenames, or package_spec strings.
+    specified as package names, package filenames, or PackageSpec strings.
 
     Parameters
     ----------
@@ -174,7 +174,7 @@ def create_install_plan(env, spec_strings):
 
     for spec_string in spec_strings:
 
-        spec = package_spec(spec_string)
+        spec = PackageSpec(spec_string)
 
         if spec.name == 'python':
             if env.find_activated_package('python'):
@@ -222,14 +222,14 @@ def create_install_plan(env, spec_strings):
         if py_spec:
             constraints.append(_default_constraint(py_spec))
         elif 'python' in dep_names:
-            constraints.append(_default_constraint(package_spec(DEFAULT_PYTHON_SPEC)))
+            constraints.append(_default_constraint(PackageSpec(DEFAULT_PYTHON_SPEC)))
 
         if np_spec:
             constraints.append(_default_constraint(np_spec))
         elif 'numpy' in dep_names:
-            constraints.append(_default_constraint(package_spec(DEFAULT_NUMPY_SPEC)))
+            constraints.append(_default_constraint(PackageSpec(DEFAULT_NUMPY_SPEC)))
 
-        env_constraints = all_of(*constraints)
+        env_constraints = AllOf(*constraints)
         log.debug("computed environment constraints: %s\n" % env_constraints)
 
         # now we need to recompute the compatible packages using the updated package specifications
@@ -250,8 +250,8 @@ def create_install_plan(env, spec_strings):
 
         # make sure all user supplied specs were satisfied
         for spec in specs:
-            if not idx.find_matches(satisfies(spec), all_pkgs):
-                if idx.find_matches(satisfies(spec)):
+            if not idx.find_matches(Satisfies(spec), all_pkgs):
+                if idx.find_matches(Satisfies(spec)):
                     raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
                 else:
                     raise RuntimeError("could not find package for package specification '%s'" % spec)
@@ -586,6 +586,6 @@ def _handle_meta_update(conda, pkgs):
 
 
 def _default_constraint(spec):
-    req = package_spec('%s %s.%s' % (spec.name,spec.version.version[0], spec.version.version[1]))
-    sat = package_spec('%s %s %s' % (spec.name, spec.version.vstring, spec.build))
-    return any_of(requires(req), satisfies(sat))
+    req = PackageSpec('%s %s.%s' % (spec.name,spec.version.version[0], spec.version.version[1]))
+    sat = PackageSpec('%s %s %s' % (spec.name, spec.version.vstring, spec.build))
+    return AnyOf(Requires(req), Satisfies(sat))

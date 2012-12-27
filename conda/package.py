@@ -12,7 +12,7 @@ manipulating collections of packages.
 from distutils.version import LooseVersion
 from itertools import combinations, groupby
 
-from package_spec import package_spec
+from package_spec import PackageSpec
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
@@ -23,7 +23,7 @@ def dict_property(name, doc):
     return property(fget=prop, doc=doc)
 
 
-class package(object):
+class Package(object):
     ''' The package class encapsulates information about an Anaconda package
 
     Attributes
@@ -51,7 +51,7 @@ class package(object):
                                                self._info['version'],
                                                self._info['build'])
         self._version = LooseVersion(self._info['version'])
-        self._requires = set(package_spec(spec_string)
+        self._requires = set(PackageSpec(spec_string)
                              for spec_string in self._info['requires'])
         self._build_target = self._info.get('build_target', None)
 
@@ -160,12 +160,12 @@ def find_inconsistent_packages(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable collection of :py:class:`package_spec <conda.package.package>` objects
+    pkgs : iterable collection of :py:class:`PackageSpec <conda.package.package>` objects
         packages to check for inconsistencies
 
     Returns
     -------
-    inconsistent_pkgs : set of :py:class:`package_spec <conda.package.package>` objects
+    inconsistent_pkgs : set of :py:class:`PackageSpec <conda.package.package>` objects
         all inconsistent packages present in `pkgs`
 
     '''
@@ -233,12 +233,12 @@ def newest_packages(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`package_spec <conda.package.package>`
+    pkgs : iterable of :py:class:`PackageSpec <conda.package.package>`
         packages to select newest versions from
 
     Returns
     -------
-    newest : set of :py:class:`package_spec <conda.package.package>`
+    newest : set of :py:class:`PackageSpec <conda.package.package>`
         newest packages for each package in `pkgs`
 
     '''

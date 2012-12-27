@@ -67,8 +67,8 @@ def _load_condarc(path):
     return rc
 
 
-class config(object):
-    ''' The config object collects a variety of configuration about an Anaconda installation.
+class Config(object):
+    ''' The config object collects a variety of configurations about an Anaconda installation.
 
     Attributes
     ----------
@@ -181,14 +181,14 @@ class config(object):
     @property
     def root_environment(self):
         ''' Root :ref:`Anaconda environment <environment>` '''
-        from environment import environment
-        return environment(self, ROOT_DIR)
+        from environment import Environment
+        return Environment(self, ROOT_DIR)
 
     @property
     def default_environment(self):
         ''' Default :ref:`Anaconda environment <environment>` '''
-        from environment import environment
-        return environment(self, DEFAULT_ENV_PREFIX)
+        from environment import Environment
+        return Environment(self, DEFAULT_ENV_PREFIX)
 
     @property
     def environments(self):
@@ -197,7 +197,7 @@ class config(object):
         :ref:`Anaconda environments <environment>` are searched for in the directories specified by `config.locations`.
         Environments located elsewhere are unknown to Anaconda.
         '''
-        from environment import environment
+        from environment import Environment
         envs = []
         for location in self.locations:
             if not exists(location):
@@ -207,7 +207,7 @@ class config(object):
                 prefix = join(location, fn)
                 if isdir(prefix):
                     try:
-                        envs.append(environment(self, prefix))
+                        envs.append(Environment(self, prefix))
                     except RuntimeError as e:
                         log.info('%s' % e)
         envs.append(self.default_environment)
@@ -265,8 +265,8 @@ class config(object):
             return envs[prefix]
         except:
             log.debug('creating environment for prefix: %s' % prefix)
-            from environment import environment
-            return environment(self, prefix)
+            from environment import Environment
+            return Environment(self, prefix)
 
     def __str__(self):
         return '''

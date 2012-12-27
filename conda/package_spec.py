@@ -16,7 +16,7 @@ from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
-class package_spec(object):
+class PackageSpec(object):
     '''
     Encapsulates a package name and an optional version (or partial version) along with an optional build string for
     use as a package specification.
@@ -35,7 +35,7 @@ class package_spec(object):
 
     Examples
     --------
-    >>> spec = package_spec("python 2.7")
+    >>> spec = PackageSpec("python 2.7")
     >>> spec.name
     'python'
     >>> spec.version
@@ -89,11 +89,11 @@ class package_spec(object):
 
     def __repr__(self):
         if self.build:
-            return "package_spec('%s %s %s')" % (self.name, self.version.vstring, self.build)
+            return "PackageSpec('%s %s %s')" % (self.name, self.version.vstring, self.build)
         elif self.version:
-            return "package_spec('%s %s')" % (self.name, self.version.vstring)
+            return "PackageSpec('%s %s')" % (self.name, self.version.vstring)
         else:
-            return "package_spec('%s')" % self.name
+            return "PackageSpec('%s')" % self.name
 
     def __hash__(self):
         if self.version:
@@ -123,20 +123,20 @@ def find_inconsistent_specs(specs):
 
     Parameters
     ----------
-    specs : iterable collection of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+    specs : iterable collection of :py:class:`PackageSpec <conda.package_spec.package_spec>` objects
         package specifications to check for inconsistencies
 
     Returns
     -------
-    inconsistent_specs : set of :py:class:`package_spec <conda.package_spec.package_spec>` objects
+    inconsistent_specs : set of :py:class:`PackageSpec <conda.package_spec.package_spec>` objects
         all inconsistent package specifications present in `specs`
 
     Examples
     --------
-    >>> r,s,t = package_spec('python 2.7'), package_spec('python 3.1'), package_spec('numpy 1.2.3')
+    >>> r,s,t = PackageSpec('python 2.7'), PackageSpec('python 3.1'), PackageSpec('numpy 1.2.3')
     >>> specs = [r,s,t]
     >>> find_inconsistent_specs(specs)
-    set([package_spec('python 3.1'), package_spec('python 2.7')])
+    set([PackageSpec('python 3.1'), PackageSpec('python 2.7')])
 
     '''
 
@@ -164,14 +164,14 @@ def sort_package_specs_by_name(specs, reverse=False):
 
     Parameters
     ----------
-    specs : iterable of :py:class:`package_spec <conda.package_spec.package_spec>`
+    specs : iterable of :py:class:`PackageSpec <conda.package_spec.package_spec>`
         package specifications to sort by package name
     reverse : bool, optional
         whether to sort in reverse order
 
     Returns
     -------
-    sorted : list of :py:class:`package_spec <conda.package_spec.package_spec>`
+    sorted : list of :py:class:`PackageSpec <conda.package_spec.package_spec>`
         package specifications sorted by package name
 
     '''
@@ -187,12 +187,12 @@ def group_package_specs_by_name(specs):
 
     Parameters
     ----------
-    specs : iterable of :py:class:`package_spec <conda.package_spec.package_spec>`
+    specs : iterable of :py:class:`PackageSpec <conda.package_spec.package_spec>`
         package specifications to group by package name
 
     Returns
     -------
-    grouped : dict of (str, set of :py:class:`package_spec <conda.package_spec.package_spec>`)
+    grouped : dict of (str, set of :py:class:`PackageSpec <conda.package_spec.package_spec>`)
         dictionary of sets of package specifications, indexed by package name
 
     '''

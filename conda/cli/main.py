@@ -13,7 +13,7 @@ conda provides the following commands:
     info       : display information about the current Anaconda install
     list       : list packages activated in a specified Anaconda environment
     depends    : find package dependencies
-    search     : print information about a specificed package
+    search     : print information about a specified package
 
     Basic Package Management
     ========================

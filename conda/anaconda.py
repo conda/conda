@@ -15,14 +15,14 @@ from urllib2 import urlopen
 import json
 import logging
 
-from config import config
-from package_index import package_index
+from config import Config
+from package_index import PackageIndex
 
 
 log = logging.getLogger(__name__)
 
 
-class anaconda(config):
+class Anaconda(Config):
     ''' Provides configuration for an Anaconda installation, including the appropriate package index.
 
     Attributes
@@ -33,7 +33,7 @@ class anaconda(config):
     __slots__ = ['_index', '_local_index_only']
 
     def __init__(self):
-        super(anaconda, self).__init__()
+        super(Anaconda, self).__init__()
 
         index = self._build_local_index()
         try:
@@ -42,7 +42,7 @@ class anaconda(config):
         except RuntimeError:
             self._local_index_only = True
 
-        self._index = package_index(index)
+        self._index = PackageIndex(index)
 
     @property
     def index(self):

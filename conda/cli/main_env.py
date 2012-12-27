@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.planners import create_activate_plan, create_deactivate_plan
 from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix
 
@@ -45,7 +45,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = anaconda()
+    conda = Anaconda()
 
     prefix = get_prefix(args)
     env = conda.lookup_environment(prefix)

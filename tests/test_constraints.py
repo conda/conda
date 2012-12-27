@@ -7,8 +7,8 @@
 import unittest
 
 import conda.constraints as constraints
-from conda.package import package
-from conda.package_spec import package_spec
+from conda.package import Package
+from conda.package_spec import PackageSpec
 
 bitarray = {
     "arch": "x86_64",
@@ -28,14 +28,14 @@ bitarray = {
 class test_constraints(unittest.TestCase):
 
     def test_named(self):
-        p = package(bitarray)
-        c = constraints.named("bitarray")
+        p = Package(bitarray)
+        c = constraints.Named("bitarray")
         self.assertEqual(
             True,
             c.match(p)
         )
 
-        c = constraints.named("foo")
+        c = constraints.Named("foo")
         self.assertEqual(
             False,
             c.match(p)
@@ -51,11 +51,11 @@ class test_constraints(unittest.TestCase):
 
         }
 
-        p = package(bitarray)
+        p = Package(bitarray)
 
         for spec_string, val in d.items():
-            spec = package_spec(spec_string)
-            c = constraints.satisfies(spec)
+            spec = PackageSpec(spec_string)
+            c = constraints.Satisfies(spec)
             self.assertEqual(
                 val,
                 c.match(p)
@@ -72,11 +72,11 @@ class test_constraints(unittest.TestCase):
 
         }
 
-        p = package(bitarray)
+        p = Package(bitarray)
 
         for spec_string, val in d.items():
-            spec = package_spec(spec_string)
-            c = constraints.strict_requires(spec)
+            spec = PackageSpec(spec_string)
+            c = constraints.StrictRequires(spec)
             self.assertEqual(
                 val,
                 c.match(p)
@@ -93,33 +93,33 @@ class test_constraints(unittest.TestCase):
 
         }
 
-        p = package(bitarray)
+        p = Package(bitarray)
 
         for spec_string, val in d.items():
-            spec = package_spec(spec_string)
-            c = constraints.requires(spec)
+            spec = PackageSpec(spec_string)
+            c = constraints.Requires(spec)
             self.assertEqual(
                 val,
                 c.match(p)
             )
 
     def test_wildcard(self):
-        p = package(bitarray)
-        c = constraints.wildcard()
+        p = Package(bitarray)
+        c = constraints.Wildcard()
         self.assertEqual(
             True,
             c.match(p)
         )
 
     def test_negate(self):
-        p = package(bitarray)
-        c = constraints.negate(constraints.named("bitarray"))
+        p = Package(bitarray)
+        c = constraints.Negate(constraints.Named("bitarray"))
         self.assertEqual(
             False,
             c.match(p)
         )
 
-        c = constraints.negate(constraints.named("foo"))
+        c = constraints.Negate(constraints.Named("foo"))
         self.assertEqual(
             True,
             c.match(p)
@@ -127,10 +127,10 @@ class test_constraints(unittest.TestCase):
 
     def test_any_of(self):
 
-        p = package(bitarray)
-        c = constraints.any_of(
-                constraints.named("bitarray"),
-                constraints.satisfies(package_spec("python=2.7"))
+        p = Package(bitarray)
+        c = constraints.AnyOf(
+                constraints.Named("bitarray"),
+                constraints.Satisfies(PackageSpec("python=2.7"))
             )
 
         self.assertEqual(
@@ -138,9 +138,9 @@ class test_constraints(unittest.TestCase):
             c.match(p)
         )
 
-        c = constraints.any_of(
-            constraints.named("bitarray"),
-            constraints.negate(constraints.named("bitarray"))
+        c = constraints.AnyOf(
+            constraints.Named("bitarray"),
+            constraints.Negate(constraints.Named("bitarray"))
         )
 
         self.assertEqual(
@@ -148,8 +148,8 @@ class test_constraints(unittest.TestCase):
             c.match(p)
         )
 
-        c = constraints.any_of(
-            constraints.named("foo")
+        c = constraints.AnyOf(
+            constraints.Named("foo")
         )
 
         self.assertEqual(
@@ -157,10 +157,10 @@ class test_constraints(unittest.TestCase):
             c.match(p)
         )
 
-        c = constraints.any_of(
-            constraints.named("bitarray"),
-            constraints.negate(constraints.named("bitarray")),
-            constraints.wildcard()
+        c = constraints.AnyOf(
+            constraints.Named("bitarray"),
+            constraints.Negate(constraints.Named("bitarray")),
+            constraints.Wildcard()
         )
 
         self.assertEqual(
@@ -169,10 +169,10 @@ class test_constraints(unittest.TestCase):
         )
 
     def test_all_of(self):
-        p = package(bitarray)
-        c = constraints.all_of(
-                constraints.named("bitarray"),
-                constraints.satisfies(package_spec("python=2.7"))
+        p = Package(bitarray)
+        c = constraints.AllOf(
+                constraints.Named("bitarray"),
+                constraints.Satisfies(PackageSpec("python=2.7"))
             )
 
         self.assertEqual(
@@ -180,10 +180,10 @@ class test_constraints(unittest.TestCase):
             c.match(p)
         )
 
-        c = constraints.all_of(
-                constraints.named("bitarray"),
-                constraints.satisfies(package_spec("python=2.7")),
-                constraints.negate(constraints.named("bitarray"))
+        c = constraints.AllOf(
+                constraints.Named("bitarray"),
+                constraints.Satisfies(PackageSpec("python=2.7")),
+                constraints.Negate(constraints.Named("bitarray"))
         )
 
         self.assertEqual(
@@ -191,9 +191,9 @@ class test_constraints(unittest.TestCase):
             c.match(p)
         )
 
-        c = constraints.all_of(
-                constraints.named("bitarray"),
-                constraints.negate(constraints.named("foo"))
+        c = constraints.AllOf(
+                constraints.Named("bitarray"),
+                constraints.Negate(constraints.Named("foo"))
         )
 
         self.assertEqual(

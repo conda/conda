@@ -6,7 +6,7 @@
 
 import logging
 
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.package_plan import package_plan
 from utils import add_parser_yes, confirm
 
@@ -25,7 +25,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = anaconda()
+    conda = Anaconda()
 
     if conda.target == 'pro':
         print "Full Anaconda already activated!"

@@ -12,8 +12,8 @@ can be used to search and match packages in the package index.
 from config import TARGET_ORDER
 
 
-class package_constraint(object):
-    ''' Base class for specific package_constraint objects that match packages with
+class PackageConstraint(object):
+    ''' Base class for specific PackageConstraint objects that match packages with
     specified criteria.
 
     '''
@@ -38,12 +38,12 @@ class package_constraint(object):
         return hash(str(self))
 
 
-class all_of(package_constraint):
+class AllOf(PackageConstraint):
     ''' logical AND for matching multiple constraints
 
     Parameters
     ----------
-    *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
+    *constraints : :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` objects
         package constraints to AND together
 
 
@@ -75,21 +75,21 @@ class all_of(package_constraint):
         return True
 
 
-class any_of(package_constraint):
+class AnyOf(PackageConstraint):
     ''' logical OR for matching multiple constraints
 
     Parameters
     ----------
-    *constraints : :py:class:`package_constraint <conda.constraints.package_constraint>` objects
+    *constraints : :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` objects
         package constraints to OR together
 
     '''
     def __init__(self, *constraints):
         self._constraints = tuple(set(constraints))
     def __str__(self):
-        return 'any_of[%s]' % ', '.join(str(c) for c in self._constraints)
+        return 'AnyOf[%s]' % ', '.join(str(c) for c in self._constraints)
     def __repr__(self):
-        return 'any_of[%s]' % ', '.join(str(c) for c in self._constraints)
+        return 'AnyOf[%s]' % ', '.join(str(c) for c in self._constraints)
     def __cmp__(self, other):
         return cmp(self._constraints, other._constraints)
     def match(self, pkg):
@@ -111,21 +111,21 @@ class any_of(package_constraint):
         return False
 
 
-class negate(package_constraint):
+class Negate(PackageConstraint):
     ''' logical NOT for matching constraints
 
     Parameters
     ----------
-    constraint : :py:class:`package_constraint <conda.constraints.package_constraint>` object
-        package constraint to negate
+    constraint : :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` object
+        package constraint to Negate
 
     '''
     def __init__(self, constraint):
         self._constraint = constraint
     def __str__(self):
-        return 'negate[%s]' % str(self._constraint)
+        return 'Negate[%s]' % str(self._constraint)
     def __repr__(self):
-        return 'negate[%s]' % str(self._constraint)
+        return 'Negate[%s]' % str(self._constraint)
     def __cmp__(self, other):
         return cmp(self._constraint, other._constraint)
     def match(self, pkg):
@@ -145,7 +145,7 @@ class negate(package_constraint):
         return not pkg.matches(self._constraint)
 
 
-class named(package_constraint):
+class Named(PackageConstraint):
     ''' constraint for matching package names
 
     Parameters
@@ -157,9 +157,9 @@ class named(package_constraint):
     def __init__(self, name):
         self._name = name
     def __str__(self):
-        return 'named[%s]' % self._name
+        return 'Named[%s]' % self._name
     def __repr__(self):
-        return 'named[%s]' % self._name
+        return 'Named[%s]' % self._name
     def __cmp__(self, other):
         return cmp(self._name, other._name)
     def match(self, pkg):
@@ -179,7 +179,7 @@ class named(package_constraint):
         return pkg.name == self._name
 
 
-class strict_requires(package_constraint):
+class StrictRequires(PackageConstraint):
     ''' constraint for strictly matching package dependencies
 
     Parameters
@@ -191,9 +191,9 @@ class strict_requires(package_constraint):
     def __init__(self, req):
         self._req = req
     def __str__(self):
-        return 'strict_requires[%s]' % str(self._req)
+        return 'StrictRequires[%s]' % str(self._req)
     def __repr__(self):
-        return 'strict_requires[%s]' % str(self._req)
+        return 'StrictRequires[%s]' % str(self._req)
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
@@ -218,7 +218,7 @@ class strict_requires(package_constraint):
         return False
 
 
-class requires(package_constraint):
+class Requires(PackageConstraint):
     ''' constraint for matching package dependencies
 
     Parameters
@@ -230,9 +230,9 @@ class requires(package_constraint):
     def __init__(self, req):
         self._req = req
     def __str__(self):
-        return 'requires[%s]' % str(self._req)
+        return 'Requires[%s]' % str(self._req)
     def __repr__(self):
-        return 'requires[%s]' % str(self._req)
+        return 'Requires[%s]' % str(self._req)
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
@@ -251,7 +251,7 @@ class requires(package_constraint):
             True if `req` is compatible requirement for `pkg`, has False otherwise
 
         '''
-        # package never requires itself
+        # package never Requires itself
         if pkg.name == self._req.name: return False
         vlen = len(self._req.version.version)
         for req in pkg.requires:
@@ -260,7 +260,7 @@ class requires(package_constraint):
         return True
 
 
-class satisfies(package_constraint):
+class Satisfies(PackageConstraint):
     ''' constraint for matching whether a package satisfies a package specification
 
     Parameters
@@ -272,9 +272,9 @@ class satisfies(package_constraint):
     def __init__(self, req):
         self._req = req
     def __str__(self):
-        return 'satisfies[%s]' % str(self._req)
+        return 'Satisfies[%s]' % str(self._req)
     def __repr__(self):
-        return 'satisfies[%s]' % str(self._req)
+        return 'Satisfies[%s]' % str(self._req)
     def __cmp__(self, other):
         return cmp(self._req, other._req)
     def match(self, pkg):
@@ -300,7 +300,7 @@ class satisfies(package_constraint):
             return False
 
 
-class package_version(package_constraint):
+class PackageVersion(PackageConstraint):
     ''' constraint for matching package versions
 
     Parameters
@@ -312,9 +312,9 @@ class package_version(package_constraint):
     def __init__(self, pkg):
         self._pkg = pkg
     def __str__(self):
-        return 'package_version[%s]' % str(self._pkg)
+        return 'PackageVersion[%s]' % str(self._pkg)
     def __repr__(self):
-        return 'package_version[%s]' % str(self._pkg)
+        return 'PackageVersion[%s]' % str(self._pkg)
     def __cmp__(self, other):
         return cmp(self._pkg, other._pkg)
     def match(self, pkg):
@@ -334,7 +334,7 @@ class package_version(package_constraint):
         return self._pkg.name == pkg.name and self._pkg.version == pkg.version
 
 
-class exact_package(package_constraint):
+class ExactPackage(PackageConstraint):
     ''' constraint for matching exact packages
 
         Parameters
@@ -368,7 +368,7 @@ class exact_package(package_constraint):
         return self._pkg == pkg
 
 
-class build_target(package_constraint):
+class BuildTarget(PackageConstraint):
     ''' constraint for matching package build targets
 
     Parameters
@@ -380,9 +380,9 @@ class build_target(package_constraint):
     def __init__(self, target):
         self._target = target
     def __str__(self):
-        return 'build_target[%s]' % self._target
+        return 'BuildTarget[%s]' % self._target
     def __repr__(self):
-        return 'build_target[%s]' % self._target
+        return 'BuildTarget[%s]' % self._target
     def __cmp__(self, other):
         return cmp(self._target, other._target)
     def match(self, pkg):
@@ -402,14 +402,14 @@ class build_target(package_constraint):
         return pkg.build_target in TARGET_ORDER[self._target]
 
 
-class wildcard(package_constraint):
+class Wildcard(PackageConstraint):
     ''' constraint that always matches everything
 
     '''
     def __str__(self):
-        return 'wildcard'
+        return 'Wildcard'
     def __repr__(self):
-        return 'wildcard'
+        return 'Wildcard'
     def __cmp__(self, other):
         return 0
     def match(self, pkg):

@@ -14,7 +14,7 @@ import urllib2
 import logging
 from os.path import join
 
-from config import config
+from config import Config
 
 
 log = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def fetch_file(fn, md5=None, size=None, progress=None):
     Search all known repositories (in order) for the specified file and
     download it, optionally checking an md5 checksum.
     '''
-    conf = config()
+    conf = Config()
     path = join(conf.packages_dir, fn)
     pp = path + '.part'
     fi = None

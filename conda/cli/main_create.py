@@ -8,7 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 from os import makedirs
 from os.path import abspath, exists
 
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.planners import create_create_plan
 from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
                    add_parser_quiet)
@@ -44,7 +44,7 @@ def execute(args):
     if len(args.package_specs) == 0 and not args.file:
         raise RuntimeError('too few arguments, must supply command line package specs or --file')
 
-    conda = anaconda()
+    conda = Anaconda()
 
     prefix = get_prefix(args)
 

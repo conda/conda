@@ -7,7 +7,7 @@
 from argparse import RawDescriptionHelpFormatter
 
 from conda.config import ROOT_DIR, PACKAGES_DIR
-from conda.anaconda import anaconda
+from conda.anaconda import Anaconda
 from conda.planners import create_install_plan
 from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
                    add_parser_quiet)
@@ -47,7 +47,7 @@ def execute(args):
         raise RuntimeError('too few arguments, must supply command line '
                            'package specifications or --file')
 
-    conda = anaconda()
+    conda = Anaconda()
 
     prefix = get_prefix(args)
 
@@ -82,7 +82,7 @@ def execute(args):
     if any(s.endswith('.tar.bz2') for s in req_strings):
         raise RuntimeError("mixing specifications and filename not supported")
 
-    conda = anaconda()
+    conda = Anaconda()
 
     plan = create_install_plan(env, req_strings)
 
