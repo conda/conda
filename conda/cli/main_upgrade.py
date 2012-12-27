@@ -27,17 +27,11 @@ def configure_parser(sub_parsers):
 def execute(args):
     conda = Anaconda()
 
-    if conda.target == 'pro':
-        print "Full Anaconda already activated!"
-        return
-
     idx = conda.index
 
     env = conda.root_environment
-    env_reqs = env.get_requirements('pro')
 
-    candidates = idx.lookup_from_name('anaconda')
-    candidates = idx.find_matches(env_reqs, candidates)
+    candidates = idx.lookup_from_name('anaconda-pro') #TODO
     if len(candidates) == 0:
         raise RunTimeError("No Anaconda upgrade packages could be found (possibly missing internet connection?)")
     pkg = max(candidates)

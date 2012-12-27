@@ -59,7 +59,7 @@ class Anaconda(Config):
 
     def _fetch_index(self):
         index = {}
-        for url in reversed(self.repo_package_urls):
+        for url in reversed(self.channel_urls):
             try:
                 fi = urlopen(url + 'repodata.json.bz2')
                 log.debug("fetched: repodata.json.bz2 [%s] ..." % url)

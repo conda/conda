@@ -121,8 +121,6 @@ class Package(object):
         sv = self.version.vstring.replace('rc', '.rc')
         ov = other.version.vstring.replace('rc', '.rc')
 
-        # regarding the build target, we are taking advantage of the fact that: None < 'ce' < 'pro' < 'w'. If more
-        # build targets are added, the logic here should be made to utilize config.TARGET_ORDER explicitly
         try:
             return cmp(
                 (self.name, NormalizedVersion(suggest_normalized_version(sv)), self.build_number),

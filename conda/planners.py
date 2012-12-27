@@ -76,7 +76,7 @@ def create_create_plan(prefix, conda, spec_strings):
 
     log.debug("initial package specifications: %s\n" % specs)
 
-    # find packages compatible with the initial specifications and build target
+    # find packages compatible with the initial specifications
     pkgs = idx.find_compatible_packages(specs)
     log.debug("initial packages: %s\n" % pkgs)
 
@@ -198,7 +198,7 @@ def create_install_plan(env, spec_strings):
 
     log.debug("initial package specifications: %s\n" % specs)
 
-    # find packages compatible with the initial specifications and build target
+    # find packages compatible with the initial specifications
     pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(env.requirements, pkgs)
     pkgs = newest_packages(pkgs)
@@ -331,7 +331,7 @@ def create_update_plan(env, pkg_names):
         all_deps = idx.get_deps(updates)
         log.debug('update dependencies: %s' %  all_deps)
 
-        # find newest packages compatible with these requirements and the build target
+        # find newest packages compatible with these requirements
         all_pkgs = all_deps | updates
         all_pkgs = idx.find_matches(env.requirements, all_pkgs)
         all_pkgs = newest_packages(all_pkgs)

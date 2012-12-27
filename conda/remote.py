@@ -22,14 +22,14 @@ log = logging.getLogger(__name__)
 
 def fetch_file(fn, md5=None, size=None, progress=None):
     '''
-    Search all known repositories (in order) for the specified file and
+    Search all known channels (in order) for the specified file and
     download it, optionally checking an md5 checksum.
     '''
     conf = Config()
     path = join(conf.packages_dir, fn)
     pp = path + '.part'
     fi = None
-    for url in conf.repo_package_urls:
+    for url in conf.channel_urls:
         try:
             fi = urllib2.urlopen(url + fn)
             log.debug("fetching: %s [%s]" % (fn, url))

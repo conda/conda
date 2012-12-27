@@ -20,8 +20,9 @@ from conda import __version__
 log = logging.getLogger(__name__)
 
 
-CIO_DEFAULT_REPOS = [
-    'http://repo.continuum.io/pkgs'
+CIO_DEFAULT_CHANNELS = [
+    'http://repo.continuum.io/pkgs/pro',
+    'http://repo.continuum.io/pkgs/free'
 ]
 
 VERSION = __version__
@@ -32,12 +33,6 @@ ROOT = ROOT_DIR # This is deprecated, do not use in new code
 
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
-
-TARGET_ORDER = {
-    'ce'  : ['ce',  None],
-    'pro' : ['pro', None],
-    'w'   : ['w',   'pro', None]
-}
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
@@ -79,11 +74,10 @@ class Config(object):
     locations
     packages_dir
     platform
-    repo_base_urls
-    repo_package_urls
+    channel_base_urls
+    channel_urls
     root_dir
     system_location
-    target
     user_locations
 
     '''
@@ -104,34 +98,6 @@ class Config(object):
     def conda_version(self):
         ''' Current version of the conda command '''
         return VERSION
-
-    @property
-    def target(self):
-        ''' Current build target of this Anaconda installation
-
-        The possible values are:
-            ``ce``
-                Community Edition
-            ``pro``
-                Anaconda Full
-            ``w``
-                Wakari Installation
-            ``unknown``
-                non-Anaconda python
-        '''
-        env_target = os.getenv('CIO_TARGET')
-        if env_target:
-            return env_target
-
-        if 'AnacondaCE' in sys.version:
-            return 'ce'
-        elif 'Anaconda' in sys.version:
-            path = join(
-                sys.prefix, 'lib/python%d.%d' % sys.version_info[:2], 'wakari.txt'
-            )
-            return 'w' if isfile(path) else 'pro'
-        else:
-            return 'unknown'
 
     @property
     def platform(self):
@@ -214,22 +180,22 @@ class Config(object):
         return sorted(envs)
 
     @property
-    def repo_base_urls(self):
-        ''' Base URLS of :ref:`Anaconda repositories <repository>` '''
-        if os.getenv('CIO_TEST') == "2":
-            return ['http://filer/test-pkgs', 'http://filer/pkgs']
-        elif os.getenv('CIO_TEST') == "1":
+    def channel_base_urls(self):
+        ''' Base URLS of :ref:`Anaconda channels <channel>` '''
+        if os.getenv('CIO_TEST') == "1":
             return ['http://filer/pkgs']
+        elif os.getenv('CIO_TEST') == "2":
+            return ['http://filer/test-pkgs', 'http://filer/pkgs']
         elif self._rc:
-            return self._rc['repositories']
+            return self._rc['channels']
         else:
-            return CIO_DEFAULT_REPOS
+            return CIO_DEFAULT_CHANNELS
 
     @property
-    def repo_package_urls(self):
-        ''' Platform-specific package URLS of :ref:`Anaconda repositories <repository>` '''
+    def channel_urls(self):
+        ''' Platform-specific package URLS of :ref:`Anaconda channels <channel>` '''
         return [
-            '%s/%s/' % (url, self.platform) for url in self.repo_base_urls
+            '%s/%s/' % (url, self.platform) for url in self.channel_base_urls
         ]
 
     @property
@@ -270,20 +236,18 @@ class Config(object):
 
     def __str__(self):
         return '''
-               target : %s
              platform : %s
 conda command version : %s
        root directory : %s
        default prefix : %s
-      repository URLS : %s
+         channel URLS : %s
 environment locations : %s
 '''  % (
-            self.target,
             self.platform,
             self.conda_version,
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,
-            self.repo_package_urls,
+            self.channel_urls,
             self.locations,
         )
 

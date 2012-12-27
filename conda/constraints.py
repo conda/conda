@@ -9,9 +9,6 @@ can be used to search and match packages in the package index.
 '''
 
 
-from config import TARGET_ORDER
-
-
 class PackageConstraint(object):
     ''' Base class for specific PackageConstraint objects that match packages with
     specified criteria.

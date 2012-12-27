@@ -81,22 +81,6 @@ class Environment(object):
         np = self._numpy_constraint()
         return AllOf(py, np)
 
-    def get_requirements(self, target=None):
-        ''' This function is analogous to the requirements property, but it allows the build target to be overridden if necessary.
-
-        Parameters
-        ----------
-        target : str
-            build target to include in environment requirements, or None
-
-        Returns
-        -------
-        requirements : py:class:`package constraint <conda.constraints.package_constraint>`
-        '''
-        py = self._python_constraint()
-        np = self._numpy_constraint()
-        return AllOf(py, np)
-
     def find_activated_package(self, pkg_name):
         ''' find and return an :ref:`activated <activated>` packages in the environment with the specified :ref:`package name <package_name>`
 
