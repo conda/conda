@@ -11,7 +11,7 @@ from conda.package_spec import (
     find_inconsistent_specs, group_package_specs_by_name, PackageSpec, sort_package_specs_by_name
 )
 
-class test_package_spec(unittest.TestCase):
+class TestPackageSpec(unittest.TestCase):
 
     def test_init_name(self):
         spec = PackageSpec("foo-bar")
@@ -62,7 +62,7 @@ class test_package_spec(unittest.TestCase):
                 "bld"
             )
 
-class test_find_inconsistent_specs(unittest.TestCase):
+class TestFindInconsistentSpecs(unittest.TestCase):
 
     def test_simple(self):
         a, b, c = PackageSpec('python 2.7'), PackageSpec('python 3.1'), PackageSpec('python 2.7.1')
@@ -79,7 +79,7 @@ class test_find_inconsistent_specs(unittest.TestCase):
         )
 
 
-class test_sort_package_specs_by_name(unittest.TestCase):
+class TestSortPackageSpecsByName(unittest.TestCase):
 
     def test_simple(self):
         a, b, c = (
@@ -105,7 +105,7 @@ class test_sort_package_specs_by_name(unittest.TestCase):
         )
 
 
-class test_group_package_specs_by_name(unittest.TestCase):
+class TestGroupPackageSpecsByName(unittest.TestCase):
 
     def test_simple(self):
         specs = [

@@ -8,7 +8,7 @@ import unittest
 
 from conda.naming import *
 
-class test_naming(unittest.TestCase):
+class TestNaming(unittest.TestCase):
 
     def test_split_spec_string_name_only(self):
         self.assertEqual(

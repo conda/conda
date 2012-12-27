@@ -19,7 +19,7 @@ with open(join(dirname(__file__), 'index.json')) as fi:
     info = json.load(fi)
 
 
-class test_package(unittest.TestCase):
+class TestPackage(unittest.TestCase):
 
     def test_is_meta(self):
         self.assertEqual(
@@ -48,7 +48,7 @@ class test_package(unittest.TestCase):
         self.assertTrue(pro < w)
 
 
-class test_sort_packages_by_name(unittest.TestCase):
+class TestSortPackagesByName(unittest.TestCase):
 
     def test_simple(self):
         bar, baz, foo = (
@@ -90,7 +90,7 @@ class test_sort_packages_by_name(unittest.TestCase):
         )
 
 
-class test_group_packages_by_name(unittest.TestCase):
+class TestGroupPackagesByName(unittest.TestCase):
 
     def test_simple(self):
         f1, f2, f3, b1, b2, m  = [
@@ -133,7 +133,7 @@ class test_group_packages_by_name(unittest.TestCase):
         )
 
 
-class test_find_newest_packages(unittest.TestCase):
+class TestFindNewestPackages(unittest.TestCase):
 
     def test_simple(self):
         f1, f2, b1, b2, m  = [

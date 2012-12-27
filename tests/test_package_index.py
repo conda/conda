@@ -14,7 +14,7 @@ from conda.package_index import PackageIndex
 from conda.package_spec import PackageSpec
 
 
-class test_package_index(unittest.TestCase):
+class TestPackageIndex(unittest.TestCase):
 
     def setUp(self):
         path = join(dirname(__file__), 'index.json')

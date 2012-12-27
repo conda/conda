@@ -25,7 +25,7 @@ bitarray = {
     "version": "0.8.0"
 }
 
-class test_constraints(unittest.TestCase):
+class TestConstraints(unittest.TestCase):
 
     def test_named(self):
         p = Package(bitarray)
