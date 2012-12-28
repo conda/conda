@@ -5,12 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import os
-import signal
-import sys
-import time
 
 from os.path import exists, join, abspath, expanduser
-from utils import add_parser_prefix, get_prefix
 from shutil import rmtree
 from subprocess import check_call
 

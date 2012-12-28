@@ -39,7 +39,7 @@ def execute(args):
     candidates = idx.lookup_from_name('anaconda')
     candidates = idx.find_matches(env_reqs, candidates)
     if len(candidates) == 0:
-        raise RunTimeError("No Anaconda upgrade packages could be found (possibly missing internet connection?)")
+        raise RuntimeError("No Anaconda upgrade packages could be found (possibly missing internet connection?)")
     pkg = max(candidates)
 
     log.debug('anaconda version to upgrade to: %s' % pkg.canonical_name)
