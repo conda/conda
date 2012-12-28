@@ -41,22 +41,32 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 '''
 
+import sys
+
 import conda_argparse as argparse
+import conda_test as test
+import main_build
 import main_create
 import main_depends
 import main_env
+import main_index
 import main_info
 import main_install
 import main_list
 import main_local
+import main_package
+import main_pip
 import main_search
 import main_update
 import main_upgrade
-import main_package
-import main_pip
-import main_build
-import main_index
 
+
+if sys.argv[1] == "--test": 
+    test.execute()
+    sys.exit()
+elif sys.argv[1] == "--testgui": 
+    test.execute(gui=True)
+    sys.exit()
 
 def main():
 
@@ -78,7 +88,6 @@ def main():
         choices = ['debug', 'info', 'warning', 'error', 'critical'],
         help    = argparse.SUPPRESS,
     )
-
     sub_parsers = p.add_subparsers(
         metavar = 'command',
         dest    = 'cmd',

@@ -17,6 +17,8 @@ nums = [
 
 
 def envTest(pyver, numver, gui=False):
+    if not exists("test-tmp"):
+        os.system("mkdir-test-tmp")
     if gui == True:
         os.system("ipython --pylab -ic 'plot(randn(99))'")
         os.system("ipython qtconsole")
@@ -31,7 +33,7 @@ def envTest(pyver, numver, gui=False):
     os.system("conda create --yes -n test %s %s anaconda" % (pyver, numver))
     os.system("conda install --yes -n test test")
     logname = "%s-%s-testlog.txt" % (pyver, numver)
-    testcmd = "%s 2>&1 >> %s" % (join(testdir, "bin", "anaconda-test"), logname)
+    testcmd = "%s 2>&1 >> %s" % (join(testdir, "bin", "anaconda-test"), join("test-tmp", logname))
     os.system(testcmd)
 
 
