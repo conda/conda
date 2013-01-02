@@ -14,15 +14,17 @@ from subprocess import check_call
 def execute(gui = False):
 
     pys = [
-        "python=2.6",
         "python=2.7"
     ]
 
     nums = [
-        "numpy=1.5",
         "numpy=1.6",
-        "numpy=1.7"
     ]
+
+    if sys.platform not in ['win32', 'win64']:
+        pys.append("python=2.6")
+        nums.append("numpy=1.5")
+        nums.append("numpy=1.7")
 
     testdir = abspath(expanduser(join("~", "anaconda", "envs", "test")))
 
