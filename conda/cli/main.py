@@ -60,13 +60,13 @@ import main_search
 import main_update
 import main_upgrade
 
-
-if sys.argv[1] == "--test": 
-    test.execute()
-    sys.exit()
-elif sys.argv[1] == "--testgui": 
-    test.execute(gui=True)
-    sys.exit()
+if len(sys.argv) == 2:
+    if sys.argv[1] == "--test": 
+        test.execute()
+        sys.exit()
+    elif sys.argv[1] == "--testgui": 
+        test.execute(gui=True)
+        sys.exit()
 
 def main():
 
