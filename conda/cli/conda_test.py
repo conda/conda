@@ -14,7 +14,7 @@ from subprocess import check_call
 def execute(gui = False):
 
     pys = [
-        "python=2.6",
+        # "python=2.6",
         "python=2.7"
     ]
 
@@ -37,17 +37,16 @@ def execute(gui = False):
             check_call(createcmd.split())
             if gui == True:
                 ipyloc = join(testdir, "bin", "ipython")
-                # pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
-                # check_call(pylabCommand.split())
-                qtCommand = "%s qtconsole" % ipyloc
-                print qtCommand
-                sys.exit()
-                check_call(qtCommand.split())
+                pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
+                check_call(pylabCommand.split())
+                # qtCommand = "%s qtconsole" % ipyloc
+                # check_call(qtCommand.split())
                 notebookCommand = "%s notebook" % ipyloc
                 # This line uses os.system because check_call will always exit on ctrl+c, and ipython notebook requires
                 # the user to press ctrl+c to continue the script.  With check_call, this exits everything.
                 os.system(notebookCommand)
-                check_call(join(testdir, "bin", "spyder"))
+                if py == "python=2.7":
+                    check_call(join(testdir, "bin", "spyder"))
             installcmd = "conda install --yes -n test test"
             check_call(installcmd.split())
             logname = "%s-%s-testlog.txt" % (py, num)
@@ -63,6 +62,5 @@ def execute(gui = False):
                 print " "*20, "FAILED!"
             print "*~"*40
             print
-            logfile.write(str(ret)
             check_call(tester.split(), stdout = logfile)
             rmtree(testdir)
