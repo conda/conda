@@ -14,7 +14,7 @@ from subprocess import check_call
 def execute(gui = False):
 
     pys = [
-        # "python=2.6",
+        "python=2.6",
         "python=2.7"
     ]
 
