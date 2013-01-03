@@ -3,7 +3,7 @@
 Introduction
 ============
 
-The ``conda`` command is the primary interface for managing an Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
+The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
 
 ------------------
 ``conda`` Overview
@@ -17,7 +17,7 @@ The ``conda`` command is the primary interface for managing an Anaconda installa
 .. index::
     pair: terminology; environment
 
-``conda`` is an application for finding and installing Anaconda software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. ``conda`` keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides numpy 1.7, and another environment that provides numpy 1.6 for legacy testing. ``conda`` makes this kind of mixing and matching easy.
+``conda`` is an application for finding and installing Anaconda software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. ``conda`` keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides NumPy 1.7, and another environment that provides NumPy 1.6 for legacy testing. ``conda`` makes this kind of mixing and matching easy.
 
 .. _repository:
 .. index::
@@ -35,7 +35,7 @@ The ``conda`` command is the primary interface for managing an Anaconda installa
 .. index::
     pair: terminology; deactivated
 
-Anaconda packages are downloaded from remote **repositories**. The ``conda`` command starts with a default set of repositories to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
+Anaconda packages are downloaded from remote **channels**. The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
 
 .. _location:
 .. index::
@@ -117,10 +117,10 @@ In usage documentation, these will be referred to by ``package_spec``.
 .. _meta_package:
 
 -------------
-Meta Pacakges
+Meta Packages
 -------------
 ``conda`` also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
-packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an anaconda environment. When creating, upgrading, or installing into environments, only one meta-package may be specified, and no additional packages my be specified.
+packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an Anaconda environment. When creating, upgrading, or installing into environments, only one meta-package may be specified, and no additional packages may be specified.
 
 .. _directory_structure:
 
@@ -152,7 +152,7 @@ Other Anaconda environments contain the same subdirectories as the default envir
 -------------
 Configuration
 -------------
-There is very little user configuration that ``conda`` requires, however ``conda`` will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_.
+There is very little user configuration that ``conda`` requires; however, ``conda`` will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_.
 
 Here is an example:
 
@@ -160,9 +160,9 @@ Here is an example:
 
     # This is a conda run configuration
 
-    # repository locations. These override conda defaults, i.e., conda will
-    # search *only* the repositories listed here, in the order given.
-    repositories:
+    # channel locations. These override conda defaults, i.e., conda will
+    # search *only* the channels listed here, in the order given.
+    channels:
       - http://repo.continuum.io/pkgs
       - http://acme.com/internal/packages
 
