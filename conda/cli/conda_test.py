@@ -41,8 +41,10 @@ def execute(gui = False):
                 ipyloc = join(testdir, "bin", "ipython")
                 pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
                 check_call(pylabCommand.split())
-                # qtCommand = "%s qtconsole" % ipyloc
-                # check_call(qtCommand.split())
+                # qtconsole only works with python 2.7
+                if py == "python=2.7":
+                    qtCommand = "%s qtconsole" % ipyloc
+                    check_call(qtCommand.split())
                 notebookCommand = "%s notebook" % ipyloc
                 # This line uses os.system because check_call will always exit on ctrl+c, and ipython notebook requires
                 # the user to press ctrl+c to continue the script.  With check_call, this exits everything.
