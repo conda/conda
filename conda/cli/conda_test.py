@@ -56,7 +56,6 @@ def execute(gui = False):
             logname = "%s-%s-testlog.txt" % (py, num)
             logfile = open(logname, "w+")
             tester = join(testdir, "bin", "anaconda-test")
-            testcmd = tester
             ret = check_call(tester.split())
             print
             print "*~"*40
