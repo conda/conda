@@ -25,8 +25,8 @@ def configure_parser(sub_parsers):
         'pkg_names',
         metavar = 'package_name',
         action  = "store",
-        nargs   = '+',
-        help    = "names of packages to update (default: all packages)",
+        nargs   = '*',
+        help    = "names of packages to update (default: anaconda)",
     )
     p.set_defaults(func=execute)
 
@@ -41,10 +41,13 @@ def execute(args):
 
     env = conda.lookup_environment(prefix)
 
+    if len(args.pkg_names) == 0:
+        args.pkg_names.append('anaconda')
+
     plan = create_update_plan(env, args.pkg_names)
 
     if plan.empty():
-        print 'All packages already at latest version'
+        print 'All packages already at latest compatible version'
         return
 
     print "Updating Anaconda environment at %s" % args.prefix

@@ -316,6 +316,11 @@ def create_update_plan(env, pkg_names):
     for pkg in sort_packages_by_name(pkgs):
         candidates = idx.lookup_from_name(pkg.name)
         candidates = idx.find_matches(env.requirements, candidates)
+        if not pkg.is_meta:
+            rdeps = idx.get_reverse_deps(candidates) & env.activated
+            candidates &= idx.get_deps(rdeps)
+        if not candidates:
+            return plan
         newest = max(candidates)
         log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
