@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 class package_plan(object):
     '''
     Encapsulates a package management action, describing all operations to
-    take place. Operations include downloading packages from a repository,
+    take place. Operations include downloading packages from a channel,
     activating and deactivating available packages. Additionally, package_plan
     objects report any packages that will be left with unmet dependencies as a
     result of this action.

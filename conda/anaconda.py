@@ -81,14 +81,13 @@ class Anaconda(Config):
 
         if not index:
             raise RuntimeError(
-                'Could not locate index files on any repository'
+                'Could not locate index files on any channel'
             )
         return index
 
     def _build_local_index(self):
         try:
-            log.debug('building index from local packages repository at'
-                      ' self.packages_dir')
+            log.debug('building index from local packages at self.packages_dir')
             index = {}
             for fn in listdir(self.packages_dir):
                 if exists(join(self.packages_dir, fn, 'info', 'index.json')):
@@ -97,5 +96,4 @@ class Anaconda(Config):
                     )
             return index
         except IOError as e:
-            raise RuntimeError('Could not build index from local package '
-                               'repository, reason: %s' % e)
+            raise RuntimeError('Could not build index from local packages, reason: %s' % e)

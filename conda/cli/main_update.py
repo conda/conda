@@ -35,7 +35,7 @@ def execute(args):
     conda = Anaconda()
 
     if conda.local_index_only:
-        raise RuntimeError('Updating packages requires access to package indices on remote package repositories. (Check network connection?)')
+        raise RuntimeError('Updating packages requires access to package indices on remote package channels. (Check network connection?)')
 
     prefix = get_prefix(args)
 

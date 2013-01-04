@@ -459,7 +459,7 @@ def create_deactivate_plan(env, canonical_names):
 def create_download_plan(conda, canonical_names, force):
     '''
     This function creates a package plan for downloading the specified
-    packages from remote Anaconda package repositories. By default,
+    packages from remote Anaconda package channels. By default,
     packages already available are ignored, but this can be overridden
     with the force argument.
 

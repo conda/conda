@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 ''' The remote module provides functions for interfacing with remote Anaconda
-repositories.
+channels.
 
 '''
 
@@ -38,7 +38,7 @@ def fetch_file(fn, md5=None, size=None, progress=None):
             pass
     if not fi:
         raise RuntimeError(
-            "Could not locate file '%s' on any repository" % fn
+            "Could not locate file '%s' on any channel" % fn
         )
     n = 0
     h = hashlib.new('md5')
