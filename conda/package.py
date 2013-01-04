@@ -33,7 +33,7 @@ class Package(object):
     canonical_name
     filename
     is_meta
-    location
+    channel
     md5
     name
     requires
@@ -80,9 +80,9 @@ class Package(object):
         return self._filename
 
     @property
-    def location(self):
-        ''' URL of the Anaconda :ref:`package repository <repository>` this package came from '''
-        return self._info.get('location', 'unknown')
+    def channel(self):
+        ''' URL of the Anaconda :ref:`channel <channel>` this package came from '''
+        return self._info.get('channel', 'unknown')
 
     @property
     def is_meta(self):

@@ -74,7 +74,7 @@ class Anaconda(Config):
                     continue
             new_index = repodata['packages']
             for pkg_info in new_index.itervalues():
-                pkg_info['location'] = url
+                pkg_info['channel'] = url
             index.update(new_index)
             fi.close()
             log.debug("    ...succeeded.")

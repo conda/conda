@@ -131,7 +131,7 @@ class package_plan(object):
     def __str__(self):
         result = ''
         if self.downloads:
-            result += _download_string % self._format_packages(self.downloads, use_location=True)
+            result += _download_string % self._format_packages(self.downloads, use_channel=True)
         if self.deactivations:
             result += _deactivate_string % self._format_packages(self.deactivations)
         if self.activations:
@@ -142,11 +142,11 @@ class package_plan(object):
             result += _missing_string % self._format_packages(self.missing)
         return result
 
-    def _format_packages(self, pkgs, use_location=False):
+    def _format_packages(self, pkgs, use_channel=False):
         result = ''
-        if use_location:
+        if use_channel:
             for pkg in sort_packages_by_name(pkgs):
-                result += '    %s [%s]\n' % (pkg.filename, pkg.location)
+                result += '    %s [%s]\n' % (pkg.filename, pkg.channel)
         else:
             result += "    %-25s  |  %-15s\n" % ('package', 'build')
             result += "    %-25s  |  %-15s\n" % ('-'*25, '-'*15)
