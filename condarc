@@ -1,9 +1,12 @@
-# This is the default conda run configuration
+# This is the default conda runtime configuration
 
-# repository locations. These override conda defaults, i.e., conda will
-# search *only* the repositories listed here, in the order given.
-repositories:
-  - http://repo.continuum.io/pkgs
+# channel locations. These override conda defaults, i.e., conda will
+# search *only* the channels listed here, in the order given.
+channels:
+# - http://repo.continuum.io/pkgs/dev
+# - http://repo.continuum.io/pkgs/gpl
+  - http://repo.continuum.io/pkgs/pro
+  - http://repo.continuum.io/pkgs/free
 
 # environment locations. These locations are in *addition* to the system
 # location at $ROOT_DIR/envs.

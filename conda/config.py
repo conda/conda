@@ -92,7 +92,11 @@ class Config(object):
         self._rc = _load_condarc(join(home, '.condarc'))
 
         if not self._rc:
-            self._rc = _load_condarc(join(ROOT_DIR, '.condarc'))
+            self._rc = {'channels': CIO_DEFAULT_CHANNELS}
+
+        elif not self._rc.has_key('channels'):
+            log.info("old condarc, missing 'channels' key, using default channels: %s"  % CIO_DEFAULT_CHANNELS)
+            self._rc['channels']  = CIO_DEFAULT_CHANNELS
 
     @property
     def conda_version(self):
@@ -183,13 +187,9 @@ class Config(object):
     def channel_base_urls(self):
         ''' Base URLS of :ref:`Anaconda channels <channel>` '''
         if os.getenv('CIO_TEST') == "1":
-            return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
-        elif os.getenv('CIO_TEST') == "2":
-            return ['http://filer/test-pkgs', 'http://filer/pkgs']
-        elif self._rc:
-            return self._rc['channels']
+             return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
         else:
-            return CIO_DEFAULT_CHANNELS
+            return self._rc['channels']
 
     @property
     def channel_urls(self):
