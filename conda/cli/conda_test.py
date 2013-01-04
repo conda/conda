@@ -11,6 +11,25 @@ from os.path import exists, join, abspath, expanduser
 from shutil import rmtree
 from subprocess import check_call
 
+
+def get_conda_location():
+    if sys.platform in ['win32', 'win64']:
+        return "C:\Anaconda\Scripts\conda.bat"
+    else:
+        return "conda"
+
+def get_ipython_location():
+    if sys.platform in ['win32', 'win64']:
+        return "C:\Anaconda\Scripts\ipython"
+    else:
+        return "ipython"
+
+def get_tester_location(testdir):
+    if sys.platform in ['win32', 'win64']:
+        return join(testdir, "Scripts", "anaconda-test")
+    else:
+        return join(testdir, "bin", "anaconda-test")
+
 def execute(gui = False):
 
     pys = [
@@ -32,31 +51,32 @@ def execute(gui = False):
         for num in nums:
             if exists(testdir):
                 rmtree(testdir)
-            print "\nconda create -n test %s %s anaconda\n"  % (py, num)
+            print "\n%s create -n test %s %s anaconda\n"  % (get_conda_location(), py, num)
             print "-"*60
             print
-            createcmd = "conda create --yes -n test %s %s anaconda" % (py, num)
+            createcmd = "%s create --yes -n test %s %s anaconda" % (get_conda_location(), py, num)
             check_call(createcmd.split())
             if gui == True:
-                ipyloc = join(testdir, "bin", "ipython")
+                ipyloc = get_ipython_location()
                 pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
                 check_call(pylabCommand.split())
                 # qtconsole only works with python 2.7
-                if py == "python=2.7":
-                    qtCommand = "%s qtconsole" % ipyloc
-                    check_call(qtCommand.split())
                 notebookCommand = "%s notebook" % ipyloc
                 # This line uses os.system because check_call will always exit on ctrl+c, and ipython notebook requires
                 # the user to press ctrl+c to continue the script.  With check_call, this exits everything.
                 os.system(notebookCommand)
                 if py == "python=2.7":
+                    qtCommand = "%s qtconsole" % ipyloc
+                    check_call(qtCommand.split())
                     check_call(join(testdir, "bin", "spyder"))
-            installcmd = "conda install --yes -n test test"
+            installcmd = "%s install --yes -n test test" % get_conda_location()
+            print "\n", installcmd
             check_call(installcmd.split())
             logname = "%s-%s-testlog.txt" % (py, num)
             logfile = open(logname, "w+")
-            tester = join(testdir, "bin", "anaconda-test")
-            ret = check_call(tester.split())
+            tester = get_tester_location(testdir)
+            print "\nRunning Anaconda package tests in %s for %s and %s.  This may take a while."  % (testdir, py, num)
+            ret = check_call(tester.split(), stdout = logfile, stderr = logfile)
             print
             print "*~"*40
             if ret == 0:
@@ -65,5 +85,4 @@ def execute(gui = False):
                 print " "*20, "FAILED!"
             print "*~"*40
             print
-            check_call(tester.split(), stdout = logfile)
             rmtree(testdir)
