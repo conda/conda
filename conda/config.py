@@ -183,7 +183,7 @@ class Config(object):
     def channel_base_urls(self):
         ''' Base URLS of :ref:`Anaconda channels <channel>` '''
         if os.getenv('CIO_TEST') == "1":
-            return ['http://filer/pkgs']
+            return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
         elif os.getenv('CIO_TEST') == "2":
             return ['http://filer/test-pkgs', 'http://filer/pkgs']
         elif self._rc:
