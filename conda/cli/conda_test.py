@@ -26,7 +26,7 @@ def get_ipython_location():
 
 def get_tester_location(testdir):
     if sys.platform in ['win32', 'win64']:
-        return join(testdir, "Scripts", "anaconda-test")
+        return join(testdir, "Scripts", "anaconda-test.bat")
     else:
         return join(testdir, "bin", "anaconda-test")
 
