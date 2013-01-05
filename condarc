@@ -5,7 +5,6 @@
 channels:
 # - http://repo.continuum.io/pkgs/dev
 # - http://repo.continuum.io/pkgs/gpl
-  - http://repo.continuum.io/pkgs/pro
   - http://repo.continuum.io/pkgs/free
 
 # environment locations. These locations are in *addition* to the system

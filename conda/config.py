@@ -21,9 +21,10 @@ log = logging.getLogger(__name__)
 
 
 CIO_DEFAULT_CHANNELS = [
-    'http://repo.continuum.io/pkgs/pro',
     'http://repo.continuum.io/pkgs/free'
 ]
+
+CIO_PRO_CHANNEL = 'http://repo.continuum.io/pkgs/pro'
 
 VERSION = __version__
 
@@ -84,7 +85,7 @@ class Config(object):
 
     __slots__ = ['_rc']
 
-    def __init__(self):
+    def __init__(self, first_channel=None):
         self._rc = None
 
         # try to load .condarc file from users home directory
@@ -97,6 +98,12 @@ class Config(object):
         elif not self._rc.has_key('channels'):
             log.info("old condarc, missing 'channels' key, using default channels: %s"  % CIO_DEFAULT_CHANNELS)
             self._rc['channels']  = CIO_DEFAULT_CHANNELS
+
+        if 'Anaconda ' in sys.version:
+            self._rc['channels'].insert(0, CIO_PRO_CHANNEL)
+
+        if first_channel:
+            self._rc['channels'].insert(0, first_channel)
 
     @property
     def conda_version(self):

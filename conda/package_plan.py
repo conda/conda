@@ -11,6 +11,7 @@ for creating package_plans for different circumstances.
 import logging
 
 
+from conda.config import Config
 from install import make_available, activate, deactivate
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from remote import fetch_file
@@ -44,7 +45,7 @@ class package_plan(object):
         self.missing       = set()
         self.update       = None
 
-    def execute(self, env, progress_bar=True):
+    def execute(self, env, progress_bar=True, channels=None):
         '''
         Perform the operations contained in the package plan
 
@@ -68,18 +69,21 @@ class package_plan(object):
             download_progress = None
             package_progress = None
 
-        self._handle_downloads(env, download_progress)
+        if not channels:
+            conf = Config()
+            channels = conf.channel_urls
+        self._handle_downloads(env, channels, download_progress)
         self._handle_deactivations(env, package_progress)
         self._handle_activations(env, package_progress)
 
-    def _handle_downloads(self, env, progress):
+    def _handle_downloads(self, env, channels, progress):
         if progress and self.downloads:
             print
             print "Fetching packages..."
             print
 
         for pkg in self.downloads:
-            fetch_file(pkg.filename, md5=pkg.md5, size=pkg.size, progress=progress)
+            fetch_file(pkg.filename, channels, md5=pkg.md5, size=pkg.size, progress=progress)
             make_available(env.conda.packages_dir, pkg.canonical_name)
 
     def _handle_deactivations(self, env, progress):

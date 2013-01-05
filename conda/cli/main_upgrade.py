@@ -5,8 +5,10 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import logging
+import sys
 
 from conda.anaconda import Anaconda
+from conda.config import CIO_PRO_CHANNEL
 from conda.package_plan import package_plan
 from utils import add_parser_yes, confirm
 
@@ -25,15 +27,23 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = Anaconda()
+    if 'Anaconda ' in sys.version:
+        raise RuntimeError('Already upgraded to full Anaconda')
+
+    conda = Anaconda(first_channel=CIO_PRO_CHANNEL)
+
+    if conda.local_index_only:
+        raise RuntimeError('Upgrading requires access to package indices on remote package channels. (Check network connection?)')
 
     idx = conda.index
 
     env = conda.root_environment
 
-    candidates = idx.lookup_from_name('anaconda-pro') #TODO
+    candidates = idx.lookup_from_name('anaconda')
+    candidates = [candidate for candidate in candidates if CIO_PRO_CHANNEL in candidate.channel]
+    candidates = idx.find_matches(env.requirements, candidates)
     if len(candidates) == 0:
-        raise RunTimeError("No Anaconda upgrade packages could be found (possibly missing internet connection?)")
+        raise RuntimeError("No Anaconda upgrade packages could be found (possibly missing internet connection?)")
     pkg = max(candidates)
 
     log.debug('anaconda version to upgrade to: %s' % pkg.canonical_name)
@@ -67,4 +77,4 @@ def execute(args):
 
     confirm(args)
 
-    plan.execute(env)
+    plan.execute(env, channels=conda.channel_urls)

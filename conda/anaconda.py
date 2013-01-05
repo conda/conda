@@ -32,8 +32,8 @@ class Anaconda(Config):
     '''
     __slots__ = ['_index', '_local_index_only']
 
-    def __init__(self):
-        super(Anaconda, self).__init__()
+    def __init__(self, **kw):
+        super(Anaconda, self).__init__(**kw)
 
         index = self._build_local_index()
         try:

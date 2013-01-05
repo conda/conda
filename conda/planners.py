@@ -319,8 +319,7 @@ def create_update_plan(env, pkg_names):
         if not pkg.is_meta:
             rdeps = idx.get_reverse_deps(candidates) & env.activated
             candidates &= idx.get_deps(rdeps)
-        if not candidates:
-            return plan
+        if not candidates: continue
         newest = max(candidates)
         log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
