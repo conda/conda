@@ -25,9 +25,7 @@ def get_vers(pkg):
     vers = search_pat.findall(infile.read())
     infile.close()
 
-    # What is happening here?
-
-    vers[:] = [version.replace('-', "=") for version in vers]
+    vers = [version.replace('-', "=") for version in vers]
 
     removeCommand = "rm tmp.txt"
     check_call(removeCommand.split())
@@ -62,14 +60,7 @@ def tester(py, num, testdir):
     the_time = time.ctime()
     logfile.write(the_time)
     logfile.close()
-    print
-    print "*~"*40
-    if ret == 0:
-        print " "*40, "PASSED!"
-    else:
-        print " "*40, "FAILED!"
-    print "*~"*40
-    print
+    print "\nWriting log to %s" % logname
 
 
 
