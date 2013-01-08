@@ -62,10 +62,10 @@ import main_upgrade
 
 if len(sys.argv) == 2:
     if sys.argv[1] == "--test": 
-        test.execute()
+        test.setup()
         sys.exit()
     elif sys.argv[1] == "--testgui": 
-        test.execute(gui=True)
+        test.setup(gui=True)
         sys.exit()
 
 def main():
