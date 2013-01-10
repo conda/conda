@@ -13,11 +13,15 @@ from os.path import exists, join, abspath, expanduser
 from shutil import rmtree
 from subprocess import check_call
 
-
+if sys.platform in ['win32', 'win64']:
+    status = True
+else:
+    status = False
+    
 def get_vers(pkg):
     output = open("tmp.txt", "w+")
     searchCommand = "conda search %s" % pkg
-    check_call(searchCommand.split(), stdout = output)
+    check_call(searchCommand.split(), stdout = output, shell=status)
     output.close()
 
     infile = open("tmp.txt", "r")
@@ -28,7 +32,7 @@ def get_vers(pkg):
     vers = [version.replace('-', "=") for version in vers]
 
     removeCommand = "rm tmp.txt"
-    check_call(removeCommand.split())
+    check_call(removeCommand.split(), shell=status)
 
     return set(vers)
 
@@ -56,7 +60,7 @@ def tester(py, num, testdir):
     logfile = open(logname, "w+")
     tester = get_tester_location(testdir)
     print "\nRunning Anaconda package tests in %s for %s and %s.  This should take a while."  % (testdir, py, num)
-    ret = check_call(tester.split(), stdout = logfile, stderr = logfile)
+    ret = check_call(tester.split(), stdout = logfile, stderr = logfile, shell=status)
     the_time = time.ctime()
     logfile.write(the_time)
     logfile.close()
@@ -67,17 +71,17 @@ def tester(py, num, testdir):
 def gui_tester(pyVer,numVer, testdir):
     ipyloc = get_ipython_location()
     pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
-    check_call(pylabCommand.split())
+    check_call(pylabCommand.split(), shell=status)
     # qtconsole only works with python 2.7
     notebookCommand = "%s notebook" % ipyloc
     try:
-        check_call(notebookCommand.split())
+        check_call(notebookCommand.split(), shell=status)
     except KeyboardInterrupt:
         pass
     if pyVer == "python=2.7":
         qtCommand = "%s qtconsole" % ipyloc
-        check_call(qtCommand.split())
-        check_call(join(testdir, "bin", "spyder"))
+        check_call(qtCommand.split(), shell=status)
+        check_call(join(testdir, "bin", "spyder"), shell=status)
 
 def setup(gui = False):
 
@@ -97,14 +101,14 @@ def setup(gui = False):
             print "-"*60
             print
             createcmd = "%s create --yes -n test %s %s anaconda" % (get_conda_location(), py, num)
-            check_call(createcmd.split())
+            check_call(createcmd.split(), shell=status)
 
             if gui == True:
                 gui_tester(py, num, testdir)
 
             installcmd = "%s install --yes -n test test" % get_conda_location()
             print "\n", installcmd
-            check_call(installcmd.split())
+            check_call(installcmd.split(), shell=status)
 
             tester(py,num,testdir)
 
