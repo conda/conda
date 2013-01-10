@@ -13,11 +13,13 @@ from os.path import exists, join, abspath, expanduser
 from shutil import rmtree
 from subprocess import check_call
 
-if sys.platform in ['win32', 'win64']:
+isWin = sys.platform in ['win32', 'win64']
+
+if isWin:
     status = True
 else:
     status = False
-    
+
 def get_vers(pkg):
     output = open("tmp.txt", "w+")
     searchCommand = "conda search %s" % pkg
@@ -31,26 +33,31 @@ def get_vers(pkg):
 
     vers = [version.replace('-', "=") for version in vers]
 
-    removeCommand = "rm tmp.txt"
+    if isWin:
+        command = "del"
+    else:
+        command = "rm"
+        
+    removeCommand = "%s tmp.txt" % command
     check_call(removeCommand.split(), shell=status)
 
     return set(vers)
 
 
 def get_conda_location():
-    if sys.platform in ['win32', 'win64']:
+    if isWin:
         return "C:\Anaconda\Scripts\conda.bat"
     else:
         return "conda"
 
 def get_ipython_location():
-    if sys.platform in ['win32', 'win64']:
+    if isWin:
         return "C:\Anaconda\Scripts\ipython"
     else:
         return "ipython"
 
 def get_tester_location(testdir):
-    if sys.platform in ['win32', 'win64']:
+    if isWin:
         return join(testdir, "Scripts", "anaconda-test.bat")
     else:
         return join(testdir, "bin", "anaconda-test")
