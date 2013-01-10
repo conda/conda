@@ -30,7 +30,7 @@ def remove(testdir):
         
 def get_testdir():
     if isWin:
-        testdir = "C:\Anaconda"
+        testdir = r"C:\Anaconda\envs\test"
     else:
         testdir = abspath(expanduser(join("~", "anaconda", "envs", "test")))
 
