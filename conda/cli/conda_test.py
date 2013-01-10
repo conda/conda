@@ -20,6 +20,22 @@ if isWin:
 else:
     status = False
 
+def remove(testdir):
+    if exists(testdir):
+        if isWin:
+            removeCommand = "rd /S %s" % testdir
+            check_call(removeCommand.split(), shell=True)
+        else:
+            rmtree(testdir)
+        
+def get_testdir():
+    if isWin:
+        testdir = "C:\Anaconda"
+    else:
+        testdir = abspath(expanduser(join("~", "anaconda", "envs", "test")))
+
+    return testdir
+
 def get_vers(pkg):
     output = open("tmp.txt", "w+")
     searchCommand = "conda search %s" % pkg
@@ -37,7 +53,7 @@ def get_vers(pkg):
         command = "del"
     else:
         command = "rm"
-        
+
     removeCommand = "%s tmp.txt" % command
     check_call(removeCommand.split(), shell=status)
 
@@ -60,14 +76,14 @@ def get_tester_location(testdir):
     if isWin:
         return join(testdir, "Scripts", "anaconda-test.bat")
     else:
-        return join(testdir, "bin", "anaconda-test")
+        return join(testdir, "bin", "anaconda-test").split()
 
 def tester(py, num, testdir):
     logname = "%s-%s-testlog.txt" % (py, num)
     logfile = open(logname, "w+")
     tester = get_tester_location(testdir)
     print "\nRunning Anaconda package tests in %s for %s and %s.  This should take a while."  % (testdir, py, num)
-    ret = check_call(tester.split(), stdout = logfile, stderr = logfile, shell=status)
+    ret = check_call(tester, stdout = logfile, stderr = logfile)
     the_time = time.ctime()
     logfile.write(the_time)
     logfile.close()
@@ -79,16 +95,14 @@ def gui_tester(pyVer,numVer, testdir):
     ipyloc = get_ipython_location()
     pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
     check_call(pylabCommand.split(), shell=status)
-    # qtconsole only works with python 2.7
-    notebookCommand = "%s notebook" % ipyloc
-    try:
+    if not isWin:
+        notebookCommand = "%s notebook" % ipyloc
         check_call(notebookCommand.split(), shell=status)
-    except KeyboardInterrupt:
-        pass
+    # qtconsole only works with python 2.7
     if pyVer == "python=2.7":
         qtCommand = "%s qtconsole" % ipyloc
-        check_call(qtCommand.split(), shell=status)
-        check_call(join(testdir, "bin", "spyder"), shell=status)
+        check_call(qtCommand, shell=status)
+        check_call(join(testdir, "bin", "spyder"))
 
 def setup(gui = False):
 
@@ -96,13 +110,12 @@ def setup(gui = False):
 
     nums = get_vers("numpy")
 
-    testdir = abspath(expanduser(join("~", "anaconda", "envs", "test")))
+    testdir = get_testdir()
 
     for py in pys:
         for num in nums:
 
-            if exists(testdir):
-                rmtree(testdir)
+            remove(testdir)
 
             print "\n%s create -n test %s %s anaconda\n"  % (get_conda_location(), py, num)
             print "-"*60
