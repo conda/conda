@@ -8,7 +8,7 @@ import re
 from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import Anaconda
-from conda.constraints import AllOf, Satisfies
+from conda.constraints import Satisfies
 from conda.package import sort_packages_by_name
 from conda.package_spec import PackageSpec
 from utils import add_parser_prefix, get_prefix
