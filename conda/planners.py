@@ -392,7 +392,16 @@ def create_activate_plan(env, canonical_names):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            raise RuntimeError("cannot activate unknown package '%s'" % canonical_name)
+            spec = PackageSpec(canonical_name)
+            if idx.lookup_from_name(spec.name):
+                if spec.build:
+                    raise RuntimeError("cannot activate unknown build '%s' of package '%s'" % (canonical_name, spec.name))
+                if spec.version:
+                    raise RuntimeError("'%s' looks like a package specification, --activate requires full canonical names" % canonical_name)
+                else:
+                    raise RuntimeError("'%s' looks like a package name, --activate requires full canonical names" % canonical_name)
+            else:
+                raise RuntimeError("cannot activate unknown package '%s'" % canonical_name)
 
         if pkg in env.activated:
             raise RuntimeError("package '%s' is already activated in environment: %s" % (canonical_name, env.prefix))
@@ -441,7 +450,16 @@ def create_deactivate_plan(env, canonical_names):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            raise RuntimeError("cannot deactivate unknown package '%s'" % canonical_name)
+            spec = PackageSpec(canonical_name)
+            if idx.lookup_from_name(spec.name):
+                if spec.build:
+                    raise RuntimeError("cannot deactivate unknown build '%s' of package '%s'" % (canonical_name, spec.name))
+                if spec.version:
+                    raise RuntimeError("'%s' looks like a package specification, --deactivate requires full canonical names" % canonical_name)
+                else:
+                    raise RuntimeError("'%s' looks like a package name, --dactivate requires full canonical names" % canonical_name)
+            else:
+                raise RuntimeError("cannot deactivate unknown package '%s'" % canonical_name)
 
         # if package is not already activated, there is nothing to do
         if pkg not in env.activated:
