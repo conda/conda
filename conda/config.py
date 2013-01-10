@@ -101,7 +101,14 @@ class Config(object):
             self._rc['channels']  = CIO_DEFAULT_CHANNELS
 
         if 'Anaconda ' in sys.version:
-            self._rc['channels'].insert(0, CIO_PRO_CHANNEL)
+            exp_date = None
+            try:
+                import _license
+                exp_date = _license.get_end_date()
+            except:
+                pass
+            if exp_date and datetime.today() <= datetime.strptime(exp_date, '%Y-%m-%d'):
+                self._rc['channels'].insert(0, CIO_PRO_CHANNEL)
 
         if first_channel:
             self._rc['channels'].insert(0, first_channel)
@@ -195,18 +202,9 @@ class Config(object):
     def channel_base_urls(self):
         ''' Base URLS of :ref:`Anaconda channels <channel>` '''
         if os.getenv('CIO_TEST') == "1":
-             return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
+            return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
         else:
-            channels = self._rc['channels']
-            exp_date = None
-            try:
-                import _license
-                exp_date = _license.get_end_date()
-            except:
-                pass
-            if not exp_date or datetime.today() > datetime.strptime(exp_date, '%Y-%m-%d'):
-                channels = [c for c in channels if CIO_PRO_CHANNEL not in c]
-            return channels
+            return self._rc['channels']
 
     @property
     def channel_urls(self):
