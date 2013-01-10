@@ -176,6 +176,40 @@ class Named(PackageConstraint):
         return pkg.name == self._name
 
 
+class Channel(PackageConstraint):
+    ''' constraint for matching package channels
+
+    Parameters
+    ----------
+    name : str
+        :ref:`channel <channel>` to match against
+
+    '''
+    def __init__(self, channel):
+        self._channel = channel
+    def __str__(self):
+        return 'Channel[%s]' % self._channel
+    def __repr__(self):
+        return 'Channel[%s]' % self._channel
+    def __cmp__(self, other):
+        return cmp(self._channel, other._channel)
+    def match(self, pkg):
+        ''' Match if a package has the specified channel
+
+        Parameters
+        ----------
+        pkg : :py:class:`package <conda.package.package>` object
+            package to match
+
+        Returns
+        -------
+        matches : bool
+            True if the package channel matches, False otherwise
+
+        '''
+        return pkg.channel == self._channel
+
+
 class StrictRequires(PackageConstraint):
     ''' constraint for strictly matching package dependencies
 
