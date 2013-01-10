@@ -8,7 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import Anaconda
 from conda.planners import create_update_plan
-from utils import add_parser_prefix, get_prefix, add_parser_yes, confirm
+from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix, license_check_warn
 
 
 def configure_parser(sub_parsers):
@@ -33,6 +33,8 @@ def configure_parser(sub_parsers):
 
 def execute(args):
     conda = Anaconda()
+
+    license_check_warn()
 
     if conda.local_index_only:
         raise RuntimeError('Updating packages requires access to package indices on remote package channels. (Check network connection?)')
