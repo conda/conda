@@ -3,7 +3,7 @@ import logging
 from difflib import get_close_matches
 
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
-from constraints import AllOf, AnyOf, BuildTarget, Requires, Satisfies
+from constraints import AllOf, AnyOf, Requires, Satisfies
 from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
 from package_plan import package_plan
 from package_spec import PackageSpec, find_inconsistent_specs
@@ -76,18 +76,16 @@ def create_create_plan(prefix, conda, spec_strings):
 
     log.debug("initial package specifications: %s\n" % specs)
 
-    # find packages compatible with the initial specifications and build target
+    # find packages compatible with the initial specifications
     pkgs = idx.find_compatible_packages(specs)
-    pkgs = idx.find_matches(BuildTarget(conda.target), pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
     # find the associated dependencies
     deps = idx.get_deps(pkgs)
-    deps = idx.find_matches(BuildTarget(conda.target), deps)
     log.debug("initial dependencies: %s\n" % deps)
 
     # add constraints for default python and numpy specifications if needed
-    constraints = [BuildTarget(conda.target)]
+    constraints = []
 
     dep_names = [dep.name for dep in deps]
 
@@ -200,7 +198,7 @@ def create_install_plan(env, spec_strings):
 
     log.debug("initial package specifications: %s\n" % specs)
 
-    # find packages compatible with the initial specifications and build target
+    # find packages compatible with the initial specifications
     pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(env.requirements, pkgs)
     pkgs = newest_packages(pkgs)
@@ -318,6 +316,10 @@ def create_update_plan(env, pkg_names):
     for pkg in sort_packages_by_name(pkgs):
         candidates = idx.lookup_from_name(pkg.name)
         candidates = idx.find_matches(env.requirements, candidates)
+        if not pkg.is_meta:
+            rdeps = idx.get_reverse_deps(candidates) & env.activated
+            candidates &= idx.get_deps(rdeps)
+        if not candidates: continue
         newest = max(candidates)
         log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
         if newest > pkg:
@@ -333,7 +335,7 @@ def create_update_plan(env, pkg_names):
         all_deps = idx.get_deps(updates)
         log.debug('update dependencies: %s' %  all_deps)
 
-        # find newest packages compatible with these requirements and the build target
+        # find newest packages compatible with these requirements
         all_pkgs = all_deps | updates
         all_pkgs = idx.find_matches(env.requirements, all_pkgs)
         all_pkgs = newest_packages(all_pkgs)
@@ -461,7 +463,7 @@ def create_deactivate_plan(env, canonical_names):
 def create_download_plan(conda, canonical_names, force):
     '''
     This function creates a package plan for downloading the specified
-    packages from remote Anaconda package repositories. By default,
+    packages from remote Anaconda package channels. By default,
     packages already available are ignored, but this can be overridden
     with the force argument.
 

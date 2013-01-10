@@ -36,17 +36,6 @@ class TestPackage(unittest.TestCase):
             True
         )
 
-    def test_order_with_build_target(self):
-        none, ce, pro, w = (
-            Package(info["baz-2.0.1-0.tar.bz2"]),
-            Package(info["baz-2.0.1-ce0.tar.bz2"]),
-            Package(info["baz-2.0.1-pro0.tar.bz2"]),
-            Package(info["baz-2.0.1-w0.tar.bz2"]),
-        )
-        self.assertTrue(none < ce)
-        self.assertTrue(ce < pro)
-        self.assertTrue(pro < w)
-
 
 class TestSortPackagesByName(unittest.TestCase):
 
@@ -74,21 +63,6 @@ class TestSortPackagesByName(unittest.TestCase):
             [bar, baz, foo]
         )
 
-    def test_with_build_target(self):
-        bar, b1, b2, b3, b4, foo = (
-            Package(info["bar-1.1-0.tar.bz2"]),
-            Package(info["baz-2.0.1-0.tar.bz2"]),
-            Package(info["baz-2.0.1-ce0.tar.bz2"]),
-            Package(info["baz-2.0.1-pro0.tar.bz2"]),
-            Package(info["baz-2.0.1-w0.tar.bz2"]),
-            Package(info["foo-0.8.0-0.tar.bz2"]),
-        )
-        pkgs = [b4, b2, foo, b1, bar, b3]
-        self.assertEqual(
-            sort_packages_by_name(pkgs),
-            [bar, b1, b2, b3, b4, foo]
-        )
-
 
 class TestGroupPackagesByName(unittest.TestCase):
 
@@ -111,27 +85,6 @@ class TestGroupPackagesByName(unittest.TestCase):
             }
         )
 
-    def test_with_build_target(self):
-        f1, f2, f3, b1, b2, b3, b4, m  = [
-            Package(info["foo-0.8.0-0.tar.bz2"]),
-            Package(info["foo-0.8.0-1.tar.bz2"]),
-            Package(info["foo-0.9.0-0.tar.bz2"]),
-            Package(info["baz-2.0.1-0.tar.bz2"]),
-            Package(info["baz-2.0.1-ce0.tar.bz2"]),
-            Package(info["baz-2.0.1-pro0.tar.bz2"]),
-            Package(info["baz-2.0.1-w0.tar.bz2"]),
-            Package(info["meta-0.2-0.tar.bz2"]),
-        ]
-        pkgs = [f2, f1, b2, f3, b1, m, b4, b3]
-        self.assertEqual(
-            group_packages_by_name(pkgs),
-            {
-                'foo' : set([f1, f2, f3]),
-                'baz' : set([b1, b2, b3, b4]),
-                'meta' : set([m]),
-            }
-        )
-
 
 class TestFindNewestPackages(unittest.TestCase):
 
@@ -147,23 +100,6 @@ class TestFindNewestPackages(unittest.TestCase):
         self.assertEqual(
             newest_packages(pkgs),
             set([f2, b2, m])
-        )
-
-    def test_with_build_target(self):
-        f1, f2, f3, b1, b2, b3, b4, m  = [
-            Package(info["foo-0.8.0-0.tar.bz2"]),
-            Package(info["foo-0.8.0-1.tar.bz2"]),
-            Package(info["foo-0.9.0-0.tar.bz2"]),
-            Package(info["baz-2.0.1-0.tar.bz2"]),
-            Package(info["baz-2.0.1-ce0.tar.bz2"]),
-            Package(info["baz-2.0.1-pro0.tar.bz2"]),
-            Package(info["baz-2.0.1-w0.tar.bz2"]),
-            Package(info["meta-0.2-0.tar.bz2"]),
-        ]
-        pkgs = [f2, f1, b2, f3, b1, m, b4, b3]
-        self.assertEqual(
-            newest_packages(pkgs),
-            set([f3, b4, m])
         )
 
 

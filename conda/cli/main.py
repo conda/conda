@@ -34,7 +34,7 @@ conda provides the following commands:
 
     package    : create a conda package in an environment
     pip        : call pip and create a conda package in an environment
-    index      : updates repodata.json in repository directories
+    index      : updates repodata.json in channel directories
 
 Additional help for each command can be accessed by using:
 

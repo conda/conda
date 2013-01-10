@@ -8,7 +8,7 @@ import re
 from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import Anaconda
-from conda.constraints import AllOf, BuildTarget, Satisfies
+from conda.constraints import AllOf, Satisfies
 from conda.package import sort_packages_by_name
 from conda.package_spec import PackageSpec
 from utils import add_parser_prefix, get_prefix
@@ -57,18 +57,13 @@ def execute(args):
         pkgs = sort_packages_by_name(conda.index.pkgs)
 
     elif args.search_expression in conda.index.package_names:
-        pkgs = conda.index.find_matches(
-            BuildTarget(conda.target),
-            conda.index.lookup_from_name(args.search_expression)
-        )
+        pkgs = conda.index.lookup_from_name(args.search_expression)
 
     else:
         spec = PackageSpec(args.search_expression)
         if spec.version:
            pkgs = conda.index.find_matches(
-                AllOf(
-                    Satisfies(spec), BuildTarget(conda.target)
-                ),
+                Satisfies(spec),
                 conda.index.lookup_from_name(spec.name)
             )
         else:
@@ -84,10 +79,7 @@ def execute(args):
                     pkg_names.add(name)
             pkgs = set()
             for name in pkg_names:
-                pkgs |= conda.index.find_matches(
-                    BuildTarget(conda.target),
-                    conda.index.lookup_from_name(name)
-                )
+                pkgs |= conda.index.lookup_from_name(name)
 
     if args.all:
         compat_string = ''

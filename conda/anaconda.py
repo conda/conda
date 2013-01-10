@@ -32,8 +32,8 @@ class Anaconda(Config):
     '''
     __slots__ = ['_index', '_local_index_only']
 
-    def __init__(self):
-        super(Anaconda, self).__init__()
+    def __init__(self, **kw):
+        super(Anaconda, self).__init__(**kw)
 
         index = self._build_local_index()
         try:
@@ -59,7 +59,7 @@ class Anaconda(Config):
 
     def _fetch_index(self):
         index = {}
-        for url in reversed(self.repo_package_urls):
+        for url in reversed(self.channel_urls):
             try:
                 fi = urlopen(url + 'repodata.json.bz2')
                 log.debug("fetched: repodata.json.bz2 [%s] ..." % url)
@@ -74,21 +74,20 @@ class Anaconda(Config):
                     continue
             new_index = repodata['packages']
             for pkg_info in new_index.itervalues():
-                pkg_info['location'] = url
+                pkg_info['channel'] = url
             index.update(new_index)
             fi.close()
             log.debug("    ...succeeded.")
 
         if not index:
             raise RuntimeError(
-                'Could not locate index files on any repository'
+                'Could not locate index files on any channel'
             )
         return index
 
     def _build_local_index(self):
         try:
-            log.debug('building index from local packages repository at'
-                      ' self.packages_dir')
+            log.debug('building index from local packages at self.packages_dir')
             index = {}
             for fn in listdir(self.packages_dir):
                 if exists(join(self.packages_dir, fn, 'info', 'index.json')):
@@ -97,5 +96,4 @@ class Anaconda(Config):
                     )
             return index
         except IOError as e:
-            raise RuntimeError('Could not build index from local package '
-                               'repository, reason: %s' % e)
+            raise RuntimeError('Could not build index from local packages, reason: %s' % e)
