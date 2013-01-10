@@ -8,9 +8,10 @@ configuration information about an Anaconda installation that does not require
 the Anaconda package index.
 
 '''
-import os
-from os.path import abspath, exists, expanduser, isdir, isfile, join
+from datetime import datetime
 import logging
+import os
+from os.path import abspath, exists, expanduser, isdir, join
 import platform
 import sys
 
@@ -196,7 +197,16 @@ class Config(object):
         if os.getenv('CIO_TEST') == "1":
              return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
         else:
-            return self._rc['channels']
+            channels = self._rc['channels']
+            exp_date = None
+            try:
+                import _license
+                exp_date = _license.get_end_date()
+            except:
+                pass
+            if not exp_date or datetime.today() > datetime.strptime(exp_date, '%Y-%m-%d'):
+                channels = [c for c in channels if CIO_PRO_CHANNEL not in c]
+            return channels
 
     @property
     def channel_urls(self):
