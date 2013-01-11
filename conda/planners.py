@@ -318,7 +318,7 @@ def create_update_plan(env, pkg_names):
     updates = set()
     for pkg in sort_packages_by_name(pkgs):
         candidates = idx.lookup_from_name(pkg.name)
-        for channel in env.conda.channel_urls():
+        for channel in env.conda.channel_urls:
             candidates = idx.find_matches(Channel(channel))
             if not candidates: continue
             candidates = idx.find_matches(env.requirements, candidates)
