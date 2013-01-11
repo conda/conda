@@ -322,9 +322,11 @@ def create_update_plan(env, pkg_names):
             candidates = idx.find_matches(Channel(channel), initial_candidates)
             if not candidates: continue
             candidates = idx.find_matches(env.requirements, candidates)
+            print candidates
             if not pkg.is_meta:
                 rdeps = idx.get_reverse_deps(candidates) & env.activated
-                candidates &= idx.get_deps(rdeps)
+                if rdeps:
+                    candidates &= idx.get_deps(rdeps)
             if not candidates: break
             newest = max(candidates)
             log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
