@@ -144,3 +144,16 @@ class Environment(object):
     def __cmp__(self, other):
         return cmp(self._prefix, other._prefix)
 
+
+def clone_environment(src_prefix, dst_prefix):
+    from conda.anaconda import Anaconda
+    from conda.package_plan import PackagePlan
+    from os import mkdir
+    conda = Anaconda()
+    src = conda.lookup_environment(src_prefix)
+    mkdir(dst_prefix)
+    dst = Environment(conda, dst_prefix)
+    plan = PackagePlan()
+    plan.activations = src.activated
+    plan.execute(dst)
+
