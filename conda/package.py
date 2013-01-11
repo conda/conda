@@ -295,7 +295,7 @@ def channel_select(pkgs, channels):
     for channel in channels:
         pkgs = grouped.get(channel, set())
         named = group_packages_by_name(pkgs)
-        for name, pkgs in named:
+        for name, pkgs in named.items():
             if name in found_names: continue
             found_names.add(name)
             results |= pkgs
