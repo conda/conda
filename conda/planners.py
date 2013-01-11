@@ -3,8 +3,8 @@ import logging
 from difflib import get_close_matches
 
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
-from constraints import AllOf, AnyOf, Requires, Satisfies
-from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
+from constraints import AllOf, AnyOf, Channel, Requires, Satisfies
+from package import channel_select, find_inconsistent_packages, newest_packages, sort_packages_by_name
 from package_plan import PackagePlan
 from package_spec import PackageSpec, find_inconsistent_specs
 
@@ -233,16 +233,19 @@ def create_install_plan(env, spec_strings):
         # now we need to recompute the compatible packages using the updated package specifications
         pkgs = idx.find_compatible_packages(specs)
         pkgs = idx.find_matches(env_constraints, pkgs)
+        pkgs = channel_select(pkgs, env.conda.channel_urls)
         pkgs = newest_packages(pkgs)
         log.debug("updated packages: %s\n" % pkgs)
 
         # find the associated dependencies
         deps = idx.get_deps(pkgs)
         deps = idx.find_matches(env_constraints, deps)
+        deps = channel_select(pkgs, env.conda.channel_urls)
         deps = newest_packages(deps)
         log.debug("updated dependencies: %s\n" % deps)
 
         all_pkgs = pkgs | deps
+        all_pkgs = channel_select(all_pkgs, env.conda.channel_urls)
         all_pkgs = newest_packages(all_pkgs)
         log.debug("all packages: %s\n" % all_pkgs)
 
@@ -315,15 +318,19 @@ def create_update_plan(env, pkg_names):
     updates = set()
     for pkg in sort_packages_by_name(pkgs):
         candidates = idx.lookup_from_name(pkg.name)
-        candidates = idx.find_matches(env.requirements, candidates)
-        if not pkg.is_meta:
-            rdeps = idx.get_reverse_deps(candidates) & env.activated
-            candidates &= idx.get_deps(rdeps)
-        if not candidates: continue
-        newest = max(candidates)
-        log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
-        if newest > pkg:
-            updates.add(newest)
+        for channel in env.conda.channel_urls():
+            candidates = idx.find_matches(Channel(channel))
+            if not candidates: continue
+            candidates = idx.find_matches(env.requirements, candidates)
+            if not candidates: break
+            if not pkg.is_meta:
+                rdeps = idx.get_reverse_deps(candidates) & env.activated
+                candidates &= idx.get_deps(rdeps)
+            newest = max(candidates)
+            log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
+            if newest > pkg:
+                updates.add(newest)
+            break
     log.debug('initial updates: %s' %  updates)
 
     if len(updates) == 0: return plan  # nothing to do
@@ -338,6 +345,7 @@ def create_update_plan(env, pkg_names):
         # find newest packages compatible with these requirements
         all_pkgs = all_deps | updates
         all_pkgs = idx.find_matches(env.requirements, all_pkgs)
+        all_pkgs = channel_select(all_pkgs, env.conda.channel_urls)
         all_pkgs = newest_packages(all_pkgs)
 
     # check for any inconsistent requirements the set of packages

@@ -206,6 +206,51 @@ def group_packages_by_name(pkgs):
     return dict((k, set(list(g))) for k,g in groupby(sort_packages_by_name(pkgs), key=lambda pkg: pkg.name))
 
 
+def sort_packages_by_channel(pkgs, channels, reverse=False):
+    ''' sort a collection of packages by their :ref:`channels <channel>`, given
+    a specified channel ordering
+
+    Parameters
+    ----------
+    pkgs : iterable of :py:class:`package <conda.package.package>`
+        a collection of packages to sort by package name
+    channels : list of str
+        an list of channels used to order the packages
+    reverse : bool, optional
+        whether to sort in reverse order
+
+    Returns
+    -------
+    sorted : list of :py:class:`package <conda.package.package>`
+        packages sorted by channel
+
+    '''
+    return sorted(
+        list(pkgs),
+        reverse=reverse,
+        key=lambda pkg: channels.index(pkg.channel)
+    )
+
+def group_packages_by_channel(pkgs, channels):
+    ''' group a collection of packages by their :ref:`channel <channel>`, given
+    a specified channel ordering
+
+    Parameters
+    ----------
+    pkgs : iterable of :py:class:`package <conda.package.package>`
+        packages to group by channel
+    channels : list of str
+        an list of channels used to order the packages
+
+    Returns
+    -------
+    grouped : dict of (str, set of :py:class:`package <conda.package.package>`)
+        dictionary of sets of packages, indexed by channel
+
+    '''
+    return dict((k, set(list(g))) for k,g in groupby(sort_packages_by_channel(pkgs, channels), key=lambda pkg: pkg.channel))
+
+
 def newest_packages(pkgs):
     ''' from a collection of packages, return a set with only the newest version of each package
 
@@ -223,6 +268,39 @@ def newest_packages(pkgs):
     grouped = group_packages_by_name(pkgs)
 
     return set(max(pkgs) for pkgs in grouped.values())
+
+
+def channel_select(pkgs, channels):
+    ''' from a collection of packages, return a set that come only form the first
+    channel with matches
+
+    Parameters
+    ----------
+    pkgs : iterable of :py:class:`PackageSpec <conda.package.package>`
+        packages to select newest versions from
+    channels : list of str
+        an list of channels used to order the packages
+
+    Returns
+    -------
+    newest : set of :py:class:`PackageSpec <conda.package.package>`
+        newest packages for each package in `pkgs`
+
+    '''
+    grouped = group_packages_by_channel(pkgs, channels)
+
+    found_names = set()
+    results = set()
+
+    for channel in channels:
+        pkgs = grouped.get(channel, set())
+        named = group_packages_by_name(pkgs)
+        for name, pkgs in named:
+            if name in found_names: continue
+            found_names.add(name)
+            results |= pkgs
+
+    return results
 
 
 
