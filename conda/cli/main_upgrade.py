@@ -9,7 +9,7 @@ import sys
 
 from conda.anaconda import Anaconda
 from conda.config import CIO_PRO_CHANNEL
-from conda.package_plan import package_plan
+from conda.package_plan import PackagePlan
 from utils import add_parser_yes, confirm
 
 
@@ -48,7 +48,7 @@ def execute(args):
 
     log.debug('anaconda version to upgrade to: %s' % pkg.canonical_name)
 
-    plan = package_plan()
+    plan = PackagePlan()
 
     all_pkgs = set([pkg])
     for spec in pkg.requires:

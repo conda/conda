@@ -3,9 +3,9 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-''' The package_plan module provides the `package_plan` class, which encapsulates
+''' The PackagePlan module provides the `PackagePlan` class, which encapsulates
 executing sets of operations that modify Anaconda environments, as well as functions
-for creating package_plans for different circumstances.
+for creating PackagePlans for different circumstances.
 
 '''
 import logging
@@ -19,18 +19,18 @@ from package import sort_packages_by_name
 
 
 __all__ = [
-    'package_plan'
+    'PackagePlan'
 ]
 
 
 log = logging.getLogger(__name__)
 
 
-class package_plan(object):
+class PackagePlan(object):
     '''
     Encapsulates a package management action, describing all operations to
     take place. Operations include downloading packages from a channel,
-    activating and deactivating available packages. Additionally, package_plan
+    activating and deactivating available packages. Additionally, PackagePlan
     objects report any packages that will be left with unmet dependencies as a
     result of this action.
     '''

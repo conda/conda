@@ -5,7 +5,7 @@ from difflib import get_close_matches
 from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
 from constraints import AllOf, AnyOf, Requires, Satisfies
 from package import find_inconsistent_packages, newest_packages, sort_packages_by_name
-from package_plan import package_plan
+from package_plan import PackagePlan
 from package_spec import PackageSpec, find_inconsistent_specs
 
 __all__ = [
@@ -33,7 +33,7 @@ def create_create_plan(prefix, conda, spec_strings):
 
     Returns
     -------
-    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
         package plan for creating new Anaconda environment
 
     Raises
@@ -42,7 +42,7 @@ def create_create_plan(prefix, conda, spec_strings):
         if the environment cannot be created
 
     '''
-    plan = package_plan()
+    plan = PackagePlan()
 
     idx = conda.index
 
@@ -152,7 +152,7 @@ def create_install_plan(env, spec_strings):
 
     Returns
     -------
-    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
         package plan for installing packages in an existing Anaconda environment
 
     Raises
@@ -161,7 +161,7 @@ def create_install_plan(env, spec_strings):
         if the install cannot be performed
 
     '''
-    plan = package_plan()
+    plan = PackagePlan()
 
     idx = env.conda.index
 
@@ -287,7 +287,7 @@ def create_update_plan(env, pkg_names):
 
     Returns
     -------
-    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
         package plan for updating packages in an existing Anaconda environment
 
     Raises
@@ -297,7 +297,7 @@ def create_update_plan(env, pkg_names):
 
     '''
 
-    plan = package_plan()
+    plan = PackagePlan()
 
     idx = env.conda.index
 
@@ -374,7 +374,7 @@ def create_activate_plan(env, canonical_names):
 
     Returns
     -------
-    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
         package plan for activating packages in an existing Anaconda environment
 
     Raises
@@ -383,7 +383,7 @@ def create_activate_plan(env, canonical_names):
         if the activations cannot be performed
 
     '''
-    plan = package_plan()
+    plan = PackagePlan()
 
     idx = env.conda.index
 
@@ -432,7 +432,7 @@ def create_deactivate_plan(env, canonical_names):
 
     Returns
     -------
-    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
         package plan for deactivating packages in an existing Anaconda environment
 
     Raises
@@ -441,7 +441,7 @@ def create_deactivate_plan(env, canonical_names):
         if the deactivations cannot be performed
 
     '''
-    plan = package_plan()
+    plan = PackagePlan()
 
     idx = env.conda.index
 
@@ -496,7 +496,7 @@ def create_download_plan(conda, canonical_names, force):
 
     Returns
     -------
-    plan: :py:class:`package_plan <conda.package_plan.package_plan>`
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
         package plan for downloading packages into :ref:`local availability <locally_available>`.
 
     Raises
@@ -505,7 +505,7 @@ def create_download_plan(conda, canonical_names, force):
         if the downloads cannot be performed
 
     '''
-    plan = package_plan()
+    plan = PackagePlan()
 
     idx = conda.index
 
