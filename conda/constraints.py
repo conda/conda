@@ -207,7 +207,7 @@ class Channel(PackageConstraint):
             True if the package channel matches, False otherwise
 
         '''
-        return pkg.channel == self._channel
+        return self._channel in pkg.channel
 
 
 class StrictRequires(PackageConstraint):
