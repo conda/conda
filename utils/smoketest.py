@@ -42,6 +42,9 @@ cmds = [
     (
         "conda update --yes -p %s pandas" % myenv
     ),
+    (   
+        "conda local --yes -d numba-0.3.1-np17py27_0"
+    ),
     (
         "conda env --yes -ap %s numba-0.3.1-np17py27_0" % myenv
     ),
