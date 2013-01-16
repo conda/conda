@@ -18,8 +18,8 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'create',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
-        help            = "Create an Anaconda environment at a specified prefix from a list of package specifications.",
+        description     = "Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.",
+        help            = "Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.",
         epilog          = activate_example,
     )
     add_parser_yes(p)

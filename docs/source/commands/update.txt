@@ -1,9 +1,9 @@
 Update Anaconda packages.
 
-**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] package_name [package_name ...]``
+**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [package_name [package_name ...]]``
 
 *package_name*
-	names of packages to update (default: all packages)
+	names of packages to update (default: anaconda)
 
 optional arguments:
   -h, --help            show this help message and exit

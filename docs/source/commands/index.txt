@@ -1,4 +1,4 @@
-Updates repodata.json in repository directories. (ADVANCED)
+Updates repodata.json in channel directories. (ADVANCED)
 
 **usage**: ``conda index [-h] [-f] [-q] [DIRECTORIES [DIRECTORIES ...]]``
 
