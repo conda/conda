@@ -20,7 +20,7 @@ We'll start with an environment created in a specific path (``~/anaconda/envs/te
 
     $ conda create -p ~/anaconda/envs/test2 anaconda=1.1.4 python=2.7 numpy=1.6
 
-    Package plan for creating environment at /Users/maggie/anaconda/envs/test2:
+    Package plan for creating environment at ~/anaconda/envs/test2:
 
     The following packages will be downloaded:
 
@@ -161,7 +161,7 @@ packages `conda` has to download.
 
     $ conda create --quiet -n test3 scipy 
 
-    Package plan for creating environment at /Users/maggie/anaconda/envs/test3:
+    Package plan for creating environment at ~/anaconda/envs/test3:
 
     The following packages will be activated:
 
