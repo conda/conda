@@ -35,7 +35,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 .. index::
     pair: terminology; deactivated
 
-Anaconda packages are downloaded from remote **channels**. The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal repository (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
+Anaconda packages are downloaded from remote **channels**. The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal channel (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
 
 .. _location:
 .. index::

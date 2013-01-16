@@ -16,7 +16,7 @@ Info
     conda command version : 1.1.0
            root directory : /Users/test/anaconda
        packages directory : /Users/test/anaconda/pkgs
-          repository URLS : ['http://repo.continuum.io/pkgs/osx-64/']
+          channel URLS : ['http://repo.continuum.io/pkgs/osx-64/']
     environment locations : ['/Users/test/anaconda/envs']
 
 .. _envs_example:
