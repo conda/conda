@@ -240,7 +240,7 @@ def create_install_plan(env, spec_strings):
         # find the associated dependencies
         deps = idx.get_deps(pkgs)
         deps = idx.find_matches(env_constraints, deps)
-        deps = channel_select(pkgs, env.conda.channel_urls)
+        deps = channel_select(deps, env.conda.channel_urls)
         deps = newest_packages(deps)
         log.debug("updated dependencies: %s\n" % deps)
 
