@@ -51,8 +51,9 @@ def confirm(args):
         sys.exit(0)
     if args.yes:
         return
-    print "Proceed (y/n)?",  # raw_input has a bug and prints to stderr, not desirable
-    proceed = raw_input()
+    # raw_input has a bug and prints to stderr, not desirable
+    print "Proceed (y/n)? ",
+    proceed = sys.stdin.readline()
     if proceed.strip().lower() in ('y', 'yes'):
         return
     sys.exit(0)
