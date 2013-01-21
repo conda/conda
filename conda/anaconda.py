@@ -38,9 +38,11 @@ class Anaconda(Config):
         try:
             remote_index = self._fetch_index()
             self._index = PackageIndex(remote_index)
+            self._local_index_only = False
         except RuntimeError:
             local_index = self._build_local_index()
             self._index = PackageIndex(local_index)
+            self._local_index_only = True
 
     @property
     def index(self):
