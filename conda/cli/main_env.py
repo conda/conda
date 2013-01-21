@@ -5,6 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from argparse import RawDescriptionHelpFormatter
+from os.path import isdir, join
+from shutil import rmtree
 
 from conda.anaconda import Anaconda
 from conda.planners import create_activate_plan, create_deactivate_plan
@@ -21,24 +23,30 @@ def configure_parser(sub_parsers):
     )
     add_parser_yes(p)
     add_parser_prefix(p)
-    adgroup = p.add_mutually_exclusive_group()
-    adgroup.add_argument(
+    adr_group = p.add_mutually_exclusive_group()
+    adr_group.add_argument(
         '-a', "--activate",
         action  = "store_true",
         default = False,
         help    = "activate available packages in the specified Anaconda environment.",
     )
-    adgroup.add_argument(
+    adr_group.add_argument(
         '-d', "--deactivate",
         action  = "store_true",
         default = False,
         help    = "deactivate packages in an Anaconda environment.",
     )
+    adr_group.add_argument(
+        '-r', "--remove",
+        action  = "store_true",
+        default = False,
+        help    = "delete an Anaconda environment.",
+    )
     p.add_argument(
         'canonical_names',
         action  = "store",
         metavar = 'canonical_name',
-        nargs   = '+',
+        nargs   = '*',
         help    = "canonical name of package to deactivate in the specified Anaconda environment",
     )
     p.set_defaults(func=execute)
@@ -51,6 +59,9 @@ def execute(args):
     env = conda.lookup_environment(prefix)
 
     if args.activate:
+        if not args.canonical_names:
+            raise RuntimeError("must supply one or more canonical package names for -a/--activate")
+
         plan = create_activate_plan(env, args.canonical_names)
 
         if plan.empty():
@@ -70,6 +81,9 @@ def execute(args):
             raise RuntimeError('One of more of the packages is not locally available, see conda download -h')
 
     elif args.deactivate:
+        if not args.canonical_names:
+            raise RuntimeError("must supply one or more canonical package names for -d/--deactivate")
+
         plan = create_deactivate_plan(env, args.canonical_names)
 
         if plan.empty():
@@ -86,8 +100,27 @@ def execute(args):
 
         plan.execute(env)
 
+    elif args.remove:
+
+        if args.canonical_names:
+            raise RuntimeError("-r/--remove does not accept any canonical package names (use -p/--prefix or -n/--name to specify the environment to remove)")
+
+        if env == conda.root_environment:
+            raise RuntimeError("Cannot delete Anaconda root environment")
+
+        if not isdir(join(env.prefix, 'conda-meta')):
+            raise RuntimeError("%s does not appear to be an Anaconda environment" % env.prefix)
+
+        print
+        print "**** The following Anaconda environment directory will be removed: %s ****" % env.prefix
+        print
+
+        confirm(args)
+
+        rmtree(env.prefix)
+
     else:
-        raise RuntimeError("One of -a/--activate or -d/--deactivate is required.")
+        raise RuntimeError("One of -a/--activate, -d/--deactivate or -r/--remove is required.")
 
 env_example = '''
 examples:
