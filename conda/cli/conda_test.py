@@ -95,13 +95,10 @@ def gui_tester(pyVer,numVer, testdir):
     ipyloc = get_ipython_location()
     pylabCommand = "%s --pylab -ic 'plot(randn(99))'" % ipyloc
     check_call(pylabCommand.split(), shell=status)
-    if not isWin:
-        notebookCommand = "%s notebook" % ipyloc
-        check_call(notebookCommand.split(), shell=status)
     # qtconsole only works with python 2.7
     if pyVer == "python=2.7":
         qtCommand = "%s qtconsole" % ipyloc
-        check_call(qtCommand, shell=status)
+        check_call(qtCommand, shell=True)
         check_call(join(testdir, "bin", "spyder"))
 
 def setup(gui = False):
