@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from os.path import abspath, expanduser, join
 import sys
@@ -76,8 +75,9 @@ def license_check_warn():
             exp_date = _license.get_end_date()
         except:
             pass
-        if not exp_date or datetime.today() > datetime.strptime(exp_date, '%Y-%m-%d'):
-            print """
-            Anaconda license is missing or expired. Contact sales@contium.io or visit
-            http://continuum.io/anaconda.html for access to paid Anaconda channels.
-            """
+        if not exp_date or datetime.today() > datetime.strptime(exp_date,
+                                                                '%Y-%m-%d'):
+            print("""
+    Anaconda license is missing or expired. Contact sales@contium.io or visit
+    http://continuum.io/anaconda.html for access to paid Anaconda channels.
+            """)
