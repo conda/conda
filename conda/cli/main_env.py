@@ -128,4 +128,6 @@ examples:
 
   conda env -dp ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
 
+  conda env -rp ~/anaconda/envs/myenv
+
 '''
