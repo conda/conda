@@ -35,14 +35,12 @@ class Anaconda(Config):
     def __init__(self, **kw):
         super(Anaconda, self).__init__(**kw)
 
-        index = self._build_local_index()
         try:
-            index.update(self._fetch_index())
-            self._local_index_only = False
+            remote_index = self._fetch_index()
+            self._index = PackageIndex(remote_index)
         except RuntimeError:
-            self._local_index_only = True
-
-        self._index = PackageIndex(index)
+            local_index = self._build_local_index()
+            self._index = PackageIndex(local_index)
 
     @property
     def index(self):
