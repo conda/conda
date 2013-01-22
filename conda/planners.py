@@ -360,7 +360,11 @@ def create_update_plan(env, pkg_names):
     for pkg in all_pkgs:
 
         active = env.find_activated_package(pkg.name)
-        if active and pkg > active:
+        if not active:
+            if pkg not in env.conda.available_packages:
+                plan.downloads.add(pkg)
+            plan.activations.add(pkg)
+        elif pkg > active:
             if pkg not in env.conda.available_packages:
                 plan.downloads.add(pkg)
             plan.activations.add(pkg)
