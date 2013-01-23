@@ -122,11 +122,11 @@ def setup(gui = False):
 
             if gui == True:
                 gui_tester(py, num, testdir)
+            else:
+                installcmd = "%s install --yes -n test test" % get_conda_location()
+                print "\n", installcmd
+                check_call(installcmd.split(), shell=status)
 
-            installcmd = "%s install --yes -n test test" % get_conda_location()
-            print "\n", installcmd
-            check_call(installcmd.split(), shell=status)
-
-            tester(py,num,testdir)
+                tester(py,num,testdir)
 
             rmtree(testdir)
