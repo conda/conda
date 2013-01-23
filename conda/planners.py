@@ -266,7 +266,8 @@ def create_install_plan(env, spec_strings):
 
         # see if the package is already active
         active = env.find_activated_package(pkg.name)
-        if active and hash(pkg) != hash(active):
+        # need to compare canonical names since ce/pro packages might compare equal
+        if active and pkg.canonical_name != active.canonical_name:
             plan.deactivations.add(active)
 
         if pkg not in env.activated:
