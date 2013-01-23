@@ -266,7 +266,6 @@ def create_install_plan(env, spec_strings):
 
         # see if the package is already active
         active = env.find_activated_package(pkg.name)
-        print repr(pkg), repr(active)
         if active and hash(pkg) != hash(active):
             plan.deactivations.add(active)
 
