@@ -44,7 +44,6 @@ Additional help for each command can be accessed by using:
 import sys
 
 import conda_argparse as argparse
-import conda_test as test
 import main_build
 import main_create
 import main_depends
