@@ -60,14 +60,6 @@ import main_search
 import main_update
 import main_upgrade
 
-if len(sys.argv) == 2:
-    if sys.argv[1] == "--test": 
-        test.setup()
-        sys.exit()
-    elif sys.argv[1] == "--testgui": 
-        test.setup(gui=True)
-        sys.exit()
-
 def main():
 
     import logging
