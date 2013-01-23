@@ -38,7 +38,7 @@ def get_testdir():
 
 def get_vers(pkg):
     output = open("tmp.txt", "w+")
-    searchCommand = "conda search %s" % pkg
+    searchCommand = "conda search --all %s" % pkg
     check_call(searchCommand.split(), stdout = output, shell=status)
     output.close()
 
@@ -114,10 +114,10 @@ def setup(gui = False):
 
             remove(testdir)
 
-            print "\n%s create -n test %s %s anaconda\n"  % (get_conda_location(), py, num)
+            print "\n%s create -n test %s %s anaconda=1.3.0\n"  % (get_conda_location(), py, num)
             print "-"*60
             print
-            createcmd = "%s create --yes -n test %s %s anaconda" % (get_conda_location(), py, num)
+            createcmd = "%s create --yes -n test %s %s anaconda=1.3.0" % (get_conda_location(), py, num)
             check_call(createcmd.split(), shell=status)
 
             if gui == True:
