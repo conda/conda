@@ -99,7 +99,10 @@ def gui_tester(pyVer,numVer, testdir):
     if pyVer == "python=2.7":
         qtCommand = "%s qtconsole" % ipyloc
         check_call(qtCommand, shell=True)
-        check_call(join(testdir, "bin", "spyder"))
+        if not isWin:
+            check_call(join(testdir, "bin", "spyder"))
+        else:
+            check_call(join(testdir, "Scripts", "spyder"))
 
 def setup(gui = False):
 
@@ -122,11 +125,11 @@ def setup(gui = False):
 
             if gui == True:
                 gui_tester(py, num, testdir)
+            else:
+                installcmd = "%s install --yes -n test test" % get_conda_location()
+                print "\n", installcmd
+                check_call(installcmd.split(), shell=status)
 
-            installcmd = "%s install --yes -n test test" % get_conda_location()
-            print "\n", installcmd
-            check_call(installcmd.split(), shell=status)
-
-            tester(py,num,testdir)
+                tester(py,num,testdir)
 
             rmtree(testdir)
