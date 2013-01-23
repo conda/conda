@@ -8,7 +8,7 @@ Local
     conda local performs low level operations on Anaconda installations. It should not be needed for any common tasks.
 
 
-``conda local --download`` takes as an argument a specified :ref:`canonical names <canonical_name>` and downloads it from available or known Anaconda repositories.
+``conda local --download`` takes as an argument a specified :ref:`canonical names <canonical_name>` and downloads it from available or known Anaconda channels.
 
 .. code-block:: bash
 

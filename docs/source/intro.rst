@@ -24,7 +24,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
     # First, let's check our system python and numpy versions first
 
     $ python
-    Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26) 
+    Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
     [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import numpy
@@ -48,7 +48,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
     # Finally, we check the versions again
 
     $ python
-    Python 2.6.8 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03) 
+    Python 2.6.8 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
     [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import numpy
@@ -59,9 +59,9 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 
 
 
-.. _repository:
+.. _channel:
 .. index::
-    pair: terminology; repository
+    pair: terminology; channel
 
 .. _locally_available:
 .. index::
@@ -75,7 +75,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 .. index::
     pair: terminology; deactivated
 
-Anaconda packages are downloaded from remote **channels**. The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal channel (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
+Anaconda packages are downloaded from remote **channels**, which are simply URLs to directories containing Anaconda packages. The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal channel (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
 
 .. _location:
 .. index::
