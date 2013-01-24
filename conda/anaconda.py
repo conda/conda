@@ -10,12 +10,13 @@ information about an Anaconda installation, including the Anaconda package index
 
 from bz2 import decompress
 from os import listdir
-from os.path import exists, join
+from os.path import exists, isdir, join
 from urllib2 import urlopen
 import json
 import logging
 
-from config import Config
+from config import Config, DEFAULT_ENV_PREFIX, ROOT_DIR
+from environment import Environment
 from package_index import PackageIndex
 
 
@@ -53,6 +54,61 @@ class Anaconda(Config):
     def local_index_only(self):
         ''' Whether the package index contains only local information '''
         return self._local_index_only
+
+    @property
+    def root_environment(self):
+        ''' Root :ref:`Anaconda environment <environment>` '''
+        return Environment(self, ROOT_DIR)
+
+    @property
+    def default_environment(self):
+        ''' Default :ref:`Anaconda environment <environment>` '''
+        return Environment(self, DEFAULT_ENV_PREFIX)
+
+
+    @property
+    def environments(self):
+        ''' All known Anaconda environments
+
+        :ref:`Anaconda environments <environment>` are searched for in the directories specified by `config.locations`.
+        Environments located elsewhere are unknown to Anaconda.
+        '''
+        envs = []
+        for location in self.locations:
+            if not exists(location):
+                log.warning("location '%s' does not exist" % location)
+                continue
+            for fn in listdir(location):
+                prefix = join(location, fn)
+                if isdir(prefix):
+                    try:
+                        envs.append(Environment(self, prefix))
+                    except RuntimeError as e:
+                        log.info('%s' % e)
+        envs.append(self.default_environment)
+        return sorted(envs)
+
+    def lookup_environment(self, prefix):
+        '''
+        Return an environment object for the :ref:`Anaconda environment <environment>` located at `prefix`.
+
+        Parameters
+        ----------
+        prefix : str
+            full path to find Anaconda environment
+
+        Returns
+        -------
+        env : environment
+            environment object for Anaconda environment located at `prefix`
+
+        '''
+        envs = dict((env.prefix, env) for env in self.environments)
+        try:
+            return envs[prefix]
+        except:
+            log.debug('creating environment for prefix: %s' % prefix)
+            return Environment(self, prefix)
 
     def __repr__(self):
         return 'anaconda()'
