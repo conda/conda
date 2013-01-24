@@ -11,7 +11,7 @@ the Anaconda package index.
 from datetime import datetime
 import logging
 import os
-from os.path import abspath, exists, expanduser, isdir, join
+from os.path import abspath, expanduser, join
 import platform
 import sys
 
@@ -164,41 +164,6 @@ class Config(object):
         return sorted(self.user_locations + [self.system_location])
 
     @property
-    def root_environment(self):
-        ''' Root :ref:`Anaconda environment <environment>` '''
-        from environment import Environment
-        return Environment(self, ROOT_DIR)
-
-    @property
-    def default_environment(self):
-        ''' Default :ref:`Anaconda environment <environment>` '''
-        from environment import Environment
-        return Environment(self, DEFAULT_ENV_PREFIX)
-
-    @property
-    def environments(self):
-        ''' All known Anaconda environments
-
-        :ref:`Anaconda environments <environment>` are searched for in the directories specified by `config.locations`.
-        Environments located elsewhere are unknown to Anaconda.
-        '''
-        from environment import Environment
-        envs = []
-        for location in self.locations:
-            if not exists(location):
-                log.warning("location '%s' does not exist" % location)
-                continue
-            for fn in os.listdir(location):
-                prefix = join(location, fn)
-                if isdir(prefix):
-                    try:
-                        envs.append(Environment(self, prefix))
-                    except RuntimeError as e:
-                        log.info('%s' % e)
-        envs.append(self.default_environment)
-        return sorted(envs)
-
-    @property
     def channel_base_urls(self):
         ''' Base URLS of :ref:`Anaconda channels <channel>` '''
         if os.getenv('CIO_TEST') == "1":
@@ -225,29 +190,6 @@ class Config(object):
             except KeyError:
                 log.debug("unknown available package '%s'" % name)
         return res
-
-    def lookup_environment(self, prefix):
-        '''
-        Return an environment object for the :ref:`Anaconda environment <environment>` located at `prefix`.
-
-        Parameters
-        ----------
-        prefix : str
-            full path to find Anaconda environment
-
-        Returns
-        -------
-        env : environment
-            environment object for Anaconda environment located at `prefix`
-
-        '''
-        envs = dict((env.prefix, env) for env in self.environments)
-        try:
-            return envs[prefix]
-        except:
-            log.debug('creating environment for prefix: %s' % prefix)
-            from environment import Environment
-            return Environment(self, prefix)
 
     def __str__(self):
         return '''
