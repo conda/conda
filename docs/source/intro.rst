@@ -21,7 +21,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 
 .. code-block:: bash
 
-    # First, let's check our system numpy version first
+    # First, let's check our system numpy version
 
     $ python
     Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
