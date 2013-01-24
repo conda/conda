@@ -27,3 +27,16 @@ Update all specified packages to latest versions in ``myenv``
 
     $ conda update -n myenv anaconda
 
+Make ``myenv`` your default environment to begin using it
+
+on linux and os x:
+
+.. code-block:: bash
+
+    $ export PATH=~/anaconda/envs/myenv/bin:$PATH
+
+on windows:
+
+.. code-block:: 
+
+    > set PATH=C:\Anaconda\envs\myenv\Scripts;%PATH%
