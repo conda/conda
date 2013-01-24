@@ -21,7 +21,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 
 .. code-block:: bash
 
-    # First, let's check our system python and numpy versions first
+    # First, let's check our system numpy version first
 
     $ python
     Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
@@ -31,9 +31,9 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
     >>> numpy.version.full_version
     '1.7.0b2'
 
-    # Now we'll create an anaconda environment using different versions of python and numpy
+    # Now we'll create an anaconda environment using a different version of numpy
 
-    $ conda create -p ~/anaconda/envs/test python=2.6 numpy=1.6 anaconda
+    $ conda create -p ~/anaconda/envs/test numpy=1.6 anaconda
 
     Package plan for creating environment at /Users/maggie/anaconda/envs/test:
 
@@ -48,7 +48,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
     # Finally, we check the versions again
 
     $ python
-    Python 2.6.8 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
+    Python 2.7.3 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
     [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import numpy
