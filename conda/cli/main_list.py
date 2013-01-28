@@ -5,9 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import re
+from conda.install import activated
 
-from conda.anaconda import Anaconda
-from conda.package import sort_packages_by_name
 from utils import add_parser_prefix, get_prefix
 
 
@@ -34,14 +33,10 @@ def configure_parser(sub_parsers):
 
 
 def execute(args):
-    conda = Anaconda()
-
     prefix = get_prefix(args)
-
-    env = conda.lookup_environment(prefix)
+    pkgs = sorted(activated(prefix))
 
     matching = ""
-    pkgs = env.activated
     if args.search_expression:
         try:
             pat = re.compile(args.search_expression)
@@ -49,19 +44,19 @@ def execute(args):
             raise RuntimeError("Could not understand search expression '%s'" %
                                args.search_expression)
         matching = " matching '%s'" % args.search_expression
-        pkgs = [pkg for pkg in env.activated if pat.search(pkg.name)]
+        pkgs = [pkg for pkg in pkgs if pat.search(pkg)]
 
     if args.canonical:
-        for pkg in sort_packages_by_name(pkgs):
-            print pkg.canonical_name
+        for pkg in pkgs:
+            print pkg
         return
 
     if len(pkgs) == 0:
         print('no packages%s found in environment at %s:' %
-              (matching, env.prefix))
+              (matching, prefix))
         return
 
-    print 'packages%s in environment at %s:' % (matching, env.prefix)
+    print 'packages%s in environment at %s:' % (matching, prefix)
     print
-    for pkg in sort_packages_by_name(pkgs):
-        print '%-25s %s' % (pkg.name, pkg.version)
+    for pkg in pkgs:
+        print '%-25s %-15s %15s' % tuple(pkg.rsplit('-', 2))
