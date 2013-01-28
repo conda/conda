@@ -32,9 +32,6 @@ def execute(args):
 
     conda = Anaconda(first_channel=CIO_PRO_CHANNEL)
 
-    if conda.local_index_only:
-        raise RuntimeError('Upgrading requires access to package indices on remote package channels. (Check network connection?)')
-
     idx = conda.index
 
     env = conda.root_environment
