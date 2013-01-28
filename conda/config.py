@@ -11,7 +11,7 @@ the Anaconda package index.
 from datetime import datetime
 import logging
 import os
-from os.path import abspath, exists, expanduser, isdir, join
+from os.path import abspath, exists, expanduser, isfile, isdir, join
 import platform
 import sys
 
@@ -49,6 +49,8 @@ if sys.platform == 'win32':
     DEFAULT_NUMPY_SPEC='numpy=1.6'
 else:
     DEFAULT_NUMPY_SPEC='numpy=1.7'
+
+RC_PATH = abspath(expanduser('~/.condarc'))
 
 def _load_condarc(path):
     try:
@@ -93,9 +95,8 @@ class Config(object):
     def __init__(self, first_channel=None):
         self._rc = None
 
-        # try to load .condarc file from users home directory
-        home = os.getenv('USERPROFILE') or os.getenv('HOME')
-        self._rc = _load_condarc(join(home, '.condarc'))
+        # try to load .condarc file
+        self._rc = _load_condarc(RC_PATH)
 
         if not self._rc:
             self._rc = {'channels': CIO_DEFAULT_CHANNELS}
@@ -221,6 +222,7 @@ conda command version : %s
        default prefix : %s
          channel URLS : %s
 environment locations : %s
+          config file : %s
 '''  % (
             self.platform,
             self.conda_version,
@@ -228,6 +230,7 @@ environment locations : %s
             DEFAULT_ENV_PREFIX,
             self.channel_urls,
             self.locations,
+            RC_PATH if isfile(RC_PATH) else None
         )
 
     def __repr__(self):
