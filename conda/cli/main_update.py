@@ -52,7 +52,7 @@ def execute(args):
         print 'All packages already at latest compatible version'
         return
 
-    print "Updating Anaconda environment at %s" % args.prefix
+    print "Updating Anaconda environment at %s" % env.prefix
 
     print plan
 
