@@ -53,6 +53,7 @@ import main_info
 import main_install
 import main_list
 import main_local
+import main_remove
 import main_package
 import main_pip
 import main_search
@@ -94,6 +95,7 @@ def main():
     main_upgrade.configure_parser(sub_parsers)
     main_env.configure_parser(sub_parsers)
     main_local.configure_parser(sub_parsers)
+    main_remove.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_pip.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
