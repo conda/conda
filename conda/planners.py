@@ -116,7 +116,7 @@ def create_create_plan(prefix, conda, spec_strings):
         # find the associated dependencies
         deps = idx.get_deps(pkgs)
         deps = idx.find_matches(env_constraints, deps)
-        pkgs = channel_select(deps, conda.channel_urls)
+        deps = channel_select(deps, conda.channel_urls)
         deps = newest_packages(deps)
         log.debug("updated dependencies: %s\n" % deps)
 
