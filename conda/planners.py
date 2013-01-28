@@ -224,12 +224,12 @@ def create_install_plan(env, spec_strings):
 
         if py_spec:
             constraints.append(_default_constraint(py_spec))
-        elif 'python' in dep_names:
+        elif 'python' in dep_names and not env.find_activated_package('python'):
             constraints.append(_default_constraint(PackageSpec(DEFAULT_PYTHON_SPEC)))
 
         if np_spec:
             constraints.append(_default_constraint(np_spec))
-        elif 'numpy' in dep_names:
+        elif 'numpy' in dep_names and not env.find_activated_package('numpy'):
             constraints.append(_default_constraint(PackageSpec(DEFAULT_NUMPY_SPEC)))
 
         env_constraints = AllOf(*constraints)
