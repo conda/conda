@@ -34,13 +34,13 @@ def execute(args):
     conf = Config()
 
     if args.envs:
-        envs = conf.environments
+        env_paths = conf.environment_paths
 
         print "Known Anaconda environments:"
         print
 
-        for env in envs:
-            print "    %s" % env.prefix
+        for path in env_paths:
+            print "    %s" % path
         print
 
     elif args.locations:

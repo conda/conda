@@ -11,7 +11,7 @@ the Anaconda package index.
 from datetime import datetime
 import logging
 import os
-from os.path import abspath, expanduser, join
+from os.path import abspath, exists, expanduser, isdir, join
 import platform
 import sys
 
@@ -194,6 +194,24 @@ class Config(object):
             except KeyError:
                 log.debug("unknown available package '%s'" % name)
         return res
+
+    @property
+    def environment_paths(self):
+        ''' All known Anaconda environment paths
+
+        paths to :ref:`Anaconda environments <environment>` are searched for in the directories specified by `config.locations`.
+        Environments located elsewhere are unknown to Anaconda.
+        '''
+        env_paths = []
+        for location in self.locations:
+            if not exists(location):
+                log.warning("location '%s' does not exist" % location)
+                continue
+            for fn in os.listdir(location):
+                prefix = join(location, fn)
+                if isdir(prefix):
+                    env_paths.append(prefix)
+        return sorted(env_paths)
 
     def __str__(self):
         return '''
