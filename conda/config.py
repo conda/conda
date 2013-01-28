@@ -61,6 +61,10 @@ def _load_condarc(path):
     except IOError:
         return None
     log.debug("loaded: %s" % path)
+    if 'channels' in rc:
+        rc['channels'] = [url.rstrip('/') for url in rc['channels']]
+    else:
+        log.warn("missing 'channels' key in %r"  % path)
     return rc
 
 
