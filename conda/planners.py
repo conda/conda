@@ -128,6 +128,9 @@ def create_create_plan(prefix, conda, spec_strings):
             if not idx.find_matches(Satisfies(spec), all_pkgs):
                 raise RuntimeError("could not find package for package specification '%s' compatible with other requirements" % spec)
 
+    # don't install conda into non-default environments
+    all_pkgs = [pkg for pkg in all_pkgs if pkg.name != 'conda']
+
     # download any packages that are not available
     for pkg in all_pkgs:
         if pkg not in conda.available_packages:
@@ -262,6 +265,10 @@ def create_install_plan(env, spec_strings):
     # download any packages that are not available
     for pkg in all_pkgs:
 
+        # don't install conda into non-default environments
+        if pkg.name == 'conda' and env != env.conda.root_environment:
+            continue
+
         # download any currently unavailable packages
         if pkg not in env.conda.available_packages:
             plan.downloads.add(pkg)
@@ -362,6 +369,10 @@ def create_update_plan(env, pkg_names):
     # download any activations that are not already available
     for pkg in all_pkgs:
 
+        # don't install conda into non-default environments
+        if pkg.name == 'conda' and env != env.conda.root_environment:
+            continue
+
         active = env.find_activated_package(pkg.name)
         if not active:
             if pkg not in env.conda.available_packages:
@@ -422,6 +433,9 @@ def create_activate_plan(env, canonical_names):
         if pkg in env.activated:
             raise RuntimeError("package '%s' is already activated in environment: %s" % (canonical_name, env.prefix))
 
+        if pkg.name == 'conda' and env != env.conda.root_environment:
+            raise RuntimeError("'conda' package may only be activated in the root environament: %s" % env.conda.root_environment.prefix)
+
         plan.activations.add(pkg)
 
         # add or warn about missing dependencies
@@ -480,6 +494,9 @@ def create_deactivate_plan(env, canonical_names):
         # if package is not already activated, there is nothing to do
         if pkg not in env.activated:
             raise RuntimeError("package '%s' is not activated in environment: %s" % (canonical_name, env.prefix))
+
+        if pkg.name == 'conda' and env == env.conda.root_environment:
+            raise RuntimeError("'conda' package may not be deactivated from the root environment: %s" % env.conda.root_environment.prefix)
 
         plan.deactivations.add(pkg)
 
