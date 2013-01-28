@@ -67,6 +67,11 @@ def create_create_plan(prefix, conda, spec_strings):
 
         specs.add(spec)
 
+    # this is handle the case where a user asks for just python and/or numpy and nothing else
+    if len(specs) == 0:
+        if py_spec: specs.add(py_spec)
+        if np_spec: specs.add(np_spec)
+
     # abort if specifications are already incondsistent at this point
     inconsistent = find_inconsistent_specs(specs)
     if inconsistent:
