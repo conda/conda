@@ -36,9 +36,6 @@ def execute(args):
 
     license_check_warn()
 
-    if conda.local_index_only:
-        raise RuntimeError('Updating packages requires access to package indices on remote package channels. (Check network connection?)')
-
     prefix = get_prefix(args)
 
     env = conda.lookup_environment(prefix)

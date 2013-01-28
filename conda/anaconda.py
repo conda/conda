@@ -31,29 +31,17 @@ class Anaconda(Config):
     index
 
     '''
-    __slots__ = ['_index', '_local_index_only']
+    __slots__ = ['_index']
 
     def __init__(self, **kw):
         super(Anaconda, self).__init__(**kw)
 
-        try:
-            remote_index = self._fetch_index()
-            self._index = PackageIndex(remote_index)
-            self._local_index_only = False
-        except RuntimeError:
-            local_index = self._build_local_index()
-            self._index = PackageIndex(local_index)
-            self._local_index_only = True
+        self._index = PackageIndex(self._fetch_index())
 
     @property
     def index(self):
         ''' Anaconda package index '''
         return self._index
-
-    @property
-    def local_index_only(self):
-        ''' Whether the package index contains only local information '''
-        return self._local_index_only
 
     @property
     def root_environment(self):
@@ -126,7 +114,7 @@ class Anaconda(Config):
                     log.debug("fetched: repodata.json [%s] ..." % url)
                     repodata = json.loads(fi.read())
                 except:
-                    log.debug("failed to fetch repo data at url %s" % url)
+                    raise RuntimeError("failed to fetch index for channel '%s' (bad url?)" % url)
                     continue
             new_index = repodata['packages']
             for pkg_info in new_index.itervalues():
