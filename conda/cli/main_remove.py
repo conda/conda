@@ -44,11 +44,14 @@ def execute(args):
     prefix = get_prefix(args)
 
     if args.force and args.yes:
+        n = 0
         for dist in activated(prefix):
             pkg_name = dist.rsplit('-', 2)[0]
             if pkg_name in args.packages:
                 print "removing:", dist
                 deactivate(dist, prefix)
+                n += 1
+        print("Number of packages removed: %d" % n)
     else:
         raise RuntimeError("Not implemented yet, only --force in combination "
                            "with --yes currently work")
