@@ -3,7 +3,7 @@ import shutil
 from subprocess import Popen, PIPE, check_call, CalledProcessError
 from os.path import isfile, join
 
-from packup import packup_and_reinstall
+from packup import untracked, packup_and_reinstall
 from source import get_source
 
 
@@ -17,11 +17,12 @@ def pip(prefix, pkg_name):
         raise RuntimeError('pip does not appear to be installed in prefix: '
                            '%r' % prefix)
 
+    files_before = untracked(prefix)
     try:
         check_call([pip_path, 'install', pkg_name])
     except CalledProcessError:
         return
-    packup_and_reinstall(prefix, pkg_name)
+    packup_and_reinstall(prefix, files_before, pkg_name)
 
 
 def build(prefix, url, source_type):
@@ -45,11 +46,12 @@ def build(prefix, url, source_type):
     except:
         pkg_name, pkg_version = 'unknown', '0.0'
 
+    files_before = untracked(prefix)
     try:
         check_call([python_path, 'setup.py', 'install'], cwd=src_dir)
     except CalledProcessError:
         return
-    packup_and_reinstall(prefix, pkg_name, pkg_version)
+    packup_and_reinstall(prefix, files_before, pkg_name, pkg_version)
 
     if tmp_dir:
         shutil.rmtree(tmp_dir)

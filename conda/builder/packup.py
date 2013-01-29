@@ -60,18 +60,17 @@ def walk_prefix(prefix):
 
 def untracked(prefix):
     """
-    Return (a sorted list) of all untracked files for a given prefix.
+    Return (the set) of all untracked files for a given prefix.
     """
     conda_files = conda_installed_files(prefix)
-    res= {path for path in walk_prefix(prefix) - conda_files
-          if not (path.endswith('~') or (path.endswith('.pyc') and
-                                         path[:-1] in conda_files))}
-    return sorted(res)
+    return {path for path in walk_prefix(prefix) - conda_files
+            if not (path.endswith('~') or (path.endswith('.pyc') and
+                                           path[:-1] in conda_files))}
 
 
 def remove(prefix, files):
     """
-    Remove files for a given prefix
+    Remove files for a given prefix.
     """
     dst_dirs = set()
     for f in files:
@@ -125,7 +124,7 @@ def fix_shebang(tmp_dir, path):
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
                 files=None):
     if files is None:
-        files = untracked(prefix)
+        files = sorted(untracked(prefix))
     print "Number of files: %d" % len(files)
     if len(files) == 0:
         print "Nothing to package up (no untracked files)."
@@ -186,8 +185,8 @@ def guess_pkg_version(files, pkg_name):
     return '0.0'
 
 
-def packup_and_reinstall(prefix, pkg_name, pkg_version=None):
-    files = untracked(prefix)
+def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
+    files = untracked(prefix) - ignore_files
     if pkg_version is None:
         pkg_version = guess_pkg_version(files, pkg_name)
     fn = make_tarbz2(prefix, name=pkg_name, version=pkg_version, files=files)
