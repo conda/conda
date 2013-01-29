@@ -44,11 +44,11 @@ elif os.sep in _default_env:
 else:
     DEFAULT_ENV_PREFIX = join(ENVS_DIR, _default_env)
 
-DEFAULT_PYTHON_SPEC='python=2.7'
+DEFAULT_PYTHON_SPEC = 'python=2.7'
 if sys.platform == 'win32':
-    DEFAULT_NUMPY_SPEC='numpy=1.6'
+    DEFAULT_NUMPY_SPEC = 'numpy=1.6'
 else:
-    DEFAULT_NUMPY_SPEC='numpy=1.7'
+    DEFAULT_NUMPY_SPEC = 'numpy=1.7'
 
 def _get_rc_path():
     for path in [abspath(expanduser('~/.condarc')),
