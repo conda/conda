@@ -75,7 +75,18 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 .. index::
     pair: terminology; deactivated
 
-Anaconda packages are downloaded from remote **channels**, which are simply URLs to directories containing Anaconda packages. The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal channel (see Configuration_ for details). Once an Anaconda package has been downloaded, it is said to be **locally available**. A locally available package that has been linked into an Anaconda environment is said to be **activated**. Conversely, unlinking a package from an environment causes it to be **deactivated**.
+Anaconda packages are downloaded from remote **channels**, which are simply URLs to directories containing Anaconda packages. 
+The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal channel (see Configuration_ for details).
+Continuum provides the following standard channels:
+ * ``http://repo.continuum.io/pkgs/dev`` - Experimental or developmental versions of packages
+ * ``http://repo.continuum.io/pkgs/gpl`` - GPL licensed packages
+ * ``http://repo.continuum.io/pkgs/free`` - non GPL open source packages
+To view all available packages, you can use ``conda search --all``.  See the :ref:`search command examples <search_example>` for more information.
+
+Once an Anaconda package has been downloaded, it is said to be **locally available**. 
+A locally available package that has been linked into an Anaconda environment is said to be **activated**. 
+Conversely, unlinking a package from an environment causes it to be **deactivated**.
+ 
 
 .. _location:
 .. index::
@@ -203,7 +214,7 @@ Here is an example:
     # channel locations. These override conda defaults, i.e., conda will
     # search *only* the channels listed here, in the order given.
     channels:
-      - http://repo.continuum.io/pkgs
+      - http://repo.continuum.io/pkgs/free
       - http://acme.com/internal/packages
 
     # environment locations. These locations are in *addition* to the system
@@ -223,6 +234,23 @@ The process of upgrading from Anaconda Community Edition to the full trial versi
 
 
 Look here for :ref:`examples <upgrade_example>`.
+
+---------------------------------
+Update Anaconda to latest version
+---------------------------------
+
+To update to the latest version of Anaconda, you must first ensure you have the latest version of conda:
+
+.. code-block:: bash
+
+    $ conda update conda
+
+    # Now you are ready to update Anaconda
+
+    $ conda update
+
+Look here for additional :ref:`update examples <update_example>`.
+
 
 .. _YAML syntax: http://en.wikipedia.org/wiki/YAML
 
