@@ -50,7 +50,14 @@ if sys.platform == 'win32':
 else:
     DEFAULT_NUMPY_SPEC='numpy=1.7'
 
-RC_PATH = abspath(expanduser('~/.condarc'))
+def _get_rc_path():
+    for path in [abspath(expanduser('~/.condarc')),
+                 join(sys.prefix, '.condarc')]:
+        if isfile(path):
+            return path
+    return None
+
+RC_PATH = _get_rc_path()
 
 def _load_condarc(path):
     try:
@@ -95,15 +102,10 @@ class Config(object):
     def __init__(self, first_channel=None):
         self._rc = None
 
-        # try to load .condarc file
-        self._rc = _load_condarc(RC_PATH)
-
-        if not self._rc:
+        if RC_PATH is None:
             self._rc = {'channels': CIO_DEFAULT_CHANNELS}
-
-        elif not self._rc.has_key('channels'):
-            log.info("old condarc, missing 'channels' key, using default channels: %s"  % CIO_DEFAULT_CHANNELS)
-            self._rc['channels']  = CIO_DEFAULT_CHANNELS
+        else:
+            self._rc = _load_condarc(RC_PATH)
 
         if 'Anaconda ' in sys.version:
             exp_date = None
@@ -230,7 +232,7 @@ environment locations : %s
             DEFAULT_ENV_PREFIX,
             self.channel_urls,
             self.locations,
-            RC_PATH if isfile(RC_PATH) else None
+            RC_PATH,
         )
 
     def __repr__(self):
