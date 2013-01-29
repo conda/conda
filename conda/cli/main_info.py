@@ -36,6 +36,10 @@ def execute(args):
     if args.envs:
         env_paths = conf.environment_paths
 
+        if len(env_paths) == 0:
+            print "No known environments in Anaconda locations"
+            return
+
         print "Known Anaconda environments:"
         print
 
@@ -44,6 +48,11 @@ def execute(args):
         print
 
     elif args.locations:
+
+        if len(conf.locations) == 0:
+            print "No Anaconda locations configured"
+            return
+
         print
         print "Locations for Anaconda environments:"
         print
