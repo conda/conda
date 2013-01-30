@@ -21,6 +21,8 @@ git_full = "$Format:%H$"
 
 import subprocess
 import sys
+import re
+import os.path
 
 def run_command(args, cwd=None, verbose=False):
     try:
@@ -40,11 +42,6 @@ def run_command(args, cwd=None, verbose=False):
             print("unable to run %s (error)" % args[0])
         return None
     return stdout
-
-
-import sys
-import re
-import os.path
 
 def get_expanded_variables(versionfile_source):
     # the code embedded in _version.py can just fetch the value of these

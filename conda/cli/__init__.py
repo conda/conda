@@ -5,3 +5,4 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from main import main
+assert main # shut up pyflakes
