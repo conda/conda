@@ -17,6 +17,7 @@ import logging
 
 from config import Config, DEFAULT_ENV_PREFIX, ROOT_DIR
 from environment import Environment
+from install import available
 from package_index import PackageIndex
 
 
@@ -28,7 +29,11 @@ class Anaconda(Config):
 
     Attributes
     ----------
+    available_packages
+    default_environment
+    environments
     index
+    root_environment
 
     '''
     __slots__ = ['_index']
@@ -75,6 +80,18 @@ class Anaconda(Config):
                         log.info('%s' % e)
         envs.append(self.default_environment)
         return sorted(envs)
+
+    @property
+    def available_packages(self):
+        ''' All :ref:`locally available <locally_available>` packages '''
+        res = set()
+        canonical_names = available(self.packages_dir)
+        for name in canonical_names:
+            try:
+                res.add(self.index.lookup_from_canonical_name(name))
+            except KeyError:
+                log.debug("unknown available package '%s'" % name)
+        return res
 
     def lookup_environment(self, prefix):
         '''

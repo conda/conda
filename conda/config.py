@@ -82,15 +82,13 @@ class Config(object):
 
     Attributes
     ----------
+    channel_base_urls
+    channel_urls
     conda_version
-    root_environment
-    default_environment
-    environments
+    environment_paths
     locations
     packages_dir
     platform
-    channel_base_urls
-    channel_urls
     root_dir
     system_location
     user_locations
@@ -184,19 +182,6 @@ class Config(object):
         return [
             '%s/%s/' % (url, self.platform) for url in self.channel_base_urls
         ]
-
-    @property
-    def available_packages(self):
-        ''' All :ref:`locally available <locally_available>` packages '''
-        from install import available
-        res = set()
-        canonical_names = available(self.packages_dir)
-        for name in canonical_names:
-            try:
-                res.add(self.index.lookup_from_canonical_name(name))
-            except KeyError:
-                log.debug("unknown available package '%s'" % name)
-        return res
 
     @property
     def environment_paths(self):
