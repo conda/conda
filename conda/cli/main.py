@@ -41,8 +41,6 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 '''
 
-import sys
-
 import conda_argparse as argparse
 import main_build
 import main_create
