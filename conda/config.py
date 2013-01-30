@@ -30,9 +30,6 @@ CIO_PRO_CHANNEL = 'http://repo.continuum.io/pkgs/pro'
 VERSION = __version__
 
 ROOT_DIR = sys.prefix
-
-ROOT = ROOT_DIR # This is deprecated, do not use in new code
-
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
 
