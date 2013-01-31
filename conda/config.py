@@ -168,8 +168,11 @@ class Config(object):
     @property
     def channel_base_urls(self):
         ''' Base URLS of :ref:`Anaconda channels <channel>` '''
-        if os.getenv('CIO_TEST') == "1":
-            return ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
+        if os.getenv('CIO_TEST'):
+            res = ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
+            if os.getenv('CIO_TEST') == "2":
+                res.insert(0, 'http://filer/test-pkgs')
+            return res
         else:
             return self._rc['channels']
 
