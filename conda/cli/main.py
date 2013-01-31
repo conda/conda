@@ -40,6 +40,7 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 '''
+import sys
 
 import conda_argparse as argparse
 import main_build
@@ -57,6 +58,7 @@ import main_pip
 import main_search
 import main_update
 import main_upgrade
+
 
 def main():
 
