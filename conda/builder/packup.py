@@ -36,6 +36,13 @@ def get_installed_version(prefix, name):
     return None
 
 
+def rel_path(prefix, path):
+    res = path[len(prefix) + 1:]
+    if sys.platform == 'win32':
+        res = res.replace('\\', '/')
+    return res
+
+
 def walk_prefix(prefix):
     """
     Return the set of all files in a given prefix directory.
@@ -50,11 +57,11 @@ def walk_prefix(prefix):
         dir_path = join(prefix, fn)
         for root, dirs, files in os.walk(dir_path):
             for fn in files:
-                res.add(join(root, fn)[len(prefix) + 1:])
+                res.add(rel_path(prefix, join(root, fn)))
             for dn in dirs:
                 path = join(root, dn)
                 if islink(path):
-                    res.add(path[len(prefix) + 1:])
+                    res.add(rel_path(prefix, path))
     return res
 
 
