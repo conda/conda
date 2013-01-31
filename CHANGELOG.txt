@@ -1,6 +1,7 @@
 2013-02-??   1.3.5:
 -------------------
   * fixed detecting untracked files on Windows
+  * removed backwards compatibility to conda 1.0 version
 
 
 2013-01-28   1.3.4:
