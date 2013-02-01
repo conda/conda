@@ -42,7 +42,7 @@ cmds = [
     (
         "conda update --yes -p %s pandas" % myenv
     ),
-    (   
+    (
         "conda local --yes -d numba-0.3.1-np17py27_0"
     ),
     (
@@ -64,7 +64,7 @@ def tester(commands):
     fails = []
     for cmd in cmds:
         print "-"*120
-        print "%s" % cmd 
+        print "%s" % cmd
         print "-"*120
         try:
             child = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE)
