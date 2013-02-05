@@ -1,4 +1,4 @@
-2013-02-??   1.3.5:
+2013-02-05   1.3.5:
 -------------------
   * fixed detecting untracked files on Windows
   * removed backwards compatibility to conda 1.0 version
