@@ -34,7 +34,7 @@ def scrape_help(cmd_name):
     output = p.stdout.read()
 
     # groups:                ----1---- -----2----
-    usage_pat = re.compile(r'(^usage): (conda .*)\n')
+    usage_pat = re.compile(r'(usage): (conda .*)\n')
     usage = usage_pat.search(output)
 
     # groups:                          --1-

@@ -6,7 +6,7 @@ Introduction
 The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
 
 ------------------
-``conda`` Overview
+conda Overview
 ------------------
 
 .. _package:
@@ -209,18 +209,19 @@ Here is an example:
 
 .. code-block:: bash
 
-    # This is a conda run configuration
+    # This is the default conda runtime configuration
 
     # channel locations. These override conda defaults, i.e., conda will
     # search *only* the channels listed here, in the order given.
     channels:
+      - http://repo.continuum.io/pkgs/dev
+      - http://repo.continuum.io/pkgs/gpl
       - http://repo.continuum.io/pkgs/free
-      - http://acme.com/internal/packages
 
     # environment locations. These locations are in *addition* to the system
     # location at $ROOT_DIR/envs.
-    locations:
-      - ~/envs
+    #locations:
+       - ~/envs
 
 ---------------------------------------------------
 Upgrade AnacondaCE installation to Anaconda (trial)
