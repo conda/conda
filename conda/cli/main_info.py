@@ -13,18 +13,24 @@ def configure_parser(sub_parsers):
         description     = "Display information about current Anaconda install.",
         help            = "Display information about current Anaconda install.",
     )
-    elgroup = p.add_mutually_exclusive_group()
-    elgroup.add_argument(
+    els_group = p.add_mutually_exclusive_group()
+    els_group.add_argument(
         '-e', "--envs",
         action  = "store_true",
         default = False,
         help    = "list all known Anaconda environments.",
     )
-    elgroup.add_argument(
+    els_group.add_argument(
         '-l', "--locations",
         action  = "store_true",
         default = False,
         help    = "list known locations for Anaconda environments.",
+    )
+    els_group.add_argument(
+        '-s', "--system",
+        action = "store_true",
+        default = False,
+        help = "list PATH and PYTHONPATH environments for debugging purposes",
     )
     p.set_defaults(func=execute)
 
@@ -61,6 +67,15 @@ def execute(args):
             if location == conf.system_location:
                 print " (system location)",
             print
+        print
+
+    elif args.system:
+
+        import os
+
+        print
+        print "PATH: %s\n" % os.environ.get('PATH', None)
+        print "PYTHONPATH: %s" % os.environ.get('PYTHONPATH', None)
         print
 
     else:
