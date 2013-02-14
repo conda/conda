@@ -104,13 +104,27 @@ def execute(args):
     else:
         print "%d matches found%s:" % (len(pkgs), compat_string)
 
-    for pkg in pkgs:
-        print
-        pkg.print_info(args.show_requires)
     print
+    print 'Packages with available versions and build strings:'
+
+    print
+    current_name = ''
+    for pkg in sorted(pkgs):
+        if pkg.name != current_name:
+            current_name = pkg.name
+            print "%-25s %-15s %15s" % (current_name, pkg.version, pkg.build)
+        else:
+            print "%-25s %-15s %15s" % (" ", pkg.version, pkg.build)
+
 
 activate_example = '''
 examples:
     conda search -p ~/anaconda/envs/myenv/ scipy
 
 '''
+
+
+
+
+
+
