@@ -27,5 +27,5 @@ def configure_parser(sub_parsers):
 
 def execute(args):
     prefix = get_prefix(args)
-    for pkg_name in args.names:
-        pip(prefix, pkg_name)
+    for pkg_request in args.names:
+        pip(prefix, pkg_request)
