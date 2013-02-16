@@ -1,3 +1,4 @@
+import re
 import sys
 import shutil
 from subprocess import Popen, PIPE, check_call, CalledProcessError
@@ -7,7 +8,16 @@ from packup import untracked, packup_and_reinstall
 from source import get_source
 
 
-def pip(prefix, pkg_name):
+def to_name(s):
+    s = s.strip()
+    pat = re.compile(r'[\w.\-]+')
+    m = pat.match(s)
+    if m is None:
+        raise RuntimeError('could not determine package name from: %r' % s)
+    return m.group(0)
+
+
+def pip(prefix, pkg_request):
     if sys.platform == 'win32':
         pip_path = join(prefix, 'Scripts', 'pip.bat')
     else:
@@ -19,10 +29,10 @@ def pip(prefix, pkg_name):
 
     files_before = untracked(prefix)
     try:
-        check_call([pip_path, 'install', pkg_name])
+        check_call([pip_path, 'install', pkg_request])
     except CalledProcessError:
         return
-    packup_and_reinstall(prefix, files_before, pkg_name)
+    packup_and_reinstall(prefix, files_before, to_name(pkg_request))
 
 
 def build(prefix, url, source_type):
