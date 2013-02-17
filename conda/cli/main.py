@@ -42,7 +42,8 @@ Additional help for each command can be accessed by using:
 '''
 import sys
 
-import conda_argparse as argparse
+import argparse
+import conda_argparse
 import main_build
 import main_create
 import main_depends
@@ -65,7 +66,7 @@ def main():
     import logging
     from .. import __version__
 
-    p = argparse.ArgumentParser(
+    p = conda_argparse.ArgumentParser(
         description='conda is a tool for managing Anaconda environments and packages.'
     )
     p.add_argument(

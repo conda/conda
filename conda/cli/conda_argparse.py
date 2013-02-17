@@ -4,11 +4,10 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from argparse import *
+import argparse
 
-__ArgumentParser = ArgumentParser
 
-class ArgumentParser(__ArgumentParser):
+class ArgumentParser(argparse.ArgumentParser):
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
@@ -47,5 +46,3 @@ class ArgumentParser(__ArgumentParser):
                         message += "\n"
 
         super(ArgumentParser, self).error(message)
-
-del __ArgumentParser
