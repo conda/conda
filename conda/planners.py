@@ -336,6 +336,7 @@ def create_update_plan(env, pkg_names):
 
     # find any initial packages that have newer versions
     updates = set()
+    skipped = set()
     for pkg in sort_packages_by_name(pkgs):
         initial_candidates = idx.lookup_from_name(pkg.name)
         if pkg.build_channel == 'p':
@@ -344,11 +345,16 @@ def create_update_plan(env, pkg_names):
             candidates = idx.find_matches(Channel(channel), initial_candidates)
             if not candidates: continue
             candidates = idx.find_matches(env.requirements, candidates)
+            if not candidates: continue
+            initial_newest = max(candidates)
+            candidates = set([initial_newest])
             if not pkg.is_meta:
-                rdeps = idx.get_reverse_deps(candidates) & env.activated
+                rdeps = idx.get_reverse_deps(set([pkg])) & env.activated
                 if rdeps:
                     candidates &= idx.get_deps(rdeps)
-            if not candidates: break
+            if not candidates:
+                skipped.add((pkg, initial_newest, tuple(rdeps)))
+                break
             newest = max(candidates)
             log.debug("%s > %s == %s" % (newest.canonical_name, pkg.canonical_name, newest>pkg))
             if newest > pkg:
@@ -356,6 +362,14 @@ def create_update_plan(env, pkg_names):
             break
 
     log.debug('initial updates: %s' %  updates)
+
+    if len(skipped) > 0:
+        for skip in skipped:
+            if len(skip[2]) == 1:
+                rdeps = "%s depends on" % skip[2]
+            else:
+                rdeps = "{" + ", ".join(str(p) for p in skip[2]) + "} depend on"
+            print "skipped:", skip[1], "is available, but", rdeps, skip[0]
 
     if len(updates) == 0: return plan  # nothing to do
 
