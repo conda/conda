@@ -60,7 +60,6 @@ import main_search
 import main_update
 import main_upgrade
 
-
 def main():
 
     import logging
@@ -101,6 +100,10 @@ def main():
     main_pip.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
+
+    if sys.argv[1] == 'help':
+        p.print_help()
+        sys.exit()
 
     args = p.parse_args()
 
