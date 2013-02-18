@@ -184,16 +184,21 @@ def create_install_plan(env, spec_strings):
 
         spec = PackageSpec(spec_string)
 
+        active = env.find_activated_package(spec.name)
+
         if spec.name == 'python':
-            if env.find_activated_package('python'):
+            if active:
                 raise RuntimeError('changing python versions in an existing Anaconda environment is not supported (create a new environment)')
             if spec.version: py_spec = spec
             continue
         if spec.name == 'numpy':
-            if env.find_activated_package('numpy'):
+            if active:
                 raise RuntimeError('changing numpy versions in an existing Anaconda environment is not supported (create a new environment)')
             if spec.version: np_spec = spec
             continue
+
+        if not spec.version and active:
+            raise RuntimeError("package '%s' version %s is already installed. Supply a new version to install (e.g., '%s=x.y.z'), or see 'conda update -h' for help on updating" % (spec.name, str(active.version), spec.name))
 
         _check_unknown_spec(idx, spec)
 
