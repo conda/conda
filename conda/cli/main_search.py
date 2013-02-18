@@ -41,6 +41,12 @@ def configure_parser(sub_parsers):
         help    = "also display package requirements",
     )
     p.add_argument(
+        '-v', "--verbose",
+        action  = "store_true",
+        default = False,
+        help    = "Show available packages as blocks of data",
+    )
+    p.add_argument(
         'search_expression',
         action  = "store",
         nargs   = "?",
@@ -107,14 +113,21 @@ def execute(args, parser):
     print
     print 'Packages with available versions and build strings:'
 
-    print
-    current_name = ''
-    for pkg in sorted(pkgs):
-        if pkg.name != current_name:
-            current_name = pkg.name
-            print "%-25s %-15s %15s" % (current_name, pkg.version, pkg.build)
-        else:
-            print "%-25s %-15s %15s" % (" ", pkg.version, pkg.build)
+
+    if args.verbose:
+        for pkg in pkgs:
+            print
+            pkg.print_info(args.show_requires)
+            
+    else:
+        print
+        current_name = ''
+        for pkg in sorted(pkgs):
+            if pkg.name != current_name:
+                current_name = pkg.name
+                print "%-25s %-15s %15s" % (current_name, pkg.version, pkg.build)
+            else:
+                print "%-25s %-15s %15s" % (" ", pkg.version, pkg.build)
 
 
 activate_example = '''
