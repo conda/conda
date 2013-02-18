@@ -14,6 +14,7 @@ conda provides the following commands:
     list       : list packages activated in a specified Anaconda environment
     depends    : find package dependencies
     search     : print information about a specified package
+    help       : display a list of available conda commands and their help strings
 
     Basic Package Management
     ========================
@@ -48,6 +49,7 @@ import main_build
 import main_create
 import main_depends
 import main_env
+import main_help
 import main_index
 import main_info
 import main_install
@@ -86,6 +88,7 @@ def main():
     )
 
     main_info.configure_parser(sub_parsers)
+    main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_depends.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
@@ -101,9 +104,6 @@ def main():
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 
-    if sys.argv[1] == 'help':
-        p.print_help()
-        sys.exit()
 
     args = p.parse_args()
 
@@ -111,7 +111,7 @@ def main():
     logging.basicConfig(level=log_level)
 
     try:
-        args.func(args)
+        args.func(args, p)
     except RuntimeError as e:
         print "conda: error:", e
         exit(2)
