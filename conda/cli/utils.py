@@ -69,12 +69,11 @@ def add_parser_quiet(p):
 
 def license_check_warn():
     if 'Anaconda ' in sys.version:
-        exp_date = None
         try:
             import _license
             exp_date = _license.get_end_date()
-        except:
-            pass
+        except ImportError:
+            exp_date = None
         if not exp_date or datetime.today() > datetime.strptime(exp_date,
                                                                 '%Y-%m-%d'):
             print("""
