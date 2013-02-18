@@ -215,7 +215,7 @@ environment locations : %s
             self.conda_version,
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,
-            self.channel_urls,
+            '\n                        '.join(self.channel_urls),
             self.locations,
             RC_PATH,
         )
