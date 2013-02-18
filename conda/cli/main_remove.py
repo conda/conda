@@ -40,7 +40,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args):
+def execute(args, parser):
     prefix = get_prefix(args)
 
     if args.force and args.yes:
