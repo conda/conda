@@ -28,7 +28,7 @@ def configure_parser(sub_parsers):
         help    = "display information about local Anaconda licenses list",
     )
     els_group.add_argument(
-        '-l', "--locations",
+        "--locations",
         action  = "store_true",
         default = False,
         help    = "list known locations for Anaconda environments.",

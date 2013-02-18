@@ -1,6 +1,7 @@
 2013-02-XX   1.3.6:
 -------------------
   * fixed conda pip NAME==VERSION
+  * added conda info --license option
 
 
 2013-02-05   1.3.5:
