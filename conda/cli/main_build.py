@@ -43,7 +43,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def get_source_type(args):
+def get_source_type(args, parser):
     for opt_name in source_types:
         if getattr(args, opt_name):
             return opt_name

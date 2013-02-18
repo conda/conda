@@ -26,7 +26,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args):
+def execute(args, parser):
     if 'Anaconda ' in sys.version:
         raise RuntimeError('Already upgraded to full Anaconda')
 
