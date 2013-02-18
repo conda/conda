@@ -124,14 +124,14 @@ class Anaconda(Config):
             success = False
             for x in range(5): # number of retries
                 try:
-                    fi = urlopen(url + 'repodata.json.bz2')
+                    fi = urlopen(url + 'repodata.json.bz2', timeout=2)
                     log.debug("fetched: repodata.json.bz2 [%s] ..." % url)
                     repodata = json.loads(decompress(fi.read()))
                     success = True
                     break
                 except:
                     try:
-                        fi = urlopen(url + 'repodata.json')
+                        fi = urlopen(url + 'repodata.json', timeout=2)
                         log.debug("fetched: repodata.json [%s] ..." % url)
                         repodata = json.loads(fi.read())
                         success = True

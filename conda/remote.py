@@ -33,37 +33,44 @@ def fetch_file(fn, channels, md5=None, size=None, progress=None):
             fi = urllib2.urlopen(url + fn)
             log.debug("fetching: %s [%s]" % (fn, url))
             break
-        except:
+        except IOError:
             pass
     if not fi:
         raise RuntimeError(
             "Could not locate file '%s' on any repository" % fn
         )
-    n = 0
-    h = hashlib.new('md5')
-    if size is None:
-        length = int(fi.headers["Content-Length"])
-    else:
-        length = size
-
-    if progress:
-        progress.widgets[0] = fn
-        progress.maxval = length
-        progress.start()
-
-    with open(pp, 'wb') as fo:
-        while True:
-            chunk = fi.read(16384)
-            if not chunk:
-                break
-            fo.write(chunk)
-            if md5:
-                h.update(chunk)
-            n += len(chunk)
-            if progress: progress.update(n)
     fi.close()
-    if progress: progress.finish()
-    if md5 and h.hexdigest() != md5:
-        raise ValueError("MD5 sums mismatch for: %s" % fn)
-    os.rename(pp, path)
-    return url
+
+    for x in range(5):
+        try:
+            fi = urllib2.urlopen(url + fn, timeout=60)
+            n = 0
+            h = hashlib.new('md5')
+            if size is None:
+                length = int(fi.headers["Content-Length"])
+            else:
+                length = size
+
+            if progress:
+                progress.widgets[0] = fn
+                progress.maxval = length
+                progress.start()
+
+            with open(pp, 'wb') as fo:
+                while True:
+                    chunk = fi.read(16384)
+                    if not chunk:
+                        break
+                    fo.write(chunk)
+                    if md5:
+                        h.update(chunk)
+                    n += len(chunk)
+                    if progress: progress.update(n)
+            fi.close()
+            if progress: progress.finish()
+            if md5 and h.hexdigest() != md5:
+                raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
+            os.rename(pp, path)
+            return url
+        except IOError:
+            log.debug('download failed try: %d' % x)
