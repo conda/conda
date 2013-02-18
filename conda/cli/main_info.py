@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+import sys
 from conda.config import Config
 
 
@@ -19,6 +20,12 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         default = False,
         help    = "list all known Anaconda environments.",
+    )
+    els_group.add_argument(
+        "--license",
+        action  = "store_true",
+        default = False,
+        help    = "display information about local Anaconda licenses list",
     )
     els_group.add_argument(
         '-l', "--locations",
@@ -52,6 +59,13 @@ def execute(args, parser):
         for path in env_paths:
             print "    %s" % path
         print
+
+    elif args.license:
+        try:
+            from _license import show_info
+            show_info()
+        except:
+            raise RuntimeError("no function _license.show_info")
 
     elif args.locations:
 
