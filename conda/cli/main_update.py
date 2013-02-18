@@ -31,7 +31,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args):
+def execute(args, parser):
     conda = Anaconda()
 
     license_check_warn()

@@ -40,7 +40,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args):
+def execute(args, parser):
     if len(args.package_specs) == 0 and not args.file:
         raise RuntimeError('too few arguments, must supply command line package specs or --file')
 

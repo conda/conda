@@ -52,7 +52,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args):
+def execute(args, parser):
     conda = Anaconda()
 
     prefix = get_prefix(args)

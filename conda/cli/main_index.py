@@ -36,7 +36,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args):
+def execute(args, parser):
     if len(args.directories) == 0:
         dir_paths = [os.getcwd()]
     else:
