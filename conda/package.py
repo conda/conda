@@ -29,6 +29,7 @@ class Package(object):
     Attributes
     ----------
     build
+    build_channel
     build_number
     canonical_name
     filename
@@ -78,6 +79,11 @@ class Package(object):
     def filename(self):
         ''' :ref:`Filename <filename>` of this Anaconda package '''
         return self._filename
+
+    @property
+    def build_channel(self):
+        ''' optional string code representing the Anaconda :ref:`channel <channel>` this package came from '''
+        return self._info.get('build_channel', '')
 
     @property
     def channel(self):

@@ -333,6 +333,8 @@ def create_update_plan(env, pkg_names):
     updates = set()
     for pkg in sort_packages_by_name(pkgs):
         initial_candidates = idx.lookup_from_name(pkg.name)
+        if pkg.build_channel == 'p':
+            initial_candidates = [cand for cand in initial_candidates if cand.build_channel == 'p']
         for channel in env.conda.channel_urls:
             candidates = idx.find_matches(Channel(channel), initial_candidates)
             if not candidates: continue
@@ -347,6 +349,7 @@ def create_update_plan(env, pkg_names):
             if newest > pkg:
                 updates.add(newest)
             break
+
     log.debug('initial updates: %s' %  updates)
 
     if len(updates) == 0: return plan  # nothing to do
