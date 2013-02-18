@@ -78,6 +78,6 @@ def license_check_warn():
         if not exp_date or datetime.today() > datetime.strptime(exp_date,
                                                                 '%Y-%m-%d'):
             print("""
-    Anaconda license is missing or expired. Contact sales@contium.io or visit
+    Anaconda license is missing or expired. Contact sales@continuum.io or visit
     http://continuum.io/anaconda.html for access to paid Anaconda channels.
             """)
