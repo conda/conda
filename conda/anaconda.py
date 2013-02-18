@@ -121,18 +121,26 @@ class Anaconda(Config):
     def _fetch_index(self):
         index = {}
         for url in reversed(self.channel_urls):
-            try:
-                fi = urlopen(url + 'repodata.json.bz2')
-                log.debug("fetched: repodata.json.bz2 [%s] ..." % url)
-                repodata = json.loads(decompress(fi.read()))
-            except:
+            success = False
+            for x in range(5): # number of retries
                 try:
-                    fi = urlopen(url + 'repodata.json')
-                    log.debug("fetched: repodata.json [%s] ..." % url)
-                    repodata = json.loads(fi.read())
+                    fi = urlopen(url + 'repodata.json.bz2')
+                    log.debug("fetched: repodata.json.bz2 [%s] ..." % url)
+                    repodata = json.loads(decompress(fi.read()))
+                    success = True
+                    break
                 except:
-                    raise RuntimeError("failed to fetch index for channel '%s' (bad url?)" % url)
-                    continue
+                    try:
+                        fi = urlopen(url + 'repodata.json')
+                        log.debug("fetched: repodata.json [%s] ..." % url)
+                        repodata = json.loads(fi.read())
+                        success = True
+                        break
+                    except:
+                        log.debug("failed attempt: %d" % x)
+            if not success:
+                raise RuntimeError("failed to fetch index for channel '%s' (bad url or network issue?)" % url)
+                continue
             new_index = repodata['packages']
             for pkg_info in new_index.itervalues():
                 pkg_info['channel'] = url
