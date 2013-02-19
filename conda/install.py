@@ -174,12 +174,15 @@ def activate(pkgs_dir, dist, prefix):
                 os.makedirs(dst_dir)
             dst = join(dst_dir, fbn)
             if os.path.exists(dst):
-                log.warn("file already exists: '%s'" % dst)
-            else:
+                log.warn("file already exists: %r" % dst)
                 try:
-                    os.link(src, dst)
+                    os.unlink(dst)
                 except OSError:
-                    log.error('failed to link (src=%r, dst=%r)' % (src, dst))
+                    log.error('failed to unlink: %r' % dst)
+            try:
+                os.link(src, dst)
+            except OSError:
+                log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
     else: # cannot hard link files
         info_dir = join(prefix, 'info')
