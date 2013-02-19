@@ -48,7 +48,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
 
-    options = ['envs','locations','system','license']
+    options = ['envs', 'locations', 'system', 'license']
 
     conf = Config()
 
@@ -58,7 +58,7 @@ def execute(args, parser):
 
     if args.all:
         for option in options:
-            setattr(args, option, True) 
+            setattr(args, option, True)
 
     if args.locations:
 
@@ -102,6 +102,6 @@ def execute(args, parser):
         try:
             from _license import show_info
             show_info()
-        except:
-            raise RuntimeError("no such function _license.show_info(), "
+        except ImportError:
+            raise RuntimeError("could not import _license.show_info(), "
                                "try: conda install _license")
