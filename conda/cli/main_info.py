@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+import os
 from conda.config import Config
 
 
@@ -61,7 +62,6 @@ def execute(args, parser):
             setattr(args, option, True)
 
     if args.locations:
-
         if len(conf.locations) == 0:
             print "No Anaconda locations configured"
         else:
@@ -83,19 +83,14 @@ def execute(args, parser):
         else:
             print "Known Anaconda environments:"
             print
-
             for path in env_paths:
                 print "    %s" % path
             print
 
-
     if args.system:
-
-        import os
-
         print
-        print "PATH: %s\n" % os.environ.get('PATH', None)
-        print "PYTHONPATH: %s" % os.environ.get('PYTHONPATH', None)
+        print "PATH: %s\n" % os.getenv('PATH')
+        print "PYTHONPATH: %s" % os.getenv('PYTHONPATH')
         print
 
     if args.license:
