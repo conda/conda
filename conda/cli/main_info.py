@@ -4,7 +4,6 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import sys
 from conda.config import Config
 
 
@@ -65,7 +64,8 @@ def execute(args, parser):
             from _license import show_info
             show_info()
         except:
-            raise RuntimeError("no function _license.show_info")
+            raise RuntimeError("no such function _license.show_info(), "
+                               "try: conda install _license")
 
     elif args.locations:
 
