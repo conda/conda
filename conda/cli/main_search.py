@@ -118,7 +118,7 @@ def execute(args, parser):
         for pkg in pkgs:
             print
             pkg.print_info(args.show_requires)
-            
+
     else:
         print
         current_name = ''
