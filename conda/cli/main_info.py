@@ -5,6 +5,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import os
+import sys
 from conda.config import Config
 
 
@@ -89,8 +90,12 @@ def execute(args, parser):
 
     if args.system:
         print
-        print "PATH: %s\n" % os.getenv('PATH')
+        print "PATH: %s" % os.getenv('PATH')
         print "PYTHONPATH: %s" % os.getenv('PYTHONPATH')
+        if sys.platform == 'linux':
+            print "LD_LIBRARY_PATH: %s" % os.getenv('LD_LIBRARY_PATH')
+        elif sys.platform == 'darwin':
+            print "DYLD_LIBRARY_PATH: %s" % os.getenv('DYLD_LIBRARY_PATH')
         print
 
     if args.license:
