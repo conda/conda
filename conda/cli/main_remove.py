@@ -6,9 +6,12 @@
 
 from argparse import RawDescriptionHelpFormatter
 
+from conda.anaconda import Anaconda
+from conda.config import ROOT_DIR
 from conda.install import activated, deactivate
+from conda.planners import create_remove_plan
 from utils import (
-    add_parser_prefix, add_parser_quiet, add_parser_yes, get_prefix
+    add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
 )
 
 
@@ -21,6 +24,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help        = descr,
+        epilog      = remove_example,
     )
     add_parser_yes(p)
     p.add_argument(
@@ -28,11 +32,16 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         help    = "force remoing package (no dependency checking)",
     )
+    p.add_argument(
+        "--no-deps",
+        action  = "store_true",
+        help    = "do not follow and remove dependencies (default: false)",
+    )
     add_parser_prefix(p)
     add_parser_quiet(p)
     p.add_argument(
-        'packages',
-        metavar = 'name',
+        'package_names',
+        metavar = 'package_name',
         action  = "store",
         nargs   = '+',
         help    = "package names to remove from Anaconda environment",
@@ -41,17 +50,33 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    conda = Anaconda()
+
     prefix = get_prefix(args)
 
-    if args.force and args.yes:
-        n = 0
-        for dist in activated(prefix):
-            pkg_name = dist.rsplit('-', 2)[0]
-            if pkg_name in args.packages:
-                print "removing:", dist
-                deactivate(dist, prefix)
-                n += 1
-        print("Number of packages removed: %d" % n)
+    env = conda.lookup_environment(prefix)
+
+    plan = create_remove_plan(env, args.package_names, not args.no_deps)
+
+    if plan.empty():
+        print 'No packages found to remove from environment: %s' % prefix
+        return
+
+    print
+    print "Package plan for package removal in environment %s:" % prefix
+    print plan
+
+    if args.force or not plan.broken:
+        confirm(args)
     else:
-        raise RuntimeError("Not implemented yet, only --force in combination "
-                           "with --yes currently work")
+        print "To force package removal with broken dependencies, use --force"
+        return
+
+    plan.execute(env, not args.quiet)
+
+
+remove_example = '''
+examples:
+    conda remove -n myenv scipy
+
+'''
