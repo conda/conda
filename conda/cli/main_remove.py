@@ -28,11 +28,6 @@ def configure_parser(sub_parsers):
     )
     add_parser_yes(p)
     p.add_argument(
-        '-f', "--force",
-        action  = "store_true",
-        help    = "force remoing package (no dependency checking)",
-    )
-    p.add_argument(
         "--no-deps",
         action  = "store_true",
         help    = "do not follow and remove dependencies (default: false)",
@@ -66,11 +61,7 @@ def execute(args, parser):
     print "Package plan for package removal in environment %s:" % prefix
     print plan
 
-    if args.force or not plan.broken:
-        confirm(args)
-    else:
-        print "To force package removal with broken dependencies, use --force"
-        return
+    confirm(args)
 
     plan.execute(env, not args.quiet)
 
