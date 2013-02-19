@@ -15,6 +15,11 @@ def configure_parser(sub_parsers):
     )
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
+        '-a', "--all",
+        action  = "store_true",
+        default = False,
+        help    = "show location, license, and system information.")
+    els_group.add_argument(
         '-e', "--envs",
         action  = "store_true",
         default = False,
@@ -43,47 +48,48 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
 
+    options = ['envs','locations','system','license']
+
     conf = Config()
+
+    print
+    print "Current Anaconda install:"
+    print conf
+
+    if args.all:
+        for option in options:
+            setattr(args, option, True) 
+
+    if args.locations:
+
+        if len(conf.locations) == 0:
+            print "No Anaconda locations configured"
+        else:
+            print
+            print "Locations for Anaconda environments:"
+            print
+            for location in conf.locations:
+                print "    %s" % location,
+                if location == conf.system_location:
+                    print " (system location)",
+                print
+            print
 
     if args.envs:
         env_paths = conf.environment_paths
 
         if len(env_paths) == 0:
-            print "No known environments in Anaconda locations"
-            return
-
-        print "Known Anaconda environments:"
-        print
-
-        for path in env_paths:
-            print "    %s" % path
-        print
-
-    elif args.license:
-        try:
-            from _license import show_info
-            show_info()
-        except:
-            raise RuntimeError("no such function _license.show_info(), "
-                               "try: conda install _license")
-
-    elif args.locations:
-
-        if len(conf.locations) == 0:
-            print "No Anaconda locations configured"
-            return
-
-        print
-        print "Locations for Anaconda environments:"
-        print
-        for location in conf.locations:
-            print "    %s" % location,
-            if location == conf.system_location:
-                print " (system location)",
+            print "Known Anaconda environments: None"
+        else:
+            print "Known Anaconda environments:"
             print
-        print
 
-    elif args.system:
+            for path in env_paths:
+                print "    %s" % path
+            print
+
+
+    if args.system:
 
         import os
 
@@ -92,9 +98,10 @@ def execute(args, parser):
         print "PYTHONPATH: %s" % os.environ.get('PYTHONPATH', None)
         print
 
-    else:
-        print
-        print "Current Anaconda install:"
-        print conf
-        print
-
+    if args.license:
+        try:
+            from _license import show_info
+            show_info()
+        except:
+            raise RuntimeError("no such function _license.show_info(), "
+                               "try: conda install _license")
