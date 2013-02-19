@@ -295,6 +295,64 @@ def create_install_plan(env, spec_strings):
     return plan
 
 
+def create_remove_plan(env, pkg_names, follow_deps=True):
+    '''
+    This function creates a package plan for removing the specified packages
+    in the given Anaconda environment prefix.
+
+    Parameters
+    ----------
+    env : :py:class:`environment <conda.environment.environment>` object
+        Anaconda environment to remove packages from
+    pkg_names : iterable of str
+        package names of packages to remove
+
+    Returns
+    -------
+    plan: :py:class:`PackagePlan <conda.package_plan.PackagePlan>`
+        package plan for removing packages in an existing Anaconda environment
+
+    Raises
+    ------
+    RuntimeError
+        if the removals cannot be performed
+
+    '''
+    plan = PackagePlan()
+
+    idx = env.conda.index
+
+    for pkg_name in pkg_names:
+
+        spec = PackageSpec(pkg_name)
+        if spec.version or spec.build:
+            raise RuntimeError("'%s' looks like a package specification, 'remove' only accepts package names" % pkg_name)
+
+        if pkg_name.endswith('.tar.bz2'):
+            raise RuntimeError("'%s' looks like a package filename, 'remove' only accepts package names" % pkg_name)
+
+        pkg = env.find_activated_package(pkg_name)
+        if not pkg: continue
+
+        for basereq in ['python', 'pyyaml', 'yaml', 'conda']:
+            if pkg.name == basereq and env == env.conda.root_environment:
+                raise RuntimeError("Base package '%s' may not be removed from the root environment: %s" % (basereq, env.conda.root_environment.prefix))
+
+        plan.deactivations.add(pkg)
+
+    # find a requirement for this package that we can use to lookup reverse deps
+    reqs = idx.find_compatible_requirements(plan.deactivations)
+
+    # add or warn about broken reverse dependencies
+    rdeps = idx.get_reverse_deps(reqs) & env.activated
+    if follow_deps:
+        plan.deactivations |= rdeps
+    else:
+        plan.broken = rdeps
+
+    return plan
+
+
 def create_update_plan(env, pkg_names):
     '''
     This function creates a package plan for updating specified packages to
