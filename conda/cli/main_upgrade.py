@@ -59,8 +59,8 @@ def execute(args, parser):
         if pkg not in env.conda.available_packages:
             plan.downloads.add(pkg)
 
-        # see if the package is already active
-        active = env.find_activated_package(pkg.name)
+        # see if the package is already linked
+        active = env.find_linked_package(pkg.name)
         # need to compare canonical names since ce/pro packages might compare equal
         if active and pkg.canonical_name != active.canonical_name:
             plan.deactivations.add(active)

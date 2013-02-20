@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -14,7 +14,7 @@ from utils import (
 )
 
 
-descr = "Install a list of packages into a specified Anaconda environment."
+descr = "Install a list of packages into a specified conda environment."
 
 
 def configure_parser(sub_parsers):
@@ -23,7 +23,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help        = descr,
-        epilog      = activate_example,
+        epilog      = example,
     )
     add_parser_yes(p)
     p.add_argument(
@@ -102,7 +102,7 @@ def execute(args, parser):
     plan.execute(env, not args.quiet)
 
 
-activate_example = '''
+example = '''
 examples:
     conda install -n myenv scipy
 

@@ -184,7 +184,7 @@ def create_install_plan(env, spec_strings):
 
         spec = PackageSpec(spec_string)
 
-        active = env.find_activated_package(spec.name)
+        active = env.find_linked_package(spec.name)
 
         if spec.name == 'python':
             if active:
@@ -234,12 +234,12 @@ def create_install_plan(env, spec_strings):
 
         if py_spec:
             constraints.append(_default_constraint(py_spec))
-        elif 'python' in dep_names and not env.find_activated_package('python'):
+        elif 'python' in dep_names and not env.find_linked_package('python'):
             constraints.append(_default_constraint(PackageSpec(DEFAULT_PYTHON_SPEC)))
 
         if np_spec:
             constraints.append(_default_constraint(np_spec))
-        elif 'numpy' in dep_names and not env.find_activated_package('numpy'):
+        elif 'numpy' in dep_names and not env.find_linked_package('numpy'):
             constraints.append(_default_constraint(PackageSpec(DEFAULT_NUMPY_SPEC)))
 
         env_constraints = AllOf(*constraints)
@@ -284,12 +284,12 @@ def create_install_plan(env, spec_strings):
             plan.downloads.add(pkg)
 
         # see if the package is already active
-        active = env.find_activated_package(pkg.name)
+        active = env.find_linked_package(pkg.name)
         # need to compare canonical names since ce/pro packages might compare equal
         if active and pkg.canonical_name != active.canonical_name:
             plan.deactivations.add(active)
 
-        if pkg not in env.activated:
+        if pkg not in env.linked:
             plan.activations.add(pkg)
 
     return plan
@@ -331,7 +331,7 @@ def create_remove_plan(env, pkg_names, follow_deps=True):
         if pkg_name.endswith('.tar.bz2'):
             raise RuntimeError("'%s' looks like a package filename, 'remove' only accepts package names" % pkg_name)
 
-        pkg = env.find_activated_package(pkg_name)
+        pkg = env.find_linked_package(pkg_name)
         if not pkg: continue
 
         for basereq in ['python', 'pyyaml', 'yaml', 'conda']:
@@ -344,7 +344,7 @@ def create_remove_plan(env, pkg_names, follow_deps=True):
     reqs = idx.find_compatible_requirements(plan.deactivations)
 
     # add or warn about broken reverse dependencies
-    rdeps = idx.get_reverse_deps(reqs) & env.activated
+    rdeps = idx.get_reverse_deps(reqs) & env.linked
     if follow_deps:
         plan.deactivations |= rdeps
     else:
@@ -384,7 +384,7 @@ def create_update_plan(env, pkg_names):
 
     pkgs = set()
     for pkg_name in pkg_names:
-        pkg = env.find_activated_package(pkg_name)
+        pkg = env.find_linked_package(pkg_name)
         if not pkg:
             if pkg_name in env.conda.index.package_names:
                 raise RuntimeError("package '%s' is not installed, cannot update (see conda install -h)" % pkg_name)
@@ -407,7 +407,7 @@ def create_update_plan(env, pkg_names):
             initial_newest = max(candidates)
             candidates = set([initial_newest])
             if not pkg.is_meta:
-                rdeps = idx.get_reverse_deps(set([pkg])) & env.activated
+                rdeps = idx.get_reverse_deps(set([pkg])) & env.linked
                 if rdeps:
                     candidates &= idx.get_deps(rdeps)
             if not candidates:
@@ -458,7 +458,7 @@ def create_update_plan(env, pkg_names):
         if pkg.name == 'conda' and env != env.conda.root_environment:
             continue
 
-        active = env.find_activated_package(pkg.name)
+        active = env.find_linked_package(pkg.name)
         if not active:
             if pkg not in env.conda.available_packages:
                 plan.downloads.add(pkg)
@@ -515,7 +515,7 @@ def create_activate_plan(env, canonical_names):
             else:
                 raise RuntimeError("cannot activate unknown package '%s'" % canonical_name)
 
-        if pkg in env.activated:
+        if pkg in env.linked:
             raise RuntimeError("package '%s' is already activated in environment: %s" % (canonical_name, env.prefix))
 
         if pkg.name == 'conda' and env != env.conda.root_environment:
@@ -527,7 +527,7 @@ def create_activate_plan(env, canonical_names):
         deps = idx.find_compatible_packages(idx.get_deps(plan.activations))
         deps = idx.find_matches(env.requirements, deps)
         for dep in deps:
-            if dep not in env.activated:
+            if dep not in env.linked:
                 plan.missing.add(dep)
 
     return plan
@@ -577,7 +577,7 @@ def create_deactivate_plan(env, canonical_names):
                 raise RuntimeError("cannot deactivate unknown package '%s'" % canonical_name)
 
         # if package is not already activated, there is nothing to do
-        if pkg not in env.activated:
+        if pkg not in env.linked:
             raise RuntimeError("package '%s' is not activated in environment: %s" % (canonical_name, env.prefix))
 
         if pkg.name == 'conda' and env == env.conda.root_environment:
@@ -590,7 +590,7 @@ def create_deactivate_plan(env, canonical_names):
 
     # warn about broken reverse dependencies
     for rdep in idx.get_reverse_deps(reqs):
-        if rdep in env.activated:
+        if rdep in env.linked:
            plan.broken.add(rdep)
 
     return plan
