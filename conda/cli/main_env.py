@@ -17,24 +17,24 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'env',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Activate or deactivate available packages in the specified Anaconda environment.",
-        help            = "Activate or deactivate available packages in the specified Anaconda environment. (ADVANCED)",
+        description     = "Link or unlink available packages in the specified Anaconda environment.",
+        help            = "Link or unlink available packages in the specified Anaconda environment. (ADVANCED)",
         epilog          = env_example,
     )
     add_parser_yes(p)
     add_parser_prefix(p)
     adr_group = p.add_mutually_exclusive_group()
     adr_group.add_argument(
-        '-a', "--activate",
+        '-l', "--link",
         action  = "store_true",
         default = False,
-        help    = "activate available packages in the specified Anaconda environment.",
+        help    = "link available packages in the specified Anaconda environment.",
     )
     adr_group.add_argument(
-        '-d', "--deactivate",
+        '-u', "--unlink",
         action  = "store_true",
         default = False,
-        help    = "deactivate packages in an Anaconda environment.",
+        help    = "unlink packages in an Anaconda environment.",
     )
     adr_group.add_argument(
         '-r', "--remove",
@@ -47,7 +47,7 @@ def configure_parser(sub_parsers):
         action  = "store",
         metavar = 'canonical_name',
         nargs   = '*',
-        help    = "canonical name of package to deactivate in the specified Anaconda environment",
+        help    = "canonical name of package to unlink in the specified Anaconda environment",
     )
     p.set_defaults(func=execute)
 
@@ -58,17 +58,17 @@ def execute(args, parser):
     prefix = get_prefix(args)
     env = conda.lookup_environment(prefix)
 
-    if args.activate:
+    if args.link:
         if not args.canonical_names:
-            raise RuntimeError("must supply one or more canonical package names for -a/--activate")
+            raise RuntimeError("must supply one or more canonical package names for -l/--link")
 
         plan = create_activate_plan(env, args.canonical_names)
 
         if plan.empty():
             if len(args.canonical_names) == 1:
-                print "Could not find package with canonical name '%s' to activate (already activated or unknown)." % args.canonical_names[0]
+                print "Could not find package with canonical name '%s' to link (already linked or unknown)." % args.canonical_names[0]
             else:
-                print "Could not find packages with canonical names %s to activate." % args.canonical_names
+                print "Could not find packages with canonical names %s to link." % args.canonical_names
             return
 
         print plan
@@ -80,18 +80,18 @@ def execute(args, parser):
         except IOError:
             raise RuntimeError('One of more of the packages is not locally available, see conda download -h')
 
-    elif args.deactivate:
+    elif args.unlink:
         if not args.canonical_names:
-            raise RuntimeError("must supply one or more canonical package names for -d/--deactivate")
+            raise RuntimeError("must supply one or more canonical package names for -u/--unlink")
 
         plan = create_deactivate_plan(env, args.canonical_names)
 
         if plan.empty():
-            print 'All packages already deactivated, nothing to do'
+            print 'All packages already unlinked, nothing to do'
             if len(args.canonical_names) == 1:
-                print "Could not find package with canonical name '%s' to deactivate (already deactivated or unknown)." % args.canonical_names[0]
+                print "Could not find package with canonical name '%s' to unlink (already unlinked or unknown)." % args.canonical_names[0]
             else:
-                print "Could not find packages with canonical names %s to deactivate." % args.canonical_names
+                print "Could not find packages with canonical names %s to unlink." % args.canonical_names
             return
 
         print plan
@@ -120,13 +120,13 @@ def execute(args, parser):
         rmtree(env.prefix)
 
     else:
-        raise RuntimeError("One of -a/--activate, -d/--deactivate or -r/--remove is required.")
+        raise RuntimeError("One of -l/--link, -u/--unlink or -r/--remove is required.")
 
 env_example = '''
 examples:
-  conda env -ap ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
+  conda env -lp ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
 
-  conda env -dp ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
+  conda env -up ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
 
   conda env -rp ~/anaconda/envs/myenv
 
