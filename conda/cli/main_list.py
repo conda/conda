@@ -13,8 +13,8 @@ from utils import add_parser_prefix, get_prefix
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'list',
-        description = "List linked packages in an Anaconda environment.",
-        help        = "List linked packages in an Anaconda environment.",
+        description = "List linked packages in a conda environment.",
+        help        = "List linked packages in a conda environment.",
     )
     add_parser_prefix(p)
     p.add_argument(

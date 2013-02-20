@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -14,9 +14,9 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'depends',
         formatter_class = RawDescriptionHelpFormatter,
-        description = "Query Anaconda package dependencies.",
-        help        = "Query Anaconda package dependencies.",
-        epilog          = activate_example,
+        description = "Query conda package dependencies.",
+        help        = "Query conda package dependencies.",
+        epilog          = example,
     )
     p.add_argument(
         '-m', "--max-depth",
@@ -62,7 +62,7 @@ def execute(args, parser):
 
     pkgs = set()
     for pkg_name in args.pkg_names:
-        pkg = env.find_activated_package(pkg_name)
+        pkg = env.find_linked_package(pkg_name)
         if pkg:
             pkgs.add(pkg)
         else:
@@ -124,7 +124,7 @@ def execute(args, parser):
         else:
             print '    %s (%d builds)' % (name, names_count[name])
 
-activate_example = '''
+example = '''
 examples:
     conda depends -n myenv numpy
 

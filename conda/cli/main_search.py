@@ -20,7 +20,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = "Search for packages and display their information.",
         help        = "Search for packages and display their information.",
-        epilog      = activate_example,
+        epilog      = example,
     )
     add_parser_prefix(p)
     p.add_argument(
@@ -130,14 +130,8 @@ def execute(args, parser):
                 print "%-25s %-15s %15s" % (" ", pkg.version, pkg.build)
 
 
-activate_example = '''
+example = '''
 examples:
     conda search -p ~/anaconda/envs/myenv/ scipy
 
 '''
-
-
-
-
-
-

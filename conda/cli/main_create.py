@@ -20,7 +20,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description     = "Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.",
         help            = "Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.",
-        epilog          = activate_example,
+        epilog          = example,
     )
     add_parser_yes(p)
     p.add_argument(
@@ -89,7 +89,7 @@ def execute(args, parser):
     plan.execute(env, not args.quiet)
 
 
-activate_example = '''
+example = '''
 examples:
     conda create -n myenv sqlite
 
