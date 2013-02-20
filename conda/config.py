@@ -216,7 +216,7 @@ environment locations : %s
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,
             '\n                        '.join(self.channel_urls),
-            self.locations,
+            '\n                        '.join(self.locations),
             RC_PATH,
         )
 
