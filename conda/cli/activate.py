@@ -11,13 +11,13 @@ def help():
 
 adds the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
-prefix path.  defaults to: %s""" % ROOT_BINPATH)
+prefix path.  ENV defaults to: %s""" % ROOT_BINPATH)
     else: # ..deactivate
         sys.exit("""Usage: source deactivate [ENV]
 
 removes the environment ENV from PATH.
 ENV may either refer to just the name of the environment, or the full
-prefix path.  defaults to: %s""" % ROOT_BINPATH)
+prefix path.  ENV defaults to: %s""" % ROOT_BINPATH)
 
 
 def main():
@@ -36,15 +36,16 @@ def main():
         if not isdir(binpath):
             sys.exit("Error: no such directory: %s" % binpath)
         paths = [binpath]
+        sys.stderr.write("prepending %s to PATH\n" % binpath)
     else: # ..deactivate
         paths = []
+        sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     for path in os.getenv('PATH').split(os.pathsep):
         if path != binpath:
             paths.append(path)
-    sys.stderr.write("prepending %s to PATH\n" % binpath)
     print os.pathsep.join(paths)
-        
+
 
 if __name__ == '__main__':
     main()
