@@ -12,7 +12,7 @@ import logging
 
 
 from conda.config import Config
-from install import make_available, activate, deactivate
+from install import make_available, link, unlink
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from remote import fetch_file
 from package import sort_packages_by_name
@@ -30,7 +30,7 @@ class PackagePlan(object):
     '''
     Encapsulates a package management action, describing all operations to
     take place. Operations include downloading packages from a channel,
-    activating and deactivating available packages. Additionally, PackagePlan
+    linking and unlinking available packages. Additionally, PackagePlan
     objects report any packages that will be left with unmet dependencies as a
     result of this action.
     '''
@@ -98,7 +98,7 @@ class PackagePlan(object):
             if progress:
                 progress.widgets[0] = '[%-20s]' % pkg.name
                 progress.update(i)
-            deactivate(pkg.canonical_name, env.prefix)
+            unlink(pkg.canonical_name, env.prefix)
 
         if progress and self.deactivations:
             progress.widgets[0] = '[      COMPLETE      ]'
@@ -107,7 +107,7 @@ class PackagePlan(object):
     def _handle_activations(self, env, progress):
         if progress and self.activations:
             print
-            print "Activating packages..."
+            print "Linking packages..."
             print
             progress.maxval = len(self.activations)
             progress.start()
@@ -116,7 +116,7 @@ class PackagePlan(object):
             if progress:
                 progress.widgets[0] = '[%-20s]' % pkg.name
                 progress.update(i)
-            activate(env.conda.packages_dir, pkg.canonical_name, env.prefix)
+            link(env.conda.packages_dir, pkg.canonical_name, env.prefix)
 
         if progress and self.activations:
             progress.widgets[0] = '[      COMPLETE      ]'
@@ -168,13 +168,13 @@ The following packages will be downloaded:
 '''
 
 _activate_string = '''
-The following packages will be activated:
+The following packages will be linked:
 
 %s
 '''
 
 _deactivate_string = '''
-The following packages will be DE-activated:
+The following packages will be UN-linked:
 
 %s
 '''
