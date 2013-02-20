@@ -207,7 +207,7 @@ class Config(object):
 conda command version : %s
        root directory : %s
        default prefix : %s
-         channel URLS : %s
+         channel URLs : %s
 environment locations : %s
           config file : %s
 '''  % (
