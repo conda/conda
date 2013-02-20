@@ -51,6 +51,7 @@ import main_depends
 import main_env
 import main_help
 import main_index
+import main_init
 import main_info
 import main_install
 import main_list
@@ -92,6 +93,7 @@ def main():
         dest    = 'cmd',
     )
 
+    main_init.configure_parser(sub_parsers)
     main_info.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
