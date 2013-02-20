@@ -8,7 +8,7 @@ import tempfile
 from os.path import abspath, basename, dirname, islink, join
 
 from conda.config import PACKAGES_DIR
-from conda.install import (activated, get_meta, prefix_placeholder,
+from conda.install import (linked, get_meta, prefix_placeholder,
                            install_local_package)
 from conda.naming import split_canonical_name
 
@@ -21,7 +21,7 @@ def conda_installed_files(prefix):
     given prefix.
     """
     res = set()
-    for dist in activated(prefix):
+    for dist in linked(prefix):
         meta = get_meta(dist, prefix)
         files = meta['files']
         res.update(set(files))
@@ -29,7 +29,7 @@ def conda_installed_files(prefix):
 
 
 def get_installed_version(prefix, name):
-    for dist in activated(prefix):
+    for dist in linked(prefix):
         n, v, b = split_canonical_name(dist)
         if n == name:
             return v
