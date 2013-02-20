@@ -1,0 +1,11 @@
+#!/bin/bash
+
+_THIS_DIR=$(dirname ${BASH_SOURCE[0]})
+if [ $0 != '-bash' ]; then
+    $_THIS_DIR/conda ..activate -h
+    exit 1
+fi
+_NEW_PATH=$($_THIS_DIR/conda ..activate "$@")
+if (( $? == 0 )); then
+    export PATH=$_NEW_PATH
+fi
