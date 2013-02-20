@@ -2,6 +2,7 @@
 -------------------
   * fixed conda pip NAME==VERSION
   * added conda info --license option
+  * add source activate and deactivate commands
 
 
 2013-02-05   1.3.5:
