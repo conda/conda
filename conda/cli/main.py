@@ -42,8 +42,8 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 '''
 import sys
-
 import argparse
+
 import conda_argparse
 import main_build
 import main_create
@@ -62,7 +62,12 @@ import main_search
 import main_update
 import main_upgrade
 
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate'):
+        import activate
+        activate.main()
+        return
 
     import logging
     from .. import __version__
@@ -104,7 +109,6 @@ def main():
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 
-
     args = p.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
@@ -120,6 +124,7 @@ def main():
         print
         exc_info = sys.exc_info()
         raise exc_info[1], None, exc_info[2]
+
 
 if __name__ == '__main__':
     main()

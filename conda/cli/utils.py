@@ -1,6 +1,6 @@
+import sys
 from datetime import datetime
 from os.path import abspath, expanduser, join
-import sys
 
 from conda.config import ENVS_DIR, DEFAULT_ENV_PREFIX
 
