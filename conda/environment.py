@@ -13,7 +13,7 @@ import logging
 from os.path import isdir
 
 from constraints import AllOf, AnyOf, Requires, Satisfies, Wildcard
-from install import activated, get_meta
+from install import linked, get_meta
 from package import Package
 from package_spec import PackageSpec
 
@@ -32,7 +32,7 @@ class Environment(object):
 
     Attributes
     ----------
-    activated : set of packages
+    linked : set of packages
     conda : anaconda object
     prefix : str
     requirements : package_constraint object
@@ -58,15 +58,15 @@ class Environment(object):
         return self._prefix
 
     @property
-    def activated(self):
-        ''' Return the set of :ref:`activated <activated>` packages in this environment '''
-        canonical_names = activated(self.prefix)
+    def linked(self):
+        ''' Return the set of :ref:`linked <linked>` packages in this environment '''
+        canonical_names = linked(self.prefix)
         res = set()
         for name in canonical_names:
             try:
                 res.add(self._conda.index.lookup_from_canonical_name(name))
             except:  # TODO better except spec
-                log.debug("cannot find activated package '%s' in package index" % name)
+                log.debug("cannot find linked package '%s' in package index" % name)
         return res
 
     @property
@@ -81,20 +81,20 @@ class Environment(object):
         np = self._numpy_constraint()
         return AllOf(py, np)
 
-    def find_activated_package(self, pkg_name):
-        ''' find and return an :ref:`activated <activated>` packages in the environment with the specified :ref:`package name <package_name>`
+    def find_linked_package(self, pkg_name):
+        ''' find and return an :ref:`linked <linked>` packages in the environment with the specified :ref:`package name <package_name>`
 
         Parameters
         ----------
         pkg_name : str
-            :ref:`package name <package_name>` to match when searching activated packages
+            :ref:`package name <package_name>` to match when searching linked packages
 
         Returns
         -------
-        activated : :py:class:`package <conda.package.package>` object, or None
+        linked : :py:class:`package <conda.package.package>` object, or None
 
         '''
-        canonical_names = activated(self.prefix)
+        canonical_names = linked(self.prefix)
         for canonical_name in canonical_names:
             name, version, build = split_canonical_name(canonical_name)
             if name == pkg_name:
@@ -107,14 +107,14 @@ class Environment(object):
 
     def requirement_is_satisfied(self, spec):
         c = Satisfies(spec)
-        for pkg in self.activated:
+        for pkg in self.linked:
             if c.match(pkg):
                 return True
         return False
 
     def _python_constraint(self):
         try:
-            pkg = self.find_activated_package('python')
+            pkg = self.find_linked_package('python')
             req = PackageSpec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
             sat = PackageSpec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return AnyOf(Requires(req), Satisfies(sat))
@@ -124,7 +124,7 @@ class Environment(object):
 
     def _numpy_constraint(self):
         try:
-            pkg = self.find_activated_package('numpy')
+            pkg = self.find_linked_package('numpy')
             req = PackageSpec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
             sat = PackageSpec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return AnyOf(Requires(req), Satisfies(sat))
@@ -156,4 +156,3 @@ def clone_environment(src_prefix, dst_prefix):
     plan = PackagePlan()
     plan.activations = src.activated
     plan.execute(dst)
-

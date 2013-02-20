@@ -5,7 +5,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import re
-from conda.install import activated
+from conda.install import linked
 
 from utils import add_parser_prefix, get_prefix
 
@@ -13,8 +13,8 @@ from utils import add_parser_prefix, get_prefix
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'list',
-        description = "List activated packages in an Anaconda environment.",
-        help        = "List activated packages in an Anaconda environment.",
+        description = "List linked packages in an Anaconda environment.",
+        help        = "List linked packages in an Anaconda environment.",
     )
     add_parser_prefix(p)
     p.add_argument(
@@ -34,7 +34,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     prefix = get_prefix(args)
-    pkgs = sorted(activated(prefix))
+    pkgs = sorted(linked(prefix))
 
     matching = ""
     if args.search_expression:

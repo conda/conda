@@ -1,10 +1,10 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 ''' This module contains:
-  * all low-level code for extracting, activating and deactivating packages
+  * all low-level code for extracting, linking and unlinking packages
   * a very simple CLI
 
 These API functions have argument names referring to:
@@ -109,7 +109,7 @@ def available(pkgs_dir):
 
 def make_available(pkgs_dir, dist, cleanup=False):
     '''
-    Make a package available for activation.  We assume that the
+    Make a package available for linkage.  We assume that the
     compressed packages is located in the packages directory.
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
@@ -132,11 +132,11 @@ def remove_available(pkgs_dir, dist):
     if use_hard_links:
         rm_rf(join(pkgs_dir, dist))
 
-# ------- things about activation of packages
+# ------- things about linkage of packages
 
-def activated(prefix):
+def linked(prefix):
     """
-    Return the (set of canonical names) of activated packages in prefix.
+    Return the (set of canonical names) of linked packages in prefix.
     """
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
@@ -146,8 +146,8 @@ def activated(prefix):
 
 def get_meta(dist, prefix):
     """
-    Return the install meta-data for an active package in a prefix, or None
-    if the package is not active in the prefix.
+    Return the install meta-data for a linked package in a prefix, or None
+    if the package is not linked in the prefix.
     """
     meta_path = join(prefix, 'conda-meta', dist + '.json')
     try:
@@ -157,7 +157,7 @@ def get_meta(dist, prefix):
         return None
 
 
-def activate(pkgs_dir, dist, prefix):
+def link(pkgs_dir, dist, prefix):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been make available (using make_available() above).
@@ -200,7 +200,7 @@ def activate(pkgs_dir, dist, prefix):
     create_meta(prefix, dist, info_dir, files)
 
 
-def deactivate(dist, prefix):
+def unlink(dist, prefix):
     '''
     Remove a package from the specified environment, it is an error of the
     package does not exist in the prefix.
@@ -238,11 +238,11 @@ def install_local_package(path, pkgs_dir, prefix):
     shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
     print "    making available"
     make_available(pkgs_dir, dist)
-    if dist in activated(prefix):
-        print "    already active - deactivating"
-        deactivate(dist, prefix)
-    print "    activating"
-    activate(pkgs_dir, dist, prefix)
+    if dist in linked(prefix):
+        print "    already linked - unlinking"
+        unlink(dist, prefix)
+    print "    linking"
+    link(pkgs_dir, dist, prefix)
 
 
 def main():
@@ -252,11 +252,11 @@ def main():
     p = OptionParser(
         usage="usage: %prog [options] [TARBALL/NAME]",
         description="low-level conda install tool, by default extracts "
-                    "(if necessary) and activates a TARBALL")
+                    "(if necessary) and links a TARBALL")
 
     p.add_option('-l', '--list',
                  action="store_true",
-                 help="list all activated packages")
+                 help="list all linked packages")
 
     p.add_option('--list-available',
                  action="store_true",
@@ -264,20 +264,20 @@ def main():
 
     p.add_option('-i', '--info',
                  action="store_true",
-                 help="display meta-data information of an active package")
+                 help="display meta-data information of a linked package")
 
     p.add_option('-m', '--make-available',
                  action="store_true",
                  help="make a package available (when we use hard like this "
                       "means extracting it)")
 
-    p.add_option('-a', '--activate',
+    p.add_option('--link',
                  action="store_true",
-                 help="activate a package")
+                 help="link a package")
 
-    p.add_option('-d', '--deactivate',
+    p.add_option('--unlink',
                  action="store_true",
-                 help="deactivate a package")
+                 help="unlink a package")
 
     p.add_option('-r', '--remove',
                  action="store_true",
@@ -293,9 +293,9 @@ def main():
                  default=join(sys.prefix, 'pkgs'),
                  help="packages directory (defaults to %default)")
 
-    p.add_option('--activate-all',
+    p.add_option('--link-all',
                  action="store_true",
-                 help="activate all available (extracted) packages")
+                 help="link all available (extracted) packages")
 
     p.add_option('-v', '--verbose',
                  action="store_true")
@@ -304,7 +304,7 @@ def main():
 
     logging.basicConfig()
 
-    if opts.list or opts.list_available or opts.activate_all:
+    if opts.list or opts.list_available or opts.link_all:
         if args:
             p.error('no arguments expected')
     else:
@@ -321,7 +321,7 @@ def main():
         print "dist    : %r" % dist
 
     if opts.list:
-        pprint(sorted(activated(opts.prefix)))
+        pprint(sorted(linked(opts.prefix)))
         return
 
     if opts.list_available:
@@ -332,13 +332,13 @@ def main():
         pprint(get_meta(dist, opts.prefix))
         return
 
-    if opts.activate_all:
+    if opts.link_all:
         for d in sorted(available(opts.pkgs_dir)):
-            activate(opts.pkgs_dir, d, opts.prefix)
+            link(opts.pkgs_dir, d, opts.prefix)
         return
 
-    do_steps = not (opts.remove or opts.make_available or opts.activate or
-                    opts.deactivate)
+    do_steps = not (opts.remove or opts.make_available or opts.link or
+                    opts.unlink)
     if opts.verbose:
         print "do_steps: %r" % do_steps
 
@@ -360,15 +360,15 @@ def main():
             print "making available: %r" % dist
         make_available(opts.pkgs_dir, dist)
 
-    if (do_steps and dist in activated(opts.prefix)) or opts.deactivate:
+    if (do_steps and dist in linked(opts.prefix)) or opts.unlink:
         if opts.verbose:
-            print "deactivating: %r" % dist
-        deactivate(dist, opts.prefix)
+            print "unlinking: %r" % dist
+        unlink(dist, opts.prefix)
 
-    if do_steps or opts.activate:
+    if do_steps or opts.link:
         if opts.verbose:
-            print "activating: %r" % dist
-        activate(opts.pkgs_dir, dist, opts.prefix)
+            print "linking: %r" % dist
+        link(opts.pkgs_dir, dist, opts.prefix)
 
 
 if __name__ == '__main__':
