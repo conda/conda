@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -89,7 +89,7 @@ class PackagePlan(object):
     def _handle_deactivations(self, env, progress):
         if progress and self.deactivations:
             print
-            print "Deactivating packages..."
+            print "Unlinking packages..."
             print
             progress.maxval = len(self.deactivations)
             progress.start()
