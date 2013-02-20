@@ -7,8 +7,6 @@
 from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import Anaconda
-from conda.config import ROOT_DIR
-from conda.install import linked, unlink
 from conda.planners import create_remove_plan
 from utils import (
     add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
