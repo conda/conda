@@ -12,8 +12,8 @@ from conda.config import Config
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'info',
-        description     = "Display information about current Anaconda install.",
-        help            = "Display information about current Anaconda install.",
+        description     = "Display information about current conda install.",
+        help            = "Display information about current conda install.",
     )
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
@@ -25,19 +25,19 @@ def configure_parser(sub_parsers):
         '-e', "--envs",
         action  = "store_true",
         default = False,
-        help    = "list all known Anaconda environments.",
+        help    = "list all known conda environments.",
     )
     els_group.add_argument(
         "--license",
         action  = "store_true",
         default = False,
-        help    = "display information about local Anaconda licenses list",
+        help    = "display information about local conda licenses list",
     )
     els_group.add_argument(
         "--locations",
         action  = "store_true",
         default = False,
-        help    = "list known locations for Anaconda environments.",
+        help    = "list known locations for conda environments.",
     )
     els_group.add_argument(
         '-s', "--system",
@@ -54,20 +54,21 @@ def execute(args, parser):
 
     conf = Config()
 
-    print
-    print "Current Anaconda install:"
-    print conf
-
     if args.all:
         for option in options:
             setattr(args, option, True)
 
+    if args.all or all(not getattr(args, opt) for opt in options):
+        print
+        print "Current conda install:"
+        print conf
+
     if args.locations:
         if len(conf.locations) == 0:
-            print "No Anaconda locations configured"
+            print "No conda locations configured"
         else:
             print
-            print "Locations for Anaconda environments:"
+            print "Locations for conda environments:"
             print
             for location in conf.locations:
                 print "    %s" % location,
@@ -80,9 +81,9 @@ def execute(args, parser):
         env_paths = conf.environment_paths
 
         if len(env_paths) == 0:
-            print "Known Anaconda environments: None"
+            print "Known conda environments: None"
         else:
-            print "Known Anaconda environments:"
+            print "Known conda environments:"
             print
             for path in env_paths:
                 print "    %s" % path
