@@ -20,12 +20,12 @@ from config import PACKAGES_DIR
 log = logging.getLogger(__name__)
 
 
-def fetch_file(fn, channels, md5=None, size=None, progress=None):
+def fetch_file(fn, channels, md5=None, size=None, progress=None, pkgs_dir=PACKAGES_DIR):
     '''
     Search all known channels (in order) for the specified file and
     download it, optionally checking an md5 checksum.
     '''
-    path = join(PACKAGES_DIR, fn)
+    path = join(pkgs_dir, fn)
     pp = path + '.part'
     fi = None
     for url in channels:
