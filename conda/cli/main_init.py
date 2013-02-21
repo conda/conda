@@ -5,9 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import os
-import sys
-from os.path import abspath, exists, expanduser
-from subprocess import check_call
+from os.path import abspath, exists, expanduser, join
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -22,19 +21,18 @@ def configure_parser(sub_parsers):
     )
     p.set_defaults(func=execute)
 
+
 def execute(args, parser):
-    subdirs = ['bin', 'conda-meta', 'docs', 'envs', 'include', 'lib', 'pkgs', 'python.app', 'share']
     if not args.prefix:
         raise RuntimeError("Must provide directory location to install into.")
-    
+
     prefix = abspath(expanduser(args.prefix))
 
     if exists(prefix):
         raise RuntimeError("Install directory '%s' already exists." % prefix)
 
-    os.mkdir(prefix)
-    for sd in subdirs:
-        os.mkdir("%s/%s" % (prefix, sd))
+    os.makedirs(prefix)
+    for sd in 'envs', 'pkgs':
+        os.mkdir(join(prefix, sd))
 
-    print "Anaconda installed into directory '%s'" % prefix
-
+    print "Anaconda initalized into directory '%s'" % prefix
