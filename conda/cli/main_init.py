@@ -6,22 +6,17 @@
 
 import json
 import os
-<<<<<<< Updated upstream
-from os.path import abspath, exists, expanduser, join
-=======
 import platform
 import sys
 from os.path import abspath, exists, expanduser, join
 from subprocess import check_call
 from urllib2 import urlopen
 
-
 from conda.constraints import AllOf, Requires, Satisfies
 from conda.package_index import PackageIndex
 from conda.package_spec import PackageSpec
 from conda.install import make_available, link
 from conda.remote import fetch_file
->>>>>>> Stashed changes
 
 
 def configure_parser(sub_parsers):
@@ -47,14 +42,8 @@ def execute(args, parser):
     if exists(prefix):
         raise RuntimeError("Install directory '%s' already exists." % prefix)
 
-<<<<<<< Updated upstream
-    os.makedirs(prefix)
-    for sd in 'envs', 'pkgs':
-        os.mkdir(join(prefix, sd))
-
-    print "Anaconda initalized into directory '%s'" % prefix
-=======
     os.mkdir(prefix)
+    subdirs = ["bin",  "conda-meta",  "docs",  "envs",  "include",  "lib",  "pkgs",  "python.app",  "share",]
     for sd in subdirs:
         os.mkdir("%s/%s" % (prefix, sd))
 
@@ -104,4 +93,3 @@ def get_platform():
     bits = int(platform.architecture()[0][:2])
     system = sys_map.get(sys.platform, 'unknown')
     return '%s-%d' % (system, bits)
->>>>>>> Stashed changes
