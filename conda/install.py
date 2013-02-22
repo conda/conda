@@ -91,6 +91,16 @@ def create_meta(prefix, dist, info_dir, files):
         json.dump(meta, fo, indent=2, sort_keys=True)
 
 
+def mk_menus(prefix, files, remove=False):
+    try:
+        import appinst
+    except ImportError:
+        return
+    for f in files:
+        if f.startswith('Menu/') and f.endswith('.json'):
+            appinst.install(join(prefix, f), remove)
+
+
 # ========================== begin API functions =========================
 
 # ------- things about available packages
@@ -198,6 +208,7 @@ def link(pkgs_dir, dist, prefix):
             update_prefix(join(prefix, f), prefix)
 
     create_meta(prefix, dist, info_dir, files)
+    mk_menus(prefix, files, remove=False)
 
 
 def unlink(dist, prefix):
@@ -209,6 +220,7 @@ def unlink(dist, prefix):
     with open(meta_path) as fi:
         meta = json.load(fi)
 
+    mk_menus(prefix, meta['files'], remove=True)
     dst_dirs = set()
     for f in meta['files']:
         dst = join(prefix, f)
