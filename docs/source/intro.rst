@@ -3,7 +3,7 @@
 Introduction
 ============
 
-The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
+The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
 
 ------------------
 conda Overview
@@ -171,7 +171,7 @@ In usage documentation, these will be referred to by ``package_spec``.
 Meta Packages
 -------------
 ``conda`` also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
-packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an Anaconda environment. When creating, upgrading, or installing into environments, only one meta-package may be specified, and no additional packages may be specified.
+packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an Anaconda environment. When creating, updating, or installing into environments, only one meta-package may be specified, and no additional packages may be specified.
 
 .. _directory_structure:
 
@@ -223,18 +223,6 @@ Here is an example:
     #locations:
        - ~/envs
 
----------------------------------------------------
-Upgrade AnacondaCE installation to Anaconda (trial)
----------------------------------------------------
-
-The process of upgrading from Anaconda Community Edition to the full trial version is as simple as using ``upgrade``.  The command reference is shown below.
-
-----
-
-.. include:: commands/upgrade.txt
-
-
-Look here for :ref:`examples <upgrade_example>`.
 
 ---------------------------------
 Update Anaconda to latest version
