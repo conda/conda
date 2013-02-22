@@ -22,7 +22,6 @@ conda provides the following commands:
     create     : create a new Anaconda environment from a list of specified packages. To use this environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in this directory first.
     install    : install new packages into an existing Anaconda environment
     update     : update packages in a specified Anaconda environment
-    upgrade    : upgrade Anaconda installation from CE to full Anaconda
 
     Advanced Package Management
     ===========================
@@ -61,7 +60,6 @@ import main_package
 import main_pip
 import main_search
 import main_update
-import main_upgrade
 
 
 def main():
@@ -102,7 +100,6 @@ def main():
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
-    main_upgrade.configure_parser(sub_parsers)
     main_env.configure_parser(sub_parsers)
     main_local.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
