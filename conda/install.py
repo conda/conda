@@ -98,7 +98,7 @@ def mk_menus(prefix, files, remove=False):
         return
     for f in files:
         if f.startswith('Menu/') and f.endswith('.json'):
-            appinst.install(join(prefix, f), remove)
+            appinst.install(join(prefix, f), remove, prefix)
 
 
 # ========================== begin API functions =========================
