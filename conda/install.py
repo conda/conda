@@ -98,7 +98,13 @@ def mk_menus(prefix, files, remove=False):
         return
     for f in files:
         if f.startswith('Menu/') and f.endswith('.json'):
-            appinst.install(join(prefix, f), remove, prefix)
+            try:
+                appinst.install(join(prefix, f), remove, prefix, 'Anaconda')
+            except Exception:
+                print("Appinst Exception:")
+                exc_info = sys.exc_info()
+                for i in range(3):
+                    print(exc_info[i])
 
 
 # ========================== begin API functions =========================
