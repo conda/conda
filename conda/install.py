@@ -98,12 +98,12 @@ def mk_menus(prefix, files, remove=False):
     if not menu_files:
         return
     try:
-        import appinst
+        import menuinst
     except ImportError:
         return
     for f in menu_files:
         try:
-            appinst.install(join(prefix, f), remove, prefix)
+            menuinst.install(join(prefix, f), remove, prefix)
         except:
             print("Appinst Exception:")
             traceback.print_exc(file=sys.stdout)
