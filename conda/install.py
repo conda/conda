@@ -93,17 +93,20 @@ def create_meta(prefix, dist, info_dir, files):
 
 
 def mk_menus(prefix, files, remove=False):
+    menu_files = [f for f in files
+                  if f.startswith('Menu/') and f.endswith('.json')]
+    if not menu_files:
+        return
     try:
         import appinst
     except ImportError:
         return
-    for f in files:
-        if f.startswith('Menu/') and f.endswith('.json'):
-            try:
-                appinst.install(join(prefix, f), remove, prefix, 'Anaconda')
-            except:
-                print("Appinst Exception:")
-                traceback.print_exc(file=sys.stdout)
+    for f in menu_files:
+        try:
+            appinst.install(join(prefix, f), remove, prefix, 'Anaconda')
+        except:
+            print("Appinst Exception:")
+            traceback.print_exc(file=sys.stdout)
 
 
 # ========================== begin API functions =========================
