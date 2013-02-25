@@ -22,7 +22,8 @@ log = logging.getLogger(__name__)
 
 
 CIO_DEFAULT_CHANNELS = [
-    'http://repo.continuum.io/pkgs/free'
+    'http://repo.continuum.io/pkgs/free',
+    'http://repo.continuum.io/pkgs/pro',
 ]
 
 CIO_PRO_CHANNEL = 'http://repo.continuum.io/pkgs/pro'
