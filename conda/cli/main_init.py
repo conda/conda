@@ -9,7 +9,6 @@ import os
 import platform
 import sys
 from os.path import abspath, exists, expanduser, join
-from subprocess import check_call
 from urllib2 import urlopen
 
 from conda.constraints import AllOf, Requires, Satisfies
@@ -53,8 +52,8 @@ def execute(args, parser):
 
     py_spec     = PackageSpec("python 2.7")
     yaml_spec   = PackageSpec("yaml")
-    pyyaml_spec = PackageSpec("pyyaml") 
-    conda_spec  = PackageSpec("conda") 
+    pyyaml_spec = PackageSpec("pyyaml")
+    conda_spec  = PackageSpec("conda")
 
     py = max(index.find_matches(Satisfies(py_spec)))
     yaml = max(index.find_matches(Satisfies(yaml_spec)))
@@ -80,7 +79,7 @@ def fetch_index(url):
         raise RuntimeError("Failed to fetch index for channel '%s' (bad url or network issue?)" % url)
 
     fi.close()
-    
+
     index = repodata['packages']
 
     for pkg_info in index.itervalues():
