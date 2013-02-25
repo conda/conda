@@ -10,7 +10,7 @@ from conda.config import ROOT_DIR, PACKAGES_DIR
 from conda.anaconda import Anaconda
 from conda.planners import create_install_plan
 from utils import (
-    add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix, license_check_warn
+    add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
 )
 
 
@@ -49,8 +49,6 @@ def execute(args, parser):
                            'package specifications or --file')
 
     conda = Anaconda()
-
-    license_check_warn()
 
     prefix = get_prefix(args)
 

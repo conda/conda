@@ -8,7 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import Anaconda
 from conda.planners import create_update_plan
-from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix, license_check_warn
+from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -33,8 +33,6 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     conda = Anaconda()
-
-    license_check_warn()
 
     prefix = get_prefix(args)
 

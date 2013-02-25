@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime
 from os.path import abspath, expanduser, join
 
 from conda.config import ENVS_DIR, DEFAULT_ENV_PREFIX
@@ -66,17 +65,3 @@ def add_parser_quiet(p):
         help = "do not display progress bar",
     )
 
-
-def license_check_warn():
-    if 'Anaconda ' in sys.version:
-        try:
-            import _license
-            exp_date = _license.get_end_date()
-        except ImportError:
-            exp_date = None
-        if not exp_date or datetime.today() > datetime.strptime(exp_date,
-                                                                '%Y-%m-%d'):
-            print("""
-    Anaconda license is missing or expired. Contact sales@continuum.io or visit
-    http://continuum.io/anaconda.html for access to paid Anaconda channels.
-            """)
