@@ -103,7 +103,7 @@ def mk_menus(prefix, files, remove=False):
         return
     for f in menu_files:
         try:
-            appinst.install(join(prefix, f), remove, prefix, 'Anaconda')
+            appinst.install(join(prefix, f), remove, prefix)
         except:
             print("Appinst Exception:")
             traceback.print_exc(file=sys.stdout)
