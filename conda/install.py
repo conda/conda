@@ -30,6 +30,7 @@ import shutil
 import stat
 import sys
 import tarfile
+import traceback
 import logging
 from os.path import basename, dirname, isdir, isfile, islink, join
 
@@ -100,11 +101,9 @@ def mk_menus(prefix, files, remove=False):
         if f.startswith('Menu/') and f.endswith('.json'):
             try:
                 appinst.install(join(prefix, f), remove, prefix, 'Anaconda')
-            except Exception:
+            except:
                 print("Appinst Exception:")
-                exc_info = sys.exc_info()
-                for i in range(3):
-                    print(exc_info[i])
+                traceback.print_exc(file=sys.stdout)
 
 
 # ========================== begin API functions =========================
