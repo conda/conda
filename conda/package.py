@@ -37,7 +37,9 @@ class Package(object):
     channel
     md5
     name
+    options
     requires
+    requires_options
     size
     version
 
@@ -66,9 +68,24 @@ class Package(object):
         return self._version
 
     @property
+    def options(self):
+        ''' Set of options provided by this package '''
+        return set(self._info.get('options', '').split())
+
+
+    @property
     def requires(self):
         ''' Set of package specification requirements for this package '''
         return self._requires
+
+    @property
+    def requires_options(self):
+        ''' Dictionary of options this package requires from other dependencies'''
+        results = {}
+        for name, opts in self._info.get('requires_options', {}).iteritems():
+            opts = set(opts.split())
+            if opts: results[name] = opts
+        return results
 
     @property
     def canonical_name(self):
@@ -108,10 +125,17 @@ class Package(object):
             print "       md5: %s" % self.md5
         except KeyError:
             pass
+        if self.options:
+            print "   options: %s" % ", ".join(self.options)
         if show_requires:
             print "  requires:"
-            for spec_string in sorted('%s-%s' % (req.name, req.version.vstring) for req in self.requires):
-                print"        %s" % spec_string
+            for req in sorted(self.requires):
+                spec_string = '%s-%s' % (req.name, req.version.vstring)
+                if self.requires_options.has_key(req.name):
+                    print"        %s [%s]" % (spec_string, ", ".join(self.requires_options[req.name]))
+                else:
+                    print"        %s" % spec_string
+
 
     def __str__(self):
         return '%s-%s' % (self.name, self.version.vstring)
