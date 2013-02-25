@@ -126,13 +126,13 @@ class Package(object):
         except KeyError:
             pass
         if self.options:
-            print "   options: %s" % ", ".join(self.options)
+            print "   options: %s" % " ".join(self.options)
         if show_requires:
             print "  requires:"
             for req in sorted(self.requires):
                 spec_string = '%s-%s' % (req.name, req.version.vstring)
                 if self.requires_options.has_key(req.name):
-                    print"        %s [%s]" % (spec_string, ", ".join(self.requires_options[req.name]))
+                    print"        %s [%s]" % (spec_string, " ".join(self.requires_options[req.name]))
                 else:
                     print"        %s" % spec_string
 
