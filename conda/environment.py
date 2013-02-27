@@ -70,6 +70,18 @@ class Environment(object):
         return res
 
     @property
+    def features(self):
+        ''' Return the set of :ref:`tracked features <tracked_features>` for this environment '''
+        canonical_names = linked(self.prefix)
+        res = set()
+        for name in canonical_names:
+            try:
+                res |= self._conda.index.lookup_from_canonical_name(name).track_features
+            except:  # TODO better except spec
+                log.debug("cannot find linked package '%s' in package index" % name)
+        return res
+
+    @property
     def requirements(self):
         ''' Return a baseline :py:class:`package_constaint <conda.constraints.package_constraint>` that packages in this environement must match
 
