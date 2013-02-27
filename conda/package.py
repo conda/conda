@@ -68,9 +68,9 @@ class Package(object):
         return self._version
 
     @property
-    def options(self):
-        ''' Set of options provided by this package '''
-        return set(self._info.get('options', '').split())
+    def features(self):
+        ''' Set additional of features provided by this package '''
+        return set(self._info.get('features', '').split())
 
 
     @property
@@ -79,13 +79,9 @@ class Package(object):
         return self._requires
 
     @property
-    def requires_options(self):
-        ''' Dictionary of options this package requires from other dependencies'''
-        results = {}
-        for name, opts in self._info.get('requires_options', {}).iteritems():
-            opts = set(opts.split())
-            if opts: results[name] = opts
-        return results
+    def track_features(self):
+        ''' Set of features this package causes to be tracked in an environment'''
+        return set(self._info.get('track_features', '').split())
 
     @property
     def canonical_name(self):
@@ -125,16 +121,15 @@ class Package(object):
             print "       md5: %s" % self.md5
         except KeyError:
             pass
-        if self.options:
-            print "   options: %s" % " ".join(self.options)
+        if self.features:
+            print "  provides: %s" % " ".join(self.features)
+        if self.track_features:
+            print "    tracks: %s" % " ".join(self.track_features)
         if show_requires:
             print "  requires:"
             for req in sorted(self.requires):
                 spec_string = '%s-%s' % (req.name, req.version.vstring)
-                if self.requires_options.has_key(req.name):
-                    print"        %s [%s]" % (spec_string, " ".join(self.requires_options[req.name]))
-                else:
-                    print"        %s" % spec_string
+                print"        %s" % spec_string
 
 
     def __str__(self):
