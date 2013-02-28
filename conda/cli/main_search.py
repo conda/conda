@@ -10,7 +10,7 @@ from argparse import RawDescriptionHelpFormatter
 from conda.anaconda import Anaconda
 from conda.constraints import Satisfies
 from conda.package import sort_packages_by_name
-from conda.package_spec import PackageSpec
+from conda.package_spec import make_package_spec
 from utils import add_parser_prefix, get_prefix
 
 
@@ -66,7 +66,7 @@ def execute(args, parser):
         pkgs = conda.index.lookup_from_name(args.search_expression)
 
     else:
-        spec = PackageSpec(args.search_expression)
+        spec = make_package_spec(args.search_expression)
         if spec.version:
            pkgs = conda.index.find_matches(
                 Satisfies(spec),
