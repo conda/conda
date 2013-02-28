@@ -6,7 +6,7 @@ from config import DEFAULT_NUMPY_SPEC, DEFAULT_PYTHON_SPEC
 from constraints import AllOf, AnyOf, Channel, Requires, Satisfies
 from package import channel_select, find_inconsistent_packages, newest_packages, sort_packages_by_name
 from package_plan import PackagePlan
-from package_spec import PackageSpec, find_inconsistent_specs
+from package_spec import make_package_spec, find_inconsistent_specs
 
 __all__ = [
     'create_create_plan',
@@ -53,7 +53,7 @@ def create_create_plan(prefix, conda, spec_strings):
 
     for spec_string in spec_strings:
 
-        spec = PackageSpec(spec_string)
+        spec = make_package_spec(spec_string)
 
         if spec.name == 'python':
             if spec.version: py_spec = spec
@@ -97,12 +97,12 @@ def create_create_plan(prefix, conda, spec_strings):
     if py_spec:
         constraints.append(_default_constraint(py_spec))
     elif 'python' in dep_names:
-        constraints.append(_default_constraint(PackageSpec(DEFAULT_PYTHON_SPEC)))
+        constraints.append(_default_constraint(make_package_spec(DEFAULT_PYTHON_SPEC)))
 
     if np_spec:
         constraints.append(_default_constraint(np_spec))
     elif 'numpy' in dep_names:
-        constraints.append(_default_constraint(PackageSpec(DEFAULT_NUMPY_SPEC)))
+        constraints.append(_default_constraint(make_package_spec(DEFAULT_NUMPY_SPEC)))
 
     env_constraints = AllOf(*constraints)
     log.debug("computed environment constraints: %s\n" % env_constraints)
@@ -151,7 +151,7 @@ def create_install_plan(env, spec_strings):
     This functions creates a package plan for activating packages in an
     existing Anaconda environment, including removing existing versions and
     also activating all required dependencies. The desired packages are
-    specified as package names, package filenames, or PackageSpec strings.
+    specified as package names, package filenames, or make_package_spec strings.
 
     Parameters
     ----------
@@ -182,7 +182,7 @@ def create_install_plan(env, spec_strings):
 
     for spec_string in spec_strings:
 
-        spec = PackageSpec(spec_string)
+        spec = make_package_spec(spec_string)
 
         active = env.find_linked_package(spec.name)
 
@@ -235,12 +235,12 @@ def create_install_plan(env, spec_strings):
         if py_spec:
             constraints.append(_default_constraint(py_spec))
         elif 'python' in dep_names and not env.find_linked_package('python'):
-            constraints.append(_default_constraint(PackageSpec(DEFAULT_PYTHON_SPEC)))
+            constraints.append(_default_constraint(make_package_spec(DEFAULT_PYTHON_SPEC)))
 
         if np_spec:
             constraints.append(_default_constraint(np_spec))
         elif 'numpy' in dep_names and not env.find_linked_package('numpy'):
-            constraints.append(_default_constraint(PackageSpec(DEFAULT_NUMPY_SPEC)))
+            constraints.append(_default_constraint(make_package_spec(DEFAULT_NUMPY_SPEC)))
 
         env_constraints = AllOf(*constraints)
         log.debug("computed environment constraints: %s\n" % env_constraints)
@@ -324,7 +324,7 @@ def create_remove_plan(env, pkg_names, follow_deps=True):
 
     for pkg_name in pkg_names:
 
-        spec = PackageSpec(pkg_name)
+        spec = make_package_spec(pkg_name)
         if spec.version or spec.build:
             raise RuntimeError("'%s' looks like a package specification, 'remove' only accepts package names" % pkg_name)
 
@@ -504,7 +504,7 @@ def create_activate_plan(env, canonical_names):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            spec = PackageSpec(canonical_name)
+            spec = make_package_spec(canonical_name)
             if idx.lookup_from_name(spec.name):
                 if spec.build:
                     raise RuntimeError("cannot activate unknown build '%s' of package '%s'" % (canonical_name, spec.name))
@@ -565,7 +565,7 @@ def create_deactivate_plan(env, canonical_names):
         try:
             pkg = idx.lookup_from_canonical_name(canonical_name)
         except:
-            spec = PackageSpec(canonical_name)
+            spec = make_package_spec(canonical_name)
             if idx.lookup_from_name(spec.name):
                 if spec.build:
                     raise RuntimeError("cannot deactivate unknown build '%s' of package '%s'" % (canonical_name, spec.name))
@@ -724,6 +724,6 @@ def _handle_meta_update(conda, pkgs):
 
 
 def _default_constraint(spec):
-    req = PackageSpec('%s %s.%s' % (spec.name,spec.version.version[0], spec.version.version[1]))
-    sat = PackageSpec('%s %s %s' % (spec.name, spec.version.vstring, spec.build))
+    req = make_package_spec('%s %s.%s' % (spec.name,spec.version.version[0], spec.version.version[1]))
+    sat = make_package_spec('%s %s %s' % (spec.name, spec.version.vstring, spec.build))
     return AnyOf(Requires(req), Satisfies(sat))

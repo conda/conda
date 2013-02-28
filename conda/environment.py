@@ -15,7 +15,7 @@ from os.path import isdir
 from constraints import AllOf, AnyOf, Requires, Satisfies, Wildcard
 from install import linked, get_meta
 from package import Package
-from package_spec import PackageSpec
+from package_spec import make_package_spec
 
 
 log = logging.getLogger(__name__)
@@ -127,8 +127,8 @@ class Environment(object):
     def _python_constraint(self):
         try:
             pkg = self.find_linked_package('python')
-            req = PackageSpec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
-            sat = PackageSpec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
+            req = make_package_spec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
+            sat = make_package_spec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return AnyOf(Requires(req), Satisfies(sat))
         except: # TODO
             log.debug('no python constraint, returning Wildcard()')
@@ -137,8 +137,8 @@ class Environment(object):
     def _numpy_constraint(self):
         try:
             pkg = self.find_linked_package('numpy')
-            req = PackageSpec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
-            sat = PackageSpec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
+            req = make_package_spec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
+            sat = make_package_spec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
             return AnyOf(Requires(req), Satisfies(sat))
         except: #TODO
             log.debug('no numpy constraint, returning Wildcard()')

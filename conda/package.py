@@ -12,7 +12,7 @@ manipulating collections of packages.
 from distutils.version import LooseVersion
 from itertools import combinations, groupby
 
-from package_spec import PackageSpec
+from package_spec import make_package_spec
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
@@ -53,7 +53,7 @@ class Package(object):
                                                self._info['version'],
                                                self._info['build'])
         self._version = LooseVersion(self._info['version'])
-        self._requires = set(PackageSpec(spec_string)
+        self._requires = set(make_package_spec(spec_string)
                              for spec_string in self._info['requires'])
 
     name         = dict_property('name', ':ref:`Package name <package_name>` of this package')
@@ -163,12 +163,12 @@ def find_inconsistent_packages(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable collection of :py:class:`PackageSpec <conda.package.package>` objects
+    pkgs : iterable collection of :py:class:`make_package_spec <conda.package.package>` objects
         packages to check for inconsistencies
 
     Returns
     -------
-    inconsistent_pkgs : set of :py:class:`PackageSpec <conda.package.package>` objects
+    inconsistent_pkgs : set of :py:class:`make_package_spec <conda.package.package>` objects
         all inconsistent packages present in `pkgs`
 
     '''
@@ -281,12 +281,12 @@ def newest_packages(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`PackageSpec <conda.package.package>`
+    pkgs : iterable of :py:class:`make_package_spec <conda.package.package>`
         packages to select newest versions from
 
     Returns
     -------
-    newest : set of :py:class:`PackageSpec <conda.package.package>`
+    newest : set of :py:class:`make_package_spec <conda.package.package>`
         newest packages for each package in `pkgs`
 
     '''
@@ -301,14 +301,14 @@ def channel_select(pkgs, channels):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`PackageSpec <conda.package.package>`
+    pkgs : iterable of :py:class:`make_package_spec <conda.package.package>`
         packages to select newest versions from
     channels : list of str
         an list of channels used to order the packages
 
     Returns
     -------
-    newest : set of :py:class:`PackageSpec <conda.package.package>`
+    newest : set of :py:class:`make_package_spec <conda.package.package>`
         newest packages for each package in `pkgs`
 
     '''
