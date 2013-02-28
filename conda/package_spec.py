@@ -7,15 +7,15 @@
 functions for manipulating sets of package specifications.
 
 '''
-
-
 from distutils.version import LooseVersion
 from itertools import combinations, groupby
 
 from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
+from utils import memoized
 
 
+@memoized
 def make_package_spec(spec_string):
     '''
     memoized factory function for creating :py:class:`PackageSpec <conda.package_spec.package_spec>` objects
