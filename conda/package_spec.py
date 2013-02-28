@@ -16,6 +16,27 @@ from naming import split_spec_string
 from verlib import NormalizedVersion, suggest_normalized_version
 
 
+def make_package_spec(spec_string):
+    '''
+    memoized factory function for creating :py:class:`PackageSpec <conda.package_spec.package_spec>` objects
+
+    Parameters
+    ----------
+    spec_string : str
+        a string containing a package name and (optional) version and (optional) build string, separated by a spaces or by '='
+
+    Examples
+    --------
+    >>> spec = make_package_spec("python 2.7")
+    >>> spec.name
+    'python'
+    >>> spec.version
+    LooseVersion('2.7')
+
+    '''
+    return PackageSpec(spec_string)
+
+
 class PackageSpec(object):
     '''
     Encapsulates a package name and an optional version (or partial version) along with an optional build string for
