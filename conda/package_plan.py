@@ -82,8 +82,9 @@ class PackagePlan(object):
             print "Fetching packages..."
             print
 
-        for pkg in self.downloads:
-            fetch_file(pkg.filename, channels, md5=pkg.md5, size=pkg.size, progress=progress)
+        for pkg in sorted(self.downloads):
+            fetch_file(pkg.filename, channels, md5=pkg.md5,
+                       size=pkg.size, progress=progress)
             make_available(env.conda.packages_dir, pkg.canonical_name)
 
     def _handle_deactivations(self, env, progress):
@@ -94,7 +95,7 @@ class PackagePlan(object):
             progress.maxval = len(self.deactivations)
             progress.start()
 
-        for i, pkg in enumerate(self.deactivations):
+        for i, pkg in enumerate(sorted(self.deactivations)):
             if progress:
                 progress.widgets[0] = '[%-20s]' % pkg.name
                 progress.update(i)
@@ -112,7 +113,7 @@ class PackagePlan(object):
             progress.maxval = len(self.activations)
             progress.start()
 
-        for i, pkg in enumerate(self.activations):
+        for i, pkg in enumerate(sorted(self.activations)):
             if progress:
                 progress.widgets[0] = '[%-20s]' % pkg.name
                 progress.update(i)

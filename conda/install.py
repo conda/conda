@@ -32,7 +32,7 @@ import sys
 import tarfile
 import traceback
 import logging
-from os.path import basename, dirname, isdir, isfile, islink, join
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 
 log = logging.getLogger(__name__)
@@ -93,6 +93,10 @@ def create_meta(prefix, dist, info_dir, files):
 
 
 def mk_menus(prefix, files, remove=False):
+    if abspath(prefix) != abspath(sys.prefix):
+        # we currently only want to create menu items for packages
+        # in default environment
+        return
     menu_files = [f for f in files
                   if f.startswith('Menu/') and f.endswith('.json')]
     if not menu_files:
