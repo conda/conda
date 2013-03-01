@@ -25,8 +25,6 @@ CIO_DEFAULT_CHANNELS = [
     'http://repo.continuum.io/pkgs/pro',
 ]
 
-VERSION = __version__
-
 ROOT_DIR = sys.prefix
 PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
@@ -106,7 +104,7 @@ class Config(object):
     @property
     def conda_version(self):
         ''' Current version of the conda command '''
-        return VERSION
+        return __version__
 
     @property
     def platform(self):
