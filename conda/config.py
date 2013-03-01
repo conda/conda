@@ -8,7 +8,6 @@ configuration information about an Anaconda installation that does not require
 the Anaconda package index.
 
 '''
-from datetime import datetime
 import logging
 import os
 from os.path import abspath, exists, expanduser, isfile, isdir, join
@@ -25,8 +24,6 @@ CIO_DEFAULT_CHANNELS = [
     'http://repo.continuum.io/pkgs/free',
     'http://repo.continuum.io/pkgs/pro',
 ]
-
-CIO_PRO_CHANNEL = 'http://repo.continuum.io/pkgs/pro'
 
 VERSION = __version__
 
