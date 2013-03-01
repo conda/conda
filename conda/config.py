@@ -100,16 +100,6 @@ class Config(object):
 
         if RC_PATH is None:
             self._rc = {'channels': CIO_DEFAULT_CHANNELS}
-            if 'Anaconda ' in sys.version:
-                exp_date = None
-                try:
-                    import _license
-                    exp_date = _license.get_end_date()
-                except:
-                    pass
-                if exp_date and (datetime.today() <=
-                                 datetime.strptime(exp_date, '%Y-%m-%d')):
-                    self._rc['channels'].insert(0, CIO_PRO_CHANNEL)
         else:
             self._rc = _load_condarc(RC_PATH)
 
