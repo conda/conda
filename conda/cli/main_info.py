@@ -104,5 +104,5 @@ def execute(args, parser):
             from _license import show_info
             show_info()
         except ImportError:
-            raise RuntimeError("could not import _license.show_info(), "
-                               "try: conda install _license")
+            print("WARNING: could import _license.show_info,\n"
+                  "         try: conda install _license")
