@@ -3,10 +3,9 @@ import re
 import sys
 import json
 import shutil
-import hashlib
 import tarfile
 import tempfile
-from os.path import abspath, basename, dirname, isfile, islink, join
+from os.path import abspath, basename, dirname, islink, join
 
 from conda.config import PACKAGES_DIR
 from conda.install import (linked, get_meta, prefix_placeholder,
@@ -74,23 +73,6 @@ def untracked(prefix):
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or (path.endswith('.pyc') and
                                            path[:-1] in conda_files))}
-
-
-def hash_files(prefix, files):
-    """
-    Return a hash which consists of all files (and their names) in prefix.
-    """
-    h = hashlib.new('sha1')
-    for f in sorted(untracked(prefix)):
-        path = join(prefix, f)
-        h.update(path)
-        if islink(path):
-            h.update(os.readlink(path))
-        elif isfile(path):
-            with open(path, 'rb') as fi:
-                data = fi.read()
-            h.update(data)
-    return h.hexdigest()
 
 
 def remove(prefix, files):
