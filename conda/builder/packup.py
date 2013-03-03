@@ -24,7 +24,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
     res = set()
     for dist in linked(prefix):
         meta = get_meta(dist, prefix)
-        if exclude_self_build and 'conda_hash' in meta:
+        if exclude_self_build and 'file_hash' in meta:
             continue
         res.update(set(meta['files']))
     return res
@@ -149,7 +149,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
         t.add(join(info_dir, fn), 'info/' + fn)
 
 
-def create_conda_pkg(prefix, files, info, tar_path):
+def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     """
     create a conda package with `files` (in `prefix` and `info` metadata)
     at `tar_path`.
@@ -173,10 +173,13 @@ def create_conda_pkg(prefix, files, info, tar_path):
         elif isfile(path):
             h.update(open(path, 'rb').read())
 
-    info['conda_hash'] = h.hexdigest()
+    info['file_hash'] = h.hexdigest()
+    if update_info:
+        update_info(info)
     _add_info_dir(t, tmp_dir, files, has_prefix, info)
     t.close()
     shutil.rmtree(tmp_dir)
+    return info
 
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
