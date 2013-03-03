@@ -148,28 +148,10 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
         t.add(join(info_dir, fn), 'info/' + fn)
 
 
-def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
-                files=None):
-    if files is None:
-        files = untracked(prefix)
-    files = sorted(files)
-    print "Number of files: %d" % len(files)
-    if len(files) == 0:
-        print "Nothing to package up (no untracked files)."
-        return None
-
-    if any('/site-packages/' in f for f in files):
-        python_version = get_installed_version(prefix, 'python')
-        assert python_version is not None
-        requires_py = tuple(int(x) for x in python_version[:3].split('.'))
-    else:
-        requires_py = False
-    info = create_info(name, version, build_number, requires_py)
-    tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
-
+def create_conda_pkg(prefix, files, info, tar_path):
     has_prefix = []
     tmp_dir = tempfile.mkdtemp()
-    t = tarfile.open(tarbz2_fn, 'w:bz2')
+    t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
     for f in files:
         path = join(prefix, f)
@@ -187,6 +169,28 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     _add_info_dir(t, tmp_dir, files, has_prefix, info)
     t.close()
     shutil.rmtree(tmp_dir)
+
+
+def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
+                files=None):
+    if files is None:
+        files = untracked(prefix)
+    files = sorted(files)
+    print "Number of files: %d" % len(files)
+    if len(files) == 0:
+        print "Nothing to package up (no untracked files)."
+        return None
+
+    if any('/site-packages/' in f for f in files):
+        python_version = get_installed_version(prefix, 'python')
+        assert python_version is not None
+        requires_py = tuple(int(x) for x in python_version[:3].split('.'))
+    else:
+        requires_py = False
+
+    info = create_info(name, version, build_number, requires_py)
+    tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
+    create_conda_pkg(prefix, files, info, tarbz2_fn)
     print '%s created successfully' % tarbz2_fn
     return tarbz2_fn
 
