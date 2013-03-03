@@ -5,6 +5,8 @@
   * add source activate and deactivate commands
   * rename the old activate and deactivate to link and unlink
   * add ability for environments to track "features"
+  * add ability to distinguish conda build packages from Anaconda
+    packages by adding a "conda_hash" meta-data field in info/index.json
 
 
 2013-02-05   1.3.5:
