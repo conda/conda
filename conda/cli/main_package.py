@@ -78,7 +78,7 @@ def execute(args, parser):
         return
 
     if args.untracked:
-        for fn in untracked(prefix):
+        for fn in sorted(untracked(prefix)):
             print fn
         return
 

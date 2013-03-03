@@ -16,7 +16,7 @@ from conda.naming import split_canonical_name
 import utils
 
 
-def conda_installed_files(prefix):
+def conda_installed_files(prefix, exclude_self_build=False):
     """
     Return the set of files which have been installed (using conda) info
     given prefix.
@@ -24,8 +24,9 @@ def conda_installed_files(prefix):
     res = set()
     for dist in linked(prefix):
         meta = get_meta(dist, prefix)
-        files = meta['files']
-        res.update(set(files))
+        if exclude_self_build and 'conda_hash' in meta:
+            continue
+        res.update(set(meta['files']))
     return res
 
 
@@ -66,11 +67,11 @@ def walk_prefix(prefix):
     return res
 
 
-def untracked(prefix):
+def untracked(prefix, exclude_self_build=False):
     """
     Return (the set) of all untracked files for a given prefix.
     """
-    conda_files = conda_installed_files(prefix)
+    conda_files = conda_installed_files(prefix, exclude_self_build)
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or (path.endswith('.pyc') and
                                            path[:-1] in conda_files))}
