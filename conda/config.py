@@ -75,16 +75,16 @@ class Config(object):
 
     Attributes
     ----------
-    channel_base_urls
-    channel_urls
-    conda_version
-    environment_paths
-    locations
-    packages_dir
-    platform
-    root_dir
-    system_location
-    user_locations
+    channel_base_urls : list of str
+    channel_urls : list of str
+    conda_version : str
+    environment_paths : list of str
+    locations : list of str
+    packages_dir : str
+    platform : str
+    root_dir : str
+    system_location : str
+    user_locations : list of str
 
     '''
 

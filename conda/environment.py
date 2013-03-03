@@ -26,14 +26,15 @@ class Environment(object):
 
     Parameters
     ----------
-    conda : :py:class:`anaconda <conda.anaconda.anaconda>` object
+    conda : :py:class:`Anaconda <conda.anaconda.Anaconda>` object
     prefix : str
         full path to Anaconda environment
 
     Attributes
     ----------
-    linked : set of packages
     conda : anaconda object
+    features : set of str
+    linked : set of packages
     prefix : str
     requirements : package_constraint object
 
@@ -49,7 +50,7 @@ class Environment(object):
 
     @property
     def conda(self):
-        ''' Return associated :py:class:`anaconda <conda.anaconda.anaconda>` object '''
+        ''' Return associated :py:class:`Anaconda <conda.anaconda.Anaconda>` object '''
         return self._conda
 
     @property
@@ -83,11 +84,11 @@ class Environment(object):
 
     @property
     def requirements(self):
-        ''' Return a baseline :py:class:`package_constaint <conda.constraints.package_constraint>` that packages in this environement must match
+        ''' Return a baseline :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` that packages in this environement must match
 
         Returns
         -------
-        requirements : py:class:`package constraint <conda.constraints.package_constraint>`
+        requirements : py:class:`PackageConstraint <conda.constraints.PackageConstraint>`
         '''
         py = self._python_constraint()
         np = self._numpy_constraint()
@@ -103,7 +104,7 @@ class Environment(object):
 
         Returns
         -------
-        linked : :py:class:`package <conda.package.package>` object, or None
+        linked : :py:class:`Package <conda.package.Package>` object, or None
 
         '''
         canonical_names = linked(self.prefix)

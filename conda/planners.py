@@ -155,7 +155,7 @@ def create_install_plan(env, spec_strings):
 
     Parameters
     ----------
-    env : :py:class:`environment <conda.environment.environment>` object
+    env : :py:class:`Environment <conda.environment.Environment>` object
         Anaconda environment to install packages into
     spec_strings : iterable of str
         string package specifications of packages to install in Anaconda environment
@@ -302,7 +302,7 @@ def create_remove_plan(env, pkg_names, follow_deps=True):
 
     Parameters
     ----------
-    env : :py:class:`environment <conda.environment.environment>` object
+    env : :py:class:`Environment <conda.environment.Environment>` object
         Anaconda environment to remove packages from
     pkg_names : iterable of str
         package names of packages to remove
@@ -361,7 +361,7 @@ def create_update_plan(env, pkg_names):
 
     Parameters
     ----------
-    env : :py:class:`environment <conda.environment.environment>` object
+    env : :py:class:`Environment <conda.environment.Environment>` object
         Anaconda environment to update packages in
     pkg_names : iterable of str
         package names of packages to update
@@ -479,7 +479,7 @@ def create_activate_plan(env, canonical_names):
 
     Parameters
     ----------
-    env : :py:class:`environment <conda.environment.environment>` object
+    env : :py:class:`Environment <conda.environment.Environment>` object
         Anaconda environment to activate packages in
     canonical_names : iterable of str
         canonical names of packages to activate
@@ -540,7 +540,7 @@ def create_deactivate_plan(env, canonical_names):
 
     Parameters
     ----------
-    env : :py:class:`environment <conda.environment.environment>` object
+    env : :py:class:`Environment <conda.environment.Environment>` object
         Anaconda environment to deactivate packages in
     canonical_names : iterable of str
         canonical names of packages to deactivate

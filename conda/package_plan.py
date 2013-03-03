@@ -51,7 +51,7 @@ class PackagePlan(object):
 
         Parameters
         ----------
-        env : :py:class:`environment <conda.environment.environment>` object
+        env : :py:class:`Environment <conda.environment.Environment>` object
             Anaconda environment to execute plan in
         progress_bar : bool, optional
             whether to show a progress bar during any downloads

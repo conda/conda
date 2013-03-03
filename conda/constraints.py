@@ -21,7 +21,7 @@ class PackageConstraint(object):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -58,7 +58,7 @@ class AllOf(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -94,7 +94,7 @@ class AnyOf(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -130,7 +130,7 @@ class Negate(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -148,7 +148,7 @@ class Named(PackageConstraint):
     Parameters
     ----------
     name : str
-        :ref:`package name <package_name>` to match against
+        :ref:`Package name <package_name>` to match against
 
     '''
     def __init__(self, name):
@@ -164,7 +164,7 @@ class Named(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -198,7 +198,7 @@ class Channel(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -215,7 +215,7 @@ class StrictRequires(PackageConstraint):
 
     Parameters
     ----------
-    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
+    req : :py:class:`Package_spec <conda.package_spec.package_spec>` object
         package specification to match against
 
     '''
@@ -232,7 +232,7 @@ class StrictRequires(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -254,7 +254,7 @@ class Requires(PackageConstraint):
 
     Parameters
     ----------
-    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
+    req : :py:class:`Package_spec <conda.package_spec.package_spec>` object
         package specification to match against
 
     '''
@@ -273,7 +273,7 @@ class Requires(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -296,7 +296,7 @@ class Satisfies(PackageConstraint):
 
     Parameters
     ----------
-    req : :py:class:`package_spec <conda.package_spec.package_spec>` object
+    req : :py:class:`Package_spec <conda.package_spec.package_spec>` object
         package specification to match against
 
     '''
@@ -313,7 +313,7 @@ class Satisfies(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -336,7 +336,7 @@ class PackageVersion(PackageConstraint):
 
     Parameters
     ----------
-    req : :py:class:`package_spec <conda.package.package>` object
+    req : :py:class:`Package_spec <conda.package.Package>` object
         package to match against
 
     '''
@@ -353,7 +353,7 @@ class PackageVersion(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -370,7 +370,7 @@ class ExactPackage(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match against
 
     '''
@@ -387,7 +387,7 @@ class ExactPackage(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
@@ -414,7 +414,7 @@ class Wildcard(PackageConstraint):
 
         Parameters
         ----------
-        pkg : :py:class:`package <conda.package.package>` object
+        pkg : :py:class:`Package <conda.package.Package>` object
             package to match
 
         Returns
