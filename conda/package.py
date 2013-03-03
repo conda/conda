@@ -32,6 +32,7 @@ class Package(object):
     build_channel
     build_number
     canonical_name
+    features
     filename
     is_meta
     channel
@@ -39,8 +40,8 @@ class Package(object):
     name
     options
     requires
-    requires_options
     size
+    track_features
     version
 
     '''
