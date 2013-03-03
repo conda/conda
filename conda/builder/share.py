@@ -25,13 +25,23 @@ def update_info(info):
     info['name'] = h.hexdigest()
 
 def create_bundle(prefix):
-    info = dict(version = '0',
-                build_number = 0,
-                build = '0',
-                platform = utils.PLATFORM,
-                arch = utils.ARCH_NAME,
-                requires=get_requires(prefix))
+    """
+    create a "bundle package" of the environment located in `prefix`
 
+    This bundle is a meta-package which requires all Anaconda packages
+    installed (not packages the user created manually), and all files
+    in the prefix which are not installed from Anaconda packages.
+    When putting this packages into a conda repository, it can be used
+    to created a new environment using the conda create command.
+    """
+    info = dict(
+        version = '0',
+        build = '0',
+        build_number = 0,
+        platform = utils.PLATFORM,
+        arch = utils.ARCH_NAME,
+        requires = get_requires(prefix),
+    )
     tmp_dir = tempfile.mkdtemp()
     tmp_path = join(tmp_dir, 'share.tar.bz2')
     create_conda_pkg(prefix, untracked(prefix, exclude_self_build=True),
