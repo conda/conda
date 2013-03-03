@@ -149,6 +149,11 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
 
 
 def create_conda_pkg(prefix, files, info, tar_path):
+    """
+    create a conda package with `files` (in `prefix` and `info` metadata)
+    at `tar_path`.
+    """
+    files = sorted(files)
     has_prefix = []
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tar_path, 'w:bz2')
@@ -175,7 +180,6 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
                 files=None):
     if files is None:
         files = untracked(prefix)
-    files = sorted(files)
     print "Number of files: %d" % len(files)
     if len(files) == 0:
         print "Nothing to package up (no untracked files)."
