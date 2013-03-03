@@ -129,6 +129,25 @@ def fix_shebang(tmp_dir, path):
     return True
 
 
+def _add_info_dir(t, tmp_dir, files, has_prefix, info):
+    info_dir = join(tmp_dir, 'info')
+    os.mkdir(info_dir)
+    with open(join(info_dir, 'files'), 'w') as fo:
+        for f in files:
+            fo.write(f + '\n')
+
+    with open(join(info_dir, 'index.json'), 'w') as fo:
+        json.dump(info, fo, indent=2, sort_keys=True)
+
+    if has_prefix:
+        with open(join(info_dir, 'has_prefix'), 'w') as fo:
+            for f in has_prefix:
+                fo.write(f + '\n')
+
+    for fn in os.listdir(info_dir):
+        t.add(join(info_dir, fn), 'info/' + fn)
+
+
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
                 files=None):
     if files is None:
@@ -163,25 +182,9 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
             h.update(os.readlink(path))
         elif isfile(path):
             h.update(open(path, 'rb').read())
+
     info['conda_hash'] = h.hexdigest()
-
-    info_dir = join(tmp_dir, 'info')
-    os.mkdir(info_dir)
-    with open(join(info_dir, 'files'), 'w') as fo:
-        for f in files:
-            fo.write(f + '\n')
-
-    with open(join(info_dir, 'index.json'), 'w') as fo:
-        json.dump(info, fo, indent=2, sort_keys=True)
-
-    if has_prefix:
-        with open(join(info_dir, 'has_prefix'), 'w') as fo:
-            for f in has_prefix:
-                fo.write(f + '\n')
-
-    for fn in os.listdir(info_dir):
-        t.add(join(info_dir, fn), 'info/' + fn)
-
+    _add_info_dir(t, tmp_dir, files, has_prefix, info)
     t.close()
     shutil.rmtree(tmp_dir)
     print '%s created successfully' % tarbz2_fn
