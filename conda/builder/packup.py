@@ -3,9 +3,10 @@ import re
 import sys
 import json
 import shutil
+import hashlib
 import tarfile
 import tempfile
-from os.path import abspath, basename, dirname, islink, join
+from os.path import abspath, basename, dirname, isfile, islink, join
 
 from conda.config import PACKAGES_DIR
 from conda.install import (linked, get_meta, prefix_placeholder,
@@ -131,7 +132,8 @@ def fix_shebang(tmp_dir, path):
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
                 files=None):
     if files is None:
-        files = sorted(untracked(prefix))
+        files = untracked(prefix)
+    files = sorted(files)
     print "Number of files: %d" % len(files)
     if len(files) == 0:
         print "Nothing to package up (no untracked files)."
@@ -149,16 +151,22 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     has_prefix = []
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tarbz2_fn, 'w:bz2')
+    h = hashlib.new('sha1')
     for f in files:
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
             has_prefix.append(f)
         t.add(path, f)
+        h.update(f)
+        if islink(path):
+            h.update(os.readlink(path))
+        elif isfile(path):
+            h.update(open(path, 'rb').read())
+    info['conda_hash'] = h.hexdigest()
 
     info_dir = join(tmp_dir, 'info')
     os.mkdir(info_dir)
-
     with open(join(info_dir, 'files'), 'w') as fo:
         for f in files:
             fo.write(f + '\n')
