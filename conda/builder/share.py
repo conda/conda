@@ -1,7 +1,7 @@
 import os
 import hashlib
 import tempfile
-from os.path import basename, join
+from os.path import join
 
 import utils
 from packup import untracked, create_conda_pkg
@@ -19,8 +19,9 @@ def get_requires(prefix):
 
 def update_info(info):
     h = hashlib.new('sha1')
-    for r in info['requires']:
-        h.update(r)
+    for req in info['requires']:
+        h.update(req)
+        h.update('\x00')
     h.update(info['file_hash'])
     info['name'] = h.hexdigest()
 
@@ -31,11 +32,12 @@ def create_bundle(prefix):
     created in a temp directory, and it is the callers responsibility
     to remove this directory (after the file has been handled in some way).
 
-    This bundle is a meta-package which requires all Anaconda packages
-    installed (not packages the user created manually), and all files
-    in the prefix which are not installed from Anaconda packages.
-    When putting this packages into a conda repository, it can be used
-    to created a new environment using the conda create command.
+    This bundle is a regular meta-package which lists (in its requirements)
+    all Anaconda packages installed (not packages the user created manually),
+    and all files in the prefix which are not installed from Anaconda
+    packages.  When putting this packages into a conda repository,
+    it can be used to created a new environment using the conda create
+    command.
     """
     info = dict(
         version = '0',
@@ -59,4 +61,4 @@ if __name__ == '__main__':
     import sys
     path = create_bundle(sys.prefix)
     os.system('tarinfo --si ' + path)
-    print basename(path)
+    print path
