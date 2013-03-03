@@ -56,8 +56,10 @@ def walk_prefix(prefix):
     for fn in os.listdir(prefix):
         if fn in ignore:
             continue
-        dir_path = join(prefix, fn)
-        for root, dirs, files in os.walk(dir_path):
+        if isfile(join(prefix, fn)):
+            res.add(fn)
+            continue
+        for root, dirs, files in os.walk(join(prefix, fn)):
             for fn in files:
                 res.add(rel_path(prefix, join(root, fn)))
             for dn in dirs:
