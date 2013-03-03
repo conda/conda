@@ -163,12 +163,12 @@ def find_inconsistent_packages(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable collection of :py:class:`make_package_spec <conda.package.package>` objects
+    pkgs : iterable collection of :py:class:`Package <conda.package.Package>` objects
         packages to check for inconsistencies
 
     Returns
     -------
-    inconsistent_pkgs : set of :py:class:`make_package_spec <conda.package.package>` objects
+    inconsistent_pkgs : set of :py:class:`Package <conda.package.Package>` objects
         all inconsistent packages present in `pkgs`
 
     '''
@@ -197,14 +197,14 @@ def sort_packages_by_name(pkgs, reverse=False):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`package <conda.package.package>`
+    pkgs : iterable of :py:class:`Package <conda.package.Package>`
         a collection of packages to sort by package name
     reverse : bool, optional
         whether to sort in reverse order
 
     Returns
     -------
-    sorted : list of :py:class:`package <conda.package.package>`
+    sorted : list of :py:class:`Package <conda.package.Package>`
         packages sorted by package name
 
     '''
@@ -219,12 +219,12 @@ def group_packages_by_name(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`package <conda.package.package>`
+    pkgs : iterable of :py:class:`Package <conda.package.Package>`
         packages to group by package name
 
     Returns
     -------
-    grouped : dict of (str, set of :py:class:`package <conda.package.package>`)
+    grouped : dict of (str, set of :py:class:`Package <conda.package.Package>`)
         dictionary of sets of packages, indexed by package name
 
     '''
@@ -237,7 +237,7 @@ def sort_packages_by_channel(pkgs, channels, reverse=False):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`package <conda.package.package>`
+    pkgs : iterable of :py:class:`Package <conda.package.Package>`
         a collection of packages to sort by package name
     channels : list of str
         an list of channels used to order the packages
@@ -246,7 +246,7 @@ def sort_packages_by_channel(pkgs, channels, reverse=False):
 
     Returns
     -------
-    sorted : list of :py:class:`package <conda.package.package>`
+    sorted : list of :py:class:`Package <conda.package.Package>`
         packages sorted by channel
 
     '''
@@ -262,14 +262,14 @@ def group_packages_by_channel(pkgs, channels):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`package <conda.package.package>`
+    pkgs : iterable of :py:class:`Package <conda.package.Package>`
         packages to group by channel
     channels : list of str
         an list of channels used to order the packages
 
     Returns
     -------
-    grouped : dict of (str, set of :py:class:`package <conda.package.package>`)
+    grouped : dict of (str, set of :py:class:`Package <conda.package.Package>`)
         dictionary of sets of packages, indexed by channel
 
     '''
@@ -281,12 +281,12 @@ def newest_packages(pkgs):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`make_package_spec <conda.package.package>`
+    pkgs : iterable of :py:class:`Package <conda.package.Package>`
         packages to select newest versions from
 
     Returns
     -------
-    newest : set of :py:class:`make_package_spec <conda.package.package>`
+    newest : set of :py:class:`Package <conda.package.Package>`
         newest packages for each package in `pkgs`
 
     '''
@@ -301,14 +301,14 @@ def channel_select(pkgs, channels):
 
     Parameters
     ----------
-    pkgs : iterable of :py:class:`make_package_spec <conda.package.package>`
+    pkgs : iterable of :py:class:`Package <conda.package.Package>`
         packages to select newest versions from
     channels : list of str
         an list of channels used to order the packages
 
     Returns
     -------
-    newest : set of :py:class:`make_package_spec <conda.package.package>`
+    newest : set of :py:class:`Package <conda.package.Package>`
         newest packages for each package in `pkgs`
 
     '''

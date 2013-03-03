@@ -66,7 +66,7 @@ class PackageIndex(object):
         return set([pkg.name for pkg in self.pkgs])
 
     def lookup_from_filename(self, pkg_filename):
-        ''' Return a :py:class`package <conda.package.package>` object corresponding to the given package filename
+        ''' Return a :py:class`Package <conda.package.Package>` object corresponding to the given package filename
 
         Parameters
         ----------
@@ -75,14 +75,14 @@ class PackageIndex(object):
 
         Returns
         -------
-        package : :py:class`package <conda.package.package>` object
+        package : :py:class`Package <conda.package.Package>` object
             matching package, if one is found
 
         '''
         return self.pkg_filenames[pkg_filename]
 
     def lookup_from_canonical_name(self, canonical_name):
-        ''' Return a :py:class`package <conda.package.package>` object corresponding to the given canonical name
+        ''' Return a :py:class`Package <conda.package.Package>` object corresponding to the given canonical name
 
         Parameters
         ----------
@@ -91,14 +91,14 @@ class PackageIndex(object):
 
         Returns
         -------
-        package : :py:class`package <conda.package.package>` object
+        package : :py:class`Package <conda.package.Package>` object
             matching package, if one is found
 
         '''
         return self.pkg_filenames[canonical_name+'.tar.bz2']
 
     def lookup_from_name(self, pkg_name):
-        ''' Return a set of :py:class`package <conda.package.package>` objects with the given package name
+        ''' Return a set of :py:class`Package <conda.package.Package>` objects with the given package name
 
         Parameters
         ----------
@@ -107,14 +107,14 @@ class PackageIndex(object):
 
         Returns
         -------
-        package : set of :py:class`package <conda.package.package>` objects
+        package : set of :py:class`Package <conda.package.Package>` objects
             matching packages
 
         '''
         return set([pkg for pkg in self.pkgs if pkg.name == pkg_name])
 
     def lookup_from_feature(self, feature):
-        ''' Return a set of :py:class`package <conda.package.package>` objects that provide the given feature.
+        ''' Return a set of :py:class`Package <conda.package.Package>` objects that provide the given feature.
 
         Parameters
         ----------
@@ -123,7 +123,7 @@ class PackageIndex(object):
 
         Returns
         -------
-        package : set of :py:class`package <conda.package.package>` objects
+        package : set of :py:class`Package <conda.package.Package>` objects
             matching packages
 
         '''
@@ -136,18 +136,18 @@ class PackageIndex(object):
         return result
 
     def find_matches(self, constraint, pkgs=None):
-        ''' Return a set of :py:class`package <conda.p_ackage.package>` objects that match the given constraint
+        ''' Return a set of :py:class`Package <conda.package.Package>` objects that match the given constraint
 
         Parameters
         ----------
-        constraint : :py:class:`constraint <conda.constraints.package_constraint>` object
+        constraint : :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` object
             constraint to match
-        pkgs : iterable of :py:class`package <conda.package.package>` objects, optional
+        pkgs : iterable of :py:class`Package <conda.package.Package>` objects, optional
             if supplied, search only packages in this collection
 
         Returns
         -------
-        matches : set of iterable of :py:class`package <conda.package.package>` objects
+        matches : set of iterable of :py:class`Package <conda.package.Package>` objects
             matching packages
 
         '''
@@ -172,14 +172,14 @@ class PackageIndex(object):
 
         Parameters
         ----------
-        pkgs : iterable of :py:class:`constraint <conda.package.package>` objects
+        pkgs : iterable of :py:class:`Package <conda.package.Package>` objects
             packages to find dependencies for
         max_depth : bool, optional
             how many levels of the dependency graph to search, defaults to 0 (all levels)
 
         Returns
         -------
-        deps : set of :py:class:`requirement <conda.requirement.requirement>` objects
+        deps : set of :py:class:`PackageSpec <conda.package_spec.PackageSpec>` objects
             mutual dependencies of all the supplied packages
 
         '''
@@ -204,14 +204,14 @@ class PackageIndex(object):
 
         Parameters
         ----------
-        pkgs : iterable of  :py:class:`requirement <conda.package.package>` objects
-            package to find reverse dependencies for
+        pkgs : iterable of  :py:class:`Package <conda.package.package>` objects
+            packages to find reverse dependencies for
         max_depth : bool, optional
             how many levels of the reverse dependency graph to search, defaults to 0 (all levels)
 
         Returns
         -------
-        rdeps : set of :py:class:`constraint <conda.package.package>` objects
+        rdeps : set of :py:class:`Package <conda.package.Package>` objects
             mutual reverse dependencies of all the supplied requirements
 
         '''
@@ -238,13 +238,13 @@ class PackageIndex(object):
 
         Parameters
         ----------
-        pkgs : iterable of :py:class:`constraint <conda.constraints.package_constraint>` objects
+        pkgs : iterable of :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` objects
             collection of packages to compile requirements for
 
         Returns
         -------
-        reqs : set of :py:class:`requirement <conda.requirement.requirement>` objects
-            requirements satisfied by all the given packages
+        reqs : set of :py:class:`PackageSpec <conda.package_spec.PackageSpec>` objects
+            package specifications satisfied by all the given packages
 
         '''
         reqs = set()
@@ -261,12 +261,12 @@ class PackageIndex(object):
 
         Parameters
         ----------
-        reqs : iterable of py:class:`requirement <conda.requirement.requirement>` objects
-            collection of requirements to find packages for
+        reqs : iterable of py:class:`PackageSpec <conda.package_spec.PackageSpec>` objects
+            collection of package specifications to find packages for
 
         Returns
         -------
-        pkgs : set of :py:class:`constraint <conda.constraints.package_constraint>` objects:
+        pkgs : set of :py:class:`PackageConstraint <conda.constraints.PackageConstraint>` objects:
             packages that satisfy by all the given requirements
 
         '''

@@ -29,11 +29,11 @@ class Anaconda(Config):
 
     Attributes
     ----------
-    available_packages
-    default_environment
-    environments
-    index
-    root_environment
+    available_packages : set of Package objects
+    default_environment : Environment object
+    environments : list of Environment objects
+    index : PackageIndex object
+    root_environment : Environment object
 
     '''
     __slots__ = ['_index']
