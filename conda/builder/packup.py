@@ -179,7 +179,6 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     _add_info_dir(t, tmp_dir, files, has_prefix, info)
     t.close()
     shutil.rmtree(tmp_dir)
-    return info
 
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
