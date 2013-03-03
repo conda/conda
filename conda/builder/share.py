@@ -26,7 +26,10 @@ def update_info(info):
 
 def create_bundle(prefix):
     """
-    create a "bundle package" of the environment located in `prefix`
+    Create a "bundle package" of the environment located in `prefix`,
+    and return the full path to the created package.  This file is
+    created in a temp directory, and it is the callers responsibility
+    to remove this directory (after the file has been handled in some way).
 
     This bundle is a meta-package which requires all Anaconda packages
     installed (not packages the user created manually), and all files
