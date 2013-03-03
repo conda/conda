@@ -132,7 +132,7 @@ class PackageIndex(object):
             if feature in pkg.features:
                 if not result.has_key(pkg.name):
                     result[pkg.name] = set()
-                result[pkg.name].add(pkg)
+                result[pkg.name] = result.get(pkg.name, set())
         return result
 
     def find_matches(self, constraint, pkgs=None):
