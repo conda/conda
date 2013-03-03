@@ -11,7 +11,7 @@ packages to constraints, etc.
 
 
 from constraints import Satisfies
-from package import Package
+from package import group_packages_by_name, Package
 from package_spec import find_inconsistent_specs
 
 
@@ -127,10 +127,16 @@ class PackageIndex(object):
             matching packages
 
         '''
-        return set([pkg for pkg in self.pkgs if feature in pkg.features])
+        result = {}
+        for pkg in self.pkgs:
+            if feature in pkg.features:
+                if not result.has_key(pkg.name):
+                    result[pkg.name] = set()
+                result[pkg.name].add(pkg)
+        return result
 
     def find_matches(self, constraint, pkgs=None):
-        ''' Return a set of :py:class`package <conda.package.package>` objects that match the given constraint
+        ''' Return a set of :py:class`package <conda.p_ackage.package>` objects that match the given constraint
 
         Parameters
         ----------
@@ -147,6 +153,19 @@ class PackageIndex(object):
         '''
         if pkgs is None: pkgs = self.pkgs
         return set([pkg for pkg in pkgs if pkg.matches(constraint)])
+
+    def feature_select(self, pkgs, track_features):
+        package_groups = group_packages_by_name(pkgs)
+        for feature in track_features:
+            feature_groups = self.lookup_from_feature(feature)
+            for fname, fpkgs in feature_groups.items():
+                if fname in package_groups:
+                    package_groups[fname] &= fpkgs
+        result = set([])
+        for pkgs in package_groups.values():
+            result |= pkgs
+        return result
+
 
     def get_deps(self, pkgs, max_depth=0):
         ''' Return mutual package dependencies for a collection of packages
