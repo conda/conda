@@ -22,21 +22,21 @@ def update_info(info):
     for r in info['requires']:
         h.update(r)
     h.update(info['file_hash'])
-    info.update(dict(
-            name = h.hexdigest(),
-            version = '0',            
-            build_number = 0,
-            build = '0',
-    ))
+    info['name'] = h.hexdigest()
 
 def create_bundle(prefix):
-    info = dict(requires=get_requires(prefix),
+    info = dict(version = '0',
+                build_number = 0,
+                build = '0',
                 platform = utils.PLATFORM,
-                arch = utils.ARCH_NAME)
+                arch = utils.ARCH_NAME,
+                requires=get_requires(prefix))
+
     tmp_dir = tempfile.mkdtemp()
     tmp_path = join(tmp_dir, 'share.tar.bz2')
     create_conda_pkg(prefix, untracked(prefix, exclude_self_build=True),
                      info, tmp_path, update_info)
+
     path = join(tmp_dir, '%(name)s-%(version)s-%(build)s.tar.bz2' % info)
     os.rename(tmp_path, path)
     return path
