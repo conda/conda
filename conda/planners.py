@@ -219,6 +219,14 @@ def create_install_plan(env, spec_strings):
     pkgs = newest_packages(pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
+    features = env.features
+    for pkg in pkgs:
+        for feature in pkg.track_features:
+            if feature not in features:
+                features[feature] = set()
+            features[feature].add(pkg)
+    log.debug("features: %s\n" % features)
+
     # check to see if this is a meta-package situation (and handle it if so)
     all_pkgs = _handle_meta_install(env.conda, pkgs)
 
@@ -272,7 +280,7 @@ def create_install_plan(env, spec_strings):
                 else:
                     raise RuntimeError("could not find package for package specification '%s'" % spec)
 
-    all_pkgs = _replace_with_features(conda, all_pkgs, features, env_constraints)
+    all_pkgs = _replace_with_features(env.conda, all_pkgs, features, env_constraints)
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -351,6 +359,32 @@ def create_remove_plan(env, pkg_names, follow_deps=True):
         plan.deactivations |= rdeps
     else:
         plan.broken = rdeps
+
+    track_features = env.features
+    for pkg in plan.deactivations:
+        if pkg.track_features:
+            for feature in pkg.track_features:
+                if feature in track_features:
+                    track_features[feature] -= set([pkg])
+    for feature, pkgs in dict(track_features).items():
+        if len(pkgs) == 0:
+            del track_features[feature]
+
+    to_add, to_remove = _replace_without_features(env, plan.deactivations, track_features, AllOf(env.requirements))
+
+    print to_add
+    print to_remove
+
+    plan.deactivations |= to_remove
+
+     # download any packages that are not available
+    for pkg in to_add:
+
+        # download any currently unavailable packages
+        if pkg not in env.conda.available_packages:
+            plan.downloads.add(pkg)
+
+        plan.activations.add(pkg)
 
     return plan
 
@@ -444,7 +478,7 @@ def create_update_plan(env, pkg_names):
         all_pkgs = channel_select(all_pkgs, env.conda.channel_urls)
         all_pkgs = newest_packages(all_pkgs)
 
-    all_pkgs = _replace_with_features(conda, all_pkgs, features, env.requirements)
+    all_pkgs = _replace_with_features(env.conda, all_pkgs, env.features, env.requirements)
 
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_packages(all_pkgs)
@@ -643,7 +677,7 @@ def create_download_plan(conda, canonical_names, force):
 
 
 def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
-    idx = conda.idx
+    idx = conda.index
 
     results = all_pkgs
 
@@ -656,27 +690,56 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
             if feature not in track_features:
                 results.remove(pkg)
                 spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
-                rpkgs = idx.find_compatible_packages(specs)
+                rpkgs = idx.find_compatible_packages(set([spec]))
                 rpkgs = [pkg for pkg in rpkgs if feature not in pkg.features]
                 rpkgs = idx.find_matches(env_constraints, rpkgs)
-                rpkgs = channel_select(rpkgs, env.conda.channel_urls)
+                rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
-                results.add(rpkg)
+                results.add(rpkg.pop())
 
-    for feature, fpkgs in track_features.iteritems():
+    for feature, fpkgs in track_features.items():
         for name in fpkgs:
-            if name, pkg in all_pkgs_dict:
+            if name in all_pkgs_dict:
+                pkg = all_pkgs_dict[name]
                 if feature in pkg.features: continue
                 results.remove(pkg)
                 spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
-                rpkgs = idx.find_compatible_packages(specs)
+                rpkgs = idx.find_compatible_packages(set([specs]))
                 rpkgs = [pkg for pkg in rpkgs if feature in pkg.features]
                 rpkgs = idx.find_matches(env_constraints, rpkgs)
-                rpkgs = channel_select(rpkgs, env.conda.channel_urls)
+                rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
-                results.add(rpkg)
+                results.add(rpkg.pop())
 
     return results
+
+def _replace_without_features(env, removals, track_features, env_constraints):
+    idx = env.conda.index
+
+    to_add = set()
+    to_remove = set()
+
+    for pkg in removals:
+
+        deps = idx.get_deps([pkg]) & env.linked
+        for dep in deps:
+            for feature in dep.features:
+
+                if feature not in track_features:
+                    to_remove.add(dep)
+                    rdeps = idx.get_reverse_deps([dep]) & env.linked
+                    if not rdeps: 
+                        to_remove.add(dep)
+                        continue
+                    spec = make_package_spec("%s %s" % (dep.name, dep.version.vstring))
+                    rpkgs = idx.find_compatible_packages(set([spec]))
+                    rpkgs = [pkg for pkg in rpkgs if feature not in pkg.features]
+                    rpkgs = idx.find_matches(env_constraints, rpkgs)
+                    rpkgs = channel_select(rpkgs, env.conda.channel_urls)
+                    rpkg = newest_packages(rpkgs)
+                    to_add.add(rpkg.pop())
+
+    return to_add, to_remove
 
 
 def _check_unknown_spec(idx, spec):
