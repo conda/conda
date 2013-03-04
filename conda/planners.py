@@ -272,6 +272,8 @@ def create_install_plan(env, spec_strings):
                 else:
                     raise RuntimeError("could not find package for package specification '%s'" % spec)
 
+    all_pkgs = _replace_with_features(conda, all_pkgs, features, env_constraints)
+
     # download any packages that are not available
     for pkg in all_pkgs:
 
@@ -397,8 +399,6 @@ def create_update_plan(env, pkg_names):
     skipped = set()
     for pkg in sort_packages_by_name(pkgs):
         initial_candidates = idx.lookup_from_name(pkg.name)
-        if pkg.build_channel == 'p':
-            initial_candidates = [cand for cand in initial_candidates if cand.build_channel == 'p']
         for channel in env.conda.channel_urls:
             candidates = idx.find_matches(Channel(channel), initial_candidates)
             if not candidates: continue
@@ -443,6 +443,8 @@ def create_update_plan(env, pkg_names):
         all_pkgs = idx.find_matches(env.requirements, all_pkgs)
         all_pkgs = channel_select(all_pkgs, env.conda.channel_urls)
         all_pkgs = newest_packages(all_pkgs)
+
+    all_pkgs = _replace_with_features(conda, all_pkgs, features, env.requirements)
 
     # check for any inconsistent requirements the set of packages
     inconsistent = find_inconsistent_packages(all_pkgs)
@@ -639,6 +641,42 @@ def create_download_plan(conda, canonical_names, force):
 
     return plan
 
+
+def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
+    idx = conda.idx
+
+    results = all_pkgs
+
+    all_pkgs_dict = {}
+    for pkg in all_pkgs:
+        all_pkgs_dict[pkg.name] = [pkg]
+
+    for pkg in all_pkgs:
+        for feature in pkg.features:
+            if feature not in track_features:
+                results.remove(pkg)
+                spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
+                rpkgs = idx.find_compatible_packages(specs)
+                rpkgs = [pkg for pkg in rpkgs if feature not in pkg.features]
+                rpkgs = idx.find_matches(env_constraints, rpkgs)
+                rpkgs = channel_select(rpkgs, env.conda.channel_urls)
+                rpkg = newest_packages(rpkgs)
+                results.add(rpkg)
+
+    for feature, fpkgs in track_features.iteritems():
+        for name in fpkgs:
+            if name, pkg in all_pkgs_dict:
+                if feature in pkg.features: continue
+                results.remove(pkg)
+                spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
+                rpkgs = idx.find_compatible_packages(specs)
+                rpkgs = [pkg for pkg in rpkgs if feature in pkg.features]
+                rpkgs = idx.find_matches(env_constraints, rpkgs)
+                rpkgs = channel_select(rpkgs, env.conda.channel_urls)
+                rpkg = newest_packages(rpkgs)
+                results.add(rpkg)
+
+    return results
 
 
 def _check_unknown_spec(idx, spec):
