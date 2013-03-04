@@ -40,13 +40,14 @@ class Environment(object):
 
     '''
 
-    __slots__ = ['_conda', '_prefix']
+    __slots__ = ['_conda', '_prefix', '_canonical_names']
 
     def __init__(self, conda, prefix):
         if not isdir(prefix):
             raise RuntimeError("no environment found at location '%s'" % prefix)
         self._conda = conda
         self._prefix = prefix
+        self._canonical_names = linked(self.prefix)
 
     @property
     def conda(self):
@@ -61,9 +62,8 @@ class Environment(object):
     @property
     def linked(self):
         ''' Return the set of :ref:`linked <linked>` packages in this environment '''
-        canonical_names = linked(self.prefix)
         res = set()
-        for name in canonical_names:
+        for name in self._canonical_names:
             try:
                 res.add(self._conda.index.lookup_from_canonical_name(name))
             except:  # TODO better except spec
@@ -73,9 +73,8 @@ class Environment(object):
     @property
     def features(self):
         ''' Return the set of :ref:`tracked features <tracked_features>` for this environment '''
-        canonical_names = linked(self.prefix)
         res = set()
-        for name in canonical_names:
+        for name in self._canonical_names:
             try:
                 res |= self._conda.index.lookup_from_canonical_name(name).track_features
             except:  # TODO better except spec
@@ -107,8 +106,7 @@ class Environment(object):
         linked : :py:class:`Package <conda.package.Package>` object, or None
 
         '''
-        canonical_names = linked(self.prefix)
-        for canonical_name in canonical_names:
+        for canonical_name in self._canonical_names:
             name, version, build = split_canonical_name(canonical_name)
             if name == pkg_name:
                 try:
