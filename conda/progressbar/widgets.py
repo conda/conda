@@ -27,6 +27,7 @@ import math
 
 try:
     from abc import ABCMeta, abstractmethod
+    abstractmethod; # silence pyflakes
 except ImportError:
     AbstractWidget = object
     abstractmethod = lambda fn: fn
