@@ -100,7 +100,7 @@ def execute(args, parser):
         deps = conda.index.get_deps(pkgs, args.max_depth)
 
         if not args.all:
-            deps &= env.activated
+            deps &= env.linked
 
         if len(deps) == 0:
             suffix, fmt = ('es', '%s') if len(args.pkg_names) == 1 else ('', '{%s}')
