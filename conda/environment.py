@@ -72,11 +72,14 @@ class Environment(object):
 
     @property
     def features(self):
-        ''' Return the set of :ref:`tracked features <tracked_features>` for this environment '''
-        res = set()
+        ''' Return the dictionary of :ref:`tracked features <tracked_features>` and associated packages for this environment '''
+        res ={}
         for name in self._canonical_names:
             try:
-                res |= self._conda.index.lookup_from_canonical_name(name).track_features
+                pkg = self._conda.index.lookup_from_canonical_name(name)
+                for feature in pkg.track_features:
+                    if not res.has_hey(feature): res[feature] = set()
+                res[feature].add(pkg)
             except:  # TODO better except spec
                 log.debug("cannot find linked package '%s' in package index" % name)
         return res
