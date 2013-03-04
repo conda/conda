@@ -260,7 +260,7 @@ class Requires(PackageConstraint):
     '''
     def __init__(self, req):
         self._req = req
-        self._vlen = len(self._req.version.version)
+        if self._req.version: self._vlen = len(self._req.version.version)
 
     def __str__(self):
         return 'Requires[%s]' % str(self._req)
@@ -303,7 +303,7 @@ class Satisfies(PackageConstraint):
     '''
     def __init__(self, req):
         self._req = req
-        self._vlen = len(self._req.version.version)
+        if self._req.version: self._vlen = len(self._req.version.version)
     def __str__(self):
         return 'Satisfies[%s]' % str(self._req)
     def __repr__(self):
