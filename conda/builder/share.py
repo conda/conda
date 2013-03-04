@@ -28,7 +28,7 @@ def update_info(info):
         h.update(req)
         h.update('\x00')
     h.update(info['file_hash'])
-    info['name'] = h.hexdigest()
+    info['version'] = h.hexdigest()
 
 def create_bundle(prefix):
     """
@@ -45,7 +45,7 @@ def create_bundle(prefix):
     command.
     """
     info = dict(
-        version = '0',
+        name = 'share',
         build = '0',
         build_number = 0,
         platform = utils.PLATFORM,
@@ -69,7 +69,7 @@ def clone_bundle(path, prefix):
     """
     pkgs_dir = join(sys.prefix, 'pkgs')
     assert not isdir(prefix)
-    assert path.endswith('-0-0.tar.bz2')
+    assert path.endswith('.tar.bz2')
     dist = basename(path)[:-8]
 
     avail = available(pkgs_dir)
