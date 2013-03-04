@@ -66,7 +66,7 @@ class Environment(object):
         for name in self._canonical_names:
             try:
                 res.add(self._conda.index.lookup_from_canonical_name(name))
-            except:  # TODO better except spec
+            except KeyError:  
                 log.debug("cannot find linked package '%s' in package index" % name)
         return res
 
@@ -78,9 +78,9 @@ class Environment(object):
             try:
                 pkg = self._conda.index.lookup_from_canonical_name(name)
                 for feature in pkg.track_features:
-                    if not res.has_hey(feature): res[feature] = set()
-                res[feature].add(pkg)
-            except:  # TODO better except spec
+                    if not res.has_key(feature): res[feature] = set()
+                    res[feature].add(pkg)
+            except KeyError:  
                 log.debug("cannot find linked package '%s' in package index" % name)
         return res
 
