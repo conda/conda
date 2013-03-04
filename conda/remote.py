@@ -20,7 +20,8 @@ from config import PACKAGES_DIR
 log = logging.getLogger(__name__)
 
 
-def fetch_file(fn, channels, md5=None, size=None, progress=None, pkgs_dir=PACKAGES_DIR):
+def fetch_file(fn, channels, md5=None, size=None, progress=None,
+               pkgs_dir=PACKAGES_DIR, tries=5):
     '''
     Search all known channels (in order) for the specified file and
     download it, optionally checking an md5 checksum.
@@ -41,7 +42,7 @@ def fetch_file(fn, channels, md5=None, size=None, progress=None, pkgs_dir=PACKAG
         )
     fi.close()
 
-    for x in range(5):
+    for x in range(tries):
         try:
             fi = urllib2.urlopen(url + fn, timeout=60)
             n = 0
@@ -65,7 +66,9 @@ def fetch_file(fn, channels, md5=None, size=None, progress=None, pkgs_dir=PACKAG
                     if md5:
                         h.update(chunk)
                     n += len(chunk)
-                    if progress: progress.update(n)
+                    if progress:
+                        progress.update(n)
+
             fi.close()
             if progress: progress.finish()
             if md5 and h.hexdigest() != md5:
