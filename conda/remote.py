@@ -7,8 +7,9 @@
 repositories.
 
 '''
-
 import os
+import bz2
+import json
 import hashlib
 import urllib2
 import logging
@@ -20,8 +21,26 @@ from config import PACKAGES_DIR
 log = logging.getLogger(__name__)
 
 
+def fetch_repodata(url, retries=5):
+    for fn in 'repodata.json.bz2', 'repodata.json':
+        for x in range(retries):
+            try:
+                fi = urllib2.urlopen(url + fn, timeout=60)
+                log.debug("fetched: repodata.json.bz2 [%s] ..." % url)
+                data = fi.read()
+                fi.close()
+                if fn.endswith('.bz2'):
+                    data = bz2.decompress(data)
+                return json.loads(data)
+
+            except IOError:
+                log.debug('download failed try: %d' % x)
+
+    raise RuntimeError("failed to fetch repodata from %r" % url)
+
+
 def fetch_file(fn, channels, md5=None, size=None, progress=None,
-               pkgs_dir=PACKAGES_DIR, tries=5):
+               pkgs_dir=PACKAGES_DIR, retries=5):
     '''
     Search all known channels (in order) for the specified file and
     download it, optionally checking an md5 checksum.
@@ -42,7 +61,7 @@ def fetch_file(fn, channels, md5=None, size=None, progress=None,
         )
     fi.close()
 
-    for x in range(tries):
+    for x in range(retries):
         try:
             fi = urllib2.urlopen(url + fn, timeout=60)
             n = 0
