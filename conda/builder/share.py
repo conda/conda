@@ -1,11 +1,16 @@
 import os
+import sys
+import json
 import hashlib
 import tempfile
-from os.path import join
+import shutil
+from os.path import basename, isdir, join
 
 import utils
 from packup import untracked, create_conda_pkg
-from conda.install import linked, get_meta
+from conda.remote import fetch_file
+from conda.install import link, linked, get_meta, available, make_available
+from conda.config import Config
 
 
 def get_requires(prefix):
@@ -57,8 +62,46 @@ def create_bundle(prefix):
     return path
 
 
+def clone_bundle(path, prefix):
+    """
+    Clone the bundle (located at `path`) by creating a new environment at
+    `prefix`.
+    """
+    pkgs_dir = join(sys.prefix, 'pkgs')
+    assert not isdir(prefix)
+    assert path.endswith('-0-0.tar.bz2')
+    dist = basename(path)[:-8]
+
+    avail = available(pkgs_dir)
+    if dist not in avail:
+        shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
+        make_available(pkgs_dir, dist)
+
+    with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
+        meta = json.load(fi)
+
+    dists = ['-'.join(r.split()) for r in meta['requires']
+             if not r.startswith('conda ')]
+    for dist in dists:
+        if dist in avail:
+            continue
+        print "fetching:", dist
+        try:
+            fetch_file(dist + '.tar.bz2', Config().channel_urls)
+        except:
+            print "WARNING: could not fetch %r" % dist
+        make_available(pkgs_dir, dist)
+
+    avail = available(pkgs_dir)
+    for dist in dists:
+        if dist in avail:
+            link(pkgs_dir, dist, prefix)
+
+    os.unlink(join(prefix, 'conda-meta', dist + '.json'))
+
+
 if __name__ == '__main__':
-    import sys
     path = create_bundle(sys.prefix)
     os.system('tarinfo --si ' + path)
     print path
+    clone_bundle(path, join(sys.prefix, 'envs', 'test3'))
