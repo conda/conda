@@ -33,18 +33,31 @@ class PackageIndex(object):
 
     def __init__(self, info):
 
-        self.pkg_filenames = dict(
-            (pkg_filename, Package(pkg_info))
-            for pkg_filename, pkg_info in info.items()
-        )
+        self.pkg_filenames = dict()
+        self.pkg_names = dict()
+        self.pkgs = set()
+        self.pkg_features = dict()
+        for pkg_filename, pkg_info in info.items():
 
-        self.pkgs = set(
-            Package(pkg_info) for pkg_info in info.values()
-        )
+            pkg = Package(pkg_info)
+
+            self.pkgs.add(pkg)
+
+            self.pkg_filenames[pkg_filename] = pkg
+
+            if not self.pkg_names.has_key(pkg.name):
+                self.pkg_names[pkg.name] = set()
+            self.pkg_names[pkg.name].add(pkg)
+
+            for feature in pkg.features:
+                if not self.pkg_features.has_key(feature):
+                    self.pkg_features[feature] = set()
+                self.pkg_features[feature].add(pkg)
 
         # compute on demand
         self._deps = None
         self._rdeps = None
+        self._names = None
 
     @property
     def deps(self):
@@ -63,7 +76,9 @@ class PackageIndex(object):
     @property
     def package_names(self):
         ''' Return a set of all package names for packages in this index '''
-        return set([pkg.name for pkg in self.pkgs])
+        if not self._names:
+            self._names = set([pkg.name for pkg in self.pkgs])
+        return self._names
 
     def lookup_from_filename(self, pkg_filename):
         ''' Return a :py:class`Package <conda.package.Package>` object corresponding to the given package filename
@@ -111,7 +126,7 @@ class PackageIndex(object):
             matching packages
 
         '''
-        return set([pkg for pkg in self.pkgs if pkg.name == pkg_name])
+        return self.pkg_names[pkg_name]
 
     def lookup_from_feature(self, feature):
         ''' Return a set of :py:class`Package <conda.package.Package>` objects that provide the given feature.
@@ -127,13 +142,7 @@ class PackageIndex(object):
             matching packages
 
         '''
-        result = {}
-        for pkg in self.pkgs:
-            if feature in pkg.features:
-                if not result.has_key(pkg.name):
-                    result[pkg.name] = set()
-                result[pkg.name] = result.get(pkg.name, set())
-        return result
+        return self.pkg_features.get(feature, set())
 
     def find_matches(self, constraint, pkgs=None):
         ''' Return a set of :py:class`Package <conda.package.Package>` objects that match the given constraint
@@ -155,6 +164,21 @@ class PackageIndex(object):
         return set([pkg for pkg in pkgs if pkg.matches(constraint)])
 
     def feature_select(self, pkgs, track_features):
+        ''' Return a set of :py:class`Package <conda.package.Package>` objects that track the given features
+
+        Parameters
+        ----------
+        pkgs : iterable of :py:class`Package <conda.package.Package>` objects
+            collection of packages to select from
+        track_features : iterable of str
+            features to select for
+
+        Returns
+        -------
+        matches : set of iterable of :py:class`Package <conda.package.Package>` objects
+            matching packages
+
+        '''
         package_groups = group_packages_by_name(pkgs)
         for feature in track_features:
             feature_groups = self.lookup_from_feature(feature)
