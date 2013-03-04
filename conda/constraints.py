@@ -260,6 +260,8 @@ class Requires(PackageConstraint):
     '''
     def __init__(self, req):
         self._req = req
+        self._vlen = len(self._req.version.version)
+
     def __str__(self):
         return 'Requires[%s]' % str(self._req)
     def __repr__(self):
@@ -284,9 +286,8 @@ class Requires(PackageConstraint):
         '''
         # package never Requires itself
         if pkg.name == self._req.name: return False
-        vlen = len(self._req.version.version)
         for req in pkg.requires:
-            if req.name == self._req.name and req.version.version[:vlen] != self._req.version.version[:vlen]:
+            if req.name == self._req.name and req.version.version[:self._vlen] != self._req.version.version[:self._vlen]:
                 return False
         return True
 
@@ -302,6 +303,7 @@ class Satisfies(PackageConstraint):
     '''
     def __init__(self, req):
         self._req = req
+        self._vlen = len(self._req.version.version)
     def __str__(self):
         return 'Satisfies[%s]' % str(self._req)
     def __repr__(self):
@@ -324,9 +326,8 @@ class Satisfies(PackageConstraint):
         '''
         if self._req.name != pkg.name: return False
         if not self._req.version: return True
-        vlen = len(self._req.version.version)
         try:
-            return self._req.version.version[:vlen] == pkg.version.version[:vlen]
+            return self._req.version.version[:self._vlen] == pkg.version.version[:self._vlen]
         except:
             return False
 

@@ -37,12 +37,15 @@ class Anaconda(Config):
     root_environment : Environment object
 
     '''
-    __slots__ = ['_index']
+    __slots__ = ['_index', '_available']
 
     def __init__(self, **kw):
         super(Anaconda, self).__init__(**kw)
 
         self._index = PackageIndex(self._fetch_index())
+
+        # compute on demand
+        self._available = None
 
     @property
     def index(self):
@@ -85,14 +88,15 @@ class Anaconda(Config):
     @property
     def available_packages(self):
         ''' All :ref:`locally available <locally_available>` packages '''
-        res = set()
-        canonical_names = available(self.packages_dir)
-        for name in canonical_names:
-            try:
-                res.add(self.index.lookup_from_canonical_name(name))
-            except KeyError:
-                log.debug("unknown available package '%s'" % name)
-        return res
+        if not self._available:
+            self._available = set()
+            canonical_names = available(self.packages_dir)
+            for name in canonical_names:
+                try:
+                    self._available.add(self.index.lookup_from_canonical_name(name))
+                except KeyError:
+                    log.debug("unknown available package '%s'" % name)
+        return self._available
 
     def lookup_environment(self, prefix):
         '''
