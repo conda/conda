@@ -43,7 +43,7 @@ class PackagePlan(object):
         self.deactivations = set()
         self.broken        = set()
         self.missing       = set()
-        self.update       = None
+        self.update        = None
 
     def execute(self, env, progress_bar=True, channels=None):
         '''
@@ -83,7 +83,7 @@ class PackagePlan(object):
             print
 
         for pkg in sorted(self.downloads):
-            fetch_file(pkg.filename, channels, md5=pkg.md5,
+            fetch_file(pkg.channel, pkg.filename, md5=pkg.md5,
                        size=pkg.size, progress=progress)
             make_available(env.conda.packages_dir, pkg.canonical_name)
 

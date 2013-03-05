@@ -8,17 +8,15 @@ information about an Anaconda installation, including the Anaconda package index
 
 '''
 
-from bz2 import decompress
 from os import listdir
 from os.path import exists, isdir, join
-from urllib2 import urlopen
 import json
 import logging
 
 from config import Config, DEFAULT_ENV_PREFIX, ROOT_DIR
 from environment import Environment
 from install import available
-from remote import fetch_repodata
+from remote import fetch_index
 from package_index import PackageIndex
 
 
@@ -42,7 +40,7 @@ class Anaconda(Config):
     def __init__(self, **kw):
         super(Anaconda, self).__init__(**kw)
 
-        self._index = PackageIndex(self._fetch_index())
+        self._index = PackageIndex(fetch_index(self.channel_urls))
 
         # compute on demand
         self._available = None
@@ -121,18 +119,7 @@ class Anaconda(Config):
             return Environment(self, prefix)
 
     def __repr__(self):
-        return 'anaconda()'
-
-    def _fetch_index(self):
-        index = {}
-        for url in reversed(self.channel_urls):
-            repodata = fetch_repodata(url)
-            new_index = repodata['packages']
-            for pkg_info in new_index.itervalues():
-                pkg_info['channel'] = url
-            index.update(new_index)
-
-        return index
+        return 'Anaconda()'
 
     def _build_local_index(self):
         try:

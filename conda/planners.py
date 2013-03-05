@@ -728,7 +728,7 @@ def _replace_without_features(env, removals, track_features, env_constraints):
                 if feature not in track_features:
                     to_remove.add(dep)
                     rdeps = idx.get_reverse_deps([dep]) & env.linked
-                    if not rdeps: 
+                    if not rdeps:
                         to_remove.add(dep)
                         continue
                     spec = make_package_spec("%s %s" % (dep.name, dep.version.vstring))

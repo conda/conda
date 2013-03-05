@@ -80,6 +80,8 @@ def clone_bundle(path, prefix):
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
         meta = json.load(fi)
 
+    channel_urls = Config().channel_urls
+
     dists = ['-'.join(r.split()) for r in meta['requires']
              if not r.startswith('conda ')]
     for dist in dists:
@@ -87,7 +89,7 @@ def clone_bundle(path, prefix):
             continue
         print "fetching:", dist
         try:
-            fetch_file(dist + '.tar.bz2', Config().channel_urls)
+            fetch_file(channel_urls[0], dist + '.tar.bz2')
         except:
             print "WARNING: could not fetch %r" % dist
         make_available(pkgs_dir, dist)
