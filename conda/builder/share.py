@@ -76,7 +76,7 @@ def clone_bundle(path, prefix):
     assert not abspath(path).startswith(abspath(sys.prefix))
     assert not isdir(prefix)
     fn = basename(path)
-    assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2', fn)
+    assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
     dist = fn[:-8]
 
     avail = available(pkgs_dir)
