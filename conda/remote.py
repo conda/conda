@@ -45,19 +45,18 @@ def fetch_index(channel_urls):
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url)
         new_index = repodata['packages']
-        for pkg_info in new_index.itervalues():
-            pkg_info['channel'] = url
+        for info in new_index.itervalues():
+            info['channel'] = url
         index.update(new_index)
     return index
 
 
 def fetch_file(url, fn, md5=None, size=None, progress=None,
-               pkgs_dir=PACKAGES_DIR):
+               dst_dir=PACKAGES_DIR):
     '''
-    Search all known channels (in order) for the specified file and
-    download it, optionally checking an md5 checksum.
+    fetch a file `fn` from `url` and store it into `dst_dir`
     '''
-    path = join(pkgs_dir, fn)
+    path = join(dst_dir, fn)
     pp = path + '.part'
 
     for x in range(retries):
