@@ -8,7 +8,7 @@ from os.path import basename, isdir, join
 
 import utils
 from packup import untracked, create_conda_pkg
-from conda.remote import fetch_file
+from conda.remote import fetch_index, fetch_file
 from conda.install import link, linked, get_meta, available, make_available
 from conda.config import Config
 
@@ -81,6 +81,7 @@ def clone_bundle(path, prefix):
         meta = json.load(fi)
 
     channel_urls = Config().channel_urls
+    index = fetch_index(channel_urls)
 
     dists = ['-'.join(r.split()) for r in meta['requires']
              if not r.startswith('conda ')]
@@ -88,10 +89,12 @@ def clone_bundle(path, prefix):
         if dist in avail:
             continue
         print "fetching:", dist
-        try:
-            fetch_file(channel_urls[0], dist + '.tar.bz2')
-        except:
-            print "WARNING: could not fetch %r" % dist
+        fn = dist + '.tar.bz2'
+        if fn in index:
+            info = index[fn]
+            fetch_file(info['channel'], fn, info['md5'], info['size'])
+        else:
+            print "WARNING: not index %r" % fn
         make_available(pkgs_dir, dist)
 
     avail = available(pkgs_dir)
