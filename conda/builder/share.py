@@ -1,10 +1,11 @@
 import os
+import re
 import sys
 import json
 import hashlib
 import tempfile
 import shutil
-from os.path import basename, isdir, join
+from os.path import abspath, basename, isdir, join
 
 import utils
 from packup import untracked, create_conda_pkg
@@ -66,11 +67,17 @@ def clone_bundle(path, prefix):
     """
     Clone the bundle (located at `path`) by creating a new environment at
     `prefix`.
+    The directory `path` is located in should be some temp directory or
+    some other directory OUTSITE /opt/anaconda (this function handles
+    copying the of the file if necessary for you).  After calling this
+    funtion, the original file (at `path`) may be removed.
     """
     pkgs_dir = join(sys.prefix, 'pkgs')
+    assert not abspath(path).startswith(abspath(sys.prefix))
     assert not isdir(prefix)
-    assert path.endswith('.tar.bz2')
-    dist = basename(path)[:-8]
+    fn = basename(path)
+    assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2', fn)
+    dist = fn[:-8]
 
     avail = available(pkgs_dir)
     if dist not in avail:
@@ -94,7 +101,7 @@ def clone_bundle(path, prefix):
             info = index[fn]
             fetch_file(info['channel'], fn, info['md5'], info['size'])
         else:
-            print "WARNING: not index %r" % fn
+            print "WARNING: not in index %r" % fn
         make_available(pkgs_dir, dist)
 
     avail = available(pkgs_dir)
