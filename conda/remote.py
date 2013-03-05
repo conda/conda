@@ -40,7 +40,18 @@ def fetch_repodata(url):
     raise RuntimeError("failed to fetch repodata from %r" % url)
 
 
-def fetch_file(fn, channels, md5=None, size=None, progress=None,
+def fetch_index(channel_urls):
+    index = {}
+    for url in reversed(channel_urls):
+        repodata = fetch_repodata(url)
+        new_index = repodata['packages']
+        for pkg_info in new_index.itervalues():
+            pkg_info['channel'] = url
+        index.update(new_index)
+    return index
+
+
+def fetch_file(url, fn, md5=None, size=None, progress=None,
                pkgs_dir=PACKAGES_DIR):
     '''
     Search all known channels (in order) for the specified file and
@@ -50,42 +61,41 @@ def fetch_file(fn, channels, md5=None, size=None, progress=None,
     pp = path + '.part'
 
     for x in range(retries):
-        for url in channels:
-            try:
-                fi = urllib2.urlopen(url + fn)
-                log.debug("fetching: %s [%s]" % (fn, url))
-                n = 0
-                h = hashlib.new('md5')
-                if size is None:
-                    length = int(fi.headers["Content-Length"])
-                else:
-                    length = size
+        try:
+            fi = urllib2.urlopen(url + fn)
+            log.debug("fetching: %s [%s]" % (fn, url))
+            n = 0
+            h = hashlib.new('md5')
+            if size is None:
+                length = int(fi.headers["Content-Length"])
+            else:
+                length = size
 
-                if progress:
-                    progress.widgets[0] = fn
-                    progress.maxval = length
-                    progress.start()
+            if progress:
+                progress.widgets[0] = fn
+                progress.maxval = length
+                progress.start()
 
-                with open(pp, 'wb') as fo:
-                    while True:
-                        chunk = fi.read(16384)
-                        if not chunk:
-                            break
-                        fo.write(chunk)
-                        if md5:
-                            h.update(chunk)
-                        n += len(chunk)
-                        if progress:
-                            progress.update(n)
+            with open(pp, 'wb') as fo:
+                while True:
+                    chunk = fi.read(16384)
+                    if not chunk:
+                        break
+                    fo.write(chunk)
+                    if md5:
+                        h.update(chunk)
+                    n += len(chunk)
+                    if progress:
+                        progress.update(n)
 
-                fi.close()
-                if progress: progress.finish()
-                if md5 and h.hexdigest() != md5:
-                    raise RuntimeError("MD5 sums mismatch for download: %s" %
-                                       fn)
-                os.rename(pp, path)
-                return url
-            except IOError:
-                log.debug('download failed try: %d' % x)
+            fi.close()
+            if progress: progress.finish()
+            if md5 and h.hexdigest() != md5:
+                raise RuntimeError("MD5 sums mismatch for download: %s" %
+                                   fn)
+            os.rename(pp, path)
+            return url
+        except IOError:
+            log.debug('download failed try: %d' % x)
 
     raise RuntimeError("Could not locate file '%s' on any repository" % fn)

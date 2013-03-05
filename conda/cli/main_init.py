@@ -4,18 +4,16 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import json
 import os
 import platform
 import sys
 from os.path import abspath, exists, expanduser, join
-from urllib2 import urlopen
 
 from conda.constraints import AllOf, Requires, Satisfies
 from conda.package_index import PackageIndex
 from conda.package_spec import PackageSpec
 from conda.install import make_available, link
-from conda.remote import fetch_file
+from conda.remote import fetch_index, fetch_file
 
 
 def configure_parser(sub_parsers):
@@ -48,7 +46,7 @@ def execute(args, parser):
 
     channel = "http://repo.continuum.io/pkgs/free/%s/" % get_platform()
 
-    index = PackageIndex(fetch_index(channel))
+    index = PackageIndex(fetch_index([channel]))
 
     py_spec     = PackageSpec("python 2.7")
     yaml_spec   = PackageSpec("yaml")
@@ -64,28 +62,13 @@ def execute(args, parser):
     pkgs = [py, yaml, pyyaml, conda]
 
     for pkg in pkgs:
-        fetch_file(pkg.filename, [channel], md5=pkg.md5, size=pkg.size, pkgs_dir=pkgs_dir)
+        fetch_file(pkg.channel, pkg.filename, md5=pkg.md5, size=pkg.size,
+                   pkgs_dir=pkgs_dir)
         make_available(pkgs_dir, pkg.canonical_name)
         link(pkgs_dir, pkg.canonical_name, prefix)
 
     if exists(prefix):
         print "Anaconda installed into directory '%s'" % prefix
-
-def fetch_index(url):
-    try:
-        fi = urlopen(url + 'repodata.json')
-        repodata = json.loads(fi.read())
-    except IOError:
-        raise RuntimeError("Failed to fetch index for channel '%s' (bad url or network issue?)" % url)
-
-    fi.close()
-
-    index = repodata['packages']
-
-    for pkg_info in index.itervalues():
-        pkg_info['channel'] = url
-
-    return index
 
 def get_platform():
     sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
