@@ -1,4 +1,4 @@
-2013-03-XX   1.4.0:
+2013-03-05   1.4.0:
 -------------------
   * fixed conda pip NAME==VERSION
   * added conda info --license option
@@ -7,6 +7,7 @@
   * add ability for environments to track "features"
   * add ability to distinguish conda build packages from Anaconda
     packages by adding a "file_hash" meta-data field in info/index.json
+  * add conda.builder.share module
 
 
 2013-02-05   1.3.5:
