@@ -136,6 +136,13 @@ def create_create_plan(prefix, conda, spec_strings):
     # don't install conda into non-default environments
     all_pkgs = [pkg for pkg in all_pkgs if pkg.name != 'conda']
 
+    features = set()
+    for pkg in all_pkgs:
+        for feature |= pkg.track_features:
+    log.debug("features: %s\n" % features)
+
+    all_pkgs = _replace_with_features(env.conda, all_pkgs, features, env_constraints)
+
     # download any packages that are not available
     for pkg in all_pkgs:
         if pkg not in conda.available_packages:
