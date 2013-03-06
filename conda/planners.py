@@ -296,6 +296,7 @@ def create_install_plan(env, spec_strings):
                     raise RuntimeError("could not find package for package specification '%s'" % spec)
 
     all_pkgs = _replace_with_features(env.conda, all_pkgs, features, env_constraints)
+    log.debug("all packages after features: %s\n" % all_pkgs)
 
     # download any packages that are not available
     for pkg in all_pkgs:
@@ -386,9 +387,6 @@ def create_remove_plan(env, pkg_names, follow_deps=True):
             del track_features[feature]
 
     to_add, to_remove = _replace_without_features(env, plan.deactivations, track_features, AllOf(env.requirements))
-
-    print to_add
-    print to_remove
 
     plan.deactivations |= to_remove
 
@@ -694,7 +692,7 @@ def create_download_plan(conda, canonical_names, force):
 def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
     idx = conda.index
 
-    results = all_pkgs
+    results = set(all_pkgs)
 
     all_pkgs_dict = {}
     for pkg in all_pkgs:
