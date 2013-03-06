@@ -139,7 +139,7 @@ def create_create_plan(prefix, conda, spec_strings):
     track_features = set()
     for pkg in all_pkgs:
         track_features |= pkg.track_features
-    log.debug("track_features: %s\n" % features)
+    log.debug("track_features: %s\n" % track_features)
 
     features = {}
     for pkg in all_pkgs:
