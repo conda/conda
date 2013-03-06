@@ -696,7 +696,7 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
 
     all_pkgs_dict = {}
     for pkg in all_pkgs:
-        all_pkgs_dict[pkg.name] = [pkg]
+        all_pkgs_dict[pkg.name] = pkg
 
     for pkg in all_pkgs:
         for feature in pkg.features:
@@ -708,20 +708,26 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
                 rpkgs = idx.find_matches(env_constraints, rpkgs)
                 rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
+                if not rpkg:
+                    raise RuntimeError("cannot find package '%s' without feature '%s'" % (name, feature))
                 results.add(rpkg.pop())
 
-    for feature, fpkgs in track_features.items():
-        for name in fpkgs:
+
+    for feature in track_features:
+        fnames = set([pkg.name for pkg in idx.lookup_from_feature(feature)])
+        for name in fnames:
             if name in all_pkgs_dict:
                 pkg = all_pkgs_dict[name]
                 if feature in pkg.features: continue
                 results.remove(pkg)
                 spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
-                rpkgs = idx.find_compatible_packages(set([specs]))
+                rpkgs = idx.find_compatible_packages(set([spec]))
                 rpkgs = [pkg for pkg in rpkgs if feature in pkg.features]
                 rpkgs = idx.find_matches(env_constraints, rpkgs)
                 rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
+                if not rpkg:
+                    raise RuntimeError("cannot find package '%s' with feature '%s'" % (name, feature))
                 results.add(rpkg.pop())
 
     return results
