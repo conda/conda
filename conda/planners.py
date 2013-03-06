@@ -141,7 +141,7 @@ def create_create_plan(prefix, conda, spec_strings):
         features |= pkg.track_features
     log.debug("features: %s\n" % features)
 
-    all_pkgs = _replace_with_features(env.conda, all_pkgs, features, env_constraints)
+    all_pkgs = _replace_with_features(conda, all_pkgs, features, env_constraints)
 
     # download any packages that are not available
     for pkg in all_pkgs:
