@@ -841,7 +841,7 @@ def _handle_meta_update(conda, pkgs):
 
 def _default_constraint(spec):
     if len(spec.version.version) == 1:
-        req = make_package_spec('%s %s' % spec.name,spec.version.version[0])
+        req = make_package_spec('%s %s' % (spec.name,spec.version.version[0]))
     else:
         req = make_package_spec('%s %s.%s' % (spec.name,spec.version.version[0], spec.version.version[1]))
     sat = make_package_spec('%s %s %s' % (spec.name, spec.version.vstring, spec.build))
