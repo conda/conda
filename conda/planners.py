@@ -138,7 +138,7 @@ def create_create_plan(prefix, conda, spec_strings):
 
     features = set()
     for pkg in all_pkgs:
-        for features |= pkg.track_features
+        features |= pkg.track_features
     log.debug("features: %s\n" % features)
 
     all_pkgs = _replace_with_features(env.conda, all_pkgs, features, env_constraints)
