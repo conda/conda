@@ -109,9 +109,15 @@ def create_create_plan(prefix, conda, spec_strings):
     env_constraints = AllOf(*constraints)
     log.debug("computed environment constraints: %s\n" % env_constraints)
 
+    track_features = set()
+    for pkg in pkgs:
+        track_features |= pkg.track_features
+    log.debug("track_features: %s\n" % track_features)
+
     # now we need to recompute the compatible packages using the computed environment constraints
     pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(env_constraints, pkgs)
+    pkgs = idx.feature_select(pkgs, track_features) 
     pkgs = channel_select(pkgs, conda.channel_urls)
     pkgs = newest_packages(pkgs)
     log.debug("updated packages: %s\n" % pkgs)
@@ -709,9 +715,9 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
         for feature in pkg.features:
             if feature not in track_features:
                 results.remove(pkg)
-                spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
+                spec = make_package_spec("%s=%s" % (pkg.name, pkg.version.vstring))
                 rpkgs = idx.find_compatible_packages(set([spec]))
-                rpkgs = [pkg for pkg in rpkgs if feature not in pkg.features]
+                rpkgs = set([pkg for pkg in rpkgs if feature not in pkg.features])
                 rpkgs = idx.find_matches(env_constraints, rpkgs)
                 rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
@@ -727,9 +733,9 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
                 pkg = all_pkgs_dict[name]
                 if feature in pkg.features: continue
                 results.remove(pkg)
-                spec = make_package_spec("%s %s" % (pkg.name, pkg.version.vstring))
+                spec = make_package_spec("%s=%s" % (pkg.name, pkg.version.vstring))
                 rpkgs = idx.find_compatible_packages(set([spec]))
-                rpkgs = [pkg for pkg in rpkgs if feature in pkg.features]
+                rpkgs = set([pkg for pkg in rpkgs if feature in pkg.features])
                 rpkgs = idx.find_matches(env_constraints, rpkgs)
                 rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
