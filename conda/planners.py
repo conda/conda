@@ -714,7 +714,7 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
                 rpkgs = channel_select(rpkgs, conda.channel_urls)
                 rpkg = newest_packages(rpkgs)
                 if not rpkg:
-                    raise RuntimeError("cannot find package '%s' without feature '%s'" % (name, feature))
+                    raise RuntimeError("cannot find package '%s' without feature '%s'" % (pkg.name, feature))
                 results.add(rpkg.pop())
 
 
