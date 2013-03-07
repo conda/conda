@@ -3,21 +3,20 @@ import sys
 from os.path import isdir, join
 
 
-ROOT_BINPATH = join(sys.prefix, 'bin')
 
 def help():
     if sys.argv[1] == '..activate':
         sys.exit("""Usage: source activate [ENV]
 
-adds the environment ENV to the front of PATH.
+adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
-prefix path.  ENV defaults to: %s""" % ROOT_BINPATH)
+prefix path.  ENV defaults to: %s""" % sys.prefix)
     else: # ..deactivate
         sys.exit("""Usage: source deactivate [ENV]
 
-removes the environment ENV from PATH.
+removes the 'bin' directory of the environment ENV from PATH.
 ENV may either refer to just the name of the environment, or the full
-prefix path.  ENV defaults to: %s""" % ROOT_BINPATH)
+prefix path.  ENV defaults to: %s""" % sys.prefix)
 
 
 def main():
@@ -26,7 +25,7 @@ def main():
         help()
 
     if len(sys.argv) == 2:
-        binpath = ROOT_BINPATH
+        binpath = join(sys.prefix, 'bin')
     elif len(sys.argv) == 3:
         binpath = join(sys.prefix, 'envs', sys.argv[2], 'bin')
     else:
