@@ -57,10 +57,12 @@ def create_create_plan(prefix, conda, spec_strings):
 
         if spec.name == 'python':
             if spec.version: py_spec = spec
+            else: py_spec = make_package_spec(DEFAULT_PYTHON_SPEC)
             continue
 
         if spec.name == 'numpy':
             if spec.version: np_spec = spec
+            else: np_spec = make_package_spec(DEFAULT_NUMPY_SPEC)
             continue
 
         _check_unknown_spec(idx, spec)
