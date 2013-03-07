@@ -42,7 +42,12 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     if len(args.package_specs) == 0 and not args.file:
-        raise RuntimeError('too few arguments, must supply command line package specs or --file')
+        raise RuntimeError('too few arguments, must supply command line '
+                           'package specs or --file')
+
+    if (not args.name) and (not args.prefix):
+        raise RuntimeError('either -n NAME or -p PREFIX option required, '
+                           'try -h for more details')
 
     conda = Anaconda()
 
