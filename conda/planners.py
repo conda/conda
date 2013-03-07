@@ -129,6 +129,7 @@ def create_create_plan(prefix, conda, spec_strings):
         # find the associated dependencies
         deps = idx.get_deps(pkgs)
         deps = idx.find_matches(env_constraints, deps)
+        deps = idx.feature_select(deps, track_features) 
         deps = channel_select(deps, conda.channel_urls)
         deps = newest_packages(deps)
         log.debug("updated dependencies: %s\n" % deps)
@@ -244,7 +245,6 @@ def create_install_plan(env, spec_strings):
     # find packages compatible with the initial specifications
     pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(env.requirements, pkgs)
-    pkgs = newest_packages(pkgs)
     log.debug("initial packages: %s\n" % pkgs)
 
     features = env.features
@@ -254,6 +254,14 @@ def create_install_plan(env, spec_strings):
                 features[feature] = set()
             features[feature].add(pkg)
     log.debug("features: %s\n" % features)
+
+    track_features = set()
+    for pkg in pkgs:
+        track_features |= pkg.track_features
+    log.debug("track_features: %s\n" % track_features)
+
+    pkgs = idx.feature_select(pkgs, track_features) 
+    pkgs = newest_packages(pkgs)
 
     # check to see if this is a meta-package situation (and handle it if so)
     all_pkgs = _handle_meta_install(env.conda, pkgs)
@@ -284,6 +292,7 @@ def create_install_plan(env, spec_strings):
         # now we need to recompute the compatible packages using the updated package specifications
         pkgs = idx.find_compatible_packages(specs)
         pkgs = idx.find_matches(env_constraints, pkgs)
+        pkgs = idx.feature_select(pkgs, track_features) 
         pkgs = channel_select(pkgs, env.conda.channel_urls)
         pkgs = newest_packages(pkgs)
         log.debug("updated packages: %s\n" % pkgs)
@@ -291,6 +300,7 @@ def create_install_plan(env, spec_strings):
         # find the associated dependencies
         deps = idx.get_deps(pkgs)
         deps = idx.find_matches(env_constraints, deps)
+        deps = idx.feature_select(deps, track_features) 
         deps = channel_select(deps, env.conda.channel_urls)
         deps = newest_packages(deps)
         log.debug("updated dependencies: %s\n" % deps)
