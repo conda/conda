@@ -15,11 +15,16 @@ from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
 
 
 def configure_parser(sub_parsers):
+    descr = ("Create a new conda environment from a list of specified "
+             "packages.  To use the created environment, invoke the binaries "
+             "in that environment's bin directory or adjust your PATH to "
+             "look in that directory first.  This command requies either "
+             "the -n NAME or -p PREFIX option.")
     p = sub_parsers.add_parser(
         'create',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.",
-        help            = "Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.",
+        description     = descr,
+        help            = descr,
         epilog          = example,
     )
     add_parser_yes(p)
@@ -47,7 +52,7 @@ def execute(args, parser):
 
     if (not args.name) and (not args.prefix):
         raise RuntimeError('either -n NAME or -p PREFIX option required, '
-                           'try -h for more details')
+                           'try "conda create -h" for more details')
 
     conda = Anaconda()
 
