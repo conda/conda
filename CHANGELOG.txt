@@ -1,3 +1,10 @@
+2013-03-07   1.4.1:
+-------------------
+  * fix some feature selection bugs
+  * never exit in activate and deactivate
+  * improve help and error messages
+
+
 2013-03-05   1.4.0:
 -------------------
   * fixed conda pip NAME==VERSION
