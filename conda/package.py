@@ -118,6 +118,7 @@ class Package(object):
     def print_info(self, show_requires=True):
         print "   package: %s-%s" % (self.name, self.version),
         print "  filename: %s" % self.filename
+        print "   channel: %s" % self.channel
         try:
             print "       md5: %s" % self.md5
         except KeyError:
