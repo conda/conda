@@ -117,7 +117,7 @@ def create_create_plan(prefix, conda, spec_strings):
     # now we need to recompute the compatible packages using the computed environment constraints
     pkgs = idx.find_compatible_packages(specs)
     pkgs = idx.find_matches(env_constraints, pkgs)
-    pkgs = idx.feature_select(pkgs, track_features) 
+    pkgs = idx.feature_select(pkgs, track_features)
     pkgs = channel_select(pkgs, conda.channel_urls)
     pkgs = newest_packages(pkgs)
     log.debug("updated packages: %s\n" % pkgs)

@@ -183,7 +183,7 @@ class PackageIndex(object):
         for feature in track_features:
             fpkgs = self.lookup_from_feature(feature)
             if feature in package_groups:
-                package_groups[feature] &= fpkgs        
+                package_groups[feature] &= fpkgs
         result = set([])
         for pkgs in package_groups.values():
             for pkg in pkgs:
