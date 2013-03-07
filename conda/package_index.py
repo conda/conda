@@ -187,7 +187,6 @@ class PackageIndex(object):
         result = set([])
         for pkgs in package_groups.values():
             for pkg in pkgs:
-                print pkg, pkg.features, track_features, pkg.features - track_features
                 if (pkg.features - track_features):
                     continue
                 result.add(pkg)
