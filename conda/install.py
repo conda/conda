@@ -184,6 +184,13 @@ def link(pkgs_dir, dist, prefix):
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been make available (using make_available() above).
     '''
+    if (sys.platform == 'win32' and
+            abspath(prefix) == abspath(sys.prefix) and
+            dist.rsplit('-', 2)[0] == 'python'):
+        # on Windows we have the file lock problem, so don't allow
+        # linking or unlinking python from the root environment
+        return
+
     if use_hard_links:
         dist_dir = join(pkgs_dir, dist)
         info_dir = join(dist_dir, 'info')
@@ -228,6 +235,13 @@ def unlink(dist, prefix):
     Remove a package from the specified environment, it is an error of the
     package does not exist in the prefix.
     '''
+    if (sys.platform == 'win32' and
+            abspath(prefix) == abspath(sys.prefix) and
+            dist.rsplit('-', 2)[0] == 'python'):
+        # on Windows we have the file lock problem, so don't allow
+        # linking or unlinking python from the root environment
+        return
+
     meta_path = join(prefix, 'conda-meta', dist + '.json')
     with open(meta_path) as fi:
         meta = json.load(fi)
