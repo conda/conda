@@ -765,13 +765,14 @@ def _replace_without_features(env, removals, track_features, env_constraints):
 
         deps = idx.get_deps([pkg]) & env.linked
         for dep in deps:
+            if dep in removals: continue
             for feature in dep.features:
 
                 if feature not in track_features:
                     to_remove.add(dep)
                     rdeps = (idx.get_reverse_deps([dep]) - removals) & env.linked
                     min_rdeps = (idx.get_reverse_deps([dep], 1) - deps - removals) & env.linked
-                    if not rdeps: continue
+
                     spec = make_package_spec("%s %s" % (dep.name, dep.version.vstring))
                     rpkgs = idx.find_compatible_packages(set([spec]))
                     rpkgs = [pkg for pkg in rpkgs if feature not in pkg.features]
