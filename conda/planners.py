@@ -770,15 +770,18 @@ def _replace_without_features(env, removals, track_features, env_constraints):
                 if feature not in track_features:
                     to_remove.add(dep)
                     rdeps = idx.get_reverse_deps([dep]) & env.linked
-                    if not rdeps:
-                        to_remove.add(dep)
-                        continue
+                    min_rdeps = (idx.get_reverse_deps([dep], 1) - deps - removals) & env.linked
+                    if not rdeps: continue
                     spec = make_package_spec("%s %s" % (dep.name, dep.version.vstring))
                     rpkgs = idx.find_compatible_packages(set([spec]))
                     rpkgs = [pkg for pkg in rpkgs if feature not in pkg.features]
                     rpkgs = idx.find_matches(env_constraints, rpkgs)
                     rpkgs = channel_select(rpkgs, env.conda.channel_urls)
                     rpkg = newest_packages(rpkgs)
+                    if not rpkg:
+                        if not min_rdeps: continue
+                        else:
+                            raise RuntimeError("Cannot find replacement for package '%s' without feature '%s' while removing package '%s'" % (dep.name, feature, pkg))
                     to_add.add(rpkg.pop())
 
     return to_add, to_remove
