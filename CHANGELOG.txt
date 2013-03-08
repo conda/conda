@@ -1,3 +1,10 @@
+2013-03-08   1.4.2:
+-------------------
+  * feature selection fix for update
+  * Windows: don't allow linking or unlinking python from the root
+             environment because the file lock, see issue #42
+
+
 2013-03-07   1.4.1:
 -------------------
   * fix some feature selection bugs
