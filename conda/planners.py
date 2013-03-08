@@ -501,6 +501,11 @@ def create_update_plan(env, pkg_names):
 
     if len(updates) == 0: return plan  # nothing to do
 
+    track_features = set()
+    for pkg in pkgs:
+        track_features |= pkg.track_features
+    log.debug("track_features: %s\n" % track_features)
+
     all_pkgs = _handle_meta_update(env.conda, updates)
 
     if not all_pkgs:
@@ -511,6 +516,7 @@ def create_update_plan(env, pkg_names):
         # find newest packages compatible with these requirements
         all_pkgs = all_deps | updates
         all_pkgs = idx.find_matches(env.requirements, all_pkgs)
+        all_pkgs = idx.feature_select(all_pkgs, track_features)
         all_pkgs = channel_select(all_pkgs, env.conda.channel_urls)
         all_pkgs = newest_packages(all_pkgs)
 
