@@ -1,3 +1,8 @@
+2013-03-09   1.4.3:
+-------------------
+  * fixed bug in conda.builder.share.clone_bundle()
+
+
 2013-03-08   1.4.2:
 -------------------
   * feature selection fix for update
