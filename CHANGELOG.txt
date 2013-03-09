@@ -1,3 +1,8 @@
+2013-03-09   1.4.4:
+-------------------
+  * use numpy 1.7 as default on all platfroms
+
+
 2013-03-09   1.4.3:
 -------------------
   * fixed bug in conda.builder.share.clone_bundle()
