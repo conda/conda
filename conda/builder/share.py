@@ -83,6 +83,7 @@ def clone_bundle(path, prefix):
     if dist not in avail:
         shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
         make_available(pkgs_dir, dist)
+    assert dist in avail
 
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
         meta = json.load(fi)
@@ -92,22 +93,23 @@ def clone_bundle(path, prefix):
 
     dists = ['-'.join(r.split()) for r in meta['requires']
              if not r.startswith('conda ')]
-    for dist in dists:
-        if dist in avail:
+    dists.append(dist)
+    for d in dists:
+        if d in avail:
             continue
-        print "fetching:", dist
-        fn = dist + '.tar.bz2'
+        print "fetching:", d
+        fn = d + '.tar.bz2'
         if fn in index:
             info = index[fn]
             fetch_file(info['channel'], fn, info['md5'], info['size'])
         else:
             print "WARNING: not in index %r" % fn
-        make_available(pkgs_dir, dist)
+        make_available(pkgs_dir, d)
 
     avail = available(pkgs_dir)
-    for dist in dists:
-        if dist in avail:
-            link(pkgs_dir, dist, prefix)
+    for d in dists:
+        if d in avail:
+            link(pkgs_dir, d, prefix)
 
     os.unlink(join(prefix, 'conda-meta', dist + '.json'))
 
