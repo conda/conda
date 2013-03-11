@@ -263,31 +263,32 @@ def create_install_plan(env, spec_strings):
     pkgs = idx.feature_select(pkgs, track_features)
     pkgs = newest_packages(pkgs)
 
+     # find the associated dependencies
+    deps = idx.get_deps(pkgs)
+    deps = idx.find_matches(env.requirements, deps)
+    log.debug("initial dependencies: %s\n" % deps)
+
+    # add default python and numpy requirements if needed
+    constraints = [env.requirements]
+    dep_names = [dep.name for dep in deps]
+
+    if py_spec:
+        constraints.append(_default_constraint(py_spec))
+    elif 'python' in dep_names and not env.find_linked_package('python'):
+        constraints.append(_default_constraint(make_package_spec(DEFAULT_PYTHON_SPEC)))
+
+    if np_spec:
+        constraints.append(_default_constraint(np_spec))
+    elif 'numpy' in dep_names and not env.find_linked_package('numpy'):
+        constraints.append(_default_constraint(make_package_spec(DEFAULT_NUMPY_SPEC)))
+
+    env_constraints = AllOf(*constraints)
+    log.debug("computed environment constraints: %s\n" % env_constraints)
+
     # check to see if this is a meta-package situation (and handle it if so)
     all_pkgs = _handle_meta_install(env.conda, pkgs)
 
     if not all_pkgs:
-        # find the associated dependencies
-        deps = idx.get_deps(pkgs)
-        deps = idx.find_matches(env.requirements, deps)
-        log.debug("initial dependencies: %s\n" % deps)
-
-        # add default python and numpy requirements if needed
-        constraints = [env.requirements]
-        dep_names = [dep.name for dep in deps]
-
-        if py_spec:
-            constraints.append(_default_constraint(py_spec))
-        elif 'python' in dep_names and not env.find_linked_package('python'):
-            constraints.append(_default_constraint(make_package_spec(DEFAULT_PYTHON_SPEC)))
-
-        if np_spec:
-            constraints.append(_default_constraint(np_spec))
-        elif 'numpy' in dep_names and not env.find_linked_package('numpy'):
-            constraints.append(_default_constraint(make_package_spec(DEFAULT_NUMPY_SPEC)))
-
-        env_constraints = AllOf(*constraints)
-        log.debug("computed environment constraints: %s\n" % env_constraints)
 
         # now we need to recompute the compatible packages using the updated package specifications
         pkgs = idx.find_compatible_packages(specs)
@@ -776,7 +777,6 @@ def _replace_without_features(env, removals, track_features, env_constraints):
 
                 if feature not in track_features:
                     to_remove.add(dep)
-                    rdeps = (idx.get_reverse_deps([dep]) - removals) & env.linked
                     min_rdeps = (idx.get_reverse_deps([dep], 1) - deps - removals) & env.linked
 
                     spec = make_package_spec("%s %s" % (dep.name, dep.version.vstring))
