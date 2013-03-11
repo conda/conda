@@ -8,7 +8,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.anaconda import Anaconda
 from conda.planners import create_update_plan
-from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix
+from utils import add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
 
 
 def configure_parser(sub_parsers):
@@ -21,6 +21,7 @@ def configure_parser(sub_parsers):
     )
     add_parser_yes(p)
     add_parser_prefix(p)
+    add_parser_quiet(p)
     p.add_argument(
         'pkg_names',
         metavar = 'package_name',
@@ -52,7 +53,7 @@ def execute(args, parser):
     print plan
 
     confirm(args)
-    plan.execute(env)
+    plan.execute(env, not args.quiet)
 
 
 example = '''
