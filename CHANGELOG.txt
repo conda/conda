@@ -1,3 +1,8 @@
+2013-03-12   1.4.6:
+-------------------
+  * fixed channel selection (issue #56)
+
+
 2013-03-11   1.4.5:
 -------------------
   * fix issue #53 with install for meta packages
