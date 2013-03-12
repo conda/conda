@@ -261,6 +261,7 @@ def create_install_plan(env, spec_strings):
     log.debug("track_features: %s\n" % track_features)
 
     pkgs = idx.feature_select(pkgs, track_features)
+    pkgs = channel_select(pkgs, env.conda.channel_urls)
     pkgs = newest_packages(pkgs)
 
      # find the associated dependencies
