@@ -1,0 +1,6 @@
+  * add ability build (relocate-able) conda package which contain
+    native object code
+  * use SAT solver
+  * finish conda-api
+    open questions here:
+      - what about events (e.g. for long running downloads) ?
