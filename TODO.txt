@@ -4,3 +4,4 @@
   * finish conda-api
     open questions here:
       - what about events (e.g. for long running downloads) ?
+  * "export" packages into other formats, e.g. RPM, wheel, eggs, ..
