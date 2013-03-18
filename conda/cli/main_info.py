@@ -97,6 +97,7 @@ def execute(args, parser):
             print "LD_LIBRARY_PATH: %s" % os.getenv('LD_LIBRARY_PATH')
         elif sys.platform == 'darwin':
             print "DYLD_LIBRARY_PATH: %s" % os.getenv('DYLD_LIBRARY_PATH')
+        print "CONDA_DEFAULT_ENV: %s" % os.getenv('CONDA_DEFAULT_ENV')
         print
 
     if args.license:
