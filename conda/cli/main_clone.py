@@ -8,7 +8,7 @@ from utils import add_parser_prefix, add_parser_output_json, get_prefix
 from conda.builder.share import clone_bundle
 
 
-descr = 'clone a "share package" (created using the share command)'
+descr = 'Clone a "share package" (created using the share command)'
 
 
 def configure_parser(sub_parsers):
