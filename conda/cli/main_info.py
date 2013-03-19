@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -6,7 +6,11 @@
 
 import os
 import sys
-from conda.config import Config
+import json
+import conda
+from conda.config import Config, ROOT_DIR, DEFAULT_ENV_PREFIX, RC_PATH
+
+from utils import add_parser_output_json
 
 
 def configure_parser(sub_parsers):
@@ -15,6 +19,7 @@ def configure_parser(sub_parsers):
         description     = "Display information about current conda install.",
         help            = "Display information about current conda install.",
     )
+    add_parser_output_json(p)
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
         '-a', "--all",
@@ -48,6 +53,18 @@ def execute(args, parser):
     options = ['envs', 'locations', 'system', 'license']
 
     conf = Config()
+
+    if args.output_json:
+        d = dict(
+            platform=conf.platform,
+            conda_version=conda.__version__,
+            root_prefix=ROOT_DIR,
+            default_prefix=DEFAULT_ENV_PREFIX,
+            channels=conf.channel_urls,
+            rc_path=RC_PATH,
+        )
+        json.dump(d, sys.stdout, indent=2, sort_keys=True)
+        return
 
     if args.all:
         for option in options:
