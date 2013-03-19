@@ -1,4 +1,5 @@
 import sys
+import argparse
 from os.path import abspath, expanduser, join
 
 from conda.config import ENVS_DIR, DEFAULT_ENV_PREFIX
@@ -46,7 +47,7 @@ def add_parser_output_json(p):
     p.add_argument(
         "--output-json",
         action = "store_true",
-        help = "write all stdout in json",
+        help = argparse.SUPPRESS,
     )
 
 
