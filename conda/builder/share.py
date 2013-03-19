@@ -104,7 +104,7 @@ def clone_bundle(path, prefix):
             info = index[fn]
             fetch_file(info['channel'], fn, info['md5'], info['size'])
         else:
-            print "WARNING: not in index %r" % fn
+            yield "not in index %r" % fn
         make_available(pkgs_dir, d)
 
     avail = available(pkgs_dir)

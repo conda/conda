@@ -1,7 +1,9 @@
+import sys
+import json
 from os.path import isfile
 from argparse import RawDescriptionHelpFormatter
 
-from utils import add_parser_prefix, get_prefix
+from utils import add_parser_prefix, add_parser_output_json, get_prefix
 
 from conda.builder.share import clone_bundle
 
@@ -24,6 +26,7 @@ def configure_parser(sub_parsers):
         help    = 'path to "share package"',
     )
     add_parser_prefix(p)
+    add_parser_output_json(p)
     p.set_defaults(func=execute)
 
 
@@ -37,4 +40,12 @@ def execute(args, parser):
     if not isfile(path):
         raise RuntimeError("no such file: %s" % path)
 
-    clone_bundle(path, prefix)
+    warnings = []
+    for w in clone_bundle(path, prefix):
+        if args.output_json:
+            warnings.append(w)
+        else:
+            print "Warning:", w
+            
+    if args.output_json:
+        json.dump(warnings, sys.stdout, indent=2)
