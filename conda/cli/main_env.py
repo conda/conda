@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -27,19 +27,16 @@ def configure_parser(sub_parsers):
     adr_group.add_argument(
         '-l', "--link",
         action  = "store_true",
-        default = False,
         help    = "link available packages in the specified Anaconda environment.",
     )
     adr_group.add_argument(
         '-u', "--unlink",
         action  = "store_true",
-        default = False,
         help    = "unlink packages in an Anaconda environment.",
     )
     adr_group.add_argument(
         '-r', "--remove",
         action  = "store_true",
-        default = False,
         help    = "delete an Anaconda environment.",
     )
     p.add_argument(

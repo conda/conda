@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -18,20 +18,18 @@ def configure_parser(sub_parsers):
 
     p.add_argument(
         '-f', "--force",
-        action  = "store_true",
-        default = False,
-        help    = "force reading all files",
+        action = "store_true",
+        help = "force reading all files",
     )
     p.add_argument(
         '-q', "--quiet",
-        action  = "store_true",
-        default = False,
+        action = "store_true",
     )
     p.add_argument(
         'directories',
         metavar = 'DIRECTORIES',
-        action  = "store",
-        nargs   = '*',
+        action = "store",
+        nargs = '*',
     )
     p.set_defaults(func=execute)
 

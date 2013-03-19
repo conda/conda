@@ -177,11 +177,11 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
             h.update(link)
             if link.startswith('/'):
                 warnings.append('found symlink to absolute path: %s -> %s' %
-                                (path, link))
+                                (f, link))
         elif isfile(path):
             h.update(open(path, 'rb').read())
             if path.endswith('.egg-link'):
-                warnings.append('found egg link: %s' % path)
+                warnings.append('found egg link: %s' % f)
 
     info['file_hash'] = h.hexdigest()
     if update_info:

@@ -23,25 +23,23 @@ def configure_parser(sub_parsers):
         action  = "store",
         type    = int,
         default = 0,
-        help    = "maximum depth to search dependencies, 0 searches all depths (default: 0)",
+        help = "maximum depth to search dependencies, 0 searches all depths "
+               "(default: 0)",
     )
     p.add_argument(
         "--all",
         action  = "store_true",
-        default = False,
         help    = "return reverse dependencies compatible with any specified environment, overrides --name and --prefix",
     )
     add_parser_prefix(p)
     p.add_argument(
         '-r', "--reverse",
         action  = "store_true",
-        default = False,
         help    = "generate reverse dependencies",
     )
     p.add_argument(
         '-v', "--verbose",
         action  = "store_true",
-        default = False,
         help    = "display build strings on reverse dependencies",
     )
     p.add_argument(
