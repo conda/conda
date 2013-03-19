@@ -21,7 +21,7 @@ conda Overview
 
 .. code-block:: bash
 
-    # First, let's check our system numpy version
+    # First, let's check our system NumPy version
 
     $ python
     Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
@@ -31,7 +31,7 @@ conda Overview
     >>> numpy.version.full_version
     '1.7.0b2'
 
-    # Now we'll create an anaconda environment using a different version of numpy
+    # Now we'll create an anaconda environment using a different version of NumPy
 
     $ conda create -p ~/anaconda/envs/test numpy=1.6 anaconda
 
@@ -45,7 +45,7 @@ conda Overview
 
     $ export PATH=~/anaconda/envs/test/bin/:$PATH
 
-    # Finally, we check the versions again
+    # Finally, we check the version again
 
     $ python
     Python 2.7.3 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
@@ -76,7 +76,7 @@ conda Overview
     pair: terminology; deactivated
 
 Anaconda packages are downloaded from remote **channels**, which are simply URLs to directories containing Anaconda packages. 
-The ``conda`` command starts with a default set of channels to search, but users may exert control over this list, for example if they wish to maintain a private or internal channel (see Configuration_ for details).
+The ``conda`` command starts with a default set of channels to search, but users may exert control over this list; for example, if they wish to maintain a private or internal channel (see Configuration_ for details).
 Continuum provides the following standard channels:
  * ``http://repo.continuum.io/pkgs/dev`` - Experimental or developmental versions of packages
  * ``http://repo.continuum.io/pkgs/gpl`` - GPL licensed packages
@@ -157,7 +157,7 @@ These components are illustrated in the following figure:
     pair: terminology; package specification
     seealso: package spec; package specification
 
-Additionally, a **package specification** is a package name, together with a package version (which may be partial, or absent), joined by "=". Here are some examples:
+Additionally, a **package specification** is a package name, together with a package version (which may be partial or absent), joined by "=". Here are some examples:
 
 * *python=2.7.3*
 * *python=2.7*
@@ -168,7 +168,7 @@ In usage documentation, these will be referred to by ``package_spec``.
 .. _meta_package:
 
 -------------
-Meta Packages
+Meta-Packages
 -------------
 ``conda`` also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
 packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an Anaconda environment. When creating, updating, or installing into environments, only one meta-package may be specified, and no additional packages may be specified.
@@ -182,7 +182,7 @@ Directory Structure
 The Anaconda installation has the following directory structure:
 
 *ROOT_DIR*
-    The directory that Anaconda was installed into, for example */opt/anaconda* or *C:\\Anaconda*
+    The directory that Anaconda was installed into; for example, */opt/anaconda* or *C:\\Anaconda*
 
     */pkgs*
         Also referred to as *PKGS_DIR*. This directory contains exploded packages, ready to be activated in Anaconda environments. Each package resides in a subdirectory corresponding to its canonical name.
