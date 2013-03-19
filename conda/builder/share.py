@@ -55,12 +55,13 @@ def create_bundle(prefix):
     )
     tmp_dir = tempfile.mkdtemp()
     tmp_path = join(tmp_dir, 'share.tar.bz2')
-    create_conda_pkg(prefix, untracked(prefix, exclude_self_build=True),
-                     info, tmp_path, update_info)
+    warnings = create_conda_pkg(prefix,
+                                untracked(prefix, exclude_self_build=True),
+                                info, tmp_path, update_info)
 
     path = join(tmp_dir, '%(name)s-%(version)s-%(build)s.tar.bz2' % info)
     os.rename(tmp_path, path)
-    return path
+    return path, warnings
 
 
 def clone_bundle(path, prefix):
