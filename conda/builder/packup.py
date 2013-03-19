@@ -154,9 +154,10 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
 def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     """
     create a conda package with `files` (in `prefix` and `info` metadata)
-    at `tar_path`.
+    at `tar_path`, and return a list of warning strings
     """
     files = sorted(files)
+    warnings = []
     has_prefix = []
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tar_path, 'w:bz2')
@@ -172,9 +173,15 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         h.update(f)
         h.update('\x00')
         if islink(path):
-            h.update(os.readlink(path))
+            link = os.readlink(path)
+            h.update(link)
+            if link.startswith('/'):
+                warnings.append('found symlink to absolute path: %s -> %s' %
+                                (path, link))
         elif isfile(path):
             h.update(open(path, 'rb').read())
+            if path.endswith('.egg-link'):
+                warnings.append('found egg link: %s' % path)
 
     info['file_hash'] = h.hexdigest()
     if update_info:
@@ -182,6 +189,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     _add_info_dir(t, tmp_dir, files, has_prefix, info)
     t.close()
     shutil.rmtree(tmp_dir)
+    return warnings
 
 
 def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
