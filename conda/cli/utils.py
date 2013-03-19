@@ -33,14 +33,20 @@ def add_parser_yes(p):
     p.add_argument(
         "--yes",
         action = "store_true",
-        default = False,
         help = "do not ask for confirmation",
     )
     p.add_argument(
         "--dry-run",
         action = "store_true",
-        default = False,
         help = "only display what would have been done",
+    )
+
+
+def add_parser_output_json(p):
+    p.add_argument(
+        "--output-json",
+        action = "store_true",
+        help = "write all stdout in json",
     )
 
 
@@ -61,7 +67,6 @@ def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
         action = "store_true",
-        default = False,
         help = "do not display progress bar",
     )
 

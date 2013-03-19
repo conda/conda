@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -26,7 +26,6 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-f', "--force",
         action  = "store_true",
-        default = False,
         help    = "force package downloads even when specific package is already available",
     )
     add_parser_quiet(p)
@@ -41,13 +40,11 @@ def configure_parser(sub_parsers):
     drgroup.add_argument(
         '-d', "--download",
         action  = "store_true",
-        default = False,
         help    = "download Anaconda packages and their dependencies.",
     )
     drgroup.add_argument(
         '-r', "--remove",
         action  = "store_true",
-        default = False,
         help    = "remove packages from local availability.",
     )
     p.set_defaults(func=execute)

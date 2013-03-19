@@ -31,19 +31,16 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-c', "--canonical",
         action  = "store_true",
-        default = False,
         help    = "output canonical names of packages only",
     )
     p.add_argument(
         '-s', "--show-requires",
         action  = "store_true",
-        default = False,
         help    = "also display package requirements",
     )
     p.add_argument(
         '-v', "--verbose",
         action  = "store_true",
-        default = False,
         help    = "Show available packages as blocks of data",
     )
     p.add_argument(

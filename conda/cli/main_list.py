@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -20,7 +20,6 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-c', "--canonical",
         action  = "store_true",
-        default = False,
         help    = "output canonical names of packages only",
     )
     p.add_argument(

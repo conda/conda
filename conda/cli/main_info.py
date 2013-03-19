@@ -19,30 +19,25 @@ def configure_parser(sub_parsers):
     els_group.add_argument(
         '-a', "--all",
         action  = "store_true",
-        default = False,
         help    = "show location, license, and system information.")
     els_group.add_argument(
         '-e', "--envs",
         action  = "store_true",
-        default = False,
         help    = "list all known conda environments.",
     )
     els_group.add_argument(
         "--license",
         action  = "store_true",
-        default = False,
         help    = "display information about local conda licenses list",
     )
     els_group.add_argument(
         "--locations",
         action  = "store_true",
-        default = False,
         help    = "list known locations for conda environments.",
     )
     els_group.add_argument(
         '-s', "--system",
         action = "store_true",
-        default = False,
         help = "list PATH and PYTHONPATH environments for debugging purposes",
     )
     p.set_defaults(func=execute)
