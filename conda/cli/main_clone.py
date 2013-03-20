@@ -48,4 +48,4 @@ def execute(args, parser):
             print "Warning:", w
             
     if args.output_json:
-        json.dump(warnings, sys.stdout, indent=2)
+        json.dump(dict(warnings=warnings), sys.stdout, indent=2)
