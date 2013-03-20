@@ -26,7 +26,7 @@ def execute(args, parser):
     prefix = get_prefix(args)
     path, warnings = create_bundle(prefix)
 
-    if args.output_json:
+    if args.json:
         d = dict(path=path, warnings=warnings)
         json.dump(d, sys.stdout, indent=2, sort_keys=True)
     else:
