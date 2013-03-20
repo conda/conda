@@ -42,10 +42,10 @@ def execute(args, parser):
 
     warnings = []
     for w in clone_bundle(path, prefix):
-        if args.output_json:
+        if args.json:
             warnings.append(w)
         else:
             print "Warning:", w
             
-    if args.output_json:
+    if args.json:
         json.dump(dict(warnings=warnings), sys.stdout, indent=2)

@@ -54,7 +54,7 @@ def execute(args, parser):
 
     conf = Config()
 
-    if args.output_json:
+    if args.json:
         d = dict(
             platform=conf.platform,
             conda_version=conda.__version__,
