@@ -23,7 +23,7 @@ def make_package_spec(spec_string):
     Parameters
     ----------
     spec_string : str
-        a string containing a package name and (optional) version and (optional) build string, separated by a spaces or by '='
+        a string containing a package name and (optional) version and (optional) build string, separated by spaces or by '='
 
     Examples
     --------
@@ -45,7 +45,7 @@ class PackageSpec(object):
     Parameters
     ----------
     spec_string : str
-        a string containing a package name and (optional) version and (optional) build string, separated by a spaces or by '='
+        a string containing a package name and (optional) version and (optional) build string, separated by spaces or by '='
 
 
     Attributes
