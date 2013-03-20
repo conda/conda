@@ -1,9 +1,9 @@
-Create a new Anaconda environment from a list of specified packages. To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.
+Create a new conda environment from a list of specified packages.  To use the created environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in that directory first.  This command requires either the -n NAME or -p PREFIX option.
 
 **usage**: ``conda create [-h] [--yes] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]``
 
 *package_spec*
-        package specification of package to install into new Anaconda environment
+	specification of package to install into new Anaconda environment
 
 optional arguments:
   -h, --help            show this help message and exit
