@@ -118,6 +118,8 @@ class Config(object):
         sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
         bits = int(platform.architecture()[0][:2])
         system = sys_map.get(sys.platform, 'unknown')
+        if system == 'linux' and platform.machine() == 'armv6l':
+            return 'linux-armv6l'
         return '%s-%d' % (system, bits)
 
     @property
