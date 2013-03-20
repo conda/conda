@@ -18,7 +18,7 @@ def configure_parser(sub_parsers):
     descr = ("Create a new conda environment from a list of specified "
              "packages.  To use the created environment, invoke the binaries "
              "in that environment's bin directory or adjust your PATH to "
-             "look in that directory first.  This command requies either "
+             "look in that directory first.  This command requires either "
              "the -n NAME or -p PREFIX option.")
     p = sub_parsers.add_parser(
         'create',
@@ -40,7 +40,7 @@ def configure_parser(sub_parsers):
         metavar = 'package_spec',
         action  = "store",
         nargs   ='*',
-        help    = "package specification of package to install into new Anaconda environment",
+        help    = "specification of package to install into new Anaconda environment",
     )
     p.set_defaults(func=execute)
 

@@ -1,9 +1,9 @@
-Update Anaconda packages.
+Update conda packages.
 
-**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [package_name [package_name ...]]``
+**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [-q] [package_name [package_name ...]]``
 
 *package_name*
-        names of packages to update (default: anaconda)
+	names of packages to update (default: anaconda)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -12,6 +12,7 @@ optional arguments:
   -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
                         full path to environment prefix (default: ROOT_DIR)
+  -q, --quiet           do not display progress bar
 
 examples:
     conda update -p ~/anaconda/envs/myenv scipy

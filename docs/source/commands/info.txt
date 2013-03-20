@@ -1,8 +1,11 @@
-Display information about current Anaconda install.
+Display information about current conda install.
 
-**usage**: ``conda info [-h] [-e | -l]``
+**usage**: ``conda info [-h] [-a | -e | --license | --locations | -s]``
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -e, --envs       list all known Anaconda environments.
-  -l, --locations  list known locations for Anaconda environments.
+  -h, --help    show this help message and exit
+  -a, --all     show location, license, and system information.
+  -e, --envs    list all known conda environments.
+  --license     display information about local conda licenses list
+  --locations   list known locations for conda environments.
+  -s, --system  list PATH and PYTHONPATH environments for debugging purposes

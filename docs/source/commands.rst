@@ -9,6 +9,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   commands/clone
    commands/create
    commands/depends
    commands/env
@@ -20,4 +21,5 @@ Contents:
    commands/package
    commands/pip
    commands/search_
+   commands/share
    commands/update

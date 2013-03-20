@@ -19,10 +19,11 @@ cmd_names = [
     'create',
     'install',
     'update',
-    'upgrade',
     'package',
     'pip',
-    'index'
+    'index',
+    'share',
+    'clone'
 ]
 
 def scrape_help(cmd_name):

@@ -1,9 +1,9 @@
-Query Anaconda package dependencies.
+Query conda package dependencies.
 
 **usage**: ``conda depends [-h] [-m MAX_DEPTH] [--all] [-n NAME | -p PREFIX] [-r] [-v] package_name [package_name ...]``
 
 *package_name*
-        optional arguments:
+	optional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit

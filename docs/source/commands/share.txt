@@ -1,9 +1,6 @@
-Call pip and create a conda package in an environment. (ADVANCED)
+Create a "share package" which may be cloned
 
-**usage**: ``conda pip [-h] [-n NAME | -p PREFIX] name [name ...]``
-
-*name*
-	name of package to pip install
+**usage**: ``conda share [-h] [-n NAME | -p PREFIX]``
 
 optional arguments:
   -h, --help            show this help message and exit
