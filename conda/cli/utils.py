@@ -43,9 +43,9 @@ def add_parser_yes(p):
     )
 
 
-def add_parser_output_json(p):
+def add_parser_json(p):
     p.add_argument(
-        "--output-json",
+        "--json",
         action = "store_true",
         help = argparse.SUPPRESS,
     )

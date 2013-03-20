@@ -10,7 +10,7 @@ import json
 import conda
 from conda.config import Config, ROOT_DIR, DEFAULT_ENV_PREFIX, RC_PATH
 
-from utils import add_parser_output_json
+from utils import add_parser_json
 
 
 def configure_parser(sub_parsers):
@@ -19,7 +19,7 @@ def configure_parser(sub_parsers):
         description     = "Display information about current conda install.",
         help            = "Display information about current conda install.",
     )
-    add_parser_output_json(p)
+    add_parser_json(p)
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
         '-a', "--all",
