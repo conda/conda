@@ -46,6 +46,6 @@ def execute(args, parser):
             warnings.append(w)
         else:
             print "Warning:", w
-            
+
     if args.json:
         json.dump(dict(warnings=warnings), sys.stdout, indent=2)
