@@ -1,9 +1,9 @@
-Add and remove Anaconda packages from local availability. 
+Add and remove Anaconda packages from local availability.
 
 **usage**: ``conda local [-h] [--yes] [--dry-run] [-f] [-q] [-d | -r] canonical_name [canonical_name ...]``
 
 *canonical_name*
-	canonical name of package to download and make locally available
+        canonical name of package to download and make locally available
 
 optional arguments:
   -h, --help      show this help message and exit
