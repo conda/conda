@@ -3,6 +3,7 @@
   * add conda share and clone commands
   * add (hidden) --output-json option to clone, share and info commands
     to support the conda-api package
+  * add repo sub-directory type 'linux-armv6l'
 
 
 2013-03-12   1.4.6:
