@@ -80,10 +80,11 @@ def clone_bundle(path, prefix):
     assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
     dist = fn[:-8]
 
-    avail = available(pkgs_dir)
-    if dist not in avail:
+    if dist not in available(pkgs_dir):
         shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
         make_available(pkgs_dir, dist)
+
+    avail = available(pkgs_dir)
     assert dist in avail
 
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
@@ -98,7 +99,7 @@ def clone_bundle(path, prefix):
     for d in dists:
         if d in avail:
             continue
-        print "fetching:", d
+        #print "fetching:", d
         fn = d + '.tar.bz2'
         if fn in index:
             info = index[fn]
