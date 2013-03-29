@@ -7,12 +7,25 @@ from os.path import join, getmtime
 from utils import bzip2, file_info
 
 
+app_pat = re.compile(r'App-(\w+)/meta\.json$')
+
+def get_app_id(files):
+    res = []
+    for f in files:
+        m = app_pat.match(f)
+        if m:
+            res.append(m.group(1))
+    assert len(res) == 1, res
+    return res[0]
+
 def add_app_metadata(t, info):
     info['type'] = 'app'
+    files = [m.path for m in t.getmembers()]
+    app_id = get_app_id(files)
+    print 'app_id:', app_id
 
 
 def read_index_tar(tar_path):
-    app_pat = re.compile(r'App-\w+/meta\.json$')
     with tarfile.open(tar_path) as t:
         info = json.load(t.extractfile('info/index.json'))
         if any(app_pat.match(m.path) for m in t.getmembers()):
