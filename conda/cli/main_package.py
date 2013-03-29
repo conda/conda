@@ -69,14 +69,16 @@ def execute(args, parser):
             print '%s FAILED' % basename(args.check)
         return
 
-    print 'prefix:', prefix
+    print '# prefix:', prefix
 
     if args.reset:
         remove(prefix, untracked(prefix))
         return
 
     if args.untracked:
-        for fn in sorted(untracked(prefix)):
+        files = sorted(untracked(prefix))
+        print '# untracked files: %d' % len(files)
+        for fn in files:
             print fn
         return
 
