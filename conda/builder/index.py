@@ -8,7 +8,7 @@ from utils import bzip2, file_info
 
 
 def add_app_metadata(t, info):
-    pass
+    info['type'] = 'app'
 
 
 def read_index_tar(tar_path):
