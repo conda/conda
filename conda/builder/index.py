@@ -1,6 +1,8 @@
 import os
 import re
 import json
+import base64
+import hashlib
 import tarfile
 from os.path import join, getmtime
 
@@ -9,7 +11,7 @@ from utils import bzip2, file_info
 
 app_pat = re.compile(r'App-(\w+)/meta\.json$')
 
-def get_app_id(files):
+def get_app_name(files):
     res = []
     for f in files:
         m = app_pat.match(f)
@@ -21,9 +23,12 @@ def get_app_id(files):
 def add_app_metadata(t, info):
     info['type'] = 'app'
     files = [m.path for m in t.getmembers()]
-    app_id = get_app_id(files)
-    print 'app_id:', app_id
-
+    app_name = get_app_name(files)
+    meta = json.loads(t.extractfile('App-%s/meta.json' % app_name).read())
+    icondata = t.extractfile('App-%s/%s' % (app_name, meta['icon'])).read()
+    info['icondata'] = base64.b64encode(icondata)
+    info['icon'] = hashlib.md5(icondata).hexdigest()
+    info['summary'] = meta.get('summary')
 
 def read_index_tar(tar_path):
     with tarfile.open(tar_path) as t:
