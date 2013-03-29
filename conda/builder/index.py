@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import tarfile
 from os.path import join, getmtime
@@ -6,9 +7,17 @@ from os.path import join, getmtime
 from utils import bzip2, file_info
 
 
+def add_app_metadata(t, info):
+    pass
+
+
 def read_index_tar(tar_path):
+    app_pat = re.compile(r'App-\w+/meta\.json$')
     with tarfile.open(tar_path) as t:
-        return json.load(t.extractfile('info/index.json'))
+        info = json.load(t.extractfile('info/index.json'))
+        if any(app_pat.match(m.path) for m in t.getmembers()):
+            add_app_metadata(t, info)
+        return info
 
 
 def update_index(dir_path, verbose=False, force=False):
