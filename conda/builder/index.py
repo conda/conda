@@ -21,14 +21,17 @@ def get_app_name(files):
     return res[0]
 
 def add_app_metadata(t, info):
-    info['type'] = 'app'
     files = [m.path for m in t.getmembers()]
     app_name = get_app_name(files)
     meta = json.loads(t.extractfile('App-%s/meta.json' % app_name).read())
     icondata = t.extractfile('App-%s/%s' % (app_name, meta['icon'])).read()
-    info['icondata'] = base64.b64encode(icondata)
-    info['icon'] = hashlib.md5(icondata).hexdigest()
-    info['summary'] = meta.get('summary')
+    info.update(dict(
+            type = 'app',
+            app_name = app_name,
+            icondata = base64.b64encode(icondata),
+            icon = hashlib.md5(icondata).hexdigest(),
+            summary = meta.get('summary'),
+    ))
 
 def read_index_tar(tar_path):
     with tarfile.open(tar_path) as t:
