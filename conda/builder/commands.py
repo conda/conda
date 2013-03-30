@@ -80,4 +80,4 @@ def launch(app_dir):
 
 
 if __name__ == '__main__':
-    launch('/Users/ilan/python/App-Ilan')
+    launch('/Users/ilan/python/App/unknown')
