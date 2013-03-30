@@ -4,7 +4,7 @@ import sys
 import json
 import shutil
 from subprocess import Popen, PIPE, check_call, CalledProcessError
-from os.path import dirname, isfile, join
+from os.path import abspath, isfile, join
 
 from packup import untracked, packup_and_reinstall
 from source import get_source
@@ -74,15 +74,18 @@ def launch(app_dir):
         meta = json.load(fi)
     # prepend the bin directory to the path
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
-    env = {}
+    env = {'PATH': fmt % (abspath(join(app_dir, '..', '..')),
+                          os.getenv('PATH'))}
+    # copy existing environment variables, but not anything with PATH in it
     for k, v in os.environ.iteritems():
-        if k == 'PATH':
-            env[k] = fmt % (dirname(app_dir), v)
-        elif 'PATH' not in k:
+        if 'PATH' not in k:
             env[k] = v
-    # call the entry script
+    # allow updating environment variables from metadata
+    if 'env' in meta:
+        env.update(meta['env'])
+    # call the entry command
     check_call(meta['entry'].split(), cwd=app_dir, env=env)
 
 
 if __name__ == '__main__':
-    launch('/Users/ilan/python/App/unknown')
+    launch('/Users/ilan/python/App/filebin')
