@@ -18,7 +18,7 @@ def add_app_metadata(t, info):
     icondata = t.extractfile(iconpath).read()
     info.update(dict(
             type = 'app',
-            icondata = base64.b64encode(icondata),
+            _icondata = base64.b64encode(icondata),
             icon = hashlib.md5(icondata).hexdigest(),
             summary = app_meta.get('summary'),
     ))
@@ -69,9 +69,9 @@ def update_index(dir_path, verbose=False, force=False):
     icons = {}
     for fn in index:
         info = index[fn]
-        if 'icondata' in info:
-            icons[info['icon']] = info['icondata']
-        for varname in 'arch', 'platform', 'mtime', 'ucs', 'icondata':
+        if '_icondata' in info:
+            icons[info['icon']] = info['_icondata']
+        for varname in 'arch', 'platform', 'mtime', 'ucs', '_icondata':
             try:
                 del info[varname]
             except KeyError:
