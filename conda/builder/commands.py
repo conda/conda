@@ -1,8 +1,10 @@
 import re
+import os
 import sys
+import json
 import shutil
 from subprocess import Popen, PIPE, check_call, CalledProcessError
-from os.path import isfile, join
+from os.path import dirname, isfile, join
 
 from packup import untracked, packup_and_reinstall
 from source import get_source
@@ -65,3 +67,16 @@ def build(prefix, url, source_type):
 
     if tmp_dir:
         shutil.rmtree(tmp_dir)
+
+
+def launch(app_dir):
+    with open(join(app_dir, 'meta.json')) as fi:
+        meta = json.load(fi)
+    fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
+    os.environ['PATH'] = fmt % (dirname(app_dir), os.environ['PATH'])
+    args = meta['entry'].split()
+    check_call(args, cwd=app_dir)
+
+
+if __name__ == '__main__':
+    launch('/Users/ilan/python/App-Ilan')
