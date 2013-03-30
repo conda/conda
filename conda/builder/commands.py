@@ -72,10 +72,11 @@ def build(prefix, url, source_type):
 def launch(app_dir):
     with open(join(app_dir, 'meta.json')) as fi:
         meta = json.load(fi)
+    # prepend the bin directory to the path
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
     os.environ['PATH'] = fmt % (dirname(app_dir), os.environ['PATH'])
-    args = meta['entry'].split()
-    check_call(args, cwd=app_dir)
+    # call the entry script
+    check_call(meta['entry'].split(), cwd=app_dir)
 
 
 if __name__ == '__main__':
