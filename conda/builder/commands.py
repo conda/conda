@@ -74,9 +74,14 @@ def launch(app_dir):
         meta = json.load(fi)
     # prepend the bin directory to the path
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
-    os.environ['PATH'] = fmt % (dirname(app_dir), os.environ['PATH'])
+    env = {}
+    for k, v in os.environ.iteritems():
+        if k == 'PATH':
+            env[k] = fmt % (dirname(app_dir), v)
+        elif 'PATH' not in k:
+            env[k] = v
     # call the entry script
-    check_call(meta['entry'].split(), cwd=app_dir)
+    check_call(meta['entry'].split(), cwd=app_dir, env=env)
 
 
 if __name__ == '__main__':
