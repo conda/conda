@@ -92,11 +92,17 @@ def execute(args, parser):
 
     print plan
 
+
     confirm(args)
     makedirs(prefix)
     env = conda.lookup_environment(prefix)
 
     plan.execute(env, not args.quiet)
+
+    if args.name:
+        print "\nTo use this environment, type 'source activate %s'\n" % args.name
+    else:
+        print "\nTo use this environment, type 'source activate %s'\n" % prefix
 
 
 example = '''
