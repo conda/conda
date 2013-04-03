@@ -262,6 +262,12 @@ On Windows systems, you should either change or set the PATH manually.
 Now you're ready to begin using the Python located in your created
 environment.
 
+If you would like to deactivate this environment and revert your PATH to its previous state, use:
+
+.. code-block:: bash
+
+    $ source deactivate <env name>
+
 
 ---------------------------------
 Update Anaconda to latest version
