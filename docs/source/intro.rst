@@ -255,6 +255,8 @@ done using:
 
     $ source activate <env name>
 
+    # This command assumes ~/anaconda/bin/activate is the first 'activate' on your current PATH
+
 On Windows systems, you should either change or set the PATH manually.
 
 Now you're ready to begin using the Python located in your created
