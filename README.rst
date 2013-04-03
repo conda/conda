@@ -27,7 +27,25 @@ Update all specified packages to latest versions in ``myenv``
 
     $ conda update -n myenv anaconda
 
-Make ``myenv`` your default environment to begin using it
+Now that you have a custom environment, there are two ways to make it available for use
+
+**Using Activate**
+
+Activating a conda environment is made simple through the use of the activate command
+
+.. code-block:: bash
+
+    $ source activate myenv
+
+Similarly, to deactivate an environment and return your PATH variable to its previous state, use
+
+.. code-block:: bash
+    
+    $ source deactivate myenv
+
+**Adjusting PATH variable**
+
+Alternatively, you can adjust your PATH by hand.
 
 on linux and os x:
 
