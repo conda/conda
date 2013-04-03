@@ -99,10 +99,12 @@ def execute(args, parser):
 
     plan.execute(env, not args.quiet)
 
+    activate_name = prefix
     if args.name:
-        print "\nTo use this environment, type 'source activate %s'\n" % args.name
-    else:
-        print "\nTo use this environment, type 'source activate %s'\n" % prefix
+        activate_name = args.name
+    for cmd in ('activate', 'deactivate'):
+        print "\nTo %s this environment, type 'source %s %s'" % (cmd, cmd, activate_name)
+    print
 
 
 example = '''
