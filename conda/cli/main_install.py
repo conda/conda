@@ -67,7 +67,8 @@ def execute(args, parser):
     else:
         req_strings = args.packages
 
-    if prefix != ROOT_DIR and any(s.startswith('conda') for s in req_strings):
+    if prefix != ROOT_DIR and any(s == 'conda' or s.startswith('conda=')
+                                  for s in req_strings):
         raise RuntimeError("package 'conda' may only be installed in the "
                            "root environment")
 

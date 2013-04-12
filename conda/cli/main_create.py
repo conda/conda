@@ -74,7 +74,7 @@ def execute(args, parser):
     else:
         spec_strings = args.package_specs
 
-    if any(s.startswith('conda') for s in spec_strings):
+    if any(s == 'conda' or s.startswith('conda ') for s in spec_strings):
         raise RuntimeError("Package 'conda' may only be installed in the "
                            "root environment")
 
