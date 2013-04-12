@@ -29,6 +29,11 @@ def get_index():
     return index
 
 
+def get_app_index():
+    return {fn: info for fn, info in get_index().iteritems()
+            if info.get('type') == 'app'}
+
+
 if __name__ == '__main__':
     from pprint import pprint
-    pprint(get_index())
+    pprint(get_app_index())
