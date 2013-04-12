@@ -138,9 +138,8 @@ class Environment(object):
     def _numpy_constraint(self):
         try:
             pkg = self.find_linked_package('numpy')
-            req = make_package_spec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
-            sat = make_package_spec('%s %s %s' % (pkg.name, pkg.version.vstring, pkg.build))
-            return AnyOf(Requires(req), Satisfies(sat))
+            spec = make_package_spec('%s %s.%s' % (pkg.name, pkg.version.version[0], pkg.version.version[1]))
+            return AnyOf(Requires(spec), Satisfies(spec))
         except: #TODO
             log.debug('no numpy constraint, returning Wildcard()')
             return Wildcard()
