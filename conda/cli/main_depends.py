@@ -78,7 +78,7 @@ def execute(args, parser):
         fmt = '%s' if len(args.pkg_names) == 1 else '{%s}'
 
         if not args.all:
-            rdeps &= env.activated
+            rdeps &= env.linked
 
         if len(rdeps) == 0:
             print 'No packages depend on ' + fmt % ', '.join(args.pkg_names)

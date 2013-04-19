@@ -179,7 +179,14 @@ class PackageIndex(object):
             matching packages
 
         '''
-        package_groups = group_packages_by_name(pkgs)
+        package_groups = {}
+        others = set(pkgs)
+        for pkg in pkgs:
+            for f in pkg.features:
+                if f not in package_groups:
+                    package_groups[f] = set()
+                package_groups[f].add(pkg)
+                others.remove(pkg)
         for feature in track_features:
             fpkgs = self.lookup_from_feature(feature)
             if feature in package_groups:
@@ -190,7 +197,7 @@ class PackageIndex(object):
                 if (pkg.features - track_features):
                     continue
                 result.add(pkg)
-        return result
+        return result.union(others)
 
 
     def get_deps(self, pkgs, max_depth=0):
