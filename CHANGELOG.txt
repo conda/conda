@@ -1,8 +1,9 @@
-2013-XX-XX   1.5.1:
+2013-04-19   1.5.1:
 -------------------
   * fixed issue 71 and (73 duplicate): not being able to install packages
     starting with conda (such as 'conda-api')
   * fixed issue 69 (not being able to update Python / NumPy)
+  * fixed issue 76 (cannot install mkl on OSX)
 
 
 2013-03-22   1.5.0:
