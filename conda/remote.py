@@ -83,9 +83,8 @@ def fetch_file(url, fn, md5=None, size=None, progress=None,
         try:
             fo = open(pp, 'wb')
         except IOError:
-            raise RuntimeError(
-                "Could not open file '%s'. Permissions problem or missing directory?" % pp
-            )
+            raise RuntimeError("Could not open %r for writing.  "
+                         "Permissions problem or missing directory?" % pp)
         while True:
             try:
                 chunk = fi.read(16384)
@@ -98,9 +97,7 @@ def fetch_file(url, fn, md5=None, size=None, progress=None,
             try:
                 fo.write(chunk)
             except IOError:
-                raise RuntimeError(
-                    "Could not write file '%s'. Permissions problem or missing directory?" % pp
-                )
+                raise RuntimeError("Failed to write to %r." % pp)
             if md5:
                 h.update(chunk)
             n += len(chunk)
@@ -114,14 +111,11 @@ def fetch_file(url, fn, md5=None, size=None, progress=None,
         fi.close()
         if progress: progress.finish()
         if md5 and h.hexdigest() != md5:
-            raise RuntimeError("MD5 sums mismatch for download: %s" %
-                               fn)
+            raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
         try:
             os.rename(pp, path)
         except OSError:
-            raise RuntimeError(
-                "Could not rename '%s' to '%s'.  Permissions problem or missing directory?" % (pp, path)
-                )
+            raise RuntimeError("Could not rename %r to %r." % (pp, path))
         return url
-    
+
     raise RuntimeError("Could not locate file '%s' on any repository" % fn)
