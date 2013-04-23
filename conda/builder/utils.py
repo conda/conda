@@ -1,4 +1,3 @@
-import bz2
 import sys
 import hashlib
 import platform
@@ -19,17 +18,6 @@ def rel_lib(f):
         return normpath((f.count('/') - 1) * '../')
     else:
         return normpath(f.count('/') * '../') + '/lib'
-
-
-def bzip2(path, verbose=False):
-    bz2path = path + '.bz2'
-    if verbose:
-        print "bz2ing:", path
-    with open(path, 'rb') as fi:
-        data = fi.read()
-    data = bz2.compress(data)
-    with open(bz2path, 'wb') as fo:
-        fo.write(data)
 
 
 def md5_file(path):
