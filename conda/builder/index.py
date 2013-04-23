@@ -1,11 +1,12 @@
 import os
+import bz2
 import json
 import base64
 import hashlib
 import tarfile
 from os.path import join, getmtime
 
-from utils import bzip2, file_info
+from utils import file_info
 
 
 app_meta_path_fmt = 'App/%(name)s/meta.json'
@@ -31,6 +32,17 @@ def read_index_tar(tar_path):
             add_app_metadata(t, info)
         return info
 
+def write_repodata(repodata, dir_path):
+    data = json.dumps(repodata, indent=2, sort_keys=True)
+    # strip trailing whitespace
+    data = '\n'.join(line.rstrip() for line in data.split('\n'))
+    # make sure we have newline at the end
+    if not data.endswith('\n'):
+        data += '\n'
+    with open(join(dir_path, 'repodata.json'), 'w') as fo:
+        fo.write(data)
+    with open(join(dir_path, 'repodata.json.bz2'), 'wb') as fo:
+        fo.write(bz2.compress(data))
 
 def update_index(dir_path, verbose=False, force=False):
     if verbose:
@@ -77,8 +89,8 @@ def update_index(dir_path, verbose=False, force=False):
             except KeyError:
                 pass
 
-    repodata = {'packages': index, 'icons': icons, 'info': {}}
-    repodata_path = join(dir_path, 'repodata.json')
-    with open(repodata_path, 'w') as fo:
-        json.dump(repodata, fo, indent=2, sort_keys=True)
-    bzip2(repodata_path)
+    repodata = {'packages': index, 'info': {}}
+    if icons:
+        repodata['icons'] = icons
+
+    write_repodata(repodata, dir_path)
