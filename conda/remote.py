@@ -62,39 +62,60 @@ def fetch_file(url, fn, md5=None, size=None, progress=None,
     for x in range(retries):
         try:
             fi = urllib2.urlopen(url + fn)
-            log.debug("fetching: %s [%s]" % (fn, url))
-            n = 0
-            h = hashlib.new('md5')
-            if size is None:
-                length = int(fi.headers["Content-Length"])
-            else:
-                length = size
-
-            if progress:
-                progress.widgets[0] = fn
-                progress.maxval = length
-                progress.start()
-
-            with open(pp, 'wb') as fo:
-                while True:
-                    chunk = fi.read(16384)
-                    if not chunk:
-                        break
-                    fo.write(chunk)
-                    if md5:
-                        h.update(chunk)
-                    n += len(chunk)
-                    if progress:
-                        progress.update(n)
-
-            fi.close()
-            if progress: progress.finish()
-            if md5 and h.hexdigest() != md5:
-                raise RuntimeError("MD5 sums mismatch for download: %s" %
-                                   fn)
-            os.rename(pp, path)
-            return url
         except IOError:
-            log.debug('download failed try: %d' % x)
+            log.debug("Attempt %d failed at urlopen" % x)
+            continue
+        log.debug("Fetching: %s [%s]" % (fn, url))
+        n = 0
+        h = hashlib.new('md5')
+        if size is None:
+            length = int(fi.headers["Content-Length"])
+        else:
+            length = size
+
+        if progress:
+            progress.widgets[0] = fn
+            progress.maxval = length
+            progress.start()
+
+        need_retry = False
+
+        try:
+            fo = open(pp, 'wb')
+        except IOError:
+            raise RuntimeError("Could not open %r for writing.  "
+                         "Permissions problem or missing directory?" % pp)
+        while True:
+            try:
+                chunk = fi.read(16384)
+            except IOError:
+                log.debug("Attempt %d failed at read" % x)
+                need_retry = True
+                break
+            if not chunk:
+                break
+            try:
+                fo.write(chunk)
+            except IOError:
+                raise RuntimeError("Failed to write to %r." % pp)
+            if md5:
+                h.update(chunk)
+            n += len(chunk)
+            if progress:
+                progress.update(n)
+
+        fo.close()
+        if need_retry:
+            continue
+
+        fi.close()
+        if progress: progress.finish()
+        if md5 and h.hexdigest() != md5:
+            raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
+        try:
+            os.rename(pp, path)
+        except OSError:
+            raise RuntimeError("Could not rename %r to %r." % (pp, path))
+        return url
 
     raise RuntimeError("Could not locate file '%s' on any repository" % fn)
