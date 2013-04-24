@@ -255,7 +255,7 @@ def create_install_plan(env, spec_strings):
             features[feature].add(pkg)
     log.debug("features: %s\n" % features)
 
-    track_features = set()
+    track_features = set(features.keys())
     for pkg in pkgs:
         track_features |= pkg.track_features
     log.debug("track_features: %s\n" % track_features)
@@ -503,7 +503,7 @@ def create_update_plan(env, pkg_names):
 
     if len(updates) == 0: return plan  # nothing to do
 
-    track_features = set()
+    track_features = set(env.features.keys())
     for pkg in pkgs:
         track_features |= pkg.track_features
     log.debug("track_features: %s\n" % track_features)
@@ -742,7 +742,6 @@ def _replace_with_features(conda, all_pkgs, track_features, env_constraints):
                 if not rpkg:
                     raise RuntimeError("cannot find package '%s' without feature '%s'" % (pkg.name, feature))
                 results.add(rpkg.pop())
-
 
     for feature in track_features:
         fnames = set([pkg.name for pkg in idx.lookup_from_feature(feature)])
