@@ -7,6 +7,7 @@
 from argparse import RawDescriptionHelpFormatter
 from os import makedirs
 from os.path import abspath, exists
+from sys import platform
 
 from conda.anaconda import Anaconda
 from conda.planners import create_create_plan
@@ -99,13 +100,15 @@ def execute(args, parser):
 
     plan.execute(env, not args.quiet)
 
-    activate_name = prefix
-    if args.name:
-        activate_name = args.name
-    for cmd in ('activate', 'deactivate'):
-        print "\nTo %s this environment, type 'source %s %s'" % (cmd, cmd, activate_name)
-    print
+    #Activate and deactivate won't work on Windows
 
+    if 'win' not in conda.platform:
+        activate_name = prefix
+        if args.name:
+            activate_name = args.name
+        for cmd in ('activate', 'deactivate'):
+            print "\nTo %s this environment, type 'source %s %s'" % (cmd, cmd, activate_name)
+        print
 
 example = '''
 examples:
