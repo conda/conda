@@ -3,7 +3,7 @@ Install a list of packages into a specified conda environment.
 **usage**: ``conda install [-h] [--yes] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [-q] [package_version [package_version ...]]``
 
 *package_version*
-	package versions to install into Anaconda environment
+        package versions to install into Anaconda environment
 
 optional arguments:
   -h, --help            show this help message and exit
