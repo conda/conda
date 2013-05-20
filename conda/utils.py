@@ -1,4 +1,15 @@
 import collections
+from functools import partial
+
+
+def iter_pairs(lst):
+    assert isinstance(lst, list)
+    for i, elem in enumerate(lst):
+        try:
+            next = lst[i + 1]
+        except IndexError:
+            next = None
+        yield elem, next
 
 
 class memoized(object):
@@ -20,3 +31,24 @@ class memoized(object):
             value = self.func(*args)
             self.cache[args] = value
             return value
+
+
+class memoize(object): # 577452
+    def __init__(self, func):
+        self.func = func
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self.func
+        return partial(self, obj)
+    def __call__(self, *args, **kw):
+        obj = args[0]
+        try:
+            cache = obj.__cache
+        except AttributeError:
+            cache = obj.__cache = {}
+        key = (self.func, args[1:], frozenset(kw.items()))
+        try:
+            res = cache[key]
+        except KeyError:
+            res = cache[key] = self.func(*args, **kw)
+        return res
