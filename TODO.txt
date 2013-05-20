@@ -2,3 +2,9 @@
     native object code
   * use SAT solver
   * "export" packages into other formats, e.g. RPM, wheel, eggs, ..
+
+FETCH
+EXTRACT
+REMOVE remove package (both downloaded file and extract directory) if exists
+LINK
+UNLINK
