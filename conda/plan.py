@@ -1,43 +1,50 @@
 import sys
+from collections import defaultdict
 from os.path import join
 
-from install import available, linked
+import install
 from naming import name_dist
 from resolve import Resolve
 
 
+PKGS_DIR = join(sys.prefix, 'pkgs')
+
 
 def install_plan(prefix, index, specs):
-    installed = linked(prefix)
+    linked = install.linked(prefix)
+    extracted = install.extracted(PKGS_DIR)
+    fetched = install.fetched(PKGS_DIR)
+
     r = Resolve(index)
 
     must_have = {}
-    for fn in r.solve(specs, ['%s.tar.bz2' % d for d in installed]):
+    for fn in r.solve(specs, ['%s.tar.bz2' % d for d in linked]):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
     sorted_must_have = sorted(must_have.values())
 
-    res = [('#', 'install_plan'),
-           ('PREFIX', prefix)]
-    # TODO: split install.available into downloaded and extracted
-    avail = available(join(sys.prefix, 'pkgs'))
+    actions = defaultdict(list)
     for dist in sorted_must_have:
-        if dist not in avail:
-            res.append(('FETCH', dist))
+        if dist in linked:
+            continue
+        actions['LINK'].append(dist)
+        if dist in extracted:
+            continue
+        actions['EXTRACT'].append(dist)
+        if dist in fetched:
+            continue
+        actions['FETCH'].append(dist)
 
-    for dist in sorted_must_have:
-        if dist not in avail:
-            res.append(('EXTRACT', dist))
-
-    for dist in sorted(installed):
+    for dist in sorted(linked):
         name = name_dist(dist)
         if name in must_have and dist != must_have[name]:
-            res.append(('UNLINK', dist))
+            actions['UNLINK'].append(dist)
 
-    for dist in sorted_must_have:
-        if dist not in installed:
-            res.append(('LINK', dist))
-
+    res = [('#', 'install_plan'),
+           ('PREFIX', prefix)]
+    for op in 'FETCH', 'EXTRACT', 'UNLINK', 'LINK':
+        for dist in actions[op]:
+            res.append((op, dist))
     return res
 
 
