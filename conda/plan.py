@@ -1,6 +1,3 @@
-from pprint import pprint
-
-
 from install import available, linked
 from resolve import Resolve
 
@@ -20,29 +17,34 @@ def install_plan(prefix, index, specs):
         n, vb = split_dist(dist)
         must_have[n] = dist
 
-    pprint(must_have)
-
     avail = available(join(sys.prefix, 'pkgs'))
+
+    res = []
     for dist in must_have.itervalues():
         if dist not in avail:
-            print 'FETCH', dist
+            res.append(('FETCH', dist))
+            res.append(('EXTRACT', dist))
 
     for dist in installed:
         n, vb = split_dist(dist)
         if n in must_have and dist != must_have[n]:
-            print 'UNLINK', dist
+            res.append(('UNLINK', dist))
 
     for dist in must_have.itervalues():
         if dist not in installed:
-            print 'LINK', dist
+            res.append(('LINK', dist))
+
+    return res
 
 
 if __name__ == '__main__':
     import sys
     import json
+    from pprint import pprint
     from os.path import dirname, join
 
     with open(join(dirname(__file__), '..', 'tests', 'index.json')) as fi:
         index = json.load(fi)
 
-    install_plan(sys.prefix, index, ['w3lib'])
+    res = install_plan(sys.prefix, index, ['w3lib'])
+    pprint(res)
