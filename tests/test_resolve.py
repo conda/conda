@@ -2,7 +2,7 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import MatchSpec, Resolve
+from conda.resolve import MatchSpec, Package, Resolve
 
 
 
@@ -39,6 +39,18 @@ class TestMatchSpec(unittest.TestCase):
         c, d = MatchSpec('python'), MatchSpec('python 2.7.4')
         self.assertNotEqual(a, c)
         self.assertNotEqual(hash(a), hash(c))
+
+
+class TestPackage(unittest.TestCase):
+
+    def test_llvm(self):
+        ms = MatchSpec('llvm')
+        pkgs = [Package(fn, r.index[fn]) for fn in r.find_matches(ms)]
+        pkgs.sort()
+        self.assertEqual([p.fn for p in pkgs],
+                         ['llvm-3.1-0.tar.bz2',
+                          'llvm-3.1-1.tar.bz2',
+                          'llvm-3.2-0.tar.bz2'])
 
 
 class TestSelectRoot(unittest.TestCase):
