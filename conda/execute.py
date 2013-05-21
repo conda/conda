@@ -3,6 +3,7 @@ from collections import defaultdict
 from os.path import join
 
 import install
+from naming import name_dist
 from remote import fetch_file
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
@@ -22,7 +23,7 @@ def parse(plan):
             actions[a0].append(a1)
         else:
             raise
-    return prefix, dict(actions)
+    return prefix, actions
 
 def display(plan):
     from pprint import pprint
@@ -38,28 +39,32 @@ def fetch(index, dists, progress):
                    progress=progress)
 
 def extract(dist, unused_prefix):
+    "Extracting packages ..."
     install.make_available(PKGS_DIR, dist)
 
 def remove(dist, unused_prefix):
+    "Removing packages ..."
     install.remove_available(PKGS_DIR, dist)
 
 def link(dist, prefix):
+    "Linking packages ..."
     install.link(PKGS_DIR, dist, prefix)
 
 def unlink(dist, prefix):
+    "Unlinking packages ..."
     install.unlink(dist, prefix)
 
-def handle(prefix, dists, cb_func, progress, action_verb):
+def handle(prefix, dists, cb_func, progress):
     if not dists:
         return
     if progress:
-        print "%s packages..." % action_verb
+        print cb_func.__doc__.strip()
         progress.maxval = len(dists)
         progress.start()
     for i, dist in enumerate(dists):
         if progress:
-            progress.widgets[0] = '[%-20s]' % dist
-            progress.update(i)
+            progress.widgets[0] = '[%-20s]' % name_dist(dist)
+            progress.update(i + 1)
         cb_func(dist, prefix)
     if progress:
         progress.widgets[0] = '[      COMPLETE      ]'
@@ -67,23 +72,36 @@ def handle(prefix, dists, cb_func, progress, action_verb):
 
 def execute(plan, index=None, progress_bar=True):
     if progress_bar:
-        download_progress = ProgressBar(
+        fetch_progress = ProgressBar(
             widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
                      FileTransferSpeed()])
-        package_progress = ProgressBar(
+        progress = ProgressBar(
             widgets=['', ' ', Bar(), ' ', Percentage()])
     else:
-        download_progress = None
-        package_progress = None
+        fetch_progress = None
+        progress = None
 
     prefix, actions = parse(plan)
-    fetch(index or {}, actions['FETCH'], download_progress)
-    handle(None, actions['EXTRACT'], extract, package_progress, 'Extracting')
-    handle(None, actions['REMOVE'], remove, package_progress, 'Removing')
-    handle(prefix, actions['LINK'], link, package_progress, 'Linking')
-    handle(prefix, actions['UNLINK'], unlink,  package_progress, 'Unlinking')
+    fetch(index or {}, actions['FETCH'], fetch_progress)
+    handle(None, actions['EXTRACT'], extract, progress)
+    handle(None, actions['REMOVE'], remove, progress)
+    handle(prefix, actions['LINK'], link, progress)
+    handle(prefix, actions['UNLINK'], unlink, progress)
 
 
 if __name__ == '__main__':
-    from plan import _test_plan
-    display(_test_plan())
+    #from plan import _test_plan
+    #display(_test_plan())
+    from api import get_index
+
+    plan = [
+        ('#', 'install_plan'),
+        ('PREFIX', '/home/ilan/a150/envs/test'),
+        #('FETCH',   'mkl-rt-11.0-p0'),
+        ('EXTRACT', 'python-2.7.5-0'),
+        ('EXTRACT', 'scipy-0.11.0-np17py26_p3'),
+        ('EXTRACT', 'mkl-rt-11.0-p0'),
+        ('LINK',    'python-2.7.5-0'),
+        ('UNLINK',  'python-2.7.5-0'),
+    ]
+    execute(plan, get_index())

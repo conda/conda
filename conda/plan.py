@@ -2,11 +2,9 @@ import sys
 from os.path import join
 
 from install import available, linked
+from naming import name_dist
 from resolve import Resolve
 
-
-def name_dist(dist):
-    return dist.rsplit('-', 2)[0]
 
 
 def install_plan(prefix, index, specs):
