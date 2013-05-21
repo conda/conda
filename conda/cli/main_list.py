@@ -40,8 +40,9 @@ def execute(args, parser):
         try:
             pat = re.compile(args.search_expression)
         except:
-            raise RuntimeError("Could not understand search expression '%s'" %
-                               args.search_expression)
+            raise RuntimeError(
+                "Could not understand search expression '%s'" %
+                args.search_expression)
         matching = " matching '%s'" % args.search_expression
         pkgs = [pkg for pkg in pkgs if pat.search(pkg)]
 
@@ -55,7 +56,7 @@ def execute(args, parser):
               (matching, prefix))
         return
 
-    print 'packages%s in environment at %s:' % (matching, prefix)
-    print
+    print '# packages%s in environment at %s:' % (matching, prefix)
+    print '#'
     for pkg in pkgs:
         print '%-25s %-15s %15s' % tuple(pkg.rsplit('-', 2))
