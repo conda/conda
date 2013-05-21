@@ -49,11 +49,11 @@ def link(dist, prefix):
 def unlink(dist, prefix):
     install.unlink(dist, prefix)
 
-def handle_packages(prefix, dists, cb_func, progress):
+def handle(prefix, dists, cb_func, progress, action_verb):
     if not dists:
         return
     if progress:
-        print "Extracting packages..."
+        print "%s packages..." % action_verb
         progress.maxval = len(dists)
         progress.start()
     for i, dist in enumerate(dists):
@@ -78,10 +78,10 @@ def execute(plan, index=None, progress_bar=True):
 
     prefix, actions = parse(plan)
     fetch(index or {}, actions['FETCH'], download_progress)
-    handle_packages(prefix, actions['EXTRACT'], extract, package_progress)
-    handle_packages(prefix, actions['REMOVE'], remove, package_progress)
-    handle_packages(prefix, actions['LINK'], link, package_progress)
-    handle_packages(prefix, actions['UNLINK'], unlink, package_progress)
+    handle(None, actions['EXTRACT'], extract, package_progress, 'Extracting')
+    handle(None, actions['REMOVE'], remove, package_progress, 'Removing')
+    handle(prefix, actions['LINK'], link, package_progress, 'Linking')
+    handle(prefix, actions['UNLINK'], unlink,  package_progress, 'Unlinking')
 
 
 if __name__ == '__main__':
