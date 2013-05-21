@@ -18,12 +18,10 @@ def parse(plan):
             continue
         elif a0 == 'PREFIX':
             prefix = a1
-        elif a0 in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK'):
+        elif a0 in ('FETCH', 'EXTRACT', 'REMOVE', 'UNLINK', 'LINK'):
             actions[a0].append(a1)
         else:
             raise
-    if prefix is None:
-        raise
     return prefix, dict(actions)
 
 def display(plan):
@@ -41,6 +39,9 @@ def fetch(index, dists, progress):
 
 def extract(dist, unused_prefix):
     install.make_available(PKGS_DIR, dist)
+
+def remove(dist, unused_prefix):
+    install.remove_available(PKGS_DIR, dist)
 
 def link(dist, prefix):
     install.link(PKGS_DIR, dist, prefix)
@@ -78,6 +79,7 @@ def execute(plan, index=None, progress_bar=True):
     prefix, actions = parse(plan)
     fetch(index or {}, actions['FETCH'], download_progress)
     handle_packages(prefix, actions['EXTRACT'], extract, package_progress)
+    handle_packages(prefix, actions['REMOVE'], remove, package_progress)
     handle_packages(prefix, actions['LINK'], link, package_progress)
     handle_packages(prefix, actions['UNLINK'], unlink, package_progress)
 
