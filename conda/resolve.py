@@ -65,7 +65,9 @@ class Package(object):
             self.norm_version = self.version
 
     def __cmp__(self, other):
-        assert self.name == other.name, '%r %r' % (self.fn, other.fn)
+        if self.name != other.name:
+            raise ValueError('cannot compare packages with different '
+                             'names: %r %r' % (self.fn, other.fn))
         try:
             return cmp((self.norm_version, self.build_number),
                        (other.norm_version, other.build_number))
