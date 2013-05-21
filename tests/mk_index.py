@@ -11,11 +11,11 @@ assert sys.platform.startswith('linux')
 
 index = get_index()
 for info in index.itervalues():
-    del info['md5'], info['size']
-    channel = info['channel']
-    channel = channel.split('/')[-3]
-    assert channel in ('pro', 'free', 'test-pkgs'), channel
-    info['channel'] = channel
+    for key in 'md5', 'size', 'channel', 'build_channel', 'build_target':
+        try:
+            del info[key]
+        except KeyError:
+            pass
 
 print len(index)
 
