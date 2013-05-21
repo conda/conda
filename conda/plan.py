@@ -1,3 +1,6 @@
+import sys
+from os.path import join
+
 from install import available, linked
 from resolve import Resolve
 
@@ -14,35 +17,40 @@ def install_plan(prefix, index, specs):
     for fn in r.solve(specs, ['%s.tar.bz2' % d for d in installed]):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
+    sorted_must_have = sorted(must_have.values())
 
+    res = [('#', 'install_plan'),
+           ('PREFIX', prefix)]
+    # TODO: split install.available into downloaded and extracted
     avail = available(join(sys.prefix, 'pkgs'))
-
-    res = [('#', 'prefix', prefix)]
-    for dist in must_have.itervalues():
+    for dist in sorted_must_have:
         if dist not in avail:
             res.append(('FETCH', dist))
+
+    for dist in sorted_must_have:
+        if dist not in avail:
             res.append(('EXTRACT', dist))
 
-    for dist in installed:
+    for dist in sorted(installed):
         name = name_dist(dist)
         if name in must_have and dist != must_have[name]:
             res.append(('UNLINK', dist))
 
-    for dist in must_have.itervalues():
+    for dist in sorted_must_have:
         if dist not in installed:
             res.append(('LINK', dist))
 
     return res
 
 
-if __name__ == '__main__':
+def _test_plan():
     import sys
     import json
-    from pprint import pprint
-    from os.path import dirname, join
 
-    with open(join(dirname(__file__), '..', 'tests', 'index.json')) as fi:
+    with open(join('..', 'tests', 'index.json')) as fi:
         index = json.load(fi)
+    return install_plan(sys.prefix, index, ['w3lib'])
 
-    res = install_plan(sys.prefix, index, ['w3lib'])
-    pprint(res)
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(_test_plan())
