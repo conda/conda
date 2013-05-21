@@ -4,10 +4,10 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+import os
+import sys
 from argparse import RawDescriptionHelpFormatter
-from os import makedirs
 from os.path import abspath, exists
-from sys import platform
 
 from conda.anaconda import Anaconda
 from conda.planners import create_create_plan
@@ -95,14 +95,14 @@ def execute(args, parser):
 
 
     confirm(args)
-    makedirs(prefix)
+    os.makedirs(prefix)
     env = conda.lookup_environment(prefix)
 
     plan.execute(env, not args.quiet)
 
     #Activate and deactivate won't work on Windows
 
-    if 'win' not in conda.platform:
+    if sys.platform != 'win32':
         activate_name = prefix
         if args.name:
             activate_name = args.name
