@@ -52,6 +52,11 @@ class TestPackage(unittest.TestCase):
                           'llvm-3.1-1.tar.bz2',
                           'llvm-3.2-0.tar.bz2'])
 
+    def test_different_names(self):
+        pkgs = [Package(fn, r.index[fn]) for fn in [
+                'llvm-3.1-1.tar.bz2', 'python-2.7.5-0.tar.bz2']]
+        self.assertRaises(ValueError, pkgs.sort)
+
 
 class TestSelectRoot(unittest.TestCase):
 
