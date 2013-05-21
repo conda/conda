@@ -64,7 +64,7 @@ def handle_packages(prefix, dists, cb_func, progress):
         progress.widgets[0] = '[      COMPLETE      ]'
         progress.finish()
 
-def execute(plan, index, progress_bar=True):
+def execute(plan, index=None, progress_bar=True):
     if progress_bar:
         download_progress = ProgressBar(
             widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
@@ -76,7 +76,7 @@ def execute(plan, index, progress_bar=True):
         package_progress = None
 
     prefix, actions = parse(plan)
-    fetch(index, actions['FETCH'], download_progress)
+    fetch(index or {}, actions['FETCH'], download_progress)
     handle_packages(prefix, actions['EXTRACT'], extract, package_progress)
     handle_packages(prefix, actions['LINK'], link, package_progress)
     handle_packages(prefix, actions['UNLINK'], unlink, package_progress)
