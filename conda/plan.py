@@ -17,7 +17,7 @@ def install_plan(prefix, index, specs):
 
     avail = available(join(sys.prefix, 'pkgs'))
 
-    res = []
+    res = [('#', 'prefix', prefix)]
     for dist in must_have.itervalues():
         if dist not in avail:
             res.append(('FETCH', dist))
