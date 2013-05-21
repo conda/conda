@@ -40,11 +40,11 @@ def fetch(index, dists, progress):
 
 def extract(dist, unused_prefix):
     "Extracting packages ..."
-    install.make_available(PKGS_DIR, dist)
+    install.extract(PKGS_DIR, dist)
 
 def remove(dist, unused_prefix):
     "Removing packages ..."
-    install.remove_available(PKGS_DIR, dist)
+    install.remove(PKGS_DIR, dist)
 
 def link(dist, prefix):
     "Linking packages ..."
@@ -84,24 +84,26 @@ def execute(plan, index=None, progress_bar=True):
     prefix, actions = parse(plan)
     fetch(index or {}, actions['FETCH'], fetch_progress)
     handle(None, actions['EXTRACT'], extract, progress)
-    handle(None, actions['REMOVE'], remove, progress)
-    handle(prefix, actions['LINK'], link, progress)
     handle(prefix, actions['UNLINK'], unlink, progress)
+    handle(prefix, actions['LINK'], link, progress)
+    handle(None, actions['REMOVE'], remove, progress)
 
 
 if __name__ == '__main__':
     #from plan import _test_plan
     #display(_test_plan())
+    import logging
+
     from api import get_index
+
+    logging.basicConfig()
 
     plan = [
         ('#', 'install_plan'),
         ('PREFIX', '/home/ilan/a150/envs/test'),
-        #('FETCH',   'mkl-rt-11.0-p0'),
+        ('FETCH',   'mkl-rt-11.0-p0'),
         ('EXTRACT', 'python-2.7.5-0'),
         ('EXTRACT', 'scipy-0.11.0-np17py26_p3'),
         ('EXTRACT', 'mkl-rt-11.0-p0'),
-        ('LINK',    'python-2.7.5-0'),
-        ('UNLINK',  'python-2.7.5-0'),
     ]
     execute(plan, get_index())
