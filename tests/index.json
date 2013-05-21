@@ -6528,6 +6528,7 @@
     "version": "1.5.0",
     "with_features_depends": {
       "mkl": [
+        "mkl-rt 11.0 p0",
         "numexpr 2.0.1 np16py26_p3",
         "numpy 1.6.2 py26_p4",
         "scikit-learn 0.13.1 np16py26_p0",
@@ -6757,6 +6758,7 @@
     "version": "1.5.0",
     "with_features_depends": {
       "mkl": [
+        "mkl-rt 11.0 p0",
         "numexpr 2.0.1 np16py27_p3",
         "numpy 1.6.2 py27_p4",
         "scikit-learn 0.13.1 np16py27_p0",
@@ -6970,6 +6972,7 @@
     "version": "1.5.0",
     "with_features_depends": {
       "mkl": [
+        "mkl-rt 11.0 p0",
         "numexpr 2.0.1 np17py26_p3",
         "numpy 1.7.1 py26_p0",
         "scikit-learn 0.13.1 np17py26_p0",
@@ -7339,6 +7342,7 @@
     "version": "1.5.0",
     "with_features_depends": {
       "mkl": [
+        "mkl-rt 11.0 p0",
         "numpy 1.7.1 py33_p0",
         "scipy 0.12.0 np17py33_p0"
       ]
