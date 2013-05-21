@@ -162,12 +162,15 @@ def fetched(pkgs_dir):
 
 def extracted(pkgs_dir):
     return set(dn for dn in os.listdir(pkgs_dir)
-               if isfile(join(pkgs_dir, dn, 'info', 'index.json')))
+               if isfile(join(pkgs_dir, dn, 'info', 'extracted')))
 
 def extract(pkgs_dir, dist):
-    t = tarfile.open(join(pkgs_dir, dist + '.tar.bz2'))
-    t.extractall(path=join(pkgs_dir, dist))
+    path = join(pkgs_dir, dist)
+    t = tarfile.open(path + '.tar.bz2')
+    t.extractall(path=path)
     t.close()
+    with open(join(path, 'info', 'extracted'), 'w') as fo:
+        fo.write('%s\n' % dist)
 
 def remove(pkgs_dir, dist):
     path = join(pkgs_dir, dist)
