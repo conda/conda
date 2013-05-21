@@ -84,7 +84,7 @@ class TestSelectRoot(unittest.TestCase):
 class TestSolve(unittest.TestCase):
 
     def test_iopro(self):
-        self.assertEqual(r.solve(['iopro'], installed, force_sat=True),
+        self.assertEqual(r.solve(['iopro'], installed, ensure_sat=True),
                          ['iopro-1.4.3-np17py27_p0.tar.bz2',
                           'numpy-1.7.1-py27_0.tar.bz2',
                           'openssl-1.0.1c-0.tar.bz2',
@@ -96,7 +96,8 @@ class TestSolve(unittest.TestCase):
                           'unixodbc-2.3.1-0.tar.bz2',
                           'zlib-1.2.7-0.tar.bz2'])
 
-        self.assertEqual(r.solve(['iopro'], installed, f_mkl, force_sat=True),
+        self.assertEqual(r.solve(['iopro'], installed, f_mkl,
+                                 ensure_sat=True),
                          ['iopro-1.4.3-np17py27_p0.tar.bz2',
                           'mkl-rt-11.0-p0.tar.bz2',
                           'numpy-1.7.1-py27_p0.tar.bz2',
@@ -110,25 +111,25 @@ class TestSolve(unittest.TestCase):
                           'zlib-1.2.7-0.tar.bz2'])
 
     def test_mkl(self):
-        self.assertEqual(r.solve(['mkl'], installed, set(), force_sat=True),
-                         r.solve(['mkl'], installed, f_mkl, force_sat=True))
+        self.assertEqual(r.solve(['mkl'], installed, set(), ensure_sat=True),
+                         r.solve(['mkl'], installed, f_mkl, ensure_sat=True))
 
     def test_accelerate(self):
         self.assertEqual(
-            r.solve(['accelerate'], installed, set(), force_sat=True),
-            r.solve(['accelerate'], installed, f_mkl, force_sat=True))
+            r.solve(['accelerate'], installed, set(), ensure_sat=True),
+            r.solve(['accelerate'], installed, f_mkl, ensure_sat=True))
 
     def test_anaconda(self):
         dists = r.solve(['anaconda 1.5.0*'],
                         ['numpy-1.7.1-py27_0.tar.bz2',
-                         'python-2.7.5-0.tar.bz2'], force_sat=True)
+                         'python-2.7.5-0.tar.bz2'], ensure_sat=True)
         self.assertEqual(len(dists), 107)
         self.assertTrue('scipy-0.12.0-np17py27_0.tar.bz2' in dists)
 
         # to test "with_features_depends"
         dists = r.solve(['anaconda 1.5.0*'],
                         ['numpy-1.7.1-py27_0.tar.bz2',
-                         'python-2.7.5-0.tar.bz2'], f_mkl, force_sat=True)
+                         'python-2.7.5-0.tar.bz2'], f_mkl, ensure_sat=True)
         self.assertEqual(len(dists), 108)
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
 
