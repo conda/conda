@@ -109,13 +109,13 @@ def mk_menus(prefix, files, remove=False):
         try:
             menuinst.install(join(prefix, f), remove, prefix)
         except:
-            print("Appinst Exception:")
+            print("menuinst Exception:")
             traceback.print_exc(file=sys.stdout)
 
 
 # ========================== begin API functions =========================
 
-# ------- things about available packages
+# ------- available packages (DEPRECATED - TO BE REMOVED)
 
 def available(pkgs_dir):
     """
@@ -154,7 +154,27 @@ def remove_available(pkgs_dir, dist):
     if use_hard_links:
         rm_rf(join(pkgs_dir, dist))
 
-# ------- things about linkage of packages
+# ------- package cache
+
+def fetched(pkgs_dir):
+    return set(fn[:-8] for fn in os.listdir(pkgs_dir)
+               if fn.endswith('.tar.bz2'))
+
+def extracted(pkgs_dir):
+    return set(dn for dn in os.listdir(pkgs_dir)
+               if isfile(join(pkgs_dir, dn, 'info', 'index.json')))
+
+def extract(pkgs_dir, dist):
+    t = tarfile.open(join(pkgs_dir, dist + '.tar.bz2'))
+    t.extractall(path=join(pkgs_dir, dist))
+    t.close()
+
+def remove(pkgs_dir, dist):
+    path = join(pkgs_dir, dist)
+    rm_rf(path)
+    rm_rf(path + '.tar.bz2')
+
+# ------- linkage of packages
 
 def linked(prefix):
     """
