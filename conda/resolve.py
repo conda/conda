@@ -131,7 +131,7 @@ class Resolve(object):
         add_dependents(root_fn)
         return res
 
-    def solve2(self, root_dists, features, verbose=False, force_sat=False):
+    def solve2(self, root_dists, features, verbose=False, ensure_sat=False):
         dists = set()
         for root_fn in root_dists:
             dists.update(self.all_deps(root_fn))
@@ -141,7 +141,7 @@ class Resolve(object):
         for fn in dists:
             l_groups[self.index[fn]['name']].append(fn)
 
-        if not force_sat and len(l_groups) == len(dists):
+        if not ensure_sat and len(l_groups) == len(dists):
             assert all(len(filenames) == 1
                        for filenames in l_groups.itervalues())
             if verbose:
@@ -277,7 +277,7 @@ class Resolve(object):
         self.msd_cache[fn] = d.values()
 
     def solve(self, specs, installed=None, features=None,
-                    verbose=False, force_sat=False):
+                    verbose=False, ensure_sat=False):
         if installed is None:
             installed = []
         if features is None:
@@ -291,7 +291,7 @@ class Resolve(object):
             print dists, features
         for fn in dists:
             self.update_with_features(fn, features)
-        return self.solve2(dists, features, verbose, force_sat)
+        return self.solve2(dists, features, verbose, ensure_sat)
 
 
 if __name__ == '__main__':
@@ -315,4 +315,5 @@ if __name__ == '__main__':
     features = set(['mkl']) if opts.mkl else set()
     installed = ['numpy-1.7.1-py27_0.tar.bz2', 'python-2.7.5-0.tar.bz2']
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, installed, features, verbose=True, force_sat=True))
+    pprint(r.solve(specs, installed, features,
+                   verbose=True, ensure_sat=True))
