@@ -2,9 +2,8 @@ from install import available, linked
 from resolve import Resolve
 
 
-def split_dist(dist):
-    n, v, b = dist.rsplit('-', 2)
-    return n, v + b
+def name_dist(dist):
+    return dist.rsplit('-', 2)[0]
 
 
 def install_plan(prefix, index, specs):
@@ -14,8 +13,7 @@ def install_plan(prefix, index, specs):
     must_have = {}
     for fn in r.solve(specs, ['%s.tar.bz2' % d for d in installed]):
         dist = fn[:-8]
-        n, vb = split_dist(dist)
-        must_have[n] = dist
+        must_have[name_dist(dist)] = dist
 
     avail = available(join(sys.prefix, 'pkgs'))
 
@@ -26,8 +24,8 @@ def install_plan(prefix, index, specs):
             res.append(('EXTRACT', dist))
 
     for dist in installed:
-        n, vb = split_dist(dist)
-        if n in must_have and dist != must_have[n]:
+        name = name_dist(dist)
+        if name in must_have and dist != must_have[name]:
             res.append(('UNLINK', dist))
 
     for dist in must_have.itervalues():
