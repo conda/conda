@@ -101,7 +101,7 @@ class TestSelectRoot(unittest.TestCase):
 class TestSolve(unittest.TestCase):
 
     def test_iopro(self):
-        self.assertEqual(r.solve(['iopro'], installed, ensure_sat=True),
+        self.assertEqual(r.solve(['iopro 1.4*'], installed, ensure_sat=True),
                          ['iopro-1.4.3-np17py27_p0.tar.bz2',
                           'numpy-1.7.1-py27_0.tar.bz2',
                           'openssl-1.0.1c-0.tar.bz2',
@@ -113,7 +113,7 @@ class TestSolve(unittest.TestCase):
                           'unixodbc-2.3.1-0.tar.bz2',
                           'zlib-1.2.7-0.tar.bz2'])
 
-        self.assertEqual(r.solve(['iopro'], installed, f_mkl,
+        self.assertEqual(r.solve(['iopro 1.4*'], installed, f_mkl,
                                  ensure_sat=True),
                          ['iopro-1.4.3-np17py27_p0.tar.bz2',
                           'mkl-rt-11.0-p0.tar.bz2',
