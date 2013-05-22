@@ -6,11 +6,10 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.anaconda import Anaconda
-from conda.planners import create_remove_plan
-from utils import (
-    add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
-)
+from conda.execute import execute as execu
+import conda.plan as plan
+from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
+                   confirm, get_prefix)
 
 
 descr = "Remove a list of packages from a specified Anaconda environment."
@@ -24,11 +23,11 @@ def configure_parser(sub_parsers):
         epilog      = remove_example,
     )
     add_parser_yes(p)
-    p.add_argument(
-        "--no-deps",
-        action  = "store_true",
-        help    = "do not follow and remove dependencies (default: false)",
-    )
+    #p.add_argument(
+    #    "--no-deps",
+    #    action  = "store_true",
+    #    help    = "do not follow and remove dependencies (default: false)",
+    #)
     add_parser_prefix(p)
     add_parser_quiet(p)
     p.add_argument(
@@ -42,25 +41,19 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    conda = Anaconda()
-
     prefix = get_prefix(args)
+    actions = plan.remove_actions(prefix, args.package_names)
 
-    env = conda.lookup_environment(prefix)
-
-    plan = create_remove_plan(env, args.package_names, not args.no_deps)
-
-    if plan.empty():
+    if plan.nothing_to_do(actions):
         print 'No packages found to remove from environment: %s' % prefix
         return
 
     print
     print "Package plan for package removal in environment %s:" % prefix
-    print plan
+    plan.display_actions(actions)
 
     confirm(args)
-
-    plan.execute(env, not args.quiet)
+    execu(plan.plan_from_actions(actions), enable_progress=not args.quiet)
 
 
 remove_example = '''
