@@ -66,6 +66,14 @@ def _load_condarc(path):
         log.warn("missing 'channels' key in %r"  % path)
     return rc
 
+def get_subdir():
+    sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
+    bits = int(platform.architecture()[0][:2])
+    system = sys_map.get(sys.platform, 'unknown')
+    if system == 'linux' and platform.machine() == 'armv6l':
+        return 'linux-armv6l'
+    return '%s-%d' % (system, bits)
+
 
 class Config(object):
     ''' The config object collects a variety of configurations about an Anaconda installation.
@@ -107,12 +115,7 @@ class Config(object):
             - ``osx``
             - ``linux``
         '''
-        sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
-        bits = int(platform.architecture()[0][:2])
-        system = sys_map.get(sys.platform, 'unknown')
-        if system == 'linux' and platform.machine() == 'armv6l':
-            return 'linux-armv6l'
-        return '%s-%d' % (system, bits)
+        return get_subdir()
 
     @property
     def packages_dir(self):
@@ -178,7 +181,7 @@ conda command version : %s
 environment locations : %s
           config file : %s
 '''  % (
-            self.platform,
+            get_subdir(),
             __version__,
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,
