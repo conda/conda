@@ -6,7 +6,6 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.execute import execute as execu
 import conda.plan as plan
 from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
                    confirm, get_prefix)
@@ -53,7 +52,7 @@ def execute(args, parser):
     plan.display_actions(actions)
 
     confirm(args)
-    execu(plan.plan_from_actions(actions), enable_progress=not args.quiet)
+    plan.execute_actions(actions, enable_progress=not args.quiet)
 
 
 remove_example = '''
