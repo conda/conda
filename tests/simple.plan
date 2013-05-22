@@ -1,0 +1,19 @@
+# plan
+PRINT Fetching packages ...
+FETCH w3lib-1.2-py27_0
+FETCH pysam-0.6-py27_0
+
+PRINT Extracting packages ...
+PROGRESS 2
+EXTRACT w3lib-1.2-py27_0
+EXTRACT pysam-0.6-py27_0
+
+PRINT Linking packages ...
+PROGRESS 2
+LINK w3lib-1.2-py27_0
+LINK pysam-0.6-py27_0
+
+PRINT Unlinking packages ...
+PROGRESS 2
+UNLINK w3lib-1.2-py27_0
+UNLINK pysam-0.6-py27_0
