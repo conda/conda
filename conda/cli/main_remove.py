@@ -15,7 +15,6 @@ from utils import (
 
 descr = "Remove a list of packages from a specified Anaconda environment."
 
-
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'remove',

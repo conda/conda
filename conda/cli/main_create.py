@@ -15,12 +15,13 @@ from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
                    add_parser_quiet)
 
 
+descr = ("Create a new conda environment from a list of specified "
+         "packages.  To use the created environment, invoke the binaries "
+         "in that environment's bin directory or adjust your PATH to "
+         "look in that directory first.  This command requires either "
+         "the -n NAME or -p PREFIX option.")
+
 def configure_parser(sub_parsers):
-    descr = ("Create a new conda environment from a list of specified "
-             "packages.  To use the created environment, invoke the binaries "
-             "in that environment's bin directory or adjust your PATH to "
-             "look in that directory first.  This command requires either "
-             "the -n NAME or -p PREFIX option.")
     p = sub_parsers.add_parser(
         'create',
         formatter_class = RawDescriptionHelpFormatter,

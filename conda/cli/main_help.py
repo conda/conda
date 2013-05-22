@@ -5,12 +5,12 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 
+descr = "Displays a list of available conda commands and their help strings."
+
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'help',
-        description = "Displays a list of available conda commands and their help strings.",
-        help        = "Displays a list of available conda commands and their help strings.",
-    )
+    p = sub_parsers.add_parser('help',
+                               description = descr,
+                               help = descr)
     p.set_defaults(func=execute)
 
 
