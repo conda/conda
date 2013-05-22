@@ -10,7 +10,25 @@ from resolve import Resolve
 PKGS_DIR = join(sys.prefix, 'pkgs')
 
 
-def code_from_actions(actions):
+def print_dists(dists):
+    fmt = "    %-25s  |  %15s"
+    print fmt % ('package', 'build')
+    print fmt % ('-' * 25, '-' * 15)
+    for dist in dists:
+        print fmt % tuple(dist.rsplit('-', 1))
+
+def display_actions(actions):
+    if actions['FETCH']:
+        print "\nThe following packages will be downloaded:\n"
+        print_dists(actions['FETCH'])
+    if actions['UNLINK']:
+        print "\nThe following packages will be UN-linked:\n"
+        print_dists(actions['UNLINK'])
+    if actions['LINK']:
+        print "\nThe following packages will be linked:\n"
+        print_dists(actions['LINK'])
+
+def plan_from_actions(actions):
     res = ['# plan',
            'PREFIX %s' % actions['PREFIX']]
     for op in 'FETCH', 'EXTRACT', 'UNLINK', 'LINK', 'REMOVE':
@@ -23,7 +41,7 @@ def code_from_actions(actions):
             res.append('%s %s' % (op, dist))
     return res
 
-def install_plan(prefix, index, specs):
+def install_actions(prefix, index, specs):
     linked = install.linked(prefix)
     extracted = install.extracted(PKGS_DIR)
     fetched = install.fetched(PKGS_DIR)
@@ -54,16 +72,11 @@ def install_plan(prefix, index, specs):
         if name in must_have and dist != must_have[name]:
             actions['UNLINK'].append(dist)
 
-    return code_from_actions(actions)
+    return actions
 
-def _test_plan():
-    import sys
-    import json
-
-    with open(join('..', 'tests', 'index.json')) as fi:
-        index = json.load(fi)
-    return install_plan(sys.prefix, index, ['w3lib'])
 
 if __name__ == '__main__':
-    from pprint import pprint
-    pprint(_test_plan())
+    import json
+    with open('../tests/index.json') as fi:
+        index = json.load(fi)
+    display_actions(install_actions(sys.prefix, index, ['w3lib']))
