@@ -7,7 +7,7 @@
 import unittest
 from os.path import dirname, join
 
-from conda import config
+import conda.config as config
 
 
 # use condarc from source tree to run these tests against
@@ -23,7 +23,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(isinstance(config.CIO_DEFAULT_CHANNELS, list))
 
         self.assertTrue(config.ROOT_DIR)
-        self.assertTrue(config.PACKAGES_DIR)
+        self.assertTrue(config.PKGS_DIR)
         self.assertTrue(config.ENVS_DIR)
 
         self.assertTrue(config.DEFAULT_ENV_PREFIX)
@@ -40,18 +40,6 @@ class TestConfig(unittest.TestCase):
              'http://repo.continuum.io/pkgs/free']
         )
 
-    def test_config(self):
-        conf = config.Config()
-        self.assertTrue(isinstance(conf.conda_version, str))
-        self.assertTrue(isinstance(conf.platform, str))
-        self.assertTrue(isinstance(conf.root_dir, str))
-        self.assertTrue(isinstance(conf.packages_dir, str))
-        self.assertTrue(isinstance(conf.system_location, str))
-        self.assertTrue(isinstance(conf.user_locations, list))
-        self.assertTrue(isinstance(conf.locations, list))
-        self.assertTrue(isinstance(conf.channel_base_urls, list))
-        self.assertTrue(isinstance(conf.channel_urls, list))
-        self.assertTrue(isinstance(conf.environment_paths, list))
 
 if __name__ == '__main__':
     unittest.main()
