@@ -183,10 +183,9 @@ def extract(pkgs_dir, dist):
     with open(join(path, 'info', 'extracted'), 'w') as fo:
         fo.write('%s\n' % dist)
 
-def remove(pkgs_dir, dist):
+def rm_extracted(pkgs_dir, dist):
     path = join(pkgs_dir, dist)
     rm_rf(path)
-    rm_rf(path + '.tar.bz2')
 
 # ------- linkage of packages
 
@@ -216,7 +215,7 @@ def get_meta(dist, prefix):
 def link(pkgs_dir, dist, prefix):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
-    the packages has been make available (using make_available() above).
+    the packages has been extracted (using extect() above).
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
             dist.rsplit('-', 2)[0] == 'python'):
@@ -293,12 +292,12 @@ def install_local_package(path, pkgs_dir, prefix):
     assert path.endswith('.tar.bz2')
     dist = basename(path)[:-8]
     print '%s:' % dist
-    if dist in available(pkgs_dir):
-        print "    already available - removing"
-        remove_available(pkgs_dir, dist)
+    if dist in extracted(pkgs_dir):
+        print "    already extracted - removing"
+        rm_extracted(pkgs_dir, dist)
     shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-    print "    making available"
-    make_available(pkgs_dir, dist)
+    print "    extracting"
+    extract(pkgs_dir, dist)
     if dist in linked(prefix):
         print "    already linked - unlinking"
         unlink(dist, prefix)

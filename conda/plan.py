@@ -28,7 +28,8 @@ def display_actions(actions):
 def plan_from_actions(actions):
     res = ['# plan',
            'PREFIX %s' % actions['PREFIX']]
-    for op in 'FETCH', 'EXTRACT', 'UNLINK', 'LINK', 'REMOVE':
+    for op in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
+               'RM_EXTRACTED', 'RM_FETCHED'):
         if not actions[op]:
             continue
         res.append('PRINT %sing packages ...' % op.capitalize())
