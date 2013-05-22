@@ -40,11 +40,16 @@ def install_plan(prefix, index, specs):
         if name in must_have and dist != must_have[name]:
             actions['UNLINK'].append(dist)
 
-    res = [('#', 'install_plan'),
-           ('PREFIX', prefix)]
+    res = ['# install_plan',
+           'PREFIX %s' % prefix]
     for op in 'FETCH', 'EXTRACT', 'UNLINK', 'LINK':
+        if not actions[op]:
+            continue
+        res.append('PRINT %sing packages ...' % op.capitalize())
+        if op != 'FETCH':
+            res.append('START %d' % len(actions[op]))
         for dist in actions[op]:
-            res.append((op, dist))
+            res.append('%s %s' % (op, dist))
     return res
 
 
