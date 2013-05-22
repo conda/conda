@@ -47,7 +47,7 @@ def install_plan(prefix, index, specs):
             continue
         res.append('PRINT %sing packages ...' % op.capitalize())
         if op != 'FETCH':
-            res.append('START %d' % len(actions[op]))
+            res.append('PROGRESS %d' % len(actions[op]))
         for dist in actions[op]:
             res.append('%s %s' % (op, dist))
     return res
