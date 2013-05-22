@@ -34,12 +34,32 @@ import traceback
 import logging
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
+on_win = bool(sys.platform == 'win32')
+if on_win:
+    import ctypes
+    from ctypes import wintypes
+
+    CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
+    CreateHardLink.restype = wintypes.BOOL
+    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
+                               wintypes.LPVOID]
+
+    def win32link(src, dst):
+        "Equivalent to os.link, using the win32 CreateHardLink call."
+        if not CreateHardLink(dst, src, None):
+            raise OSError('win32link failed:')
 
 log = logging.getLogger(__name__)
 
 
-use_hard_links = bool(sys.platform != 'win32')
-
+def _link(src, dst):
+    try:
+        if on_win:
+            win32link(src, dst)
+        else:
+            os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
 
 def rm_rf(path):
     if islink(path) or isfile(path):
@@ -121,13 +141,8 @@ def available(pkgs_dir):
     """
     Return the (set of canonical names) of all available packages.
     """
-    if use_hard_links:
-        return set(fn for fn in os.listdir(pkgs_dir)
-                   if isdir(join(pkgs_dir, fn)))
-    else:
-        return set(fn[:-8] for fn in os.listdir(pkgs_dir)
-                   if fn.endswith('.tar.bz2'))
-
+    return set(fn for fn in os.listdir(pkgs_dir)
+               if isdir(join(pkgs_dir, fn)))
 
 def make_available(pkgs_dir, dist, cleanup=False):
     '''
@@ -136,14 +151,11 @@ def make_available(pkgs_dir, dist, cleanup=False):
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     assert isfile(bz2path), bz2path
-    if not use_hard_links:
-        return
     t = tarfile.open(bz2path)
     t.extractall(path=join(pkgs_dir, dist))
     t.close()
     if cleanup:
         os.unlink(bz2path)
-
 
 def remove_available(pkgs_dir, dist):
     '''
@@ -151,8 +163,7 @@ def remove_available(pkgs_dir, dist):
     '''
     bz2path = join(pkgs_dir, dist + '.tar.bz2')
     rm_rf(bz2path)
-    if use_hard_links:
-        rm_rf(join(pkgs_dir, dist))
+    rm_rf(join(pkgs_dir, dist))
 
 # ------- package cache
 
@@ -207,42 +218,32 @@ def link(pkgs_dir, dist, prefix):
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been make available (using make_available() above).
     '''
-    if (sys.platform == 'win32' and
-            abspath(prefix) == abspath(sys.prefix) and
+    if (on_win and abspath(prefix) == abspath(sys.prefix) and
             dist.rsplit('-', 2)[0] == 'python'):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking python from the root environment
         return
 
-    if use_hard_links:
-        dist_dir = join(pkgs_dir, dist)
-        info_dir = join(dist_dir, 'info')
-        files = list(yield_lines(join(info_dir, 'files')))
-        for f in files:
-            src = join(dist_dir, f)
-            fdn, fbn = os.path.split(f)
-            dst_dir = join(prefix, fdn)
-            if not isdir(dst_dir):
-                os.makedirs(dst_dir)
-            dst = join(dst_dir, fbn)
-            if os.path.exists(dst):
-                log.warn("file already exists: %r" % dst)
-                try:
-                    os.unlink(dst)
-                except OSError:
-                    log.error('failed to unlink: %r' % dst)
+    dist_dir = join(pkgs_dir, dist)
+    info_dir = join(dist_dir, 'info')
+    files = list(yield_lines(join(info_dir, 'files')))
+    for f in files:
+        src = join(dist_dir, f)
+        fdn, fbn = os.path.split(f)
+        dst_dir = join(prefix, fdn)
+        if not isdir(dst_dir):
+            os.makedirs(dst_dir)
+        dst = join(dst_dir, fbn)
+        if os.path.exists(dst):
+            log.warn("file already exists: %r" % dst)
             try:
-                os.link(src, dst)
+                os.unlink(dst)
             except OSError:
-                log.error('failed to link (src=%r, dst=%r)' % (src, dst))
-
-    else: # cannot hard link files
-        info_dir = join(prefix, 'info')
-        rm_rf(info_dir)
-        t = tarfile.open(join(pkgs_dir, dist + '.tar.bz2'))
-        t.extractall(path=prefix)
-        t.close()
-        files = list(yield_lines(join(info_dir, 'files')))
+                log.error('failed to unlink: %r' % dst)
+        try:
+            _link(src, dst)
+        except OSError:
+            log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
     has_prefix_path = join(info_dir, 'has_prefix')
     if isfile(has_prefix_path):
@@ -258,8 +259,7 @@ def unlink(dist, prefix):
     Remove a package from the specified environment, it is an error of the
     package does not exist in the prefix.
     '''
-    if (sys.platform == 'win32' and
-            abspath(prefix) == abspath(sys.prefix) and
+    if (on_win and abspath(prefix) == abspath(sys.prefix) and
             dist.rsplit('-', 2)[0] == 'python'):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking python from the root environment
