@@ -8,7 +8,8 @@ import os
 import sys
 import json
 import conda
-from conda.config import Config, ROOT_DIR, DEFAULT_ENV_PREFIX, RC_PATH
+from conda.config import (Config, ROOT_DIR, ENVS_DIR, DEFAULT_ENV_PREFIX,
+                          RC_PATH)
 
 from utils import add_parser_json
 
@@ -84,7 +85,7 @@ def execute(args, parser):
             print
             for location in conf.locations:
                 print "    %s" % location,
-                if location == conf.system_location:
+                if location == ENVS_DIR:
                     print " (system location)",
                 print
             print

@@ -74,13 +74,10 @@ class Config(object):
     ----------
     channel_base_urls : list of str
     channel_urls : list of str
-    conda_version : str
     environment_paths : list of str
     locations : list of str
     packages_dir : str
     platform : str
-    root_dir : str
-    system_location : str
     user_locations : list of str
 
     '''
@@ -97,11 +94,6 @@ class Config(object):
 
         if first_channel:
             self._rc['channels'].insert(0, first_channel)
-
-    @property
-    def conda_version(self):
-        ''' Current version of the conda command '''
-        return __version__
 
     @property
     def platform(self):
@@ -123,19 +115,9 @@ class Config(object):
         return '%s-%d' % (system, bits)
 
     @property
-    def root_dir(self):
-        ''' Root directory for this Anaconda installation '''
-        return ROOT_DIR
-
-    @property
     def packages_dir(self):
         ''' Packages directory for this Anaconda installation '''
         return PKGS_DIR
-
-    @property
-    def system_location(self):
-        ''' Default system :ref:`location <location>` for new :ref:`Anaconda environments <environment>` '''
-        return ENVS_DIR
 
     @property
     def user_locations(self):
@@ -148,7 +130,7 @@ class Config(object):
     @property
     def locations(self):
         ''' All :ref:`locations <location>`, system and user '''
-        return sorted(self.user_locations + [self.system_location])
+        return sorted(self.user_locations + [ENVS_DIR])
 
     @property
     def channel_base_urls(self):
@@ -197,7 +179,7 @@ environment locations : %s
           config file : %s
 '''  % (
             self.platform,
-            self.conda_version,
+            __version__,
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,
             '\n                        '.join(self.channel_urls),
