@@ -14,12 +14,12 @@ from conda.config import (Config, ROOT_DIR, ENVS_DIR, DEFAULT_ENV_PREFIX,
 from utils import add_parser_json
 
 
+descr = "Display information about current conda install."
+
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'info',
-        description     = "Display information about current conda install.",
-        help            = "Display information about current conda install.",
-    )
+    p = sub_parsers.add_parser('info',
+                               description = descr,
+                               help = descr)
     add_parser_json(p)
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
