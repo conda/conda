@@ -12,9 +12,9 @@ from distutils.core import setup
 import versioneer
 
 
-if sys.version[:3] != '2.7':
-    raise Exception("conda is only meant for Python 2.7, current version: %s" %
-                    sys.version[:3])
+if sys.version_info[:2] != (2, 7):
+    raise Exception("conda is only meant for Python 2.7, current "
+                    "version: %d.%d" % sys.version_info[:2])
 
 versioneer.versionfile_source = 'conda/_version.py'
 versioneer.versionfile_build = 'conda/_version.py'
