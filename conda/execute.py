@@ -1,4 +1,5 @@
 import sys
+import string
 from collections import defaultdict
 from os.path import join
 
@@ -15,6 +16,7 @@ def parse(plan):
     actions = defaultdict(list)
     prefix = None
     for a0, a1 in plan:
+        print a0, a1
         if a0 == '#':
             continue
         elif a0 == 'PREFIX':
@@ -29,14 +31,11 @@ def display(plan):
     from pprint import pprint
     pprint(parse(plan))
 
-def fetch(index, dists, progress):
-    if progress and dists:
-        print "Fetching packages..."
-    for dist in dists:
-        fn = dist + '.tar.bz2'
-        info = index[fn]
-        fetch_file(info['channel'], fn, md5=info['md5'], size=info['size'],
-                   progress=progress)
+def fetch(index, dist, progress):
+    fn = dist + '.tar.bz2'
+    info = index[fn]
+    fetch_file(info['channel'], fn, md5=info['md5'], size=info['size'],
+               progress=progress)
 
 def extract(dist, unused_prefix):
     "Extracting packages ..."
@@ -81,17 +80,31 @@ def execute(plan, index=None, progress_bar=True):
         fetch_progress = None
         progress = None
 
-    prefix, actions = parse(plan)
-    fetch(index or {}, actions['FETCH'], fetch_progress)
-    handle(None, actions['EXTRACT'], extract, progress)
-    handle(prefix, actions['UNLINK'], unlink, progress)
-    handle(prefix, actions['LINK'], link, progress)
-    handle(None, actions['REMOVE'], remove, progress)
+    prefix = None
+    for line in plan:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        cmd, arg = string.split(line, maxsplit=1)
+        if cmd == 'PREFIX':
+            prefix = arg
+        elif cmd == 'PRINT':
+            print arg
+        elif cmd == 'FETCH':
+            fetch(index or {}, arg, fetch_progress)
+        elif cmd == 'START' and progress_bar:
+            progress.maxval = int(arg)
+            progress.start()
+        elif cmd == 'EXTRACT':
+            install.extract(PKGS_DIR, arg)
+
+#    handle(None, actions['EXTRACT'], extract, progress)
+#    handle(prefix, actions['UNLINK'], unlink, progress)
+#    handle(prefix, actions['LINK'], link, progress)
+#    handle(None, actions['REMOVE'], remove, progress)
 
 
 if __name__ == '__main__':
-    #from plan import _test_plan
-    #display(_test_plan())
     import logging
 
     from api import get_index
@@ -99,11 +112,13 @@ if __name__ == '__main__':
     logging.basicConfig()
 
     plan = [
-        ('#', 'install_plan'),
-        ('PREFIX', '/home/ilan/a150/envs/test'),
-        ('FETCH',   'mkl-rt-11.0-p0'),
-        ('EXTRACT', 'python-2.7.5-0'),
-        ('EXTRACT', 'scipy-0.11.0-np17py26_p3'),
-        ('EXTRACT', 'mkl-rt-11.0-p0'),
+        '# install_plan',
+        'PREFIX /home/ilan/a150/envs/test',
+        'PRINT Fetching packages ...',
+        'FETCH python-2.7.5-0',
+        'START 3',
+        'EXTRACT python-2.7.5-0',
+        'EXTRACT scipy-0.11.0-np17py26_p3',
+        'EXTRACT mkl-rt-11.0-p0',
     ]
     execute(plan, get_index())
