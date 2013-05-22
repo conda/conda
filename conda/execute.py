@@ -32,7 +32,7 @@ def execute(plan, index=None, enable_progress=True):
         fetch_progress = None
         progress = None
 
-    progress_cmds = set(['EXTRACT', 'REMOVE', 'LINK', 'UNLINK', 'SLEEP'])
+    progress_cmds = set(['EXTRACT', 'RM_EXTRACTED', 'LINK', 'UNLINK', 'SLEEP'])
     prefix = i = None
     for cmd, arg in cmds_from_plan(plan):
         if enable_progress and cmd in progress_cmds:
@@ -53,8 +53,8 @@ def execute(plan, index=None, enable_progress=True):
                 i = 0
         elif cmd == 'EXTRACT':
             install.extract(PKGS_DIR, arg)
-        elif cmd == 'REMOVE':
-            install.remove(PKGS_DIR, arg)
+        elif cmd == 'RM_EXTRACTED':
+            install.rm_extracted(PKGS_DIR, arg)
         elif cmd == 'LINK':
             install.link(PKGS_DIR, arg, prefix)
         elif cmd == 'UNLINK':
