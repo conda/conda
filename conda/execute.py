@@ -46,10 +46,11 @@ def execute(plan, index=None, enable_progress=True):
             print arg
         elif cmd == 'FETCH':
             fetch(index or {}, arg, fetch_progress)
-        elif cmd == 'PROGRESS' and enable_progress:
-            progress.maxval = int(arg)
-            progress.start()
-            i = 0
+        elif cmd == 'PROGRESS':
+            if enable_progress:
+                progress.maxval = int(arg)
+                progress.start()
+                i = 0
         elif cmd == 'EXTRACT':
             install.extract(PKGS_DIR, arg)
         elif cmd == 'REMOVE':
@@ -79,4 +80,4 @@ SLEEP bitarray-0.4
 SLEEP pycosat-0.2
 SLEEP python-0.7
 """
-    execute(plan.splitlines())
+    execute(plan.splitlines(), enable_progress=1)
