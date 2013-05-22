@@ -10,6 +10,19 @@ from resolve import Resolve
 PKGS_DIR = join(sys.prefix, 'pkgs')
 
 
+def code_from_actions(actions):
+    res = ['# plan',
+           'PREFIX %s' % actions['PREFIX']]
+    for op in 'FETCH', 'EXTRACT', 'REMOVE', 'UNLINK', 'LINK':
+        if not actions[op]:
+            continue
+        res.append('PRINT %sing packages ...' % op.capitalize())
+        if op != 'FETCH':
+            res.append('PROGRESS %d' % len(actions[op]))
+        for dist in actions[op]:
+            res.append('%s %s' % (op, dist))
+    return res
+
 def install_plan(prefix, index, specs):
     linked = install.linked(prefix)
     extracted = install.extracted(PKGS_DIR)
@@ -24,6 +37,7 @@ def install_plan(prefix, index, specs):
     sorted_must_have = sorted(must_have.values())
 
     actions = defaultdict(list)
+    actions['PREFIX'] = prefix
     for dist in sorted_must_have:
         if dist in linked:
             continue
@@ -40,18 +54,7 @@ def install_plan(prefix, index, specs):
         if name in must_have and dist != must_have[name]:
             actions['UNLINK'].append(dist)
 
-    res = ['# install_plan',
-           'PREFIX %s' % prefix]
-    for op in 'FETCH', 'EXTRACT', 'UNLINK', 'LINK':
-        if not actions[op]:
-            continue
-        res.append('PRINT %sing packages ...' % op.capitalize())
-        if op != 'FETCH':
-            res.append('PROGRESS %d' % len(actions[op]))
-        for dist in actions[op]:
-            res.append('%s %s' % (op, dist))
-    return res
-
+    return code_from_actions(actions)
 
 def _test_plan():
     import sys
