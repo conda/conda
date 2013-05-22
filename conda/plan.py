@@ -1,6 +1,4 @@
-import sys
 from collections import defaultdict
-from os.path import join
 
 import install
 from config import PKGS_DIR
@@ -10,9 +8,9 @@ from resolve import Resolve
 
 
 def print_dists(dists):
-    fmt = "    %-25s  |  %15s"
+    fmt = "    %-27s|%17s"
     print fmt % ('package', 'build')
-    print fmt % ('-' * 25, '-' * 15)
+    print fmt % ('-' * 27, '-' * 17)
     for dist in dists:
         print fmt % tuple(dist.rsplit('-', 1))
 
@@ -75,6 +73,7 @@ def install_actions(prefix, index, specs):
 
 
 if __name__ == '__main__':
+    import sys
     import json
     with open('../tests/index.json') as fi:
         index = json.load(fi)
