@@ -3,7 +3,7 @@ from collections import defaultdict
 import install
 from config import PKGS_DIR
 from naming import name_dist
-from resolve import Resolve
+from resolve import MatchSpec, Resolve
 
 
 
@@ -72,10 +72,24 @@ def install_actions(prefix, index, specs):
 
     return actions
 
+def remove_actions(prefix, specs):
+    linked = install.linked(prefix)
+
+    mss = [MatchSpec(spec) for spec in specs]
+
+    actions = defaultdict(list)
+    actions['PREFIX'] = prefix
+    for dist in sorted(linked):
+        if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
+            actions['UNLINK'].append(dist)
+        
+    return actions
+
 
 if __name__ == '__main__':
     import sys
     import json
     with open('../tests/index.json') as fi:
         index = json.load(fi)
-    display_actions(install_actions(sys.prefix, index, ['w3lib']))
+    #display_actions(install_actions(sys.prefix, index, ['w3lib']))
+    display_actions(remove_actions(sys.prefix, ['numpy']))
