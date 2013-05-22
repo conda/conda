@@ -73,7 +73,6 @@ def execute(plan, index=None, enable_progress=True):
 
 if __name__ == '__main__':
     import logging
-
     from api import get_index
 
     logging.basicConfig()
