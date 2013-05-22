@@ -13,7 +13,7 @@ PKGS_DIR = join(sys.prefix, 'pkgs')
 def code_from_actions(actions):
     res = ['# plan',
            'PREFIX %s' % actions['PREFIX']]
-    for op in 'FETCH', 'EXTRACT', 'REMOVE', 'UNLINK', 'LINK':
+    for op in 'FETCH', 'EXTRACT', 'UNLINK', 'LINK', 'REMOVE':
         if not actions[op]:
             continue
         res.append('PRINT %sing packages ...' % op.capitalize())
