@@ -6,20 +6,24 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-import conda.plan as plan
 from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
                    confirm, get_prefix)
 
 
 descr = "Remove a list of packages from a specified Anaconda environment."
+epilog = """
+examples:
+    conda remove -n myenv scipy
+
+"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'remove',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help        = descr,
-        epilog      = remove_example,
+        help = descr,
+        epilog = epilog,
     )
     add_parser_yes(p)
     #p.add_argument(
@@ -40,6 +44,8 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import conda.plan as plan
+
     prefix = get_prefix(args)
     actions = plan.remove_actions(prefix, args.package_names)
 
@@ -53,10 +59,3 @@ def execute(args, parser):
 
     confirm(args)
     plan.execute_actions(actions, enable_progress=not args.quiet)
-
-
-remove_example = '''
-examples:
-    conda remove -n myenv scipy
-
-'''
