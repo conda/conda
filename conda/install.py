@@ -319,18 +319,9 @@ def main():
                  action="store_true",
                  help="list all linked packages")
 
-    p.add_option('--list-available',
+    p.add_option('--extract',
                  action="store_true",
-                 help="list all available packages")
-
-    p.add_option('-i', '--info',
-                 action="store_true",
-                 help="display meta-data information of a linked package")
-
-    p.add_option('-m', '--make-available',
-                 action="store_true",
-                 help="make a package available (when we use hard like this "
-                      "means extracting it)")
+                 help="extract package in pkgs cache")
 
     p.add_option('--link',
                  action="store_true",
@@ -339,10 +330,6 @@ def main():
     p.add_option('--unlink',
                  action="store_true",
                  help="unlink a package")
-
-    p.add_option('-r', '--remove',
-                 action="store_true",
-                 help="remove a package (from being available)")
 
     p.add_option('-p', '--prefix',
                  action="store",
@@ -365,7 +352,7 @@ def main():
 
     logging.basicConfig()
 
-    if opts.list or opts.list_available or opts.link_all:
+    if opts.list or opts.extract or opts.link_all:
         if args:
             p.error('no arguments expected')
     else:
@@ -381,55 +368,22 @@ def main():
         print "prefix  : %r" % opts.prefix
         print "dist    : %r" % dist
 
+
     if opts.list:
         pprint(sorted(linked(opts.prefix)))
-        return
 
-    if opts.list_available:
-        pprint(sorted(available(opts.pkgs_dir)))
-        return
+    elif opts.link_all:
+        for dist in sorted(available(opts.pkgs_dir)):
+            link(opts.pkgs_dir, dist, opts.prefix)
 
-    if opts.info:
-        pprint(get_meta(dist, opts.prefix))
-        return
-
-    if opts.link_all:
-        for d in sorted(available(opts.pkgs_dir)):
-            link(opts.pkgs_dir, d, opts.prefix)
-        return
-
-    do_steps = not (opts.remove or opts.make_available or opts.link or
-                    opts.unlink)
-    if opts.verbose:
-        print "do_steps: %r" % do_steps
-
-    if do_steps:
-        path = args[0]
-        if not (path.endswith('.tar.bz2') and isfile(path)):
-            p.error('path .tar.bz2 package expected')
-
-    if do_steps or opts.remove:
-        if opts.verbose:
-            print "removing available package: %r" % dist
-        remove_available(opts.pkgs_dir, dist)
-
-    if do_steps:
-        shutil.copyfile(path, join(opts.pkgs_dir, dist + '.tar.bz2'))
-
-    if do_steps or opts.make_available:
-        if opts.verbose:
-            print "making available: %r" % dist
+    elif opts.extract:
         make_available(opts.pkgs_dir, dist)
 
-    if (do_steps and dist in linked(opts.prefix)) or opts.unlink:
-        if opts.verbose:
-            print "unlinking: %r" % dist
-        unlink(dist, opts.prefix)
-
-    if do_steps or opts.link:
-        if opts.verbose:
-            print "linking: %r" % dist
+    elif opts.link:
         link(opts.pkgs_dir, dist, opts.prefix)
+
+    elif opts.unlink:
+        unlink(dist, opts.prefix)
 
 
 if __name__ == '__main__':
