@@ -15,15 +15,23 @@ def print_dists(dists):
         print fmt % tuple(dist.rsplit('-', 1))
 
 def display_actions(actions):
-    if actions['FETCH']:
+    if actions.get('FETCH'):
         print "\nThe following packages will be downloaded:\n"
         print_dists(actions['FETCH'])
-    if actions['UNLINK']:
+    if actions.get('UNLINK'):
         print "\nThe following packages will be UN-linked:\n"
         print_dists(actions['UNLINK'])
-    if actions['LINK']:
+    if actions.get('LINK'):
         print "\nThe following packages will be linked:\n"
         print_dists(actions['LINK'])
+    print
+
+def nothing_to_do(actions):
+    for op in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
+               'RM_EXTRACTED', 'RM_FETCHED'):
+        if actions.get(op):
+            return False
+    return True
 
 def plan_from_actions(actions):
     res = ['# plan',
@@ -82,7 +90,7 @@ def remove_actions(prefix, specs):
     for dist in sorted(linked):
         if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
             actions['UNLINK'].append(dist)
-        
+
     return actions
 
 
@@ -92,4 +100,4 @@ if __name__ == '__main__':
     with open('../tests/index.json') as fi:
         index = json.load(fi)
     #display_actions(install_actions(sys.prefix, index, ['w3lib']))
-    display_actions(remove_actions(sys.prefix, ['numpy']))
+    display_actions(remove_actions(sys.prefix, ['numpy', 'zlib']))
