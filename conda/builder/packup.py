@@ -8,7 +8,7 @@ import tarfile
 import tempfile
 from os.path import abspath, basename, dirname, isfile, islink, join
 
-from conda.config import PACKAGES_DIR
+from conda.config import PKGS_DIR
 from conda.install import (linked, get_meta, prefix_placeholder,
                            install_local_package)
 from conda.naming import split_canonical_name
@@ -236,7 +236,7 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
     if fn is None:
         return
     remove(prefix, files)
-    install_local_package(fn, PACKAGES_DIR, prefix)
+    install_local_package(fn, PKGS_DIR, prefix)
 
 
 if __name__ == '__main__':

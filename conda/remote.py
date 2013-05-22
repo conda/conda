@@ -15,7 +15,7 @@ import urllib2
 import logging
 from os.path import join
 
-from config import PACKAGES_DIR
+from config import PKGS_DIR
 
 
 log = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ def fetch_index(channel_urls):
 
 
 def fetch_file(url, fn, md5=None, size=None, progress=None,
-               dst_dir=PACKAGES_DIR):
+               dst_dir=PKGS_DIR):
     '''
     fetch a file `fn` from `url` and store it into `dst_dir`
     '''

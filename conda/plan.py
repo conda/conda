@@ -3,11 +3,10 @@ from collections import defaultdict
 from os.path import join
 
 import install
+from config import PKGS_DIR
 from naming import name_dist
 from resolve import Resolve
 
-
-PKGS_DIR = join(sys.prefix, 'pkgs')
 
 
 def print_dists(dists):

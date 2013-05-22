@@ -1,14 +1,9 @@
-import sys
-import string
-from os.path import join
-
 import install
+from config import PKGS_DIR
 from naming import name_dist
 from remote import fetch_file
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
-
-PKGS_DIR = join(sys.prefix, 'pkgs')
 
 
 def fetch(index, dist, progress):
@@ -23,7 +18,7 @@ def cmds_from_plan(plan):
         line = line.strip()
         if not line or line.startswith('#'):
             continue
-        res.append(string.split(line, maxsplit=1))
+        res.append(line.split(None, 1))
     return res
 
 def execute(plan, index=None, enable_progress=True):
@@ -37,7 +32,7 @@ def execute(plan, index=None, enable_progress=True):
         fetch_progress = None
         progress = None
 
-    progress_cmds = set(['EXTRACT', 'REMOVE', 'LINK', 'UNLINK'])
+    progress_cmds = set(['EXTRACT', 'REMOVE', 'LINK', 'UNLINK', 'SLEEP'])
     prefix = i = None
     for cmd, arg in cmds_from_plan(plan):
         if enable_progress and cmd in progress_cmds:
@@ -63,6 +58,9 @@ def execute(plan, index=None, enable_progress=True):
             install.link(PKGS_DIR, arg, prefix)
         elif cmd == 'UNLINK':
             install.unlink(arg, prefix)
+        elif cmd == 'SLEEP':
+            import time
+            time.sleep(float(arg.split('-')[1]))
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
@@ -72,19 +70,13 @@ def execute(plan, index=None, enable_progress=True):
 
 
 if __name__ == '__main__':
-    import logging
-    from api import get_index
-
-    logging.basicConfig()
-
     plan = """
 PREFIX /Users/ilan/python/envs/test
-PRINT Fetching packages ...
-FETCH python-2.7.5-0
-PRINT Extracting packages ...
-PROGRESS 3
-EXTRACT pycurl-7.19.0-py27_2
-EXTRACT pyflakes-0.6.1-py27_0
-EXTRACT ply-3.4-py27_0
+PRINT Sleeping ...
+PROGRESS 4
+SLEEP numpy-0.6
+SLEEP bitarray-0.4
+SLEEP pycosat-0.2
+SLEEP python-0.7
 """
-    execute(plan.splitlines(), get_index())
+    execute(plan.splitlines())

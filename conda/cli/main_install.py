@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.config import ROOT_DIR, PACKAGES_DIR
+from conda.config import ROOT_DIR, PKGS_DIR
 from conda.anaconda import Anaconda
 from conda.planners import create_install_plan
 from utils import (
@@ -78,7 +78,7 @@ def execute(args, parser):
     if all(s.endswith('.tar.bz2') for s in req_strings):
         from conda.install import install_local_package
         for path in req_strings:
-            install_local_package(path, PACKAGES_DIR, prefix)
+            install_local_package(path, PKGS_DIR, prefix)
         return
 
     if any(s.endswith('.tar.bz2') for s in req_strings):

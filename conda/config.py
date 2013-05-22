@@ -26,7 +26,7 @@ CIO_DEFAULT_CHANNELS = [
 ]
 
 ROOT_DIR = sys.prefix
-PACKAGES_DIR = join(ROOT_DIR, 'pkgs')
+PKGS_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
@@ -130,7 +130,7 @@ class Config(object):
     @property
     def packages_dir(self):
         ''' Packages directory for this Anaconda installation '''
-        return PACKAGES_DIR
+        return PKGS_DIR
 
     @property
     def system_location(self):
