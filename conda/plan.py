@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import install
-from config import PKGS_DIR
+from config import ROOT_DIR, PKGS_DIR
 from naming import name_dist
 from remote import fetch_file
 from resolve import MatchSpec, Resolve
@@ -131,9 +131,10 @@ def execute_plan(plan, index=None, enable_progress=True):
         progress = None
 
     progress_cmds = set(['EXTRACT', 'RM_EXTRACTED', 'LINK', 'UNLINK'])
-    prefix = i = None
+    prefix = ROOT_DIR
+    i = None
     for cmd, arg in cmds_from_plan(plan):
-        if enable_progress and cmd in progress_cmds:
+        if i is not None and cmd in progress_cmds:
             i += 1
             progress.widgets[0] = '[%-20s]' % name_dist(arg)
             progress.update(i)
@@ -146,9 +147,9 @@ def execute_plan(plan, index=None, enable_progress=True):
             fetch(index or {}, arg, fetch_progress)
         elif cmd == 'PROGRESS':
             if enable_progress:
+                i = 0
                 progress.maxval = int(arg)
                 progress.start()
-                i = 0
         elif cmd == 'EXTRACT':
             install.extract(PKGS_DIR, arg)
         elif cmd == 'RM_EXTRACTED':
@@ -160,7 +161,8 @@ def execute_plan(plan, index=None, enable_progress=True):
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
-        if enable_progress and cmd in progress_cmds and progress.maxval == i:
+        if i is not None and cmd in progress_cmds and progress.maxval == i:
+            i = None
             progress.widgets[0] = '[      COMPLETE      ]'
             progress.finish()
 
@@ -174,5 +176,6 @@ if __name__ == '__main__':
     import json
     with open('../tests/index.json') as fi:
         index = json.load(fi)
-    #display_actions(install_actions(sys.prefix, index, ['w3lib']))
-    display_actions(remove_actions(sys.prefix, ['numpy', 'zlib']))
+    actions = install_actions(sys.prefix, index, ['w3lib'])
+    for line in plan_from_actions(actions):
+        print line
