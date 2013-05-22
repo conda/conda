@@ -47,7 +47,13 @@ def plan_from_actions(actions):
             res.append('%s %s' % (op, dist))
     return res
 
-def install_actions(prefix, index, specs):
+def arg2spec(arg):
+    spec = arg.replace('=', ' ')
+    if arg.count('=') == 1:
+        spec += '*'
+    return spec
+
+def install_actions(prefix, index, args):
     linked = install.linked(prefix)
     extracted = install.extracted(PKGS_DIR)
     fetched = install.fetched(PKGS_DIR)
@@ -55,7 +61,8 @@ def install_actions(prefix, index, specs):
     r = Resolve(index)
 
     must_have = {}
-    for fn in r.solve(specs, ['%s.tar.bz2' % d for d in linked]):
+    for fn in r.solve([arg2spec(arg) for arg in args],
+                      ['%s.tar.bz2' % d for d in linked]):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
     sorted_must_have = sorted(must_have.values())
@@ -80,10 +87,10 @@ def install_actions(prefix, index, specs):
 
     return actions
 
-def remove_actions(prefix, specs):
+def remove_actions(prefix, args):
     linked = install.linked(prefix)
 
-    mss = [MatchSpec(spec) for spec in specs]
+    mss = [MatchSpec(arg2spec(arg)) for arg in args]
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
