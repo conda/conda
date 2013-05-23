@@ -105,6 +105,7 @@ class Resolve(object):
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
 
+    @memoize
     def track_features(self, fn):
         return set(self.index[fn].get('track_features', '').split())
 
@@ -282,10 +283,9 @@ class Resolve(object):
 
         return candidates[maxkey][0]
 
-    def current_features(self, installed):
+    def installed_features(self, installed):
         """
-        Return the set of current features of all `installed` packages,
-        i.e. all features of all installed packages.
+        Return the set of all features of all `installed` packages,
         """
         res = set()
         for fn in installed:
@@ -317,7 +317,7 @@ class Resolve(object):
         if installed is None:
             installed = []
         if features is None:
-            features = self.current_features(installed)
+            features = self.installed_features(installed)
         dists = self.select_root_dists(specs, features, installed)
         for fn in dists:
             features.update(self.track_features(fn))
