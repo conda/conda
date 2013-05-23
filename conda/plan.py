@@ -55,6 +55,20 @@ def arg2spec(arg):
         spec += '*'
     return spec
 
+def ensure_linked_actions(dists, linked, extracted, fetched):
+    actions = defaultdict(list)
+    for dist in dists:
+        if dist in linked:
+            continue
+        actions['LINK'].append(dist)
+        if dist in extracted:
+            continue
+        actions['EXTRACT'].append(dist)
+        if dist in fetched:
+            continue
+        actions['FETCH'].append(dist)
+    return actions
+
 def install_actions(prefix, index, args):
     linked = install.linked(prefix)
     extracted = install.extracted(PKGS_DIR)
@@ -67,20 +81,10 @@ def install_actions(prefix, index, args):
                       ['%s.tar.bz2' % d for d in linked]):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
-    sorted_must_have = sorted(must_have.values())
 
-    actions = defaultdict(list)
+    actions = ensure_linked_actions(sorted(must_have.values()),
+                                    linked, extracted, fetched)
     actions['PREFIX'] = prefix
-    for dist in sorted_must_have:
-        if dist in linked:
-            continue
-        actions['LINK'].append(dist)
-        if dist in extracted:
-            continue
-        actions['EXTRACT'].append(dist)
-        if dist in fetched:
-            continue
-        actions['FETCH'].append(dist)
 
     for dist in sorted(linked):
         name = name_dist(dist)
@@ -204,6 +208,7 @@ if __name__ == '__main__':
     import json
     with open('../tests/index.json') as fi:
         index = json.load(fi)
+    #actions = install_actions(sys.prefix, index, ['starcluster'])
     actions = remove_features_actions(sys.prefix, index, ['mkl'])
     #for line in plan_from_actions(actions):
     #    print line
