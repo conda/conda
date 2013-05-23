@@ -102,6 +102,18 @@ def remove_actions(prefix, args):
 
     return actions
 
+def remove_features_actions(prefix, args):
+    linked = install.linked(prefix)
+
+    actions = defaultdict(list)
+    actions['PREFIX'] = prefix
+    # TODO...
+    for dist in sorted(linked):
+        if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
+            actions['UNLINK'].append(dist)
+
+    return actions
+
 # ---------------------------- EXECUTION --------------------------
 
 def fetch(index, dist, progress):

@@ -31,6 +31,11 @@ def configure_parser(sub_parsers):
     #    action  = "store_true",
     #    help    = "do not follow and remove dependencies (default: false)",
     #)
+    p.add_argument(
+        "--features",
+        action = "store_true",
+        help = "remove features (instead of packages)",
+    )
     add_parser_prefix(p)
     add_parser_quiet(p)
     p.add_argument(
@@ -47,7 +52,10 @@ def execute(args, parser):
     import conda.plan as plan
 
     prefix = get_prefix(args)
-    actions = plan.remove_actions(prefix, args.package_names)
+    if args.features:
+        actions = plan.remove_features_actions(prefix, args.package_names)
+    else:
+        actions = plan.remove_actions(prefix, args.package_names)
 
     if plan.nothing_to_do(actions):
         print 'No packages found to remove from environment: %s' % prefix
