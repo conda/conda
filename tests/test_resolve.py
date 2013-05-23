@@ -100,6 +100,9 @@ class TestSelectRoot(unittest.TestCase):
 
 class TestSolve(unittest.TestCase):
 
+    def setUp(self):
+        r.msd_cache = {}
+
     def test_iopro(self):
         self.assertEqual(r.solve(['iopro 1.4*'], installed, ensure_sat=True),
                          ['iopro-1.4.3-np17py27_p0.tar.bz2',
@@ -149,6 +152,25 @@ class TestSolve(unittest.TestCase):
                          'python-2.7.5-0.tar.bz2'], f_mkl, ensure_sat=True)
         self.assertEqual(len(dists), 108)
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
+
+
+class TestFindSubstitute(unittest.TestCase):
+
+    def setUp(self):
+        r.msd_cache = {}
+
+    def test1(self):
+        installed = r.solve(['anaconda 1.5.0*'],
+                            ['numpy-1.7.1-py27_0.tar.bz2',
+                             'python-2.7.5-0.tar.bz2'],
+                            f_mkl, ensure_sat=True)
+        for old, new in [('numpy-1.7.1-py27_p0.tar.bz2',
+                          'numpy-1.7.1-py27_0.tar.bz2'),
+                         ('scipy-0.12.0-np17py27_p0.tar.bz2',
+                          'scipy-0.12.0-np17py27_0.tar.bz2'),
+                         ('mkl-rt-11.0-p0.tar.bz2', None)]:
+            self.assertTrue(old in installed)
+            self.assertEqual(r.find_substitute(old, installed, f_mkl), new)
 
 
 if __name__ == '__main__':
