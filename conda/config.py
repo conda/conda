@@ -1,18 +1,14 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-''' The config module provides the `config` class, which exposes all the
-configuration information about an Anaconda installation that does not require
-the Anaconda package index.
 
-'''
-import logging
 import os
-from os.path import abspath, exists, expanduser, isfile, isdir, join
-import platform
 import sys
+import platform
+import logging
+from os.path import abspath, exists, expanduser, isfile, isdir, join
 
 from conda import __version__
 
@@ -20,28 +16,22 @@ from conda import __version__
 log = logging.getLogger(__name__)
 
 
-CIO_DEFAULT_CHANNELS = [
-    'http://repo.continuum.io/pkgs/free',
-    'http://repo.continuum.io/pkgs/pro',
-]
-
-DEFAULT_PYTHON_SPEC = 'python=2.7'
-DEFAULT_NUMPY_SPEC = 'numpy=1.7'
-
+default_python = '2.7'
+default_numpy = '1.7'
 
 # constant paths
-ROOT_DIR = sys.prefix
-PKGS_DIR = join(ROOT_DIR, 'pkgs')
-ENVS_DIR = join(ROOT_DIR, 'envs')
+root_dir = sys.prefix
+pkgs_dir = join(root_dir, 'pkgs')
+envs_dir = join(root_dir, 'envs')
 
 # default environment path
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
-    DEFAULT_ENV_PREFIX = ROOT_DIR
+    DEFAULT_ENV_PREFIX = root_dir
 elif os.sep in _default_env:
     DEFAULT_ENV_PREFIX = abspath(_default_env)
 else:
-    DEFAULT_ENV_PREFIX = join(ENVS_DIR, _default_env)
+    DEFAULT_ENV_PREFIX = join(envs_dir, _default_env)
 
 # operating system and architecture
 _sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
@@ -55,6 +45,19 @@ else:
     SUBDIR = '%s-%d' % (PLATFORM, BITS)
     ARCH_NAME = {64: 'x86_64', 32: 'x86'}[BITS]
 
+# ----------------------------------------------------------------------
+
+CIO_DEFAULT_CHANNELS = [
+    'http://repo.continuum.io/pkgs/free',
+    'http://repo.continuum.io/pkgs/pro',
+]
+
+DEFAULT_PYTHON_SPEC = 'python=2.7'
+DEFAULT_NUMPY_SPEC = 'numpy=1.7'
+
+ROOT_DIR = sys.prefix
+PKGS_DIR = join(ROOT_DIR, 'pkgs')
+ENVS_DIR = join(ROOT_DIR, 'envs')
 
 def _get_rc_path():
     for path in [abspath(expanduser('~/.condarc')),
