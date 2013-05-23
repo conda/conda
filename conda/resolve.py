@@ -105,6 +105,9 @@ class Resolve(object):
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
 
+    def track_features(self, fn):
+        return set(self.index[fn].get('track_features', '').split())
+
     @memoize
     def get_pkgs(self, ms):
         #print ms, isinstance(ms, collections.Hashable)
@@ -286,9 +289,7 @@ class Resolve(object):
             features = self.tracked_features(installed)
         dists = self.select_root_dists(specs, features, installed)
         for fn in dists:
-            track_features = set(
-                       self.index[fn].get('track_features', '').split())
-            features.update(track_features)
+            features.update(self.track_features(fn))
         if verbose:
             print dists, features
         for fn in dists:
