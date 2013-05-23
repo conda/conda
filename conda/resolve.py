@@ -255,6 +255,33 @@ class Resolve(object):
 
         return set(candidates[maxkey][0])
 
+    def find_substitute(self, fn, installed, features):
+        """
+        Find a substitute for `fn` (given `installed` packages) which does
+        *NOT* have `featues`.  If no substribute is found, None is returned.
+        """
+        name, version, unused_build = fn.rsplit('-', 2)
+        candidates = defaultdict(list)
+        for fn1 in self.get_max_dists(MatchSpec(name + ' ' + version)):
+            if self.features(fn1).intersection(features):
+                continue
+            key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
+            candidates[key].append(fn1)
+
+        if not candidates:
+            return None
+
+        maxkey = max(candidates)
+        #print 'maxkey:', maxkey
+
+        mc = candidates[maxkey]
+        if len(mc) != 1:
+            print 'WARNING:', len(mc)
+            for c in mc:
+                print '\t', c
+
+        return candidates[maxkey][0]
+
     def tracked_features(self, installed):
         res = set()
         for fn in installed:

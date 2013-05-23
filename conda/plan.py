@@ -112,6 +112,7 @@ def remove_features_actions(prefix, index, args):
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
+    _installed = [d + '.tar.bz2' for d in linked]
     for dist in sorted(linked):
         fn = dist + '.tar.bz2'
         if fn not in index:
@@ -120,28 +121,12 @@ def remove_features_actions(prefix, index, args):
             actions['UNLINK'].append(dist)
         if r.features(fn).intersection(features):
             actions['UNLINK'].append(dist)
-            name, version, unused_build = dist.rsplit('-', 2)
-            candidates = defaultdict(list)
-            for fn1 in r.get_max_dists(MatchSpec(name + ' ' + version)):
-                if r.features(fn1).intersection(features):
-                    continue
-                key = sum(r.sum_matches(fn1, d2 + '.tar.bz2') for d2 in linked)
-                candidates[key].append(fn1)
-
-            if not candidates:
+            subst_fn = r.find_substitute(fn, _installed, features)
+            if subst_fn is None:
                 print "No substribute for", dist
                 continue
-
-            maxkey = max(candidates)
-            print 'maxkey:', maxkey
-
-            mc = candidates[maxkey]
-            if len(mc) != 1:
-                print 'WARNING:', len(mc)
-                for c in mc:
-                    print '\t', c
-            fnc = candidates[maxkey][0]
-            actions['LINK'].append(fnc[:-8])
+            subst_dist = subst_fn[:-8]
+            actions['LINK'].append(subst_dist)
 
     return actions
 
