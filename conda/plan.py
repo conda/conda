@@ -139,8 +139,6 @@ def remove_features_actions(prefix, index, args):
             subst = r.find_substitute(fn, _linked, features)
             if subst:
                 to_link.append(subst[:-8])
-            else:
-                print "No substribute for", dist
 
     if to_link:
         actions.update(ensure_linked_actions(to_link, linked))

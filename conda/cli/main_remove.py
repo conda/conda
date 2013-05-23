@@ -50,10 +50,13 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import conda.plan as plan
+    from conda.api import get_index
 
     prefix = get_prefix(args)
     if args.features:
-        actions = plan.remove_features_actions(prefix, args.package_names)
+        index = get_index()
+        actions = plan.remove_features_actions(prefix, index,
+                                               args.package_names)
     else:
         actions = plan.remove_actions(prefix, args.package_names)
 
