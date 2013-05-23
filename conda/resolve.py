@@ -79,6 +79,18 @@ class Package(object):
         return '<Package %s>' % self.fn
 
 
+def get_candidate(candidates, min_or_max):
+    key = min_or_max(candidates)
+    #print '%skey: %r' % (min_or_max.__name__, key)
+
+    mc = candidates[key]
+    if len(mc) != 1:
+        print 'WARNING:', len(mc)
+        for c in mc:
+            print '\t', c
+
+    return mc[0]
+
 class Resolve(object):
 
     def __init__(self, index):
@@ -197,17 +209,11 @@ class Resolve(object):
             #print key, pkgs
             candidates[key].append(pkgs)
 
-        if not candidates:
+        if candidates:
+            return get_candidate(candidates, min)
+        else:
             print "Error: UNSAT"
             return []
-
-        minkey = min(candidates)
-
-        mc = candidates[minkey]
-        if len(mc) != 1:
-            print 'WARNING:', len(mc), root_dists, features
-
-        return candidates[minkey][0]
 
     verscores = {}
     def select_dists_spec(self, spec):
@@ -245,16 +251,7 @@ class Resolve(object):
             #print dists, key
             candidates[key].append(dists)
 
-        maxkey = max(candidates)
-        #print 'maxkey:', maxkey
-
-        mc = candidates[maxkey]
-        if len(mc) != 1:
-            print 'WARNING:', len(mc)
-            for c in mc:
-                print '\t', c
-
-        return set(candidates[maxkey][0])
+        return set(get_candidate(candidates, max))
 
     def find_substitute(self, fn, installed, features):
         """
@@ -272,19 +269,10 @@ class Resolve(object):
             key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
             candidates[key].append(fn1)
 
-        if not candidates:
+        if candidates:
+            return get_candidate(candidates, max)
+        else:
             return None
-
-        maxkey = max(candidates)
-        #print 'maxkey:', maxkey
-
-        mc = candidates[maxkey]
-        if len(mc) != 1:
-            print 'WARNING:', len(mc)
-            for c in mc:
-                print '\t', c
-
-        return candidates[maxkey][0]
 
     def installed_features(self, installed):
         """
