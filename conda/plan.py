@@ -55,7 +55,10 @@ def arg2spec(arg):
         spec += '*'
     return spec
 
-def ensure_linked_actions(dists, linked, extracted, fetched):
+def ensure_linked_actions(dists, linked):
+    extracted = install.extracted(PKGS_DIR)
+    fetched = install.fetched(PKGS_DIR)
+
     actions = defaultdict(list)
     for dist in dists:
         if dist in linked:
@@ -71,8 +74,6 @@ def ensure_linked_actions(dists, linked, extracted, fetched):
 
 def install_actions(prefix, index, args):
     linked = install.linked(prefix)
-    extracted = install.extracted(PKGS_DIR)
-    fetched = install.fetched(PKGS_DIR)
 
     r = Resolve(index)
 
@@ -82,8 +83,7 @@ def install_actions(prefix, index, args):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
 
-    actions = ensure_linked_actions(sorted(must_have.values()),
-                                    linked, extracted, fetched)
+    actions = ensure_linked_actions(sorted(must_have.values()), linked)
     actions['PREFIX'] = prefix
 
     for dist in sorted(linked):
@@ -108,15 +108,14 @@ def remove_actions(prefix, args):
 
 def remove_features_actions(prefix, index, args):
     linked = install.linked(prefix)
-    extracted = install.extracted(PKGS_DIR)
-    fetched = install.fetched(PKGS_DIR)
 
     features = set(args)
     r = Resolve(index)
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    _installed = [d + '.tar.bz2' for d in linked]
+    _linked = [d + '.tar.bz2' for d in linked]
+    to_link = []
     for dist in sorted(linked):
         fn = dist + '.tar.bz2'
         if fn not in index:
@@ -125,13 +124,14 @@ def remove_features_actions(prefix, index, args):
             actions['UNLINK'].append(dist)
         if r.features(fn).intersection(features):
             actions['UNLINK'].append(dist)
-            subst_fn = r.find_substitute(fn, _installed, features)
-            if subst_fn is None:
+            subst = r.find_substitute(fn, _linked, features)
+            if subst is None:
                 print "No substribute for", dist
                 continue
-            subst_dist = subst_fn[:-8]
-            actions['LINK'].append(subst_dist)
+            to_link.append(subst[:-8])
 
+    if to_link:
+        actions.update(ensure_linked_actions(to_link, linked))
     return actions
 
 # ---------------------------- EXECUTION --------------------------
