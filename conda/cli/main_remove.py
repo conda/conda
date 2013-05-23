@@ -41,9 +41,9 @@ def configure_parser(sub_parsers):
     p.add_argument(
         'package_names',
         metavar = 'package_name',
-        action  = "store",
-        nargs   = '+',
-        help    = "package names to remove from Anaconda environment",
+        action = "store",
+        nargs = '+',
+        help = "package names to remove from environment",
     )
     p.set_defaults(func=execute)
 
