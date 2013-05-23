@@ -39,18 +39,31 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import sys
+
+    import conda.install as ci
     import conda.plan as plan
     from conda.api import get_index
+
 
     if len(args.pkg_names) == 0:
         args.pkg_names.append('anaconda')
 
     prefix = get_prefix(args)
     index = get_index()
+    linked = set(plan.name_dist(d) for d in ci.linked(prefix))
+    for name in args.pkg_names:
+        for c in '= !@#$%^&*()<>?':
+            if c in name:
+                sys.exit("Invalid character '%s' in package "
+                         "name: '%s'" % (c, name))
+        if name not in linked:
+            sys.exit("Error: package '%s' is not installed" % name)
+
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
-        print 'All packages already at latest version'
+        print 'All packages already at latest version, nothing to do'
         return
 
     print "Updating Anaconda environment at %s" % prefix
