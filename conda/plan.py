@@ -85,16 +85,17 @@ def ensure_linked_actions(dists, linked):
     return actions
 
 def add_defaults_to_linked(r, linked):
-    res = [d + '.tar.bz2' for d in linked]
-    names = set(name_dist(dist) for dist in linked)
+    linked = [d + '.tar.bz2' for d in linked]
+    names = {name_dist(fn): fn for fn in linked}
     if 'python' in names and 'numpy' in names:
-        return
+        return linked
     for fn in r.select_root_dists(['python %s*' % config.default_python,
                                    'numpy %s*' % config.default_numpy],
-                                  set(),  linked):
-        res.append(fn)
+                                  set(), linked):
         print "Select defaults:", fn
-    return res
+        if name_dist(fn) not in names:
+            names[name_dist(fn)] = fn
+    return names.values()
 
 def install_actions(prefix, index, args):
     linked = install.linked(prefix)
