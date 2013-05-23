@@ -11,11 +11,20 @@ from collections import defaultdict
 
 import install
 from config import ROOT_DIR, PKGS_DIR
-from naming import name_dist
 from remote import fetch_file
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
+
+
+def name_dist(dist):
+    return dist.rsplit('-', 2)[0]
+
+def arg2spec(arg):
+    spec = arg.replace('=', ' ')
+    if arg.count('=') == 1:
+        spec += '*'
+    return spec
 
 
 def print_dists(dists):
@@ -57,12 +66,6 @@ def plan_from_actions(actions):
         for dist in actions[op]:
             res.append('%s %s' % (op, dist))
     return res
-
-def arg2spec(arg):
-    spec = arg.replace('=', ' ')
-    if arg.count('=') == 1:
-        spec += '*'
-    return spec
 
 def ensure_linked_actions(dists, linked):
     extracted = install.extracted(PKGS_DIR)

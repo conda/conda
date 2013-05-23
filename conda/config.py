@@ -66,13 +66,17 @@ def _load_condarc(path):
         log.warn("missing 'channels' key in %r"  % path)
     return rc
 
-def get_subdir():
-    sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
-    bits = int(platform.architecture()[0][:2])
-    system = sys_map.get(sys.platform, 'unknown')
-    if system == 'linux' and platform.machine() == 'armv6l':
-        return 'linux-armv6l'
-    return '%s-%d' % (system, bits)
+
+_sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
+PLATFORM = _sys_map.get(sys.platform, 'unknown')
+BITS = int(platform.architecture()[0][:2])
+
+if PLATFORM == 'linux' and platform.machine() == 'armv6l':
+    SUBDIR = 'linux-armv6l'
+    ARCH_NAME = 'armv6l'
+else:
+    SUBDIR = '%s-%d' % (PLATFORM, BITS)
+    ARCH_NAME = {64: 'x86_64', 32: 'x86'}[BITS]
 
 
 class Config(object):
@@ -115,7 +119,7 @@ class Config(object):
             - ``osx``
             - ``linux``
         '''
-        return get_subdir()
+        return SUBDIR
 
     @property
     def packages_dir(self):
@@ -181,7 +185,7 @@ conda command version : %s
 environment locations : %s
           config file : %s
 '''  % (
-            get_subdir(),
+            SUBDIR,
             __version__,
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,
