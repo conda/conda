@@ -4,10 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import os
-import sys
 from argparse import RawDescriptionHelpFormatter
-from os.path import abspath, exists
 
 from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
                    add_parser_quiet)
@@ -52,8 +49,13 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import os
+    import sys
+    from os.path import abspath, exists
+
     import conda.plan as plan
     from conda.api import get_index
+
 
     if len(args.package_specs) == 0 and not args.file:
         raise RuntimeError('too few arguments, must supply command line '
