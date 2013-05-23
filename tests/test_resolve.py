@@ -140,14 +140,14 @@ class TestSolve(unittest.TestCase):
             r.solve(['accelerate'], installed, f_mkl, ensure_sat=True))
 
     def test_anaconda(self):
-        dists = r.solve(['anaconda 1.5.0*'],
+        dists = r.solve(['anaconda 1.5.0'],
                         ['numpy-1.7.1-py27_0.tar.bz2',
                          'python-2.7.5-0.tar.bz2'], ensure_sat=True)
         self.assertEqual(len(dists), 107)
         self.assertTrue('scipy-0.12.0-np17py27_0.tar.bz2' in dists)
 
         # to test "with_features_depends"
-        dists = r.solve(['anaconda 1.5.0*'],
+        dists = r.solve(['anaconda 1.5.0'],
                         ['numpy-1.7.1-py27_0.tar.bz2',
                          'python-2.7.5-0.tar.bz2'], f_mkl, ensure_sat=True)
         self.assertEqual(len(dists), 108)
@@ -160,7 +160,7 @@ class TestFindSubstitute(unittest.TestCase):
         r.msd_cache = {}
 
     def test1(self):
-        installed = r.solve(['anaconda 1.5.0*'],
+        installed = r.solve(['anaconda 1.5.0'],
                             ['numpy-1.7.1-py27_0.tar.bz2',
                              'python-2.7.5-0.tar.bz2'],
                             f_mkl, ensure_sat=True)
