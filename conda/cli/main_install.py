@@ -9,36 +9,39 @@ from argparse import RawDescriptionHelpFormatter
 from conda.config import ROOT_DIR, PKGS_DIR
 from conda.anaconda import Anaconda
 from conda.planners import create_install_plan
-from utils import (
-    add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
-)
+from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
+                   confirm, get_prefix)
 
 
 descr = "Install a list of packages into a specified conda environment."
+example = """
+examples:
+    conda install -n myenv scipy
 
+"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'install',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help        = descr,
-        epilog      = example,
+        help = descr,
+        epilog = example,
     )
     add_parser_yes(p)
     p.add_argument(
         '-f', "--file",
-        action  = "store",
-        help    = "filename to read package versions from",
+        action = "store",
+        help = "filename to read package versions from",
     )
     add_parser_prefix(p)
     add_parser_quiet(p)
     p.add_argument(
         'packages',
         metavar = 'package_version',
-        action  = "store",
-        nargs   = '*',
-        help    = "package versions to install into Anaconda environment",
+        action = "store",
+        nargs = '*',
+        help = "package versions to install into Anaconda environment",
     )
     p.set_defaults(func=execute)
 
@@ -89,7 +92,8 @@ def execute(args, parser):
     plan = create_install_plan(env, req_strings)
 
     if plan.empty():
-        print 'All requested packages already installed into environment: %s' % prefix
+        print('All requested packages already installed into '
+              'environment: %s' % prefix)
         return
 
     print
@@ -99,10 +103,3 @@ def execute(args, parser):
     confirm(args)
 
     plan.execute(env, not args.quiet)
-
-
-example = '''
-examples:
-    conda install -n myenv scipy
-
-'''
