@@ -25,10 +25,16 @@ CIO_DEFAULT_CHANNELS = [
     'http://repo.continuum.io/pkgs/pro',
 ]
 
+DEFAULT_PYTHON_SPEC = 'python=2.7'
+DEFAULT_NUMPY_SPEC = 'numpy=1.7'
+
+
+# constant paths
 ROOT_DIR = sys.prefix
 PKGS_DIR = join(ROOT_DIR, 'pkgs')
 ENVS_DIR = join(ROOT_DIR, 'envs')
 
+# default environment path
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
     DEFAULT_ENV_PREFIX = ROOT_DIR
@@ -37,8 +43,18 @@ elif os.sep in _default_env:
 else:
     DEFAULT_ENV_PREFIX = join(ENVS_DIR, _default_env)
 
-DEFAULT_PYTHON_SPEC = 'python=2.7'
-DEFAULT_NUMPY_SPEC = 'numpy=1.7'
+# operating system and architecture
+_sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
+PLATFORM = _sys_map.get(sys.platform, 'unknown')
+BITS = int(platform.architecture()[0][:2])
+
+if PLATFORM == 'linux' and platform.machine() == 'armv6l':
+    SUBDIR = 'linux-armv6l'
+    ARCH_NAME = 'armv6l'
+else:
+    SUBDIR = '%s-%d' % (PLATFORM, BITS)
+    ARCH_NAME = {64: 'x86_64', 32: 'x86'}[BITS]
+
 
 def _get_rc_path():
     for path in [abspath(expanduser('~/.condarc')),
@@ -65,18 +81,6 @@ def _load_condarc(path):
     else:
         log.warn("missing 'channels' key in %r"  % path)
     return rc
-
-
-_sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
-PLATFORM = _sys_map.get(sys.platform, 'unknown')
-BITS = int(platform.architecture()[0][:2])
-
-if PLATFORM == 'linux' and platform.machine() == 'armv6l':
-    SUBDIR = 'linux-armv6l'
-    ARCH_NAME = 'armv6l'
-else:
-    SUBDIR = '%s-%d' % (PLATFORM, BITS)
-    ARCH_NAME = {64: 'x86_64', 32: 'x86'}[BITS]
 
 
 class Config(object):
