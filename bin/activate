@@ -1,7 +1,7 @@
 #!/bin/bash
 
 _THIS_DIR=$(dirname ${BASH_SOURCE[0]})
-if [ $0 != '-bash' ]; then
+if [[ ($0 != '-bash') && ($0 != 'bash') ]]; then
     $_THIS_DIR/conda ..activate -h
 fi
 _NEW_PATH=$($_THIS_DIR/conda ..activate "$@")
