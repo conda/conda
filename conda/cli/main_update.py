@@ -45,7 +45,7 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-
+    # default
     if len(args.pkg_names) == 0:
         args.pkg_names.append('anaconda')
 
