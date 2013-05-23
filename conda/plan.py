@@ -147,6 +147,7 @@ def remove_features_actions(prefix, index, args):
 # ---------------------------- EXECUTION --------------------------
 
 def fetch(index, dist, progress):
+    assert index is not None
     fn = dist + '.tar.bz2'
     info = index[fn]
     fetch_file(info['channel'], fn, md5=info['md5'], size=info['size'],
@@ -186,7 +187,7 @@ def execute_plan(plan, index=None, enable_progress=True):
         elif cmd == 'PRINT':
             print arg
         elif cmd == 'FETCH':
-            fetch(index or {}, arg, fetch_progress)
+            fetch(index, arg, fetch_progress)
         elif cmd == 'PROGRESS':
             if enable_progress:
                 i = 0
