@@ -106,6 +106,8 @@ class Resolve(object):
                 yield fn
 
     def ms_depends(self, fn):
+        # the reason we don't use @memoize here is to allow resetting the
+        # cache using self.msd_cache = {}, which is used during testing
         try:
             res = self.msd_cache[fn]
         except KeyError:
