@@ -10,6 +10,12 @@
               /   |     |      |      |
              /    |     |      |      |
       resolve  remote   |      |   progressbar
-      /    \       \    |      |
-     /      \       \   |      |
-  verlib   utils    config   install
+      /  |  \      \    |      |
+     /   |   \      \   |      |
+  verlib |  utils   config   install
+         |             |
+         |             |
+     (optional)    (optional)
+         |             |
+         |             |
+      pycosat         yaml
