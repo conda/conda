@@ -1,3 +1,12 @@
+"""
+Handle the planning of installs and their execution.
+
+NOTE:
+    conda.install uses canonical package names in its interface functions,
+    whereas conda.resolve uses package filenames, as those are used as index
+    keys.  We try to keep fixes to this "impedance mismatch" local to this
+    module.
+"""
 from collections import defaultdict
 
 import install
@@ -125,10 +134,10 @@ def remove_features_actions(prefix, index, args):
         if r.features(fn).intersection(features):
             actions['UNLINK'].append(dist)
             subst = r.find_substitute(fn, _linked, features)
-            if subst is None:
+            if subst:
+                to_link.append(subst[:-8])
+            else:
                 print "No substribute for", dist
-                continue
-            to_link.append(subst[:-8])
 
     if to_link:
         actions.update(ensure_linked_actions(to_link, linked))
