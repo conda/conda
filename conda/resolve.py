@@ -310,6 +310,9 @@ class Resolve(object):
 
     def solve(self, specs, installed=None, features=None,
                     verbose=False, ensure_sat=False):
+        if verbose:
+            print "Resolve.solve(): installed:", installed
+
         if installed is None:
             installed = []
         if features is None:

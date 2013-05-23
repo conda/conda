@@ -49,7 +49,6 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    import os
     import sys
     from os.path import abspath, exists
 
@@ -104,8 +103,6 @@ def execute(args, parser):
     plan.display_actions(actions)
 
     confirm(args)
-    os.makedirs(prefix)
-    # env = conda.lookup_environment(prefix) ???
     plan.execute_actions(actions, index, enable_progress=not args.quiet)
 
     if sys.platform != 'win32':

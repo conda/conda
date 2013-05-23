@@ -41,20 +41,15 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-
     if len(args.pkg_names) == 0:
         args.pkg_names.append('anaconda')
 
     prefix = get_prefix(args)
-
-    if len(args.pkg_names) == 0:
-        args.pkg_names.append('anaconda')
-
     index = get_index()
-    actions = plan.install_actions(prefix, index, args.pkgs_names)
+    actions = plan.install_actions(prefix, index, args.pkg_names)
 
-    if plan.empty():
-        print 'All packages already at latest compatible version'
+    if plan.nothing_to_do(actions):
+        print 'All packages already at latest version'
         return
 
     print "Updating Anaconda environment at %s" % prefix
