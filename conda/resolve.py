@@ -282,7 +282,11 @@ class Resolve(object):
 
         return candidates[maxkey][0]
 
-    def tracked_features(self, installed):
+    def current_features(self, installed):
+        """
+        Return the set of current features of all `installed` packages,
+        i.e. all features of all installed packages.
+        """
         res = set()
         for fn in installed:
             try:
@@ -313,7 +317,7 @@ class Resolve(object):
         if installed is None:
             installed = []
         if features is None:
-            features = self.tracked_features(installed)
+            features = self.current_features(installed)
         dists = self.select_root_dists(specs, features, installed)
         for fn in dists:
             features.update(self.track_features(fn))
