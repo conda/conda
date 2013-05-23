@@ -332,15 +332,10 @@ if __name__ == '__main__':
     import json
     from pprint import pprint
     from optparse import OptionParser
+    from plan import arg2spec
 
     with open('../tests/index.json') as fi:
         r = Resolve(json.load(fi))
-
-    def arg2spec(arg):
-        spec = arg.replace('=', ' ')
-        if arg.count('=') == 1:
-            spec += '*'
-        return spec
 
     p = OptionParser(usage="usage: %prog [options] SPEC(s)")
     p.add_option("--mkl", action="store_true")
@@ -349,5 +344,4 @@ if __name__ == '__main__':
     features = set(['mkl']) if opts.mkl else set()
     installed = ['numpy-1.7.1-py27_0.tar.bz2', 'python-2.7.5-0.tar.bz2']
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, installed, features,
-                   verbose=True, ensure_sat=True))
+    pprint(r.solve(specs, installed, features, verbose=True, ensure_sat=True))
