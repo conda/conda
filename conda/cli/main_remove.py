@@ -11,7 +11,7 @@ from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
 
 
 descr = "Remove a list of packages from a specified Anaconda environment."
-epilog = """
+example = """
 examples:
     conda remove -n myenv scipy
 
@@ -23,7 +23,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,
-        epilog = epilog,
+        epilog = example,
     )
     add_parser_yes(p)
     #p.add_argument(

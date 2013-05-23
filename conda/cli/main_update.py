@@ -6,7 +6,8 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from utils import add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
+from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
+                   confirm, get_prefix)
 
 
 descr = "Update conda packages."
