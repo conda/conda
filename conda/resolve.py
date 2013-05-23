@@ -218,6 +218,8 @@ class Resolve(object):
     verscores = {}
     def select_dists_spec(self, spec):
         pkgs = sorted(self.get_pkgs(MatchSpec(spec)))
+        if not pkgs:
+            print "Error: no packages matches: %s" % spec
         vs = 0
         for p1, p2 in iter_pairs(pkgs):
             self.verscores[p1.fn] = vs
