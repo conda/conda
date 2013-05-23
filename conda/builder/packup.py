@@ -8,12 +8,10 @@ import tarfile
 import tempfile
 from os.path import abspath, basename, dirname, isfile, islink, join
 
-from conda.config import PKGS_DIR
+import conda.config as config
 from conda.install import (linked, get_meta, prefix_placeholder,
                            install_local_package)
-from conda.naming import split_canonical_name
 
-import utils
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -32,7 +30,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
 
 def get_installed_version(prefix, name):
     for dist in linked(prefix):
-        n, v, b = split_canonical_name(dist)
+        n, v, b = dist.rsplit('-', 2)
         if n == name:
             return v
     return None
@@ -100,8 +98,8 @@ def create_info(name, version, build_number, requires_py):
     d = dict(
         name = name,
         version = version,
-        platform = utils.PLATFORM,
-        arch = utils.ARCH_NAME,
+        platform = config.PLATFORM,
+        arch = config.ARCH_NAME,
         build_number = int(build_number),
         build = str(build_number),
         requires = [],
@@ -236,7 +234,7 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
     if fn is None:
         return
     remove(prefix, files)
-    install_local_package(fn, PKGS_DIR, prefix)
+    install_local_package(fn, config.PKGS_DIR, prefix)
 
 
 if __name__ == '__main__':

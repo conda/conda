@@ -11,13 +11,6 @@ contain one or more '-' characters. The build number is always a positive intege
 
 '''
 
-
-def name_dist(dist):
-    return dist.rsplit('-', 2)[0]
-
-
-
-
 def split_spec_string(spec_string):
     '''
     Split a package specification string into (name, version) or (name, version, build) tuples.
