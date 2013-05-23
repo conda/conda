@@ -6,58 +6,59 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.anaconda import Anaconda
-from conda.planners import create_update_plan
 from utils import add_parser_prefix, add_parser_quiet, add_parser_yes, confirm, get_prefix
 
+
+descr = "Update conda packages."
+example = """
+examples:
+    conda update -p ~/anaconda/envs/myenv scipy
+
+"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'update',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Update conda packages.",
-        help            = "Update conda packages.",
-        epilog          = example,
+        description = descr,
+        help = descr,
+        epilog = example,
     )
     add_parser_yes(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
     p.add_argument(
         'pkg_names',
-        metavar = 'package_name',
-        action  = "store",
-        nargs   = '*',
-        help    = "names of packages to update (default: anaconda)",
+        metavar = 'package_names',
+        action = "store",
+        nargs = '*',
+        help = "names of packages to update (default: anaconda)",
     )
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    conda = Anaconda()
+    import conda.plan as plan
+    from conda.api import get_index
 
-    prefix = get_prefix(args)
-
-    env = conda.lookup_environment(prefix)
 
     if len(args.pkg_names) == 0:
         args.pkg_names.append('anaconda')
 
-    plan = create_update_plan(env, args.pkg_names)
+    prefix = get_prefix(args)
+
+    if len(args.pkg_names) == 0:
+        args.pkg_names.append('anaconda')
+
+    index = get_index()
+    actions = plan.install_actions(prefix, index, args.pkgs_names)
 
     if plan.empty():
         print 'All packages already at latest compatible version'
         return
 
-    print "Updating Anaconda environment at %s" % env.prefix
-
-    print plan
+    print "Updating Anaconda environment at %s" % prefix
+    plan.display_actions(actions)
 
     confirm(args)
-    plan.execute(env, not args.quiet)
-
-
-example = '''
-examples:
-    conda update -p ~/anaconda/envs/myenv scipy
-
-'''
+    plan.execute_actions(actions, index, enable_progress=not args.quiet)
