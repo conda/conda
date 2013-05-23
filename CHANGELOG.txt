@@ -1,3 +1,14 @@
+2013-XX-XX   1.6.0:
+-------------------
+  * major internal refactoring
+  * use new "depends" key in repodata
+  * optionally uses pycosat to solve constraints more efficiently
+  * add hard-linking on Windows
+  * add conda remove --features option
+  * added more tests, in particular for new dependency resolver
+  * add internal DSL to perform install actions
+
+
 2013-04-29   1.5.2:
 -------------------
   * fixed issue 59: bad error message when pkgs dir is not writable
