@@ -102,15 +102,46 @@ def remove_actions(prefix, args):
 
     return actions
 
-def remove_features_actions(prefix, args):
+def remove_features_actions(prefix, index, args):
     linked = install.linked(prefix)
+    extracted = install.extracted(PKGS_DIR)
+    fetched = install.fetched(PKGS_DIR)
+
+    features = set(args)
+    r = Resolve(index)
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    # TODO...
     for dist in sorted(linked):
-        if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
+        fn = dist + '.tar.bz2'
+        if fn not in index:
+            continue
+        if r.track_features(fn).intersection(features):
             actions['UNLINK'].append(dist)
+        if r.features(fn).intersection(features):
+            actions['UNLINK'].append(dist)
+            name, version, unused_build = dist.rsplit('-', 2)
+            candidates = defaultdict(list)
+            for fn1 in r.get_max_dists(MatchSpec(name + ' ' + version)):
+                if r.features(fn1).intersection(features):
+                    continue
+                key = sum(r.sum_matches(fn1, d2 + '.tar.bz2') for d2 in linked)
+                candidates[key].append(fn1)
+
+            if not candidates:
+                print "No substribute for", dist
+                continue
+
+            maxkey = max(candidates)
+            print 'maxkey:', maxkey
+
+            mc = candidates[maxkey]
+            if len(mc) != 1:
+                print 'WARNING:', len(mc)
+                for c in mc:
+                    print '\t', c
+            fnc = candidates[maxkey][0]
+            actions['LINK'].append(fnc[:-8])
 
     return actions
 
@@ -188,6 +219,7 @@ if __name__ == '__main__':
     import json
     with open('../tests/index.json') as fi:
         index = json.load(fi)
-    actions = install_actions(sys.prefix, index, ['w3lib'])
-    for line in plan_from_actions(actions):
-        print line
+    actions = remove_features_actions(sys.prefix, index, ['mkl'])
+    #for line in plan_from_actions(actions):
+    #    print line
+    display_actions(actions)
