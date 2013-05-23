@@ -258,8 +258,11 @@ class Resolve(object):
 
     def find_substitute(self, fn, installed, features):
         """
-        Find a substitute for `fn` (given `installed` packages) which does
-        *NOT* have `featues`.  If no substribute is found, None is returned.
+        Find a substitute package for `fn` (given `installed` packages)
+        which does *NOT* have `featues`.  If found, the substitute will
+        have the same package namd and version and its dependencies will
+        match the installed packages as closely as possible.
+        If no substribute is found, None is returned.
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = defaultdict(list)
