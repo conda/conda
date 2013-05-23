@@ -233,6 +233,7 @@ class Resolve(object):
         return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
 
     def select_root_dists(self, specs, features, installed):
+        # TODO: think about how to handle many specs...
         args = [self.select_dists_spec(spec) for spec in specs]
 
         @memoized
