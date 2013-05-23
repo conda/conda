@@ -10,7 +10,7 @@ NOTE:
 from collections import defaultdict
 
 import install
-from config import ROOT_DIR, PKGS_DIR
+import config
 from remote import fetch_file
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
@@ -68,8 +68,8 @@ def plan_from_actions(actions):
     return res
 
 def ensure_linked_actions(dists, linked):
-    extracted = install.extracted(PKGS_DIR)
-    fetched = install.fetched(PKGS_DIR)
+    extracted = install.extracted(config.pkgs_dir)
+    fetched = install.fetched(config.pkgs_dir)
 
     actions = defaultdict(list)
     for dist in dists:
@@ -84,6 +84,18 @@ def ensure_linked_actions(dists, linked):
         actions['FETCH'].append(dist)
     return actions
 
+def add_defaults_to_linked(r, linked):
+    res = [d + '.tar.bz2' for d in linked]
+    names = set(name_dist(dist) for dist in linked)
+    if 'python' in names and 'numpy' in names:
+        return
+    for fn in r.select_root_dists(['python %s*' % config.default_python,
+                                   'numpy %s*' % config.default_numpy],
+                                  set(),  linked):
+        res.append(fn)
+        print "Select defaults:", fn
+    return res
+
 def install_actions(prefix, index, args):
     linked = install.linked(prefix)
 
@@ -91,7 +103,7 @@ def install_actions(prefix, index, args):
 
     must_have = {}
     for fn in r.solve([arg2spec(arg) for arg in args],
-                      ['%s.tar.bz2' % d for d in linked]):
+                      add_defaults_to_linked(r, linked)):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
 
@@ -174,7 +186,7 @@ def execute_plan(plan, index=None, enable_progress=True):
         progress = None
 
     progress_cmds = set(['EXTRACT', 'RM_EXTRACTED', 'LINK', 'UNLINK'])
-    prefix = ROOT_DIR
+    prefix = config.root_dir
     i = None
     for cmd, arg in cmds_from_plan(plan):
         if i is not None and cmd in progress_cmds:
@@ -194,11 +206,11 @@ def execute_plan(plan, index=None, enable_progress=True):
                 progress.maxval = int(arg)
                 progress.start()
         elif cmd == 'EXTRACT':
-            install.extract(PKGS_DIR, arg)
+            install.extract(config.pkgs_dir, arg)
         elif cmd == 'RM_EXTRACTED':
-            install.rm_extracted(PKGS_DIR, arg)
+            install.rm_extracted(config.pkgs_dir, arg)
         elif cmd == 'LINK':
-            install.link(PKGS_DIR, arg, prefix)
+            install.link(config.pkgs_dir, arg, prefix)
         elif cmd == 'UNLINK':
             install.unlink(arg, prefix)
         else:
