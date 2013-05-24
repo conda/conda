@@ -20,10 +20,7 @@ Contents:
    commands
    api
 
-Indices and tables
-==================
+License Agreement
+-----------------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+``conda`` is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
