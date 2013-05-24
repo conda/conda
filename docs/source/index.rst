@@ -18,7 +18,6 @@ Contents:
    intro
    examples
    commands
-   api
 
 License Agreement
 -----------------
