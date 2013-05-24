@@ -19,46 +19,6 @@ conda Overview
 
 ``conda`` is an application for finding and installing Anaconda software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. ``conda`` keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides NumPy 1.7, and another environment that provides NumPy 1.6 for legacy testing. ``conda`` makes this kind of mixing and matching easy.  To begin using an environment, simply set your PATH variable to point to its `bin` directory.
 
-.. code-block:: bash
-
-    # First, let's check our system NumPy version
-
-    $ python
-    Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
-    [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
-    Type "help", "copyright", "credits" or "license" for more information.
-    >>> import numpy
-    >>> numpy.version.full_version
-    '1.7.0b2'
-
-    # Now we'll create an anaconda environment using a different version of NumPy
-
-    $ conda create -p ~/anaconda/envs/test numpy=1.6 anaconda
-
-    Package plan for creating environment at /Users/maggie/anaconda/envs/test:
-
-    The following packages will be downloaded:
-
-    [      COMPLETE      ] |#################################################| 100%
-
-    # Next, we adjust our PATH variable to point to the new environment
-
-    $ export PATH=~/anaconda/envs/test/bin/:$PATH
-
-    # Finally, we check the version again
-
-    $ python
-    Python 2.7.3 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
-    [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
-    Type "help", "copyright", "credits" or "license" for more information.
-    >>> import numpy
-    >>> numpy.version.full_version
-    '1.6.2'
-
-
-
-
-
 .. _channel:
 .. index::
     pair: terminology; channel
