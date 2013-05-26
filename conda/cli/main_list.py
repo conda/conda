@@ -4,9 +4,6 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import re
-from conda.install import linked
-
 from utils import add_parser_prefix, get_prefix
 
 
@@ -32,6 +29,9 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import re
+    from conda.install import linked
+
     prefix = get_prefix(args)
     pkgs = sorted(linked(prefix))
 

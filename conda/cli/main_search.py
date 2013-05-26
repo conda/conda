@@ -14,13 +14,20 @@ from conda.package_spec import make_package_spec
 from utils import add_parser_prefix, get_prefix
 
 
+descr = "Search for packages and display their information."
+example = '''
+examples:
+    conda search -p ~/anaconda/envs/myenv/ scipy
+
+'''
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'search',
         formatter_class = RawDescriptionHelpFormatter,
-        description = "Search for packages and display their information.",
-        help        = "Search for packages and display their information.",
-        epilog      = example,
+        description = descr,
+        help = descr,
+        epilog = example,
     )
     add_parser_prefix(p)
     p.add_argument(
@@ -110,7 +117,6 @@ def execute(args, parser):
     print
     print 'Packages with available versions and build strings:'
 
-
     if args.verbose:
         for pkg in pkgs:
             print
@@ -125,10 +131,3 @@ def execute(args, parser):
                 print "%-25s %-15s %15s" % (current_name, pkg.version, pkg.build)
             else:
                 print "%-25s %-15s %15s" % (" ", pkg.version, pkg.build)
-
-
-example = '''
-examples:
-    conda search -p ~/anaconda/envs/myenv/ scipy
-
-'''

@@ -226,9 +226,7 @@ class Resolve(object):
         for sol in pycosat.itersolve(clauses):
             n += 1
             pkgs = [w[lit] for lit in sol if lit > 0]
-            key = len(pkgs)
-            #pprint((key, pkgs))
-            candidates[key].append(pkgs)
+            candidates[len(pkgs)].append(pkgs)
         #print len(candidates), '     n=%d' % n
 
         if candidates:

@@ -41,7 +41,7 @@ def configure_parser(sub_parsers):
         metavar = 'package_version',
         action = "store",
         nargs = '*',
-        help = "package versions to install into Anaconda environment",
+        help = "package versions to install into conda environment",
     )
     p.set_defaults(func=execute)
 

@@ -3,15 +3,15 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-'''conda is a tool for managing Anaconda environments and packages.
+'''conda is a tool for managing environments and packages.
 
 conda provides the following commands:
 
     Information
     ===========
 
-    info       : display information about the current Anaconda install
-    list       : list packages activated in a specified Anaconda environment
+    info       : display information about the current install
+    list       : list packages activated in a specified environment
     depends    : find package dependencies
     search     : print information about a specified package
     help       : display a list of available conda commands and their help strings
@@ -19,15 +19,15 @@ conda provides the following commands:
     Basic Package Management
     ========================
 
-    create     : create a new Anaconda environment from a list of specified packages. To use this environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in this directory first.
-    install    : install new packages into an existing Anaconda environment
-    update     : update packages in a specified Anaconda environment
+    create     : create a new conda environment from a list of specified packages. To use this environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in this directory first.
+    install    : install new packages into an existing conda environment
+    update     : update packages in a specified conda environment
 
     Advanced Package Management
     ===========================
 
-    env        : activate or deactivate available packages in the specified Anaconda environment
-    local      : add and remove Anaconda packages from local availability
+    env        : activate or deactivate available packages in the specified conda environment
+    local      : add and remove packages from local availability
 
     Packaging
     =========
@@ -74,7 +74,7 @@ def main():
     from .. import __version__
 
     p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing Anaconda environments and packages.'
+        description='conda is a tool for managing environments and packages.'
     )
     p.add_argument(
         '-v', '--version',

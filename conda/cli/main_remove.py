@@ -10,7 +10,7 @@ from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
                    confirm, get_prefix)
 
 
-descr = "Remove a list of packages from a specified Anaconda environment."
+descr = "Remove a list of packages from a specified conda environment."
 example = """
 examples:
     conda remove -n myenv scipy

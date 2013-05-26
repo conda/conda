@@ -13,13 +13,23 @@ from conda.planners import create_activate_plan, create_deactivate_plan
 from utils import add_parser_prefix, add_parser_yes, confirm, get_prefix
 
 
+descr = ("Link or unlink available packages in the specified conda "
+         "environment.")
+example = '''
+examples:
+  conda env -ln myenv numba-0.3.1-np17py27_0
+  conda env -un myenv numba-0.3.1-np17py27_0
+  conda env -rn myenv
+
+'''
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'env',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Link or unlink available packages in the specified Anaconda environment.",
-        help            = "Link or unlink available packages in the specified Anaconda environment. (ADVANCED)",
-        epilog          = env_example,
+        description = descr,
+        help = descr + " (ADVANCED)",
+        epilog = example,
     )
     add_parser_yes(p)
     add_parser_prefix(p)
@@ -27,24 +37,24 @@ def configure_parser(sub_parsers):
     adr_group.add_argument(
         '-l', "--link",
         action  = "store_true",
-        help    = "link available packages in the specified Anaconda environment.",
+        help    = "link available packages in the specified conda environment.",
     )
     adr_group.add_argument(
         '-u', "--unlink",
         action  = "store_true",
-        help    = "unlink packages in an Anaconda environment.",
+        help    = "unlink packages in an conda environment.",
     )
     adr_group.add_argument(
         '-r', "--remove",
         action  = "store_true",
-        help    = "delete an Anaconda environment.",
+        help    = "delete a conda environment.",
     )
     p.add_argument(
         'canonical_names',
         action  = "store",
         metavar = 'canonical_name',
         nargs   = '*',
-        help    = "canonical name of package to unlink in the specified Anaconda environment",
+        help    = "canonical name of package to unlink in the specified conda environment",
     )
     p.set_defaults(func=execute)
 
@@ -103,13 +113,13 @@ def execute(args, parser):
             raise RuntimeError("-r/--remove does not accept any canonical package names (use -p/--prefix or -n/--name to specify the environment to remove)")
 
         if env == conda.root_environment:
-            raise RuntimeError("Cannot delete Anaconda root environment")
+            raise RuntimeError("Cannot delete conda root environment")
 
         if not isdir(join(env.prefix, 'conda-meta')):
-            raise RuntimeError("%s does not appear to be an Anaconda environment" % env.prefix)
+            raise RuntimeError("%s does not appear to be an conda environment" % env.prefix)
 
         print
-        print "**** The following Anaconda environment directory will be removed: %s ****" % env.prefix
+        print "**** The following conda environment directory will be removed: %s ****" % env.prefix
         print
 
         confirm(args)
@@ -118,13 +128,3 @@ def execute(args, parser):
 
     else:
         raise RuntimeError("One of -l/--link, -u/--unlink or -r/--remove is required.")
-
-env_example = '''
-examples:
-  conda env -lp ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
-
-  conda env -up ~/anaconda/envs/myenv numba-0.3.1-np17py27_0
-
-  conda env -rp ~/anaconda/envs/myenv
-
-'''
