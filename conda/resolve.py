@@ -185,15 +185,14 @@ class Resolve(object):
                         res.append(clause)
 
         for spec in specs:
+            ms = MatchSpec(spec)
             for feat in features:
-                clause = []
-                for fn in self.find_matches(MatchSpec(spec)):
-                    if fn in dists and feat in self.features(fn):
-                        clause.append(v[fn])
+                clause = [v[fn] for fn in self.find_matches(ms)
+                          if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
                     res.append(clause)
 
-            clause = [v[fn] for fn in self.find_matches(MatchSpec(spec))
+            clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1
             res.append(clause)
