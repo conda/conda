@@ -2,16 +2,6 @@ import collections
 from functools import partial
 
 
-def iter_pairs(lst):
-    assert isinstance(lst, list)
-    for i, elem in enumerate(lst):
-        try:
-            next = lst[i + 1]
-        except IndexError:
-            next = None
-        yield elem, next
-
-
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned

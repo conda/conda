@@ -5,10 +5,6 @@ from collections import defaultdict
 import verlib
 from utils import memoize
 
-try:
-    import pycosat
-except ImportError:
-    sys.exit("cannot import pycosat, try: conda install pycosat")
 
 
 class MatchSpec(object):
@@ -220,6 +216,10 @@ class Resolve(object):
             w[i + 1] = fn
 
         clauses = self.mk_clauses(v, dists, specs, features)
+        try:
+            import pycosat
+        except ImportError:
+            sys.exit("Error: cannot import pycosat")
 
         candidates = defaultdict(list)
         n = 0
