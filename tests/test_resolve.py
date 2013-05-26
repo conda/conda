@@ -9,7 +9,6 @@ from conda.resolve import MatchSpec, Package, Resolve
 with open(join(dirname(__file__), 'index.json')) as fi:
     r = Resolve(json.load(fi))
 
-installed = r.solve2({'anaconda-1.5.0-np17py27_0.tar.bz2'}, set())
 f_mkl = set(['mkl'])
 
 
@@ -58,100 +57,83 @@ class TestPackage(unittest.TestCase):
         self.assertRaises(ValueError, pkgs.sort)
 
 
-class TestSelectRoot(unittest.TestCase):
-
-    def test_python(self):
-        self.assertEqual(r.select_root_dists(['python'], set(), []),
-                         set(['python-3.3.2-0.tar.bz2']))
-
-        self.assertEqual(r.select_root_dists(['python 2*'], set(), installed),
-                         set(['python-2.7.5-0.tar.bz2']))
-
-        self.assertEqual(r.select_root_dists(['python 3*'], set(), installed),
-                         set(['python-3.3.2-0.tar.bz2']))
-
-    def test_pycosat(self):
-        self.assertEqual(r.select_root_dists(['pycosat'], set(), installed),
-                         set(['pycosat-0.6.0-py27_0.tar.bz2']))
-
-    def test_numpy(self):
-        self.assertEqual(r.select_root_dists(['numpy'], set(), installed),
-                         set(['numpy-1.7.1-py27_0.tar.bz2']))
-
-        self.assertEqual(r.select_root_dists(['numpy'], f_mkl, installed),
-                         set(['numpy-1.7.1-py27_p0.tar.bz2']))
-
-    def test_anaconda(self):
-        self.assertEqual(r.select_root_dists(['anaconda'], set(), installed),
-                         set(['anaconda-1.5.0-np17py27_0.tar.bz2']))
-
-        self.assertEqual(r.select_root_dists(['anaconda', 'python 3*'],
-                                           set(), installed),
-                         set(['anaconda-1.5.0-np17py33_0.tar.bz2',
-                              'python-3.3.1-0.tar.bz2']))
-
-        self.assertEqual(r.select_root_dists(['anaconda 1.4*',
-                                              'python 2.6*',
-                                              'numpy 1.6*'],
-                                           set(), installed),
-                         set(['anaconda-1.4.0-np16py26_0.tar.bz2',
-                              'python-2.6.8-6.tar.bz2',
-                              'numpy-1.6.2-py26_3.tar.bz2']))
-
 class TestSolve(unittest.TestCase):
 
     def setUp(self):
         r.msd_cache = {}
 
-    def test_iopro(self):
-        self.assertEqual(r.solve(['iopro 1.4*'], installed, ensure_sat=True),
-                         ['iopro-1.4.3-np17py27_p0.tar.bz2',
-                          'numpy-1.7.1-py27_0.tar.bz2',
-                          'openssl-1.0.1c-0.tar.bz2',
-                          'python-2.7.5-0.tar.bz2',
-                          'readline-6.2-0.tar.bz2',
-                          'sqlite-3.7.13-0.tar.bz2',
-                          'system-5.8-1.tar.bz2',
-                          'tk-8.5.13-0.tar.bz2',
-                          'unixodbc-2.3.1-0.tar.bz2',
-                          'zlib-1.2.7-0.tar.bz2'])
+    def assert_have_mkl(self, dists, names):
+        for fn in dists:
+            if fn.rsplit('-', 2)[0] in names:
+                self.assertEqual(r.features(fn), f_mkl)
 
-        self.assertEqual(r.solve(['iopro 1.4*'], installed, f_mkl,
-                                 ensure_sat=True),
-                         ['iopro-1.4.3-np17py27_p0.tar.bz2',
-                          'mkl-rt-11.0-p0.tar.bz2',
-                          'numpy-1.7.1-py27_p0.tar.bz2',
-                          'openssl-1.0.1c-0.tar.bz2',
-                          'python-2.7.5-0.tar.bz2',
-                          'readline-6.2-0.tar.bz2',
-                          'sqlite-3.7.13-0.tar.bz2',
-                          'system-5.8-1.tar.bz2',
-                          'tk-8.5.13-0.tar.bz2',
-                          'unixodbc-2.3.1-0.tar.bz2',
-                          'zlib-1.2.7-0.tar.bz2'])
+    def test_iopro_nomkl(self):
+        self.assertEqual(
+            r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
+                     set()),
+            ['iopro-1.4.3-np17py27_p0.tar.bz2',
+             'numpy-1.7.1-py27_0.tar.bz2',
+             'openssl-1.0.1c-0.tar.bz2',
+             'python-2.7.5-0.tar.bz2',
+             'readline-6.2-0.tar.bz2',
+             'sqlite-3.7.13-0.tar.bz2',
+             'system-5.8-1.tar.bz2',
+             'tk-8.5.13-0.tar.bz2',
+             'unixodbc-2.3.1-0.tar.bz2',
+             'zlib-1.2.7-0.tar.bz2'])
+
+    def test_iopro_mkl(self):
+        self.assertEqual(
+            r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
+                    f_mkl),
+            ['iopro-1.4.3-np17py27_p0.tar.bz2',
+             'mkl-rt-11.0-p0.tar.bz2',
+             'numpy-1.7.1-py27_p0.tar.bz2',
+             'openssl-1.0.1c-0.tar.bz2',
+             'python-2.7.5-0.tar.bz2',
+             'readline-6.2-0.tar.bz2',
+             'sqlite-3.7.13-0.tar.bz2',
+             'system-5.8-1.tar.bz2',
+             'tk-8.5.13-0.tar.bz2',
+             'unixodbc-2.3.1-0.tar.bz2',
+             'zlib-1.2.7-0.tar.bz2'])
 
     def test_mkl(self):
-        self.assertEqual(r.solve(['mkl'], installed, set(), ensure_sat=True),
-                         r.solve(['mkl'], installed, f_mkl, ensure_sat=True))
+        self.assertEqual(r.solve(['mkl'], set()),
+                         r.solve(['mkl'], f_mkl))
 
     def test_accelerate(self):
         self.assertEqual(
-            r.solve(['accelerate'], installed, set(), ensure_sat=True),
-            r.solve(['accelerate'], installed, f_mkl, ensure_sat=True))
+            r.solve(['accelerate'], set()),
+            r.solve(['accelerate'], f_mkl))
 
-    def test_anaconda(self):
-        dists = r.solve(['anaconda 1.5.0'],
-                        ['numpy-1.7.1-py27_0.tar.bz2',
-                         'python-2.7.5-0.tar.bz2'], ensure_sat=True)
+    def test_anaconda_nomkl(self):
+        dists = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
         self.assertTrue('scipy-0.12.0-np17py27_0.tar.bz2' in dists)
 
+    def test_anaconda_mkl_2(self):
         # to test "with_features_depends"
-        dists = r.solve(['anaconda 1.5.0'],
-                        ['numpy-1.7.1-py27_0.tar.bz2',
-                         'python-2.7.5-0.tar.bz2'], f_mkl, ensure_sat=True)
-        self.assertEqual(len(dists), 108)
+        dists = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'],
+                        features=f_mkl)
+        self.assert_have_mkl(dists,
+                             ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
+        self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
+        self.assertEqual(len(dists), 108)
+
+        dists2 = r.solve(['anaconda 1.5.0',
+                          'python 2.7*', 'numpy 1.7*', 'mkl'])
+        self.assertTrue(set(dists) <= set(dists2))
+        self.assertEqual(len(dists2), 110)
+
+    def test_anaconda_mkl_3(self):
+        # to test "with_features_depends"
+        dists = r.solve(['anaconda 1.5.0', 'python 3*'], features=f_mkl)
+        self.assert_have_mkl(dists, ('numpy', 'scipy'))
+        self.assertTrue('scipy-0.12.0-np17py33_p0.tar.bz2' in dists)
+        self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
+        self.assertEqual(len(dists), 61)
 
 
 class TestFindSubstitute(unittest.TestCase):
@@ -160,17 +142,15 @@ class TestFindSubstitute(unittest.TestCase):
         r.msd_cache = {}
 
     def test1(self):
-        installed = r.solve(['anaconda 1.5.0'],
-                            ['numpy-1.7.1-py27_0.tar.bz2',
-                             'python-2.7.5-0.tar.bz2'],
-                            f_mkl, ensure_sat=True)
+        installed = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'],
+                            features=f_mkl)
         for old, new in [('numpy-1.7.1-py27_p0.tar.bz2',
                           'numpy-1.7.1-py27_0.tar.bz2'),
                          ('scipy-0.12.0-np17py27_p0.tar.bz2',
                           'scipy-0.12.0-np17py27_0.tar.bz2'),
                          ('mkl-rt-11.0-p0.tar.bz2', None)]:
             self.assertTrue(old in installed)
-            self.assertEqual(r.find_substitute(old, installed, f_mkl), new)
+            self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
 
 if __name__ == '__main__':

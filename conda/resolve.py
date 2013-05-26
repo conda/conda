@@ -1,10 +1,14 @@
 import re
 import sys
-import itertools
 from collections import defaultdict
 
 import verlib
-from utils import iter_pairs, memoized, memoize
+from utils import memoize
+
+try:
+    import pycosat
+except ImportError:
+    sys.exit("cannot import pycosat, try: conda install pycosat")
 
 
 class MatchSpec(object):
@@ -79,16 +83,14 @@ class Package(object):
         return '<Package %s>' % self.fn
 
 
-def get_candidate(candidates, min_or_max):
-    key = min_or_max(candidates)
-    #print '%skey: %r' % (min_or_max.__name__, key)
-
+def get_candidate(candidates):
+    key = min(candidates)
+    #print 'minkey: %r' % key
     mc = candidates[key]
     if len(mc) != 1:
         print 'WARNING:', len(mc)
         for c in mc:
             print '\t', c
-
     return mc[0]
 
 class Resolve(object):
@@ -125,7 +127,6 @@ class Resolve(object):
 
     @memoize
     def get_pkgs(self, ms):
-        #print ms, isinstance(ms, collections.Hashable)
         return [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
 
     def get_max_dists(self, ms):
@@ -151,44 +152,20 @@ class Resolve(object):
         add_dependents(root_fn)
         return res
 
-    def solve2(self, root_dists, features, verbose=False, ensure_sat=False):
-        dists = set()
-        for root_fn in root_dists:
-            dists.update(self.all_deps(root_fn))
-            dists.add(root_fn)
-
-        l_groups = defaultdict(list) # map name to list of filenames
+    def mk_clauses(self, v, dists, specs, features):
+        groups = defaultdict(list) # map name to list of filenames
         for fn in dists:
-            l_groups[self.index[fn]['name']].append(fn)
+            groups[self.index[fn]['name']].append(fn)
 
-        if not ensure_sat and len(l_groups) == len(dists):
-            assert all(len(filenames) == 1
-                       for filenames in l_groups.itervalues())
-            if verbose:
-                print "No duplicate name, no SAT needed."
-            return sorted(dists)
-
-        try:
-            import pycosat
-        except ImportError:
-            sys.exit("cannot import pycosat, try: conda install pycosat")
-
-        v = {} # map fn to variable number
-        w = {} # map variable number to fn
-        for i, fn in enumerate(sorted(dists)):
-            v[fn] = i + 1
-            w[i + 1] = fn
-
-        clauses = []
-
-        for filenames in l_groups.itervalues():
+        res = []
+        for filenames in groups.itervalues():
             # ensure packages with the same name conflict
             for fn1 in filenames:
                 v1 = v[fn1]
                 for fn2 in filenames:
                     v2 = v[fn2]
                     if v1 < v2:
-                        clauses.append([-v1, -v2])
+                        res.append([-v1, -v2])
 
         for fn1 in dists:
             for ms in self.ms_depends(fn1):
@@ -196,69 +173,63 @@ class Resolve(object):
                 for fn2 in self.find_matches(ms):
                     if fn2 in dists:
                         clause.append(v[fn2])
-
                 assert len(clause) > 1, fn1
-                clauses.append(clause)
+                res.append(clause)
 
-        for root_fn in root_dists:
-            clauses.append([v[root_fn]])
+                for feat in features:
+                    clause = [-v[fn1]]
+                    for fn2 in groups[ms.name]:
+                         if feat in self.features(fn2):
+                             clause.append(v[fn2])
+                    if len(clause) > 1:
+                        res.append(clause)
+
+        for spec in specs:
+            clause = [v[fn] for fn in self.find_matches(MatchSpec(spec))
+                      if fn in dists]
+            assert len(clause) >= 1
+            res.append(clause)
+
+        return res
+
+    def solve2(self, specs, features):
+        dists = set()
+        for spec in specs:
+            for fn in self.get_max_dists(MatchSpec(spec)):
+                if fn in dists:
+                    continue
+                dists.update(self.all_deps(fn))
+                dists.add(fn)
+
+        v = {} # map fn to variable number
+        w = {} # map variable number to fn
+        for i, fn in enumerate(sorted(dists)):
+            v[fn] = i + 1
+            w[i + 1] = fn
+
+        clauses = self.mk_clauses(v, dists, specs, features)
 
         candidates = defaultdict(list)
+        n = 0
         for sol in pycosat.itersolve(clauses):
+            n += 1
             pkgs = [w[lit] for lit in sol if lit > 0]
-            fsd = sum(len(features ^ self.features(fn)) for fn in pkgs)
-            key = fsd, len(pkgs)
-            #print key, pkgs
+            key = len(pkgs)
+            #pprint((key, pkgs))
             candidates[key].append(pkgs)
+        #print len(candidates), '     n=%d' % n
 
         if candidates:
-            return get_candidate(candidates, min)
+            return get_candidate(candidates)
         else:
             print "Error: UNSAT"
             return []
-
-    verscores = {}
-    def select_dists_spec(self, spec):
-        pkgs = sorted(self.get_pkgs(MatchSpec(spec)))
-        if not pkgs:
-            print "Error: no packages matches: %s" % spec
-        vs = 0
-        for p1, p2 in iter_pairs(pkgs):
-            self.verscores[p1.fn] = vs
-            if p2 and p2 > p1:
-                vs += 1
-        #pprint(self.verscores)
-        return [p.fn for p in pkgs]
 
     @memoize
     def sum_matches(self, fn1, fn2):
         return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
 
-    def select_root_dists(self, specs, features, installed):
-        # TODO: think about how to handle many specs...
-        args = [self.select_dists_spec(spec) for spec in specs]
-
-        @memoized
-        def installed_matches(fn):
-            return sum(self.sum_matches(fn, fn2) for fn2 in installed)
-
-        candidates = defaultdict(list)
-        for dists in itertools.product(*args):
-            fsd = olx = svs = sim = 0
-            for fn1 in dists:
-                fsd += len(features ^ self.features(fn1))
-                olx += sum(self.sum_matches(fn1, fn2)
-                           for fn2 in dists if fn1 != fn2)
-                svs += self.verscores[fn1]
-                sim += installed_matches(fn1)
-
-            key = -fsd, olx, svs, sim
-            #print dists, key
-            candidates[key].append(dists)
-
-        return set(get_candidate(candidates, max))
-
-    def find_substitute(self, fn, installed, features):
+    def find_substitute(self, installed, features, fn):
         """
         Find a substitute package for `fn` (given `installed` packages)
         which does *NOT* have `featues`.  If found, the substitute will
@@ -271,11 +242,11 @@ class Resolve(object):
         for fn1 in self.get_max_dists(MatchSpec(name + ' ' + version)):
             if self.features(fn1).intersection(features):
                 continue
-            key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
+            key = -sum(self.sum_matches(fn1, fn2) for fn2 in installed)
             candidates[key].append(fn1)
 
         if candidates:
-            return get_candidate(candidates, max)
+            return get_candidate(candidates)
         else:
             return None
 
@@ -298,7 +269,7 @@ class Resolve(object):
         key = ''
         for fstr in with_features:
             fs = set(fstr.split())
-            if fs.issubset(features) and len(fs) > len(set(key.split())):
+            if fs <= features and len(fs) > len(set(key.split())):
                 key = fstr
         if not key:
             return
@@ -308,30 +279,31 @@ class Resolve(object):
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None,
-                    verbose=False, ensure_sat=False):
-        if verbose:
-            print "Resolve.solve(): installed:", installed
+    def solve(self, specs, installed=None, features=None, verbose=False):
+        #if verbose:
+        #    print "Resolve.solve(): installed:", installed
 
         if installed is None:
             installed = []
         if features is None:
             features = self.installed_features(installed)
-        dists = self.select_root_dists(specs, features, installed)
-        for fn in dists:
-            features.update(self.track_features(fn))
+        for spec in specs:
+            ms = MatchSpec(spec)
+            for fn in self.get_max_dists(ms):
+                features.update(self.track_features(fn))
         if verbose:
-            print dists, features
-        for fn in dists:
-            self.update_with_features(fn, features)
-        return self.solve2(dists, features, verbose, ensure_sat)
+            print specs, features
+        for spec in specs:
+            for fn in self.get_max_dists(MatchSpec(spec)):
+                self.update_with_features(fn, features)
+        return self.solve2(specs, features)
 
 
 if __name__ == '__main__':
     import json
     from pprint import pprint
     from optparse import OptionParser
-    from plan import arg2spec
+    from conda.plan import arg2spec
 
     with open('../tests/index.json') as fi:
         r = Resolve(json.load(fi))
@@ -341,6 +313,5 @@ if __name__ == '__main__':
     opts, args = p.parse_args()
 
     features = set(['mkl']) if opts.mkl else set()
-    installed = ['numpy-1.7.1-py27_0.tar.bz2', 'python-2.7.5-0.tar.bz2']
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, installed, features, verbose=True, ensure_sat=True))
+    pprint(r.solve(specs, features, verbose=True))
