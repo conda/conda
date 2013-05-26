@@ -50,9 +50,9 @@ def execute(args, parser):
         args.pkg_names.append('anaconda')
 
     prefix = get_prefix(args)
-    index = get_index()
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
     for name in args.pkg_names:
+        name = name.lower()
         for c in '= !@#$%^&*()<>?':
             if c in name:
                 sys.exit("Invalid character '%s' in package "
@@ -60,6 +60,7 @@ def execute(args, parser):
         if name not in linked:
             sys.exit("Error: package '%s' is not installed" % name)
 
+    index = get_index()
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
