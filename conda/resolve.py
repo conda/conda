@@ -148,12 +148,11 @@ class Resolve(object):
         add_dependents(root_fn)
         return res
 
-    def mk_clauses(self, v, dists, specs, features):
+    def gen_clauses(self, v, dists, specs, features):
         groups = defaultdict(list) # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
-        res = []
         for filenames in groups.itervalues():
             # ensure packages with the same name conflict
             for fn1 in filenames:
@@ -161,7 +160,7 @@ class Resolve(object):
                 for fn2 in filenames:
                     v2 = v[fn2]
                     if v1 < v2:
-                        res.append([-v1, -v2])
+                        yield [-v1, -v2]
 
         for fn1 in dists:
             for ms in self.ms_depends(fn1):
@@ -171,7 +170,7 @@ class Resolve(object):
                     if fn2 in dists:
                         clause.append(v[fn2])
                 assert len(clause) > 1, fn1
-                res.append(clause)
+                yield clause
 
                 for feat in features:
                     # ensure that a package (with required name) which has
@@ -181,7 +180,7 @@ class Resolve(object):
                          if feat in self.features(fn2):
                              clause.append(v[fn2])
                     if len(clause) > 1:
-                        res.append(clause)
+                        yield clause
 
         for spec in specs:
             ms = MatchSpec(spec)
@@ -190,15 +189,13 @@ class Resolve(object):
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
-                    res.append(clause)
+                    yield clause
 
             # finally, ensure a matching package itself is installed
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1
-            res.append(clause)
-
-        return res
+            yield clause
 
     def solve2(self, specs, features):
         dists = set()
@@ -215,12 +212,12 @@ class Resolve(object):
             v[fn] = i + 1
             w[i + 1] = fn
 
-        clauses = self.mk_clauses(v, dists, specs, features)
         try:
             import pycosat
         except ImportError:
             sys.exit("Error: cannot import pycosat")
 
+        clauses = self.gen_clauses(v, dists, specs, features)
         candidates = defaultdict(list)
         n = 0
         for sol in pycosat.itersolve(clauses):
