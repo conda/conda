@@ -84,27 +84,34 @@ def ensure_linked_actions(dists, linked):
         actions['FETCH'].append(dist)
     return actions
 
-def add_defaults_to_linked(r, linked):
-    linked = [d + '.tar.bz2' for d in linked]
-    names = {name_dist(fn): fn for fn in linked}
-    if 'python' in names and 'numpy' in names:
-        return linked
-    for fn in r.select_root_dists(['python %s*' % config.default_python,
-                                   'numpy %s*' % config.default_numpy],
-                                  set(), linked):
-        print "Select defaults:", fn
-        if name_dist(fn) not in names:
-            names[name_dist(fn)] = fn
-    return names.values()
+def dist2spec(fn):
+    name, version, unused = fn.rsplit('-', 2)
+    return '%s %s*' % (name, version[:3])
+
+def add_defaults_to_specs(r, linked, specs):
+    names_linked = {name_dist(fn): fn for fn in linked}
+    names_spec = {s.split()[0]: s for s in specs}
+    for name, def_ver in [('python', config.default_python),
+                          ('numpy', config.default_numpy)]:
+        if name in names_spec:
+            continue
+        if not any(any(any(ms.name == name for ms in r.ms_depends(fn))
+                       for fn in r.get_max_dists(MatchSpec(spec)))
+                   for spec in specs):
+            continue
+        if name in names_linked:
+            specs.append(dist2spec(names_linked[name]))
+            continue
+        specs.append('%s %s*' % (name, def_ver))
 
 def install_actions(prefix, index, args):
-    linked = install.linked(prefix)
-
     r = Resolve(index)
+    linked = install.linked(prefix)
+    specs = [arg2spec(arg) for arg in args]
+    add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
-    for fn in r.solve([arg2spec(arg) for arg in args],
-                      add_defaults_to_linked(r, linked)):
+    for fn in r.solve(specs, [d + '.tar.bz2' for d in linked], verbose=1):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
 
@@ -149,7 +156,7 @@ def remove_features_actions(prefix, index, args):
             actions['UNLINK'].append(dist)
         if r.features(fn).intersection(features):
             actions['UNLINK'].append(dist)
-            subst = r.find_substitute(fn, _linked, features)
+            subst = r.find_substitute(_linked, features, fn)
             if subst:
                 to_link.append(subst[:-8])
 
