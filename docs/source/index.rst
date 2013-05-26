@@ -8,7 +8,7 @@ Conda
 =====
 
 
-The conda command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
+The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
 
 Installation
 ------------
