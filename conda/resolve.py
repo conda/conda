@@ -185,6 +185,14 @@ class Resolve(object):
                         res.append(clause)
 
         for spec in specs:
+            for feat in features:
+                clause = []
+                for fn in self.find_matches(MatchSpec(spec)):
+                    if fn in dists and feat in self.features(fn):
+                        clause.append(v[fn])
+                if len(clause) > 0:
+                    res.append(clause)
+
             clause = [v[fn] for fn in self.find_matches(MatchSpec(spec))
                       if fn in dists]
             assert len(clause) >= 1
@@ -314,4 +322,4 @@ if __name__ == '__main__':
 
     features = set(['mkl']) if opts.mkl else set()
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, features, verbose=True))
+    pprint(r.solve(specs, [], features, verbose=True))
