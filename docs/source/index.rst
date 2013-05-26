@@ -10,12 +10,22 @@ Conda
 
 The conda command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
 
+Installation
+------------
+
+``conda`` is a part of the Anaconda python distribution which can be downloaded `here <https://store.continuum.io/cshop/anaconda/>`_.
+
 Getting Started
 ---------------
 
+To demonstrate the ease of a typical ``conda`` workflow, we will create an Anaconda environment 
+with a version of NumPy different from the default version.
+
+First, we will check our system NumPy version
+
 .. code-block:: bash
 
-    # First, let's check our system NumPy version
+    
 
     $ python
     Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
@@ -25,7 +35,9 @@ Getting Started
     >>> numpy.version.full_version
     '1.7.0b2'
 
-    # Now we'll create an anaconda environment using a different version of NumPy
+Next we will create an Anaconda environment using a different version of NumPy
+
+.. code-block:: bash
 
     $ conda create -p ~/anaconda/envs/test numpy=1.6 anaconda
 
@@ -35,11 +47,15 @@ Getting Started
 
     [      COMPLETE      ] |#################################################| 100%
 
-    # Next, we adjust our PATH variable to point to the new environment
+Now we adjust our PATH variable to point to the new environment
+
+.. code-block:: bash
 
     $ export PATH=~/anaconda/envs/test/bin/:$PATH
 
-    # Finally, we check the version again
+Finally, we check the version again
+
+.. code-block:: bash
 
     $ python
     Python 2.7.3 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
