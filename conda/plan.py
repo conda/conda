@@ -7,6 +7,7 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
+import sys
 from collections import defaultdict
 
 import install
@@ -20,11 +21,16 @@ from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 def name_dist(dist):
     return dist.rsplit('-', 2)[0]
 
-def arg2spec(arg):
-    spec = arg.replace('=', ' ')
-    if arg.count('=') == 1:
-        spec += '*'
-    return spec
+def arg2spec(arg): # TODO: move this function to cli/
+    parts = arg.split('=')
+    name = parts[0].lower()
+    if len(parts) == 1:
+        return name
+    if len(parts) == 2:
+        return '%s %s*' % (name, parts[1])
+    if len(parts) == 3:
+        return '%s %s %s' % (name, parts[1], parts[2])
+    sys.exit('Error: Invalid package specification:' % arg)
 
 
 def print_dists(dists):
@@ -90,7 +96,7 @@ def dist2spec(fn):
 
 def add_defaults_to_specs(r, linked, specs):
     names_linked = {name_dist(fn): fn for fn in linked}
-    names_spec = {s.split()[0]: s for s in specs}
+    names_spec = set(MatchSpec(s).name for s in specs)
     for name, def_ver in [('python', config.default_python),
                           ('numpy', config.default_numpy)]:
         if name in names_spec:
@@ -235,7 +241,6 @@ def execute_actions(actions, index=None, enable_progress=True):
 
 
 if __name__ == '__main__':
-    import sys
     import json
     with open('../tests/index.json') as fi:
         index = json.load(fi)
