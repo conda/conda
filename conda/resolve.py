@@ -169,6 +169,7 @@ class Resolve(object):
 
         for fn1 in dists:
             for ms in self.ms_depends(fn1):
+                # ensure dependencies are installed
                 clause = [-v[fn1]]
                 for fn2 in self.find_matches(ms):
                     if fn2 in dists:
@@ -177,6 +178,8 @@ class Resolve(object):
                 res.append(clause)
 
                 for feat in features:
+                    # ensure that a package (with required name) which has
+                    # the feature is installed
                     clause = [-v[fn1]]
                     for fn2 in groups[ms.name]:
                          if feat in self.features(fn2):
@@ -186,12 +189,14 @@ class Resolve(object):
 
         for spec in specs:
             ms = MatchSpec(spec)
+            # ensure that a matching package which the feature is installed
             for feat in features:
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
                     res.append(clause)
 
+            # finally, ensure a matching package itself is installed
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1
