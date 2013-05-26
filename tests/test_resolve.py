@@ -107,6 +107,12 @@ class TestSolve(unittest.TestCase):
             r.solve(['accelerate'], set()),
             r.solve(['accelerate'], f_mkl))
 
+    def test_scipy_mkl(self):
+        dists = r.solve(['scipy', 'python 2.7*', 'numpy 1.7*'],
+                        features=f_mkl)
+        self.assert_have_mkl(dists, ('numpy', 'scipy'))
+        self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
+
     def test_anaconda_nomkl(self):
         dists = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
