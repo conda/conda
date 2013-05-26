@@ -67,7 +67,7 @@ def execute(args, parser):
         print 'All packages already at latest version, nothing to do'
         return
 
-    print "Updating Anaconda environment at %s" % prefix
+    print "Updating conda environment at %s" % prefix
     plan.display_actions(actions)
 
     confirm(args)

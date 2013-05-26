@@ -18,8 +18,8 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'local',
         formatter_class = RawDescriptionHelpFormatter,
-        description     = "Add and remove Anaconda packages from local availability. ",
-        help            = "Add and remove Anaconda packages from local availability. (ADVANCED)",
+        description     = "Add and remove packages from local availability. ",
+        help            = "Add and remove packages from local availability. (ADVANCED)",
         epilog          = local_example,
     )
     add_parser_yes(p)
@@ -40,7 +40,7 @@ def configure_parser(sub_parsers):
     drgroup.add_argument(
         '-d', "--download",
         action  = "store_true",
-        help    = "download Anaconda packages and their dependencies.",
+        help    = "download conda packages and their dependencies.",
     )
     drgroup.add_argument(
         '-r', "--remove",
