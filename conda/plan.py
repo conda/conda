@@ -109,6 +109,10 @@ def install_actions(prefix, index, specs):
         dist = fn[:-8]
         must_have[name_dist(dist)] = dist
 
+    # discard conda from environments (other than the root environment)
+    if prefix != config.root_dir and 'conda' in must_have:
+        del must_have['conda']
+
     actions = ensure_linked_actions(sorted(must_have.values()), linked)
     actions['PREFIX'] = prefix
 
