@@ -63,6 +63,12 @@ def confirm(args):
 
 # --------------------------------------------------------------------
 
+def ensure_name_or_prefix(args, command):
+    if not (args.name or args.prefix):
+        sys.exit('Error: either -n NAME or -p PREFIX option required,\n'
+                 '       try "conda %s -h" for more details' % command)
+
+
 def get_prefix(args):
     if args.name:
         return join(config.envs_dir, args.name)

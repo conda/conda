@@ -1,11 +1,5 @@
-import sys
-import json
-from os.path import isfile
+import utils
 from argparse import RawDescriptionHelpFormatter
-
-from utils import add_parser_prefix, add_parser_json, get_prefix
-
-from conda.builder.share import clone_bundle
 
 
 descr = 'Clone a "share package" (created using the share command)'
@@ -16,7 +10,7 @@ def configure_parser(sub_parsers):
         'clone',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help        = descr,
+        help = descr,
     )
     p.add_argument(
         'path',
@@ -25,20 +19,26 @@ def configure_parser(sub_parsers):
         nargs   = 1,
         help    = 'path to "share package"',
     )
-    add_parser_prefix(p)
-    add_parser_json(p)
+    utils.add_parser_prefix(p)
+    utils.add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    if (not args.name) and (not args.prefix):
-        raise RuntimeError('either -n NAME or -p PREFIX option required, '
-                           'try "conda create -h" for more details')
+    import sys
+    import json
+    from os.path import isfile
 
-    prefix = get_prefix(args)
+    from conda.builder.share import clone_bundle
+
+
+    utils.ensure_name_or_prefix(args, 'clone')
+
+    prefix = utils.get_prefix(args)
+
     path = args.path[0]
     if not isfile(path):
-        raise RuntimeError("no such file: %s" % path)
+        sys.exit("Error: no such file: %s" % path)
 
     warnings = []
     for w in clone_bundle(path, prefix):

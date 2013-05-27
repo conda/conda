@@ -56,13 +56,10 @@ def execute(args, parser):
 
 
     if len(args.package_specs) == 0 and not args.file:
-        raise RuntimeError('too few arguments, must supply command line '
-                           'package specs or --file')
+        sys.exit('Error: too few arguments, must supply command line '
+                 'package specs or --file')
 
-    if (not args.name) and (not args.prefix):
-        raise RuntimeError('either -n NAME or -p PREFIX option required, '
-                           'try "conda create -h" for more details')
-
+    utils.ensure_name_or_prefix(args, 'create')
     prefix = utils.get_prefix(args)
 
     if exists(prefix):
