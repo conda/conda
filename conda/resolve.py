@@ -79,6 +79,34 @@ class Package(object):
         return '<Package %s>' % self.fn
 
 
+def min_sat(clauses, max_n=1000):
+    """
+    Calculate the SAT solutions for the `clauses` for which the minimal
+    number of literals is True.  Returned is the list solutions, where
+    each solution is the list of only True literals.  Accordingly, when the
+    clauses are unsatisfiable, an empty list is returned.
+    """
+    try:
+        import pycosat
+    except ImportError:
+        sys.exit("Error: cannot import pycosat")
+
+    min_len, solutions = sys.maxint, []
+    n = 0
+    for sol in pycosat.itersolve(clauses):
+        n += 1
+        if n == max_n:
+            break
+        sol = [lit for lit in sol if lit > 0]
+        if len(sol) < min_len:
+            min_len, solutions = len(sol), [sol]
+        elif len(sol) == min_len:
+            solutions.append(sol)
+
+    #print 'n=%d' % n
+    return solutions
+
+
 def get_candidate(candidates):
     key = min(candidates)
     #print 'minkey: %r' % key
@@ -212,31 +240,18 @@ class Resolve(object):
             v[fn] = i + 1
             w[i + 1] = fn
 
-        try:
-            import pycosat
-        except ImportError:
-            sys.exit("Error: cannot import pycosat")
-
         clauses = self.gen_clauses(v, dists, specs, features)
-        min_len, solutions = len(v) + 1, None
-        n = 0
-        for sol in pycosat.itersolve(clauses):
-            n += 1
-            if n == 1000:
-                break
-            sol = [lit for lit in sol if lit > 0]
-            if len(sol) < min_len:
-                min_len, solutions = len(sol), [sol]
-            elif len(sol) == min_len:
-                solutions.append(sol)
-        #print 'n=%d' % n
-        if solutions is None:
+        solutions = min_sat(clauses)
+
+        if len(solutions) == 0:
             print "Error: UNSAT"
             return []
+
         if len(solutions) > 1:
             print 'WARNING:', len(solutions)
             for sol in solutions:
                 print '\t', [w[lit] for lit in sol]
+
         return [w[lit] for lit in solutions.pop()]
 
     @memoize
