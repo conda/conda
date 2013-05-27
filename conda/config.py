@@ -6,8 +6,8 @@
 
 import os
 import sys
-import platform
 import logging
+from platform import machine
 from os.path import abspath, exists, expanduser, isfile, isdir, join
 
 from conda import __version__
@@ -35,15 +35,15 @@ else:
 
 # operating system and architecture
 _sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
-PLATFORM = _sys_map.get(sys.platform, 'unknown')
-BITS = int(platform.architecture()[0][:2])
+platform = _sys_map.get(sys.platform, 'unknown')
+bits = 8 * tuple.__itemsize__
 
-if PLATFORM == 'linux' and platform.machine() == 'armv6l':
-    SUBDIR = 'linux-armv6l'
-    ARCH_NAME = 'armv6l'
+if platform == 'linux' and machine() == 'armv6l':
+    subdir = 'linux-armv6l'
+    arch_name = 'armv6l'
 else:
-    SUBDIR = '%s-%d' % (PLATFORM, BITS)
-    ARCH_NAME = {64: 'x86_64', 32: 'x86'}[BITS]
+    subdir = '%s-%d' % (platform, bits)
+    arch_name = {64: 'x86_64', 32: 'x86'}[bits]
 
 # ----------------------------------------------------------------------
 
@@ -126,7 +126,7 @@ class Config(object):
             - ``osx``
             - ``linux``
         '''
-        return SUBDIR
+        return subdir
 
     @property
     def packages_dir(self):
@@ -192,7 +192,7 @@ conda command version : %s
 environment locations : %s
           config file : %s
 '''  % (
-            SUBDIR,
+            subdir,
             __version__,
             ROOT_DIR,
             DEFAULT_ENV_PREFIX,

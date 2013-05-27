@@ -7,7 +7,7 @@ import tempfile
 import shutil
 from os.path import abspath, basename, isdir, join
 
-import utils
+import conda.config as config
 from packup import untracked, create_conda_pkg
 from conda.remote import fetch_index, fetch_file
 from conda.install import link, linked, get_meta, available, make_available
@@ -49,8 +49,8 @@ def create_bundle(prefix):
         name = 'share',
         build = '0',
         build_number = 0,
-        platform = utils.PLATFORM,
-        arch = utils.ARCH_NAME,
+        platform = config.platform,
+        arch = config.arch_name,
         requires = get_requires(prefix),
     )
     tmp_dir = tempfile.mkdtemp()
