@@ -98,8 +98,8 @@ def create_info(name, version, build_number, requires_py):
     d = dict(
         name = name,
         version = version,
-        platform = config.PLATFORM,
-        arch = config.ARCH_NAME,
+        platform = config.platform,
+        arch = config.arch_name,
         build_number = int(build_number),
         build = str(build_number),
         requires = [],
