@@ -1,10 +1,5 @@
-import sys
-import json
+import utils
 from argparse import RawDescriptionHelpFormatter
-
-from utils import add_parser_prefix, add_parser_json, get_prefix
-
-from conda.builder.share import create_bundle
 
 
 descr = 'Create a "share package" which may be cloned'
@@ -15,15 +10,21 @@ def configure_parser(sub_parsers):
         'share',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help        = descr,
+        help = descr,
     )
-    add_parser_prefix(p)
-    add_parser_json(p)
+    utils.add_parser_prefix(p)
+    utils.add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    prefix = get_prefix(args)
+    import sys
+    import json
+
+    from conda.builder.share import create_bundle
+
+
+    prefix = utils.get_prefix(args)
     path, warnings = create_bundle(prefix)
 
     if args.json:
