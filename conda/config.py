@@ -19,12 +19,14 @@ log = logging.getLogger(__name__)
 default_python = '2.7'
 default_numpy = '1.7'
 
-# constant paths
+# ----- constant paths -----
+
 root_dir = sys.prefix
 pkgs_dir = join(root_dir, 'pkgs')
 envs_dir = join(root_dir, 'envs')
 
-# default environment path
+# ----- default environment path -----
+
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
     DEFAULT_ENV_PREFIX = root_dir
@@ -33,7 +35,8 @@ elif os.sep in _default_env:
 else:
     DEFAULT_ENV_PREFIX = join(envs_dir, _default_env)
 
-# operating system and architecture
+# ----- operating system and architecture -----
+
 _sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
@@ -45,7 +48,45 @@ else:
     subdir = '%s-%d' % (platform, bits)
     arch_name = {64: 'x86_64', 32: 'x86'}[bits]
 
-# ----------------------------------------------------------------------
+# ----- rc file -----
+
+def get_rc_path():
+    for path in [abspath(expanduser('~/.condarc')),
+                 join(sys.prefix, '.condarc')]:
+        if isfile(path):
+            return path
+    return None
+
+rc_path = get_rc_path()
+
+def load_condarc(path):
+    import yaml
+
+    return yaml.load(open(path))
+
+# ----- channels -----
+
+def get_channel_urls():
+    if os.getenv('CIO_TEST'):
+        base_urls = ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
+        if os.getenv('CIO_TEST') == '2':
+            base_urls.insert(0, 'http://filer/test-pkgs')
+
+    elif rc_path is None:
+        base_urls = ['http://repo.continuum.io/pkgs/free',
+                     'http://repo.continuum.io/pkgs/pro']
+
+    else:
+        rc = load_condarc(rc_path)
+        if 'channels' not in rc:
+            sys.exit("Error: config file '%s' is missing channels" % rc_path)
+        base_urls = [url.rstrip('/') for url in rc['channels']]
+
+    return ['%s/%s/' % (url, subdir) for url in base_urls]
+
+
+
+# ========================================================================
 
 CIO_DEFAULT_CHANNELS = [
     'http://repo.continuum.io/pkgs/free',

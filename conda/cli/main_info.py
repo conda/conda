@@ -49,23 +49,18 @@ def execute(args, parser):
     import json
 
     import conda
-    from conda.config import (Config, ROOT_DIR, ENVS_DIR, DEFAULT_ENV_PREFIX,
-                              RC_PATH)
+    import conda.config as config
 
     options = ['envs', 'locations', 'system', 'license']
 
-    conf = Config()
-
+    info_dict = dict(platform=config.subdir,
+                     conda_version=conda.__version__,
+                     root_prefix=config.root_dir,
+                     default_prefix=config.DEFAULT_ENV_PREFIX,
+                     channels=config.get_channel_urls(),
+                     rc_path=config.rc_path)
     if args.json:
-        d = dict(
-            platform=conf.platform,
-            conda_version=conda.__version__,
-            root_prefix=ROOT_DIR,
-            default_prefix=DEFAULT_ENV_PREFIX,
-            channels=conf.channel_urls,
-            rc_path=RC_PATH,
-        )
-        json.dump(d, sys.stdout, indent=2, sort_keys=True)
+        json.dump(info_dict, sys.stdout, indent=2, sort_keys=True)
         return
 
     if args.all:
@@ -73,26 +68,34 @@ def execute(args, parser):
             setattr(args, option, True)
 
     if args.all or all(not getattr(args, opt) for opt in options):
-        print
-        print "Current conda install:"
-        print conf
+        info_dict['ppcs'] = ('\n' + 24 * ' ').join(info_dict['channels'])
+        print """
+Current conda install:
 
-    if args.locations:
-        if len(conf.locations) == 0:
+             platform : %(platform)s
+conda command version : %(conda_version)s
+       root directory : %(root_prefix)s
+       default prefix : %(default_prefix)s
+         channel URLs : %(ppcs)s
+          config file : %(rc_path)s
+""" % info_dict
+
+    if 0:# TODO   args.locations:
+        if len(config.locations) == 0:
             print "No conda locations configured"
         else:
             print
             print "Locations for conda environments:"
             print
-            for location in conf.locations:
+            for location in config.locations:
                 print "    %s" % location,
-                if location == ENVS_DIR:
+                if location == config.envs_dir:
                     print " (system location)",
                 print
             print
 
-    if args.envs:
-        env_paths = conf.environment_paths
+    if 0:# TODO   args.envs:
+        env_paths = config.environment_paths
 
         if len(env_paths) == 0:
             print "Known conda environments: None"
@@ -107,7 +110,7 @@ def execute(args, parser):
         print
         print "PATH: %s" % os.getenv('PATH')
         print "PYTHONPATH: %s" % os.getenv('PYTHONPATH')
-        if sys.platform == 'linux':
+        if config.platform == 'linux':
             print "LD_LIBRARY_PATH: %s" % os.getenv('LD_LIBRARY_PATH')
         elif sys.platform == 'darwin':
             print "DYLD_LIBRARY_PATH: %s" % os.getenv('DYLD_LIBRARY_PATH')
