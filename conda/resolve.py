@@ -82,10 +82,9 @@ class Package(object):
 
 def min_sat(clauses, max_n=1000):
     """
-    Calculate the SAT solutions for the `clauses` for which the minimal
-    number of literals is True.  Returned is the list solutions, where
-    each solution is the list of only True literals.  Accordingly, when the
-    clauses are unsatisfiable, an empty list is returned.
+    Calculate the SAT solutions for the `clauses` for which the number of
+    true literals is minimal.  Returned is the list of those solutions.
+    When the clauses are unsatisfiable, an empty list is returned.
 
     This function could be implemented using a Pseudo-Boolean SAT solver,
     which would avoid looping over the SAT solutions, and would therefore
@@ -97,12 +96,12 @@ def min_sat(clauses, max_n=1000):
     except ImportError:
         sys.exit("Error: cannot import pycosat")
 
-    min_len, solutions = sys.maxint, []
+    min_tl, solutions = sys.maxint, []
     for sol in islice(pycosat.itersolve(clauses), max_n):
-        sol = [lit for lit in sol if lit > 0]
-        if len(sol) < min_len:
-            min_len, solutions = len(sol), [sol]
-        elif len(sol) == min_len:
+        tl = sum(lit > 0 for lit in sol) # number of true literals
+        if tl < min_tl:
+            min_tl, solutions = tl, [sol]
+        elif tl == min_tl:
             solutions.append(sol)
 
     return solutions
@@ -239,11 +238,11 @@ class Resolve(object):
             return []
 
         if len(solutions) > 1:
-            print 'WARNING:', len(solutions)
+            print 'Warning:', len(solutions)
             for sol in solutions:
-                print '\t', [w[lit] for lit in sol]
+                print '\t', [w[lit] for lit in sol if lit > 0]
 
-        return [w[lit] for lit in solutions.pop()]
+        return [w[lit] for lit in solutions.pop() if lit > 0]
 
     @memoize
     def sum_matches(self, fn1, fn2):
