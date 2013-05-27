@@ -59,7 +59,7 @@ def execute(args, parser):
     #if all(s.endswith('.tar.bz2') for s in req_strings):
     #    from conda.install import install_local_package
     #    for path in req_strings:
-    #        install_local_package(path, PKGS_DIR, prefix)
+    #        install_local_package(path, config.pkgs_dir, prefix)
     #    return
     #if any(s.endswith('.tar.bz2') for s in req_strings):
     #    raise RuntimeError("mixing specifications and filename not supported")

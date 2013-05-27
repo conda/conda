@@ -96,8 +96,6 @@ DEFAULT_PYTHON_SPEC = 'python=2.7'
 DEFAULT_NUMPY_SPEC = 'numpy=1.7'
 
 ROOT_DIR = sys.prefix
-PKGS_DIR = join(ROOT_DIR, 'pkgs')
-ENVS_DIR = join(ROOT_DIR, 'envs')
 
 def _get_rc_path():
     for path in [abspath(expanduser('~/.condarc')),
@@ -171,7 +169,7 @@ class Config(object):
     @property
     def packages_dir(self):
         ''' Packages directory for this Anaconda installation '''
-        return PKGS_DIR
+        return pkgs_dir
 
     @property
     def user_locations(self):
@@ -184,7 +182,7 @@ class Config(object):
     @property
     def locations(self):
         ''' All :ref:`locations <location>`, system and user '''
-        return sorted(self.user_locations + [ENVS_DIR])
+        return sorted(self.user_locations + [envs_dir])
 
     @property
     def channel_base_urls(self):

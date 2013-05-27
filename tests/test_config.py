@@ -11,7 +11,7 @@ import conda.config as config
 
 
 # use condarc from source tree to run these tests against
-config.RC_PATH = join(dirname(dirname(__file__)), 'condarc')
+config.rc_path = join(dirname(dirname(__file__)), 'condarc')
 
 
 class TestConfig(unittest.TestCase):
@@ -19,26 +19,19 @@ class TestConfig(unittest.TestCase):
     # These tests are mostly to ensure API stability
 
     def test_globals(self):
-        self.assertTrue(config.CIO_DEFAULT_CHANNELS)
-        self.assertTrue(isinstance(config.CIO_DEFAULT_CHANNELS, list))
-
-        self.assertTrue(config.ROOT_DIR)
-        self.assertTrue(config.PKGS_DIR)
-        self.assertTrue(config.ENVS_DIR)
+        self.assertTrue(config.root_dir)
+        self.assertTrue(config.pkgs_dir)
+        self.assertTrue(config.envs_dir)
 
         self.assertTrue(config.DEFAULT_ENV_PREFIX)
-        self.assertTrue(config.RC_PATH)
 
-    def test_load_condrc(self):
-        rc = config._load_condarc("condarc")
-        self.assertEqual(rc.keys(), ['channels', 'locations'])
-        self.assertEqual(rc['locations'], ['~/envs'])
-        self.assertEqual(
-            rc['channels'],
-            ['http://repo.continuum.io/pkgs/dev',
-             'http://repo.continuum.io/pkgs/gpl',
-             'http://repo.continuum.io/pkgs/free']
-        )
+    def test_channel_urls(self):
+        config.subdir = 'foo'
+        urls = config.get_channel_urls()
+        self.assertEqual(urls,
+                         ['http://repo.continuum.io/pkgs/dev/foo/',
+                          'http://repo.continuum.io/pkgs/gpl/foo/',
+                          'http://repo.continuum.io/pkgs/free/foo/'])
 
 
 if __name__ == '__main__':
