@@ -88,7 +88,7 @@ def min_sat(clauses, max_n=1000):
 
     This function could be implemented using a Pseudo-Boolean SAT solver,
     which would avoid looping over the SAT solutions, and would therefore
-    be much more efficient.  However, for our purpose, the current
+    be much more efficient.  However, for our purpose the current
     implementation is good enough.
     """
     try:
@@ -97,9 +97,7 @@ def min_sat(clauses, max_n=1000):
         sys.exit("Error: cannot import pycosat")
 
     min_len, solutions = sys.maxint, []
-    n = 0
-    for sol in pycosat.itersolve(clauses):
-        n += 1
+    for n, sol in enumerate(pycosat.itersolve(clauses)):
         if n == max_n:
             break
         sol = [lit for lit in sol if lit > 0]
