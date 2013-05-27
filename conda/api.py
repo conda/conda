@@ -1,8 +1,8 @@
 import base64
 import hashlib
 
+import conda.config as config
 from conda.remote import fetch_repodata
-from conda.config import Config
 
 
 
@@ -10,7 +10,7 @@ def get_index():
     """
     return the index of packages available on the channels
     """
-    channel_urls = Config().channel_urls
+    channel_urls = config.get_channel_urls()
 
     index = {}
     for url in reversed(channel_urls):
@@ -36,4 +36,4 @@ def get_app_index():
 
 if __name__ == '__main__':
     from pprint import pprint
-    pprint(get_app_index())
+    pprint(get_index())
