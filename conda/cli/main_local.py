@@ -5,13 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from argparse import RawDescriptionHelpFormatter
-from os import listdir
-from os.path import join
-from shutil import rmtree
 
-from conda.anaconda import Anaconda
-from conda.planners import create_download_plan
-from utils import add_parser_yes, confirm, add_parser_quiet
+import utils
 
 
 def configure_parser(sub_parsers):
@@ -22,13 +17,13 @@ def configure_parser(sub_parsers):
         help            = "Add and remove packages from local availability. (ADVANCED)",
         epilog          = local_example,
     )
-    add_parser_yes(p)
+    utils.add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
         action  = "store_true",
         help    = "force package downloads even when specific package is already available",
     )
-    add_parser_quiet(p)
+    utils.add_parser_quiet(p)
     p.add_argument(
         'canonical_names',
         action  = "store",
@@ -51,6 +46,14 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    from os import listdir
+    from os.path import join
+    from shutil import rmtree
+
+    from conda.anaconda import Anaconda
+    from conda.planners import create_download_plan
+
+
     conda = Anaconda()
 
     if args.download:
@@ -65,7 +68,7 @@ def execute(args, parser):
 
         print plan
 
-        confirm(args)
+        utils.confirm(args)
 
         # pass default environment because some env is required,
         # but it is unused here
@@ -87,7 +90,7 @@ def execute(args, parser):
             print "         %s" % pkg_name
         print
 
-        confirm(args)
+        utils.confirm(args)
 
         for pkg_name in to_remove:
             rmtree(join(conda.packages_dir, pkg_name))

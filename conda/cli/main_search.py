@@ -4,14 +4,8 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import re
+import utils
 from argparse import RawDescriptionHelpFormatter
-
-from conda.anaconda import Anaconda
-from conda.constraints import Satisfies
-from conda.package import sort_packages_by_name
-from conda.package_spec import make_package_spec
-from utils import add_parser_prefix, get_prefix
 
 
 descr = "Search for packages and display their information."
@@ -29,7 +23,7 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    add_parser_prefix(p)
+    utils.add_parser_prefix(p)
     p.add_argument(
         "--all",
         action  = "store_true",
@@ -61,6 +55,14 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import re
+
+    from conda.anaconda import Anaconda
+    from conda.constraints import Satisfies
+    from conda.package import sort_packages_by_name
+    from conda.package_spec import make_package_spec
+
+
     conda = Anaconda()
 
     if args.search_expression is None:
@@ -94,7 +96,7 @@ def execute(args, parser):
     if args.all:
         compat_string = ''
     else:
-        prefix = get_prefix(args)
+        prefix = utils.get_prefix(args)
         env = conda.lookup_environment(prefix)
         pkgs = conda.index.find_matches(env.requirements, pkgs)
         compat_string = ' compatible with environment %s' % prefix
