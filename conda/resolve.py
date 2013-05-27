@@ -218,19 +218,26 @@ class Resolve(object):
             sys.exit("Error: cannot import pycosat")
 
         clauses = self.gen_clauses(v, dists, specs, features)
-        candidates = defaultdict(list)
+        min_len, solutions = len(v) + 1, None
         n = 0
         for sol in pycosat.itersolve(clauses):
             n += 1
-            pkgs = [w[lit] for lit in sol if lit > 0]
-            candidates[len(pkgs)].append(pkgs)
-        #print len(candidates), '     n=%d' % n
-
-        if candidates:
-            return get_candidate(candidates)
-        else:
+            if n == 1000:
+                break
+            sol = [lit for lit in sol if lit > 0]
+            if len(sol) < min_len:
+                min_len, solutions = len(sol), [sol]
+            elif len(sol) == min_len:
+                solutions.append(sol)
+        #print 'n=%d' % n
+        if solutions is None:
             print "Error: UNSAT"
             return []
+        if len(solutions) > 1:
+            print 'WARNING:', len(solutions)
+            for sol in solutions:
+                print '\t', [w[lit] for lit in sol]
+        return [w[lit] for lit in solutions.pop()]
 
     @memoize
     def sum_matches(self, fn1, fn2):
