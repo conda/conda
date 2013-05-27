@@ -8,10 +8,12 @@ import shutil
 from os.path import abspath, basename, isdir, join
 
 import conda.config as config
+from conda.api import get_index
+
 from packup import untracked, create_conda_pkg
-from conda.remote import fetch_index, fetch_file
+from conda.remote import fetch_file
 from conda.install import link, linked, get_meta, available, make_available
-from conda.config import Config
+
 
 
 def get_requires(prefix):
@@ -90,8 +92,7 @@ def clone_bundle(path, prefix):
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
         meta = json.load(fi)
 
-    channel_urls = Config().channel_urls
-    index = fetch_index(channel_urls)
+    index = get_index()
 
     dists = ['-'.join(r.split()) for r in meta['requires']
              if not r.startswith('conda ')]
