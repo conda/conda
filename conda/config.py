@@ -6,14 +6,9 @@
 
 import os
 import sys
-import logging
 from platform import machine
 from os.path import abspath, exists, expanduser, isfile, isdir, join
 
-from conda import __version__
-
-
-log = logging.getLogger(__name__)
 
 
 default_python = '2.7'
@@ -87,6 +82,10 @@ def get_channel_urls():
 
 
 # ========================================================================
+
+import logging
+
+log = logging.getLogger(__name__)
 
 CIO_DEFAULT_CHANNELS = [
     'http://repo.continuum.io/pkgs/free',
@@ -222,25 +221,6 @@ class Config(object):
                 if isdir(prefix):
                     env_paths.append(prefix)
         return sorted(env_paths)
-
-    def __str__(self):
-        return '''
-             platform : %s
-conda command version : %s
-       root directory : %s
-       default prefix : %s
-         channel URLs : %s
-environment locations : %s
-          config file : %s
-'''  % (
-            subdir,
-            __version__,
-            ROOT_DIR,
-            DEFAULT_ENV_PREFIX,
-            '\n                        '.join(self.channel_urls),
-            '\n                        '.join(self.locations),
-            RC_PATH,
-        )
 
     def __repr__(self):
         return 'config()'
