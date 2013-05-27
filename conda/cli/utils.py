@@ -98,15 +98,15 @@ def specs_from_file(path):
                 continue
             specs.append(arg2spec(line))
     except IOError:
-        raise RuntimeError('could not read file: %s', args.file)
+        sys.exit('Error: cannot open file: %s' % path)
     return specs
 
 
 def check_specs(prefix, specs):
     if (abspath(prefix) != config.root_dir and
               any(s == 'conda' or s.startswith('conda ') for s in specs)):
-        raise RuntimeError("Package 'conda' may only be installed in the "
-                           "root environment")
+        sys.exit("Error: Package 'conda' may only be installed in the "
+                 "root environment")
 
     if len(specs) == 0:
-        raise RuntimeError('no package specifications supplied')
+        sys.exit("Error: no package specifications supplied")
