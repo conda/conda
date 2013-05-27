@@ -234,7 +234,7 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
     if fn is None:
         return
     remove(prefix, files)
-    install_local_package(fn, config.PKGS_DIR, prefix)
+    install_local_package(fn, config.pkgs_dir, prefix)
 
 
 if __name__ == '__main__':
