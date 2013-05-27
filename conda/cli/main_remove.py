@@ -6,8 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
-                   confirm, get_prefix)
+import utils
 
 
 descr = "Remove a list of packages from a specified conda environment."
@@ -25,7 +24,7 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    add_parser_yes(p)
+    utils.add_parser_yes(p)
     #p.add_argument(
     #    "--no-deps",
     #    action  = "store_true",
@@ -36,8 +35,8 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "remove features (instead of packages)",
     )
-    add_parser_prefix(p)
-    add_parser_quiet(p)
+    utils.add_parser_prefix(p)
+    utils.add_parser_quiet(p)
     p.add_argument(
         'package_names',
         metavar = 'package_name',
@@ -52,13 +51,15 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-    prefix = get_prefix(args)
+
+    prefix = utils.get_prefix(args)
     if args.features:
         index = get_index()
-        actions = plan.remove_features_actions(prefix, index,
-                                               args.package_names)
+        features = set(args.package_names)
+        actions = plan.remove_features_actions(prefix, index, features)
     else:
-        actions = plan.remove_actions(prefix, args.package_names)
+        specs = utils.specs_from_args(args.package_names)
+        actions = plan.remove_actions(prefix, specs)
 
     if plan.nothing_to_do(actions):
         print 'No packages found to remove from environment: %s' % prefix
@@ -68,5 +69,5 @@ def execute(args, parser):
     print "Package plan for package removal in environment %s:" % prefix
     plan.display_actions(actions)
 
-    confirm(args)
+    utils.confirm(args)
     plan.execute_actions(actions, enable_progress=not args.quiet)

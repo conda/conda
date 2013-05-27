@@ -21,17 +21,6 @@ from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 def name_dist(dist):
     return dist.rsplit('-', 2)[0]
 
-def arg2spec(arg): # TODO: move this function to cli/
-    parts = arg.split('=')
-    name = parts[0].lower()
-    if len(parts) == 1:
-        return name
-    if len(parts) == 2:
-        return '%s %s*' % (name, parts[1])
-    if len(parts) == 3:
-        return '%s %s %s' % (name, parts[1], parts[2])
-    sys.exit('Error: Invalid package specification:' % arg)
-
 
 def print_dists(dists):
     fmt = "    %-27s|%17s"
@@ -110,10 +99,9 @@ def add_defaults_to_specs(r, linked, specs):
             continue
         specs.append('%s %s*' % (name, def_ver))
 
-def install_actions(prefix, index, args):
+def install_actions(prefix, index, specs):
     r = Resolve(index)
     linked = install.linked(prefix)
-    specs = [arg2spec(arg) for arg in args]
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
@@ -131,10 +119,10 @@ def install_actions(prefix, index, args):
 
     return actions
 
-def remove_actions(prefix, args):
+def remove_actions(prefix, specs):
     linked = install.linked(prefix)
 
-    mss = [MatchSpec(arg2spec(arg)) for arg in args]
+    mss = [MatchSpec(spec) for spec in specs]
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
@@ -144,10 +132,8 @@ def remove_actions(prefix, args):
 
     return actions
 
-def remove_features_actions(prefix, index, args):
+def remove_features_actions(prefix, index, features):
     linked = install.linked(prefix)
-
-    features = set(args)
     r = Resolve(index)
 
     actions = defaultdict(list)

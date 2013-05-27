@@ -6,11 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.config import ROOT_DIR, PKGS_DIR
-from conda.anaconda import Anaconda
-from conda.planners import create_install_plan
-from utils import (add_parser_prefix, add_parser_quiet, add_parser_yes,
-                   confirm, get_prefix)
+import utils
 
 
 descr = "Install a list of packages into a specified conda environment."
@@ -28,14 +24,14 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    add_parser_yes(p)
+    utils.add_parser_yes(p)
     p.add_argument(
         '-f', "--file",
         action = "store",
         help = "filename to read package versions from",
     )
-    add_parser_prefix(p)
-    add_parser_quiet(p)
+    utils.add_parser_prefix(p)
+    utils.add_parser_quiet(p)
     p.add_argument(
         'packages',
         metavar = 'package_version',
@@ -47,59 +43,38 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    if len(args.packages) == 0 and not args.file:
-        raise RuntimeError('too few arguments, must supply command line '
-                           'package specifications or --file')
+    import conda.plan as plan
+    from conda.api import get_index
 
-    conda = Anaconda()
-
-    prefix = get_prefix(args)
-
-    env = conda.lookup_environment(prefix)
+    prefix = utils.get_prefix(args)
 
     if args.file:
-        try:
-            req_strings = []
-            with open(args.file) as fi:
-                for line in fi:
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        req_strings.append(line)
-        except IOError:
-            raise RuntimeError('could not read file: %s' % args.file)
+        specs = utils.specs_from_file(args.file)
     else:
-        req_strings = args.packages
+        specs = utils.specs_from_args(args.packages)
 
-    if prefix != ROOT_DIR and any(s == 'conda' or s.startswith('conda=')
-                                  for s in req_strings):
-        raise RuntimeError("package 'conda' may only be installed in the "
-                           "root environment")
+    utils.check_specs(prefix, specs)
 
-    if len(req_strings) == 0:
-        raise RuntimeError('no package specifications supplied')
+    # TODO...
+    #if all(s.endswith('.tar.bz2') for s in req_strings):
+    #    from conda.install import install_local_package
+    #    for path in req_strings:
+    #        install_local_package(path, PKGS_DIR, prefix)
+    #    return
+    #if any(s.endswith('.tar.bz2') for s in req_strings):
+    #    raise RuntimeError("mixing specifications and filename not supported")
 
-    if all(s.endswith('.tar.bz2') for s in req_strings):
-        from conda.install import install_local_package
-        for path in req_strings:
-            install_local_package(path, PKGS_DIR, prefix)
-        return
+    index = get_index()
+    actions = plan.install_actions(prefix, index, specs)
 
-    if any(s.endswith('.tar.bz2') for s in req_strings):
-        raise RuntimeError("mixing specifications and filename not supported")
-
-    conda = Anaconda()
-
-    plan = create_install_plan(env, req_strings)
-
-    if plan.empty():
+    if plan.nothing_to_do(actions):
         print('All requested packages already installed into '
               'environment: %s' % prefix)
         return
 
     print
     print "Package plan for installation in environment %s:" % prefix
-    print plan
+    plan.display_actions(actions)
 
-    confirm(args)
-
-    plan.execute(env, not args.quiet)
+    utils.confirm(args)
+    plan.execute_actions(actions, index, enable_progress=not args.quiet)

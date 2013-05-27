@@ -6,8 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-from utils import (add_parser_prefix, get_prefix, add_parser_yes, confirm,
-                   add_parser_quiet)
+import utils
 
 
 descr = ("Create a new conda environment from a list of specified "
@@ -30,14 +29,14 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog  = example,
     )
-    add_parser_yes(p)
+    utils.add_parser_yes(p)
     p.add_argument(
         '-f', "--file",
         action = "store",
         help = "filename to read package specs from",
     )
-    add_parser_prefix(p)
-    add_parser_quiet(p)
+    utils.add_parser_prefix(p)
+    utils.add_parser_quiet(p)
     p.add_argument(
         'package_specs',
         metavar = 'package_spec',
@@ -50,7 +49,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
-    from os.path import abspath, exists
+    from os.path import exists
 
     import conda.plan as plan
     from conda.api import get_index
@@ -64,7 +63,7 @@ def execute(args, parser):
         raise RuntimeError('either -n NAME or -p PREFIX option required, '
                            'try "conda create -h" for more details')
 
-    prefix = get_prefix(args)
+    prefix = utils.get_prefix(args)
 
     if exists(prefix):
         if args.prefix:
@@ -75,24 +74,14 @@ def execute(args, parser):
                                "directory for -n/--name" % prefix)
 
     if args.file:
-        try:
-            f = open(abspath(args.file))
-            spec_strings = [line for line in f]
-            f.close()
-        except:
-            raise RuntimeError('could not read file: %s', args.file)
+        specs = utils.specs_from_file(args.file)
     else:
-        spec_strings = args.package_specs
+        specs = utils.specs_from_args(args.package_specs)
 
-    if any(s == 'conda' or s.startswith('conda=') for s in spec_strings):
-        raise RuntimeError("Package 'conda' may only be installed in the "
-                           "root environment")
-
-    if len(spec_strings) == 0:
-        raise RuntimeError('no package specifications supplied')
+    utils.check_specs(prefix, specs)
 
     index = get_index()
-    actions = plan.install_actions(prefix, index, spec_strings)
+    actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
         print 'No matching packages could be found, nothing to do'
@@ -102,7 +91,7 @@ def execute(args, parser):
     print "Package plan for creating environment at %s:" % prefix
     plan.display_actions(actions)
 
-    confirm(args)
+    utils.confirm(args)
     plan.execute_actions(actions, index, enable_progress=not args.quiet)
 
     if sys.platform != 'win32':
