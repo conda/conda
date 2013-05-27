@@ -85,6 +85,11 @@ def min_sat(clauses, max_n=1000):
     number of literals is True.  Returned is the list solutions, where
     each solution is the list of only True literals.  Accordingly, when the
     clauses are unsatisfiable, an empty list is returned.
+
+    This function could be implemented using a Pseudo-Boolean SAT solver,
+    which would avoid looping over the SAT solutions, and would therefore
+    be much more efficient.  However, for our purpose, the current
+    implementation is good enough.
     """
     try:
         import pycosat
@@ -103,7 +108,6 @@ def min_sat(clauses, max_n=1000):
         elif len(sol) == min_len:
             solutions.append(sol)
 
-    #print 'n=%d' % n
     return solutions
 
 
