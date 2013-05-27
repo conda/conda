@@ -1,5 +1,6 @@
 import re
 import sys
+from itertools import islice
 from collections import defaultdict
 
 import verlib
@@ -97,9 +98,7 @@ def min_sat(clauses, max_n=1000):
         sys.exit("Error: cannot import pycosat")
 
     min_len, solutions = sys.maxint, []
-    for n, sol in enumerate(pycosat.itersolve(clauses)):
-        if n == max_n:
-            break
+    for sol in islice(pycosat.itersolve(clauses), max_n):
         sol = [lit for lit in sol if lit > 0]
         if len(sol) < min_len:
             min_len, solutions = len(sol), [sol]
