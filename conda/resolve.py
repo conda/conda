@@ -107,16 +107,6 @@ def min_sat(clauses, max_n=1000):
     return solutions
 
 
-def get_candidate(candidates):
-    key = min(candidates)
-    #print 'minkey: %r' % key
-    mc = candidates[key]
-    if len(mc) != 1:
-        print 'WARNING:', len(mc)
-        for c in mc:
-            print '\t', c
-    return mc[0]
-
 class Resolve(object):
 
     def __init__(self, index):
@@ -267,15 +257,16 @@ class Resolve(object):
         If no substribute is found, None is returned.
         """
         name, version, unused_build = fn.rsplit('-', 2)
-        candidates = defaultdict(list)
+        candidates = {}
         for fn1 in self.get_max_dists(MatchSpec(name + ' ' + version)):
             if self.features(fn1).intersection(features):
                 continue
-            key = -sum(self.sum_matches(fn1, fn2) for fn2 in installed)
-            candidates[key].append(fn1)
+            key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
+            candidates[key] = fn1
 
         if candidates:
-            return get_candidate(candidates)
+            maxkey = max(candidates)
+            return candidates[maxkey]
         else:
             return None
 
