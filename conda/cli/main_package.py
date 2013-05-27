@@ -4,10 +4,8 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from os.path import basename
+import utils
 
-from conda.builder.packup import make_tarbz2, untracked, remove
-from utils import add_parser_prefix, get_prefix
 
 descr = "Create a conda package in an environment. (ADVANCED)"
 
@@ -15,8 +13,7 @@ descr = "Create a conda package in an environment. (ADVANCED)"
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('package', description=descr, help=descr)
 
-    add_parser_prefix(p)
-
+    utils.add_parser_prefix(p)
     p.add_argument(
         '-c', "--check",
         action  = "store",
@@ -56,7 +53,12 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    prefix = get_prefix(args)
+    from os.path import basename
+
+    from conda.builder.packup import make_tarbz2, untracked, remove
+
+
+    prefix = utils.get_prefix(args)
 
     if args.check:
         from conda.builder.tarcheck import check_all

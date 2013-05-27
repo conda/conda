@@ -4,23 +4,17 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import os
-import sys
-import json
-import conda
-from conda.config import (Config, ROOT_DIR, ENVS_DIR, DEFAULT_ENV_PREFIX,
-                          RC_PATH)
-
-from utils import add_parser_json
+import utils
 
 
 descr = "Display information about current conda install."
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('info',
                                description = descr,
                                help = descr)
-    add_parser_json(p)
+    utils.add_parser_json(p)
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
         '-a', "--all",
@@ -50,6 +44,13 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import os
+    import sys
+    import json
+
+    import conda
+    from conda.config import (Config, ROOT_DIR, ENVS_DIR, DEFAULT_ENV_PREFIX,
+                              RC_PATH)
 
     options = ['envs', 'locations', 'system', 'license']
 

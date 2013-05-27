@@ -5,15 +5,13 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import sys
-from os.path import isdir, isfile
-
-from conda.builder.commands import build
-from utils import add_parser_prefix, get_prefix
+import utils
 
 
 descr = "Build a package from source. (EXPERIMENTAL)"
 
 source_types = 'git', 'tar', 'zip', 'svn', 'dir'
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=descr)
@@ -33,7 +31,7 @@ def configure_parser(sub_parsers):
     npgroup.add_argument("--dir",
                          action="store_true",
                          help="build from local source directory")
-    add_parser_prefix(p)
+    utils.add_parser_prefix(p)
     p.add_argument('url',
                    action="store",
                    metavar='URL',
@@ -44,6 +42,9 @@ def configure_parser(sub_parsers):
 
 
 def get_source_type(args):
+    from os.path import isdir, isfile
+
+
     for opt_name in source_types:
         if getattr(args, opt_name):
             return opt_name
@@ -63,7 +64,9 @@ def get_source_type(args):
 
 
 def execute(args, parser):
-    prefix = get_prefix(args)
+    from conda.builder.commands import build
+
+    prefix = utils.get_prefix(args)
     source_type = get_source_type(args)
     if source_type is None:
         sys.exit('Error: Could not determine source type, please provide one\n'
