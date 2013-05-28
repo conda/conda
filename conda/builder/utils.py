@@ -1,5 +1,6 @@
-import hashlib
 from os.path import normpath, getmtime, getsize
+
+from conda.utils import md5_file
 
 
 
@@ -9,17 +10,6 @@ def rel_lib(f):
         return normpath((f.count('/') - 1) * '../')
     else:
         return normpath(f.count('/') * '../') + '/lib'
-
-
-def md5_file(path):
-    with open(path, 'rb') as fi:
-        h = hashlib.new('md5')
-        while True:
-            chunk = fi.read(262144)
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def file_info(path):
