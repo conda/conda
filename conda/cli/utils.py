@@ -120,3 +120,10 @@ def check_specs(prefix, specs):
                  any(s.split()[0] == 'conda' for s in specs)):
         sys.exit("Error: Package 'conda' may only be installed in the "
                  "root environment")
+
+
+def disp_features(features):
+    if features:
+        return '[%s]' % ' '.join(features)
+    else:
+        return ''
