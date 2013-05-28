@@ -71,6 +71,16 @@ def rm_rf(path):
     elif isdir(path):
         shutil.rmtree(path)
 
+def rm_empty_dir(path):
+    """
+    Remove the directory `path` if it is a directory and empty.
+    If the directory does not exist or is not empty, do nothing.
+    """
+    try:
+        os.rmdir(path)
+    except OSError: # directory might not exist or not be empty
+        pass
+
 
 def yield_lines(path):
     for line in open(path):
@@ -269,22 +279,30 @@ def unlink(dist, prefix):
         meta = json.load(fi)
 
     mk_menus(prefix, meta['files'], remove=True)
-    dst_dirs = set()
+    dst_dirs1 = set()
     for f in meta['files']:
         dst = join(prefix, f)
-        dst_dirs.add(dirname(dst))
+        dst_dirs1.add(dirname(dst))
         try:
             os.unlink(dst)
         except OSError: # file might not exist
             log.debug("could not remove file: '%s'" % dst)
 
-    for path in sorted(dst_dirs, key=len, reverse=True):
-        try:
-            os.rmdir(path)
-        except OSError: # directory might not exist or not be empty
-            log.debug("could not remove directory: '%s'" % dst)
+    dst_dirs2 = set()
+    for path in dst_dirs1:
+        while len(path) > len(prefix):
+            dst_dirs2.add(path)
+            path = dirname(path)
+
+    for path in sorted(dst_dirs2, key=len, reverse=True):
+        rm_empty_dir(path)
 
     os.unlink(meta_path)
+
+    # in case there is nothing left
+    for path in join(prefix, 'conda-meta'), prefix:
+        rm_empty_dir(path)
+
 
 # =========================== end API functions ==========================
 
