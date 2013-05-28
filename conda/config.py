@@ -32,7 +32,8 @@ else:
 
 # ----- operating system and architecture -----
 
-_sys_map = {'linux2': 'linux', 'darwin': 'osx', 'win32': 'win'}
+_sys_map = {'linux2': 'linux', 'linux': 'linux',
+            'darwin': 'osx', 'win32': 'win'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
 
@@ -63,7 +64,8 @@ def load_condarc(path):
 
 def get_channel_urls():
     if os.getenv('CIO_TEST'):
-        base_urls = ['http://filer/pkgs/pro', 'http://filer/pkgs/free']
+        base_urls = ['http://filer/pkgs/pro',
+                     'http://filer/pkgs/free']
         if os.getenv('CIO_TEST') == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
 
