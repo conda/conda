@@ -71,7 +71,7 @@ def main():
         return
 
     import logging
-    from .. import __version__
+    import conda
 
     p = conda_argparse.ArgumentParser(
         description='conda is a tool for managing environments and packages.'
@@ -79,7 +79,7 @@ def main():
     p.add_argument(
         '-v', '--version',
         action='version',
-        version='conda %s' % __version__,
+        version='conda %s' % conda.__version__,
     )
     p.add_argument(
         '-l', "--log-level",
