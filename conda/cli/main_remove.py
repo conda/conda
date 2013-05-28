@@ -9,7 +9,11 @@ from argparse import RawDescriptionHelpFormatter
 import utils
 
 
-descr = "Remove a list of packages from a specified conda environment."
+help = "Remove a list of packages from a specified conda environment."
+descr = help + """
+When the special package_name 'ALL' is used all packages are
+removed from the environment, i.e. the environment is removed.
+"""
 example = """
 examples:
     conda remove -n myenv scipy
@@ -21,7 +25,7 @@ def configure_parser(sub_parsers):
         'remove',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help = descr,
+        help = help,
         epilog = example,
     )
     utils.add_parser_yes(p)
