@@ -11,8 +11,9 @@ import utils
 
 help = "Remove a list of packages from a specified conda environment."
 descr = help + """
-When the special package_name 'ALL' is used all packages are
-removed from the environment, i.e. the environment is removed.
+Normally, only the specified package is removed, and not the packages
+which may depend on the package.  Hence this command should be used
+with caution.
 """
 example = """
 examples:
@@ -29,11 +30,11 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     utils.add_parser_yes(p)
-    #p.add_argument(
-    #    "--no-deps",
-    #    action  = "store_true",
-    #    help    = "do not follow and remove dependencies (default: false)",
-    #)
+    p.add_argument(
+        "--all",
+        action = "store_true",
+        help = "remove all packages, i.e. the entire environment",
+    )
     p.add_argument(
         "--features",
         action = "store_true",
@@ -45,22 +46,35 @@ def configure_parser(sub_parsers):
         'package_names',
         metavar = 'package_name',
         action = "store",
-        nargs = '+',
+        nargs = '*',
         help = "package names to remove from environment",
     )
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    import sys
+
+    import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
 
 
+    if not (args.all or args.package_names):
+        sys.exit('Error: no package names supplied\n'
+                 '       try "conda remove -h" for more details')
+
     prefix = utils.get_prefix(args)
+
     if args.features:
         index = get_index()
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
+    elif args.all:
+        if prefix == config.root_dir:
+            sys.exit('Error: cannot remove root environment\n'
+                     '       add -n NAME or -p PREFIX option')
+        actions = plan.remove_all_actions(prefix)
     else:
         specs = utils.specs_from_args(args.package_names)
         actions = plan.remove_actions(prefix, specs)
