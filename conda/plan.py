@@ -29,6 +29,7 @@ def print_dists(dists):
     for dist in dists:
         print fmt % tuple(dist.rsplit('-', 1))
 
+
 def display_actions(actions):
     if actions.get('FETCH'):
         print "\nThe following packages will be downloaded:\n"
@@ -40,6 +41,7 @@ def display_actions(actions):
         print "\nThe following packages will be linked:\n"
         print_dists(actions['LINK'])
     print
+
 
 def nothing_to_do(actions):
     for op in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
@@ -64,6 +66,7 @@ def plan_from_actions(actions):
             res.append('%s %s' % (op, dist))
     return res
 
+
 def ensure_linked_actions(dists, linked):
     extracted = install.extracted(config.pkgs_dir)
     fetched = install.fetched(config.pkgs_dir)
@@ -80,6 +83,12 @@ def ensure_linked_actions(dists, linked):
             continue
         actions['FETCH'].append(dist)
     return actions
+
+
+def force_linked_actions(dists, prefix):
+    # TODO
+    return actions
+
 
 def dist2spec(fn):
     name, version, unused = fn.rsplit('-', 2)
@@ -101,7 +110,8 @@ def add_defaults_to_specs(r, linked, specs):
             continue
         specs.append('%s %s*' % (name, def_ver))
 
-def install_actions(prefix, index, specs):
+
+def install_actions(prefix, index, specs, force=False):
     r = Resolve(index)
     linked = install.linked(prefix)
     add_defaults_to_specs(r, linked, specs)
@@ -115,7 +125,11 @@ def install_actions(prefix, index, specs):
     if prefix != config.root_dir and 'conda' in must_have:
         del must_have['conda']
 
-    actions = ensure_linked_actions(sorted(must_have.values()), linked)
+    if force:
+        actions = force_linked_actions(sorted(must_have.values()), prefix)
+    else:
+        actions = ensure_linked_actions(sorted(must_have.values()), linked)
+
     actions['PREFIX'] = prefix
 
     for dist in sorted(linked):
@@ -124,6 +138,7 @@ def install_actions(prefix, index, specs):
             actions['UNLINK'].append(dist)
 
     return actions
+
 
 def remove_actions(prefix, specs):
     linked = install.linked(prefix)
@@ -137,6 +152,7 @@ def remove_actions(prefix, specs):
             actions['UNLINK'].append(dist)
 
     return actions
+
 
 def remove_features_actions(prefix, index, features):
     linked = install.linked(prefix)
