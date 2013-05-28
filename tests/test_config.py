@@ -22,8 +22,11 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.root_dir)
         self.assertTrue(config.pkgs_dir)
         self.assertTrue(config.envs_dir)
-
-        self.assertTrue(config.DEFAULT_ENV_PREFIX)
+        self.assertTrue(config.default_prefix)
+        self.assertTrue(config.platform)
+        self.assertTrue(config.bits)
+        self.assertTrue(config.subdir)
+        self.assertTrue(config.arch_name)
 
     def test_channel_urls(self):
         config.subdir = 'foo'
