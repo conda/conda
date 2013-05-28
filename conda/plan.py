@@ -9,9 +9,11 @@ NOTE:
 """
 import sys
 from collections import defaultdict
+from os.path import join
 
 import install
 import config
+from utils import md5_file
 from remote import fetch_file
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
@@ -85,8 +87,21 @@ def ensure_linked_actions(dists, linked):
     return actions
 
 
-def force_linked_actions(dists, prefix):
-    # TODO
+def md5_pkg(fn):
+    try:
+        return md5_file(join(config.pkgs_dir, fn))
+    except IOError:
+        return 'not in cache'
+
+def force_linked_actions(dists, index, prefix):
+    actions = defaultdict(list)
+    for dist in dists:
+        fn = dist + '.tar.bz2'
+        if md5_pkg(fn) != index[fn]['md5']:
+            actions['FETCH'].append(dist)
+
+
+        # TODO
     return actions
 
 
@@ -125,10 +140,11 @@ def install_actions(prefix, index, specs, force=False):
     if prefix != config.root_dir and 'conda' in must_have:
         del must_have['conda']
 
+    smh = sorted(must_have.values())
     if force:
-        actions = force_linked_actions(sorted(must_have.values()), prefix)
+        actions = force_linked_actions(smh, index, prefix)
     else:
-        actions = ensure_linked_actions(sorted(must_have.values()), linked)
+        actions = ensure_linked_actions(smh, linked)
 
     actions['PREFIX'] = prefix
 
