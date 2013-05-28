@@ -1,5 +1,18 @@
+import hashlib
 import collections
 from functools import partial
+
+
+
+def md5_file(path):
+    with open(path, 'rb') as fi:
+        h = hashlib.new('md5')
+        while True:
+            chunk = fi.read(262144)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 class memoized(object):
