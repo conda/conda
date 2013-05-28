@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import utils
+import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -23,7 +23,7 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    utils.add_parser_prefix(p)
+    common.add_parser_prefix(p)
     p.add_argument(
         "--all",
         action  = "store_true",
@@ -62,7 +62,7 @@ def execute(args, parser):
     else:
         pat = None
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
     if not args.canonical:
         linked = install.linked(prefix)
 
@@ -84,5 +84,5 @@ def execute(args, parser):
                 disp_name, inst,
                 pkg.version,
                 r.index[pkg.fn]['build'],
-                utils.disp_features(r.features(pkg.fn)))
+                common.disp_features(r.features(pkg.fn)))
             disp_name = ''

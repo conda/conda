@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import utils
+import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -26,8 +26,8 @@ def configure_parser(sub_parsers):
         help = descr + " (ADVANCED)",
         epilog = example,
     )
-    utils.add_parser_yes(p)
-    utils.add_parser_prefix(p)
+    common.add_parser_yes(p)
+    common.add_parser_prefix(p)
     adr_group = p.add_mutually_exclusive_group()
     adr_group.add_argument(
         '-l', "--link",
@@ -64,7 +64,7 @@ def execute(args, parser):
 
     conda = Anaconda()
 
-    prefix =  utils.get_prefix(args)
+    prefix =  common.get_prefix(args)
     env = conda.lookup_environment(prefix)
 
     if args.link:
@@ -82,7 +82,7 @@ def execute(args, parser):
 
         print plan
 
-        utils.confirm(args)
+        common.confirm(args)
 
         try:
             plan.execute(env)
@@ -105,7 +105,7 @@ def execute(args, parser):
 
         print plan
 
-        utils.confirm(args)
+        common.confirm(args)
 
         plan.execute(env)
 
@@ -124,7 +124,7 @@ def execute(args, parser):
         print "**** The following conda environment directory will be removed: %s ****" % env.prefix
         print
 
-        utils.confirm(args)
+        common.confirm(args)
 
         rmtree(env.prefix)
 

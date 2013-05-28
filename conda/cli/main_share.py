@@ -1,4 +1,4 @@
-import utils
+import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -12,8 +12,8 @@ def configure_parser(sub_parsers):
         description = descr,
         help = descr,
     )
-    utils.add_parser_prefix(p)
-    utils.add_parser_json(p)
+    common.add_parser_prefix(p)
+    common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 
@@ -24,7 +24,7 @@ def execute(args, parser):
     from conda.builder.share import create_bundle
 
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
     path, warnings = create_bundle(prefix)
 
     if args.json:

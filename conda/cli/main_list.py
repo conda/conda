@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import utils
+import common
 
 
 def configure_parser(sub_parsers):
@@ -13,7 +13,7 @@ def configure_parser(sub_parsers):
         description = "List linked packages in a conda environment.",
         help        = "List linked packages in a conda environment.",
     )
-    utils.add_parser_prefix(p)
+    common.add_parser_prefix(p)
     p.add_argument(
         '-c', "--canonical",
         action  = "store_true",
@@ -33,7 +33,7 @@ def execute(args, parser):
     import conda.install as install
 
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
 
     if args.regex:
         pat = re.compile(args.regex, re.I)
@@ -57,6 +57,6 @@ def execute(args, parser):
             print '%-25s %-15s %15s  %s' % (info['name'],
                                             info['version'],
                                             info['build'],
-                                            utils.disp_features(features))
+                                            common.disp_features(features))
         except: # IOError, KeyError, ValueError
             print '%-25s %-15s %15s' % tuple(dist.rsplit('-', 2))

@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-import utils
+import common
 
 
 def configure_parser(sub_parsers):
@@ -17,13 +17,13 @@ def configure_parser(sub_parsers):
         help            = "Add and remove packages from local availability. (ADVANCED)",
         epilog          = local_example,
     )
-    utils.add_parser_yes(p)
+    common.add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
         action  = "store_true",
         help    = "force package downloads even when specific package is already available",
     )
-    utils.add_parser_quiet(p)
+    common.add_parser_quiet(p)
     p.add_argument(
         'canonical_names',
         action  = "store",
@@ -68,7 +68,7 @@ def execute(args, parser):
 
         print plan
 
-        utils.confirm(args)
+        common.confirm(args)
 
         # pass default environment because some env is required,
         # but it is unused here
@@ -90,7 +90,7 @@ def execute(args, parser):
             print "         %s" % pkg_name
         print
 
-        utils.confirm(args)
+        common.confirm(args)
 
         for pkg_name in to_remove:
             rmtree(join(conda.packages_dir, pkg_name))
