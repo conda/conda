@@ -35,17 +35,12 @@ def configure_parser(sub_parsers):
         help    = "output canonical names of packages only",
     )
     p.add_argument(
-        '-s', "--show-requires",
-        action  = "store_true",
-        help    = "also display package requirements",
-    )
-    p.add_argument(
         '-v', "--verbose",
         action  = "store_true",
         help    = "Show available packages as blocks of data",
     )
     p.add_argument(
-        'search_expression',
+        'regex',
         action  = "store",
         nargs   = "?",
         help    = "package specification or regular expression to search for "
@@ -57,79 +52,34 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import re
 
-    from conda.anaconda import Anaconda
-    from conda.constraints import Satisfies
-    from conda.package import sort_packages_by_name
-    from conda.package_spec import make_package_spec
+    import conda.install as install
+    from conda.api import get_index
+    from conda.resolve import MatchSpec, Resolve
 
 
-    conda = Anaconda()
-
-    if args.search_expression is None:
-        pkgs = sort_packages_by_name(conda.index.pkgs)
-
-    elif args.search_expression in conda.index.package_names:
-        pkgs = conda.index.lookup_from_name(args.search_expression)
-
+    if args.regex:
+        pat = re.compile(args.regex, re.I)
     else:
-        spec = make_package_spec(args.search_expression)
-        if spec.version:
-           pkgs = conda.index.find_matches(
-                Satisfies(spec),
-                conda.index.lookup_from_name(spec.name)
-            )
-        else:
-            try:
-                pkg_names = set()
-                pat = re.compile(args.search_expression)
-            except:
-                raise RuntimeError("Could not understand search "
-                                   "expression '%s'" % args.search_expression)
-            pkg_names = set()
-            for name in conda.index.package_names:
-                if pat.search(name):
-                    pkg_names.add(name)
-            pkgs = set()
-            for name in pkg_names:
-                pkgs |= conda.index.lookup_from_name(name)
+        pat = None
+
+    prefix = utils.get_prefix(args)
+    if not args.canonical:
+        linked = install.linked(prefix)
 
     if args.all:
-        compat_string = ''
-    else:
-        prefix = utils.get_prefix(args)
-        env = conda.lookup_environment(prefix)
-        pkgs = conda.index.find_matches(env.requirements, pkgs)
-        compat_string = ' compatible with environment %s' % prefix
+        pass # TODO
 
-    if args.canonical:
-        for pkg in pkgs:
-            print pkg.canonical_name
-        return
-
-    if len(pkgs) == 0:
-        print "No matches found for '%s'%s" % (args.search_expression,
-                                               compat_string)
-        return
-
-    if len(pkgs) == 1:
-        print "One match found%s:" % compat_string
-    else:
-        print "%d matches found%s:" % (len(pkgs), compat_string)
-
-    print
-    print 'Packages with available versions and build strings:'
-
-    if args.verbose:
-        for pkg in pkgs:
-            print
-            pkg.print_info(args.show_requires)
-
-    else:
-        print
-        current_name = ''
-        for pkg in sorted(pkgs):
-            if pkg.name != current_name:
-                current_name = pkg.name
-                print "%-25s %-15s %15s" % (current_name, pkg.version, pkg.build)
+    r = Resolve(get_index())
+    for name in sorted(r.groups):
+        disp_name = name
+        if pat and pat.search(name) is None:
+            continue
+        for pkg in sorted(r.get_pkgs(MatchSpec(name))):
+            dist = pkg.fn[:-8]
+            if args.canonical:
+                print dist
             else:
-                print "%-25s %-15s %15s" % (" ", pkg.version, pkg.build)
+                inst = '*' if dist in linked else ' '
+                print '%-25s %s  %-15s %15s' % (disp_name, inst, pkg.version,
+                                                r.index[pkg.fn]['build'])
+                disp_name = ''
