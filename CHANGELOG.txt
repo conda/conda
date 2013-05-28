@@ -2,7 +2,7 @@
 -------------------
   * major internal refactoring
   * use new "depends" key in repodata
-  * optionally uses pycosat to solve constraints more efficiently
+  * uses pycosat to solve constraints more efficiently
   * add hard-linking on Windows
   * add conda remove --features option
   * added more tests, in particular for new dependency resolver

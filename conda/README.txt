@@ -15,7 +15,7 @@
   verlib |  utils   config   install
          |             |
          |             |
-     (optional)    (optional)
+         |         (optional)
          |             |
          |             |
       pycosat         yaml
