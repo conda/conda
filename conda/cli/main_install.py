@@ -26,9 +26,9 @@ def configure_parser(sub_parsers):
     )
     utils.add_parser_yes(p)
     p.add_argument(
-        '-f', "--file",
+        "--file",
         action = "store",
-        help = "filename to read package versions from",
+        help = "read package versions from FILE",
     )
     utils.add_parser_prefix(p)
     utils.add_parser_quiet(p)
