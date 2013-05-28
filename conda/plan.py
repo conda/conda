@@ -68,7 +68,8 @@ def plan_from_actions(actions):
             continue
         if not actions[op]:
             continue
-        res.append('PRINT %sing packages ...' % op.capitalize())
+        if '_' not in op:
+            res.append('PRINT %sing packages ...' % op.capitalize())
         if op not in ('FETCH', 'RM_FETCHED'):
             res.append('PROGRESS %d' % len(actions[op]))
         for dist in actions[op]:
@@ -136,7 +137,7 @@ def add_defaults_to_specs(r, linked, specs):
         specs.append('%s %s*' % (name, def_ver))
 
 
-def install_actions(prefix, index, specs, force=False):
+def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
     add_defaults_to_specs(r, linked, specs)
@@ -144,6 +145,8 @@ def install_actions(prefix, index, specs, force=False):
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked], verbose=1):
         dist = fn[:-8]
+        if only_names and name_dist(dist) not in only_names:
+            continue
         must_have[name_dist(dist)] = dist
 
     # discard conda from environments (other than the root environment)
