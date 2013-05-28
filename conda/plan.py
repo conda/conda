@@ -115,12 +115,12 @@ def force_linked_actions(dists, index, prefix):
     return actions
 
 
-def dist2spec(fn):
-    name, version, unused = fn.rsplit('-', 2)
+def dist2spec(dist):
+    name, version, unused_build = dist.rsplit('-', 2)
     return '%s %s*' % (name, version[:3])
 
 def add_defaults_to_specs(r, linked, specs):
-    names_linked = {name_dist(fn): fn for fn in linked}
+    names_linked = {name_dist(dist): dist for dist in linked}
     names_spec = set(MatchSpec(s).name for s in specs)
     for name, def_ver in [('python', config.default_python),
                           ('numpy', config.default_numpy)]:
