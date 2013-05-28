@@ -56,9 +56,9 @@ def nothing_to_do(actions):
     return True
 
 def plan_from_actions(actions):
-    try:
+    if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
-    except KeyError:
+    else:
         op_order = action_codes
 
     res = ['# plan',
@@ -70,7 +70,7 @@ def plan_from_actions(actions):
             continue
         if '_' not in op:
             res.append('PRINT %sing packages ...' % op.capitalize())
-        if op not in ('FETCH', 'RM_FETCHED'):
+        if op not in ('FETCH', 'RM_FETCHED', 'RM_EXTRACTED'):
             res.append('PROGRESS %d' % len(actions[op]))
         for dist in actions[op]:
             res.append('%s %s' % (op, dist))
