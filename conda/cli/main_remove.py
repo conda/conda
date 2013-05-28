@@ -57,7 +57,6 @@ def execute(args, parser):
 
     import conda.config as config
     import conda.plan as plan
-    from conda.api import get_index
 
 
     if not (args.all or args.package_names):
@@ -67,14 +66,21 @@ def execute(args, parser):
     prefix = common.get_prefix(args)
 
     if args.features:
+        from conda.api import get_index
+
         index = get_index()
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
+
     elif args.all:
+        from conda.install import linked
+
         if prefix == config.root_dir:
             sys.exit('Error: cannot remove root environment,\n'
                      '       add -n NAME or -p PREFIX option')
-        actions = plan.remove_all_actions(prefix)
+
+        actions = {'PREFIX': prefix, 'UNLINK': sorted(linked(prefix))}
+
     else:
         specs = common.specs_from_args(args.package_names)
         actions = plan.remove_actions(prefix, specs)

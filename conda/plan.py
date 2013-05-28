@@ -125,13 +125,6 @@ def install_actions(prefix, index, specs):
 
     return actions
 
-def remove_all_actions(prefix):
-    assert prefix != config.root_dir
-    linked = install.linked(prefix)
-
-    return {'PREFIX': prefix,
-            'UNLINK': sorted(linked)}
-
 def remove_actions(prefix, specs):
     linked = install.linked(prefix)
 
