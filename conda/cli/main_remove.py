@@ -61,7 +61,7 @@ def execute(args, parser):
 
 
     if not (args.all or args.package_names):
-        sys.exit('Error: no package names supplied\n'
+        sys.exit('Error: no package names supplied,\n'
                  '       try "conda remove -h" for more details')
 
     prefix = utils.get_prefix(args)
@@ -72,7 +72,7 @@ def execute(args, parser):
         actions = plan.remove_features_actions(prefix, index, features)
     elif args.all:
         if prefix == config.root_dir:
-            sys.exit('Error: cannot remove root environment\n'
+            sys.exit('Error: cannot remove root environment,\n'
                      '       add -n NAME or -p PREFIX option')
         actions = plan.remove_all_actions(prefix)
     else:

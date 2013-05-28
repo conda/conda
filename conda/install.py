@@ -288,19 +288,19 @@ def unlink(dist, prefix):
         except OSError: # file might not exist
             log.debug("could not remove file: '%s'" % dst)
 
+    # remove the meta-file last
+    os.unlink(meta_path)
+
     dst_dirs2 = set()
     for path in dst_dirs1:
         while len(path) > len(prefix):
             dst_dirs2.add(path)
             path = dirname(path)
+    # in case there is nothing left
+    dst_dirs2.add(join(prefix, 'conda-meta'))
+    dst_dirs2.add(prefix)
 
     for path in sorted(dst_dirs2, key=len, reverse=True):
-        rm_empty_dir(path)
-
-    os.unlink(meta_path)
-
-    # in case there is nothing left
-    for path in join(prefix, 'conda-meta'), prefix:
         rm_empty_dir(path)
 
 
