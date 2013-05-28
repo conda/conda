@@ -53,6 +53,8 @@ def plan_from_actions(actions):
            'PREFIX %s' % actions['PREFIX']]
     for op in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
                'RM_EXTRACTED', 'RM_FETCHED'):
+        if op not in actions:
+            continue
         if not actions[op]:
             continue
         res.append('PRINT %sing packages ...' % op.capitalize())
@@ -127,12 +129,8 @@ def remove_all_actions(prefix):
     assert prefix != config.root_dir
     linked = install.linked(prefix)
 
-    actions = defaultdict(list)
-    actions['PREFIX'] = prefix
-    for dist in sorted(linked):
-        actions['UNLINK'].append(dist)
-
-    return actions
+    return {'PREFIX': prefix,
+            'UNLINK': sorted(linked)}
 
 def remove_actions(prefix, specs):
     linked = install.linked(prefix)
