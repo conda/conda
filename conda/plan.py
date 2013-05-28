@@ -7,7 +7,6 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-import sys
 from collections import defaultdict
 from os.path import isfile, join
 
@@ -145,9 +144,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked], verbose=1):
         dist = fn[:-8]
-        if only_names and name_dist(dist) not in only_names:
+        name = name_dist(dist)
+        if only_names and name not in only_names:
             continue
-        must_have[name_dist(dist)] = dist
+        must_have[name] = dist
 
     # discard conda from environments (other than the root environment)
     if prefix != config.root_dir and 'conda' in must_have:
@@ -272,17 +272,7 @@ def execute_plan(plan, index=None, enable_progress=True):
             progress.widgets[0] = '[      COMPLETE      ]'
             progress.finish()
 
+
 def execute_actions(actions, index=None, enable_progress=True):
     plan = plan_from_actions(actions)
     execute_plan(plan, index, enable_progress)
-
-
-if __name__ == '__main__':
-    import json
-    with open('../tests/index.json') as fi:
-        index = json.load(fi)
-    #actions = install_actions(sys.prefix, index, ['starcluster'])
-    actions = remove_features_actions(sys.prefix, index, ['mkl'])
-    #for line in plan_from_actions(actions):
-    #    print line
-    display_actions(actions)
