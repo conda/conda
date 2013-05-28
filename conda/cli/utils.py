@@ -82,13 +82,17 @@ def get_prefix(args):
 def arg2spec(arg):
     parts = arg.split('=')
     name = parts[0].lower()
+    for c in ' !@#$%^&*()[]{}|<>?':
+        if c in name:
+            sys.exit("Error: Invalid character '%s' in package "
+                     "name: '%s'" % (c, name))
     if len(parts) == 1:
         return name
     if len(parts) == 2:
         return '%s %s*' % (name, parts[1])
     if len(parts) == 3:
         return '%s %s %s' % (name, parts[1], parts[2])
-    sys.exit('Error: Invalid package specification:' % arg)
+    sys.exit('Error: Invalid package specification: %s' % arg)
 
 
 def specs_from_args(args):
@@ -109,10 +113,10 @@ def specs_from_file(path):
 
 
 def check_specs(prefix, specs):
-    if (abspath(prefix) != config.root_dir and
-              any(s == 'conda' or s.startswith('conda ') for s in specs)):
-        sys.exit("Error: Package 'conda' may only be installed in the "
-                 "root environment")
-
     if len(specs) == 0:
         sys.exit("Error: no package specifications supplied")
+
+    if (prefix != config.root_dir and
+                 any(s.split()[0] == 'conda' for s in specs)):
+        sys.exit("Error: Package 'conda' may only be installed in the "
+                 "root environment")
