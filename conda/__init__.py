@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -7,4 +7,3 @@
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
-
