@@ -28,12 +28,18 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-f', "--force",
         action = "store_true",
-        help = "force install (even when package already installed)",
+        help = "force install (even when package already installed), "
+               "implies --no-deps",
     )
     p.add_argument(
         "--file",
         action = "store",
         help = "read package versions from FILE",
+    )
+    p.add_argument(
+        "--no-deps",
+        action = "store_true",
+        help = "do not install dependencies",
     )
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
@@ -53,6 +59,9 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
 
+    if args.force:
+        args.no_deps = True
+
     if args.file:
         specs = common.specs_from_file(args.file)
     else:
@@ -69,8 +78,14 @@ def execute(args, parser):
     #if any(s.endswith('.tar.bz2') for s in req_strings):
     #    raise RuntimeError("mixing specifications and filename not supported")
 
+    if args.no_deps:
+        only_names = set(s.split()[0] for s in specs)
+    else:
+        only_names = None
+
     index = get_index()
-    actions = plan.install_actions(prefix, index, specs, force=args.force)
+    actions = plan.install_actions(prefix, index, specs,
+                                   force=args.force, only_names=only_names)
 
     if plan.nothing_to_do(actions):
         print('All requested packages already installed into '
