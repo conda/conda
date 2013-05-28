@@ -1,4 +1,4 @@
-import utils
+import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -19,8 +19,8 @@ def configure_parser(sub_parsers):
         nargs   = 1,
         help    = 'path to "share package"',
     )
-    utils.add_parser_prefix(p)
-    utils.add_parser_json(p)
+    common.add_parser_prefix(p)
+    common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 
@@ -32,9 +32,9 @@ def execute(args, parser):
     from conda.builder.share import clone_bundle
 
 
-    utils.ensure_name_or_prefix(args, 'clone')
+    common.ensure_name_or_prefix(args, 'clone')
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
 
     path = args.path[0]
     if not isfile(path):

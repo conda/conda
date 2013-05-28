@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import utils
+import common
 
 
 descr = "Display information about current conda install."
@@ -14,7 +14,7 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('info',
                                description = descr,
                                help = descr)
-    utils.add_parser_json(p)
+    common.add_parser_json(p)
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
         '-a', "--all",

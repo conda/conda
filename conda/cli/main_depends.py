@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import utils
+import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -30,7 +30,7 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         help    = "return reverse dependencies compatible with any specified environment, overrides --name and --prefix",
     )
-    utils.add_parser_prefix(p)
+    common.add_parser_prefix(p)
     p.add_argument(
         '-r', "--reverse",
         action  = "store_true",
@@ -55,7 +55,7 @@ def execute(args, parser):
 
     conda = Anaconda()
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
 
     env = conda.lookup_environment(prefix)
 

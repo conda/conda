@@ -1,4 +1,4 @@
-import utils
+import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -12,8 +12,8 @@ def configure_parser(sub_parsers):
         description = descr,
         help        = descr,
     )
-    utils.add_parser_prefix(p)
-    utils.add_parser_json(p)
+    common.add_parser_prefix(p)
+    common.add_parser_json(p)
     p.add_argument(
         'package_specs',
         metavar = 'package_spec',
@@ -30,7 +30,7 @@ def execute(args, parser):
     from conda.builder.commands import launch
 
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
 
     package_spec = args.package_specs[0]
     # TODO

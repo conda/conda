@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-import utils
+import common
 
 
 descr = "Install a list of packages into a specified conda environment."
@@ -24,7 +24,7 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    utils.add_parser_yes(p)
+    common.add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
         action = "store",
@@ -35,8 +35,8 @@ def configure_parser(sub_parsers):
         action = "store",
         help = "read package versions from FILE",
     )
-    utils.add_parser_prefix(p)
-    utils.add_parser_quiet(p)
+    common.add_parser_prefix(p)
+    common.add_parser_quiet(p)
     p.add_argument(
         'packages',
         metavar = 'package_version',
@@ -51,14 +51,14 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
 
     if args.file:
-        specs = utils.specs_from_file(args.file)
+        specs = common.specs_from_file(args.file)
     else:
-        specs = utils.specs_from_args(args.packages)
+        specs = common.specs_from_args(args.packages)
 
-    utils.check_specs(prefix, specs)
+    common.check_specs(prefix, specs)
 
     # TODO...
     #if all(s.endswith('.tar.bz2') for s in req_strings):
@@ -82,5 +82,5 @@ def execute(args, parser):
     print "Package plan for installation in environment %s:" % prefix
     plan.display_actions(actions)
 
-    utils.confirm(args)
+    common.confirm(args)
     plan.execute_actions(actions, index, enable_progress=not args.quiet)

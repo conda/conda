@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-import utils
+import common
 
 
 descr = "Update conda packages."
@@ -24,9 +24,9 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    utils.add_parser_yes(p)
-    utils.add_parser_prefix(p)
-    utils.add_parser_quiet(p)
+    common.add_parser_yes(p)
+    common.add_parser_prefix(p)
+    common.add_parser_quiet(p)
     p.add_argument(
         'pkg_names',
         metavar = 'package_names',
@@ -48,10 +48,10 @@ def execute(args, parser):
     if len(args.pkg_names) == 0:
         args.pkg_names.append('anaconda')
 
-    prefix = utils.get_prefix(args)
+    prefix = common.get_prefix(args)
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
     for name in args.pkg_names:
-        utils.arg2spec(name)
+        common.arg2spec(name)
         if '=' in name:
             sys.exit("Invalid package name: '%s'" % (name))
         if name not in linked:
@@ -67,5 +67,5 @@ def execute(args, parser):
     print "Updating conda environment at %s" % prefix
     plan.display_actions(actions)
 
-    utils.confirm(args)
+    common.confirm(args)
     plan.execute_actions(actions, index, enable_progress=not args.quiet)

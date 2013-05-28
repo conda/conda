@@ -6,7 +6,7 @@
 
 from argparse import RawDescriptionHelpFormatter
 
-import utils
+import common
 
 
 descr = ("Create a new conda environment from a list of specified "
@@ -29,14 +29,14 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog  = example,
     )
-    utils.add_parser_yes(p)
+    common.add_parser_yes(p)
     p.add_argument(
         '-f', "--file",
         action = "store",
         help = "filename to read package specs from",
     )
-    utils.add_parser_prefix(p)
-    utils.add_parser_quiet(p)
+    common.add_parser_prefix(p)
+    common.add_parser_quiet(p)
     p.add_argument(
         'package_specs',
         metavar = 'package_spec',
@@ -59,8 +59,8 @@ def execute(args, parser):
         sys.exit('Error: too few arguments, must supply command line '
                  'package specs or --file')
 
-    utils.ensure_name_or_prefix(args, 'create')
-    prefix = utils.get_prefix(args)
+    common.ensure_name_or_prefix(args, 'create')
+    prefix = common.get_prefix(args)
 
     if exists(prefix):
         if args.prefix:
@@ -71,11 +71,11 @@ def execute(args, parser):
                                "directory for -n/--name" % prefix)
 
     if args.file:
-        specs = utils.specs_from_file(args.file)
+        specs = common.specs_from_file(args.file)
     else:
-        specs = utils.specs_from_args(args.package_specs)
+        specs = common.specs_from_args(args.package_specs)
 
-    utils.check_specs(prefix, specs)
+    common.check_specs(prefix, specs)
 
     index = get_index()
     actions = plan.install_actions(prefix, index, specs)
@@ -88,7 +88,7 @@ def execute(args, parser):
     print "Package plan for creating environment at %s:" % prefix
     plan.display_actions(actions)
 
-    utils.confirm(args)
+    common.confirm(args)
     plan.execute_actions(actions, index, enable_progress=not args.quiet)
 
     if sys.platform != 'win32':
