@@ -125,7 +125,7 @@ def _load_condarc(path):
 
 
 class Config(object):
-    ''' The config object collects a variety of configurations about an Anaconda installation.
+    ''' The config object collects a variety of configurations about a conda installation.
 
     Attributes
     ----------

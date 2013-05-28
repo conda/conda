@@ -51,11 +51,9 @@ def execute(args, parser):
     prefix = utils.get_prefix(args)
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
     for name in args.pkg_names:
-        name = name.lower()
-        for c in '= !@#$%^&*()<>?':
-            if c in name:
-                sys.exit("Invalid character '%s' in package "
-                         "name: '%s'" % (c, name))
+        utils.arg2spec(name)
+        if '=' in name:
+            sys.exit("Invalid package name: '%s'" % (name))
         if name not in linked:
             sys.exit("Error: package '%s' is not installed" % name)
 
