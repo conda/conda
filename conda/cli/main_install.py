@@ -26,6 +26,11 @@ def configure_parser(sub_parsers):
     )
     utils.add_parser_yes(p)
     p.add_argument(
+        '-f', "--force",
+        action = "store",
+        help = "force install (even when package already installed)",
+    )
+    p.add_argument(
         "--file",
         action = "store",
         help = "read package versions from FILE",
@@ -64,6 +69,7 @@ def execute(args, parser):
     #if any(s.endswith('.tar.bz2') for s in req_strings):
     #    raise RuntimeError("mixing specifications and filename not supported")
 
+    # TODO: --force
     index = get_index()
     actions = plan.install_actions(prefix, index, specs)
 
