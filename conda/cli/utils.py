@@ -16,7 +16,7 @@ def add_parser_prefix(p):
         '-p', "--prefix",
         action = "store",
         help = "full path to environment prefix (default: %s)" %
-                            config.DEFAULT_ENV_PREFIX,
+                                           config.default_prefix,
     )
 
 
@@ -76,7 +76,7 @@ def get_prefix(args):
     if args.prefix:
         return abspath(expanduser(args.prefix))
 
-    return config.DEFAULT_ENV_PREFIX
+    return config.default_prefix
 
 
 def arg2spec(arg):

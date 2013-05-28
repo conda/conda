@@ -20,15 +20,15 @@ root_dir = sys.prefix
 pkgs_dir = join(root_dir, 'pkgs')
 envs_dir = join(root_dir, 'envs')
 
-# ----- default environment path -----
+# ----- default environment prefix -----
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
 if not _default_env:
-    DEFAULT_ENV_PREFIX = root_dir
+    default_prefix = root_dir
 elif os.sep in _default_env:
-    DEFAULT_ENV_PREFIX = abspath(_default_env)
+    default_prefix = abspath(_default_env)
 else:
-    DEFAULT_ENV_PREFIX = join(envs_dir, _default_env)
+    default_prefix = join(envs_dir, _default_env)
 
 # ----- operating system and architecture -----
 
