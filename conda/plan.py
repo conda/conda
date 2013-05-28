@@ -9,7 +9,7 @@ NOTE:
 """
 import sys
 from collections import defaultdict
-from os.path import join
+from os.path import isfile, join
 
 import install
 import config
@@ -45,18 +45,25 @@ def display_actions(actions):
     print
 
 
+# the order matters here, don't change it
+action_codes = ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
+                'RM_EXTRACTED', 'RM_FETCHED')
+
 def nothing_to_do(actions):
-    for op in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
-               'RM_EXTRACTED', 'RM_FETCHED'):
+    for op in action_codes:
         if actions.get(op):
             return False
     return True
 
 def plan_from_actions(actions):
+    try:
+        op_order = actions['op_order']
+    except KeyError:
+        op_order = action_codes
+
     res = ['# plan',
            'PREFIX %s' % actions['PREFIX']]
-    for op in ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
-               'RM_EXTRACTED', 'RM_FETCHED'):
+    for op in op_order:
         if op not in actions:
             continue
         if not actions[op]:
@@ -87,21 +94,24 @@ def ensure_linked_actions(dists, linked):
     return actions
 
 
-def md5_pkg(fn):
-    try:
-        return md5_file(join(config.pkgs_dir, fn))
-    except IOError:
-        return 'not in cache'
-
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
+    actions['op_order'] = ('RM_FETCHED', 'FETCH', 'RM_EXTRACTED', 'EXTRACT',
+                           'UNLINK', 'LINK')
     for dist in dists:
         fn = dist + '.tar.bz2'
-        if md5_pkg(fn) != index[fn]['md5']:
+        pkg_path = join(config.pkgs_dir, fn)
+        if isfile(pkg_path):
+            if md5_file(pkg_path) != index[fn]['md5']:
+                actions['RM_FETCHED'].append(dist)
+                actions['FETCH'].append(dist)
+        else:
             actions['FETCH'].append(dist)
-
-
-        # TODO
+        actions['RM_EXTRACTED'].append(dist)
+        actions['EXTRACT'].append(dist)
+        if isfile(join(prefix, 'conda-meta', dist + '.json')):
+            actions['UNLINK'].append(dist)
+        actions['LINK'].append(dist)
     return actions
 
 
