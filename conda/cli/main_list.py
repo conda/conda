@@ -20,7 +20,7 @@ def configure_parser(sub_parsers):
         help    = "output canonical names of packages only",
     )
     p.add_argument(
-        'search_expression',
+        'regex',
         action  = "store",
         nargs   = "?",
         help    = "list only packages matching this regular expression",
@@ -30,33 +30,33 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import re
-    from conda.install import linked
+    import conda.install as install
+
 
     prefix = utils.get_prefix(args)
-    pkgs = sorted(linked(prefix))
 
-    matching = ""
-    if args.search_expression:
+    if args.regex:
+        pat = re.compile(args.regex, re.I)
+    else:
+        pat = None
+
+    if not args.canonical:
+        print '# packages in environment at %s:' % prefix
+        print '#'
+
+    for dist in sorted(install.linked(prefix)):
+        name = dist.rsplit('-', 2)[0]
+        if pat and pat.search(name) is None:
+            continue
+        if args.canonical:
+            print dist
+            continue
         try:
-            pat = re.compile(args.search_expression)
-        except:
-            raise RuntimeError(
-                "Could not understand search expression '%s'" %
-                args.search_expression)
-        matching = " matching '%s'" % args.search_expression
-        pkgs = [pkg for pkg in pkgs if pat.search(pkg)]
-
-    if args.canonical:
-        for pkg in pkgs:
-            print pkg
-        return
-
-    if len(pkgs) == 0:
-        print('no packages%s found in environment at %s:' %
-              (matching, prefix))
-        return
-
-    print '# packages%s in environment at %s:' % (matching, prefix)
-    print '#'
-    for pkg in pkgs:
-        print '%-25s %-15s %15s' % tuple(pkg.rsplit('-', 2))
+            info = install.get_meta(dist, prefix)
+            features = set(info.get('features', '').split())
+            print '%-25s %-15s %15s  %s' % (info['name'],
+                                            info['version'],
+                                            info['build'],
+                                            utils.disp_features(features))
+        except: # IOError, KeyError, ValueError
+            print '%-25s %-15s %15s' % tuple(dist.rsplit('-', 2))

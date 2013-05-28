@@ -78,8 +78,11 @@ def execute(args, parser):
             dist = pkg.fn[:-8]
             if args.canonical:
                 print dist
-            else:
-                inst = '*' if dist in linked else ' '
-                print '%-25s %s  %-15s %15s' % (disp_name, inst, pkg.version,
-                                                r.index[pkg.fn]['build'])
-                disp_name = ''
+                continue
+            inst = '*' if dist in linked else ' '
+            print '%-25s %s  %-15s %15s  %s' % (
+                disp_name, inst,
+                pkg.version,
+                r.index[pkg.fn]['build'],
+                utils.disp_features(r.features(pkg.fn)))
+            disp_name = ''
