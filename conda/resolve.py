@@ -248,19 +248,19 @@ class Resolve(object):
         return [w[lit] for lit in solutions.pop() if lit > 0]
 
     def explicit(self, specs):
-        assert len(specs) == 1
-
-        def find_match(ms):
-            assert ms.strictness == 3
-            fn = ms.name + '-%s-%s.tar.bz2' % ms.ver_build
-            assert fn in self.index
-            return fn
-
-        fn = find_match(MatchSpec(specs[0]))
-        res = [find_match(ms) for ms in self.ms_depends(fn)]
-        res.append(fn)
+        if len(specs) != 1:
+            return None
+        ms = MatchSpec(specs[0])
+        if ms.strictness != 3:
+            return None
+        fn = ms.name + '-%s-%s.tar.bz2' % ms.ver_build
+        res = [fn]
+        for ms2 in self.ms_depends(fn):
+            if ms2.strictness != 3:
+                return None
+            res.append(ms2.name + '-%s-%s.tar.bz2' % ms2.ver_build)
         res.sort()
-        log.debug('explicit finished')
+        log.debug('explicit(%r) finished' % specs)
         return res
 
     @memoize
@@ -332,10 +332,7 @@ class Resolve(object):
             for fn in self.get_max_dists(MatchSpec(spec)):
                 self.update_with_features(fn, features)
 
-        try:
-            return self.explicit(specs)
-        except AssertionError:
-            return self.solve2(specs, features)
+        return self.explicit(specs) or self.solve2(specs, features)
 
 
 if __name__ == '__main__':

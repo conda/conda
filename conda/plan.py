@@ -138,6 +138,8 @@ def dist2spec(dist):
     return '%s %s*' % (name, version[:3])
 
 def add_defaults_to_specs(r, linked, specs):
+    if r.explicit(specs):
+        return
     names_linked = {name_dist(dist): dist for dist in linked}
     names_spec = set(MatchSpec(s).name for s in specs
                      if MatchSpec(s).strictness > 1)
