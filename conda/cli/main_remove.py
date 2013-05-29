@@ -79,7 +79,8 @@ def execute(args, parser):
             sys.exit('Error: cannot remove root environment,\n'
                      '       add -n NAME or -p PREFIX option')
 
-        actions = {'PREFIX': prefix, 'UNLINK': sorted(linked(prefix))}
+        actions = {plan.PREFIX: prefix,
+                   plan.UNLINK: sorted(linked(prefix))}
 
     else:
         specs = common.specs_from_args(args.package_names)
