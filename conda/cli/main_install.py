@@ -57,10 +57,20 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
+
     prefix = common.get_prefix(args)
 
     if args.force:
         args.no_deps = True
+
+    if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
+        from conda.misc import install_local_packages
+
+        install_local_packages(prefix, args.packages, verbose=not args.quiet)
+        return
+
+    if any(s.endswith('.tar.bz2') for s in args.packages):
+        raise RuntimeError("mixing specifications and filename not supported")
 
     if args.file:
         specs = common.specs_from_file(args.file)
@@ -68,15 +78,6 @@ def execute(args, parser):
         specs = common.specs_from_args(args.packages)
 
     common.check_specs(prefix, specs)
-
-    # TODO...
-    #if all(s.endswith('.tar.bz2') for s in req_strings):
-    #    from conda.install import install_local_package
-    #    for path in req_strings:
-    #        install_local_package(path, config.pkgs_dir, prefix)
-    #    return
-    #if any(s.endswith('.tar.bz2') for s in req_strings):
-    #    raise RuntimeError("mixing specifications and filename not supported")
 
     if args.no_deps:
         only_names = set(s.split()[0] for s in specs)

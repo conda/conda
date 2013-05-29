@@ -1,9 +1,38 @@
 import os
 import sys
 import json
+import shutil
 from subprocess import check_call
-from os.path import abspath, join
+from collections import defaultdict
+from os.path import abspath, basename, isfile, join
 
+import config
+from plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
+
+
+
+def install_local_packages(prefix, paths, verbose=False):
+    # copy packages to pkgs dir
+    dists = []
+    for src_path in paths:
+        assert src_path.endswith('.tar.bz2')
+        fn = basename(src_path)
+        dists.append(fn[:-8])
+        dst_path = join(config.pkgs_dir, fn)
+        if abspath(src_path) == abspath(dst_path):
+            continue
+        shutil.copyfile(src_path, dst_path)
+
+    actions = defaultdict(list)
+    actions['PREFIX'] = prefix
+    actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
+    for dist in dists:
+        actions[RM_EXTRACTED].append(dist)
+        actions[EXTRACT].append(dist)
+        if isfile(join(prefix, 'conda-meta', dist + '.json')):
+            actions[UNLINK].append(dist)
+        actions[LINK].append(dist)
+    execute_actions(actions, verbose=verbose)
 
 
 def launch(app_dir):
