@@ -9,7 +9,7 @@
              +---------------------------+
               /   |     |      |      |
              /    |     |      |      |
-      resolve  remote   |      |   progressbar
+      resolve   fetch   |      |   progressbar
       /  |  \      \    |      |
      /   |   \      \   |      |
   verlib |  utils   config   install

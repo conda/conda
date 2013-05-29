@@ -11,7 +11,7 @@ import conda.config as config
 from conda.api import get_index
 
 from packup import untracked, create_conda_pkg
-from conda.remote import fetch_file
+from conda.fetch import fetch_file
 from conda.install import link, linked, get_meta, available, make_available
 
 

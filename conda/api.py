@@ -2,7 +2,7 @@ import base64
 import hashlib
 
 import conda.config as config
-from conda.remote import fetch_repodata
+from conda.fetch import fetch_repodata
 
 
 
