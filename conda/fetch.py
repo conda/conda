@@ -16,6 +16,7 @@ import config
 
 
 log = logging.getLogger(__name__)
+
 retries = 3
 
 

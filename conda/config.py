@@ -6,9 +6,12 @@
 
 import os
 import sys
+import logging
 from platform import machine
 from os.path import abspath, expanduser, isfile, join
 
+
+log = logging.getLogger(__name__)
 
 
 default_python = '2.7'
@@ -76,7 +79,8 @@ def get_channel_urls():
     else:
         rc = load_condarc(rc_path)
         if 'channels' not in rc:
-            sys.exit("Error: config file '%s' is missing channels" % rc_path)
+            raise RuntimeError("config file '%s' is missing channels" %
+                               rc_path)
         base_urls = [url.rstrip('/') for url in rc['channels']]
 
     return ['%s/%s/' % (url, subdir) for url in base_urls]
