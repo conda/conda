@@ -94,7 +94,7 @@ def execute(args, parser):
 
     print
     print "Package plan for installation in environment %s:" % prefix
-    plan.display_actions(actions)
+    plan.display_actions(actions, index)
 
     common.confirm(args)
     plan.execute_actions(actions, index, enable_progress=not args.quiet)
