@@ -335,7 +335,7 @@ def main():
 
     p.add_option('--link-all',
                  action="store_true",
-                 help="link all available (extracted) packages")
+                 help="link all extracted packages")
 
     p.add_option('-v', '--verbose',
                  action="store_true")
@@ -369,7 +369,7 @@ def main():
             link(opts.pkgs_dir, dist, opts.prefix)
 
     elif opts.extract:
-        make_available(opts.pkgs_dir, dist)
+        extract(opts.pkgs_dir, dist)
 
     elif opts.link:
         link(opts.pkgs_dir, dist, opts.prefix)
