@@ -13,7 +13,7 @@ from os.path import isfile, join
 import install
 import config
 from utils import md5_file
-from remote import fetch_file
+from fetch import fetch_file
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
