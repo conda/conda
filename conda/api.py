@@ -21,7 +21,7 @@ def get_app_index():
             if info.get('type') == 'app'}
 
 
-def remaining_packages(fn):
+def missing_packages(fn):
     """
     given the filename of a package, return which packages (and their sizes)
     still need to be downloaded, in order to install the package.  That is,
@@ -36,9 +36,11 @@ def remaining_packages(fn):
     res = []
     for fn2 in r.solve([spec]):
         if isfile(join(config.pkgs_dir, fn2[:-8], 'info', 'extracted')):
-            continue
+            status = 'cached'
+        else:
+            status = 'missing'
         info = index[fn2]
-        res.append((info['name'], info['version'], info['size']))
+        res.append((status, info['name'], info['version'], info['size']))
     return res
 
 
@@ -57,4 +59,4 @@ def install(fn):
 
 if __name__ == '__main__':
     from pprint import pprint
-    pprint(remaining_packages('twisted-12.3.0-py27_0.tar.bz2'))
+    pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
