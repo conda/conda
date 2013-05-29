@@ -65,7 +65,7 @@ def execute(args, parser):
         return
 
     print "Updating conda environment at %s" % prefix
-    plan.display_actions(actions)
+    plan.display_actions(actions, index)
 
     common.confirm(args)
     plan.execute_actions(actions, index, enable_progress=not args.quiet)

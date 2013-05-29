@@ -12,7 +12,7 @@ from os.path import isfile, join
 
 import install
 import config
-from utils import md5_file
+from utils import md5_file, human_bytes
 from fetch import fetch_file
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
@@ -34,18 +34,21 @@ def name_dist(dist):
     return dist.rsplit('-', 2)[0]
 
 
-def print_dists(dists):
+def print_dists(dists, index=None):
     fmt = "    %-27s|%17s"
     print fmt % ('package', 'build')
     print fmt % ('-' * 27, '-' * 17)
     for dist in dists:
-        print fmt % tuple(dist.rsplit('-', 1))
+        line = fmt % tuple(dist.rsplit('-', 1))
+        fn = dist + '.tar.bz2'
+        if index and fn in index:
+            line += '    %s' % human_bytes(index[fn]['size'])
+        print line
 
-
-def display_actions(actions):
+def display_actions(actions, index=None):
     if actions.get(FETCH):
         print "\nThe following packages will be downloaded:\n"
-        print_dists(actions[FETCH])
+        print_dists(actions[FETCH], index)
     if actions.get(UNLINK):
         print "\nThe following packages will be UN-linked:\n"
         print_dists(actions[UNLINK])

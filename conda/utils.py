@@ -15,6 +15,18 @@ def md5_file(path):
     return h.hexdigest()
 
 
+def human_bytes(n):
+    """
+    Return the number of bytes n in more human readable form.
+    """
+    if n < 1024:
+        return '%d bytes' % n
+    k = (n - 1) / 1024 + 1
+    if k < 1024:
+        return '%d KB' % k
+    return '%.1f MB' % (float(n) / (2**20))
+
+
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
