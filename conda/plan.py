@@ -42,7 +42,7 @@ def print_dists(dists, index=None):
         line = fmt % tuple(dist.rsplit('-', 1))
         fn = dist + '.tar.bz2'
         if index and fn in index:
-            line += '    %s' % human_bytes(index[fn]['size'])
+            line += '%15s' % human_bytes(index[fn]['size'])
         print line
 
 def display_actions(actions, index=None):
