@@ -4,6 +4,7 @@
   * use new "depends" key in repodata
   * uses pycosat to solve constraints more efficiently
   * add hard-linking on Windows
+  * fixed linking across filesystems (issue 103)
   * add conda remove --features option
   * added more tests, in particular for new dependency resolver
   * add internal DSL to perform install actions
