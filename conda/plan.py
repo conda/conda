@@ -78,6 +78,7 @@ def plan_from_actions(actions):
     else:
         op_order = action_codes
 
+    assert PREFIX in actions and actions[PREFIX]
     res = ['# plan',
            'PREFIX %s' % actions[PREFIX]]
     for op in op_order:
