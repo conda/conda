@@ -2,15 +2,15 @@ import common
 from argparse import RawDescriptionHelpFormatter
 
 
-descr = 'Launch an application (EXPERIMENTAL)'
+help = 'Launch an application (EXPERIMENTAL)'
 
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'launch',
         formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help        = descr,
+        description = help,
+        help = help,
     )
     common.add_parser_prefix(p)
     common.add_parser_json(p)
@@ -27,7 +27,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     from os.path import join
 
-    from conda.builder.commands import launch
+    from conda.misc import launch
 
 
     prefix = common.get_prefix(args)
