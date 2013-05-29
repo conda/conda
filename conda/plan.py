@@ -134,7 +134,8 @@ def dist2spec(dist):
 
 def add_defaults_to_specs(r, linked, specs):
     names_linked = {name_dist(dist): dist for dist in linked}
-    names_spec = set(MatchSpec(s).name for s in specs)
+    names_spec = set(MatchSpec(s).name for s in specs
+                     if MatchSpec(s).strictness > 1)
     for name, def_ver in [('python', config.default_python),
                           ('numpy', config.default_numpy)]:
         if name in names_spec:
