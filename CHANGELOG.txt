@@ -7,6 +7,12 @@
   * add conda remove --features option
   * added more tests, in particular for new dependency resolver
   * add internal DSL to perform install actions
+  * add package size to download preview
+  * add conda install --force and --no-deps options
+  * fixed conda help command
+  * add conda remove --all option for removing entire environment
+  * fixed source activate on systems where sourcing a gives "bash" as $0
+  * add information about installed versions to conda search command
 
 
 2013-04-29   1.5.2:
