@@ -9,8 +9,8 @@ import tempfile
 from os.path import abspath, basename, dirname, isfile, islink, join
 
 import conda.config as config
-from conda.install import (linked, get_meta, prefix_placeholder,
-                           install_local_package)
+from conda.install import linked, get_meta, prefix_placeholder
+from conda.misc import install_local_packages
 
 
 
@@ -234,7 +234,7 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
     if fn is None:
         return
     remove(prefix, files)
-    install_local_package(fn, config.pkgs_dir, prefix)
+    install_local_packages(prefix, [fn])
 
 
 if __name__ == '__main__':
