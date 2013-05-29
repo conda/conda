@@ -247,6 +247,22 @@ class Resolve(object):
 
         return [w[lit] for lit in solutions.pop() if lit > 0]
 
+    def explicit(self, specs):
+        assert len(specs) == 1
+
+        def find_match(ms):
+            assert ms.strictness == 3
+            fn = ms.name + '-%s-%s.tar.bz2' % ms.ver_build
+            assert fn in self.index
+            return fn
+
+        fn = find_match(MatchSpec(specs[0]))
+        res = [find_match(ms) for ms in self.ms_depends(fn)]
+        res.append(fn)
+        res.sort()
+        log.debug('explicit finished')
+        return res
+
     @memoize
     def sum_matches(self, fn1, fn2):
         return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
@@ -315,7 +331,11 @@ class Resolve(object):
         for spec in specs:
             for fn in self.get_max_dists(MatchSpec(spec)):
                 self.update_with_features(fn, features)
-        return self.solve2(specs, features)
+
+        try:
+            return self.explicit(specs)
+        except AssertionError:
+            return self.solve2(specs, features)
 
 
 if __name__ == '__main__':
