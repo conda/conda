@@ -122,8 +122,13 @@ def main():
     except RuntimeError as e:
         sys.exit("Error: %s" % e)
     except Exception as e:
-        print "An unexpected exceptional error has occurred, please consider sending the following traceback to the conda GitHub issue tracker at https://github.com/ContinuumIO/conda/issues"
-        print
+        print """\
+An unexpected error has occurred, please consider sending the
+following traceback to the conda GitHub issue tracker at:
+
+    https://github.com/ContinuumIO/conda/issues"
+
+"""
         exc_info = sys.exc_info()
         raise exc_info[1], None, exc_info[2]
 
