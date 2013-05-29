@@ -77,20 +77,20 @@ def main():
         description='conda is a tool for managing environments and packages.'
     )
     p.add_argument(
-        '-v', '--version',
-        action='version',
-        version='conda %s' % conda.__version__,
+        '-V', '--version',
+        action = 'version',
+        version = 'conda %s' % conda.__version__,
     )
     p.add_argument(
         '-l', "--log-level",
-        action  = "store",
+        action = "store",
         default = "warning",
         choices = ['debug', 'info', 'warning', 'error', 'critical'],
-        help    = argparse.SUPPRESS,
+        help = argparse.SUPPRESS,
     )
     sub_parsers = p.add_subparsers(
         metavar = 'command',
-        dest    = 'cmd',
+        dest = 'cmd',
     )
 
     main_info.configure_parser(sub_parsers)
@@ -120,8 +120,7 @@ def main():
     try:
         args.func(args, p)
     except RuntimeError as e:
-        print "conda: error:", e
-        exit(2)
+        sys.exit("Error: %s" % e)
     except Exception as e:
         print "An unexpected exceptional error has occurred, please consider sending the following traceback to the conda GitHub issue tracker at https://github.com/ContinuumIO/conda/issues"
         print

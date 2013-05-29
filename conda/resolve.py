@@ -1,11 +1,14 @@
 import re
 import sys
+import logging
 from itertools import islice
 from collections import defaultdict
 
 import verlib
 from utils import memoize
 
+
+log = logging.getLogger(__name__)
 
 
 class MatchSpec(object):
@@ -46,6 +49,9 @@ class MatchSpec(object):
 
     def __repr__(self):
         return 'MatchSpec(%r)' % (self.spec)
+
+    def __str__(self):
+        return self.spec
 
 
 class Package(object):
@@ -142,7 +148,8 @@ class Resolve(object):
 
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms)
-        assert pkgs
+        if not pkgs:
+            raise RuntimeError("No packages found matching: %s" % ms)
         maxpkg = max(pkgs)
         for pkg in pkgs:
             if pkg == maxpkg:
@@ -231,8 +238,7 @@ class Resolve(object):
         solutions = min_sat(clauses)
 
         if len(solutions) == 0:
-            print "Error: UNSAT"
-            return []
+            raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
             print 'Warning:', len(solutions)
@@ -296,10 +302,7 @@ class Resolve(object):
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None, verbose=False):
-        #if verbose:
-        #    print "Resolve.solve(): installed:", installed
-
+    def solve(self, specs, installed=None, features=None):
         if installed is None:
             installed = []
         if features is None:
@@ -308,8 +311,7 @@ class Resolve(object):
             ms = MatchSpec(spec)
             for fn in self.get_max_dists(ms):
                 features.update(self.track_features(fn))
-        if verbose:
-            print specs, features
+        log.debug('specs=%r  features=%r' % (specs, features))
         for spec in specs:
             for fn in self.get_max_dists(MatchSpec(spec)):
                 self.update_with_features(fn, features)
@@ -320,7 +322,7 @@ if __name__ == '__main__':
     import json
     from pprint import pprint
     from optparse import OptionParser
-    from conda.plan import arg2spec
+    from conda.cli.common import arg2spec
 
     with open('../tests/index.json') as fi:
         r = Resolve(json.load(fi))
@@ -331,4 +333,4 @@ if __name__ == '__main__':
 
     features = set(['mkl']) if opts.mkl else set()
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, [], features, verbose=True))
+    pprint(r.solve(specs, [], features))

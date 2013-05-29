@@ -155,7 +155,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
-    for fn in r.solve(specs, [d + '.tar.bz2' for d in linked], verbose=1):
+    for fn in r.solve(specs, [d + '.tar.bz2' for d in linked]):
         dist = fn[:-8]
         name = name_dist(dist)
         if only_names and name not in only_names:
