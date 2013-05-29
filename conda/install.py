@@ -298,23 +298,6 @@ def unlink(dist, prefix):
 
 # =========================== end API functions ==========================
 
-def install_local_package(path, pkgs_dir, prefix):
-    assert path.endswith('.tar.bz2')
-    dist = basename(path)[:-8]
-    print '%s:' % dist
-    if dist in extracted(pkgs_dir):
-        print "    already extracted - removing"
-        rm_extracted(pkgs_dir, dist)
-    shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-    print "    extracting"
-    extract(pkgs_dir, dist)
-    if dist in linked(prefix):
-        print "    already linked - unlinking"
-        unlink(dist, prefix)
-    print "    linking"
-    link(pkgs_dir, dist, prefix)
-
-
 def main():
     from pprint import pprint
     from optparse import OptionParser
