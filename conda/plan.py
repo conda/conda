@@ -18,6 +18,17 @@ from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
 
+# op codes
+FETCH = 'FETCH'
+EXTRACT = 'EXTRACT'
+UNLINK = 'UNLINK'
+LINK = 'LINK'
+RM_EXTRACTED = 'RM_EXTRACTED'
+RM_FETCHED = 'RM_FETCHED'
+PREFIX = 'PREFIX'
+PRINT = 'PRINT'
+PROGRESS = 'PROGRESS'
+
 
 def name_dist(dist):
     return dist.rsplit('-', 2)[0]
@@ -32,21 +43,20 @@ def print_dists(dists):
 
 
 def display_actions(actions):
-    if actions.get('FETCH'):
+    if actions.get(FETCH):
         print "\nThe following packages will be downloaded:\n"
-        print_dists(actions['FETCH'])
-    if actions.get('UNLINK'):
+        print_dists(actions[FETCH])
+    if actions.get(UNLINK):
         print "\nThe following packages will be UN-linked:\n"
-        print_dists(actions['UNLINK'])
-    if actions.get('LINK'):
+        print_dists(actions[UNLINK])
+    if actions.get(LINK):
         print "\nThe following packages will be linked:\n"
-        print_dists(actions['LINK'])
+        print_dists(actions[LINK])
     print
 
 
 # the order matters here, don't change it
-action_codes = ('FETCH', 'EXTRACT', 'UNLINK', 'LINK',
-                'RM_EXTRACTED', 'RM_FETCHED')
+action_codes = FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED, RM_FETCHED
 
 def nothing_to_do(actions):
     for op in action_codes:
@@ -61,7 +71,7 @@ def plan_from_actions(actions):
         op_order = action_codes
 
     res = ['# plan',
-           'PREFIX %s' % actions['PREFIX']]
+           'PREFIX %s' % actions[PREFIX]]
     for op in op_order:
         if op not in actions:
             continue
@@ -69,7 +79,7 @@ def plan_from_actions(actions):
             continue
         if '_' not in op:
             res.append('PRINT %sing packages ...' % op.capitalize())
-        if op not in ('FETCH', 'RM_FETCHED', 'RM_EXTRACTED'):
+        if op not in (FETCH, RM_FETCHED, RM_EXTRACTED):
             res.append('PROGRESS %d' % len(actions[op]))
         for dist in actions[op]:
             res.append('%s %s' % (op, dist))
@@ -84,34 +94,34 @@ def ensure_linked_actions(dists, linked):
     for dist in dists:
         if dist in linked:
             continue
-        actions['LINK'].append(dist)
+        actions[LINK].append(dist)
         if dist in extracted:
             continue
-        actions['EXTRACT'].append(dist)
+        actions[EXTRACT].append(dist)
         if dist in fetched:
             continue
-        actions['FETCH'].append(dist)
+        actions[FETCH].append(dist)
     return actions
 
 
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
-    actions['op_order'] = ('RM_FETCHED', 'FETCH', 'RM_EXTRACTED', 'EXTRACT',
-                           'UNLINK', 'LINK')
+    actions['op_order'] = (RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT,
+                           UNLINK, LINK)
     for dist in dists:
         fn = dist + '.tar.bz2'
         pkg_path = join(config.pkgs_dir, fn)
         if isfile(pkg_path):
             if md5_file(pkg_path) != index[fn]['md5']:
-                actions['RM_FETCHED'].append(dist)
-                actions['FETCH'].append(dist)
+                actions[RM_FETCHED].append(dist)
+                actions[FETCH].append(dist)
         else:
-            actions['FETCH'].append(dist)
-        actions['RM_EXTRACTED'].append(dist)
-        actions['EXTRACT'].append(dist)
+            actions[FETCH].append(dist)
+        actions[RM_EXTRACTED].append(dist)
+        actions[EXTRACT].append(dist)
         if isfile(join(prefix, 'conda-meta', dist + '.json')):
-            actions['UNLINK'].append(dist)
-        actions['LINK'].append(dist)
+            actions[UNLINK].append(dist)
+        actions[LINK].append(dist)
     return actions
 
 
@@ -159,12 +169,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     else:
         actions = ensure_linked_actions(smh, linked)
 
-    actions['PREFIX'] = prefix
+    actions[PREFIX] = prefix
 
     for dist in sorted(linked):
         name = name_dist(dist)
         if name in must_have and dist != must_have[name]:
-            actions['UNLINK'].append(dist)
+            actions[UNLINK].append(dist)
 
     return actions
 
@@ -175,10 +185,10 @@ def remove_actions(prefix, specs):
     mss = [MatchSpec(spec) for spec in specs]
 
     actions = defaultdict(list)
-    actions['PREFIX'] = prefix
+    actions[PREFIX] = prefix
     for dist in sorted(linked):
         if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
-            actions['UNLINK'].append(dist)
+            actions[UNLINK].append(dist)
 
     return actions
 
@@ -188,7 +198,7 @@ def remove_features_actions(prefix, index, features):
     r = Resolve(index)
 
     actions = defaultdict(list)
-    actions['PREFIX'] = prefix
+    actions[PREFIX] = prefix
     _linked = [d + '.tar.bz2' for d in linked]
     to_link = []
     for dist in sorted(linked):
@@ -196,9 +206,9 @@ def remove_features_actions(prefix, index, features):
         if fn not in index:
             continue
         if r.track_features(fn).intersection(features):
-            actions['UNLINK'].append(dist)
+            actions[UNLINK].append(dist)
         if r.features(fn).intersection(features):
-            actions['UNLINK'].append(dist)
+            actions[UNLINK].append(dist)
             subst = r.find_substitute(_linked, features, fn)
             if subst:
                 to_link.append(subst[:-8])
@@ -236,7 +246,7 @@ def execute_plan(plan, index=None, enable_progress=True):
         fetch_progress = None
         progress = None
 
-    progress_cmds = set(['EXTRACT', 'RM_EXTRACTED', 'LINK', 'UNLINK'])
+    progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
     prefix = config.root_dir
     i = None
     for cmd, arg in cmds_from_plan(plan):
@@ -245,24 +255,24 @@ def execute_plan(plan, index=None, enable_progress=True):
             progress.widgets[0] = '[%-20s]' % name_dist(arg)
             progress.update(i)
 
-        if cmd == 'PREFIX':
+        if cmd == PREFIX:
             prefix = arg
-        elif cmd == 'PRINT':
+        elif cmd == PRINT:
             print arg
-        elif cmd == 'FETCH':
+        elif cmd == FETCH:
             fetch(index, arg, fetch_progress)
-        elif cmd == 'PROGRESS':
+        elif cmd == PROGRESS:
             if enable_progress:
                 i = 0
                 progress.maxval = int(arg)
                 progress.start()
-        elif cmd == 'EXTRACT':
+        elif cmd == EXTRACT:
             install.extract(config.pkgs_dir, arg)
-        elif cmd == 'RM_EXTRACTED':
+        elif cmd == RM_EXTRACTED:
             install.rm_extracted(config.pkgs_dir, arg)
-        elif cmd == 'LINK':
+        elif cmd == LINK:
             install.link(config.pkgs_dir, arg, prefix)
-        elif cmd == 'UNLINK':
+        elif cmd == UNLINK:
             install.unlink(arg, prefix)
         else:
             raise Exception("Did not expect command: %r" % cmd)
