@@ -49,35 +49,30 @@ def fetch_index(channel_urls):
     return index
 
 
-def fetch_file(url, fn, md5=None, size=None, progress=None,
-               dst_dir=config.pkgs_dir):
+def fetch_pkg(info, progress=None, dst_dir=config.pkgs_dir):
     '''
-    fetch a file `fn` from `url` and store it into `dst_dir`
+    fetch a package `fn` from `url` and store it into `dst_dir`
     '''
+    fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
+    url = info['channel'] + fn
     path = join(dst_dir, fn)
     pp = path + '.part'
 
     for x in range(retries):
         try:
-            fi = urllib2.urlopen(url + fn)
+            fi = urllib2.urlopen(url)
         except IOError:
             log.debug("Attempt %d failed at urlopen" % x)
             continue
-        log.debug("Fetching: %s [%s]" % (fn, url))
+        log.debug("Fetching: %s" % url)
         n = 0
         h = hashlib.new('md5')
-        if size is None:
-            length = int(fi.headers["Content-Length"])
-        else:
-            length = size
-
         if progress:
             progress.widgets[0] = fn
-            progress.maxval = length
+            progress.maxval = info['size']
             progress.start()
 
         need_retry = False
-
         try:
             fo = open(pp, 'wb')
         except IOError:
@@ -96,8 +91,7 @@ def fetch_file(url, fn, md5=None, size=None, progress=None,
                 fo.write(chunk)
             except IOError:
                 raise RuntimeError("Failed to write to %r." % pp)
-            if md5:
-                h.update(chunk)
+            h.update(chunk)
             n += len(chunk)
             if progress:
                 progress.update(n)
@@ -107,13 +101,14 @@ def fetch_file(url, fn, md5=None, size=None, progress=None,
             continue
 
         fi.close()
-        if progress: progress.finish()
-        if md5 and h.hexdigest() != md5:
+        if progress:
+            progress.finish()
+        if h.hexdigest() != info['md5']:
             raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
         try:
             os.rename(pp, path)
         except OSError:
             raise RuntimeError("Could not rename %r to %r." % (pp, path))
-        return url
+        return
 
     raise RuntimeError("Could not locate file '%s' on any repository" % fn)

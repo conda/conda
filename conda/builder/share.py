@@ -11,7 +11,7 @@ import conda.config as config
 from conda.api import get_index
 
 from packup import untracked, create_conda_pkg
-from conda.fetch import fetch_file
+from conda.fetch import fetch_pkg
 from conda.install import link, linked, get_meta, available, make_available
 
 
@@ -104,7 +104,7 @@ def clone_bundle(path, prefix):
         fn = d + '.tar.bz2'
         if fn in index:
             info = index[fn]
-            fetch_file(info['channel'], fn, info['md5'], info['size'])
+            fetch_pkg(info)
         else:
             yield "not in index %r" % fn
         make_available(pkgs_dir, d)

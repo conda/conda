@@ -13,7 +13,7 @@ from os.path import isfile, join
 import install
 import config
 from utils import md5_file, human_bytes
-from fetch import fetch_file
+from fetch import fetch_pkg
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
@@ -225,9 +225,8 @@ def remove_features_actions(prefix, index, features):
 def fetch(index, dist, progress):
     assert index is not None
     fn = dist + '.tar.bz2'
-    info = index[fn]
-    fetch_file(info['channel'], fn, md5=info['md5'], size=info['size'],
-               progress=progress)
+    fetch_pkg(index[fn], progress=progress)
+
 
 def cmds_from_plan(plan):
     res = []
@@ -237,6 +236,7 @@ def cmds_from_plan(plan):
             continue
         res.append(line.split(None, 1))
     return res
+
 
 def execute_plan(plan, index=None, enable_progress=True):
     if enable_progress:
