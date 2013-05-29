@@ -167,14 +167,6 @@ def make_available(pkgs_dir, dist, cleanup=False):
     if cleanup:
         os.unlink(bz2path)
 
-def remove_available(pkgs_dir, dist):
-    '''
-    Remove a package from the packages directory.
-    '''
-    bz2path = join(pkgs_dir, dist + '.tar.bz2')
-    rm_rf(bz2path)
-    rm_rf(join(pkgs_dir, dist))
-
 # ------- package cache
 
 def fetched(pkgs_dir):
