@@ -7,6 +7,8 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
+import logging
+
 from collections import defaultdict
 from os.path import isfile, join
 
@@ -16,6 +18,9 @@ from utils import md5_file, human_bytes
 from fetch import fetch_pkg
 from resolve import MatchSpec, Resolve
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
+
+
+log = logging.getLogger(__name__)
 
 
 # op codes
@@ -232,12 +237,12 @@ def fetch(index, dist, progress):
 def cmds_from_plan(plan):
     res = []
     for line in plan:
+        log.debug(' %s' % line)
         line = line.strip()
         if not line or line.startswith('#'):
             continue
         res.append(line.split(None, 1))
     return res
-
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
