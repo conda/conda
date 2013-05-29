@@ -68,4 +68,4 @@ def execute(args, parser):
     plan.display_actions(actions, index)
 
     common.confirm(args)
-    plan.execute_actions(actions, index, enable_progress=not args.quiet)
+    plan.execute_actions(actions, index, verbose=not args.quiet)

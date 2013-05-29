@@ -238,8 +238,8 @@ def cmds_from_plan(plan):
     return res
 
 
-def execute_plan(plan, index=None, enable_progress=True):
-    if enable_progress:
+def execute_plan(plan, index=None, verbose=False):
+    if verbose:
         fetch_progress = ProgressBar(
             widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
                      FileTransferSpeed()])
@@ -261,11 +261,12 @@ def execute_plan(plan, index=None, enable_progress=True):
         if cmd == PREFIX:
             prefix = arg
         elif cmd == PRINT:
-            print arg
+            if verbose:
+                print arg
         elif cmd == FETCH:
             fetch(index, arg, fetch_progress)
         elif cmd == PROGRESS:
-            if enable_progress:
+            if verbose:
                 i = 0
                 progress.maxval = int(arg)
                 progress.start()
@@ -286,6 +287,6 @@ def execute_plan(plan, index=None, enable_progress=True):
             progress.finish()
 
 
-def execute_actions(actions, index=None, enable_progress=True):
+def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    execute_plan(plan, index, enable_progress)
+    execute_plan(plan, index, verbose)
