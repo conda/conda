@@ -15,7 +15,7 @@ def get_index():
     return fetch_index(channel_urls)
 
 
-def get_app_index():
+def app_get_index():
     index = get_index()
     return {fn: info for fn, info in index.iteritems()
             if info.get('type') == 'app'}
@@ -25,7 +25,7 @@ def _fn2spec(fn):
     return ' '.join(fn[:-8].rsplit('-', 2))
 
 
-def missing_packages(fn):
+def app_missing_packages(fn):
     """
     given the filename of a package, return which packages (and their sizes)
     still need to be downloaded, in order to install the package.  That is,
@@ -39,23 +39,22 @@ def missing_packages(fn):
     res = []
     for fn2 in r.solve([_fn2spec(fn)]):
         if isfile(join(config.pkgs_dir, fn2[:-8], 'info', 'extracted')):
-            status = 'cached'
-        else:
-            status = 'missing'
+            continue
         info = index[fn2]
-        res.append((status, info['name'], info['version'], info['size']))
+        res.append((info['name'], info['version'], info['size']))
     return res
 
 
-def launch_app(app_dir, add_args):
+def app_launch(fn, additional_args):
+    # serach where app in installed and start it
     return
 
 
-def is_installed(fn):
-    return # list of envs where app is installed
+def app_is_installed(fn):
+    return # None or prefix
 
 
-def install(fn):
+def app_install(fn):
     import plan
 
     for i in xrange(1000):
@@ -69,7 +68,11 @@ def install(fn):
     return prefix
 
 
+def app_uninstall(fn):
+    pass
+
+
 if __name__ == '__main__':
     from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
-    print install('twisted-12.3.0-py27_0.tar.bz2')
+    print app_install('twisted-12.3.0-py27_0.tar.bz2')
