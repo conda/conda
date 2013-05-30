@@ -41,6 +41,12 @@ class MatchSpec(object):
             return False
         return True
 
+    def to_filename(self):
+        if self.strictness == 3:
+            return self.name + '-%s-%s.tar.bz2' % self.ver_build
+        else:
+            return None
+
     def __eq__(self, other):
         return self.spec == other.spec
 
@@ -251,14 +257,15 @@ class Resolve(object):
         if len(specs) != 1:
             return None
         ms = MatchSpec(specs[0])
-        if ms.strictness != 3:
+        fn = ms.to_filename()
+        if fn is None:
             return None
-        fn = ms.name + '-%s-%s.tar.bz2' % ms.ver_build
         res = [fn]
         for ms2 in self.ms_depends(fn):
-            if ms2.strictness != 3:
+            fn2 = ms2.to_filename()
+            if fn2 is None:
                 return None
-            res.append(ms2.name + '-%s-%s.tar.bz2' % ms2.ver_build)
+            res.append(fn2)
         res.sort()
         log.debug('explicit(%r) finished' % specs)
         return res
