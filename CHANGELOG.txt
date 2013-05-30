@@ -1,5 +1,5 @@
-2013-XX-XX   1.6.0:
--------------------
+2013-05-30   1.6.0rc1:
+----------------------
   * major internal refactoring
   * use new "depends" key in repodata
   * uses pycosat to solve constraints more efficiently
