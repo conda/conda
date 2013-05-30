@@ -31,11 +31,6 @@ def configure_parser(sub_parsers):
         help    = "display information about local conda licenses list",
     )
     els_group.add_argument(
-        "--locations",
-        action  = "store_true",
-        help    = "list known locations for conda environments.",
-    )
-    els_group.add_argument(
         '-s', "--system",
         action = "store_true",
         help = "list PATH and PYTHONPATH environments for debugging purposes",
@@ -47,6 +42,7 @@ def execute(args, parser):
     import os
     import sys
     import json
+    from os.path import basename, join
 
     import conda
     import conda.config as config
@@ -80,31 +76,21 @@ conda command version : %(conda_version)s
           config file : %(rc_path)s
 """ % info_dict
 
-    if 0:# TODO   args.locations:
-        if len(config.locations) == 0:
-            print "No conda locations configured"
-        else:
-            print
-            print "Locations for conda environments:"
-            print
-            for location in config.locations:
-                print "    %s" % location,
-                if location == config.envs_dir:
-                    print " (system location)",
-                print
-            print
+    if args.envs:
+        print "# conda environments:"
+        print "#"
+        def disp_env(prefix):
+            fmt = '%-20s  %s  %s'
+            default = '*' if prefix == config.default_prefix else ' '
+            name = (basename(prefix)
+                    if prefix.startswith(config.envs_dir) else
+                    '(root)')
+            print fmt % (name, default, prefix)
 
-    if 0:# TODO   args.envs:
-        env_paths = config.environment_paths
-
-        if len(env_paths) == 0:
-            print "Known conda environments: None"
-        else:
-            print "Known conda environments:"
-            print
-            for path in env_paths:
-                print "    %s" % path
-            print
+        disp_env(config.root_dir)
+        for dn in os.listdir(config.envs_dir):
+            disp_env(join(config.envs_dir, dn))
+        print
 
     if args.system:
         print
