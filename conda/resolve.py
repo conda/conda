@@ -260,12 +260,10 @@ class Resolve(object):
         fn = ms.to_filename()
         if fn is None:
             return None
-        res = [fn]
-        for ms2 in self.ms_depends(fn):
-            fn2 = ms2.to_filename()
-            if fn2 is None:
-                return None
-            res.append(fn2)
+        res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
+        res.append(fn)
+        if None in res:
+            return None
         res.sort()
         log.debug('explicit(%r) finished' % specs)
         return res
