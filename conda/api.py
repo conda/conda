@@ -1,9 +1,9 @@
 from os.path import isfile, isdir, join
 
 from utils import memoized
-
-import conda.config as config
-from conda.fetch import fetch_index
+import config
+from naming import fn2spec
+from fetch import fetch_index
 
 
 @memoized
@@ -21,10 +21,6 @@ def app_get_index():
             if info.get('type') == 'app'}
 
 
-def _fn2spec(fn):
-    return ' '.join(fn[:-8].rsplit('-', 2))
-
-
 def app_missing_packages(fn):
     """
     given the filename of a package, return which packages (and their sizes)
@@ -37,7 +33,7 @@ def app_missing_packages(fn):
     index = get_index()
     r = Resolve(index)
     res = []
-    for fn2 in r.solve([_fn2spec(fn)]):
+    for fn2 in r.solve([fn2spec(fn)]):
         if isfile(join(config.pkgs_dir, fn2[:-8], 'info', 'extracted')):
             continue
         info = index[fn2]
@@ -63,7 +59,7 @@ def app_install(fn):
             break
 
     index = get_index()
-    actions = plan.install_actions(prefix, index, [_fn2spec(fn)])
+    actions = plan.install_actions(prefix, index, [fn2spec(fn)])
     plan.execute_actions(actions, index)
     return prefix
 
