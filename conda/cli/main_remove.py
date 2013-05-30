@@ -65,14 +65,13 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
 
+    index = None
     if args.features:
         from conda.api import get_index
 
         index = get_index()
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
-    else:
-        index = None
 
     elif args.all:
         from conda.install import linked
