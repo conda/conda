@@ -12,14 +12,14 @@ from conda.api import get_index
 
 from packup import untracked, create_conda_pkg
 from conda.fetch import fetch_pkg
-from conda.install import link, linked, get_meta, available, make_available
+import conda.install as install
 
 
 
 def get_requires(prefix):
     res = []
-    for dist in linked(prefix):
-        meta = get_meta(dist, prefix)
+    for dist in install.linked(prefix):
+        meta = install.get_meta(dist, prefix)
         if 'file_hash' not in meta:
             res.append('%(name)s %(version)s %(build)s' % meta)
     res.sort()
@@ -82,11 +82,11 @@ def clone_bundle(path, prefix):
     assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
     dist = fn[:-8]
 
-    if dist not in available(pkgs_dir):
+    if dist not in install.available(pkgs_dir):
         shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-        make_available(pkgs_dir, dist)
+        install.make_available(pkgs_dir, dist)
 
-    avail = available(pkgs_dir)
+    avail = install.available(pkgs_dir)
     assert dist in avail
 
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
@@ -107,12 +107,12 @@ def clone_bundle(path, prefix):
             fetch_pkg(info)
         else:
             yield "not in index %r" % fn
-        make_available(pkgs_dir, d)
+        install.make_available(pkgs_dir, d)
 
-    avail = available(pkgs_dir)
+    avail = install.available(pkgs_dir)
     for d in dists:
         if d in avail:
-            link(pkgs_dir, d, prefix)
+            install.link(pkgs_dir, d, prefix)
 
     os.unlink(join(prefix, 'conda-meta', dist + '.json'))
 
