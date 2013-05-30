@@ -52,7 +52,7 @@ def execute(args, parser):
             print dist
             continue
         try:
-            info = install.get_meta(dist, prefix)
+            info = install.is_linked(prefix, dist)
             features = set(info.get('features', '').split())
             print '%-25s %-15s %15s  %s' % (info['name'],
                                             info['version'],

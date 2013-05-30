@@ -198,7 +198,7 @@ def linked(prefix):
     return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
 
-def get_meta(dist, prefix):
+def is_linked(prefix, dist):
     """
     Return the install meta-data for a linked package in a prefix, or None
     if the package is not linked in the prefix.
