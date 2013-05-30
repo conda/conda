@@ -11,23 +11,19 @@ conda provides the following commands:
     ===========
 
     info       : display information about the current install
-    list       : list packages activated in a specified environment
-    depends    : find package dependencies
+    list       : list packages linked into a specified environment
     search     : print information about a specified package
-    help       : display a list of available conda commands and their help strings
+    help       : display a list of available conda commands and their help
+                 strings
 
-    Basic Package Management
-    ========================
+    Package Management
+    ==================
 
-    create     : create a new conda environment from a list of specified packages. To use this environment, invoke the binaries in that environment's bin directory or adjust your PATH to look in this directory first.
+    create     : create a new conda environment from a list of specified
+                 packages
     install    : install new packages into an existing conda environment
     update     : update packages in a specified conda environment
 
-    Advanced Package Management
-    ===========================
-
-    env        : activate or deactivate available packages in the specified conda environment
-    local      : add and remove packages from local availability
 
     Packaging
     =========
@@ -48,14 +44,11 @@ import main_build
 import main_clone
 import main_launch
 import main_create
-import main_depends
-import main_env
 import main_help
 import main_index
 import main_info
 import main_install
 import main_list
-import main_local
 import main_remove
 import main_package
 import main_pip
@@ -96,13 +89,10 @@ def main():
     main_info.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
-    main_depends.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
-    main_env.configure_parser(sub_parsers)
-    main_local.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_pip.configure_parser(sub_parsers)
