@@ -9,7 +9,13 @@ from argparse import RawDescriptionHelpFormatter
 import common
 
 
-descr = "Install a list of packages into a specified conda environment."
+help = "Install a list of packages into a specified conda environment."
+descr = help + """
+The arguments may be packages specifications (e.g. bitarray=0.8),
+or explicit conda packages filesnames (e.g. lxml-3.2.0-py27_0.tar.bz2) which
+must exist on the local filesystem.  The two types of arguments cannot be
+mixed and the latter implied the --force and --no-deps options.
+"""
 example = """
 examples:
     conda install -n myenv scipy
@@ -21,7 +27,7 @@ def configure_parser(sub_parsers):
         'install',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help = descr,
+        help = help,
         epilog = example,
     )
     common.add_parser_yes(p)
@@ -45,7 +51,7 @@ def configure_parser(sub_parsers):
     common.add_parser_quiet(p)
     p.add_argument(
         'packages',
-        metavar = 'package_version',
+        metavar = 'package_spec',
         action = "store",
         nargs = '*',
         help = "package versions to install into conda environment",
@@ -60,17 +66,17 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
 
-    if args.force:
-        args.no_deps = True
-
+    # handle explict installs of conda packages
     if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
         from conda.misc import install_local_packages
-
         install_local_packages(prefix, args.packages, verbose=not args.quiet)
         return
-
     if any(s.endswith('.tar.bz2') for s in args.packages):
-        raise RuntimeError("mixing specifications and filename not supported")
+        raise RuntimeError("cannot mix specifications with conda package "
+                           "filenames")
+
+    if args.force:
+        args.no_deps = True
 
     if args.file:
         specs = common.specs_from_file(args.file)

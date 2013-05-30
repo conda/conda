@@ -1,3 +1,5 @@
+# this module contains miscellaneous stuff which enventually could be moved
+# into other places
 import os
 import sys
 import json
