@@ -129,7 +129,7 @@ def force_linked_actions(dists, index, prefix):
     return actions
 
 
-def dist2spec(dist):
+def dist2spec3v(dist):
     name, version, unused_build = dist.rsplit('-', 2)
     return '%s %s*' % (name, version[:3])
 
@@ -148,7 +148,7 @@ def add_defaults_to_specs(r, linked, specs):
                    for spec in specs):
             continue
         if name in names_linked:
-            specs.append(dist2spec(names_linked[name]))
+            specs.append(dist2spec3v(names_linked[name]))
             continue
         specs.append('%s %s*' % (name, def_ver))
 
