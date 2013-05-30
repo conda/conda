@@ -71,6 +71,8 @@ def execute(args, parser):
         index = get_index()
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
+    else:
+        index = None
 
     elif args.all:
         from conda.install import linked
@@ -95,4 +97,4 @@ def execute(args, parser):
     plan.display_actions(actions)
 
     common.confirm(args)
-    plan.execute_actions(actions, verbose=not args.quiet)
+    plan.execute_actions(actions, index, verbose=not args.quiet)
