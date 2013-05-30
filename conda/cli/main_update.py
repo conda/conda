@@ -63,7 +63,7 @@ def execute(args, parser):
     if plan.nothing_to_do(actions):
         from main_list import list_packages
 
-        regex = '|'.join('^%s$' % name for name in args.pkg_names)
+        regex = '^(%s)$' %  '|'.join(args.pkg_names)
         print '# All packages already at latest version, nothing to do.'
         list_packages(prefix, regex)
         return
