@@ -82,11 +82,11 @@ def clone_bundle(path, prefix):
     assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
     dist = fn[:-8]
 
-    if dist not in install.available(pkgs_dir):
+    if dist not in install.extracted(pkgs_dir):
         shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-        install.make_available(pkgs_dir, dist)
+        install.extract(pkgs_dir, dist)
 
-    avail = install.available(pkgs_dir)
+    avail = install.extracted(pkgs_dir)
     assert dist in avail
 
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
@@ -107,9 +107,9 @@ def clone_bundle(path, prefix):
             fetch_pkg(info)
         else:
             yield "not in index %r" % fn
-        install.make_available(pkgs_dir, d)
+        install.extract(pkgs_dir, d)
 
-    avail = install.available(pkgs_dir)
+    avail = install.extracted(pkgs_dir)
     for d in dists:
         if d in avail:
             install.link(pkgs_dir, d, prefix)
