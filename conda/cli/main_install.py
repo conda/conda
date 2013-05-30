@@ -85,8 +85,9 @@ def execute(args, parser):
 
     common.check_specs(prefix, specs)
 
+    spec_names = set(s.split()[0] for s in specs)
     if args.no_deps:
-        only_names = set(s.split()[0] for s in specs)
+        only_names = spec_names
     else:
         only_names = None
 
@@ -95,8 +96,11 @@ def execute(args, parser):
                                    force=args.force, only_names=only_names)
 
     if plan.nothing_to_do(actions):
-        print('All requested packages already installed into '
-              'environment: %s' % prefix)
+        from main_list import list_packages
+
+        regex = '|'.join(spec_names)
+        print '# All requested packages already installed.'
+        list_packages(prefix, regex)
         return
 
     print
