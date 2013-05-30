@@ -182,11 +182,13 @@ def extract(pkgs_dir, dist):
     t = tarfile.open(path + '.tar.bz2')
     t.extractall(path=path)
     t.close()
-    with open(join(path, 'info', 'extracted'), 'w') as fo:
-        fo.write('%s\n' % dist)
 
 def rm_extracted(pkgs_dir, dist):
     path = join(pkgs_dir, dist)
+    rm_rf(path)
+
+def rm_fetched(pkgs_dir, dist):
+    path = join(pkgs_dir, dist + '.tar.bz2')
     rm_rf(path)
 
 # ------- linkage of packages

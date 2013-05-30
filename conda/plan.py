@@ -283,6 +283,8 @@ def execute_plan(plan, index=None, verbose=False):
             install.extract(config.pkgs_dir, arg)
         elif cmd == RM_EXTRACTED:
             install.rm_extracted(config.pkgs_dir, arg)
+        elif cmd == RM_FETCHED:
+            install.rm_fetched(config.pkgs_dir, arg)
         elif cmd == LINK:
             install.link(config.pkgs_dir, arg, prefix)
         elif cmd == UNLINK:
