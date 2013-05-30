@@ -2,7 +2,7 @@ from os.path import isfile, isdir, join
 
 from utils import memoized
 import config
-from naming import fn2spec
+from naming import name_fn, fn2spec
 from fetch import fetch_index
 
 
@@ -41,20 +41,24 @@ def app_missing_packages(fn):
     return res
 
 
+def app_is_installed(fn):
+    name = name_fn(fn)
+    return # None or prefix
+
+# It seems to me that we need different types of apps, i.e. apps which
+# are preferably installed (or already exist) in existing environments,
+# and apps which are more "standalone" (such as firefox).
+
 def app_launch(fn, additional_args=None):
     # serach where app in installed and start it
     return
-
-
-def app_is_installed(fn):
-    return # None or prefix
 
 
 def app_install(fn):
     import plan
 
     for i in xrange(1000):
-        prefix = join(config.envs_dir, '%s-%03d' % (plan.name_dist(fn), i))
+        prefix = join(config.envs_dir, '%s-%03d' % (name_fn(fn), i))
         if not isdir(prefix):
             break
 
