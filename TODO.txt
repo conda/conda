@@ -1,3 +1,10 @@
+Version 1.6.0 goals:
+====================
+  * add equivalent of source activate in Windows
+
+
+Other goals:
+============
   * add ability build (relocate-able) conda package which contain
     native object code
   * "export" packages into other formats, e.g. RPM, wheel, eggs, ..
