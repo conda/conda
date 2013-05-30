@@ -98,7 +98,7 @@ def execute(args, parser):
     if plan.nothing_to_do(actions):
         from main_list import list_packages
 
-        regex = '|'.join('^%s$' % name for name in spec_names)
+        regex = '^(%s)$' %  '|'.join(spec_names)
         print '# All requested packages already installed.'
         list_packages(prefix, regex)
         return
