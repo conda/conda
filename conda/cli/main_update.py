@@ -61,7 +61,12 @@ def execute(args, parser):
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
-        print 'All packages already at latest version, nothing to do'
+        from main_list import list_packages
+
+        regex = '|'.join('^%s$' % name for name in args.pkg_names)
+        print repr(regex)
+        print '# All packages already at latest version, nothing to do.'
+        list_packages(prefix, regex)
         return
 
     print "Updating conda environment at %s" % prefix
