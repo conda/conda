@@ -112,7 +112,7 @@ def clone_bundle(path, prefix):
     avail = install.extracted(pkgs_dir)
     for d in dists:
         if d in avail:
-            install.link(pkgs_dir, d, prefix)
+            install.link(pkgs_dir, prefix, d)
 
     os.unlink(join(prefix, 'conda-meta', dist + '.json'))
 
