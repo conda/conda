@@ -207,7 +207,7 @@ def is_linked(prefix, dist):
     try:
         with open(meta_path) as fi:
             return json.load(fi)
-    except OSError:
+    except IOError:
         return None
 
 
