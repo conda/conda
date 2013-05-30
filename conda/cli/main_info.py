@@ -89,7 +89,7 @@ conda command version : %(conda_version)s
             print fmt % (name, default, prefix)
 
         disp_env(config.root_dir)
-        for dn in os.listdir(config.envs_dir):
+        for dn in sorted(os.listdir(config.envs_dir)):
             disp_env(join(config.envs_dir, dn))
         print
 
