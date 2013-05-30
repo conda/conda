@@ -14,6 +14,8 @@
   * add conda remove --all option for removing entire environment
   * fixed source activate on systems where sourcing a gives "bash" as $0
   * add information about installed versions to conda search command
+  * removed known "locations"
+  * add output about installed packages when update and install do nothing
 
 
 2013-04-29   1.5.2:
