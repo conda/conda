@@ -62,6 +62,8 @@ def main():
         import activate
         activate.main()
         return
+    if len(sys.argv) == 1:
+        sys.argv.append('-h')
 
     import logging
     import conda
