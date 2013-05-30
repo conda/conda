@@ -75,6 +75,23 @@ class TestSolve(unittest.TestCase):
             if fn.rsplit('-', 2)[0] in names:
                 self.assertEqual(r.features(fn), f_mkl)
 
+    def test_explicit(self):
+        self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0']), None)
+        self.assertEqual(r.explicit(['zlib']), None)
+        self.assertEqual(r.explicit(['zlib 1.2.7']), None)
+        # because zlib has no dependencies it is also explicit
+        self.assertEqual(r.explicit(['zlib 1.2.7 0']),
+                         ['zlib-1.2.7-0.tar.bz2'])
+
+    def test_anaconda_14(self):
+        specs = ['anaconda 1.4.0 np17py33_0']
+        res = r.explicit(specs)
+        self.assertEqual(len(res), 51)
+        self.assertEqual(r.solve(specs), res)
+        specs.append('python 3.3*')
+        self.assertEqual(r.explicit(specs), None)
+        self.assertEqual(r.solve(specs), res)
+
     def test_iopro_nomkl(self):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
