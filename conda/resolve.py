@@ -61,6 +61,10 @@ class MatchSpec(object):
 
 
 class Package(object):
+    """
+    The only purpose of this class is to provide package objects which
+    are sortable.
+    """
 
     def __init__(self, fn, info):
         self.fn = fn
