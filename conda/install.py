@@ -145,11 +145,20 @@ def mk_menus(prefix, files, remove=False):
 
 # ========================== begin API functions =========================
 
-# ------- package cache
+# ------- package cache ----- fetched
 
 def fetched(pkgs_dir):
     return set(fn[:-8] for fn in os.listdir(pkgs_dir)
                if fn.endswith('.tar.bz2'))
+
+def is_fetched(pkgs_dir, dist):
+    return isfile(join(pkgs_dir, dist + '.tar.bz2'))
+
+def rm_fetched(pkgs_dir, dist):
+    path = join(pkgs_dir, dist + '.tar.bz2')
+    rm_rf(path)
+
+# ------- package cache ----- extracted
 
 def extracted(pkgs_dir):
     """
@@ -175,10 +184,6 @@ def is_extracted(pkgs_dir, dist):
 
 def rm_extracted(pkgs_dir, dist):
     path = join(pkgs_dir, dist)
-    rm_rf(path)
-
-def rm_fetched(pkgs_dir, dist):
-    path = join(pkgs_dir, dist + '.tar.bz2')
     rm_rf(path)
 
 # ------- linkage of packages
