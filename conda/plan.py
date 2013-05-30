@@ -95,10 +95,10 @@ def plan_from_actions(actions):
     return res
 
 
-def ensure_linked_actions(dists, linked):
+def ensure_linked_actions(dists, prefix):
     actions = defaultdict(list)
     for dist in dists:
-        if dist in linked:
+        if install.is_linked(prefix, dist):
             continue
         actions[LINK].append(dist)
         if install.is_extracted(config.pkgs_dir, dist):
@@ -176,7 +176,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     if force:
         actions = force_linked_actions(smh, index, prefix)
     else:
-        actions = ensure_linked_actions(smh, linked)
+        actions = ensure_linked_actions(smh, prefix)
 
     actions[PREFIX] = prefix
 
@@ -223,7 +223,7 @@ def remove_features_actions(prefix, index, features):
                 to_link.append(subst[:-8])
 
     if to_link:
-        actions.update(ensure_linked_actions(to_link, linked))
+        actions.update(ensure_linked_actions(to_link, prefix))
     return actions
 
 # ---------------------------- EXECUTION --------------------------
