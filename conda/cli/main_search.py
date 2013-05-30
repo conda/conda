@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -24,11 +24,6 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     common.add_parser_prefix(p)
-    p.add_argument(
-        "--all",
-        action  = "store_true",
-        help    = "show all results compatible with any environment",
-    )
     p.add_argument(
         '-c', "--canonical",
         action  = "store_true",
@@ -65,9 +60,6 @@ def execute(args, parser):
     prefix = common.get_prefix(args)
     if not args.canonical:
         linked = install.linked(prefix)
-
-    if args.all:
-        pass # TODO
 
     r = Resolve(get_index())
     for name in sorted(r.groups):
