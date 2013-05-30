@@ -15,20 +15,28 @@ f_mkl = set(['mkl'])
 class TestMatchSpec(unittest.TestCase):
 
     def test_match(self):
-        for mspec, res in [('numpy 1.7*', True),
-                           ('numpy 1.7.1', True),
-                           ('numpy 1.7', False),
-                           ('numpy 1.5*', False),
-                           ('numpy 1.6*|1.7*', True),
-                           ('numpy 1.6*|1.8*', False),
-                           ('numpy 1.6.2|1.7*', True),
-                           ('numpy 1.6.2|1.7.1', True),
-                           ('numpy 1.6.2|1.7.0', False),
-                           ('numpy 1.7.1 py27_0', True),
-                           ('numpy 1.7.1 py26_0', False),
-                           ('python', False)]:
-            m = MatchSpec(mspec)
+        for spec, res in [('numpy 1.7*', True),
+                          ('numpy 1.7.1', True),
+                          ('numpy 1.7', False),
+                          ('numpy 1.5*', False),
+                          ('numpy 1.6*|1.7*', True),
+                          ('numpy 1.6*|1.8*', False),
+                          ('numpy 1.6.2|1.7*', True),
+                          ('numpy 1.6.2|1.7.1', True),
+                          ('numpy 1.6.2|1.7.0', False),
+                          ('numpy 1.7.1 py27_0', True),
+                          ('numpy 1.7.1 py26_0', False),
+                          ('python', False)]:
+            m = MatchSpec(spec)
             self.assertEqual(m.match('numpy-1.7.1-py27_0.tar.bz2'), res)
+
+    def test_to_filename(self):
+        ms = MatchSpec('foo 1.7 52')
+        self.assertEqual(ms.to_filename(), 'foo-1.7-52.tar.bz2')
+
+        for spec in 'bitarray', 'pycosat 0.6.0', 'numpy 1.6*':
+            ms = MatchSpec(spec)
+            self.assertEqual(ms.to_filename(), None)
 
     def test_hash(self):
         a, b = MatchSpec('numpy 1.7*'), MatchSpec('numpy 1.7*')
