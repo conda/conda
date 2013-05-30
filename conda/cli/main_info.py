@@ -47,7 +47,7 @@ def execute(args, parser):
     import conda
     import conda.config as config
 
-    options = ['envs', 'locations', 'system', 'license']
+    options = ['envs', 'system', 'license']
 
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
