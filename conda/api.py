@@ -45,7 +45,7 @@ def app_missing_packages(fn):
     return res
 
 
-def app_launch(fn, additional_args):
+def app_launch(fn, additional_args=None):
     # serach where app in installed and start it
     return
 
