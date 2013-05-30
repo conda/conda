@@ -283,9 +283,9 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == RM_FETCHED:
             install.rm_fetched(config.pkgs_dir, arg)
         elif cmd == LINK:
-            install.link(config.pkgs_dir, arg, prefix)
+            install.link(config.pkgs_dir, prefix, arg)
         elif cmd == UNLINK:
-            install.unlink(arg, prefix)
+            install.unlink(prefix, arg)
         else:
             raise Exception("Did not expect command: %r" % cmd)
 

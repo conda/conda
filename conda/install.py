@@ -211,7 +211,7 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, dist, prefix):
+def link(pkgs_dir, prefix, dist):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extect() above).
@@ -252,7 +252,7 @@ def link(pkgs_dir, dist, prefix):
     mk_menus(prefix, files, remove=False)
 
 
-def unlink(dist, prefix):
+def unlink(prefix, dist):
     '''
     Remove a package from the specified environment, it is an error of the
     package does not exist in the prefix.

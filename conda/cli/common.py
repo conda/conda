@@ -55,7 +55,7 @@ def confirm(args):
     if args.yes:
         return
     # raw_input has a bug and prints to stderr, not desirable
-    sys.stdout.write("Proceed (y/n)? [y]: ")
+    sys.stdout.write("Proceed ([y]/n)? : ")
     sys.stdout.flush()
     proceed = sys.stdin.readline()
     if proceed.strip().lower() in ('', 'y', 'yes'):
