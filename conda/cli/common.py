@@ -130,3 +130,10 @@ def disp_features(features):
         return '[%s]' % ' '.join(features)
     else:
         return ''
+
+
+def stdout_json(d):
+    import json
+
+    json.dump(d, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write('\n')

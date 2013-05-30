@@ -41,7 +41,6 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import os
     import sys
-    import json
     from os.path import basename, join
 
     import conda
@@ -56,7 +55,7 @@ def execute(args, parser):
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path)
     if args.json:
-        json.dump(info_dict, sys.stdout, indent=2, sort_keys=True)
+        common.stdout_json(info_dict)
         return
 
     if args.all:
