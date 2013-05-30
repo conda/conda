@@ -96,17 +96,15 @@ def plan_from_actions(actions):
 
 
 def ensure_linked_actions(dists, linked):
-    fetched = install.fetched(config.pkgs_dir)
-
     actions = defaultdict(list)
     for dist in dists:
         if dist in linked:
             continue
         actions[LINK].append(dist)
-        if install.is_extracted(dist):
+        if install.is_extracted(config.pkgs_dir, dist):
             continue
         actions[EXTRACT].append(dist)
-        if dist in fetched:
+        if install.is_fetched(config.pkgs_dir, dist):
             continue
         actions[FETCH].append(dist)
     return actions
