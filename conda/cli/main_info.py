@@ -7,19 +7,20 @@
 import common
 
 
-descr = "Display information about current conda install."
+help = "Display information about current conda install."
 
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('info',
-                               description = descr,
-                               help = descr)
+                               description = help,
+                               help = help)
     common.add_parser_json(p)
     els_group = p.add_mutually_exclusive_group()
     els_group.add_argument(
         '-a', "--all",
         action  = "store_true",
-        help    = "show location, license, and system information.")
+        help    = "show all information, (environments, license, and system "
+                  "information.")
     els_group.add_argument(
         '-e', "--envs",
         action  = "store_true",
@@ -46,7 +47,8 @@ def execute(args, parser):
     import conda
     import conda.config as config
 
-    options = ['envs', 'system', 'license']
+
+    options = 'envs', 'system', 'license'
 
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
