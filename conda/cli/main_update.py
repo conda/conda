@@ -64,7 +64,6 @@ def execute(args, parser):
         from main_list import list_packages
 
         regex = '|'.join('^%s$' % name for name in args.pkg_names)
-        print repr(regex)
         print '# All packages already at latest version, nothing to do.'
         list_packages(prefix, regex)
         return
