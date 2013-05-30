@@ -9,7 +9,7 @@ import tempfile
 from os.path import abspath, basename, dirname, isfile, islink, join
 
 import conda.config as config
-from conda.install import linked, get_meta, prefix_placeholder
+import conda.install as install
 from conda.misc import install_local_packages
 
 
@@ -20,8 +20,8 @@ def conda_installed_files(prefix, exclude_self_build=False):
     given prefix.
     """
     res = set()
-    for dist in linked(prefix):
-        meta = get_meta(dist, prefix)
+    for dist in install.linked(prefix):
+        meta = install.is_linked(prefix, dist)
         if exclude_self_build and 'file_hash' in meta:
             continue
         res.update(set(meta['files']))
@@ -29,7 +29,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
 
 
 def get_installed_version(prefix, name):
-    for dist in linked(prefix):
+    for dist in install.linked(prefix):
         n, v, b = dist.rsplit('-', 2)
         if n == name:
             return v
@@ -121,7 +121,7 @@ def fix_shebang(tmp_dir, path):
     if not (m and 'python' in m.group()):
         return False
 
-    data = shebang_pat.sub('#!%s/bin/python' % prefix_placeholder,
+    data = shebang_pat.sub('#!%s/bin/python' % install.prefix_placeholder,
                            data, count=1)
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, 'w') as fo:
