@@ -28,19 +28,13 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def list_packages(prefix, regex=None, verbose=True):
     import re
     import conda.install as install
 
+    pat = re.compile(regex, re.I) if regex else None
 
-    prefix = common.get_prefix(args)
-
-    if args.regex:
-        pat = re.compile(args.regex, re.I)
-    else:
-        pat = None
-
-    if not args.canonical:
+    if verbose:
         print '# packages in environment at %s:' % prefix
         print '#'
 
@@ -48,7 +42,7 @@ def execute(args, parser):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
-        if args.canonical:
+        if not verbose:
             print dist
             continue
         try:
@@ -60,3 +54,9 @@ def execute(args, parser):
                                             common.disp_features(features))
         except: # IOError, KeyError, ValueError
             print '%-25s %-15s %15s' % tuple(dist.rsplit('-', 2))
+
+
+def execute(args, parser):
+    prefix = common.get_prefix(args)
+
+    list_packages(prefix, args.regex, not args.canonical)
