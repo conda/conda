@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+import os
 import unittest
 from os.path import dirname, join
 
@@ -12,6 +13,12 @@ import conda.config as config
 
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(dirname(__file__)), 'condarc')
+
+# unset CIO_TEST
+try:
+    del os.environ['CIO_TEST']
+except KeyError:
+    pass
 
 
 class TestConfig(unittest.TestCase):
