@@ -12,8 +12,9 @@ import logging
 from collections import defaultdict
 from os.path import isfile, join
 
-import install
 import config
+import install
+from naming import name_dist
 from utils import md5_file, human_bytes
 from fetch import fetch_pkg
 from resolve import MatchSpec, Resolve
@@ -34,9 +35,6 @@ PREFIX = 'PREFIX'
 PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 
-
-def name_dist(dist):
-    return dist.rsplit('-', 2)[0]
 
 
 def print_dists(dists, index=None):
