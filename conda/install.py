@@ -145,28 +145,6 @@ def mk_menus(prefix, files, remove=False):
 
 # ========================== begin API functions =========================
 
-# ------- available packages (DEPRECATED - TO BE REMOVED)
-
-def available(pkgs_dir):
-    """
-    Return the (set of canonical names) of all available packages.
-    """
-    return set(fn for fn in os.listdir(pkgs_dir)
-               if isdir(join(pkgs_dir, fn)))
-
-def make_available(pkgs_dir, dist, cleanup=False):
-    '''
-    Make a package available for linkage.  We assume that the
-    compressed packages is located in the packages directory.
-    '''
-    bz2path = join(pkgs_dir, dist + '.tar.bz2')
-    assert isfile(bz2path), bz2path
-    t = tarfile.open(bz2path)
-    t.extractall(path=join(pkgs_dir, dist))
-    t.close()
-    if cleanup:
-        os.unlink(bz2path)
-
 # ------- package cache
 
 def fetched(pkgs_dir):
@@ -174,11 +152,18 @@ def fetched(pkgs_dir):
                if fn.endswith('.tar.bz2'))
 
 def extracted(pkgs_dir):
+    """
+    return the (set of canonical names) of all extracted packages
+    """
     return set(dn for dn in os.listdir(pkgs_dir)
                if (isfile(join(pkgs_dir, dn, 'info', 'files')) and
                    isfile(join(pkgs_dir, dn, 'info', 'index.json'))))
 
 def extract(pkgs_dir, dist):
+    """
+    Extarct a package, i.e. make a package available for linkage.  We assume
+    that the compressed packages is located in the packages directory.
+    """
     path = join(pkgs_dir, dist)
     t = tarfile.open(path + '.tar.bz2')
     t.extractall(path=path)
@@ -372,7 +357,7 @@ def main():
         pprint(sorted(linked(opts.prefix)))
 
     elif opts.link_all:
-        for dist in sorted(available(opts.pkgs_dir)):
+        for dist in sorted(extracted(opts.pkgs_dir)):
             link(opts.pkgs_dir, dist, opts.prefix)
 
     elif opts.extract:
