@@ -115,15 +115,13 @@ def specs_from_file(path):
     return specs
 
 
-def is_root_prefix(prefix):
-    return abspath(prefix) == abspath(config.root_dir)
-
-
 def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
 def check_specs(prefix, specs):
+    from conda.plan import is_root_prefix
+
     if len(specs) == 0:
         sys.exit("Error: no package specifications supplied")
 

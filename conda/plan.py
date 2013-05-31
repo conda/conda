@@ -10,7 +10,7 @@ NOTE:
 import logging
 
 from collections import defaultdict
-from os.path import isfile, join
+from os.path import abspath, isfile, join
 
 import config
 import install
@@ -128,6 +128,10 @@ def force_linked_actions(dists, index, prefix):
         actions[LINK].append(dist)
     return actions
 
+# -------------------------------------------------------------------
+
+def is_root_prefix(prefix):
+    return abspath(prefix) == abspath(config.root_dir)
 
 def dist2spec3v(dist):
     name, version, unused_build = dist.rsplit('-', 2)
@@ -167,7 +171,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         must_have[name] = dist
 
     # discard conda from environments (other than the root environment)
-    if prefix != config.root_dir and 'conda' in must_have:
+    if not is_root_prefix(prefix) and 'conda' in must_have:
         del must_have['conda']
 
     smh = sorted(must_have.values())
