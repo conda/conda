@@ -141,25 +141,36 @@ def add_defaults_to_specs(r, linked, specs):
     if r.explicit(specs):
         return
     names_linked = {name_dist(dist): dist for dist in linked}
-    names_spec = set(MatchSpec(s).name for s in specs
-                     if MatchSpec(s).strictness > 1)
+    names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
+
     for name, def_ver in [('python', config.default_python),
                           ('numpy', config.default_numpy)]:
-        if name in names_spec:
+        ms = names_ms.get(name)
+        if ms and ms.strictness > 1:
+            log.debug('H1 %s' % name)
             continue
-        if not any(any(any(ms.name == name for ms in r.ms_depends(fn))
-                       for fn in r.get_max_dists(MatchSpec(spec)))
-                   for spec in specs):
+
+        if (not any(any(any(ms.name == name for ms in r.ms_depends(fn))
+                        for fn in r.get_max_dists(MatchSpec(spec)))
+                    for spec in specs)
+                and name not in names_ms):
+            log.debug('H2 %s' % name)
             continue
+
         if name in names_linked:
+            log.debug('H3 %s' % name)
             specs.append(dist2spec3v(names_linked[name]))
             continue
+
         specs.append('%s %s*' % (name, def_ver))
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
+    if is_root_prefix(prefix):
+        specs.append('conda')
+
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
@@ -170,9 +181,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
             continue
         must_have[name] = dist
 
-    # discard conda from environments (other than the root environment)
-    if not is_root_prefix(prefix) and 'conda' in must_have:
-        del must_have['conda']
+    if is_root_prefix(prefix):
+        # ensure conda is in root environment
+        assert 'conda' in must_have
+    else:
+        # discard conda from other environments
+        if 'conda' in must_have:
+            del must_have['conda']
 
     smh = sorted(must_have.values())
     if force:
