@@ -1,4 +1,5 @@
 import os
+import sys
 
 import psutil
 
@@ -12,6 +13,9 @@ def main():
         except psutil._error.NoSuchProcess:
             continue
         try:
+            if os.path.realpath(p.exe) == os.path.realpath(sys.executable):
+                # The Python that conda is running in is OK
+                continue
             if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
                 print "WARNING: the process %s (%d) is running" % (p.name, n)
                 ok = False
