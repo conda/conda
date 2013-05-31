@@ -168,9 +168,9 @@ def add_defaults_to_specs(r, linked, specs):
 def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
+
     if is_root_prefix(prefix):
         specs.append('conda')
-
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}

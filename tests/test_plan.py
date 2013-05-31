@@ -21,6 +21,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         for specs, output in [
             (['python 3*'],  ['python 3*']),
             (['python'],     ['python', 'python 2.7*']),
+            (['scipy'],      ['scipy', 'python 2.7*', 'numpy 1.7*']),
             ]:
             plan.add_defaults_to_specs(r, linked, specs)
             self.assertEqual(specs, output)
@@ -30,6 +31,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         for specs, output in [
             (['python'],     ['python', 'python 2.6*']),
             (['numpy'],      ['numpy',  'python 2.6*', 'numpy 1.6*']),
+            (['pandas'],     ['pandas', 'python 2.6*', 'numpy 1.6*']),
             ]:
             plan.add_defaults_to_specs(r, linked, specs)
             self.assertEqual(specs, output)
@@ -38,6 +40,17 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         linked = solve(['anaconda 1.5.0', 'python 3.3*'])
         for specs, output in [
             (['python'],     ['python', 'python 3.3*']),
+            (['scipy'],      ['scipy', 'python 3.3*', 'numpy 1.7*']),
+            ]:
+            plan.add_defaults_to_specs(r, linked, specs)
+            self.assertEqual(specs, output)
+
+    def test_4(self):
+        linked = []
+        for specs, output in [
+            (['python'],     ['python', 'python 2.7*']),
+            (['numpy'],      ['numpy', 'python 2.7*', 'numpy 1.7*']),
+            (['scipy'],      ['scipy', 'python 2.7*', 'numpy 1.7*']),
             ]:
             plan.add_defaults_to_specs(r, linked, specs)
             self.assertEqual(specs, output)
