@@ -9,17 +9,18 @@ from os.path import abspath, basename, isdir, join
 
 import conda.config as config
 from conda.api import get_index
-
-from packup import untracked, create_conda_pkg
+from conda.resolve import MatchSpec
 from conda.fetch import fetch_pkg
 import conda.install as install
 
+from packup import untracked, create_conda_pkg
 
 
 def get_requires(prefix):
     res = []
     for dist in install.linked(prefix):
-        meta = install.get_meta(dist, prefix)
+        meta = install.is_linked(prefix, dist)
+        assert meta
         if 'file_hash' not in meta:
             res.append('%(name)s %(version)s %(build)s' % meta)
     res.sort()
@@ -27,8 +28,10 @@ def get_requires(prefix):
 
 def update_info(info):
     h = hashlib.new('sha1')
-    for req in info['requires']:
-        h.update(req)
+    print info
+    for spec in info['depends']:
+        assert MatchSpec(spec).strictness == 3
+        h.update(spec)
         h.update('\x00')
     h.update(info['file_hash'])
     info['version'] = h.hexdigest()
@@ -53,7 +56,7 @@ def create_bundle(prefix):
         build_number = 0,
         platform = config.platform,
         arch = config.arch_name,
-        requires = get_requires(prefix),
+        depends = get_requires(prefix),
     )
     tmp_dir = tempfile.mkdtemp()
     tmp_path = join(tmp_dir, 'share.tar.bz2')
@@ -94,7 +97,7 @@ def clone_bundle(path, prefix):
 
     index = get_index()
 
-    dists = ['-'.join(r.split()) for r in meta['requires']
+    dists = ['-'.join(r.split()) for r in meta['depends']
              if not r.startswith('conda ')]
     dists.append(dist)
     for d in dists:

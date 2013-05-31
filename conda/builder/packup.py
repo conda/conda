@@ -102,11 +102,11 @@ def create_info(name, version, build_number, requires_py):
         arch = config.arch_name,
         build_number = int(build_number),
         build = str(build_number),
-        requires = [],
+        depends = [],
     )
     if requires_py:
         d['build'] = ('py%d%d_' % requires_py) + d['build']
-        d['requires'].append('python %d.%d' % requires_py)
+        d['depends'].append('python %d.%d*' % requires_py)
     return d
 
 
