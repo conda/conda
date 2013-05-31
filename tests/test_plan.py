@@ -36,6 +36,8 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             (['python'],     ['python 2.6*']),
             (['numpy'],      ['python 2.6*', 'numpy 1.6*']),
             (['pandas'],     ['python 2.6*', 'numpy 1.6*']),
+            # however, this would then be unsatisfiable
+            (['python 3*', 'numpy'], ['numpy 1.6*']),
             ]:
             self.check(specs, added)
 
