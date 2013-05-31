@@ -70,7 +70,7 @@ class Package(object):
         self.fn = fn
         self.name = info['name']
         self.version = info['version']
-        self.build_number = info['build_number']
+        self.build_number = info.get('build_number', 0)
 
         v = self.version
         v = v.replace('rc', '.dev99999')
@@ -140,8 +140,8 @@ class Resolve(object):
         try:
             res = self.msd_cache[fn]
         except KeyError:
-            res = self.msd_cache[fn] = [MatchSpec(d)
-                                        for d in self.index[fn]['depends']]
+            depends = self.index[fn].get('depends', [])
+            res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
         return res
 
     @memoize
