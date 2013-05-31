@@ -52,6 +52,12 @@ def add_parser_quiet(p):
 def confirm(args):
     if args.dry_run:
         sys.exit(0)
+    if sys.platform == 'win32':
+        try:
+            import pscheck
+            pscheck.main()
+        except ImportError:
+            pass
     if args.yes:
         return
     # raw_input has a bug and prints to stderr, not desirable
