@@ -12,7 +12,7 @@ def main():
         except psutil._error.NoSuchProcess:
             continue
         try:
-            if os.path.relpath(p.exe).startswith(os.path.realpath(root_dir)):
+            if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
                 print "Warning: the process %s is running" % p.name
                 conflicts = True
         except psutil._error.AccessDenied:
