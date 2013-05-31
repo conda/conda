@@ -1,6 +1,6 @@
 Version 1.6.0 goals:
 ====================
-  * add equivalent of source activate in Windows
+  * add equivalent of "source activate" in Windows
 
 
 Other goals:

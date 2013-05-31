@@ -24,6 +24,7 @@
   * add information about installed versions to conda search command
   * removed known "locations"
   * add output about installed packages when update and install do nothing
+  * changed default when prompted for y/n in CLI to yes
 
 
 2013-04-29   1.5.2:
