@@ -75,7 +75,7 @@ def execute(args, parser):
     elif args.all:
         from conda.install import linked
 
-        if common.is_root_prefix(prefix):
+        if plan.is_root_prefix(prefix):
             sys.exit('Error: cannot remove root environment,\n'
                      '       add -n NAME or -p PREFIX option')
 
