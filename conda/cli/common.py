@@ -49,22 +49,31 @@ def add_parser_quiet(p):
     )
 
 
-def confirm(args):
+def confirm(args, default='y'):
+    assert default in {'y', 'n'}, default
     if args.dry_run:
         sys.exit(0)
     if sys.platform == 'win32':
         try:
             import pscheck
-            pscheck.main()
+            if not pscheck.main():
+                default = 'n'
         except ImportError:
             pass
     if args.yes:
         return
     # raw_input has a bug and prints to stderr, not desirable
-    sys.stdout.write("Proceed ([y]/n)? : ")
-    sys.stdout.flush()
+    if default == 'y':
+        sys.stdout.write("Proceed ([y]/n)? : ")
+        sys.stdout.flush()
+    else:
+        sys.stdout.write("Proceed (y/[n])? : ")
+        sys.stdout.flush()
     proceed = sys.stdin.readline()
-    if proceed.strip().lower() in ('', 'y', 'yes'):
+    defaults = ('y', 'yes')
+    if default == 'y':
+        defaults += ('',)
+    if proceed.strip().lower() in defaults:
         sys.stdout.write("\n")
         sys.stdout.flush()
         return
