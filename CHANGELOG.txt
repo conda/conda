@@ -2,6 +2,8 @@
 ----------------------
   * conda with no arguments now prints help text (issue 111)
   * don't allow removing conda from root environment
+  * conda update python does no longer update to Python 3, also ensure that
+    conda itself is always installed into the root environment (issue 110)
 
 
 2013-05-30   1.6.0rc1:
