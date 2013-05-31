@@ -13,10 +13,13 @@ def main():
             continue
         try:
             if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
-                print "Warning: the process %s is running" % p.name
+                print "WARNING: the process %s (%d) is running" % (p.name, n)
                 conflicts = True
         except psutil._error.AccessDenied:
             pass
+    if conflicts:
+        print("WARNING: Continuing installation while the above processes are "
+            "running is not recommended.")
     return conflicts
 
 if __name__ == '__main__':
