@@ -5,7 +5,7 @@ import psutil
 from conda.config import root_dir
 
 def main():
-    conflicts = False
+    ok = True
     for n in psutil.get_pid_list():
         try:
             p = psutil.Process(n)
@@ -14,13 +14,13 @@ def main():
         try:
             if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
                 print "WARNING: the process %s (%d) is running" % (p.name, n)
-                conflicts = True
+                ok = False
         except psutil._error.AccessDenied:
             pass
-    if conflicts:
+    if not ok:
         print("WARNING: Continuing installation while the above processes are "
             "running is not recommended.")
-    return conflicts
+    return ok
 
 if __name__ == '__main__':
     main()
