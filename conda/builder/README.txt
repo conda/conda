@@ -1,4 +1,8 @@
+Conda build framework
+=====================
+
 Building a package requires a "recipe" in most cases.
+
 A recipe contains:
   * metadata
   * patches to the source
