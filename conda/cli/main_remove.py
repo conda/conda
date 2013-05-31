@@ -55,7 +55,6 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import sys
 
-    import conda.config as config
     import conda.plan as plan
 
 
@@ -76,7 +75,7 @@ def execute(args, parser):
     elif args.all:
         from conda.install import linked
 
-        if prefix == config.root_dir:
+        if common.is_root_prefix(prefix):
             sys.exit('Error: cannot remove root environment,\n'
                      '       add -n NAME or -p PREFIX option')
 
@@ -85,6 +84,11 @@ def execute(args, parser):
 
     else:
         specs = common.specs_from_args(args.package_names)
+        no_rm = 'python', 'pycosat', 'conda'
+        if (common.is_root_prefix(prefix) and
+            common.names_in_specs(no_rm, specs)):
+            sys.exit('Error: cannot remove %s from root environment' %
+                     ', '.join(no_rm))
         actions = plan.remove_actions(prefix, specs)
 
     if plan.nothing_to_do(actions):

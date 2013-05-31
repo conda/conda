@@ -119,12 +119,15 @@ def is_root_prefix(prefix):
     return abspath(prefix) == abspath(config.root_dir)
 
 
+def names_in_specs(names, specs):
+    return any(spec.split()[0] in names for spec in specs)
+
+
 def check_specs(prefix, specs):
     if len(specs) == 0:
         sys.exit("Error: no package specifications supplied")
 
-    if (not is_root_prefix(prefix) and
-                 any(s.split()[0] == 'conda' for s in specs)):
+    if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
         sys.exit("Error: Package 'conda' may only be installed in the "
                  "root environment")
 
