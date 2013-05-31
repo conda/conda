@@ -43,6 +43,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
         for specs, added in [
             (['python'],     ['python 3.3*']),
+            (['numpy'],      ['python 3.3*', 'numpy 1.7*']),
             (['scipy'],      ['python 3.3*', 'numpy 1.7*']),
             ]:
             self.check(specs, added)
@@ -53,6 +54,9 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             (['python'],     ['python 2.7*']),
             (['numpy'],      ['python 2.7*', 'numpy 1.7*']),
             (['scipy'],      ['python 2.7*', 'numpy 1.7*']),
+            (['anaconda'],   ['python 2.7*', 'numpy 1.7*']),
+            (['anaconda 1.5.0 np17py27_0'], []),
+            (['anaconda', 'python 3*'],     ['numpy 1.7*']),
             ]:
             self.check(specs, added)
 
