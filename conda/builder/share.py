@@ -1,6 +1,5 @@
 import os
 import re
-import sys
 import json
 import hashlib
 import tempfile
@@ -78,7 +77,7 @@ def clone_bundle(path, prefix):
     copying the of the file if necessary for you).  After calling this
     funtion, the original file (at `path`) may be removed.
     """
-    assert not abspath(path).startswith(abspath(sys.prefix))
+    assert not abspath(path).startswith(abspath(config.root_dir))
     assert not isdir(prefix)
     fn = basename(path)
     assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
@@ -119,7 +118,7 @@ def clone_bundle(path, prefix):
 
 
 if __name__ == '__main__':
-    path = create_bundle(sys.prefix)
+    path = create_bundle(config.root_dir)
     os.system('tarinfo --si ' + path)
     print path
-    clone_bundle(path, join(sys.prefix, 'envs', 'test3'))
+    clone_bundle(path, join(config.envs_dir, 'test3'))
