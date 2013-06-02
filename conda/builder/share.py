@@ -78,32 +78,29 @@ def clone_bundle(path, prefix):
     copying the of the file if necessary for you).  After calling this
     funtion, the original file (at `path`) may be removed.
     """
-    pkgs_dir = join(sys.prefix, 'pkgs')
     assert not abspath(path).startswith(abspath(sys.prefix))
     assert not isdir(prefix)
     fn = basename(path)
     assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
     dist = fn[:-8]
 
-    if dist not in install.extracted(pkgs_dir):
-        shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-        install.extract(pkgs_dir, dist)
+    if not install.is_extracted(config.pkgs_dir, dist):
+        shutil.copyfile(path, join(config.pkgs_dir, dist + '.tar.bz2'))
+        install.extract(config.pkgs_dir, dist)
+    assert install.is_extracted(config.pkgs_dir, dist)
 
-    avail = install.extracted(pkgs_dir)
-    assert dist in avail
-
-    with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
+    with open(join(config.pkgs_dir, dist, 'info', 'index.json')) as fi:
         meta = json.load(fi)
-
-    index = get_index()
 
     # for backwards compatibility, use "requires" when "depends" is not there
     dists = ['-'.join(r.split())
              for r in meta.get('depends', meta['requires'])
              if not r.startswith('conda ')]
     dists.append(dist)
+
+    index = get_index()
     for d in dists:
-        if d in avail:
+        if install.is_extracted(config.pkgs_dir, d):
             continue
         #print "fetching:", d
         fn = d + '.tar.bz2'
@@ -112,12 +109,11 @@ def clone_bundle(path, prefix):
             fetch_pkg(info)
         else:
             yield "not in index %r" % fn
-        install.extract(pkgs_dir, d)
+        install.extract(config.pkgs_dir, d)
 
-    avail = install.extracted(pkgs_dir)
     for d in dists:
-        if d in avail:
-            install.link(pkgs_dir, prefix, d)
+        if install.is_extracted(config.pkgs_dir, d):
+            install.link(config.pkgs_dir, prefix, d)
 
     os.unlink(join(prefix, 'conda-meta', dist + '.json'))
 
