@@ -6,9 +6,10 @@ import json
 import shutil
 from subprocess import check_call
 from collections import defaultdict
-from os.path import abspath, basename, isfile, join
+from os.path import abspath, basename, join
 
 import config
+import install
 from plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
 
 
@@ -31,7 +32,7 @@ def install_local_packages(prefix, paths, verbose=False):
     for dist in dists:
         actions[RM_EXTRACTED].append(dist)
         actions[EXTRACT].append(dist)
-        if isfile(join(prefix, 'conda-meta', dist + '.json')):
+        if install.is_linked(prefix, dist):
             actions[UNLINK].append(dist)
         actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
