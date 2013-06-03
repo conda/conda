@@ -29,7 +29,7 @@ cmds = [
     "info",
     "list ^m.*lib$",
     "search ^m.*lib$",
-    "search -v numpy",    
+    "search -v numpy",
     "search -c numpy",
     "info -e",
     "create --yes -p %s sqlite python=2.6" % myenv,
@@ -84,11 +84,11 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1:
         options = True
-    
+
     if options and 'new' in sys.argv:
         if exists(TESTLOG):
             os.remove(TESTLOG)
-            
+
     fails, errs = tester(cmds)
     if fails:
         print "These commands failed: \n"
