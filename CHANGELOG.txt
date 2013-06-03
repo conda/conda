@@ -2,6 +2,8 @@
 -------------------
   * update package command to reflect changes in repodata
   * fixed refactoring bugs in share/clone
+  * warn when anaconda processes are running on install in Windows (should fix
+    most permissions errors on Windows)
 
 
 2013-05-31   1.6.0rc2:
