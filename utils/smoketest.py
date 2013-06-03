@@ -10,6 +10,17 @@ from tempfile import mkdtemp
 base = mkdtemp()
 myenv = join(base, "env")
 
+if 'win' in sys.platform:
+    status = True
+    pandas = numba = '0.10.1'
+    cython = '0.18'
+else:
+    status = False
+    pandas = '0.8.1'
+    numba  = '0.1.1'
+    cython = '0.16'
+
+
 # CIO_TEST needs to be set to 2 if any of the packages tested below are only found in the test repo.
 
 # os.environ['CIO_TEST'] = 2
@@ -21,14 +32,13 @@ cmds = [
     "conda search -v numpy",    
     "conda search -c numpy",
     "conda info -e",
-    "conda creae --yes -p %s sqlite python=2.6" % myenv,
-    "conda install --yes -p %s pandas=0.8.1" % myenv,
-    "conda install --yes -p %s numba=0.1.1" % myenv,
-    "conda install --yes -p %s cython=0.16" % myenv,
-    "conda install --yes -p %s cython=0.17.3" % myenv,
+    "conda create --yes -p %s sqlite python=2.6" % myenv,
+    "conda install --yes -p %s pandas=%s" % (myenv, pandas),
+    "conda install --yes -p %s numba=%s" % (myenv, numba),
+    "conda install --yes -p %s cython=0.%s" % (myenv, cython),
     "conda install --yes -p %s accelerate" % myenv,
     "conda remove --yes -p %s accelerate" % myenv,
-    "conda update --yes -p %s pandas" % myenv,
+    "conda update --yes -p %s numba" % myenv,
     "conda install --yes -p %s iopro" % myenv,
     "conda remove --yes -p %s iopro" % myenv,
     "conda info -e",
@@ -39,14 +49,14 @@ cmds = [
 
 def tester(commands):
     cmds = commands
-    errs = []
+    errs  = []
     fails = []
     for cmd in cmds:
         print "-"*120
         print "%s" % cmd
         print "-"*120
         try:
-            child = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE)
+            child = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE, shell=status)
             data, err = child.communicate()
             ret = child.returncode
             if ret != 0:
@@ -57,7 +67,7 @@ def tester(commands):
                 print "\nPASSED\n"
         except Exception as e:
             print e
-            f.write("\nThe script had the following error running %s: %s" % (cmd, e))
+            errs.append("\nThe script had the following error running %s: %s" % (cmd, e))
 
     return (fails, errs)
 
