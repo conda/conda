@@ -53,13 +53,6 @@ def confirm(args, default='y'):
     assert default in {'y', 'n'}, default
     if args.dry_run:
         sys.exit(0)
-    if sys.platform == 'win32':
-        try:
-            import pscheck
-            if not pscheck.main():
-                default = 'n'
-        except ImportError:
-            pass
     if args.yes:
         return
     # raw_input has a bug and prints to stderr, not desirable
@@ -70,14 +63,14 @@ def confirm(args, default='y'):
         sys.stdout.write("Proceed (y/[n])? : ")
         sys.stdout.flush()
     proceed = sys.stdin.readline()
-    defaults = ('y', 'yes')
+    affirmatives = ('y', 'yes')
     if default == 'y':
-        defaults += ('',)
-    if proceed.strip().lower() in defaults:
+        affirmatives += ('',)
+    if proceed.strip().lower() in affirmatives:
         sys.stdout.write("\n")
         sys.stdout.flush()
         return
-    sys.exit(0)
+    sys.exit(1)
 
 # --------------------------------------------------------------------
 
