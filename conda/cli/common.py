@@ -49,20 +49,28 @@ def add_parser_quiet(p):
     )
 
 
-def confirm(args):
+def confirm(args, default='y'):
+    assert default in {'y', 'n'}, default
     if args.dry_run:
         sys.exit(0)
     if args.yes:
         return
     # raw_input has a bug and prints to stderr, not desirable
-    sys.stdout.write("Proceed ([y]/n)? : ")
-    sys.stdout.flush()
+    if default == 'y':
+        sys.stdout.write("Proceed ([y]/n)? : ")
+        sys.stdout.flush()
+    else:
+        sys.stdout.write("Proceed (y/[n])? : ")
+        sys.stdout.flush()
     proceed = sys.stdin.readline()
-    if proceed.strip().lower() in ('', 'y', 'yes'):
+    affirmatives = ('y', 'yes')
+    if default == 'y':
+        affirmatives += ('',)
+    if proceed.strip().lower() in affirmatives:
         sys.stdout.write("\n")
         sys.stdout.flush()
         return
-    sys.exit(0)
+    sys.exit(1)
 
 # --------------------------------------------------------------------
 
