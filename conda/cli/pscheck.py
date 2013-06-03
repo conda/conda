@@ -1,15 +1,29 @@
 import os
-
-import psutil
+import sys
 
 from conda.config import root_dir
+from conda.cli.common import confirm
 
 try:
     WindowsError
 except NameError:
     class WindowsError(Exception): pass
 
-def main():
+def main(args, windowsonly=True):
+    if sys.platform == 'win32' or not windowsonly:
+        if args.yes:
+            check_processes()
+        while not check_processes():
+            confirm(args, default='n')
+
+def check_processes():
+    # Conda should still work if psutil is not installed (it should not be a
+    # hard dependency)
+    try:
+        import psutil
+    except ImportError:
+        return True
+
     ok = True
     curpid = os.getpid()
     for n in psutil.get_pid_list():
