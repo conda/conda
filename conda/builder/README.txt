@@ -1,6 +1,8 @@
 Conda build framework
 =====================
 
+(these are just preliminary notes, nothing is implemented yet)
+
 Building a package requires a "recipe" in most cases.
 
 A recipe contains:
