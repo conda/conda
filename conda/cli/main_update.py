@@ -44,6 +44,8 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
+    import pscheck
+
     # default
     if len(args.pkg_names) == 0:
         args.pkg_names.append('anaconda')
@@ -67,6 +69,8 @@ def execute(args, parser):
         print '# All packages already at latest version, nothing to do.'
         list_packages(prefix, regex)
         return
+
+    pscheck.main(args)
 
     print "Updating conda environment at %s" % prefix
     plan.display_actions(actions, index)
