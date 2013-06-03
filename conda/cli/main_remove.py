@@ -56,7 +56,7 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
-
+    import pscheck
 
     if not (args.all or args.package_names):
         sys.exit('Error: no package names supplied,\n'
@@ -94,6 +94,8 @@ def execute(args, parser):
     if plan.nothing_to_do(actions):
         print 'No packages found to remove from environment: %s' % prefix
         return
+
+    pscheck.main(args)
 
     print
     print "Package plan for package removal in environment %s:" % prefix

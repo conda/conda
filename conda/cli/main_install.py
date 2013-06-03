@@ -62,7 +62,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
-
+    import pscheck
 
     prefix = common.get_prefix(args)
 
@@ -102,6 +102,8 @@ def execute(args, parser):
         print '# All requested packages already installed.'
         list_packages(prefix, regex)
         return
+
+    pscheck.main(args)
 
     print
     print "Package plan for installation in environment %s:" % prefix
