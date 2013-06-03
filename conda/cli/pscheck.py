@@ -25,7 +25,7 @@ def main():
     if not ok:
         print("WARNING: Continuing installation while the above processes are "
             "running is not recommended.\n"
-            "Close all Anaconda programs before updating conda.")
+            "Close all Anaconda programs before installing or updating things with conda.")
     return ok
 
 if __name__ == '__main__':
