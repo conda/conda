@@ -10,7 +10,7 @@ from tempfile import mkdtemp
 base = mkdtemp()
 myenv = join(base, "env")
 
-if 'win' in sys.platform:
+if 'win' in sys.platform and 'dar' not in sys.platform:
     status = True
     pandas = numba = '0.10.1'
     cython = '0.18'
@@ -26,25 +26,30 @@ else:
 # os.environ['CIO_TEST'] = 2
 
 cmds = [
-    "conda info",
-    "conda list ^m.*lib$",
-    "conda search ^m.*lib$",
-    "conda search -v numpy",    
-    "conda search -c numpy",
-    "conda info -e",
-    "conda create --yes -p %s sqlite python=2.6" % myenv,
-    "conda install --yes -p %s pandas=%s" % (myenv, pandas),
-    "conda install --yes -p %s numba=%s" % (myenv, numba),
-    "conda install --yes -p %s cython=0.%s" % (myenv, cython),
-    "conda install --yes -p %s accelerate" % myenv,
-    "conda remove --yes -p %s accelerate" % myenv,
-    "conda update --yes -p %s numba" % myenv,
-    "conda install --yes -p %s iopro" % myenv,
-    "conda remove --yes -p %s iopro" % myenv,
-    "conda info -e",
-    "conda info -a",
-    "conda info --license",
-    "conda info -s",
+    "info",
+    "list ^m.*lib$",
+    "search ^m.*lib$",
+    "search -v numpy",    
+    "search -c numpy",
+    "info -e",
+    "create --yes -p %s sqlite python=2.6" % myenv,
+    "install --yes -p %s pandas=%s" % (myenv, pandas),
+    "remove --yes -p %s pandas" % myenv,
+    "install --yes -p %s numba=%s" % (myenv, numba),
+    "install --yes -p %s cython=%s" % (myenv, cython),
+    "remove --yes -p %s cython" % myenv,
+    "install --yes -p %s accelerate" % myenv,
+    "remove --yes -p %s accelerate" % myenv,
+    "install --yes -p %s mkl" % myenv,
+    "remove --yes -p %s mkl" % myenv,
+    "update --yes -p %s numba" % myenv,
+    "remove --yes -p %s numba" % myenv,
+    "install --yes -p %s iopro" % myenv,
+    "remove --yes -p %s iopro" % myenv,
+    "info -e",
+    "info -a",
+    "info --license",
+    "info -s",
 ]
 
 def tester(commands):
@@ -52,9 +57,10 @@ def tester(commands):
     errs  = []
     fails = []
     for cmd in cmds:
-        print "-"*120
+        cmd = "conda %s" % cmd
+        print "-"*len(cmd)
         print "%s" % cmd
-        print "-"*120
+        print "-"*len(cmd)
         try:
             child = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE, shell=status)
             data, err = child.communicate()
@@ -73,17 +79,24 @@ def tester(commands):
 
 
 if __name__ == '__main__':
-    TESTLOG = ''
-    if len(sys.argv) == 2 and sys.argv[1] == 'log':
-        TESTLOG="conda-testlog.txt"
+
+    TESTLOG = 'conda-testlog.txt'
+
+    if len(sys.argv) > 1:
+        options = True
+    
+    if options and 'new' in sys.argv:
+        if exists(TESTLOG):
+            os.remove(TESTLOG)
+            
     fails, errs = tester(cmds)
     if fails:
         print "These commands failed: \n"
         for line, fail in enumerate(fails, 1):
             print "%d: %s\n" % (line, fail)
-        print "Writing failed commands to conda-testlog.txt"
         header = 'Test Results For %s' % time.asctime()
-        if TESTLOG:
+        if options and 'log' in sys.argv:
+            print "Writing failed commands to conda-testlog.txt"
             with open(TESTLOG, "a") as f:
                 f.write('%s\n%s\n' % (header, '-'*len(header)))
                 for error in errs:
