@@ -17,7 +17,7 @@ def main():
             continue
         try:
             if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
-                processcmd = ' '.join(p.cmd)
+                processcmd = ' '.join(p.cmdline)
                 print "WARNING: the process %s (%d) is running" % (processcmd, n)
                 ok = False
         except psutil._error.AccessDenied:
