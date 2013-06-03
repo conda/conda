@@ -4,6 +4,11 @@ import psutil
 
 from conda.config import root_dir
 
+try:
+    WindowsError
+except NameError:
+    class WindowsError(Exception): pass
+
 def main():
     ok = True
     curpid = os.getpid()
@@ -20,7 +25,7 @@ def main():
                 processcmd = ' '.join(p.cmdline)
                 print "WARNING: the process %s (%d) is running" % (processcmd, n)
                 ok = False
-        except psutil._error.AccessDenied:
+        except (psutil._error.AccessDenied, WindowsError):
             pass
     if not ok:
         print("WARNING: Continuing installation while the above processes are "
