@@ -1,7 +1,8 @@
-from os.path import isfile, isdir, join
+from os.path import isdir, join
 
 from utils import memoized
 import config
+import install
 from naming import name_fn, fn2spec
 from fetch import fetch_index
 
@@ -21,12 +22,13 @@ def app_get_index():
             if info.get('type') == 'app'}
 
 
-def app_missing_packages(fn):
+def app_info_packages(fn):
     """
     given the filename of a package, return which packages (and their sizes)
     still need to be downloaded, in order to install the package.  That is,
-    the package itself and it's dependencies (unless already in cache).
-    Returns a list of tuples (pkg_name, pkg_version, size).
+    the package itself and it's dependencies.
+    Returns a list of tuples (pkg_name, pkg_version, size,
+    fetched? True or False).
     """
     from resolve import Resolve
 
@@ -34,10 +36,9 @@ def app_missing_packages(fn):
     r = Resolve(index)
     res = []
     for fn2 in r.solve([fn2spec(fn)]):
-        if isfile(join(config.pkgs_dir, fn2[:-8], 'info', 'extracted')):
-            continue
         info = index[fn2]
-        res.append((info['name'], info['version'], info['size']))
+        res.append((info['name'], info['version'], info['size'],
+                    install.is_fetched(config.pkgs_dir, fn2[:-8])))
     return res
 
 
