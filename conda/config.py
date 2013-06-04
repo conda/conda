@@ -19,9 +19,9 @@ default_numpy = '1.7'
 
 # ----- constant paths -----
 
-root_dir = os.environ.get('CONDA_ROOT', sys.prefix)
-pkgs_dir = os.environ.get('CONDA_PACKAGE_CACHE', join(root_dir, 'pkgs'))
-envs_dir = os.environ.get('CONDA_ENV_PATH', join(root_dir, 'envs'))
+root_dir = os.getenv('CONDA_ROOT', sys.prefix)
+pkgs_dir = os.getenv('CONDA_PACKAGE_CACHE', join(root_dir, 'pkgs'))
+envs_dir = os.getenv('CONDA_ENV_PATH', join(root_dir, 'envs'))
 
 # ----- default environment prefix -----
 
