@@ -1,4 +1,4 @@
-# This is the default conda runtime configuration
+# This is a sample .condarc file
 
 # channel locations. These override conda defaults, i.e., conda will
 # search *only* the channels listed here, in the order given. Use "default" to
