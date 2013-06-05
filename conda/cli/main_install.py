@@ -47,6 +47,7 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "do not install dependencies",
     )
+    common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
@@ -91,7 +92,11 @@ def execute(args, parser):
     else:
         only_names = None
 
-    index = get_index()
+    common.ensure_override_channels_requires_cannel(args)
+    channel_urls = args.channel or ()
+    index = get_index(channel_urls=channel_urls, prepend=not
+        args.override_channels)
+
     actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
 

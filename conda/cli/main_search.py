@@ -41,6 +41,7 @@ def configure_parser(sub_parsers):
         help    = "package specification or regular expression to search for "
                   "(default: display all packages)",
     )
+    common.add_parser_channels(p, dashc=False)
     p.set_defaults(func=execute)
 
 
@@ -61,7 +62,12 @@ def execute(args, parser):
     if not args.canonical:
         linked = install.linked(prefix)
 
-    r = Resolve(get_index())
+    common.ensure_override_channels_requires_cannel(args)
+    channel_urls = args.channel or ()
+    index = get_index(channel_urls=channel_urls, prepend=not
+        args.override_channels)
+
+    r = Resolve(index)
     for name in sorted(r.groups):
         disp_name = name
         if pat and pat.search(name) is None:

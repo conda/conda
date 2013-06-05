@@ -34,6 +34,7 @@ def configure_parser(sub_parsers):
         nargs = '*',
         help = "names of packages to update (default: anaconda)",
     )
+    common.add_parser_channels(p)
     p.set_defaults(func=execute)
 
 
@@ -59,7 +60,9 @@ def execute(args, parser):
         if name not in linked:
             sys.exit("Error: package '%s' is not installed" % name)
 
-    index = get_index()
+    common.ensure_override_channels_requires_cannel(args)
+    channel_urls = args.channel or ()
+    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels)
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
