@@ -1,3 +1,8 @@
+???
+---
+  * Add -c/--channel and --override-channels flags.
+  * Add default and system meta-channels, for use in .condarc and with -c.
+
 2013-06-XX   1.6.0:
 -------------------
   * update package command to reflect changes in repodata
