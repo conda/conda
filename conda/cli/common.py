@@ -56,7 +56,9 @@ def add_parser_channels(p, dashc=True):
         action = "append",
         help = """additional channel to search for packages. These are searched in the order
         they are given, and then the defaults or channels from .condarc
-        (unless --override-channels is given).""" # we can't put , here; invalid syntax
+        (unless --override-channels is given).  You can use 'default' to get
+        the default packages for conda, and 'system' to get the system
+        packages, which also takes .condarc into account. """ # we can't put , here; invalid syntax
     )
     p.add_argument(
         "--override-channels",
