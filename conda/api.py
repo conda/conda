@@ -86,11 +86,12 @@ def app_install(fn, prefix=config.root_dir):
 def app_launch(fn, prefix=config.root_dir, additional_args=None):
     """
     Launch the application `fn` (with optional additional command line
-    arguments), in the prefix (which defauts to the root environment).
+    arguments), in the prefix (which defaults to the root environment).
+    Returned is the process object (the one returned by subprocess.Popen).
     """
     from misc import launch
 
-    launch(fn, prefix, additional_args)
+    return launch(fn, prefix, additional_args)
 
 
 def app_uninstall(fn):
