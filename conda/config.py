@@ -82,11 +82,8 @@ def get_default_urls():
     return base_urls
 
 def get_rc_urls():
-    if 'channels' not in rc:
-        raise RuntimeError("config file '%s' is missing channels" %
-                           rc_path)
-    if 'rc' in rc['channels']:
-        raise RuntimeError("rc cannot be used in .condarc")
+    if 'system' in rc['channels']:
+        raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
 def get_channel_urls():
