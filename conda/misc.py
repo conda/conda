@@ -61,4 +61,16 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
 
 
 if __name__ == '__main__':
-    launch('spyder-app-2.2.0-py27_0.tar.bz2')
+    from optparse import OptionParser
+
+    p = OptionParser(usage="usage: %prog [options] DIST/FN")
+
+    opts, args = p.parse_args()
+
+    if len(args) != 1:
+        p.error('exactly one argument expected')
+
+    fn = args[0]
+    if not fn.endswith('.tar.bz2'):
+        fn += '.tar.bz2'
+    launch(fn)
