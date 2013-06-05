@@ -3,7 +3,7 @@
 import os
 import sys
 import shutil
-from subprocess import check_call
+import subprocess
 from collections import defaultdict
 from os.path import abspath, basename, join
 
@@ -57,7 +57,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     args = info['app_entry'].split()
     if additional_args:
         args.extend(additional_args)
-    check_call(args, env=env)
+    return subprocess.Popen(args, env=env)
 
 
 if __name__ == '__main__':
@@ -73,4 +73,5 @@ if __name__ == '__main__':
     fn = args[0]
     if not fn.endswith('.tar.bz2'):
         fn += '.tar.bz2'
-    launch(fn)
+    p = launch(fn)
+    print 'PID:', p.pid
