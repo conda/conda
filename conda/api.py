@@ -20,9 +20,9 @@ def get_index(channel_urls=(), prepend=True):
 def normalize_urls(urls):
     newurls = []
     for url in urls:
-        if url == "@defaults":
+        if url == "defaults":
             newurls.extend(normalize_urls(config.get_default_urls()))
-        elif url == "@rc":
+        elif url == "rc":
             if not config.rc_path:
                 # No-op when there is no rc to make things more convenient
                 continue
