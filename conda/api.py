@@ -22,11 +22,11 @@ def normalize_urls(urls):
     for url in urls:
         if url == "defaults":
             newurls.extend(normalize_urls(config.get_default_urls()))
-        elif url == "rc":
+        elif url == "system":
             if not config.rc_path:
-                # No-op when there is no rc to make things more convenient
-                continue
-            newurls.extend(normalize_urls(config.get_rc_urls()))
+                newurls.extend(normalize_urls(config.get_default_urls()))
+            else:
+                newurls.extend(normalize_urls(config.get_rc_urls()))
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), config.subdir))
     return newurls
