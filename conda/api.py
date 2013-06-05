@@ -6,13 +6,27 @@ from naming import name_fn, fn2spec
 from fetch import fetch_index
 
 
-def get_index():
+def get_index(channel_urls=(), prepend=True):
     """
-    return the index of packages available on the channels
-    """
-    channel_urls = config.get_channel_urls()
-    return fetch_index(channel_urls)
+    Return the index of packages available on the channels
 
+    If prepend=False, only the channels passed in as arguments are used.
+    """
+    channel_urls = normalize_urls(channel_urls)
+    if prepend:
+        channel_urls += config.get_channel_urls()
+    return fetch_index(tuple(channel_urls))
+
+def normalize_urls(urls):
+    newurls = []
+    for url in urls:
+        if url == "@defaults":
+            newurls.extend(normalize_urls(config.get_default_urls()))
+        elif url == "@rc":
+            newurls.extend(normalize_urls(config.rc_urls))
+        else:
+            newurls.append('%s/%s/' % (url.rstrip('/'), config.subdir))
+    return newurls
 
 def app_get_index():
     index = get_index()
