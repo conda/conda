@@ -71,7 +71,7 @@ def execute(args, parser):
 
         channel_urls = args.channel or ()
 
-        common.ensure_override_channels_requires_cannel(args)
+        common.ensure_override_channels_requires_channel(args)
         index = get_index(channel_urls=channel_urls, prepend=not args.override_channels)
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)

@@ -62,7 +62,7 @@ def execute(args, parser):
     if not args.canonical:
         linked = install.linked(prefix)
 
-    common.ensure_override_channels_requires_cannel(args)
+    common.ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
         args.override_channels)
