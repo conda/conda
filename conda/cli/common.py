@@ -48,6 +48,25 @@ def add_parser_quiet(p):
         help = "do not display progress bar",
     )
 
+def add_parser_channels(p, dashc=True):
+    channel_args = ("--channel",)
+    if dashc:
+        channel_args = ('-c',) + channel_args
+    p.add_argument(*channel_args,
+        action = "append",
+        help = """additional channel to search for packages. These are searched in the order
+        they are given, and then the defaults or channels from .condarc
+        (unless --override-channels is given).""" # we can't put , here; invalid syntax
+    )
+    p.add_argument(
+        "--override-channels",
+        action = "store_true",
+        help = """Do not search default or .condarc channels.  Requires --channel.""",
+    )
+
+def ensure_override_channels_requires_cannel(args):
+    if args.override_channels and not args.channel:
+        sys.exit('Error: --override-channels requires -c/--channel')
 
 def confirm(args, default='y'):
     assert default in {'y', 'n'}, default
