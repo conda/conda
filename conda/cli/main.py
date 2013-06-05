@@ -42,7 +42,6 @@ import argparse
 import conda_argparse
 import main_build
 import main_clone
-import main_launch
 import main_create
 import main_help
 import main_index
@@ -100,7 +99,6 @@ def main():
     main_pip.configure_parser(sub_parsers)
     main_share.configure_parser(sub_parsers)
     main_clone.configure_parser(sub_parsers)
-    main_launch.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 
