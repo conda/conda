@@ -18,12 +18,18 @@ def get_index():
 
 
 def app_get_index():
+    """
+    return the index of available applications on the channels
+    """
     index = get_index()
     return {fn: info for fn, info in index.iteritems()
             if info.get('type') == 'app'}
 
 
 def get_icon_url(fn):
+    """
+    return the URL belonging to the icon for application `fn`.
+    """
     index = get_index()
     return normpath('%(channel)s/../icons/%(icon)s' % index[fn])
 
@@ -49,6 +55,10 @@ def app_info_packages(fn):
 
 
 def app_is_installed(fn):
+    """
+    Return the list of prefix directories in which `fn` in installed into,
+    which might be an empty list.
+    """
     prefixes = [config.root_dir]
     for fn2 in os.listdir(config.envs_dir):
         prefix = join(config.envs_dir, fn2)
