@@ -66,9 +66,12 @@ def add_parser_channels(p, dashc=True):
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
 
-def ensure_override_channels_requires_cannel(args):
+def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not args.channel:
-        sys.exit('Error: --override-channels requires -c/--channel')
+        if dashc:
+            sys.exit('Error: --override-channels requires -c/--channel')
+        else:
+            sys.exit('Error: --override-channels requires --channel')
 
 def confirm(args, default='y'):
     assert default in {'y', 'n'}, default
