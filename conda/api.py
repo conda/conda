@@ -4,7 +4,7 @@ from os.path import isdir, join, normpath
 from utils import memoized
 import config
 import install
-from naming import name_fn, fn2spec
+from naming import fn2spec
 from fetch import fetch_index
 
 
@@ -26,7 +26,7 @@ def app_get_index():
             if info.get('type') == 'app'}
 
 
-def get_icon_url(fn):
+def app_get_icon_url(fn):
     """
     return the URL belonging to the icon for application `fn`.
     """
@@ -71,23 +71,23 @@ def app_is_installed(fn):
 # are preferably installed (or already exist) in existing environments,
 # and apps which are more "standalone" (such as firefox).
 
-def app_launch(fn, additional_args=None):
-    # serach where app in installed and start it
-    return
-
-
-def app_install(fn):
+def app_install(fn, prefix=None):
+    """
+    Install the application `fn` into prefix (which defauts to the root
+    environment).
+    """
     import plan
 
-    for i in xrange(1000):
-        prefix = join(config.envs_dir, '%s-%03d' % (name_fn(fn), i))
-        if not isdir(prefix):
-            break
-
+    if prefix is None:
+        prefix = config.root_dir
     index = get_index()
     actions = plan.install_actions(prefix, index, [fn2spec(fn)])
     plan.execute_actions(actions, index)
-    return prefix
+
+
+def app_launch(fn, additional_args=None):
+    # serach where app in installed and start it
+    return
 
 
 def app_uninstall(fn):
