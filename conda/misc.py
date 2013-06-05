@@ -63,15 +63,18 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
 if __name__ == '__main__':
     from optparse import OptionParser
 
-    p = OptionParser(usage="usage: %prog [options] DIST/FN")
-
+    p = OptionParser(usage="usage: %prog [options] DIST/FN [ADDITIONAL ARGS]")
+    p.add_option('-p', '--prefix',
+                 action="store",
+                 default=sys.prefix,
+                 help="prefix (defaults to %default)")
     opts, args = p.parse_args()
 
-    if len(args) != 1:
-        p.error('exactly one argument expected')
+    if len(args) == 0:
+        p.error('at least one argument expected')
 
     fn = args[0]
     if not fn.endswith('.tar.bz2'):
         fn += '.tar.bz2'
-    p = launch(fn)
+    p = launch(fn, opts.prefix, args[1:])
     print 'PID:', p.pid
