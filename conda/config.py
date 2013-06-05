@@ -92,7 +92,7 @@ def get_rc_urls():
 def get_channel_urls():
     from api import normalize_urls
 
-    if rc_path is None:
+    if rc is None or 'channels' not in rc:
         base_urls = get_default_urls()
     else:
         base_urls = get_rc_urls()
