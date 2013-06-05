@@ -63,6 +63,8 @@ def load_condarc(path):
 
     return yaml.load(open(path))
 
+rc = load_condarc(rc_path)
+
 # ----- channels -----
 
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
@@ -78,7 +80,6 @@ def get_default_urls():
     return base_urls
 
 def get_rc_urls():
-    rc = load_condarc(rc_path)
     if 'channels' not in rc:
         raise RuntimeError("config file '%s' is missing channels" %
                            rc_path)
