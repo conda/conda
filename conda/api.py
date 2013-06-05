@@ -1,4 +1,4 @@
-from os.path import isdir, join
+from os.path import isdir, join, normpath
 
 from utils import memoized
 import config
@@ -20,6 +20,11 @@ def app_get_index():
     index = get_index()
     return {fn: info for fn, info in index.iteritems()
             if info.get('type') == 'app'}
+
+
+def get_icon_url(fn):
+    index = get_index()
+    return normpath('%(channel)s/../icons/%(icon)s' % index[fn])
 
 
 def app_info_packages(fn):
@@ -76,4 +81,5 @@ def app_uninstall(fn):
 if __name__ == '__main__':
     from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
-    print app_install('twisted-12.3.0-py27_0.tar.bz2')
+    #print app_install('twisted-12.3.0-py27_0.tar.bz2')
+    print get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2')
