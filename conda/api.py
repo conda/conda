@@ -1,13 +1,11 @@
 from os.path import isdir, join
 
-from utils import memoized
 import config
 import install
 from naming import name_fn, fn2spec
 from fetch import fetch_index
 
 
-@memoized
 def get_index():
     """
     return the index of packages available on the channels
