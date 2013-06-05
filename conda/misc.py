@@ -2,7 +2,6 @@
 # into other places
 import os
 import sys
-import json
 import shutil
 from subprocess import check_call
 from collections import defaultdict
@@ -38,23 +37,28 @@ def install_local_packages(prefix, paths, verbose=False):
     execute_actions(actions, verbose=verbose)
 
 
-def launch(app_dir):
-    with open(join(app_dir, 'meta.json')) as fi:
-        meta = json.load(fi)
+def launch(fn, prefix=config.root_dir, additional_args=None):
+    from api import get_index
+
+    index = get_index()
+    info = index[fn]
+
     # prepend the bin directory to the path
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
-    env = {'PATH': fmt % (abspath(join(app_dir, '..', '..')),
-                          os.getenv('PATH'))}
+    env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
     # copy existing environment variables, but not anything with PATH in it
     for k, v in os.environ.iteritems():
         if 'PATH' not in k:
             env[k] = v
     # allow updating environment variables from metadata
-    if 'env' in meta:
-        env.update(meta['env'])
+    if 'app_env' in info:
+        env.update(info['app_env'])
     # call the entry command
-    check_call(meta['entry'].split(), cwd=app_dir, env=env)
+    args = info['app_entry'].split()
+    if additional_args:
+        args.extend(additional_args)
+    check_call(args, env=env)
 
 
 if __name__ == '__main__':
-    launch('/Users/ilan/python/App/filebin')
+    launch('spyder-app-2.2.0-py27_0.tar.bz2')

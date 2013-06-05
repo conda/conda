@@ -71,23 +71,26 @@ def app_is_installed(fn):
 # are preferably installed (or already exist) in existing environments,
 # and apps which are more "standalone" (such as firefox).
 
-def app_install(fn, prefix=None):
+def app_install(fn, prefix=config.root_dir):
     """
     Install the application `fn` into prefix (which defauts to the root
     environment).
     """
     import plan
 
-    if prefix is None:
-        prefix = config.root_dir
     index = get_index()
     actions = plan.install_actions(prefix, index, [fn2spec(fn)])
     plan.execute_actions(actions, index)
 
 
-def app_launch(fn, additional_args=None):
-    # serach where app in installed and start it
-    return
+def app_launch(fn, prefix=config.root_dir, additional_args=None):
+    """
+    Launch the application `fn` (with optional additional command line
+    arguments), in the prefix (which defauts to the root environment).
+    """
+    from misc import launch
+
+    launch(fn, prefix, additional_args)
 
 
 def app_uninstall(fn):
