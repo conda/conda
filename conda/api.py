@@ -1,3 +1,4 @@
+import os
 from os.path import isdir, join, normpath
 
 from utils import memoized
@@ -48,8 +49,13 @@ def app_info_packages(fn):
 
 
 def app_is_installed(fn):
-    name = name_fn(fn)
-    return # None or prefix
+    prefixes = [config.root_dir]
+    for fn2 in os.listdir(config.envs_dir):
+        prefix = join(config.envs_dir, fn2)
+        if isdir(prefix):
+            prefixes.append(prefix)
+    dist = fn[:-8]
+    return [prefix for prefix in prefixes if install.is_linked(prefix, dist)]
 
 # It seems to me that we need different types of apps, i.e. apps which
 # are preferably installed (or already exist) in existing environments,
@@ -82,4 +88,4 @@ if __name__ == '__main__':
     from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
     #print app_install('twisted-12.3.0-py27_0.tar.bz2')
-    print get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2')
+    pprint(app_is_installed('spyder-app-2.2.0-py27_0.tar.bz2'))
