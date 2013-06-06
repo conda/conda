@@ -4,7 +4,7 @@
   * Add default and system meta-channels, for use in .condarc and with -c
     (issue 122).
 
-2013-06-XX   1.6.0:
+2013-06-05   1.6.0:
 -------------------
   * update package command to reflect changes in repodata
   * fixed refactoring bugs in share/clone

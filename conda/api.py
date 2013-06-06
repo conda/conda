@@ -1,8 +1,9 @@
-from os.path import isdir, join
+import os
+from os.path import isdir, join, normpath
 
 import config
 import install
-from naming import name_fn, fn2spec
+from naming import fn2spec
 from fetch import fetch_index
 
 
@@ -32,9 +33,20 @@ def normalize_urls(urls):
     return newurls
 
 def app_get_index():
+    """
+    return the index of available applications on the channels
+    """
     index = get_index()
     return {fn: info for fn, info in index.iteritems()
             if info.get('type') == 'app'}
+
+
+def app_get_icon_url(fn):
+    """
+    return the URL belonging to the icon for application `fn`.
+    """
+    index = get_index()
+    return normpath('%(channel)s/../icons/%(icon)s' % index[fn])
 
 
 def app_info_packages(fn):
@@ -58,30 +70,43 @@ def app_info_packages(fn):
 
 
 def app_is_installed(fn):
-    name = name_fn(fn)
-    return # None or prefix
+    """
+    Return the list of prefix directories in which `fn` in installed into,
+    which might be an empty list.
+    """
+    prefixes = [config.root_dir]
+    for fn2 in os.listdir(config.envs_dir):
+        prefix = join(config.envs_dir, fn2)
+        if isdir(prefix):
+            prefixes.append(prefix)
+    dist = fn[:-8]
+    return [prefix for prefix in prefixes if install.is_linked(prefix, dist)]
 
 # It seems to me that we need different types of apps, i.e. apps which
 # are preferably installed (or already exist) in existing environments,
 # and apps which are more "standalone" (such as firefox).
 
-def app_launch(fn, additional_args=None):
-    # serach where app in installed and start it
-    return
-
-
-def app_install(fn):
+def app_install(fn, prefix=config.root_dir):
+    """
+    Install the application `fn` into prefix (which defauts to the root
+    environment).
+    """
     import plan
-
-    for i in xrange(1000):
-        prefix = join(config.envs_dir, '%s-%03d' % (name_fn(fn), i))
-        if not isdir(prefix):
-            break
 
     index = get_index()
     actions = plan.install_actions(prefix, index, [fn2spec(fn)])
     plan.execute_actions(actions, index)
-    return prefix
+
+
+def app_launch(fn, prefix=config.root_dir, additional_args=None):
+    """
+    Launch the application `fn` (with optional additional command line
+    arguments), in the prefix (which defaults to the root environment).
+    Returned is the process object (the one returned by subprocess.Popen).
+    """
+    from misc import launch
+
+    return launch(fn, prefix, additional_args)
 
 
 def app_uninstall(fn):
@@ -91,4 +116,5 @@ def app_uninstall(fn):
 if __name__ == '__main__':
     from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
-    print app_install('twisted-12.3.0-py27_0.tar.bz2')
+    #print app_install('twisted-12.3.0-py27_0.tar.bz2')
+    pprint(app_is_installed('spyder-app-2.2.0-py27_0.tar.bz2'))
