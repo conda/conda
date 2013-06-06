@@ -1,21 +1,36 @@
 import os
 from os.path import isdir, join, normpath
 
-from utils import memoized
 import config
 import install
 from naming import fn2spec
 from fetch import fetch_index
 
 
-@memoized
-def get_index():
+def get_index(channel_urls=(), prepend=True):
     """
-    return the index of packages available on the channels
-    """
-    channel_urls = config.get_channel_urls()
-    return fetch_index(channel_urls)
+    Return the index of packages available on the channels
 
+    If prepend=False, only the channels passed in as arguments are used.
+    """
+    channel_urls = normalize_urls(channel_urls)
+    if prepend:
+        channel_urls += config.get_channel_urls()
+    return fetch_index(tuple(channel_urls))
+
+def normalize_urls(urls):
+    newurls = []
+    for url in urls:
+        if url == "defaults":
+            newurls.extend(normalize_urls(config.get_default_urls()))
+        elif url == "system":
+            if not config.rc_path:
+                newurls.extend(normalize_urls(config.get_default_urls()))
+            else:
+                newurls.extend(normalize_urls(config.get_rc_urls()))
+        else:
+            newurls.append('%s/%s/' % (url.rstrip('/'), config.subdir))
+    return newurls
 
 def app_get_index():
     """

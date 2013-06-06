@@ -59,28 +59,39 @@ def get_rc_path():
 rc_path = get_rc_path()
 
 def load_condarc(path):
+    if not path:
+        return path
     import yaml
 
     return yaml.load(open(path))
 
+rc = load_condarc(rc_path)
+
 # ----- channels -----
 
-def get_channel_urls():
+# Note, get_default_urls() and get_rc_urls() return unnormalized urls.
+
+def get_default_urls():
+    base_urls = ['http://repo.continuum.io/pkgs/free',
+                     'http://repo.continuum.io/pkgs/pro']
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
         if os.getenv('CIO_TEST') == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
+    return base_urls
 
-    elif rc_path is None:
-        base_urls = ['http://repo.continuum.io/pkgs/free',
-                     'http://repo.continuum.io/pkgs/pro']
+def get_rc_urls():
+    if 'system' in rc['channels']:
+        raise RuntimeError("system cannot be used in .condarc")
+    return rc['channels']
 
+def get_channel_urls():
+    from api import normalize_urls
+
+    if rc is None or 'channels' not in rc:
+        base_urls = get_default_urls()
     else:
-        rc = load_condarc(rc_path)
-        if 'channels' not in rc:
-            raise RuntimeError("config file '%s' is missing channels" %
-                               rc_path)
-        base_urls = [url.rstrip('/') for url in rc['channels']]
+        base_urls = get_rc_urls()
 
-    return ['%s/%s/' % (url, subdir) for url in base_urls]
+    return normalize_urls(base_urls)
