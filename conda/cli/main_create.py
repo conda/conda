@@ -35,6 +35,7 @@ def configure_parser(sub_parsers):
         action = "store",
         help = "filename to read package specs from",
     )
+    common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
@@ -77,7 +78,10 @@ def execute(args, parser):
 
     common.check_specs(prefix, specs)
 
-    index = get_index()
+    channel_urls = args.channel or ()
+
+    common.ensure_override_channels_requires_channel(args)
+    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels)
     actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
