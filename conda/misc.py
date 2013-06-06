@@ -5,7 +5,7 @@ import sys
 import shutil
 import subprocess
 from collections import defaultdict
-from os.path import abspath, basename, join
+from os.path import abspath, basename, expanduser, join
 
 import config
 import install
@@ -54,9 +54,10 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
         env.update(info['app_env'])
     # call the entry command
     args = info['app_entry'].split()
+    cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
-    return subprocess.Popen(args, env=env)
+    return subprocess.Popen(args, cwd=cwd , env=env)
 
 
 if __name__ == '__main__':
