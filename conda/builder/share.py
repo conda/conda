@@ -6,7 +6,7 @@ import tempfile
 import shutil
 from os.path import abspath, basename, isdir, join
 
-import conda.config as config
+from conda.config import config
 from conda.api import get_index
 from conda.resolve import MatchSpec
 from conda.fetch import fetch_pkg

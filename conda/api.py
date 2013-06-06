@@ -1,7 +1,7 @@
 import os
 from os.path import isdir, join, normpath
 
-import config
+from config import config
 import install
 from naming import fn2spec
 from fetch import fetch_index

@@ -45,7 +45,7 @@ def execute(args, parser):
     from os.path import basename, join
 
     import conda
-    import conda.config as config
+    from conda.config import config
 
 
     options = 'envs', 'system', 'license'

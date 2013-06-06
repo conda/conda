@@ -7,7 +7,7 @@ import subprocess
 from collections import defaultdict
 from os.path import abspath, basename, expanduser, join
 
-import config
+from config import config
 import install
 from plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
 

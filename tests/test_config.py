@@ -8,7 +8,7 @@ import os
 import unittest
 from os.path import dirname, join
 
-import conda.config as config
+from conda.config import config
 
 
 # use condarc from source tree to run these tests against

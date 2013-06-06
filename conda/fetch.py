@@ -12,7 +12,7 @@ import urllib2
 import logging
 from os.path import join
 
-import config
+from config import config
 from utils import memoized
 
 log = logging.getLogger(__name__)

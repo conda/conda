@@ -8,7 +8,7 @@ import tarfile
 import tempfile
 from os.path import abspath, basename, dirname, isfile, islink, join
 
-import conda.config as config
+from conda.config import config
 import conda.install as install
 from conda.misc import install_local_packages
 
