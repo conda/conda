@@ -13,7 +13,7 @@ import logging
 from os.path import join
 
 import config
-
+from utils import memoized
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ def fetch_repodata(url):
     raise RuntimeError("failed to fetch repodata from %r" % url)
 
 
+@memoized
 def fetch_index(channel_urls):
     index = {}
     for url in reversed(channel_urls):

@@ -40,6 +40,7 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "remove features (instead of packages)",
     )
+    common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
@@ -68,7 +69,10 @@ def execute(args, parser):
     if args.features:
         from conda.api import get_index
 
-        index = get_index()
+        channel_urls = args.channel or ()
+
+        common.ensure_override_channels_requires_channel(args)
+        index = get_index(channel_urls=channel_urls, prepend=not args.override_channels)
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
 
