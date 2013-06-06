@@ -39,6 +39,8 @@ def install_local_packages(prefix, paths, verbose=False):
 
 def launch(fn, prefix=config.root_dir, additional_args=None):
     info = install.is_linked(prefix, fn[:-8])
+    if info is None:
+        return None
 
     # prepend the bin directory to the path
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'

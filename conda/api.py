@@ -87,7 +87,8 @@ def app_launch(fn, prefix=config.root_dir, additional_args=None):
     """
     Launch the application `fn` (with optional additional command line
     arguments), in the prefix (which defaults to the root environment).
-    Returned is the process object (the one returned by subprocess.Popen).
+    Returned is the process object (the one returned by subprocess.Popen),
+    or None if the application `fn` is not installed in the prefix.
     """
     from misc import launch
 
