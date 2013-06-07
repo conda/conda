@@ -24,7 +24,7 @@ import config
 #typically http, https, ftp
 
 #1. get the proxies list
-proxies_dict=urllib2.getproxies() 
+proxies_dict=urllib2.getproxies()
 # urllib can only get proxies on windows and mac. so on linux or if the user
 # wants to specify the proxy there has to be a way to do that. TODO get proxies
 #from condarc and overrwrite any system proxies
@@ -47,8 +47,9 @@ def get_userandpass(proxytype='',realm=''):
 #a procedure that needs to be executed with changes to handlers
 def installopener():
     opener = urllib2.build_opener(urllib2.ProxyHandler(proxies_dict)
-                                ,urllib2.ProxyBasicAuthHandler(proxypwdmgr)
+                                ,urllib2.ProxyBasictAuthHandler(proxypwdmgr)
                                 ,urllib2.ProxyDigestAuthHandler(proxypwdmgr)
+#digest auth may not work with all proxies http://bugs.python.org/issue16095
                                 )#could add windows/nltm authentication here
     urllib2.install_opener(opener)
     return
@@ -56,7 +57,6 @@ def installopener():
 
 firstconnection=True
 #i made this func so i wouldn't alter the original code much
-import urlparse
 def connectionhandled_urlopen(url):
     """handles aspects of establishing the connection with the remote"""
 
@@ -65,6 +65,7 @@ def connectionhandled_urlopen(url):
     except urllib2.HTTPError as HTTPErrorinst:
         if HTTPErrorinst.code==407 or 401:#proxy authentication error
             #...(need to auth) or supplied creds failed
+            if HTTPErrorinst.code==401: log.debug('proxy authentication failed')
             #authenticate and retry
             uname,pword=get_userandpass()
             #assign same user+pwd to all protocols (a reasonable assumption) to
