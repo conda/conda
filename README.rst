@@ -12,7 +12,7 @@ Examples
 Create an Anaconda environment called ``myenv`` containing the latest version of scipy and all dependencies.
 
 .. code-block:: bash
-    
+
     $ conda create -n myenv scipy
 
 Install the latest version of pandas into ``myenv``
@@ -40,21 +40,5 @@ Activating a conda environment is made simple through the use of the activate co
 Similarly, to deactivate an environment and return your PATH variable to its previous state, use
 
 .. code-block:: bash
-    
+
     $ source deactivate myenv
-
-**Adjusting PATH variable**
-
-Alternatively, you can adjust your PATH by hand.
-
-on linux and os x:
-
-.. code-block:: bash
-
-    $ export PATH=~/anaconda/envs/myenv/bin:$PATH
-
-on windows:
-
-.. code-block:: 
-
-    > set PATH=C:\Anaconda\envs\myenv\Scripts;%PATH%
