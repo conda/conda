@@ -54,7 +54,7 @@ def installopener():
     urllib2.install_opener(opener)
     return
 
-
+import urlparse
 firstconnection=True
 #i made this func so i wouldn't alter the original code much
 def connectionhandled_urlopen(url):
