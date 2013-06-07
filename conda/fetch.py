@@ -28,7 +28,7 @@ proxies_dict=urllib2.getproxies()
 # urllib can only get proxies on windows and mac. so on linux or if the user
 # wants to specify the proxy there has to be a way to do that. TODO get proxies
 #from condarc and overrwrite any system proxies
-#the proxies are in the dict proxy.proxies like {'http':'http://proxy:8080'}
+#the proxies are in a dict {'http':'http://proxy:8080'}
 #protocol:proxyserver
 
 #2. handle authentication
