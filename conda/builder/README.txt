@@ -21,7 +21,7 @@ When building a package, the following steps are invoked:
       - cwd is the "source directory"
       - with environment variables set
       - in the build script installs into the "build environment"
-  * do some necessary post processing steps: sheband, runpath, etc.
+  * do some necessary post processing steps: shebang, runpath, etc.
   * add conda metadata to the "build environment"
   * package up the new files in the "build environment" into a conda package
   * test the new conda package:
