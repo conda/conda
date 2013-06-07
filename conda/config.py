@@ -140,4 +140,3 @@ class Configuration(UnconfigurableConfig, EnvironmentConfig, RCConfig, DefaultCo
 
 config = Configuration()
 config_default = DefaultConfig()
-config_rc = RCConfig()
