@@ -131,7 +131,7 @@ class RCConfigBase(ConfigBase):
         # As condarc grows, this will probably need to be expanded into
         # something more sophisticated.
         if 'system' in self.rc['channels']:
-            raise RuntimeError("'system' cannot be used in .condarc")
+            sys.exit("Error: 'system' cannot be used in .condarc")
 
 class UserRCConfig(RCConfigBase):
     rc_path = abspath(expanduser('~/.condarc'))

@@ -73,7 +73,7 @@ class TestConfigPrecedence(unittest.TestCase):
 
     def test_rc_system(self):
         config.rc_path = join(dirname(__file__), "condarcs", "condarc-system")
-        self.assertRaises(RuntimeError, lambda: config.load_condarc())
+        self.assertRaises(SystemExit, lambda: config.load_condarc())
 
     def test_environment(self):
         for rc_path in [None, join(dirname(__file__), "condarcs", "condarc")]:
