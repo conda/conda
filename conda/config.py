@@ -104,7 +104,7 @@ class EnvironmentConfig(ConfigBase):
 
 class RCConfigBase(ConfigBase):
     def __init__(self):
-        if not self.rc_path or isfile(self.rc_path):
+        if not self.rc_path or not isfile(self.rc_path):
             self.rc_path = None
         self.load_condarc()
         super(RCConfigBase, self).__init__()
