@@ -4,8 +4,7 @@ import sys
 import json
 import tarfile
 from subprocess import check_call
-from os.path import (abspath, basename, exists, isdir, isfile,
-                     islink, join)
+from os.path import abspath, exists, isdir, islink, join
 
 import conda.plan as plan
 from conda.api import get_index
@@ -18,15 +17,12 @@ from scripts import create_entry_points
 from metadata import MetaData
 from post import post_process, post_build, is_obj
 
-from utils import bzip2, bunzip2, rm_rf, tar_xf
+from utils import bzip2, rm_rf
 
 
 prefix = config.build_prefix
 info_dir = join(prefix, 'info')
 
-
-def tar_pkg_path(pkg):
-    return join(config.TARS_DIR, dist_name(pkg) + '.tar')
 
 
 def mkdir_prefix():
@@ -97,28 +93,6 @@ def create_info_files(m, files):
             source.git_info(fo)
 
 
-def available(pkg):
-    if isfile(tar_pkg_path(pkg)):
-        return True
-
-    fn = dist_name(pkg) + '.tar.bz2'
-    return check_pkg(config.REPOS, fn, verbose=True)
-
-
-def install(pkg):
-    # assumes that packge is available, i.e. available(pkg) is True
-    assert available(pkg), pkg
-    if not isfile(tar_pkg_path(pkg)):
-        fn = dist_name(pkg) + '.tar.bz2'
-        assert fetch_pkg(config.REPOS, fn, config.TARS_DIR, verbose=True)
-        bunzip2(join(config.TARS_DIR, fn), verbose=True)
-
-    path = tar_pkg_path(pkg)
-    assert isfile(path)
-    print "installing:", basename(path)
-    tar_xf(path, prefix)
-
-
 def create_env(pref, specs):
     index = get_index()
     actions = plan.install_actions(pref, index, specs)
@@ -142,7 +116,7 @@ def build(m, get_src=True):
 
     if sys.platform == 'win32':
         import windows
-        windows.build(pkg)
+        windows.build(m)
     else:
         env = environ.get_dict()
         cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
@@ -162,34 +136,23 @@ def build(m, get_src=True):
     for f in sorted(files3 - files2):
         print '    %s' % f
 
-    if not isdir(config.TARS_DIR):
-        os.mkdir(config.TARS_DIR)
-
-    path = tar_pkg_path(pkg)
-    t = tarfile.open(path, 'w')
+    fn = '%s.tar' % m.dist_name()
+    t = tarfile.open(fn, 'w')
     for f in sorted(files3 - files1):
         t.add(join(prefix, f), f)
     t.close()
 
-    # we're done building, perform some checks and upload to filer
-    print "tarball build: %s" % basename(path)
-    tarcheck.check_all(path)
-    print "BUILD END:", dist_name(pkg)
+    bzip2(fn)
 
-    if only_build:
-        return
+    # we're done building, perform some checks
+    print "tarball build: %s" % fn
+    tarcheck.check_all(fn)
+    print "BUILD END:", m.dist_name()
 
-    if deps:
-        for p in run_requires(pkg):
-            if available(p):
-                continue
-            build(p)
-
-    test(pkg)
-    bzip2(path)
+#    test(m)
 
 
-def test(pkg):
+def test(m):
     tmp_dir = join(AROOT, 'test-tmp_dir')
     rm_rf(tmp_dir)
     os.mkdir(tmp_dir)
@@ -197,7 +160,7 @@ def test(pkg):
         print "Nothing to test for:", pkg
         return
 
-    print "TEST START:", dist_name(pkg)
+    print "TEST START:", m.dist_name()
 
     packages = run_requires(pkg, include_self=True)
     # as the tests are run by python, they require it
@@ -219,7 +182,7 @@ def test(pkg):
     check_call([config.PYTHON, join(tmp_dir, 'run_test.py')],
                env=env, cwd=tmp_dir)
 
-    print "TEST END:", dist_name(pkg)
+    print "TEST END:", m.dist_name()
 
 
 def main():
