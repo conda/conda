@@ -6,6 +6,7 @@ import tarfile
 from subprocess import check_call
 from os.path import abspath, exists, isdir, islink, join
 
+import conda.config as cc
 import conda.plan as plan
 from conda.api import get_index
 
@@ -18,11 +19,13 @@ from metadata import MetaData
 from post import post_process, post_build, is_obj
 
 from utils import rm_rf
+from index import update_index
 
 
 prefix = config.build_prefix
 info_dir = join(prefix, 'info')
 
+bldpkgs_dir = join(config.croot, cc.subdir)
 
 
 def mkdir_prefix():
@@ -94,14 +97,18 @@ def create_info_files(m, files):
 
 
 def create_env(pref, specs):
-    index = get_index()
+    if not isdir(bldpkgs_dir):
+        os.mkdir(bldpkgs_dir)
+    update_index(bldpkgs_dir)
+    index = get_index(['file://%s' % config.croot])
+
     actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
 
 
 def bldpkg_path(m):
-    return join(config.bldpkgs_dir, '%s.tar.bz2' % m.dist_name())
+    return join(bldpkgs_dir, '%s.tar.bz2' % m.dist_name())
 
 
 def build(m, get_src=True):
@@ -141,9 +148,6 @@ def build(m, get_src=True):
         print '    %s' % f
 
     path = bldpkg_path(m)
-    if not isdir(config.bldpkgs_dir):
-        os.mkdir(config.bldpkgs_dir)
-
     t = tarfile.open(path, 'w:bz2')
     for f in sorted(files3 - files1):
         t.add(join(prefix, f), f)
@@ -153,35 +157,30 @@ def build(m, get_src=True):
 
     # we're done building, perform some checks
     tarcheck.check_all(path)
-
-#    test(m)
+    update_index(bldpkgs_dir)
+    test(m)
 
 
 def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
     os.mkdir(tmp_dir)
-    fn = '%s.tar' % m.dist_name()
-    if not create_test_files(tmp_dir, m):
+    if 0:# not create_test_files(tmp_dir, m):
         print "Nothing to test for:", m.dist_name()
         return
 
     print "TEST START:", m.dist_name()
 
     rm_rf(config.test_prefix)
-    specs = [ms.spec for ms in m.ms_depends()]
-    create_env(config.test_prefix, [ms.spec for ms in m.ms_depends()])
+    specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
+             # as the tests are run by python, we need to specify it
+             'python %s*' % environ.py_ver]
+    # add packages listed in test/requires
+    for spec in m.get_value('test/requires'):
+        specs.append(spec)
 
-    packages = run_requires(pkg, include_self=True)
-    # as the tests are run by python, they require it
-    packages.add(find('python'))
-    # add packages listed in test/require
-    for name in get_meta_value(pkg, 'test/requires'):
-        packages.add(find(name))
-
-    mkdir_prefix()
-    for p in sorted(packages):
-        install(p)
+    print specs
+    create_env(config.test_prefix, specs)
 
     env = dict(os.environ)
     if sys.platform == 'win32':
@@ -189,7 +188,7 @@ def test(m):
     for varname in 'ANA_PY', 'ANA_NPY':
         env[varname] = str(getattr(config, varname))
 
-    check_call([config.PYTHON, join(tmp_dir, 'run_test.py')],
+    check_call([config.test_python, join(tmp_dir, 'run_test.py')],
                env=env, cwd=tmp_dir)
 
     print "TEST END:", m.dist_name()
