@@ -112,17 +112,17 @@ class RCConfigBase(ConfigBase):
     def __init__(self):
         if not self.rc_path or isfile(self.rc_path):
             self.rc_path = None
-        self.rc = self.load_condarc(self.rc_path)
+        self.load_condarc(self.rc_path)
         super(RCConfigBase, self).__init__()
 
     rc_path = None
 
     def load_condarc(self, path):
         if not path:
-            return path
+            self.rc = path
         import yaml
 
-        return yaml.load(open(path))
+        self.rc = yaml.load(open(path))
 
     def __getattr__(self, attr):
         return getattr(self.rc, attr)
