@@ -118,12 +118,20 @@ class RCConfigBase(ConfigBase):
             import yaml
             self.rc = yaml.load(open(self.rc_path))
 
+            self.validate()
+
             for attr in self.rc:
                 if attr == "channels":
                     # "channels" in an rc file is actually base_urls
                     setattr(self, 'base_urls', self.rc[attr])
                 else:
                     setattr(self, attr, self.rc[attr])
+
+    def validate(self):
+        # As condarc grows, this will probably need to be expanded into
+        # something more sophisticated.
+        if 'system' in self.rc['channels']:
+            raise RuntimeError("'system' cannot be used in .condarc")
 
 class UserRCConfig(RCConfigBase):
     rc_path = abspath(expanduser('~/.condarc'))
