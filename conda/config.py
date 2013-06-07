@@ -120,9 +120,10 @@ class RCConfigBase(ConfigBase):
     def load_condarc(self, path):
         if not path:
             self.rc = path
-        import yaml
+        else:
+            import yaml
 
-        self.rc = yaml.load(open(path))
+            self.rc = yaml.load(open(path))
 
     def __getattr__(self, attr):
         return getattr(self.rc, attr)
