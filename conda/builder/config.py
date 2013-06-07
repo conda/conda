@@ -26,3 +26,11 @@ def _get_python(prefix):
 
 build_python = _get_python(build_prefix)
 test_python = _get_python(test_prefix)
+
+
+def show():
+    import conda.config as cc
+
+    print 'ANA_PY:', ANA_PY
+    print 'ANA_NPY:', ANA_NPY
+    print 'subdir:', cc.subdir
