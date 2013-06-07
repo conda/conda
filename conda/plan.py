@@ -182,8 +182,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        # ensure conda is in root environment
-        assert 'conda' in must_have
+        if not force:
+            # ensure conda is in root environment
+            assert 'conda' in must_have
     else:
         # discard conda from other environments
         if 'conda' in must_have:
