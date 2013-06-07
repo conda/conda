@@ -1,16 +1,14 @@
 import re
-import os
 from os.path import isdir, join
 
 from conda.utils import memoized
 import conda.config as config
 from conda.resolve import MatchSpec
 
+from config import ANA_PY, ANA_NPY
+
 import yaml
 
-
-ANA_PY = int(os.getenv('ANA_PY', 27))
-ANA_NPY = int(os.getenv('ANA_NPY', 17))
 
 
 def ns_cfg():
