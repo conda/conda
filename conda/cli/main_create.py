@@ -12,9 +12,8 @@ from conda.cli import common
 
 
 descr = ("Create a new conda environment from a list of specified "
-         "packages.  To use the created environment, invoke the binaries "
-         "in that environment's bin directory or adjust your PATH to "
-         "look in that directory first.  This command requires either "
+         "packages.  To use the created environment, use 'source activate "
+         "envname' look in that directory first.  This command requires either "
          "the -n NAME or -p PREFIX option.")
 
 example = """
