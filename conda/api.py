@@ -15,7 +15,7 @@ def get_index(channel_urls=(), prepend=True):
     """
     channel_urls = normalize_urls(channel_urls)
     if prepend:
-        channel_urls += config.get_channel_urls()
+        channel_urls += config.channel_urls
     return fetch_index(tuple(channel_urls))
 
 def normalize_urls(urls):

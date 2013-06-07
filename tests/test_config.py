@@ -37,7 +37,7 @@ class TestConfig(unittest.TestCase):
 
     def test_channel_urls(self):
         config.subdir = 'foo'
-        urls = config.get_channel_urls()
+        urls = config.channels
         self.assertEqual(urls,
                          ['http://repo.continuum.io/pkgs/dev/foo/',
                           'http://repo.continuum.io/pkgs/gpl/foo/',

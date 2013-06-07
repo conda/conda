@@ -54,7 +54,7 @@ def execute(args, parser):
                      conda_version=conda.__version__,
                      root_prefix=config.root_dir,
                      default_prefix=config.default_prefix,
-                     channels=config.get_channel_urls(),
+                     channels=config.channels,
                      rc_path=config.rc_path)
     if args.json:
         common.stdout_json(info_dict)
