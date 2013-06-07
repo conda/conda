@@ -87,7 +87,7 @@ def compile_missing_pyc():
                     '-q', '-x', 'port_v3', sp_dir])
 
 
-def post_process(pkg):
+def post_process():
     rm_egg_dirs()
     rm_py_along_so()
     if not PY3K:
@@ -122,7 +122,7 @@ def mk_relative_osx(path):
     for name in macho.otool(path):
         assert not name.startswith(build_prefix), path
 
-def mk_relative(pkg, f):
+def mk_relative(f):
     assert sys.platform != 'win32'
     if f.startswith('bin/'):
         fix_shebang(f)
@@ -172,11 +172,11 @@ def fix_permissions():
             os.chmod(p, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
 
 
-def post_build(pkg, files):
+def post_build(files):
     print 'number of files:', len(files)
     fix_permissions()
     for f in files:
         if sys.platform != 'win32':
-            mk_relative(pkg, f)
+            mk_relative(f)
         replace_bi_path(join(build_prefix, f))
     fix_permissions()
