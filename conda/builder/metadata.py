@@ -1,20 +1,20 @@
 import re
 import os
-from collections import defaultdict
-from os.path import isdir, isfile, join
+from os.path import isdir, join
 
 from conda.utils import memoized
 import conda.config as config
+from conda.resolve import MatchSpec
 
 import yaml
 
 
-ANA_PY = int(os.getenv('ANA_PY'), config.default_python)
-ANA_NPY = int(os.getenv('ANA_NPY'), config.default_numpy)
+ANA_PY = int(os.getenv('ANA_PY', 27))
+ANA_NPY = int(os.getenv('ANA_NPY', 17))
 
 
 def ns_cfg():
-    plat = config.platform
+    plat = config.subdir
     py = ANA_PY
     np = ANA_NPY
     for x in py, np:
@@ -86,10 +86,6 @@ def parse(data):
     return res
 
 
-def name_pkg(pkg):
-    return pkg.rsplit('-', 1)[0]
-
-
 class MetaData(object):
 
     def __init__(self, path):
@@ -98,34 +94,62 @@ class MetaData(object):
         meta_path = join(path, 'meta.yaml')
         self.meta = parse(open(meta_path).read())
 
+    def get_submeta(self, section):
+        return self.meta.get(section, {})
+
     def get_value(self, field, default=None):
         section, key = field.split('/')
-        return self.meta.get(section, {}).get(key, default)
+        return self.get_submeta(section).get(key, default)
+
+    def name(self):
+        return self.get_value('package/name').lower()
+
+    def version(self):
+        return self.get_value('package/version')
 
     def build_number(self):
         return int(self.get_value('build/number', 0))
 
-    def run_requires(self, typ):
-        return self.get_value('requirements/run')
+    def ms_depends(self, typ='run'):
+        res = []
+        for spec in self.get_value('requirements/' + typ):
+            ms = MatchSpec(spec)
+            for name, ver in [('python', ANA_PY), ('numpy', ANA_NPY)]:
+                if ms.name == name:
+                    ms = MatchSpec('%s %s*' % (name, '.'.join(str(ver))))
+            res.append(ms)
+        return res
 
     def build_id(self):
         res = []
         for name, s in (('numpy', 'np'), ('python', 'py')):
-            for p in self.run_requires(pkg):
-                n, v = p.rsplit('-', 1)
-                if n == name:
+            for ms in self.ms_depends():
+                if ms.name == name:
+                    v = ms.spec.split()[1]
                     res.append(s + v[0] + v[2])
                     break
         if res:
             res.append('_')
-        res.append('%s%d' % (self.get_value(pkg, 'build/channel', ''),
-                             self.build_number(pkg)))
+        res.append('%d' % self.build_number())
         return ''.join(res)
 
-    def canonical_name(self, pkg):
-        return '%s-%s' % (pkg, self.build_id(pkg))
+    def dist_name(self):
+        return '%s-%s-%s' % (self.name(), self.version(), self.build_id())
+
+    def info_index(self):
+        return dict(
+            name = self.name(),
+            version = self.version(),
+            build = self.build_id(),
+            build_number = self.build_number(),
+            platform = config.platform,
+            arch = config.arch_name,
+            depends = sorted(ms.spec for ms in self.ms_depends())
+        )
 
 
 if __name__ == '__main__':
-    pass
+    from pprint import pprint
 
+    m = MetaData('.')
+    pprint(m.info_index())
