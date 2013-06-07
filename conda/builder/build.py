@@ -7,6 +7,9 @@ from subprocess import check_call
 from os.path import (abspath, basename, exists, isdir, isfile,
                      islink, join)
 
+import conda.plan as plan
+from conda.api import get_index
+
 import config
 import environ
 import source
@@ -127,27 +130,20 @@ def install(pkg):
     tar_xf(path, prefix)
 
 
-def build(pkg, deps=True, get_src=True, only_build=False):
-    if deps:
-        for p in build_requires(pkg):
-            if available(p):
-                continue
-            build(p)
+def build(m, get_src=True):
+    rm_rf(prefix)
+    index = get_index()
+    specs = [ms.spec for ms in m.ms_depends('build')]
+    print specs
+    actions = plan.install_actions(prefix, index, specs)
 
-    print "BUILD START:", dist_name(pkg)
-
-    if config.PRO == 2:
-        assert get_meta_value(pkg, 'build/channel') == 'w'
+    print "BUILD START:", m.dist_name()
 
     if get_src:
-        source.provide(pkg)
+        source.provide(m.path)
     assert isdir(source.WORK_DIR)
     print "source tree in:", source.get_dir()
 
-    mkdir_prefix()
-    if deps and not is_meta_pkg(pkg):
-        for p in build_requires(pkg):
-            install(p)
     rm_rf(info_dir)
     files1 = prefix_files()
 
@@ -155,8 +151,8 @@ def build(pkg, deps=True, get_src=True, only_build=False):
         import windows
         windows.build(pkg)
     else:
-        env = environ.get_dict(pkg)
-        cmd = ['/bin/bash', '-x', join(env['PKG_PATH'], 'build.sh')]
+        env = environ.get_dict()
+        cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
         check_call(cmd, env=env, cwd=source.get_dir())
     create_entry_points(get_meta_value(pkg, 'build/entry_points'))
     post_process(pkg)
