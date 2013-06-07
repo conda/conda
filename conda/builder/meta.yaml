@@ -1,0 +1,19 @@
+# Test yaml file
+
+package:
+  name: pycosat
+  version: 0.6.0
+
+source:
+  git_url: git@github.com:ContinuumIO/pycosat.git
+  git_tag: 0.6.0
+
+requirements:
+  build:
+    - python
+  run:
+    - python
+
+about:
+  home: https://github.com/ilanschnell/pycosat
+  license: MIT
