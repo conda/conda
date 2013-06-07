@@ -3,13 +3,13 @@ import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
-from config import build_root
+from config import croot
 from utils import download, md5_file, rm_rf, tar_xf, unzip
 
 
-SRC_CACHE = join(build_root, 'src_cache')
-GIT_CACHE = join(build_root, 'git_cache')
-WORK_DIR = join(build_root, 'work')
+SRC_CACHE = join(croot, 'src_cache')
+GIT_CACHE = join(croot, 'git_cache')
+WORK_DIR = join(croot, 'work')
 
 
 def get_dir():
