@@ -93,7 +93,9 @@ class EnvironmentConfig(ConfigBase):
         }
 
     def __getattr__(self, attr):
-        return os.getenv(self.envmapping[attr])
+        result = os.getenv(self.envmapping[attr])
+        if result is None:
+            raise AttributeError
 
     @property
     def base_urls(self):
