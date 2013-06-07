@@ -12,6 +12,8 @@ if sys.platform == 'win32':
 else:
     croot = expanduser('~/_conda')
 
+bldpkgs_dir = join(croot, 'bldpkgs')
+
 build_prefix = join(croot, 'build_env')
 test_prefix = join(croot, 'test_env')
 
