@@ -22,12 +22,9 @@ from os.path import abspath, expanduser, isfile, join
 # precedence logic for us.
 
 class ConfigBase(object):
-    # def __init__(self):
-    #     # Some common logic that must be applied regardless of where the
-    #     # configuration value comes from
-    #     from api import normalize_urls
-    #     self.channels = normalize_urls(self.base_urls)
-    #     super(ConfigBase, self).__init__()
+    @property
+    def channels(self):
+        return self.get_channel_urls()
 
     # Backwards compatibility. Remove.
     def get_channel_urls(self):
