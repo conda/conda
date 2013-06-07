@@ -1,9 +1,9 @@
-Clone a "share package" (created using the share command)
+Launch an application (EXPERIMENTAL)
 
-**usage**: ``conda clone [-h] [-n NAME | -p PREFIX] PATH``
+**usage**: ``conda launch [-h] [-n NAME | -p PREFIX] package_spec``
 
-*PATH*
-	path to "share package"
+*package_spec*
+	application package specification
 
 optional arguments:
   -h, --help            show this help message and exit
