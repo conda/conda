@@ -115,7 +115,12 @@ class RCConfigBase(ConfigBase):
         if not self.rc_path:
             self.rc = self.rc_path
         else:
-            import yaml
+            try:
+                import yaml
+            except ImportError:
+                sys.exit("Error: pyyaml must be installed to read condarc "
+                "(%s)" % self.rc_path)
+
             self.rc = yaml.load(open(self.rc_path))
 
             self.validate()
