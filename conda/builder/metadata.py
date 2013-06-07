@@ -114,6 +114,7 @@ class MetaData(object):
             ms = MatchSpec(spec)
             for name, ver in [('python', ANA_PY), ('numpy', ANA_NPY)]:
                 if ms.name == name:
+                    assert ms.strictness == 1
                     ms = MatchSpec('%s %s*' % (name, '.'.join(str(ver))))
             res.append(ms)
         return res
