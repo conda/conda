@@ -5,7 +5,7 @@ from subprocess import Popen, PIPE, check_call, CalledProcessError
 from os.path import isfile, join
 
 from packup import untracked, packup_and_reinstall
-from source import get_source
+from old_source import get_source
 
 
 def to_name(s):
