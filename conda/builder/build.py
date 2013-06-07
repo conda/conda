@@ -11,6 +11,7 @@ import conda.plan as plan
 from conda.api import get_index
 
 import config
+from conda.fetch import fetch_index
 import environ
 import source
 import tarcheck
@@ -100,6 +101,7 @@ def create_env(pref, specs):
     if not isdir(bldpkgs_dir):
         os.mkdir(bldpkgs_dir)
     update_index(bldpkgs_dir)
+    fetch_index.cache = {}
     index = get_index(['file://%s' % config.croot])
 
     actions = plan.install_actions(pref, index, specs)
