@@ -1,29 +1,6 @@
-import inspect
 import shutil
 from os.path import dirname, join
 
-from config import croot
-from metadata import parse, sel_pat, ns_cfg
-
-
-TEST_TARS_DIR = join(croot, 'test-tars')
-
-
-def parse_meta(path):
-    data = open(path).read()
-    d = parse(data)
-    return d['test']
-
-
-def write_if(fo, line):
-    line = line.rstrip()
-    m = sel_pat.match(line)
-    if m is None:
-        fo.write('if True:\n')
-        return line
-    else:
-        fo.write('if applies(%r):\n' % m.group(2))
-        return m.group(1)
 
 
 def create_test_files(dir_path, m):
@@ -34,11 +11,9 @@ def create_test_files(dir_path, m):
     Return False, if the package has no tests (for any configuration), and
     True if it has.
     """
-    meta = parse_meta(join(m.path, 'meta.yaml'))
     has_tests = False
-    #print meta
 
-    for fn in meta['files']:
+    for fn in m.get_value('test/files'):
         shutil.copy(join(m.path, fn), dir_path)
 
     with open(join(dir_path, 'run_test.py'), 'w') as fo:
@@ -47,21 +22,17 @@ def create_test_files(dir_path, m):
         fo.write("print('===== testing package: %s =====')\n" % m.dist_name())
         with open(join(dirname(__file__), 'header_test.py')) as fi:
             fo.write(fi.read() + '\n')
-        fo.write(inspect.getsource(ns_cfg) + '\n')
 
-        for line in meta['commands']:
-            cmd = write_if(fo, line)
-            fo.write('    print("command: %s")\n' % cmd)
-            fo.write('    check_call(cmd_args(%r))\n\n' % cmd)
+        for cmd in m.get_value('test/commands'):
+            fo.write('print("command: %r")\n' % cmd)
+            fo.write('check_call(cmd_args(%r))\n\n' % cmd)
             has_tests = True
 
-        for line in meta['imports']:
-            line = write_if(fo, line)
-            fo.write('    print("import: %s")\n' % line)
-            name, extra = split_import_line(line)
-            fo.write('    import %s\n' % name)
-            has_tests = True
+        for name in m.get_value('test/imports'):
+            fo.write('print("import: %r")\n' % name)
+            fo.write('import %s\n' % name)
             fo.write('\n')
+            has_tests = True
 
         try:
             with open(join(m.path, 'run_test.py')) as fi:
