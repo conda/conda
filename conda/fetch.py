@@ -47,7 +47,7 @@ def get_userandpass(proxytype='',realm=''):
 #a procedure that needs to be executed with changes to handlers
 def installopener():
     opener = urllib2.build_opener(urllib2.ProxyHandler(proxies_dict)
-                                ,urllib2.ProxyBasictAuthHandler(proxypwdmgr)
+                                ,urllib2.ProxyBasicAuthHandler(proxypwdmgr)
                                 ,urllib2.ProxyDigestAuthHandler(proxypwdmgr)
 #digest auth may not work with all proxies http://bugs.python.org/issue16095
                                 )#could add windows/nltm authentication here
