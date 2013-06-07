@@ -17,7 +17,7 @@ from scripts import create_entry_points
 from metadata import MetaData
 from post import post_process, post_build, is_obj
 
-from utils import bzip2, rm_rf
+from utils import rm_rf
 
 
 prefix = config.build_prefix
@@ -100,6 +100,10 @@ def create_env(pref, specs):
     plan.execute_actions(actions, index, verbose=True)
 
 
+def bldpkg_path(m):
+    return join(config.bldpkgs_dir, '%s.tar.bz2' % m.dist_name())
+
+
 def build(m, get_src=True):
     rm_rf(prefix)
     create_env(prefix, [ms.spec for ms in m.ms_depends('build')])
@@ -136,31 +140,37 @@ def build(m, get_src=True):
     for f in sorted(files3 - files2):
         print '    %s' % f
 
-    fn = '%s.tar' % m.dist_name()
-    t = tarfile.open(fn, 'w')
+    path = bldpkg_path(m)
+    if not isdir(config.bldpkgs_dir):
+        os.mkdir(config.bldpkgs_dir)
+
+    t = tarfile.open(path, 'w:bz2')
     for f in sorted(files3 - files1):
         t.add(join(prefix, f), f)
     t.close()
 
-    bzip2(fn)
-
     print "BUILD END:", m.dist_name()
 
     # we're done building, perform some checks
-    tarcheck.check_all(fn)
+    tarcheck.check_all(path)
 
 #    test(m)
 
 
 def test(m):
-    tmp_dir = join(AROOT, 'test-tmp_dir')
+    tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
     os.mkdir(tmp_dir)
-    if not create_test_files(tmp_dir, pkg):
-        print "Nothing to test for:", pkg
+    fn = '%s.tar' % m.dist_name()
+    if not create_test_files(tmp_dir, m):
+        print "Nothing to test for:", m.dist_name()
         return
 
     print "TEST START:", m.dist_name()
+
+    rm_rf(config.test_prefix)
+    specs = [ms.spec for ms in m.ms_depends()]
+    create_env(config.test_prefix, [ms.spec for ms in m.ms_depends()])
 
     packages = run_requires(pkg, include_self=True)
     # as the tests are run by python, they require it
@@ -188,7 +198,7 @@ def test(m):
 def main():
     from optparse import OptionParser
 
-    p = OptionParser(usage="usage: %prog [options] PACKAGE [PACKAGE ...]",
+    p = OptionParser(usage="usage: %prog [options] RECIPE",
                      description="build a package")
     p.add_option('--clean',
                  action='store_true',
