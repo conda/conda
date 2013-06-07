@@ -118,8 +118,9 @@ class RCConfigBase(ConfigBase):
             try:
                 import yaml
             except ImportError:
-                sys.exit("Error: pyyaml must be installed to read condarc "
-                "(%s)" % self.rc_path)
+                sys.exit("Error: pyyaml must be installed to read the "
+                    ".condarc configuration (%s). Set aside that file and "
+                    "'conda install pyyaml' to continue." % self.rc_path)
 
             self.rc = yaml.load(open(self.rc_path))
 
