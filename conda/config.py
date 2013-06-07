@@ -22,10 +22,6 @@ from os.path import abspath, expanduser, isfile, join
 # precedence logic for us.
 
 class ConfigBase(object):
-    @property
-    def channels(self):
-        return self.get_channel_urls()
-
     # Backwards compatibility. Remove.
     def get_channel_urls(self):
         from api import normalize_urls
@@ -82,28 +78,29 @@ class EnvironmentConfig(ConfigBase):
     # to the value of the config variable if no method with that name is
     # defined here.
     envmapping = {
-        'root_dir': 'CONDA_ROOT',
-        'pkgs_dir': 'CONDA_PACKAGE_CACHE',
-        'envs_dir': 'CONDA_ENV_PATH',
-        '_default_env': 'CONDA_DEFAULT_ENV',
-        'base_urls': 'CIO_TEST',
+        'CONDA_ROOT': 'root_dir',
+        'CONDA_PACKAGE_CACHE': 'pkgs_dir',
+        'CONDA_ENV_PATH': 'envs_dir',
+        'CONDA_DEFAULT_ENV': '_default_env',
+        'CIO_TEST': 'base_urls',
         }
 
-    def __getattr__(self, attr):
-        result = os.getenv(self.envmapping[attr])
-        if result is None:
-            raise AttributeError
+    def __init__(self):
+        self.update_env_attrs()
+        super(EnvironmentConfig, self).__init__()
 
-    @property
-    def base_urls(self):
-        if os.getenv('CIO_TEST'):
-            base_urls = ['http://filer/pkgs/pro',
-                'http://filer/pkgs/free']
-            if os.getenv('CIO_TEST') == '2':
-                base_urls.insert(0, 'http://filer/test-pkgs')
-            return base_urls
-        else:
-            return super(EnvironmentConfig, self).base_urls
+    def update_env_attrs(self):
+        for env in self.envmapping:
+            attr = self.envmapping[env]
+            result = os.getenv(env)
+            if env == "CIO_TEST":
+                self.base_urls = ['http://filer/pkgs/pro',
+                    'http://filer/pkgs/free']
+                if os.getenv('CIO_TEST') == '2':
+                    self.base_urls.insert(0, 'http://filer/test-pkgs')
+            else:
+                if result is not None:
+                    setattr(self, attr, result)
 
 class RCConfigBase(ConfigBase):
     def __init__(self):
@@ -119,11 +116,14 @@ class RCConfigBase(ConfigBase):
             self.rc = self.rc_path
         else:
             import yaml
-
             self.rc = yaml.load(open(self.rc_path))
 
-    def __getattr__(self, attr):
-        return getattr(self.rc, attr)
+            for attr in self.rc:
+                if attr == "channels":
+                    # "channels" in an rc file is actually base_urls
+                    setattr(self, 'base_urls', self.rc[attr])
+                else:
+                    setattr(self, attr, self.rc[attr])
 
 class UserRCConfig(RCConfigBase):
     rc_path = abspath(expanduser('~/.condarc'))

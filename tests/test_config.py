@@ -12,7 +12,8 @@ from conda.config import config
 
 
 # use condarc from source tree to run these tests against
-config.rc_path = join(dirname(dirname(__file__)), 'condarc')
+config.rc_path = join((dirname(__file__)), 'condarc')
+config.load_condarc()
 
 # unset CIO_TEST
 try:
@@ -37,7 +38,7 @@ class TestConfig(unittest.TestCase):
 
     def test_channel_urls(self):
         config.subdir = 'foo'
-        urls = config.channels
+        urls = config.get_channel_urls()
         self.assertEqual(urls,
                          ['http://repo.continuum.io/pkgs/dev/foo/',
                           'http://repo.continuum.io/pkgs/gpl/foo/',
