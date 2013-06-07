@@ -3,7 +3,7 @@ Create a new conda environment from a list of specified packages.  To use the cr
 **usage**: ``conda create [-h] [--yes] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]``
 
 *package_spec*
-        specification of package to install into new Anaconda environment
+	specification of package to install into new environment
 
 optional arguments:
   -h, --help            show this help message and exit

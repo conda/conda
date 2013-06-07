@@ -1,18 +1,16 @@
 Search for packages and display their information.
 
-**usage**: ``conda search [-h] [-n NAME | -p PREFIX] [--all] [-c] [-s] [-v] [search_expression]``
+**usage**: ``conda search [-h] [-n NAME | -p PREFIX] [-c] [-v] [regex]``
 
-*search_expression*
-        package specification or regular expression to search for (default: display all packages)
+*regex*
+	package specification or regular expression to search for (default: display all packages)
 
 optional arguments:
   -h, --help            show this help message and exit
   -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
                         full path to environment prefix (default: ROOT_DIR)
-  --all                 show all results compatible with any environment
   -c, --canonical       output canonical names of packages only
-  -s, --show-requires   also display package requirements
   -v, --verbose         Show available packages as blocks of data
 
 examples:

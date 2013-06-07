@@ -1,15 +1,21 @@
 Install a list of packages into a specified conda environment.
+The arguments may be packages specifications (e.g. bitarray=0.8),
 
-**usage**: ``conda install [-h] [--yes] [--dry-run] [-f FILE] [-n NAME | -p PREFIX] [-q] [package_version [package_version ...]]``
+**usage**: ``conda install [-h] [--yes] [--dry-run] [-f] [--file FILE] [--no-deps] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]
 
-*package_version*
-        package versions to install into Anaconda environment
+Install a list of packages into a specified conda environment.
+The arguments may be packages specifications (e.g. bitarray=0.8),``
+
+*package_spec*
+	package versions to install into conda environment
 
 optional arguments:
   -h, --help            show this help message and exit
   --yes                 do not ask for confirmation
   --dry-run             only display what would have been done
-  -f FILE, --file FILE  filename to read package versions from
+  -f, --force           force install (even when package already installed), implies --no-deps
+  --file FILE           read package versions from FILE
+  --no-deps             do not install dependencies
   -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
   -p PREFIX, --prefix PREFIX
                         full path to environment prefix (default: ROOT_DIR)

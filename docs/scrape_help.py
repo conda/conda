@@ -12,17 +12,17 @@ import sys
 cmd_names = [
     'info',
     'list',
-    'depends',
     'search',
-    'local',
-    'env',
     'create',
     'install',
     'update',
+    'remove',
     'package',
     'pip',
     'index',
     'share',
+    'launch',
+    'build',
     'clone'
 ]
 
@@ -34,13 +34,27 @@ def scrape_help(cmd_name):
 
     output = p.stdout.read()
 
-    # groups:                ----1---- -----2----
-    usage_pat = re.compile(r'(usage): (conda .*)\n')
-    usage = usage_pat.search(output)
 
-    # groups:                          --1-
-    desc_pat = re.compile(r'usage.*\n\n(.*)\n\n')
+    if cmd_name in ['remove','package','install']:
+        
+        # groups:
+        usage_pat = re.compile(r'(usage): (conda .*\n\s*.*\n\s*.*)')
+
+        # groups:                           -----1----
+        desc_pat = re.compile(r'usage.*\n\s*(.*\n\s*.*)')
+    else:
+        # groups:                ----1---- -----2----
+        usage_pat = re.compile(r'(usage): (conda .*)\n')
+
+        # groups:                          --1-
+        desc_pat = re.compile(r'usage.*\n\n(.*)\n\n')
+
+
+    usage = usage_pat.search(output)
     desc = desc_pat.search(output)
+
+
+    
 
     # groups:                                               --1--   --2-
     positional_pat = re.compile(r'positional arguments:\n\s+(\w*)\s+(.*)\n')
