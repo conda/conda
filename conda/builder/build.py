@@ -144,10 +144,10 @@ def build(m, get_src=True):
 
     bzip2(fn)
 
-    # we're done building, perform some checks
-    print "tarball build: %s" % fn
-    tarcheck.check_all(fn)
     print "BUILD END:", m.dist_name()
+
+    # we're done building, perform some checks
+    tarcheck.check_all(fn)
 
 #    test(m)
 
