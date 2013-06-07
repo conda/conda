@@ -17,9 +17,9 @@ import tarcheck
 from scripts import create_entry_points
 from metadata import MetaData
 from post import post_process, post_build, is_obj
-
 from utils import rm_rf
 from index import update_index
+from create_test import create_test_files
 
 
 prefix = config.build_prefix
@@ -165,7 +165,7 @@ def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
     os.mkdir(tmp_dir)
-    if 0:# not create_test_files(tmp_dir, m):
+    if not create_test_files(tmp_dir, m):
         print "Nothing to test for:", m.dist_name()
         return
 
