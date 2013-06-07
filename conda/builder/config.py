@@ -1,19 +1,15 @@
 import sys
 import os
-from os.path import abspath, expanduser, join
+from os.path import join
+
+import conda.config as cc
 
 
 ANA_PY = int(os.getenv('ANA_PY', 27))
 ANA_NPY = int(os.getenv('ANA_NPY', 17))
 PY3K = int(bool(ANA_PY >= 30))
 
-if sys.platform == 'win32':
-    croot = abspath(r'\_conda')
-else:
-    croot = expanduser('~/_conda')
-
-bldpkgs_dir = join(croot, 'bldpkgs')
-
+croot = join(cc.root_dir, 'conda-bld')
 build_prefix = join(croot, 'build_env')
 test_prefix = join(croot, 'test_env')
 
