@@ -65,7 +65,7 @@ def have_prefix_files(files):
         if prefix in data:
             yield f
 
-def create_info_files(pkg, files):
+def create_info_files(m, files):
     os.mkdir(info_dir)
 
     with open(join(info_dir, 'files'), 'w') as fo:
@@ -74,15 +74,8 @@ def create_info_files(pkg, files):
                 f = f.replace('\\', '/')
             fo.write(f + '\n')
 
-    with open(join(info_dir, 'requires'), 'w') as fo:
-        print 'run_requires:'
-        for p in sorted(run_requires(pkg)):
-            d = dist_name(p)
-            print '    %s' % d
-            fo.write(d + '\n')
-
     with open(join(info_dir, 'index.json'), 'w') as fo:
-        json.dump(info_index(pkg), fo, indent=2, sort_keys=True)
+        json.dump(m.info_index(), fo, indent=2, sort_keys=True)
 
     if sys.platform != 'win32':
         prefix_files = list(have_prefix_files(files))
@@ -92,18 +85,14 @@ def create_info_files(pkg, files):
                     fo.write(f + '\n')
 
     with open(join(info_dir, 'meta'), 'w') as fo:
-        fo.write('pkg: %s\n' % pkg)
-        fo.write('dist: %s\n' % dist_name(pkg))
-        for field in 'about/home', 'about/license':
-            fo.write('%s: %s\n' % (field.split('/')[1],
-                                   get_meta_value(pkg, field)))
+        fo.write('dist: %s\n' % m.dist_name())
         fo.write('has_bin: %s\n' % any(f.startswith('bin/') for f in files))
         p = re.compile(r'lib/[^/]+\.so')
         fo.write('has_lib: %s\n' % any(p.match(f) for f in files))
         p = re.compile(r'lib/python\d\.\d/site-packages/.+\.(so|py)')
         fo.write('has_py: %s\n' % any(p.match(f) for f in files))
 
-    if get_meta_value(pkg, 'source/git_url'):
+    if m.get_value('source/git_url'):
         with open(join(info_dir, 'git'), 'w') as fo:
             source.git_info(fo)
 
@@ -130,12 +119,16 @@ def install(pkg):
     tar_xf(path, prefix)
 
 
+def create_env(pref, specs):
+    index = get_index()
+    actions = plan.install_actions(pref, index, specs)
+    plan.display_actions(actions, index)
+    plan.execute_actions(actions, index, verbose=True)
+
+
 def build(m, get_src=True):
     rm_rf(prefix)
-    index = get_index()
-    specs = [ms.spec for ms in m.ms_depends('build')]
-    print specs
-    actions = plan.install_actions(prefix, index, specs)
+    create_env(prefix, [ms.spec for ms in m.ms_depends('build')])
 
     print "BUILD START:", m.dist_name()
 
@@ -154,15 +147,15 @@ def build(m, get_src=True):
         env = environ.get_dict()
         cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
         check_call(cmd, env=env, cwd=source.get_dir())
-    create_entry_points(get_meta_value(pkg, 'build/entry_points'))
-    post_process(pkg)
+    create_entry_points(m.get_value('build/entry_points'))
+    post_process()
 
     assert not exists(info_dir)
     files2 = prefix_files()
 
     sorted_files = sorted(files2 - files1)
-    post_build(pkg, sorted_files)
-    create_info_files(pkg, sorted_files)
+    post_build(sorted_files)
+    create_info_files(m, sorted_files)
     files3 = prefix_files()
 
     print "info/:"
