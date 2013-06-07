@@ -9,6 +9,15 @@ try:
 except NameError:
     class WindowsError(Exception): pass
 
+# Old versions of psutil don't have this error, causing the below code to
+# fail.
+
+try:
+    import psutil
+    psutil._error.AccessDenied
+except:
+    raise ImportError
+
 def main(args, windowsonly=True):
     if sys.platform == 'win32' or not windowsonly:
         if args.yes:
