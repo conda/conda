@@ -123,7 +123,7 @@ def build(m, get_src=True):
 
     if sys.platform == 'win32':
         import windows
-        windows.build(m)
+        windows.build(m.path)
     else:
         env = environ.get_dict()
         cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
