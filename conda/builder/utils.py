@@ -6,8 +6,8 @@ import tarfile
 import urllib2
 import zipfile
 import subprocess
-from os.path import (dirname, getmtime, getsize, isdir, isfile, islink,
-                     join, normpath)
+from os.path import (abspath, dirname, getmtime, getsize, isdir, isfile,
+                     islink, join, normpath)
 
 from conda.utils import md5_file
 
@@ -20,6 +20,12 @@ def rel_lib(f):
     else:
         return normpath(f.count('/') * '../') + '/lib'
 
+
+def url_path(path):
+    path = abspath(path)
+    if sys.platform == 'win32':
+        path = '/' + path.replace(':', '|')
+    return 'file://%s' % path
 
 def download(url, dst_path, md5=None):
     try:
