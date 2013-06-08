@@ -6,6 +6,8 @@ from glob import glob
 from subprocess import call, check_call
 from os.path import basename, islink, join, splitext
 
+from conda.install import prefix_placeholder
+
 from config import build_prefix, build_python, PY3K
 from source import WORK_DIR
 import environ
@@ -25,6 +27,7 @@ def is_obj(path):
                 (sys.platform == 'darwin' and macho.is_macho(path)))
 
 
+
 shebang_pat = re.compile(r'^#!.+$', re.M)
 def fix_shebang(f, osx_is_app=False):
     path = join(build_prefix, f)
@@ -35,8 +38,10 @@ def fix_shebang(f, osx_is_app=False):
     m = shebang_pat.match(data)
     if not (m and 'python' in m.group()):
         return
-    py_exec = (build_prefix + '/python.app/Contents/MacOS/python'
-               if sys.platform == 'darwin' and osx_is_app else build_python)
+
+    py_exec = (prefix_placeholder + '/python.app/Contents/MacOS/python'
+               if sys.platform == 'darwin' and osx_is_app else
+               prefix_placeholder + '/bin/python')
     new_data = shebang_pat.sub('#!' + py_exec, data, count=1)
     if new_data == data:
         return
