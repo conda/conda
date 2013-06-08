@@ -24,6 +24,8 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
         )
+
+    # TODO: use argparse.FileType
     location = p.add_mutually_exclusive_group()
     location.add_argument(
         "--system",
@@ -36,6 +38,7 @@ def configure_parser(sub_parsers):
         action = "store",
         help = "write to the given file",
         )
+
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
