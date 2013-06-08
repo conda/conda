@@ -27,6 +27,7 @@ def url_path(path):
         path = '/' + path.replace(':', '|')
     return 'file://%s' % path
 
+
 def download(url, dst_path, md5=None):
     try:
         fi = urllib2.urlopen(url)
