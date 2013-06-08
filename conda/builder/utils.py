@@ -34,22 +34,6 @@ def download(url, dst_path, md5=None):
         fo.write(data)
 
 
-def bzip2(path, verbose=True):
-    if verbose:
-        print "bz2ing:", path
-    subprocess.check_call(['bzip2', '-f', '-k', path])
-    assert isfile(path + '.bz2')
-
-
-def bunzip2(bz2path, verbose=False):
-    assert bz2path.endswith('.bz2')
-    path = bz2path[:-4]
-    if verbose:
-        print "bunz2ing:", bz2path
-    subprocess.check_call(['bunzip2', '-f', '-k', bz2path])
-    assert isfile(path)
-
-
 def tar_xf(tarball, dir_path, mode='r:*'):
     if tarball.endswith('.tar.xz'):
         subprocess.check_call(['unxz', '-f', '-k', tarball])
