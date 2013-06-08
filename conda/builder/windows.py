@@ -70,9 +70,9 @@ def kill_processes():
                 print '    no such process, passing'
 
 
-def build(pkg):
+def build(recipe_dir):
     env = dict(os.environ)
-    env.update(environ.get_dict(pkg))
+    env.update(environ.get_dict())
 
     for name in 'BIN', 'INC', 'LIB':
         path = env['LIBRARY_' + name]
@@ -80,7 +80,7 @@ def build(pkg):
             os.makedirs(path)
 
     src_dir = source.get_dir()
-    bld_bat = join(env['PKG_PATH'], 'bld.bat')
+    bld_bat = join(recipe_dir, 'bld.bat')
     with open(bld_bat) as fi:
         data = fi.read()
     with open(join(src_dir, 'bld.bat'), 'w') as fo:

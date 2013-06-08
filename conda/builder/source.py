@@ -56,10 +56,9 @@ def git_source(meta):
     git_dn = git_url.split(':')[-1].replace('/', '_')
     cache_repo = cache_repo_arg = join(GIT_CACHE, git_dn)
     if sys.platform == 'win32':
+        cache_repo_arg = cache_repo_arg.replace('\\', '/')
         if os.getenv('USERNAME') == 'builder':
-            cache_repo_arg = '/cygdrive/c/aroot/git_cache/' + git_dn
-        else:
-            cache_repo_arg = cache_repo_arg.replace('\\', '/')
+            cache_repo_arg = '/cygdrive/c/' + cache_repo_arg[3:]
 
     # update (or craete) the cache repo
     if isdir(cache_repo):
