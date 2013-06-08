@@ -114,7 +114,7 @@ def build(m, get_src=True):
     print "BUILD START:", m.dist_name()
 
     if get_src:
-        source.provide(m.path)
+        source.provide(m.path, m.get_section('source'))
     assert isdir(source.WORK_DIR)
     print "source tree in:", source.get_dir()
 

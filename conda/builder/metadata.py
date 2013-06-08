@@ -92,12 +92,12 @@ class MetaData(object):
         meta_path = join(path, 'meta.yaml')
         self.meta = parse(open(meta_path).read())
 
-    def get_submeta(self, section):
+    def get_section(self, section):
         return self.meta.get(section, {})
 
     def get_value(self, field, default=None):
         section, key = field.split('/')
-        return self.get_submeta(section).get(key, default)
+        return self.get_section(section).get(key, default)
 
     def name(self):
         return self.get_value('package/name').lower()

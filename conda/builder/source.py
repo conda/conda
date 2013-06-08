@@ -108,17 +108,13 @@ def apply_patch(src_dir, path):
     check_call([patch, '-p0', '-i', path], cwd=src_dir)
 
 
-def provide(recipe_dir, meta=None, patch=True):
+def provide(recipe_dir, meta, patch=True):
     """
     given a recipe_dir:
       - download (if necessary)
       - unpack
       - apply patches (if any)
     """
-    if meta is None:
-        from metadata import MetaData
-        meta = MetaData(recipe_dir).get_submeta('source')
-
     rm_rf(WORK_DIR)
     if 'fn' in meta:
         unpack(meta)
