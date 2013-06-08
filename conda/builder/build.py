@@ -4,11 +4,12 @@ import sys
 import json
 import tarfile
 from subprocess import check_call
-from os.path import abspath, exists, isdir, islink, join
+from os.path import exists, isdir, islink, join
 
 import conda.config as cc
 import conda.plan as plan
 from conda.api import get_index
+from conda.install import prefix_placeholder
 
 import config
 from conda.fetch import fetch_index
@@ -16,7 +17,6 @@ import environ
 import source
 import tarcheck
 from scripts import create_entry_points
-from metadata import MetaData
 from post import post_process, post_build, is_obj
 from utils import rm_rf, url_path
 from index import update_index
@@ -56,7 +56,7 @@ def have_prefix_files(files):
             continue
         with open(path) as fi:
             data = fi.read()
-        if prefix in data:
+        if prefix_placeholder in data:
             yield f
 
 def create_info_files(m, files):
@@ -102,6 +102,10 @@ def create_env(pref, specs):
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
 
+def rm_pkgs_cache(dist):
+    rmplan = ['RM_FETCHED %s' % dist,
+              'RM_EXTRACTED %s' % dist]
+    plan.execute_plan(rmplan)
 
 def bldpkg_path(m):
     return join(bldpkgs_dir, '%s.tar.bz2' % m.dist_name())
@@ -154,12 +158,15 @@ def build(m, get_src=True):
     # we're done building, perform some checks
     tarcheck.check_all(path)
     update_index(bldpkgs_dir)
+    # remove from packages, because we're going to test it
+    rm_pkgs_cache(m.dist_name())
     test(m)
 
 
 def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
+    rm_rf(prefix)
     os.makedirs(tmp_dir)
     if not create_test_files(tmp_dir, m):
         print "Nothing to test for:", m.dist_name()
@@ -188,53 +195,3 @@ def test(m):
                env=env, cwd=tmp_dir)
 
     print "TEST END:", m.dist_name()
-
-
-def main():
-    from optparse import OptionParser
-
-    p = OptionParser(usage="usage: %prog [options] RECIPE",
-                     description="build a package")
-    p.add_option('--clean',
-                 action='store_true',
-                 help="clean WORK_DIR before doing anything else")
-    p.add_option('--no-patch',
-                 action='store_true',
-                 help="don't apply any source patches (only works with -s)")
-    p.add_option('-s', '--source',
-                 action='store_true',
-                 help='only obtain the (patched) source')
-    p.add_option('-S', '--skip-source',
-                 action='store_true',
-                 help='do not obtain source, just build (the opposite of -s)')
-    p.add_option('-t', '--test',
-                 action='store_true',
-                 help='test a package')
-    opts, args = p.parse_args()
-
-    print "-------------------------------------"
-    config.show()
-    print "-------------------------------------"
-
-    if opts.source and opts.skip_source:
-        p.error('--source and --skip-source exclude each other')
-
-    if opts.clean:
-        print "Removing:", source.WORK_DIR
-        rm_rf(source.WORK_DIR)
-
-    for arg in args:
-        path = abspath(arg)
-        m = MetaData(path)
-
-        if opts.test:
-            test(m)
-        elif opts.source:
-            source.provide(m.path, patch=not opts.no_patch)
-            print 'Source tree in:', source.get_dir()
-        else:
-            build(m, get_src=not opts.skip_source)
-
-
-if __name__ == '__main__':
-    main()

@@ -30,12 +30,19 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import sys
+    from os.path import abspath, isdir
+
     import conda.builder.build as build
     import conda.builder.source as source
     from conda.builder.metadata import MetaData
 
     for arg in args.recipe:
-        m = MetaData(arg)
+        recipe_dir = abspath(arg)
+        if not isdir(recipe_dir):
+            sys.exit("Error: no such directory: %s" % recipe_dir)
+
+        m = MetaData(recipe_dir)
         if args.test:
             build.test(m)
         elif args.source:
