@@ -5,12 +5,12 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import common
-from conda.config import config
+from conda.config import config, UserRCConfig, SystemRCConfig
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
-config command.
-"""
+config command.  Writes to the user .condarc file (%s) by default.
+""" % UserRCConfig.rc_path
 
 example = """
 examples:
@@ -24,7 +24,33 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
         )
-    common.add_parser_yes(p)
+    location = p.add_mutually_exclusive_group()
+    location.add_argument(
+        "--system",
+        action = "store_true",
+        help = ("write to the system .condarc file (%s)" %
+            SystemRCConfig.rc_path),
+        )
+    location.add_argument(
+        "--file",
+        action = "store",
+        help = "write to the given file",
+        )
+    action = p.add_mutually_exclusive_group(required=True)
+    action.add_argument(
+        "--get",
+        nargs = 1,
+        action = "append",
+        help = "get the configuration value",
+        default = []
+        )
+    action.add_argument(
+        "--add",
+        nargs = 2,
+        action = "append",
+        help = "add one configuration value",
+        default = []
+        )
     p.set_defaults(func=execute)
 
 def execute(args, parser):
@@ -32,3 +58,25 @@ def execute(args, parser):
         import yaml
     except ImportError:
         raise RuntimeError("pyyaml is required to modify configuration")
+
+    if args.system:
+        rc_path = SystemRCConfig.rc_path
+    elif args.file:
+        rc_path = args.file
+    else:
+        rc_path = UserRCConfig.rc_path
+
+    with open(rc_path, 'r') as rc:
+        rc_config = yaml.load(rc)
+
+    for key, in args.get:
+        for item in rc_config.get(key, []):
+            # Use repr so that it can be pasted back in
+            print key, repr(item)
+
+    for key, item in args.add:
+        rc_config.setdefault(key, []).append(item)
+
+    if args.add:
+        with open(rc_path, 'w') as rc:
+            rc.write(yaml.dump(rc_config))
