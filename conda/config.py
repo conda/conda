@@ -51,9 +51,10 @@ else:
 
 # ----- rc file -----
 
+user_rc_path = abspath(expanduser('~/.condarc'))
+sys_rc_path = join(sys.prefix, '.condarc')
 def get_rc_path():
-    for path in [abspath(expanduser('~/.condarc')),
-                 join(sys.prefix, '.condarc')]:
+    for path in [user_rc_path, sys_rc_path]:
         if isfile(path):
             return path
     return None
