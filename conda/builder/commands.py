@@ -1,7 +1,6 @@
 import re
 import sys
-import shutil
-from subprocess import Popen, PIPE, check_call, CalledProcessError
+from subprocess import check_call, CalledProcessError
 from os.path import isfile, join
 
 from packup import untracked, packup_and_reinstall
