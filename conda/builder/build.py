@@ -18,7 +18,7 @@ import tarcheck
 from scripts import create_entry_points
 from metadata import MetaData
 from post import post_process, post_build, is_obj
-from utils import rm_rf
+from utils import rm_rf, url_path
 from index import update_index
 from create_test import create_test_files
 
@@ -96,7 +96,7 @@ def create_env(pref, specs):
         os.makedirs(bldpkgs_dir)
     update_index(bldpkgs_dir)
     fetch_index.cache = {}
-    index = get_index(['file://%s' % config.croot])
+    index = get_index([url_path(config.croot)])
 
     actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
