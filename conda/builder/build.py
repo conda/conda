@@ -29,12 +29,6 @@ info_dir = join(prefix, 'info')
 bldpkgs_dir = join(config.croot, cc.subdir)
 
 
-def mkdir_prefix():
-    rm_rf(prefix)
-    assert not exists(prefix)
-    os.mkdir(prefix)
-
-
 def prefix_files():
     res = set()
     for root, dirs, files in os.walk(prefix):
@@ -99,7 +93,7 @@ def create_info_files(m, files):
 
 def create_env(pref, specs):
     if not isdir(bldpkgs_dir):
-        os.mkdir(bldpkgs_dir)
+        os.makedirs(bldpkgs_dir)
     update_index(bldpkgs_dir)
     fetch_index.cache = {}
     index = get_index(['file://%s' % config.croot])
@@ -166,7 +160,7 @@ def build(m, get_src=True):
 def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
-    os.mkdir(tmp_dir)
+    os.makedirs(tmp_dir)
     if not create_test_files(tmp_dir, m):
         print "Nothing to test for:", m.dist_name()
         return
