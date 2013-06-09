@@ -17,9 +17,8 @@ def create_test_files(dir_path, m):
         shutil.copy(join(m.path, fn), dir_path)
 
     with open(join(dir_path, 'run_test.py'), 'w') as fo:
-        fo.write("# tests for %s (this is a gernerated file)\n" %
-                 m.dist_name())
-        fo.write("print('===== testing package: %s =====')\n" % m.dist_name())
+        fo.write("# tests for %s (this is a gernerated file)\n" % m.dist())
+        fo.write("print('===== testing package: %s =====')\n" % m.dist())
         with open(join(dirname(__file__), 'header_test.py')) as fi:
             fo.write(fi.read() + '\n')
 
@@ -42,6 +41,6 @@ def create_test_files(dir_path, m):
             has_tests = True
         except IOError:
             fo.write("# no run_test.py exists for this package\n")
-        fo.write("\nprint('===== %s OK =====')\n" % m.dist_name())
+        fo.write("\nprint('===== %s OK =====')\n" % m.dist())
 
     return has_tests
