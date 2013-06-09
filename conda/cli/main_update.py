@@ -29,10 +29,10 @@ def configure_parser(sub_parsers):
     common.add_parser_quiet(p)
     p.add_argument(
         'pkg_names',
-        metavar = 'package_names',
+        metavar = 'package_name',
         action = "store",
-        nargs = '*',
-        help = "names of packages to update (default: anaconda)",
+        nargs = '+',
+        help = "names of packages to update",
     )
     common.add_parser_channels(p)
     p.set_defaults(func=execute)
@@ -47,9 +47,6 @@ def execute(args, parser):
 
     import pscheck
 
-    # default
-    if len(args.pkg_names) == 0:
-        args.pkg_names.append('anaconda')
 
     prefix = common.get_prefix(args)
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
