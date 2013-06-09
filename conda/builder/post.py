@@ -184,4 +184,3 @@ def post_build(files):
         if sys.platform != 'win32':
             mk_relative(f)
         replace_bi_path(join(build_prefix, f))
-    fix_permissions()
