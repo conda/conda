@@ -73,7 +73,8 @@ def update_index(dir_path, verbose=False, force=False):
         if '_icondata' in info:
             icons[info['_iconmd5']] = base64.b64decode(info['_icondata'])
             assert '%(_iconmd5)s.png' % info == info['icon']
-        for varname in 'arch', 'platform', 'mtime', 'ucs', '_icondata':
+        for varname in ('arch', 'platform', 'mtime', 'ucs',
+                        '_icondata', '_iconmd5'):
             try:
                 del info[varname]
             except KeyError:
