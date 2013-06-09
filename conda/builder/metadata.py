@@ -135,6 +135,24 @@ class MetaData(object):
     def dist(self):
         return '%s-%s-%s' % (self.name(), self.version(), self.build_id())
 
+    def is_app(self):
+        return bool(self.get_value('app/entry'))
+
+    def app_meta(self):
+        d = {'type': 'app'}
+        if self.get_value('app/icon'):
+            d['icon'] = '%s.png' % md5_file(join(
+                    self.path, self.get_value('app/icon')))
+
+        for field, key in [('app/entry', 'app_entry'),
+                           ('app/type', 'app_type'),
+                           ('app/cli_opts', 'app_cli_opts'),
+                           ('app/summary', 'summary')]:
+            value = self.get_value(field)
+            if value:
+                d[key] = value
+        return d
+
     def info_index(self):
         d = dict(
             name = self.name(),
@@ -145,19 +163,8 @@ class MetaData(object):
             arch = config.arch_name,
             depends = sorted(ms.spec for ms in self.ms_depends())
         )
-        if self.get_value('app/entry'):
-            d['type'] = 'app'
-            d['icon'] = '%s.png' % md5_file(join(self.path,
-                                                 self.get_value('app/icon')))
-
-        for field, key in [('app/entry', 'app_entry'),
-                           ('app/type', 'app_type'),
-                           ('app/cli_opts', 'app_cli_opts'),
-                           ('app/summary', 'summary')]:
-            value = self.get_value(field)
-            if value:
-                d[key] = value
-
+        if self.is_app():
+            d.update(self.app_meta())
         return d
 
 

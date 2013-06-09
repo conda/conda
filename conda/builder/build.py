@@ -60,7 +60,7 @@ def have_prefix_files(files):
             yield f
 
 def create_info_files(m, files):
-    os.mkdir(info_dir)
+    os.makedirs(info_dir)
 
     with open(join(info_dir, 'files'), 'w') as fo:
         for f in files:
@@ -132,6 +132,7 @@ def build(m, get_src=True):
         env = environ.get_dict()
         cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
         check_call(cmd, env=env, cwd=source.get_dir())
+
     create_entry_points(m.get_value('build/entry_points'))
     post_process()
 
