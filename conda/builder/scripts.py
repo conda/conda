@@ -49,6 +49,8 @@ def create_entry_point(path, module, func):
 
 
 def create_entry_points(items):
+    if not items:
+        return
     bin_dir = join(build_prefix, bin_dirname)
     if not isdir(bin_dir):
         os.mkdir(bin_dir)
