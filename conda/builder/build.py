@@ -1,7 +1,7 @@
-import re
 import os
 import sys
 import json
+import shutil
 import tarfile
 from subprocess import check_call
 from os.path import exists, isdir, islink, join
@@ -17,7 +17,7 @@ import environ
 import source
 import tarcheck
 from scripts import create_entry_points
-from post import post_process, post_build, is_obj
+from post import post_process, post_build, is_obj, fix_permissions
 from utils import rm_rf, url_path
 from index import update_index
 from create_test import create_test_files
@@ -62,6 +62,8 @@ def have_prefix_files(files):
 def create_info_files(m, files):
     os.makedirs(info_dir)
 
+    shutil.copytree(m.path, join(info_dir, 'recipe'))
+
     with open(join(info_dir, 'files'), 'w') as fo:
         for f in files:
             if sys.platform == 'win32':
@@ -78,17 +80,13 @@ def create_info_files(m, files):
                 for f in prefix_files:
                     fo.write(f + '\n')
 
-    with open(join(info_dir, 'meta'), 'w') as fo:
-        fo.write('dist: %s\n' % m.dist())
-        fo.write('has_bin: %s\n' % any(f.startswith('bin/') for f in files))
-        p = re.compile(r'lib/[^/]+\.so')
-        fo.write('has_lib: %s\n' % any(p.match(f) for f in files))
-        p = re.compile(r'lib/python\d\.\d/site-packages/.+\.(so|py)')
-        fo.write('has_py: %s\n' % any(p.match(f) for f in files))
-
     if m.get_value('source/git_url'):
         with open(join(info_dir, 'git'), 'w') as fo:
             source.git_info(fo)
+
+    if m.get_value('app/icon'):
+        shutil.copyfile(join(m.path, m.get_value('app/icon')),
+                        join(info_dir, 'logo.png'))
 
 
 def create_env(pref, specs):
@@ -143,10 +141,7 @@ def build(m, get_src=True):
     post_build(sorted_files)
     create_info_files(m, sorted_files)
     files3 = prefix_files()
-
-    print "info/:"
-    for f in sorted(files3 - files2):
-        print '    %s' % f
+    fix_permissions()
 
     path = bldpkg_path(m)
     t = tarfile.open(path, 'w:bz2')
