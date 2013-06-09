@@ -86,7 +86,7 @@ def create_info_files(m, files):
 
     if m.get_value('app/icon'):
         shutil.copyfile(join(m.path, m.get_value('app/icon')),
-                        join(info_dir, 'logo.png'))
+                        join(info_dir, 'icon.png'))
 
 
 def create_env(pref, specs):
