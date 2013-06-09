@@ -1,7 +1,7 @@
 import re
 from os.path import isdir, join
 
-from conda.utils import memoized
+from conda.utils import memoized, md5_file
 import conda.config as config
 from conda.resolve import MatchSpec
 
@@ -64,20 +64,20 @@ def parse(data):
     if res is None:
         res = {}
     # ensure those are lists
-    for fieldname in ('source/patches',
-                      'build/entry_points',
-                      'build/features', 'build/track_features',
-                      'requirements/build', 'requirements/run',
-                      'requirements/conflicts', 'test/requires',
-                      'test/files', 'test/commands', 'test/imports'):
-        section, key = fieldname.split('/')
+    for field in ('source/patches',
+                  'build/entry_points',
+                  'build/features', 'build/track_features',
+                  'requirements/build', 'requirements/run',
+                  'requirements/conflicts', 'test/requires',
+                  'test/files', 'test/commands', 'test/imports'):
+        section, key = field.split('/')
         if res.get(section) is None:
             res[section] = {}
         if res[section].get(key, None) is None:
             res[section][key] = []
     # ensure those are strings
-    for fieldname in ('source/git_tag', 'source/git_branch', 'source/md5'):
-        section, key = fieldname.split('/')
+    for field in ('source/git_tag', 'source/git_branch', 'source/md5'):
+        section, key = field.split('/')
         if res.get(section) is None:
             res[section] = {}
         res[section][key] = str(res[section].get(key, ''))
@@ -132,11 +132,11 @@ class MetaData(object):
         res.append('%d' % self.build_number())
         return ''.join(res)
 
-    def dist_name(self):
+    def dist(self):
         return '%s-%s-%s' % (self.name(), self.version(), self.build_id())
 
     def info_index(self):
-        return dict(
+        d = dict(
             name = self.name(),
             version = self.version(),
             build = self.build_id(),
@@ -145,10 +145,25 @@ class MetaData(object):
             arch = config.arch_name,
             depends = sorted(ms.spec for ms in self.ms_depends())
         )
+        if self.get_value('app/entry'):
+            d['type'] = 'app'
+            d['icon'] = '%s.png' % md5_file(join(self.path,
+                                                 self.get_value('app/icon')))
+
+        for field, key in [('app/entry', 'app_entry'),
+                           ('app/type', 'app_type'),
+                           ('app/cli_opts', 'app_cli_opts'),
+                           ('app/summary', 'summary')]:
+            value = self.get_value(field)
+            if value:
+                d[key] = value
+
+        return d
 
 
 if __name__ == '__main__':
     from pprint import pprint
+    from os.path import expanduser
 
-    m = MetaData('.')
+    m = MetaData(expanduser('~/conda-recipes/pycosat'))
     pprint(m.info_index())

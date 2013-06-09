@@ -79,7 +79,7 @@ def create_info_files(m, files):
                     fo.write(f + '\n')
 
     with open(join(info_dir, 'meta'), 'w') as fo:
-        fo.write('dist: %s\n' % m.dist_name())
+        fo.write('dist: %s\n' % m.dist())
         fo.write('has_bin: %s\n' % any(f.startswith('bin/') for f in files))
         p = re.compile(r'lib/[^/]+\.so')
         fo.write('has_lib: %s\n' % any(p.match(f) for f in files))
@@ -108,14 +108,14 @@ def rm_pkgs_cache(dist):
     plan.execute_plan(rmplan)
 
 def bldpkg_path(m):
-    return join(bldpkgs_dir, '%s.tar.bz2' % m.dist_name())
+    return join(bldpkgs_dir, '%s.tar.bz2' % m.dist())
 
 
 def build(m, get_src=True):
     rm_rf(prefix)
     create_env(prefix, [ms.spec for ms in m.ms_depends('build')])
 
-    print "BUILD START:", m.dist_name()
+    print "BUILD START:", m.dist()
 
     if get_src:
         source.provide(m.path, m.get_section('source'))
@@ -153,13 +153,13 @@ def build(m, get_src=True):
         t.add(join(prefix, f), f)
     t.close()
 
-    print "BUILD END:", m.dist_name()
+    print "BUILD END:", m.dist()
 
     # we're done building, perform some checks
     tarcheck.check_all(path)
     update_index(bldpkgs_dir)
     # remove from packages, because we're going to test it
-    rm_pkgs_cache(m.dist_name())
+    rm_pkgs_cache(m.dist())
     test(m)
 
 
@@ -169,10 +169,10 @@ def test(m):
     rm_rf(prefix)
     os.makedirs(tmp_dir)
     if not create_test_files(tmp_dir, m):
-        print "Nothing to test for:", m.dist_name()
+        print "Nothing to test for:", m.dist()
         return
 
-    print "TEST START:", m.dist_name()
+    print "TEST START:", m.dist()
 
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
@@ -194,4 +194,4 @@ def test(m):
     check_call([config.test_python, join(tmp_dir, 'run_test.py')],
                env=env, cwd=tmp_dir)
 
-    print "TEST END:", m.dist_name()
+    print "TEST END:", m.dist()
