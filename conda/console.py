@@ -51,7 +51,13 @@ class PrintHandler(logging.Handler):
             print record.msg
 
 
+setup = False
 def setup_handlers():
+    global setup
+    if setup:
+        return
+    setup = True
+
     fetch_prog_logger = logging.getLogger('fetch')
     fetch_prog_logger.setLevel(logging.INFO)
     fetch_prog_logger.addHandler(FetchProgressHandler())
