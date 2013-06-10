@@ -13,8 +13,9 @@ def main(args, windowsonly=True):
     if sys.platform == 'win32' or not windowsonly:
         if args.yes:
             check_processes()
-        while not check_processes():
-            confirm(args, default='n')
+        else:
+            while not check_processes():
+                confirm(args, default='n')
 
 def check_processes():
     # Conda should still work if psutil is not installed (it should not be a
