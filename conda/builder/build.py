@@ -167,10 +167,8 @@ def test(m):
         print "Nothing to test for:", m.dist()
         return
 
-    rm_rf(prefix)
-
     print "TEST START:", m.dist()
-
+    rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
              # as the tests are run by python, we need to specify it
