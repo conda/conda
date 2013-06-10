@@ -162,14 +162,13 @@ def build(m, get_src=True):
 def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
-    rm_rf(prefix)
     os.makedirs(tmp_dir)
     if not create_test_files(tmp_dir, m):
         print "Nothing to test for:", m.dist()
         return
 
     print "TEST START:", m.dist()
-
+    rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
              # as the tests are run by python, we need to specify it
