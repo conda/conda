@@ -3,6 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+import re
 
 import common
 from conda.config import config, UserRCConfig, SystemRCConfig
@@ -51,7 +52,7 @@ def configure_parser(sub_parsers):
         "--add",
         nargs = 2,
         action = "append",
-        help = "add one configuration value",
+        help = "add one configuration value. The default is to prepend.",
         default = []
         )
     p.set_defaults(func=execute)
@@ -70,16 +71,65 @@ def execute(args, parser):
         rc_path = UserRCConfig.rc_path
 
     with open(rc_path, 'r') as rc:
-        rc_config = yaml.load(rc)
+        rc_text = rc.read()
+    rc_config = yaml.load(rc_text)
 
+    # Get
     for key, in args.get:
         for item in rc_config.get(key, []):
             # Use repr so that it can be pasted back in
             print key, repr(item)
 
+    # Add
+
+    # PyYaml does not support round tripping, so if we use yaml.dump, it
+    # will clear all comments and structure from the configuration file.
+    # There are no yaml parsers that do this.  Our best bet is to do a
+    # simple parsing of the file ourselves.  We can check the result at
+    # the end to see if we did it right.
+
+    # First, do it the pyyaml way
+
+    new_rc_config = rc_config.copy()
     for key, item in args.add:
-        rc_config.setdefault(key, []).append(item)
+        new_rc_config.setdefault(key, []).insert(0, item)
+
+    # Now, try to parse the condarc file.
+
+    # Just support "   key:  " for now
+    keyregexes = {key:re.compile(r"( *)%s *" % key)
+        for key in dict(args.add)
+        }
+
+    new_rc_text = rc_text[:].split("\n")
+    for key, item in args.add:
+        added = False
+        for pos, line in enumerate(new_rc_text[:]):
+            matched = keyregexes[key].match(line)
+            if matched:
+                leading_space = matched.group(1)
+                # TODO: Try to guess how much farther to indent the
+                # item. Right now, it is fixed at 2 spaces.
+                new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
+                added = True
+        if not added:
+            raise NotImplementedError("Adding new keys")
+
+    if args.add:
+        # Verify that the new rc text parses to the same thing as if we had
+        # used yaml.
+        try:
+            parsed_new_rc_text = yaml.load('\n'.join(new_rc_text))
+            parsed = True
+        except yaml.parser.ParserError:
+            parsed = False
+        else:
+            parsed = parsed_new_rc_text == new_rc_config
+
+        if not parsed:
+            raise NotImplementedError("Could not parse the yaml file")
+
 
     if args.add:
         with open(rc_path, 'w') as rc:
-            rc.write(yaml.dump(rc_config))
+            rc.write('\n'.join(new_rc_text))
