@@ -276,8 +276,7 @@ def execute_plan(plan, index=None, verbose=False):
         if cmd == PREFIX:
             prefix = arg
         elif cmd == PRINT:
-            if verbose:
-                print arg
+            getLogger('print').info(arg)
         elif cmd == FETCH:
             fetch(index, arg)
         elif cmd == PROGRESS:

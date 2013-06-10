@@ -44,6 +44,13 @@ class ProgressHandler(logging.Handler):
             progress.finish()
 
 
+class PrintHandler(logging.Handler):
+
+    def emit(self, record):
+        if record.name == 'print':
+            print record.msg
+
+
 def setup_handlers():
     fetch_prog_logger = logging.getLogger('fetch')
     fetch_prog_logger.setLevel(logging.INFO)
@@ -52,3 +59,7 @@ def setup_handlers():
     prog_logger = logging.getLogger('progress')
     prog_logger.setLevel(logging.INFO)
     prog_logger.addHandler(ProgressHandler())
+
+    print_logger = logging.getLogger('print')
+    print_logger.setLevel(logging.INFO)
+    print_logger.addHandler(PrintHandler())
