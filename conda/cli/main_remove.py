@@ -99,11 +99,11 @@ def execute(args, parser):
         print 'No packages found to remove from environment: %s' % prefix
         return
 
-    pscheck.main(args)
-
     print
     print "Package plan for package removal in environment %s:" % prefix
     plan.display_actions(actions)
+
+    pscheck.main(args)
 
     common.confirm(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
