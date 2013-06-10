@@ -178,7 +178,6 @@ def test(m):
     for spec in m.get_value('test/requires'):
         specs.append(spec)
 
-    print specs
     create_env(config.test_prefix, specs)
 
     env = dict(os.environ)
