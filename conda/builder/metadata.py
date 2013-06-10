@@ -76,7 +76,8 @@ def parse(data):
         if res[section].get(key, None) is None:
             res[section][key] = []
     # ensure those are strings
-    for field in ('source/git_tag', 'source/git_branch', 'source/md5'):
+    for field in ('package/version',
+                  'source/git_tag', 'source/git_branch', 'source/md5'):
         section, key = field.split('/')
         if res.get(section) is None:
             res[section] = {}
