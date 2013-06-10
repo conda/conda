@@ -68,7 +68,7 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
         log.debug("Fetching: %s" % url)
         n = 0
         h = hashlib.new('md5')
-        getLogger('progress.start').info({'filename': fn,
+        getLogger('fetch.start').info({'filename': fn,
                                           'maxval': info['size']})
         need_retry = False
         try:
@@ -90,14 +90,14 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
                 raise RuntimeError("Failed to write to %r." % pp)
             h.update(chunk)
             n += len(chunk)
-            getLogger('progress.update').info(n)
+            getLogger('fetch.update').info(n)
 
         fo.close()
         if need_retry:
             continue
 
         fi.close()
-        getLogger('progress.stop').info(None)
+        getLogger('fetch.stop').info(None)
         if h.hexdigest() != info['md5']:
             raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
         try:
