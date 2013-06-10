@@ -4,6 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 import re
+from argparse import RawDescriptionHelpFormatter
 
 import common
 from conda.config import config, UserRCConfig, SystemRCConfig
@@ -15,12 +16,14 @@ config command.  Writes to the user .condarc file (%s) by default.
 
 example = """
 examples:
-    conda config -add channels foo
+    conda config --get channels --system
+    conda config --add channels foo
 """
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
+        formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,
         epilog = example,
@@ -56,6 +59,13 @@ def configure_parser(sub_parsers):
         default = []
         )
     p.set_defaults(func=execute)
+
+    p.add_argument(
+        "-f", "--force",
+        action = "store_true",
+        help = """Write to the config file using the yaml parser.  This will
+        remove any comments or structure from the file."""
+        )
 
 def execute(args, parser):
     try:
