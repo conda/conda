@@ -18,8 +18,7 @@ from naming import name_dist
 from utils import md5_file, human_bytes
 from fetch import fetch_pkg
 from resolve import MatchSpec, Resolve
-from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
-
+from progressbar import Bar, Percentage, ProgressBar
 
 log = logging.getLogger(__name__)
 
@@ -246,10 +245,10 @@ def remove_features_actions(prefix, index, features):
 
 # ---------------------------- EXECUTION --------------------------
 
-def fetch(index, dist, progress):
+def fetch(index, dist):
     assert index is not None
     fn = dist + '.tar.bz2'
-    fetch_pkg(index[fn], progress=progress)
+    fetch_pkg(index[fn])
 
 
 def cmds_from_plan(plan):
@@ -264,13 +263,12 @@ def cmds_from_plan(plan):
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
-        fetch_progress = ProgressBar(
-            widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
-                     FileTransferSpeed()])
+        from console import setup_handlers
+
+        setup_handlers()
         progress = ProgressBar(
             widgets=['', ' ', Bar(), ' ', Percentage()])
     else:
-        fetch_progress = None
         progress = None
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
@@ -288,7 +286,7 @@ def execute_plan(plan, index=None, verbose=False):
             if verbose:
                 print arg
         elif cmd == FETCH:
-            fetch(index, arg, fetch_progress)
+            fetch(index, arg)
         elif cmd == PROGRESS:
             if verbose:
                 i = 0
