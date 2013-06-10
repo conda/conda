@@ -1,8 +1,9 @@
 import os
 import sys
 
+import conda_argparse
 from conda.config import root_dir
-from conda.cli.common import confirm
+from conda.cli.common import confirm, add_parser_yes
 
 try:
     WindowsError
@@ -52,4 +53,7 @@ def check_processes():
     return ok
 
 if __name__ == '__main__':
-    main()
+    p = conda_argparse.ArgumentParser()
+    add_parser_yes(p)
+    args = p.parse_args()
+    main(args, windowsonly=False)
