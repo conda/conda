@@ -104,6 +104,11 @@ def execute(args, parser):
     for key, item in args.add:
         new_rc_config.setdefault(key, []).insert(0, item)
 
+    if args.force:
+        with open(rc_path, 'w') as rc:
+            rc.write(yaml.dump(new_rc_config))
+        return
+
     # Now, try to parse the condarc file.
 
     # Just support "   key:  " for now
@@ -137,7 +142,9 @@ def execute(args, parser):
             parsed = parsed_new_rc_text == new_rc_config
 
         if not parsed:
-            raise NotImplementedError("Could not parse the yaml file")
+            raise NotImplementedError("Could not parse the yaml file. Use -f "
+            "to use the yaml parser (this will remove any structure or "
+            "comments from the existing .condarc file)")
 
 
     if args.add:
