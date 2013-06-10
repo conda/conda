@@ -70,10 +70,10 @@ def execute(args, parser):
         list_packages(prefix, regex)
         return
 
-    pscheck.main(args)
-
     print "Updating conda environment at %s" % prefix
     plan.display_actions(actions, index)
+
+    pscheck.main(args)
 
     common.confirm(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
