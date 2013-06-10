@@ -9,14 +9,14 @@ import bz2
 import json
 import hashlib
 import urllib2
-import logging
+from logging import getLogger
 from os.path import join
 
 from config import config
 from utils import memoized
 
-log = logging.getLogger(__name__)
 
+log = getLogger(__name__)
 retries = 3
 
 
@@ -50,7 +50,7 @@ def fetch_index(channel_urls):
     return index
 
 
-def fetch_pkg(info, progress=None, dst_dir=config.pkgs_dir):
+def fetch_pkg(info, dst_dir=config.pkgs_dir):
     '''
     fetch a package `fn` from `url` and store it into `dst_dir`
     '''
@@ -68,11 +68,7 @@ def fetch_pkg(info, progress=None, dst_dir=config.pkgs_dir):
         log.debug("Fetching: %s" % url)
         n = 0
         h = hashlib.new('md5')
-        if progress:
-            progress.widgets[0] = fn
-            progress.maxval = info['size']
-            progress.start()
-
+        getLogger('fetch.start').info((fn, info['size']))
         need_retry = False
         try:
             fo = open(pp, 'wb')
@@ -83,7 +79,6 @@ def fetch_pkg(info, progress=None, dst_dir=config.pkgs_dir):
             try:
                 chunk = fi.read(16384)
             except IOError:
-                log.debug("Attempt %d failed at read" % x)
                 need_retry = True
                 break
             if not chunk:
@@ -94,16 +89,14 @@ def fetch_pkg(info, progress=None, dst_dir=config.pkgs_dir):
                 raise RuntimeError("Failed to write to %r." % pp)
             h.update(chunk)
             n += len(chunk)
-            if progress:
-                progress.update(n)
+            getLogger('fetch.update').info(n)
 
         fo.close()
         if need_retry:
             continue
 
         fi.close()
-        if progress:
-            progress.finish()
+        getLogger('fetch.stop').info(None)
         if h.hexdigest() != info['md5']:
             raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
         try:

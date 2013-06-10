@@ -7,6 +7,7 @@ from naming import fn2spec
 from fetch import fetch_index
 
 
+
 def get_index(channel_urls=(), prepend=True):
     """
     Return the index of packages available on the channels
@@ -17,6 +18,7 @@ def get_index(channel_urls=(), prepend=True):
     if prepend:
         channel_urls += config.get_channel_urls()
     return fetch_index(tuple(channel_urls))
+
 
 def normalize_urls(urls):
     newurls = []
@@ -115,4 +117,4 @@ if __name__ == '__main__':
     from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
     #print app_install('twisted-12.3.0-py27_0.tar.bz2')
-    pprint(app_is_installed('spyder-app-2.2.0-py27_0.tar.bz2'))
+    pprint(get_index())

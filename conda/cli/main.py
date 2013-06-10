@@ -76,10 +76,8 @@ def main():
         version = 'conda %s' % conda.__version__,
     )
     p.add_argument(
-        '-l', "--log-level",
-        action = "store",
-        default = "warning",
-        choices = ['debug', 'info', 'warning', 'error', 'critical'],
+        "--debug",
+        action = "store_true",
         help = argparse.SUPPRESS,
     )
     sub_parsers = p.add_subparsers(
@@ -105,8 +103,8 @@ def main():
 
     args = p.parse_args()
 
-    log_level = getattr(logging, args.log_level.upper())
-    logging.basicConfig(level=log_level)
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
     try:
         args.func(args, p)

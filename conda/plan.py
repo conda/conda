@@ -7,7 +7,7 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-import logging
+from logging import getLogger
 
 from collections import defaultdict
 from os.path import abspath, isfile, join
@@ -18,10 +18,8 @@ from naming import name_dist
 from utils import md5_file, human_bytes
 from fetch import fetch_pkg
 from resolve import MatchSpec, Resolve
-from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
-
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
 
 
 # op codes
@@ -182,8 +180,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        # ensure conda is in root environment
-        assert 'conda' in must_have
+        if not force:
+            # ensure conda is in root environment
+            assert 'conda' in must_have
     else:
         # discard conda from other environments
         if 'conda' in must_have:
@@ -245,10 +244,10 @@ def remove_features_actions(prefix, index, features):
 
 # ---------------------------- EXECUTION --------------------------
 
-def fetch(index, dist, progress):
+def fetch(index, dist):
     assert index is not None
     fn = dist + '.tar.bz2'
-    fetch_pkg(index[fn], progress=progress)
+    fetch_pkg(index[fn])
 
 
 def cmds_from_plan(plan):
@@ -263,14 +262,8 @@ def cmds_from_plan(plan):
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
-        fetch_progress = ProgressBar(
-            widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
-                     FileTransferSpeed()])
-        progress = ProgressBar(
-            widgets=['', ' ', Bar(), ' ', Percentage()])
-    else:
-        fetch_progress = None
-        progress = None
+        from console import setup_handlers
+        setup_handlers()
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
     prefix = config.root_dir
@@ -278,21 +271,18 @@ def execute_plan(plan, index=None, verbose=False):
     for cmd, arg in cmds_from_plan(plan):
         if i is not None and cmd in progress_cmds:
             i += 1
-            progress.widgets[0] = '[%-20s]' % name_dist(arg)
-            progress.update(i)
+            getLogger('progress.update').info((name_dist(arg), i))
 
         if cmd == PREFIX:
             prefix = arg
         elif cmd == PRINT:
-            if verbose:
-                print arg
+            getLogger('print').info(arg)
         elif cmd == FETCH:
-            fetch(index, arg, fetch_progress)
+            fetch(index, arg)
         elif cmd == PROGRESS:
-            if verbose:
-                i = 0
-                progress.maxval = int(arg)
-                progress.start()
+            i = 0
+            maxval = int(arg)
+            getLogger('progress.start').info(maxval)
         elif cmd == EXTRACT:
             install.extract(config.pkgs_dir, arg)
         elif cmd == RM_EXTRACTED:
@@ -306,10 +296,9 @@ def execute_plan(plan, index=None, verbose=False):
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
-        if i is not None and cmd in progress_cmds and progress.maxval == i:
+        if i is not None and cmd in progress_cmds and maxval == i:
             i = None
-            progress.widgets[0] = '[      COMPLETE      ]'
-            progress.finish()
+            getLogger('progress.stop').info(None)
 
 
 def execute_actions(actions, index=None, verbose=False):

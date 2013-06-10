@@ -4,32 +4,21 @@ import json
 import base64
 import hashlib
 import tarfile
-from os.path import join, getmtime
+from os.path import isdir, join, getmtime
 
 from utils import file_info
 
 
-app_meta_path_fmt = 'App/%(name)s/meta.json'
-
-def add_app_metadata(t, info):
-    app_meta = json.loads(t.extractfile(app_meta_path_fmt % info).read())
-    iconpath = app_meta['icon']
-    if iconpath.startswith('./'):
-        iconpath = 'App/%s/%s' % (info['name'], iconpath[2:])
-    icondata = t.extractfile(iconpath).read()
-    info.update(dict(
-            type = 'app',
-            _icondata = base64.b64encode(icondata),
-            icon = hashlib.md5(icondata).hexdigest(),
-            summary = app_meta.get('summary'),
-    ))
 
 def read_index_tar(tar_path):
     with tarfile.open(tar_path) as t:
         info = json.load(t.extractfile('info/index.json'))
-        app_meta_path = app_meta_path_fmt % info
-        if any(m.path == app_meta_path for m in t.getmembers()):
-            add_app_metadata(t, info)
+        try:
+            raw = t.extractfile('info/icon.png').read()
+            info['_icondata'] = base64.b64encode(raw)
+            info['_iconmd5'] = hashlib.md5(raw).hexdigest()
+        except KeyError:
+            pass
         return info
 
 def write_repodata(repodata, dir_path):
@@ -82,15 +71,21 @@ def update_index(dir_path, verbose=False, force=False):
     for fn in index:
         info = index[fn]
         if '_icondata' in info:
-            icons[info['icon']] = info['_icondata']
-        for varname in 'arch', 'platform', 'mtime', 'ucs', '_icondata':
+            icons[info['_iconmd5']] = base64.b64decode(info['_icondata'])
+            assert '%(_iconmd5)s.png' % info == info['icon']
+        for varname in ('arch', 'platform', 'mtime', 'ucs',
+                        '_icondata', '_iconmd5'):
             try:
                 del info[varname]
             except KeyError:
                 pass
+    if icons:
+        icons_dir = join(dir_path, 'icons')
+        if not isdir(icons_dir):
+            os.mkdir(icons_dir)
+        for md5, raw in icons.iteritems():
+            with open(join(icons_dir, '%s.png' % md5), 'wb') as fo:
+                fo.write(raw)
 
     repodata = {'packages': index, 'info': {}}
-    if icons:
-        repodata['icons'] = icons
-
     write_repodata(repodata, dir_path)

@@ -1,8 +1,9 @@
 import os
 import sys
 
+import conda_argparse
 from conda.config import config
-from conda.cli.common import confirm
+from conda.cli.common import confirm, add_parser_yes
 
 try:
     WindowsError
@@ -13,14 +14,18 @@ def main(args, windowsonly=True):
     if sys.platform == 'win32' or not windowsonly:
         if args.yes:
             check_processes()
-        while not check_processes():
-            confirm(args, default='n')
+        else:
+            while not check_processes():
+                confirm(args, default='n')
 
 def check_processes():
     # Conda should still work if psutil is not installed (it should not be a
     # hard dependency)
     try:
         import psutil
+        # Old versions of psutil don't have this error, causing the below code to
+        # fail.
+        psutil._error.AccessDenied
     except ImportError:
         return True
 
@@ -48,4 +53,7 @@ def check_processes():
     return ok
 
 if __name__ == '__main__':
-    main()
+    p = conda_argparse.ArgumentParser()
+    add_parser_yes(p)
+    args = p.parse_args()
+    main(args, windowsonly=False)
