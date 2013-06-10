@@ -7,14 +7,16 @@ fetch_progress = ProgressBar(
     widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
              FileTransferSpeed()])
 
+progress = ProgressBar(widgets=['', ' ', Bar(), ' ', Percentage()])
+
 
 class FetchProgressHandler(logging.Handler):
 
     def emit(self, record):
         if record.name == 'fetch.start':
-            d = record.msg
-            fetch_progress.widgets[0] = d['filename']
-            fetch_progress.maxval = d['maxval']
+            filename, maxval = record.msg
+            fetch_progress.widgets[0] = filename
+            fetch_progress.maxval = maxval
             fetch_progress.start()
 
         elif record.name == 'fetch.update':
@@ -25,7 +27,28 @@ class FetchProgressHandler(logging.Handler):
             fetch_progress.finish()
 
 
+class ProgressHandler(logging.Handler):
+
+    def emit(self, record):
+        if record.name == 'progress.start':
+            progress.maxval = record.msg
+            progress.start()
+
+        elif record.name == 'progress.update':
+            name, n = record.msg
+            progress.widgets[0] = '[%-20s]' % name
+            progress.update(n)
+
+        elif record.name == 'progress.stop':
+            progress.widgets[0] = '[      COMPLETE      ]'
+            progress.finish()
+
+
 def setup_handlers():
-    prog_logger = logging.getLogger('fetch')
+    fetch_prog_logger = logging.getLogger('fetch')
+    fetch_prog_logger.setLevel(logging.INFO)
+    fetch_prog_logger.addHandler(FetchProgressHandler())
+
+    prog_logger = logging.getLogger('progress')
     prog_logger.setLevel(logging.INFO)
-    prog_logger.addHandler(FetchProgressHandler())
+    prog_logger.addHandler(ProgressHandler())

@@ -68,8 +68,7 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
         log.debug("Fetching: %s" % url)
         n = 0
         h = hashlib.new('md5')
-        getLogger('fetch.start').info({'filename': fn,
-                                          'maxval': info['size']})
+        getLogger('fetch.start').info((fn, info['size']))
         need_retry = False
         try:
             fo = open(pp, 'wb')

@@ -7,7 +7,7 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-import logging
+from logging import getLogger
 
 from collections import defaultdict
 from os.path import abspath, isfile, join
@@ -18,9 +18,8 @@ from naming import name_dist
 from utils import md5_file, human_bytes
 from fetch import fetch_pkg
 from resolve import MatchSpec, Resolve
-from progressbar import Bar, Percentage, ProgressBar
 
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
 
 
 # op codes
@@ -264,12 +263,7 @@ def cmds_from_plan(plan):
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
         from console import setup_handlers
-
         setup_handlers()
-        progress = ProgressBar(
-            widgets=['', ' ', Bar(), ' ', Percentage()])
-    else:
-        progress = None
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
     prefix = config.root_dir
@@ -277,8 +271,7 @@ def execute_plan(plan, index=None, verbose=False):
     for cmd, arg in cmds_from_plan(plan):
         if i is not None and cmd in progress_cmds:
             i += 1
-            progress.widgets[0] = '[%-20s]' % name_dist(arg)
-            progress.update(i)
+            getLogger('progress.update').info((name_dist(arg), i))
 
         if cmd == PREFIX:
             prefix = arg
@@ -288,10 +281,9 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == FETCH:
             fetch(index, arg)
         elif cmd == PROGRESS:
-            if verbose:
-                i = 0
-                progress.maxval = int(arg)
-                progress.start()
+            i = 0
+            maxval = int(arg)
+            getLogger('progress.start').info(maxval)
         elif cmd == EXTRACT:
             install.extract(config.pkgs_dir, arg)
         elif cmd == RM_EXTRACTED:
@@ -305,10 +297,9 @@ def execute_plan(plan, index=None, verbose=False):
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
-        if i is not None and cmd in progress_cmds and progress.maxval == i:
+        if i is not None and cmd in progress_cmds and maxval == i:
             i = None
-            progress.widgets[0] = '[      COMPLETE      ]'
-            progress.finish()
+            getLogger('progress.stop').info(None)
 
 
 def execute_actions(actions, index=None, verbose=False):
