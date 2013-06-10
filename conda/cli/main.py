@@ -105,7 +105,7 @@ def main():
     args = p.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
-    logging.basicConfig(level=log_level)
+    #logging.basicConfig(level=log_level)
 
     try:
         args.func(args, p)
