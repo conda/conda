@@ -15,7 +15,7 @@ from conda.fetch import fetch_index
 import environ
 import source
 import tarcheck
-from scripts import create_entry_points
+from scripts import create_entry_points, bin_dirname
 from post import post_process, post_build, is_obj, fix_permissions
 from utils import rm_rf, url_path, _check_call
 from index import update_index
@@ -180,8 +180,10 @@ def test(m):
     create_env(config.test_prefix, specs)
 
     env = dict(os.environ)
-    if sys.platform == 'win32':
-        env['PATH'] = config.test_prefix + r'\Scripts;' + env['PATH']
+    # prepend bin/Scripts directory
+    env['PATH'] = (join(config.test_prefix, bin_dirname) + os.pathsep +
+                   env['PATH'])
+
     for varname in 'CONDA_PY', 'CONDA_NPY':
         env[varname] = str(getattr(config, varname))
     env['PREFIX'] = config.test_prefix
