@@ -80,3 +80,25 @@ test:             # (optional)
 about:            # (optional)
   home: https://github.com/ilanschnell/bsdiff4
   license: BSD
+
+
+Environment variables set during the build process:
+---------------------------------------------------
+
+The following environment variables are set, both on Unix (build.sh) and on
+Windows (bld.bat) during the build process:
+
+  * CONDA_BUILD=1    # always set
+  * SRC_DIR          # path to where source is unpacked (or cloned)
+  * PREFIX           # build prefix where build script should install to
+  
+  * PYTHON           # path to python executable in build prefix (note that
+                     # python is only installed in the build prefix, when it
+                     # is listed as a build requirement
+  * PY3K             # '1' when Python 3 is installed in build prefix, else '0'
+  * STDLIB_DIR       # Python standard library location
+  * SP_DIR           # Python's site-packages location
+  * PY_VER           # Python version building against
+
+  * SYS_PYTHON       # Python of process which is building
+  * SYS_PREFIX       # prefix of process which is building, usually root env
