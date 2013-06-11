@@ -149,11 +149,12 @@ def add_defaults_to_specs(r, linked, specs):
             log.debug('H1 %s' % name)
             continue
 
-        depends_on = any(any(any(ms.name == name for ms in r.ms_depends(fn))
-                             for fn in r.get_max_dists(MatchSpec(spec)))
-                         for spec in specs)
+        any_depends_on = any(any(any(ms2.name == name
+                                     for ms2 in r.ms_depends(fn))
+                                 for fn in r.get_max_dists(MatchSpec(spec)))
+                             for spec in specs)
 
-        if (not depends_on and name not in names_ms):
+        if not any_depends_on and name not in names_ms:
             log.debug('H2 %s' % name)
             continue
 
@@ -163,6 +164,7 @@ def add_defaults_to_specs(r, linked, specs):
             continue
 
         specs.append('%s %s*' % (name, def_ver))
+    log.debug('HF specs=%r' % specs)
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None):
