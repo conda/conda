@@ -3,7 +3,6 @@ import sys
 import json
 import shutil
 import tarfile
-import subprocess
 from os.path import exists, isdir, islink, join
 
 import conda.config as cc
@@ -18,7 +17,7 @@ import source
 import tarcheck
 from scripts import create_entry_points
 from post import post_process, post_build, is_obj, fix_permissions
-from utils import rm_rf, url_path
+from utils import rm_rf, url_path, _check_call
 from index import update_index
 from create_test import create_files
 
@@ -27,13 +26,6 @@ prefix = config.build_prefix
 info_dir = join(prefix, 'info')
 
 bldpkgs_dir = join(config.croot, cc.subdir)
-
-
-def check_call(args, **kwargs):
-    try:
-        subprocess.check_call(args, **kwargs)
-    except subprocess.CalledProcessError:
-        sys.exit('Command failed: %s' % ' '.join(args))
 
 
 def prefix_files():
@@ -136,7 +128,7 @@ def build(m, get_src=True):
     else:
         env = environ.get_dict()
         cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
-        check_call(cmd, env=env, cwd=source.get_dir())
+        _check_call(cmd, env=env, cwd=source.get_dir())
 
     create_entry_points(m.get_value('build/entry_points'))
     post_process()
@@ -192,7 +184,7 @@ def test(m):
     for varname in 'CONDA_PY', 'CONDA_NPY':
         env[varname] = str(getattr(config, varname))
 
-    check_call([config.test_python, join(tmp_dir, 'run_test.py')],
-               env=env, cwd=tmp_dir)
+    _check_call([config.test_python, join(tmp_dir, 'run_test.py')],
+                env=env, cwd=tmp_dir)
 
     print "TEST END:", m.dist()

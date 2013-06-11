@@ -1,11 +1,11 @@
 import os
 import sys
-import subprocess
 from os.path import isdir, isfile, join
 
 import config
 import environ
 import source
+from utils import _check_call
 from scripts import BAT_PROXY
 
 import conda.config as cc
@@ -94,6 +94,6 @@ def build(recipe_dir):
         fo.write(data)
 
     cmd = [os.environ['COMSPEC'], '/c', 'bld.bat']
-    subprocess.check_call(cmd, cwd=src_dir)
+    _check_call(cmd, cwd=src_dir)
     kill_processes()
     fix_staged_scripts()

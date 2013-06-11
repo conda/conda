@@ -21,6 +21,13 @@ def rel_lib(f):
         return normpath(f.count('/') * '../') + '/lib'
 
 
+def _check_call(args, **kwargs):
+    try:
+        subprocess.check_call(args, **kwargs)
+    except subprocess.CalledProcessError:
+        sys.exit('Command failed: %s' % ' '.join(args))
+
+
 def url_path(path):
     path = abspath(path)
     if sys.platform == 'win32':
