@@ -182,7 +182,7 @@ def test(m):
     env = dict(os.environ)
     if sys.platform == 'win32':
         env['PATH'] = config.test_prefix + r'\Scripts;' + env['PATH']
-    for varname in 'ANA_PY', 'ANA_NPY':
+    for varname in 'CONDA_PY', 'CONDA_NPY':
         env[varname] = str(getattr(config, varname))
 
     check_call([config.test_python, join(tmp_dir, 'run_test.py')],
