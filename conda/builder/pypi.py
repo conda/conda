@@ -4,6 +4,8 @@ Tools for converting PyPI packages to conda recipes.
 
 import sys
 import xmlrpclib
+from os import makedirs
+from os.path import join
 
 from conda.cli.conda_argparse import ArgumentParser
 from conda.utils import human_bytes
@@ -70,13 +72,20 @@ def main():
         nargs = '+',
         help = "PyPi packages to create recipe skeletons for",
         )
+    p.add_argument(
+        "output_dir",
+        action = "store",
+        nargs = 1,
+        help = "Directory to write recipes to.",
+        )
     args = p.parse_args()
     execute(args, p)
 
 def execute(args, parser):
     client = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
+    package_dicts = {}
     for package in args.packages:
-        d = {'packagename': package}
+        d = package_dicts.setdefault(package, {'packagename': package})
         versions = client.package_releases(package)
         if not versions:
             sys.exit("Error: Could not find any versions of package %s" % package)
@@ -108,7 +117,7 @@ def execute(args, parser):
         d['filename'] = urls[n]['filename']
 
         data = client.release_data(package, d['version'])
-        d['homepage'] = data['home_page']
+        d['homeurl'] = data['home_page']
         license_classifier = "License :: OSI Approved ::"
         licenses = [classifier.lstrip(license_classifier) for classifier in
             data['classifiers'] if classifier.startswith(license_classifier)]
@@ -125,6 +134,21 @@ def execute(args, parser):
         else:
             license = ' or '.join(licenses)
         d['license'] = license
+
+    for package in package_dicts:
+        [output_dir] = args.output_dir
+        d = package_dicts[package]
+        makedirs(join(output_dir, package))
+        print "Writing recipe for %s" % package
+        with open(join(output_dir, package, 'meta.yaml'),
+            'w') as f:
+            f.write(PYPI_META.format(**d))
+        with open(join(output_dir, package, 'build.sh'), 'w') as f:
+            f.write(PYPI_BUILD_SH.format(**d))
+        with open(join(output_dir, package, 'bld.bat'), 'w') as f:
+            f.write(PYPI_BLD_BAT.format(**d))
+
+    print "Done"
 
 if __name__ == '__main__':
     sys.exit(main())
