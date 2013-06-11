@@ -127,6 +127,7 @@ def build(m, get_src=True):
         windows.build(m.path)
     else:
         env = environ.get_dict()
+        env['RECIPE_DIR'] = m.path
         cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
         _check_call(cmd, env=env, cwd=source.get_dir())
 
