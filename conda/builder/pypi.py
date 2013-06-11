@@ -112,13 +112,18 @@ def main():
         "output_dir",
         action = "store",
         nargs = 1,
-        help = "Directory to write recipes to.",
+        help = "Directory to write recipes to",
         )
     p.add_argument(
         "--version",
         action = "store",
         nargs = 1,
-        help = "Version to use. Applies to all packages.",
+        help = "Version to use. Applies to all packages",
+        )
+    p.add_argument(
+        "--all-urls",
+        action = "store_true",
+        help = "Look at all urls, not just source urls",
         )
     args = p.parse_args()
     execute(args, p)
@@ -151,7 +156,8 @@ def execute(args, parser):
         urls = client.release_urls(package, d['version'])
         # Try to find source urls
         # TODO: Allow to customize this
-        urls = [url for url in urls if url['python_version'] == 'source']
+        if not args.all_urls:
+            urls = [url for url in urls if url['python_version'] == 'source']
         if not urls:
             sys.exit("Error: No source urls found for %s" % package)
         if len(urls) > 1:
@@ -162,6 +168,8 @@ def execute(args, parser):
             n = int(raw_input("Which version should I use? "))
         else:
             n = 0
+
+        print "Using url %s (%s) for %s." % (urls[n]['url'], urls[n]['size'], package)
 
         d['pypiurl'] = urls[n]['url']
         d['md5'] = urls[n]['md5_digest']
