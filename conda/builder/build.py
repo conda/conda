@@ -120,6 +120,7 @@ def build(m, get_src=True):
     print "source tree in:", source.get_dir()
 
     rm_rf(info_dir)
+    os.makedirs(prefix)
     files1 = prefix_files()
 
     if sys.platform == 'win32':
