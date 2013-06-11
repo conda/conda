@@ -4,11 +4,11 @@ from os.path import join
 
 import conda.config as config
 
-from config import ANA_PY, PY3K, build_prefix, build_python
+from config import CONDA_PY, PY3K, build_prefix, build_python
 import source
 
 
-py_ver = '.'.join(str(ANA_PY))
+py_ver = '.'.join(str(CONDA_PY))
 stdlib_dir = join(build_prefix, 'Lib' if sys.platform == 'win32' else
                                 'lib/python%s' % py_ver)
 sp_dir = join(stdlib_dir, 'site-packages')

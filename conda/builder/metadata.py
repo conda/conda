@@ -5,7 +5,7 @@ from conda.utils import memoized, md5_file
 import conda.config as config
 from conda.resolve import MatchSpec
 
-from config import ANA_PY, ANA_NPY
+from config import CONDA_PY, CONDA_NPY
 
 import yaml
 
@@ -13,8 +13,8 @@ import yaml
 
 def ns_cfg():
     plat = config.subdir
-    py = ANA_PY
-    np = ANA_NPY
+    py = CONDA_PY
+    np = CONDA_NPY
     for x in py, np:
         assert isinstance(x, int), x
     return dict(
@@ -113,7 +113,7 @@ class MetaData(object):
         res = []
         for spec in self.get_value('requirements/' + typ):
             ms = MatchSpec(spec)
-            for name, ver in [('python', ANA_PY), ('numpy', ANA_NPY)]:
+            for name, ver in [('python', CONDA_PY), ('numpy', CONDA_NPY)]:
                 if ms.name == name:
                     assert ms.strictness == 1
                     ms = MatchSpec('%s %s*' % (name, '.'.join(str(ver))))
