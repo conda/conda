@@ -138,6 +138,7 @@ def dist2spec3v(dist):
 def add_defaults_to_specs(r, linked, specs):
     if r.explicit(specs):
         return
+    log.debug('H0 specs=%r' % specs)
     names_linked = {name_dist(dist): dist for dist in linked}
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
@@ -150,8 +151,8 @@ def add_defaults_to_specs(r, linked, specs):
 
         if (not any(any(any(ms.name == name for ms in r.ms_depends(fn))
                         for fn in r.get_max_dists(MatchSpec(spec)))
-                    for spec in specs)
-                and name not in names_ms):
+                    for spec in specs)   and
+                              name not in names_ms):
             log.debug('H2 %s' % name)
             continue
 
