@@ -23,10 +23,22 @@ source:
    # List any patch files here
    # - fix.patch
 
+# build:
+  # entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - {packagename}:main
+    #
+    # Would call {packagename}.main()
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
+
 requirements:
   build:
     - python
-
     # If setuptools is required to run setup.py, add distribute to the build
     # requirements.
     #
@@ -36,15 +48,28 @@ requirements:
     - python
 
 test:
+  # Python imports
   imports:
     - {packagename}
+
+  # commands:
+    # You can put test commands to be run here.  Use this to test that the
+    # entry points work.
 
   # You can also put a file called run_test.py in the recipe that will be run
   # at test time.
 
+  # requires:
+    # Put any test requirements here.  For example
+    # - nose
+
 about:
   home: {homeurl}
   license: {license}
+
+# See
+# https://github.com/ContinuumIO/conda/blob/master/conda/builder/README.txt for
+# more information about meta.yaml
 """
 
 PYPI_BUILD_SH = """\
@@ -56,13 +81,21 @@ set -e
 $PYTHON setup.py install || exit 1
 
 # Add more build steps here, if they are necessary.
+
+# See
+# https://github.com/ContinuumIO/conda/blob/master/conda/builder/README.txt
+# for a list of environment variables that are set during the build process.
 """
 
 PYPI_BLD_BAT = """\
 python setup.py install
 if errorlevel 1 exit 1
 
-# Add more build steps here, if they are necessary.
+:: Add more build steps here, if they are necessary.
+
+:: See
+:: https://github.com/ContinuumIO/conda/blob/master/conda/builder/README.txt
+:: for a list of environment variables that are set during the build process.
 """
 
 def main():
