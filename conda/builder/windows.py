@@ -74,6 +74,7 @@ def kill_processes():
 def build(recipe_dir):
     env = dict(os.environ)
     env.update(environ.get_dict())
+    env['RECIPE_DIR'] = recipe_dir
 
     for name in 'BIN', 'INC', 'LIB':
         path = env['LIBRARY_' + name]

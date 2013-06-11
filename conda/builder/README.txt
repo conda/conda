@@ -91,6 +91,7 @@ Windows (bld.bat) during the build process:
   * CONDA_BUILD=1    # always set
   * SRC_DIR          # path to where source is unpacked (or cloned)
   * PREFIX           # build prefix where build script should install to
+  * RECIPE_DIR       # directory of recipe
 
   * PYTHON           # path to python executable in build prefix (note that
                      # python is only installed in the build prefix, when it
