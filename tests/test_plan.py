@@ -58,6 +58,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             (['scipy'],      ['python 2.7*', 'numpy 1.7*']),
             (['anaconda'],   ['python 2.7*', 'numpy 1.7*']),
             (['anaconda 1.5.0 np17py27_0'], []),
+            (['sympy 0.7.2 py27_0'], []),
             (['scipy 0.12.0 np16py27_0'], []),
             (['anaconda', 'python 3*'],     ['numpy 1.7*']),
             ]:
