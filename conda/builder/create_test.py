@@ -3,7 +3,7 @@ from os.path import dirname, join
 
 
 
-def create_test_files(dir_path, m):
+def create_files(dir_path, m):
     """
     Create the test files for pkg in the directory given.  The resulting
     test files are configuration (i.e. platform, architecture, Python and

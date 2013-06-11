@@ -20,7 +20,7 @@ from scripts import create_entry_points
 from post import post_process, post_build, is_obj, fix_permissions
 from utils import rm_rf, url_path
 from index import update_index
-from create_test import create_test_files
+from create_test import create_files
 
 
 prefix = config.build_prefix
@@ -163,7 +163,7 @@ def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
     os.makedirs(tmp_dir)
-    if not create_test_files(tmp_dir, m):
+    if not create_files(tmp_dir, m):
         print "Nothing to test for:", m.dist()
         return
 
