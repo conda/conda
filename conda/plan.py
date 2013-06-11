@@ -149,10 +149,10 @@ def add_defaults_to_specs(r, linked, specs):
             log.debug('H1 %s' % name)
             continue
 
-        any_depends_on = any(any(any(ms2.name == name
-                                     for ms2 in r.ms_depends(fn))
-                                 for fn in r.get_max_dists(MatchSpec(spec)))
-                             for spec in specs)
+        any_depends_on = any(ms2.name == name
+                             for spec in specs
+                             for fn in r.get_max_dists(MatchSpec(spec))
+                             for ms2 in r.ms_depends(fn))
 
         if not any_depends_on and name not in names_ms:
             log.debug('H2 %s' % name)
