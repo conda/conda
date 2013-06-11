@@ -5,7 +5,7 @@
 # automatically include all default channels.
 
 channels:
-  - default
+  - defaults
   - http://some.custom/channel
 
 # environment locations. These locations are in *addition* to the system
