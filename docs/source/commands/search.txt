@@ -3,7 +3,7 @@ Search for packages and display their information.
 **usage**: ``conda search [-h] [-n NAME | -p PREFIX] [-c] [-v] [regex]``
 
 *regex*
-	package specification or regular expression to search for (default: display all packages)
+        package specification or regular expression to search for (default: display all packages)
 
 optional arguments:
   -h, --help            show this help message and exit

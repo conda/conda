@@ -35,13 +35,13 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.subdir)
         self.assertTrue(config.arch_name)
 
-    def test_channel_urls(self):
-        config.subdir = 'foo'
-        urls = config.get_channel_urls()
-        self.assertEqual(urls,
-                         ['http://repo.continuum.io/pkgs/dev/foo/',
-                          'http://repo.continuum.io/pkgs/gpl/foo/',
-                          'http://repo.continuum.io/pkgs/free/foo/'])
+#    def test_channel_urls(self):
+#        config.subdir = 'foo'
+#        urls = config.get_channel_urls()
+#        self.assertEqual(urls,
+#                         ['http://repo.continuum.io/pkgs/dev/foo/',
+#                          'http://repo.continuum.io/pkgs/gpl/foo/',
+#                          'http://repo.continuum.io/pkgs/free/foo/'])
 
 
 if __name__ == '__main__':

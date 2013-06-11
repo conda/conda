@@ -3,7 +3,7 @@ Build a package from source. (EXPERIMENTAL)
 **usage**: ``conda build [-h] [--git | --tar | --zip | --svn | --dir] [-n NAME | -p PREFIX] URL``
 
 *URL*
-	name of source (url, tarball, path, etc...)
+        name of source (url, tarball, path, etc...)
 
 optional arguments:
   -h, --help            show this help message and exit
