@@ -10,7 +10,7 @@ from os.path import join
 from conda.cli.conda_argparse import ArgumentParser
 from conda.utils import human_bytes
 
-PYPI_META = """
+PYPI_META = """\
 package:
   name: {packagename}
   version: {version}
@@ -47,15 +47,18 @@ about:
   license: {license}
 """
 
-PYPI_BUILD_SH = """
+PYPI_BUILD_SH = """\
 #!/bin/bash
 
-$PYTHON setup.py install
+# This will make any error fail the script
+set -e
+
+$PYTHON setup.py install || exit 1
 
 # Add more build steps here, if they are necessary.
 """
 
-PYPI_BLD_BAT = """
+PYPI_BLD_BAT = """\
 python setup.py install
 if errorlevel 1 exit 1
 
