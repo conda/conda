@@ -150,13 +150,11 @@ def execute(args, parser):
                     print ver
                 print "Using %s" % versions[-1]
                 print "Use --version to specify a different version."
-                # TODO: Allow to specify the version
             d['version'] = versions[-1]
 
         urls = client.release_urls(package, d['version'])
-        # Try to find source urls
-        # TODO: Allow to customize this
         if not args.all_urls:
+            # Try to find source urls
             urls = [url for url in urls if url['python_version'] == 'source']
         if not urls:
             sys.exit("Error: No source urls found for %s" % package)
