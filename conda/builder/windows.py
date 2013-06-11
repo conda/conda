@@ -49,11 +49,12 @@ def fix_staged_scripts():
 def msvc_env_cmd():
     vcvarsall = (r'C:\Program Files (x86)\Microsoft Visual Studio 9.0'
                  r'\VC\vcvarsall.bat')
-    if not isfile(vcvarsall):
-        raise RuntimeError("Couldn't find Visual Studio: %r" % vcvarsall)
-
-    return 'call "%s" %s\n' % (vcvarsall,
-                               {32: 'x86', 64: 'amd64'}[cc.bits])
+    if isfile(vcvarsall):
+        return 'call "%s" %s\n' % (vcvarsall,
+                                   {32: 'x86', 64: 'amd64'}[cc.bits])
+    else:
+        print "Warning: Couldn't find Visual Studio: %r" % vcvarsall
+        return ''
 
 
 def kill_processes():
