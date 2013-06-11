@@ -3,7 +3,7 @@ import sys
 import json
 import shutil
 import tarfile
-from subprocess import check_call
+import subprocess
 from os.path import exists, isdir, islink, join
 
 import conda.config as cc
@@ -27,6 +27,13 @@ prefix = config.build_prefix
 info_dir = join(prefix, 'info')
 
 bldpkgs_dir = join(config.croot, cc.subdir)
+
+
+def check_call(args, **kwargs):
+    try:
+        subprocess.check_call(args, **kwargs)
+    except subprocess.CalledProcessError:
+        sys.exit('Command failed: %s' % ' '.join(args))
 
 
 def prefix_files():
