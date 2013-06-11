@@ -114,6 +114,12 @@ def main():
         nargs = 1,
         help = "Directory to write recipes to.",
         )
+    p.add_argument(
+        "--version",
+        action = "store",
+        nargs = 1,
+        help = "Version to use. Applies to all packages.",
+        )
     args = p.parse_args()
     execute(args, p)
 
@@ -122,16 +128,25 @@ def execute(args, parser):
     package_dicts = {}
     for package in args.packages:
         d = package_dicts.setdefault(package, {'packagename': package})
-        versions = client.package_releases(package)
-        if not versions:
-            sys.exit("Error: Could not find any versions of package %s" % package)
-        if len(versions) > 1:
-            print "Warning, the following versions were found for %s" % package
-            for ver in versions:
-                print ver
-            print "Using %s" % versions[-1]
-            # TODO: Allow to specify the version
-        d['version'] = versions[-1]
+        if args.version:
+            [version] = args.version
+            versions = client.package_releases(package, True)
+            if version not in versions:
+                sys.exit("Error: Version %s of %s is not avalaiable on PyPI."
+                    % (version, package))
+            d['version'] = version
+        else:
+            versions = client.package_releases(package)
+            if not versions:
+                sys.exit("Error: Could not find any versions of package %s" % package)
+            if len(versions) > 1:
+                print "Warning, the following versions were found for %s" % package
+                for ver in versions:
+                    print ver
+                print "Using %s" % versions[-1]
+                print "Use --version to specify a different version."
+                # TODO: Allow to specify the version
+            d['version'] = versions[-1]
 
         urls = client.release_urls(package, d['version'])
         # Try to find source urls
