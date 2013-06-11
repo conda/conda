@@ -129,7 +129,7 @@ def execute(args, parser):
     for package in args.packages:
         d = package_dicts.setdefault(package, {'packagename': package})
         if args.version:
-            [version] = args.version
+            [version] = args.versions
             versions = client.package_releases(package, True)
             if version not in versions:
                 sys.exit("Error: Version %s of %s is not avalaiable on PyPI."
