@@ -105,4 +105,4 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
             raise RuntimeError("Could not rename %r to %r." % (pp, path))
         return
 
-    raise RuntimeError("Could not locate file '%s' on any repository" % fn)
+    raise RuntimeError("Could not locate '%s'" % url)
