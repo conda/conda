@@ -124,7 +124,11 @@ def arg2spec(arg):
     if len(parts) == 1:
         return name
     if len(parts) == 2:
-        return '%s %s*' % (name, parts[1])
+        ver = parts[1]
+        if ver.endswith('.0'):
+            return '%s %s|%s*' % (name, ver[:-2], ver)
+        else:
+            return '%s %s*' % (name, ver)
     if len(parts) == 3:
         return '%s %s %s' % (name, parts[1], parts[2])
     sys.exit('Error: Invalid package specification: %s' % arg)
