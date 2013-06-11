@@ -64,6 +64,10 @@ requirements:     # (optional)
     - python
 
 test:             # (optional)
+# in addtion to the run-time requirements, we can specify requirements
+# needed during testing
+  requires:
+    - nose
 # commands we want to make sure they work, which are expected to get installed
 # by the package
   commands:
