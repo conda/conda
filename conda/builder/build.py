@@ -184,6 +184,7 @@ def test(m):
         env['PATH'] = config.test_prefix + r'\Scripts;' + env['PATH']
     for varname in 'CONDA_PY', 'CONDA_NPY':
         env[varname] = str(getattr(config, varname))
+    env['PREFIX'] = config.test_prefix
 
     _check_call([config.test_python, join(tmp_dir, 'run_test.py')],
                 env=env, cwd=tmp_dir)
