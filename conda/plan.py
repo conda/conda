@@ -153,7 +153,7 @@ def add_defaults_to_specs(r, linked, specs):
                         for fn in r.get_max_dists(MatchSpec(spec)))
                     for spec in specs)
             and
-                name not in names_ms):
+                    name not in names_ms):
             log.debug('H2 %s' % name)
             continue
 

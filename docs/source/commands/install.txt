@@ -10,7 +10,7 @@ must exist on the local filesystem.  The two types of arguments cannot be
 mixed and the latter implied the --force and --no-deps options.
 
 *package_spec*
-	package versions to install into conda environment
+        package versions to install into conda environment
 
 optional arguments:
   -h, --help            show this help message and exit
