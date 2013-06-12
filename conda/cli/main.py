@@ -111,7 +111,8 @@ def main():
     except RuntimeError as e:
         sys.exit("Error: %s" % e)
     except Exception as e:
-        print """\
+        if e.__class__.__name__ not in ('ScannerError', ):
+            print """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 
