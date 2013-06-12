@@ -11,6 +11,7 @@ descr = "Call pip and create a conda package in an environment. (ADVANCED)"
 
 
 def configure_parser(sub_parsers):
+    from common import add_parser_yes
     p = sub_parsers.add_parser('pip', description=descr, help=descr)
 
     common.add_parser_prefix(p)
@@ -22,13 +23,24 @@ def configure_parser(sub_parsers):
         nargs   = '+',
         help    = "name of package to pip install",
     )
+    add_parser_yes(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
     from conda.builder.commands import pip
+    from conda.api import get_index
+    from conda.resolve import Resolve
 
     prefix = common.get_prefix(args)
 
+    index = get_index()
+    r = Resolve(index)
     for pkg_request in args.names:
+        if pkg_request.lower() in r.groups:
+            print ("The package {package} is already available in conda. You can "
+            "install it with 'conda install "
+            "{package}'.").format(package=pkg_request.lower())
+            common.confirm(args, default='n')
+
         pip(prefix, pkg_request)
