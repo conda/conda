@@ -117,7 +117,7 @@ def create_meta(prefix, dist, info_dir, files):
         meta = json.load(fi)
     meta['files'] = files
     if not isdir(meta_dir):
-        os.mkdir(meta_dir)
+        os.makedirs(meta_dir)
     with open(join(meta_dir, dist + '.json'), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
 
