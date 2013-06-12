@@ -120,10 +120,12 @@ def build(m, get_src=True):
     if get_src:
         source.provide(m.path, m.get_section('source'))
     assert isdir(source.WORK_DIR)
-    print "source tree in:", source.get_dir()
+    if os.listdir(source.get_dir()):
+        print "source tree in:", source.get_dir()
+    else:
+        print "no source"
 
     rm_rf(info_dir)
-   
     files1 = prefix_files()
 
     if sys.platform == 'win32':
