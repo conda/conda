@@ -363,16 +363,16 @@ def main():
 
     elif opts.link_all:
         for dist in sorted(extracted(opts.pkgs_dir)):
-            link(opts.pkgs_dir, dist, opts.prefix)
+            link(opts.pkgs_dir, opts.prefix, dist)
 
     elif opts.extract:
         extract(opts.pkgs_dir, dist)
 
     elif opts.link:
-        link(opts.pkgs_dir, dist, opts.prefix)
+        link(opts.pkgs_dir, opts.prefix, dist)
 
     elif opts.unlink:
-        unlink(dist, opts.prefix)
+        unlink(opts.prefix, dist)
 
 
 if __name__ == '__main__':
