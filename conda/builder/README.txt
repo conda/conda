@@ -92,6 +92,7 @@ Windows (bld.bat) during the build process:
   * SRC_DIR          # path to where source is unpacked (or cloned)
   * PREFIX           # build prefix where build script should install to
   * RECIPE_DIR       # directory of recipe
+  * PATH             # prepended by the build prefix bin directory
 
   * PYTHON           # path to python executable in build prefix (note that
                      # python is only installed in the build prefix, when it
@@ -103,3 +104,17 @@ Windows (bld.bat) during the build process:
 
   * SYS_PYTHON       # Python of process which is building
   * SYS_PREFIX       # prefix of process which is building, usually root env
+
+When building "unix-style" packages on Windows, which are then usually
+statically linked to executables, we do this in a special "Library" directory
+under the build prefix.  The following environment variables are only
+defined in Windows:
+  * LIBRARY_PREFIX   # <build prefix>\Library
+  * LIBRARY_BIN      # <build prefix>\Library\bin
+  * LIBRARY_INC      # <build prefix>\Library\include
+  * LIBRARY_LIB      # <build prefix>\Library\lib
+  * SCRIPTS          # <build prefix>\Scripts
+
+On MacOSX, se have:
+  * OSX_ARCH         # 'i386' or 'x86_64', depending Python build
+
