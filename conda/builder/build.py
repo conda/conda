@@ -98,6 +98,9 @@ def create_env(pref, specs):
     actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
+    # ensure prefix exists, even if empty, i.e. when specs are empty
+    if not isdir(pref):
+        os.makedirs(pref)
 
 def rm_pkgs_cache(dist):
     rmplan = ['RM_FETCHED %s' % dist,
@@ -120,7 +123,7 @@ def build(m, get_src=True):
     print "source tree in:", source.get_dir()
 
     rm_rf(info_dir)
-    os.makedirs(prefix)
+   
     files1 = prefix_files()
 
     if sys.platform == 'win32':
