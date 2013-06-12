@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -28,6 +28,7 @@ conda provides the following commands:
     Packaging
     =========
 
+    build      : build a package from recipe
     package    : create a conda package in an environment
     pip        : call pip and create a conda package in an environment
     index      : updates repodata.json in channel directories
