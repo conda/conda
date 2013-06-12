@@ -146,6 +146,8 @@ def add_defaults_to_specs(r, linked, specs):
                           ('numpy', config.default_numpy)]:
         ms = names_ms.get(name)
         if ms and ms.strictness > 1:
+            # if any of the specifications mention the Python/Numpy version,
+            # we don't need to add the default spec
             log.debug('H1 %s' % name)
             continue
 
@@ -156,15 +158,21 @@ def add_defaults_to_specs(r, linked, specs):
         log.debug('H2 %s %s' % (name, any_depends_on))
 
         if not any_depends_on and name not in names_ms:
+            # if nothing depends on Python/Numpy AND the Python/Numpy is not
+            # specified, we don't need to add the default spec
             log.debug('H2A %s' % name)
             continue
 
         if (any_depends_on and len(specs) >= 1 and
                   MatchSpec(specs[0]).strictness == 3):
+            # if something depends on Python/Numpy, but the spec is very
+            # explicit, we also don't need to add the default spec
             log.debug('H2B %s' % name)
             continue
 
         if name in names_linked:
+            # if Python/Numpy is already linked, we also don't need to add
+            # the default
             log.debug('H3 %s' % name)
             specs.append(dist2spec3v(names_linked[name]))
             continue
