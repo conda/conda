@@ -38,9 +38,11 @@ def execute(args, parser):
     r = Resolve(index)
     for pkg_request in args.names:
         if pkg_request.lower() in r.groups:
-            print ("The package {package} is already available in conda. You can "
-            "install it with 'conda install "
-            "{package}'.").format(package=pkg_request.lower())
+            print ("The package {package} is alreadqy available in conda. "
+                "You can install it with 'conda install "
+                "{package_lower}'.").format(package=pkg_request,
+                package_lower=pkg_request.lower())
+
             common.confirm(args, default='n')
 
         pip(prefix, pkg_request)
