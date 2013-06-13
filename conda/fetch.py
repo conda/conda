@@ -11,7 +11,7 @@ import hashlib
 from logging import getLogger
 from os.path import join
 
-import config
+from config import config
 from utils import memoized
 from connection_handling import connectionhandled_urlopen
 

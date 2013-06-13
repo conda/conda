@@ -12,7 +12,7 @@ from logging import getLogger
 from collections import defaultdict
 from os.path import abspath, isfile, join
 
-import config
+from config import config
 import install
 from naming import name_dist
 from utils import md5_file, human_bytes

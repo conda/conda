@@ -1,7 +1,7 @@
 import os
 from os.path import isdir, join, normpath
 
-import config
+from config import config, config_default
 import install
 from naming import fn2spec
 from fetch import fetch_index
@@ -24,12 +24,9 @@ def normalize_urls(urls):
     newurls = []
     for url in urls:
         if url == "defaults":
-            newurls.extend(normalize_urls(config.get_default_urls()))
+            newurls.extend(normalize_urls(config_default.base_urls))
         elif url == "system":
-            if not config.rc_path:
-                newurls.extend(normalize_urls(config.get_default_urls()))
-            else:
-                newurls.extend(normalize_urls(config.get_rc_urls()))
+            newurls.extend(normalize_urls(config.base_urls))
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), config.subdir))
     return newurls

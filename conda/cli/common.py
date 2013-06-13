@@ -2,7 +2,7 @@ import sys
 import argparse
 from os.path import abspath, expanduser, join
 
-import conda.config as config
+from conda.config import config
 
 
 def add_parser_prefix(p):

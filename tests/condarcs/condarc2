@@ -1,0 +1,6 @@
+channels:
+  - http://test.url
+  - defaults
+
+platform: # Should not be configurable
+  - myos

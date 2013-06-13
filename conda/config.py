@@ -10,88 +10,147 @@ import logging
 from platform import machine
 from os.path import abspath, expanduser, isfile, join
 
+# The config system
 
-log = logging.getLogger(__name__)
+# Each configuration location is represented by a class. The class should
+# provide the configuration values as attributes.  If they need to be
+# computed, use @property. If the @property function determines the property
+# should not be defined in that function, return super(ClassName,
+# self).attribute.  At the end, we create a Configuration class that
+# subclasses from the superclasses in the precedence order of the
+# configuration values.  Multiple inheritance and MRO magic take care of the
+# precedence logic for us.
 
+class ConfigBase(object):
+    # Backwards compatibility. Remove.
+    def get_channel_urls(self):
+        from api import normalize_urls
+        return normalize_urls(self.base_urls)
 
-default_python = '2.7'
-default_numpy = '1.7'
+class UnconfigurableConfig(ConfigBase):
+    # ----- operating system and architecture -----
 
-# ----- constant paths -----
+    _sys_map = {'linux2': 'linux', 'linux': 'linux',
+        'darwin': 'osx', 'win32': 'win'}
+    platform = _sys_map.get(sys.platform, 'unknown')
+    bits = 8 * tuple.__itemsize__
 
-root_dir = os.getenv('CONDA_ROOT', sys.prefix)
-pkgs_dir = os.getenv('CONDA_PACKAGE_CACHE', join(root_dir, 'pkgs'))
-envs_dir = os.getenv('CONDA_ENV_PATH', join(root_dir, 'envs'))
-
-# ----- default environment prefix -----
-
-_default_env = os.getenv('CONDA_DEFAULT_ENV')
-if not _default_env:
-    default_prefix = root_dir
-elif os.sep in _default_env:
-    default_prefix = abspath(_default_env)
-else:
-    default_prefix = join(envs_dir, _default_env)
-
-# ----- operating system and architecture -----
-
-_sys_map = {'linux2': 'linux', 'linux': 'linux',
-            'darwin': 'osx', 'win32': 'win'}
-platform = _sys_map.get(sys.platform, 'unknown')
-bits = 8 * tuple.__itemsize__
-
-if platform == 'linux' and machine() == 'armv6l':
-    subdir = 'linux-armv6l'
-    arch_name = 'armv6l'
-else:
-    subdir = '%s-%d' % (platform, bits)
-    arch_name = {64: 'x86_64', 32: 'x86'}[bits]
-
-# ----- rc file -----
-
-def get_rc_path():
-    for path in [abspath(expanduser('~/.condarc')),
-                 join(sys.prefix, '.condarc')]:
-        if isfile(path):
-            return path
-    return None
-
-rc_path = get_rc_path()
-
-def load_condarc(path):
-    if not path:
-        return path
-    import yaml
-
-    return yaml.load(open(path))
-
-rc = load_condarc(rc_path)
-
-# ----- channels -----
-
-# Note, get_default_urls() and get_rc_urls() return unnormalized urls.
-
-def get_default_urls():
-    base_urls = ['http://repo.continuum.io/pkgs/free',
-                     'http://repo.continuum.io/pkgs/pro']
-    if os.getenv('CIO_TEST'):
-        base_urls = ['http://filer/pkgs/pro',
-                     'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST') == '2':
-            base_urls.insert(0, 'http://filer/test-pkgs')
-    return base_urls
-
-def get_rc_urls():
-    if 'system' in rc['channels']:
-        raise RuntimeError("system cannot be used in .condarc")
-    return rc['channels']
-
-def get_channel_urls():
-    from api import normalize_urls
-
-    if rc is None or 'channels' not in rc:
-        base_urls = get_default_urls()
+    if platform == 'linux' and machine() == 'armv6l':
+        subdir = 'linux-armv6l'
+        arch_name = 'armv6l'
     else:
-        base_urls = get_rc_urls()
+        subdir = '%s-%d' % (platform, bits)
+        arch_name = {64: 'x86_64', 32: 'x86'}[bits]
 
-    return normalize_urls(base_urls)
+class DefaultConfig(ConfigBase):
+    log = logging.getLogger(__name__)
+
+    default_python = '2.7'
+    default_numpy = '1.7'
+
+    # ----- constant paths -----
+
+    root_dir = sys.prefix
+
+    @property
+    def pkgs_dir(self):
+        return join(self.root_dir, 'pkgs')
+
+    @property
+    def envs_dir(self):
+        return join(self.root_dir, 'envs')
+
+    # ----- default environment prefix -----
+
+    _default_env = None
+
+    @property
+    def default_prefix(self):
+        return self.root_dir
+
+    base_urls = [
+        'http://repo.continuum.io/pkgs/free',
+        'http://repo.continuum.io/pkgs/pro',
+    ]
+
+class EnvironmentConfig(ConfigBase):
+    # Note, the values of the environment variables only directly correspond
+    # to the value of the config variable if no method with that name is
+    # defined here.
+    envmapping = {
+        'CONDA_ROOT': 'root_dir',
+        'CONDA_PACKAGE_CACHE': 'pkgs_dir',
+        'CONDA_ENV_PATH': 'envs_dir',
+        'CONDA_DEFAULT_ENV': '_default_env',
+        'CIO_TEST': 'base_urls',
+        }
+
+    def __init__(self):
+        self.update_env_attrs()
+        super(EnvironmentConfig, self).__init__()
+
+    def update_env_attrs(self):
+        for env in self.envmapping:
+            attr = self.envmapping[env]
+            result = os.getenv(env)
+            if env == "CIO_TEST":
+                self.base_urls = ['http://filer/pkgs/pro',
+                    'http://filer/pkgs/free']
+                if os.getenv('CIO_TEST') == '2':
+                    self.base_urls.insert(0, 'http://filer/test-pkgs')
+            else:
+                if result is not None:
+                    setattr(self, attr, result)
+
+class RCConfigBase(ConfigBase):
+    def __init__(self):
+        if not self.rc_path or not isfile(self.rc_path):
+            self.rc_path = None
+        self.load_condarc()
+        super(RCConfigBase, self).__init__()
+
+    rc_path = None
+
+    def load_condarc(self):
+        if not self.rc_path:
+            self.rc = self.rc_path
+        else:
+            try:
+                import yaml
+            except ImportError:
+                sys.exit("Error: pyyaml must be installed to read the "
+                    ".condarc configuration (%s). Set aside that file and "
+                    "'conda install pyyaml' to continue." % self.rc_path)
+
+            self.rc = yaml.load(open(self.rc_path))
+
+            self.validate()
+
+            for attr in self.rc:
+                if attr == "channels":
+                    # "channels" in an rc file is actually base_urls
+                    setattr(self, 'base_urls', self.rc[attr])
+                else:
+                    setattr(self, attr, self.rc[attr])
+
+    def validate(self):
+        # As condarc grows, this will probably need to be expanded into
+        # something more sophisticated.
+        if 'system' in self.rc['channels']:
+            sys.exit("Error: 'system' cannot be used in .condarc")
+
+class UserRCConfig(RCConfigBase):
+    rc_path = abspath(expanduser('~/.condarc'))
+
+class SystemRCConfig(RCConfigBase):
+    rc_path = join(sys.prefix, '.condarc')
+
+class RCConfig(UserRCConfig, SystemRCConfig):
+    pass
+
+# Add the configurations here in the precedence order
+class Configuration(UnconfigurableConfig, EnvironmentConfig, RCConfig, DefaultConfig):
+    pass
+
+config = Configuration()
+config_default = DefaultConfig()

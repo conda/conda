@@ -55,7 +55,7 @@ import main_pip
 import main_search
 import main_share
 import main_update
-
+import main_config
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate'):
@@ -100,6 +100,7 @@ def main():
     main_clone.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
+    main_config.configure_parser(sub_parsers)
 
     args = p.parse_args()
 

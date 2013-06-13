@@ -2,7 +2,7 @@ import os
 import sys
 
 import conda_argparse
-from conda.config import root_dir
+from conda.config import config
 from conda.cli.common import confirm, add_parser_yes
 
 try:
@@ -40,7 +40,7 @@ def check_processes():
         except psutil._error.NoSuchProcess:
             continue
         try:
-            if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
+            if os.path.realpath(p.exe).startswith(os.path.realpath(config.root_dir)):
                 processcmd = ' '.join(p.cmdline)
                 print "WARNING: the process %s (%d) is running" % (processcmd, n)
                 ok = False
