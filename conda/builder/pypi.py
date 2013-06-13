@@ -75,9 +75,6 @@ about:
 PYPI_BUILD_SH = """\
 #!/bin/bash
 
-# This will make any error fail the script
-set -e
-
 $PYTHON setup.py install || exit 1
 
 # Add more build steps here, if they are necessary.
