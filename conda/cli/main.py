@@ -56,6 +56,7 @@ import main_search
 import main_share
 import main_update
 
+from conda.lock import Locked
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate'):
@@ -107,7 +108,8 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     try:
-        args.func(args, p)
+        with Locked():
+            args.func(args, p)
     except RuntimeError as e:
         sys.exit("Error: %s" % e)
     except Exception as e:
