@@ -118,3 +118,7 @@ defined in Windows:
 On MacOSX, se have:
   * OSX_ARCH         # 'i386' or 'x86_64', depending Python build
 
+Note that build.sh is run with bash -x -e (the -x makes it echo each command
+that is run, and the -e makes it exit whenever a command in the script returns
+nonzero exit status).  You can revert this in the script if you need to by
+using the set command.
