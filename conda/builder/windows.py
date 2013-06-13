@@ -1,11 +1,11 @@
 import os
 import sys
-import subprocess
 from os.path import isdir, isfile, join
 
 import config
 import environ
 import source
+from utils import _check_call
 from scripts import BAT_PROXY
 
 import conda.config as cc
@@ -49,11 +49,12 @@ def fix_staged_scripts():
 def msvc_env_cmd():
     vcvarsall = (r'C:\Program Files (x86)\Microsoft Visual Studio 9.0'
                  r'\VC\vcvarsall.bat')
-    if not isfile(vcvarsall):
-        raise RuntimeError("Couldn't find Visual Studio: %r" % vcvarsall)
-
-    return 'call "%s" %s\n' % (vcvarsall,
-                               {32: 'x86', 64: 'amd64'}[cc.bits])
+    if isfile(vcvarsall):
+        return 'call "%s" %s\n' % (vcvarsall,
+                                   {32: 'x86', 64: 'amd64'}[cc.bits])
+    else:
+        print "Warning: Couldn't find Visual Studio: %r" % vcvarsall
+        return ''
 
 
 def kill_processes():
@@ -73,6 +74,7 @@ def kill_processes():
 def build(recipe_dir):
     env = dict(os.environ)
     env.update(environ.get_dict())
+    env['RECIPE_DIR'] = recipe_dir
 
     for name in 'BIN', 'INC', 'LIB':
         path = env['LIBRARY_' + name]
@@ -93,6 +95,6 @@ def build(recipe_dir):
         fo.write(data)
 
     cmd = [os.environ['COMSPEC'], '/c', 'bld.bat']
-    subprocess.check_call(cmd, cwd=src_dir)
+    _check_call(cmd, cwd=src_dir)
     kill_processes()
     fix_staged_scripts()

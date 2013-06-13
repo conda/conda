@@ -117,7 +117,7 @@ def create_meta(prefix, dist, info_dir, files):
         meta = json.load(fi)
     meta['files'] = files
     if not isdir(meta_dir):
-        os.mkdir(meta_dir)
+        os.makedirs(meta_dir)
     with open(join(meta_dir, dist + '.json'), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
 
@@ -363,16 +363,16 @@ def main():
 
     elif opts.link_all:
         for dist in sorted(extracted(opts.pkgs_dir)):
-            link(opts.pkgs_dir, dist, opts.prefix)
+            link(opts.pkgs_dir, opts.prefix, dist)
 
     elif opts.extract:
         extract(opts.pkgs_dir, dist)
 
     elif opts.link:
-        link(opts.pkgs_dir, dist, opts.prefix)
+        link(opts.pkgs_dir, opts.prefix, dist)
 
     elif opts.unlink:
-        unlink(dist, opts.prefix)
+        unlink(opts.prefix, dist)
 
 
 if __name__ == '__main__':

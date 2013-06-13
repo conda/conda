@@ -5,9 +5,9 @@ from os.path import join
 import conda.config as cc
 
 
-ANA_PY = int(os.getenv('ANA_PY', 27))
-ANA_NPY = int(os.getenv('ANA_NPY', 17))
-PY3K = int(bool(ANA_PY >= 30))
+CONDA_PY = int(os.getenv('CONDA_PY', 27))
+CONDA_NPY = int(os.getenv('CONDA_NPY', 17))
+PY3K = int(bool(CONDA_PY >= 30))
 
 croot = join(cc.root_dir, 'conda-bld')
 build_prefix = join(croot, 'build_env')
@@ -29,6 +29,6 @@ test_python = _get_python(test_prefix)
 def show():
     import conda.config as cc
 
-    print 'ANA_PY:', ANA_PY
-    print 'ANA_NPY:', ANA_NPY
+    print 'CONDA_PY:', CONDA_PY
+    print 'CONDA_NPY:', CONDA_NPY
     print 'subdir:', cc.subdir

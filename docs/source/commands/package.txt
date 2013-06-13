@@ -2,11 +2,9 @@ Create a conda package in an environment. (ADVANCED)
 
 optional arguments:
 
-**usage**: ``conda package [-h] [-n NAME | -p PREFIX] [-c PATH] [-r] [-u] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD]
+**usage**: ``conda package [-h] [-n NAME | -p PREFIX] [-c PATH] [-r] [-u] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD]``
 
 Create a conda package in an environment. (ADVANCED)
-
-optional arguments:``
 
 optional arguments:
   -h, --help            show this help message and exit

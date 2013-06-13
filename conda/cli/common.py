@@ -56,7 +56,7 @@ def add_parser_channels(p, dashc=True):
         action = "append",
         help = """additional channel to search for packages. These are searched in the order
         they are given, and then the defaults or channels from .condarc
-        (unless --override-channels is given).  You can use 'default' to get
+        (unless --override-channels is given).  You can use 'defaults' to get
         the default packages for conda, and 'system' to get the system
         packages, which also takes .condarc into account. """ # we can't put , here; invalid syntax
     )
@@ -124,7 +124,11 @@ def arg2spec(arg):
     if len(parts) == 1:
         return name
     if len(parts) == 2:
-        return '%s %s*' % (name, parts[1])
+        ver = parts[1]
+        if ver.endswith('.0'):
+            return '%s %s|%s*' % (name, ver[:-2], ver)
+        else:
+            return '%s %s*' % (name, ver)
     if len(parts) == 3:
         return '%s %s %s' % (name, parts[1], parts[2])
     sys.exit('Error: Invalid package specification: %s' % arg)

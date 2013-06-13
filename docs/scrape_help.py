@@ -36,7 +36,7 @@ def scrape_help(cmd_name):
 
 
     if cmd_name in ['remove','package','install']:
-        
+
         # groups:
         usage_pat = re.compile(r'(usage): (conda .*\n\s*.*\n\s*.*)')
 
@@ -54,7 +54,7 @@ def scrape_help(cmd_name):
     desc = desc_pat.search(output)
 
 
-    
+
 
     # groups:                                               --1--   --2-
     positional_pat = re.compile(r'positional arguments:\n\s+(\w*)\s+(.*)\n')

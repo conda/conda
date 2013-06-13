@@ -5,5 +5,5 @@
 # automatically include all default channels.
 
 channels:
-  - default
+  - defaults
   - http://some.custom/channel

@@ -7,3 +7,4 @@ Basic Package Management
     create
     install
     update
+    remove

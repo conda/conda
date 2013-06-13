@@ -1,13 +1,16 @@
 Install a list of packages into a specified conda environment.
 The arguments may be packages specifications (e.g. bitarray=0.8),
 
-**usage**: ``conda install [-h] [--yes] [--dry-run] [-f] [--file FILE] [--no-deps] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]
+**usage**: ``conda install [-h] [--yes] [--dry-run] [-f] [--file FILE] [--no-deps] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]``
 
 Install a list of packages into a specified conda environment.
-The arguments may be packages specifications (e.g. bitarray=0.8),``
+The arguments may be packages specifications (e.g. bitarray=0.8),
+or explicit conda packages filesnames (e.g. lxml-3.2.0-py27_0.tar.bz2) which
+must exist on the local filesystem.  The two types of arguments cannot be
+mixed and the latter implied the --force and --no-deps options.
 
 *package_spec*
-	package versions to install into conda environment
+        package versions to install into conda environment
 
 optional arguments:
   -h, --help            show this help message and exit

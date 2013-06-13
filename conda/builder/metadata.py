@@ -1,11 +1,12 @@
 import re
+import sys
 from os.path import isdir, join
 
 from conda.utils import memoized, md5_file
 import conda.config as config
 from conda.resolve import MatchSpec
 
-from config import ANA_PY, ANA_NPY
+from config import CONDA_PY, CONDA_NPY
 
 import yaml
 
@@ -13,8 +14,8 @@ import yaml
 
 def ns_cfg():
     plat = config.subdir
-    py = ANA_PY
-    np = ANA_NPY
+    py = CONDA_PY
+    np = CONDA_NPY
     for x in py, np:
         assert isinstance(x, int), x
     return dict(
@@ -76,7 +77,8 @@ def parse(data):
         if res[section].get(key, None) is None:
             res[section][key] = []
     # ensure those are strings
-    for field in ('source/git_tag', 'source/git_branch', 'source/md5'):
+    for field in ('package/version',
+                  'source/git_tag', 'source/git_branch', 'source/md5'):
         section, key = field.split('/')
         if res.get(section) is None:
             res[section] = {}
@@ -89,8 +91,8 @@ class MetaData(object):
     def __init__(self, path):
         assert isdir(path)
         self.path = path
-        meta_path = join(path, 'meta.yaml')
-        self.meta = parse(open(meta_path).read())
+        self.meta_path = join(path, 'meta.yaml')
+        self.meta = parse(open(self.meta_path).read())
 
     def get_section(self, section):
         return self.meta.get(section, {})
@@ -100,7 +102,13 @@ class MetaData(object):
         return self.get_section(section).get(key, default)
 
     def name(self):
-        return self.get_value('package/name').lower()
+        res = self.get_value('package/name')
+        if not res:
+            sys.exit('Error: package/name missing in: %r' % self.meta_path)
+        res = str(res)
+        if res != res.lower():
+            sys.exit('Error: package/name must be lowercase, got: %r' % res)
+        return res
 
     def version(self):
         return self.get_value('package/version')
@@ -112,7 +120,7 @@ class MetaData(object):
         res = []
         for spec in self.get_value('requirements/' + typ):
             ms = MatchSpec(spec)
-            for name, ver in [('python', ANA_PY), ('numpy', ANA_NPY)]:
+            for name, ver in [('python', CONDA_PY), ('numpy', CONDA_NPY)]:
                 if ms.name == name:
                     assert ms.strictness == 1
                     ms = MatchSpec('%s %s*' % (name, '.'.join(str(ver))))

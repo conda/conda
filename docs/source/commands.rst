@@ -16,10 +16,12 @@ Contents:
    commands/index
    commands/info
    commands/install
+   commands/launch
    commands/list
    commands/local
    commands/package
    commands/pip
+   commands/remove
    commands/search_
    commands/share
    commands/update

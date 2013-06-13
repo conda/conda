@@ -2,20 +2,20 @@ import os
 import sys
 from os.path import join
 
-import conda.config as config
+import conda.config as cc
 
-from config import ANA_PY, PY3K, build_prefix, build_python
+from config import CONDA_PY, PY3K, build_prefix, build_python
 import source
 
 
-py_ver = '.'.join(str(ANA_PY))
+py_ver = '.'.join(str(CONDA_PY))
 stdlib_dir = join(build_prefix, 'Lib' if sys.platform == 'win32' else
                                 'lib/python%s' % py_ver)
 sp_dir = join(stdlib_dir, 'site-packages')
 
 
 def get_dict():
-    d = {}
+    d = {'CONDA_BUILD': '1'}
     d['PREFIX'] = build_prefix
     d['PYTHON'] = build_python
     d['PY3K'] = str(PY3K)
@@ -42,7 +42,7 @@ def get_dict():
         d['LANG'] = 'en_US.UTF-8'
 
     if sys.platform == 'darwin':         # -------- OSX
-        d['OSX_ARCH'] = 'i386' if config.bits == 32 else 'x86_64'
+        d['OSX_ARCH'] = 'i386' if cc.bits == 32 else 'x86_64'
         d['CFLAGS'] = '-arch %(OSX_ARCH)s' % d
         d['CXXFLAGS'] = d['CFLAGS']
         d['LDFLAGS'] = d['CFLAGS']

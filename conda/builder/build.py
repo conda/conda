@@ -3,7 +3,6 @@ import sys
 import json
 import shutil
 import tarfile
-from subprocess import check_call
 from os.path import exists, isdir, islink, join
 
 import conda.config as cc
@@ -16,11 +15,11 @@ from conda.fetch import fetch_index
 import environ
 import source
 import tarcheck
-from scripts import create_entry_points
+from scripts import create_entry_points, bin_dirname
 from post import post_process, post_build, is_obj, fix_permissions
-from utils import rm_rf, url_path
+from utils import rm_rf, url_path, _check_call
 from index import update_index
-from create_test import create_test_files
+from create_test import create_files
 
 
 prefix = config.build_prefix
@@ -99,6 +98,9 @@ def create_env(pref, specs):
     actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
+    # ensure prefix exists, even if empty, i.e. when specs are empty
+    if not isdir(pref):
+        os.makedirs(pref)
 
 def rm_pkgs_cache(dist):
     rmplan = ['RM_FETCHED %s' % dist,
@@ -118,7 +120,10 @@ def build(m, get_src=True):
     if get_src:
         source.provide(m.path, m.get_section('source'))
     assert isdir(source.WORK_DIR)
-    print "source tree in:", source.get_dir()
+    if os.listdir(source.get_dir()):
+        print "source tree in:", source.get_dir()
+    else:
+        print "no source"
 
     rm_rf(info_dir)
     files1 = prefix_files()
@@ -128,8 +133,9 @@ def build(m, get_src=True):
         windows.build(m.path)
     else:
         env = environ.get_dict()
-        cmd = ['/bin/bash', '-x', join(m.path, 'build.sh')]
-        check_call(cmd, env=env, cwd=source.get_dir())
+        env['RECIPE_DIR'] = m.path
+        cmd = ['/bin/bash', '-x', '-e', join(m.path, 'build.sh')]
+        _check_call(cmd, env=env, cwd=source.get_dir())
 
     create_entry_points(m.get_value('build/entry_points'))
     post_process()
@@ -162,14 +168,13 @@ def build(m, get_src=True):
 def test(m):
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
-    rm_rf(prefix)
     os.makedirs(tmp_dir)
-    if not create_test_files(tmp_dir, m):
+    if not create_files(tmp_dir, m):
         print "Nothing to test for:", m.dist()
         return
 
     print "TEST START:", m.dist()
-
+    rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
              # as the tests are run by python, we need to specify it
@@ -178,16 +183,18 @@ def test(m):
     for spec in m.get_value('test/requires'):
         specs.append(spec)
 
-    print specs
     create_env(config.test_prefix, specs)
 
     env = dict(os.environ)
-    if sys.platform == 'win32':
-        env['PATH'] = config.test_prefix + r'\Scripts;' + env['PATH']
-    for varname in 'ANA_PY', 'ANA_NPY':
-        env[varname] = str(getattr(config, varname))
+    # prepend bin/Scripts directory
+    env['PATH'] = (join(config.test_prefix, bin_dirname) + os.pathsep +
+                   env['PATH'])
 
-    check_call([config.test_python, join(tmp_dir, 'run_test.py')],
-               env=env, cwd=tmp_dir)
+    for varname in 'CONDA_PY', 'CONDA_NPY':
+        env[varname] = str(getattr(config, varname))
+    env['PREFIX'] = config.test_prefix
+
+    _check_call([config.test_python, join(tmp_dir, 'run_test.py')],
+                env=env, cwd=tmp_dir)
 
     print "TEST END:", m.dist()
