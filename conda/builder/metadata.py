@@ -1,4 +1,5 @@
 import re
+import sys
 from os.path import isdir, join
 
 from conda.utils import memoized, md5_file
@@ -90,8 +91,8 @@ class MetaData(object):
     def __init__(self, path):
         assert isdir(path)
         self.path = path
-        meta_path = join(path, 'meta.yaml')
-        self.meta = parse(open(meta_path).read())
+        self.meta_path = join(path, 'meta.yaml')
+        self.meta = parse(open(self.meta_path).read())
 
     def get_section(self, section):
         return self.meta.get(section, {})
@@ -101,7 +102,13 @@ class MetaData(object):
         return self.get_section(section).get(key, default)
 
     def name(self):
-        return self.get_value('package/name').lower()
+        res = self.get_value('package/name')
+        if not res:
+            sys.exit('Error: package/name missing in: %r' % self.meta_path)
+        res = str(res)
+        if res != res.lower():
+            sys.exit('Error: package/name must be lowercase, got: %r' % res)
+        return res
 
     def version(self):
         return self.get_value('package/version')
