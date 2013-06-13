@@ -1,5 +1,5 @@
-2013-06-XX   1.7.0:
--------------------
+2013-06-13   1.7.0a1:
+---------------------
   * add ability to build conda packages from "recipes", using the conda build
     command, for some examples, see:
     https://github.com/ContinuumIO/conda-recipes
