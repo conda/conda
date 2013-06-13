@@ -4,12 +4,12 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-
 import os
 import bz2
 import json
 import hashlib
 import urllib2
+import urlparse
 from logging import getLogger
 from os.path import join
 
@@ -41,23 +41,26 @@ proxypwdmgr=urllib2.HTTPPasswordMgrWithDefaultRealm()
 def get_userandpass(proxytype='',realm=''):
     """a function to get username and password from terminal.
     can be replaced with anything like some gui"""
-    uname=raw_input(proxytype+' proxy username:')
     import getpass
-    pword=getpass.getpass()
-    return uname,pword
+
+    uname = raw_input(proxytype + ' proxy username:')
+    pword = getpass.getpass()
+    return uname, pword
 
 
-#a procedure that needs to be executed with changes to handlers
+# a procedure that needs to be executed with changes to handlers
 def installopener():
-    opener = urllib2.build_opener(urllib2.ProxyHandler(proxies_dict)
-                                ,urllib2.ProxyBasicAuthHandler(proxypwdmgr)
-                                ,urllib2.ProxyDigestAuthHandler(proxypwdmgr)
-#digest auth may not work with all proxies http://bugs.python.org/issue16095
-                                )#could add windows/nltm authentication here
+    opener = urllib2.build_opener(
+        urllib2.ProxyHandler(proxies_dict),
+        urllib2.ProxyBasicAuthHandler(proxypwdmgr),
+        urllib2.ProxyDigestAuthHandler(proxypwdmgr),
+    )
+    # digest auth may not work with all proxies
+    # http://bugs.python.org/issue16095
+    # could add windows/nltm authentication here
     urllib2.install_opener(opener)
-    return
 
-import urlparse
+
 firstconnection=True
 #i made this func so i wouldn't alter the original code much
 def connectionhandled_urlopen(url):
@@ -66,27 +69,32 @@ def connectionhandled_urlopen(url):
     try: return urllib2.urlopen(url)
 
     except urllib2.HTTPError as HTTPErrorinst:
-        if HTTPErrorinst.code==407 or 401:#proxy authentication error
-            #...(need to auth) or supplied creds failed
-            if HTTPErrorinst.code==401: log.debug('proxy authentication failed')
+        if HTTPErrorinst.code in (407, 401):
+            # proxy authentication error
+            # ...(need to auth) or supplied creds failed
+            if HTTPErrorinst.code == 401:
+                log.debug('proxy authentication failed')
             #authenticate and retry
-            uname,pword=get_userandpass()
+            uname, pword = get_userandpass()
             #assign same user+pwd to all protocols (a reasonable assumption) to
             #decrease user input. otherwise you'd need to assign a user/pwd to
             #each proxy type
-            if firstconnection==True:
+            if firstconnection == True:
                 for aprotocol, aproxy in proxies_dict.iteritems():
-                    proxypwdmgr.add_password(None,aproxy,uname,pword)
-                firstconnection==False
+                    proxypwdmgr.add_password(None, aproxy, uname, pword)
+                firstconnection == False
             else:#...assign a uname pwd for the specific protocol proxy type
-                assert(firstconnection==False)
-                protocol=urlparse.urlparse(url).scheme
-                proxypwdmgr.add_password(None,proxies_dict[protocol],uname,pword)
+                assert(firstconnection == False)
+                protocol = urlparse.urlparse(url).scheme
+                proxypwdmgr.add_password(None, proxies_dict[protocol],
+                                         uname, pword)
             installopener()
-            return connectionhandled_urlopen(url)#i'm uncomfortable with this
-                        #but i just want to exec to start from the top again
+            return connectionhandled_urlopen(url)
+            # i'm uncomfortable with this
+            # but i just want to exec to start from the top again
 
-    except: raise #returns anything unhandled here to the caller
+    except:
+        raise # returns anything unhandled here to the caller
 
 #END proxy support
 
@@ -97,7 +105,7 @@ def fetch_repodata(url):
     for x in range(retries):
         for fn in 'repodata.json.bz2', 'repodata.json':
             try:
-                fi = connectionhandled_urlopen(url+fn)#urllib2.urlopen(url + fn)
+                fi = connectionhandled_urlopen(url + fn)
 
                 log.debug("fetched: %s [%s] ..." % (fn, url))
                 data = fi.read()
