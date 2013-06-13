@@ -4,11 +4,13 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-descr = "Build a package from recipe. (EXPERIMENTAL)"
+help = "Build a package from recipe. (ADVANCED)"
+descr = help + """  For examples of recipes, see:
+https://github.com/ContinuumIO/conda-recipes"""
 
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('build', description=descr, help=descr)
+    p = sub_parsers.add_parser('build', description=descr, help=help)
 
     p.add_argument(
         '-s', "--source",
