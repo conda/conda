@@ -49,8 +49,8 @@ def walk_prefix(prefix):
     """
     res = set()
     prefix = abspath(prefix)
-    ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', 'LICENSE.txt',
-              'info', '.index', '.unionfs'}
+    ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', '.conda_lock',
+              'LICENSE.txt', 'info', '.index', '.unionfs'}
     for fn in os.listdir(prefix):
         if fn in ignore:
             continue
