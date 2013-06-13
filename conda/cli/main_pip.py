@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -7,7 +7,7 @@
 import common
 
 
-descr = "Call pip and create a conda package in an environment. (ADVANCED)"
+descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
 
 
 def configure_parser(sub_parsers):
@@ -39,8 +39,9 @@ def execute(args, parser):
     for pkg_request in args.names:
         if pkg_request.lower() in r.groups:
             print ("The package {package} is alreadqy available in conda. "
-                "You can install it with 'conda install "
-                "{package_lower}'.").format(package=pkg_request,
+                   "You can install it with 'conda install "
+                   "{package_lower}'.").format(
+                package=pkg_request,
                 package_lower=pkg_request.lower())
 
             common.confirm(args, default='n')
