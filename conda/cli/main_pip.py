@@ -57,5 +57,6 @@ def execute(args, parser):
                 args.override_channels = False
                 args.channel = None
                 main_install.execute(args, parser)
+                continue
 
         pip(prefix, pkg_request)
