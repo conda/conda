@@ -1,3 +1,9 @@
+2013-06-XX   1.7.0a2:
+---------------------
+  * add global conda lock file for only allowing one instance of conda
+    to run at the same time
+
+
 2013-06-13   1.7.0a1:
 ---------------------
   * add ability to build conda packages from "recipes", using the conda build
@@ -5,6 +11,7 @@
     https://github.com/ContinuumIO/conda-recipes
   * fixed bug in conda install --force
   * conda update command no longer uses anaconda as default package name
+  * add proxy support
   * added application API to conda.api module
   * add -c/--channel and --override-channels flags (issue 121).
   * add default and system meta-channels, for use in .condarc and with -c
