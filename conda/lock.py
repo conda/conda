@@ -51,7 +51,7 @@ class Locked(object):
             raise RuntimeError(("It looks like conda is already doing "
                 "something.  The lockfile %s was found. Wait for it to finish "
                 "before continuing. If you are sure that conda is not running, "
-                "remove the file and try again."
+                "remove it and try again."
                 ) % join(self.path, self.name))
 
     def __exit__(self, exc_type, exc_value, traceback):
