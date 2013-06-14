@@ -92,7 +92,7 @@ def execute(args, parser):
     print "Package plan for creating environment at %s:" % prefix
     plan.display_actions(actions, index)
 
-    common.confirm(args)
+    common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
 
     if sys.platform != 'win32':

@@ -73,26 +73,39 @@ def ensure_override_channels_requires_channel(args, dashc=True):
         else:
             sys.exit('Error: --override-channels requires --channel')
 
-def confirm(args, default='y'):
-    assert default in {'y', 'n'}, default
+def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
+    assert default in choices, default
     if args.dry_run:
         sys.exit(0)
+
+    options = []
+    for option in choices:
+        if option == default:
+            options.append('[%s]' % option[0])
+        else:
+            options.append(option[0])
+    message = "%s (%s)? " % (message, '/'.join(options))
+    choices = {alt:choice for choice in choices for alt in [choice,
+        choice[0]]}
+    choices[''] = default
+    while True:
+        # raw_input has a bug and prints to stderr, not desirable
+        sys.stdout.write(message)
+        sys.stdout.flush()
+        user_choice = sys.stdin.readline().strip().lower()
+        if user_choice not in choices:
+            print "Invalid choice"
+        else:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return choices[user_choice]
+
+
+def confirm_yn(args, message="Proceed", default='yes'):
     if args.yes:
         return
-    # raw_input has a bug and prints to stderr, not desirable
-    if default == 'y':
-        sys.stdout.write("Proceed ([y]/n)? : ")
-        sys.stdout.flush()
-    else:
-        sys.stdout.write("Proceed (y/[n])? : ")
-        sys.stdout.flush()
-    proceed = sys.stdin.readline()
-    affirmatives = ('y', 'yes')
-    if default == 'y':
-        affirmatives += ('',)
-    if proceed.strip().lower() in affirmatives:
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+    choice = confirm(args, message=message, choices=('yes', 'no'), default=default)
+    if choice == 'yes':
         return
     sys.exit(1)
 
