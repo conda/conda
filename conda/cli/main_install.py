@@ -114,5 +114,5 @@ def execute(args, parser):
 
     pscheck.main(args)
 
-    common.confirm(args)
+    common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)

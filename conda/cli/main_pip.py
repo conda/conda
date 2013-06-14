@@ -3,9 +3,10 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+import sys
 
 import common
-
+import main_install
 
 descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
 
@@ -17,7 +18,7 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
 
     p.add_argument(
-        'names',
+        'packages',
         action  = "store",
         metavar = 'name',
         nargs   = '+',
@@ -36,7 +37,7 @@ def execute(args, parser):
 
     index = get_index()
     r = Resolve(index)
-    for pkg_request in args.names:
+    for pkg_request in args.packages:
         if pkg_request.lower() in r.groups:
             print ("The package {package} is alreadqy available in conda. "
                    "You can install it with 'conda install "
@@ -44,6 +45,17 @@ def execute(args, parser):
                 package=pkg_request,
                 package_lower=pkg_request.lower())
 
-            common.confirm(args, default='n')
+            choice = common.confirm(args, "Install with conda, install with "
+                "pip, or abort", ('conda', 'pip', 'abort'), default='conda')
+            if choice == 'abort':
+                sys.exit(1)
+            if choice == 'conda':
+                # conda pip options do not correspond to conda install options
+                args.force = False
+                args.file = None
+                args.no_deps = False
+                args.override_channels = False
+                args.channel = None
+                main_install.execute(args, parser)
 
         pip(prefix, pkg_request)

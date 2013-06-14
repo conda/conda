@@ -3,7 +3,7 @@ import sys
 
 import conda_argparse
 from conda.config import root_dir
-from conda.cli.common import confirm, add_parser_yes
+from conda.cli.common import confirm_yn, add_parser_yes
 
 try:
     WindowsError
@@ -16,7 +16,7 @@ def main(args, windowsonly=True):
             check_processes()
         else:
             while not check_processes():
-                confirm(args, default='n')
+                confirm_yn(args, default='no')
 
 def check_processes():
     # Conda should still work if psutil is not installed (it should not be a
