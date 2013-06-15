@@ -93,6 +93,7 @@ def plan_from_actions(actions):
 
 def ensure_linked_actions(dists, prefix):
     actions = defaultdict(list)
+    actions[PREFIX] = prefix
     for dist in dists:
         if install.is_linked(prefix, dist):
             continue
@@ -108,6 +109,7 @@ def ensure_linked_actions(dists, prefix):
 
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
+    actions[PREFIX] = prefix
     actions['op_order'] = (RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT,
                            UNLINK, LINK)
     for dist in dists:
@@ -211,8 +213,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         actions = force_linked_actions(smh, index, prefix)
     else:
         actions = ensure_linked_actions(smh, prefix)
-
-    actions[PREFIX] = prefix
 
     for dist in sorted(linked):
         name = name_dist(dist)
