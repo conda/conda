@@ -9,8 +9,8 @@ from os.path import abspath, basename, isdir, join
 import conda.config as config
 from conda.api import get_index
 from conda.resolve import MatchSpec
-from conda.fetch import fetch_pkg
 import conda.install as install
+import conda.plan as plan
 
 from packup import untracked, create_conda_pkg
 
@@ -85,7 +85,7 @@ def clone_bundle(path, prefix):
 
     if not install.is_extracted(config.pkgs_dir, dist):
         shutil.copyfile(path, join(config.pkgs_dir, dist + '.tar.bz2'))
-        install.extract(config.pkgs_dir, dist)
+        plan.execute_plan(['%s %s' % (plan.EXTRACT, dist)])
     assert install.is_extracted(config.pkgs_dir, dist)
 
     with open(join(config.pkgs_dir, dist, 'info', 'index.json')) as fi:
@@ -93,32 +93,22 @@ def clone_bundle(path, prefix):
 
     # for backwards compatibility, use "requires" when "depends" is not there
     dists = ['-'.join(r.split())
-             for r in meta.get('depends', meta['requires'])
+             for r in meta.get('depends', meta.get('requires'))
              if not r.startswith('conda ')]
     dists.append(dist)
 
+    actions = plan.ensure_linked_actions(dists, prefix)
     index = get_index()
-    for d in dists:
-        if install.is_extracted(config.pkgs_dir, d):
-            continue
-        #print "fetching:", d
-        fn = d + '.tar.bz2'
-        if fn in index:
-            info = index[fn]
-            fetch_pkg(info)
-        else:
-            yield "not in index %r" % fn
-        install.extract(config.pkgs_dir, d)
-
-    for d in dists:
-        if install.is_extracted(config.pkgs_dir, d):
-            install.link(config.pkgs_dir, prefix, d)
+    plan.display_actions(actions, index)
+    plan.execute_actions(actions, index, verbose=True)
 
     os.unlink(join(prefix, 'conda-meta', dist + '.json'))
 
 
 if __name__ == '__main__':
-    path = create_bundle(config.root_dir)
-    os.system('tarinfo --si ' + path)
-    print path
+    #path, warnings = create_bundle(config.root_dir)
+    #print warnings
+    #os.system('tarinfo --si ' + path)
+    path = ('/Users/ilan/src/'
+            'share-fffeff0d78414137f40fff7065c1cfc77f0dd317-0.tar.bz2')
     clone_bundle(path, join(config.envs_dir, 'test3'))
