@@ -6,6 +6,16 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     $_THIS_DIR/conda ..activate -h
     exit 1
 fi
+
+if [[ $CONDA_DEFAULT_ENV ]]; then
+    _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
+    export PATH=$_NEW_PATH
+    if (( $($_THIS_DIR/conda ..changeps1) )); then
+        export PS1=$CONDA_OLD_PS1
+        unset CONDA_OLD_PS1
+    fi
+fi
+
 _NEW_PATH=$($_THIS_DIR/conda ..activate "$@")
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
