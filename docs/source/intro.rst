@@ -217,7 +217,14 @@ done using:
 
     # This command assumes ~/anaconda/bin/activate is the first 'activate' on your current PATH
 
-On Windows systems, you should either change or set the PATH manually.
+This will modify your Bash PS1 to include the name of the environment.
+
+.. code-block:: bash
+
+   $ source activate myenv
+   (myenv)$
+
+On Windows systems, you should change or set the PATH manually.
 
 Now you're ready to begin using the Python located in your created
 environment.
@@ -226,7 +233,7 @@ If you would like to deactivate this environment and revert your PATH to its pre
 
 .. code-block:: bash
 
-    $ source deactivate <env name>
+    $ source deactivate
 
 
 ---------------------------------
@@ -247,4 +254,3 @@ Look here for additional :ref:`update examples <update_example>`.
 
 
 .. _YAML syntax: http://en.wikipedia.org/wiki/YAML
-

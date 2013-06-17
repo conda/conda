@@ -100,7 +100,9 @@ def execute(args, parser):
         if args.name:
             activate_name = args.name
         print "#"
-        for cmd in ('activate', 'deactivate'):
-            print "# To %s this environment, use:" % cmd
-            print "# $ source %s %s" % (cmd, activate_name)
-            print "#"
+        print "# To activate this environment, use:"
+        print "# $ source activate %s" % activate_name
+        print "#"
+        print "# To deactivate this environment, use:"
+        print "# $ source deactivate"
+        print "#"
