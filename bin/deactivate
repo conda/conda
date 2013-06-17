@@ -10,6 +10,10 @@ _NEW_PATH=$($_THIS_DIR/conda ..deactivate "$@")
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
     unset CONDA_DEFAULT_ENV
+    if (( $($_THIS_DIR/conda ..changeps1) )); then
+        export PS1=$CONDA_OLD_PS1
+        unset CONDA_OLD_PS1
+    fi
 else
     return $?
 fi
