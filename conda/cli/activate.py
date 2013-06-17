@@ -14,9 +14,8 @@ prefix path.""")
     else: # ..deactivate
         sys.exit("""Usage: source deactivate
 
-removes the 'bin' directory of the environment ENV from PATH.
-ENV may either refer to just the name of the environment, or the full
-prefix path. """)
+removes the 'bin' directory of the environment activated with 'source
+activate' from PATH. """)
 
 
 def main():
