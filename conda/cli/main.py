@@ -59,7 +59,7 @@ import main_update
 from conda.lock import Locked
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate'):
+    if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate', '..changeps1'):
         import activate
         activate.main()
         return

@@ -19,7 +19,7 @@ activate' from PATH. """)
 
 
 def main():
-    assert sys.argv[1] in ('..activate', '..deactivate')
+    assert sys.argv[1] in ('..activate', '..deactivate', '..changeps1')
     if '-h' in sys.argv or '--help' in sys.argv:
         help()
 
@@ -35,7 +35,7 @@ def main():
             sys.exit("Error: no such directory: %s" % binpath)
         paths = [binpath]
         sys.stderr.write("prepending %s to PATH\n" % binpath)
-    else: # ..deactivate
+    elif sys.argv[1] == '..deactivate':
         if len(sys.argv) != 2:
             sys.exit("Error: too many arguments.")
 
@@ -45,6 +45,9 @@ def main():
             os.getenv('CONDA_DEFAULT_ENV'), 'bin')
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
+    else: # ..changeps1
+        print int(conda.config.changeps1)
+        sys.exit(0)
 
     for path in os.getenv('PATH').split(os.pathsep):
         if path != binpath:

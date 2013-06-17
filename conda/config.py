@@ -67,6 +67,8 @@ def load_condarc(path):
 
 rc = load_condarc(rc_path)
 
+changeps1 = rc.get('changeps1', True)
+
 # ----- channels -----
 
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
