@@ -14,7 +14,7 @@ not locally available will also be downloaded.
 If the package version is not specified, `conda` will choose the latest version by
 default.
 
-We'll start with an environment created in a specific path (``~/anaconda/envs/test2``) using the --prefix option (``-p``).  
+We'll start with an environment created in a specific path (``~/anaconda/envs/test2``) using the --prefix option (``-p``).
 
 .. code-block:: bash
 
@@ -31,7 +31,7 @@ We'll start with an environment created in a specific path (``~/anaconda/envs/te
 
     The following packages will be linked:
 
-        package                    |  build          
+        package                    |  build
         -------------------------  |  ---------------
         _license-1.1               |           py27_0
         anaconda-1.4.0             |       np16py27_0
@@ -57,14 +57,14 @@ We'll start with an environment created in a specific path (``~/anaconda/envs/te
 
     [      COMPLETE      ] |###################################################################################################################| 100%
 
-    To activate this environment, type 'source activate /Users/test/anaconda/envs/test2'
+    To activate this environment, type 'source activate test2'
 
-    To deactivate this environment, type 'source deactivate /Users/test/anaconda/envs/test2'
+    To deactivate this environment, type 'source deactivate'
 
 
 
 In this next example, rather than selecting an environment directory with a prefix, we will use the name option (``-n/--name``).
-This will create an environment in the default Anaconda/envs ROOT_DIR (which can be displayed by using `conda's` :ref:`info --locations <locations_example>` option), 
+This will create an environment in the default Anaconda/envs ROOT_DIR (which can be displayed by using `conda's` :ref:`info --locations <locations_example>` option),
 where it will be discoverable by using `conda's`
 :ref:`info --envs <envs_example>` option.
 
@@ -86,7 +86,7 @@ packages `conda` has to download.  You can also skip the ``Proceed(y/n)?`` check
 
     The following packages will be linked:
 
-        package                    |  build          
+        package                    |  build
         -------------------------  |  ---------------
         python-2.7.4               |                0
         readline-6.2               |                1
@@ -94,13 +94,13 @@ packages `conda` has to download.  You can also skip the ``Proceed(y/n)?`` check
         tk-8.5.13                  |                1
         zlib-1.2.7                 |                1
 
-     
+
     To activate this environment, type 'source activate foo'
 
-    To deactivate this environment, type 'source deactivate foo'
+    To deactivate this environment, type 'source deactivate'
 
 
-To see what packages will be downloaded and/or used in an environment before creating it, you can use the ``--dry-run`` option.  
+To see what packages will be downloaded and/or used in an environment before creating it, you can use the ``--dry-run`` option.
 
 .. code-block:: bash
 
@@ -110,11 +110,10 @@ To see what packages will be downloaded and/or used in an environment before cre
 
     The following packages will be linked:
 
-        package                    |  build          
+        package                    |  build
         -------------------------  |  ---------------
         python-2.7.4               |                0
         readline-6.2               |                1
         sqlite-3.7.13              |                1
         tk-8.5.13                  |                1
         zlib-1.2.7                 |                1
-

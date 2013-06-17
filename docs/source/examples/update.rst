@@ -5,41 +5,45 @@ Update
 
 ``conda update`` replaces old packages in a given environment with the latest versions.
 
-For this first example, we will use an environment ``/tmp/matplotlib11`` , which we can select using the prefix (``-p``) option.
+For this first example, we will use an environment ``/tmp/matplotlib`` , which we can select using the prefix (``-p``) option.
 
 .. code-block:: bash
-  
-  $ conda update -p /tmp/matplotlib11
-  Upgrading Anaconda environment at /tmp/matplotlib11
 
-    The following packages will be activated:
-          
-        matplotlib-1.2.0
+    $ conda update -p /tmp/matplotlib
+    Upgrading Anaconda environment at /tmp/matplotlib
 
-    The following packages will be DE-activated:
-          
-        matplotlib-1.1.1
+    The following packages will be UN-linked:
 
-  Proceed (y/n)? y
+        package                    |            build
+        ---------------------------|-----------------
+        matplotlib-1.2.0           |       np17py27_1
 
+    The following packages will be linked:
 
+        package                    |            build
+        ---------------------------|-----------------
+        matplotlib-1.2.1           |       np17py27_1
+
+    Proceed ([y]/n)?
 
 For this next example, we will do almost the same thing, but instead of using the prefix option, we will use name (``-n``)
-on an environment ``/home/test/anaconda/envs/matplotlib11``.
+on an environment ``/home/test/anaconda/envs/matplotlib``.
 
 .. code-block:: bash
-  
-  $ conda update -n matplotlib11 
-  Upgrading Anaconda environment at /home/test/anaconda
 
-      The following packages will be activated:
-          
-          matplotlib-1.2.0
+    $conda update -n matplot matplotlib
+    Updating conda environment at /home/test/anaconda/envs/matplotlib
 
-      The following packages will be DE-activated:
-          
-          matplotlib-1.1.1
+    The following packages will be UN-linked:
 
-  Proceed (y/n)? 
+        package                    |            build
+        ---------------------------|-----------------
+        matplotlib-1.2.0           |       np17py27_1
 
+    The following packages will be linked:
 
+        package                    |            build
+        ---------------------------|-----------------
+        matplotlib-1.2.1           |       np17py27_1
+
+    Proceed ([y]/n)? n

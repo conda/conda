@@ -41,4 +41,4 @@ Similarly, to deactivate an environment and return your PATH variable to its pre
 
 .. code-block:: bash
 
-    $ source deactivate myenv
+    $ source deactivate
