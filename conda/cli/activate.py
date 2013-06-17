@@ -6,17 +6,17 @@ from os.path import isdir, join
 
 def help():
     if sys.argv[1] == '..activate':
-        sys.exit("""Usage: source activate [ENV]
+        sys.exit("""Usage: source activate ENV
 
 adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
-prefix path.  ENV defaults to: %s""" % sys.prefix)
+prefix path.""")
     else: # ..deactivate
-        sys.exit("""Usage: source deactivate [ENV]
+        sys.exit("""Usage: source deactivate ENV
 
 removes the 'bin' directory of the environment ENV from PATH.
 ENV may either refer to just the name of the environment, or the full
-prefix path.  ENV defaults to: %s""" % sys.prefix)
+prefix path. """)
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
         help()
 
     if len(sys.argv) == 2:
-        binpath = join(sys.prefix, 'bin')
+        sys.exit("Error: no environment provided.")
     elif len(sys.argv) == 3:
         binpath = join(sys.prefix, 'envs', sys.argv[2], 'bin')
     else:
