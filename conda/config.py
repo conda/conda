@@ -73,7 +73,7 @@ rc = load_condarc(rc_path)
 
 def get_default_urls():
     base_urls = ['http://repo.continuum.io/pkgs/free',
-                     'http://repo.continuum.io/pkgs/pro']
+                 'http://repo.continuum.io/pkgs/pro']
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
