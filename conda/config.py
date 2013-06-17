@@ -60,7 +60,7 @@ rc_path = get_rc_path()
 
 def load_condarc(path):
     if not path:
-        return path
+        return {}
     import yaml
 
     return yaml.load(open(path))
