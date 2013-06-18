@@ -7,7 +7,6 @@ import xmlrpclib
 from os import makedirs
 from os.path import join
 
-from conda.cli.conda_argparse import ArgumentParser
 from conda.utils import human_bytes
 
 PYPI_META = """\
@@ -75,7 +74,7 @@ about:
 PYPI_BUILD_SH = """\
 #!/bin/bash
 
-$PYTHON setup.py install || exit 1
+$PYTHON setup.py install
 
 # Add more build steps here, if they are necessary.
 
@@ -95,38 +94,8 @@ if errorlevel 1 exit 1
 :: for a list of environment variables that are set during the build process.
 """
 
-def main():
-    p = ArgumentParser(
-        description='A tool for building recipes from PyPI packages',
-        )
-    p.add_argument(
-        "packages",
-        action = "store",
-        nargs = '+',
-        help = "PyPi packages to create recipe skeletons for",
-        )
-    p.add_argument(
-        "output_dir",
-        action = "store",
-        nargs = 1,
-        help = "Directory to write recipes to",
-        )
-    p.add_argument(
-        "--version",
-        action = "store",
-        nargs = 1,
-        help = "Version to use. Applies to all packages",
-        )
-    p.add_argument(
-        "--all-urls",
-        action = "store_true",
-        help = "Look at all urls, not just source urls",
-        )
-    args = p.parse_args()
-    execute(args, p)
-
-def execute(args, parser):
-    client = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
+def main(args, parser):
+    client = xmlrpclib.ServerProxy(args.pypi_url)
     package_dicts = {}
     for package in args.packages:
         d = package_dicts.setdefault(package, {'packagename': package})
@@ -203,6 +172,3 @@ def execute(args, parser):
             f.write(PYPI_BLD_BAT.format(**d))
 
     print "Done"
-
-if __name__ == '__main__':
-    sys.exit(main())

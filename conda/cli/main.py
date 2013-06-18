@@ -55,6 +55,7 @@ import main_pip
 import main_search
 import main_share
 import main_update
+import main_skeleton
 
 from conda.lock import Locked
 
@@ -97,6 +98,7 @@ def main():
     main_remove.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_pip.configure_parser(sub_parsers)
+    main_skeleton.configure_parser(sub_parsers)
     main_share.configure_parser(sub_parsers)
     main_clone.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
