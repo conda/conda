@@ -26,7 +26,7 @@ def check_processes():
         # Old versions of psutil don't have this error, causing the below code to
         # fail.
         psutil._error.AccessDenied
-    except ImportError:
+    except:
         return True
 
     ok = True
