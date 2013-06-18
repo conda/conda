@@ -8,7 +8,6 @@ help = "Build a package from recipe. (ADVANCED)"
 descr = help + """  For examples of recipes, see:
 https://github.com/ContinuumIO/conda-recipes"""
 
-
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)
 
