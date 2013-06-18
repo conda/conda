@@ -48,7 +48,8 @@ def app_get_icon_url(fn):
     return the URL belonging to the icon for application `fn`.
     """
     index = get_index()
-    return normpath('%(channel)s/../icons/%(icon)s' % index[fn])
+    res = normpath('%(channel)s/../icons/%(icon)s' % index[fn])
+    return res.replace('http:/', 'http://')
 
 
 def app_info_packages(fn):
