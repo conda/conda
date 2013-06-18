@@ -258,6 +258,12 @@ class Resolve(object):
         return [w[lit] for lit in solutions.pop() if lit > 0]
 
     def explicit(self, specs):
+        """
+        Return the dependencies, given the specifications, iff (i) only
+        one explicit specification (strictness=3) is given, and (ii) all
+        dependencies of this package are explicit as well,
+        and None otherwise.
+        """
         if len(specs) != 1:
             return None
         ms = MatchSpec(specs[0])
