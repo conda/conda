@@ -2,6 +2,7 @@
 ---------------------
   * add global conda lock file for only allowing one instance of conda
     to run at the same time
+  * add conda skeleton command to create recipes from PyPI
 
 
 2013-06-13   1.7.0a1:
