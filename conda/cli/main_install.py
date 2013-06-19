@@ -112,7 +112,7 @@ def execute(args, parser):
     print "Package plan for installation in environment %s:" % prefix
     plan.display_actions(actions, index)
 
-    pscheck.main(args)
+    if not pscheck.main(args):
+        common.confirm_yn(args)
 
-    common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
