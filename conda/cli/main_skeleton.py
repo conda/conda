@@ -53,6 +53,7 @@ def configure_parser(sub_parsers):
         )
     p.set_defaults(func=execute)
 
+
 def execute(args, parser):
     import conda.builder.pypi as pypi
 
