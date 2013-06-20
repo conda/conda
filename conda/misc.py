@@ -54,6 +54,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
         env.update(info['app_env'])
     # call the entry command
     args = info['app_entry'].split()
+    args = [a.replace('${PREFIX}', prefix) for a in args]
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
