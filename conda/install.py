@@ -35,6 +35,7 @@ import logging
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 on_win = bool(sys.platform == 'win32')
+win_ignore = set(['python', 'pycosat', 'menuinst'])
 if on_win:
     import ctypes
     from ctypes import wintypes
@@ -236,9 +237,9 @@ def link(pkgs_dir, prefix, dist):
     the packages has been extracted (using extect() above).
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-            dist.rsplit('-', 2)[0] == 'python'):
+              dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
-        # linking or unlinking python from the root environment
+        # linking or unlinking some packages
         return
 
     dist_dir = join(pkgs_dir, dist)
@@ -278,9 +279,9 @@ def unlink(prefix, dist):
     package does not exist in the prefix.
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-            dist.rsplit('-', 2)[0] == 'python'):
+              dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
-        # linking or unlinking python from the root environment
+        # linking or unlinking some packages
         return
     post_link(prefix, dist, unlink=True)
 
