@@ -103,7 +103,7 @@ def get_channel_urls():
         if os.getenv('CIO_TEST') == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
 
-    elif rc is None or 'channels' not in rc:
+    elif 'channels' not in rc:
         base_urls = get_default_urls()
 
     else:
