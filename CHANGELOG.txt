@@ -1,6 +1,7 @@
 2013-06-20   1.7.0:
 -------------------
   * allow ${PREFIX} in app_entry
+  * add binstar upload information after conda build finishes
 
 
 2013-06-20   1.7.0a2:
