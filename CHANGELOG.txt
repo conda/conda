@@ -1,4 +1,4 @@
-2013-06-XX   1.7.0a2:
+2013-06-20   1.7.0a2:
 ---------------------
   * add global conda lock file for only allowing one instance of conda
     to run at the same time
