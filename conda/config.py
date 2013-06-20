@@ -74,14 +74,8 @@ changeps1 = rc.get('changeps1', True)
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
 
 def get_default_urls():
-    base_urls = ['http://repo.continuum.io/pkgs/free',
-                 'http://repo.continuum.io/pkgs/pro']
-    if os.getenv('CIO_TEST'):
-        base_urls = ['http://filer/pkgs/pro',
-                     'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST') == '2':
-            base_urls.insert(0, 'http://filer/test-pkgs')
-    return base_urls
+    return ['http://repo.continuum.io/pkgs/free',
+            'http://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
     if 'system' in rc['channels']:
@@ -103,8 +97,15 @@ def normalize_urls(urls):
     return newurls
 
 def get_channel_urls():
-    if rc is None or 'channels' not in rc:
+    if os.getenv('CIO_TEST'):
+        base_urls = ['http://filer/pkgs/pro',
+                     'http://filer/pkgs/free']
+        if os.getenv('CIO_TEST') == '2':
+            base_urls.insert(0, 'http://filer/test-pkgs')
+
+    elif rc is None or 'channels' not in rc:
         base_urls = get_default_urls()
+
     else:
         base_urls = get_rc_urls()
 
