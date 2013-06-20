@@ -143,6 +143,25 @@ def mk_menus(prefix, files, remove=False):
             traceback.print_exc(file=sys.stdout)
 
 
+def post_link(prefix, dist, unlink=False):
+    name = dist.rsplit('-', 2)[0]
+    path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
+            name,
+            'pre-unlink' if unlink else 'post-link',
+            'bat' if on_win else 'sh'))
+    if not isfile(path):
+        return
+    import subprocess
+
+    if on_win:
+        args = [os.environ['COMSPEC'], '/c', path]
+    else:
+        args = ['/bin/bash', path]
+    env = os.environ
+    env['PREFIX'] = prefix
+    subprocess.call(args, env=env)
+
+
 # ========================== begin API functions =========================
 
 # ------- package cache ----- fetched
@@ -250,6 +269,7 @@ def link(pkgs_dir, prefix, dist):
 
     create_meta(prefix, dist, info_dir, files)
     mk_menus(prefix, files, remove=False)
+    post_link(prefix, dist)
 
 
 def unlink(prefix, dist):
@@ -262,6 +282,7 @@ def unlink(prefix, dist):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking python from the root environment
         return
+    post_link(prefix, dist, unlink=True)
 
     meta_path = join(prefix, 'conda-meta', dist + '.json')
     with open(meta_path) as fi:
