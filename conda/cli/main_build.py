@@ -51,3 +51,9 @@ def execute(args, parser):
             print 'Source tree in:', source.get_dir()
         else:
             build.build(m)
+
+        print """\
+# If you want to upload this package to binstar.org, type:
+#
+# $ binstar upload %s
+""" % build.bldpkg_path(m)
