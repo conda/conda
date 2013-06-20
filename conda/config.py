@@ -88,7 +88,7 @@ def normalize_urls(urls):
         if url == "defaults":
             newurls.extend(normalize_urls(get_default_urls()))
         elif url == "system":
-            if not config.rc_path:
+            if not rc_path:
                 newurls.extend(normalize_urls(get_default_urls()))
             else:
                 newurls.extend(normalize_urls(get_rc_urls()))
