@@ -1,3 +1,8 @@
+2013-06-20   1.7.0:
+-------------------
+  * allow ${PREFIX} in app_entry
+
+
 2013-06-20   1.7.0a2:
 ---------------------
   * add global conda lock file for only allowing one instance of conda
