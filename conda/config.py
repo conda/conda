@@ -88,9 +88,21 @@ def get_rc_urls():
         raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
-def get_channel_urls():
-    from api import normalize_urls
+def normalize_urls(urls):
+    newurls = []
+    for url in urls:
+        if url == "defaults":
+            newurls.extend(normalize_urls(get_default_urls()))
+        elif url == "system":
+            if not config.rc_path:
+                newurls.extend(normalize_urls(get_default_urls()))
+            else:
+                newurls.extend(normalize_urls(get_rc_urls()))
+        else:
+            newurls.append('%s/%s/' % (url.rstrip('/'), subdir))
+    return newurls
 
+def get_channel_urls():
     if rc is None or 'channels' not in rc:
         base_urls = get_default_urls()
     else:
