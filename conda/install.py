@@ -35,6 +35,11 @@ import logging
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 on_win = bool(sys.platform == 'win32')
+
+# on Windows we cannot update these packages in the root environment because
+# of the file lock problem
+win_ignore = set(['python', 'pycosat', 'menuinst'])
+
 if on_win:
     import ctypes
     from ctypes import wintypes
@@ -143,6 +148,25 @@ def mk_menus(prefix, files, remove=False):
             traceback.print_exc(file=sys.stdout)
 
 
+def post_link(prefix, dist, unlink=False):
+    name = dist.rsplit('-', 2)[0]
+    path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
+            name,
+            'pre-unlink' if unlink else 'post-link',
+            'bat' if on_win else 'sh'))
+    if not isfile(path):
+        return
+    import subprocess
+
+    if on_win:
+        args = [os.environ['COMSPEC'], '/c', path]
+    else:
+        args = ['/bin/bash', path]
+    env = os.environ
+    env['PREFIX'] = prefix
+    subprocess.call(args, env=env)
+
+
 # ========================== begin API functions =========================
 
 # ------- package cache ----- fetched
@@ -217,9 +241,9 @@ def link(pkgs_dir, prefix, dist):
     the packages has been extracted (using extect() above).
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-            dist.rsplit('-', 2)[0] == 'python'):
+              dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
-        # linking or unlinking python from the root environment
+        # linking or unlinking some packages
         return
 
     dist_dir = join(pkgs_dir, dist)
@@ -250,6 +274,7 @@ def link(pkgs_dir, prefix, dist):
 
     create_meta(prefix, dist, info_dir, files)
     mk_menus(prefix, files, remove=False)
+    post_link(prefix, dist)
 
 
 def unlink(prefix, dist):
@@ -258,10 +283,11 @@ def unlink(prefix, dist):
     package does not exist in the prefix.
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-            dist.rsplit('-', 2)[0] == 'python'):
+              dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
-        # linking or unlinking python from the root environment
+        # linking or unlinking some packages
         return
+    post_link(prefix, dist, unlink=True)
 
     meta_path = join(prefix, 'conda-meta', dist + '.json')
     with open(meta_path) as fi:
