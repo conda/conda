@@ -3,6 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+import sys
 
 import common
 
@@ -38,6 +39,7 @@ def list_packages(prefix, regex=None, verbose=True):
         print '# packages in environment at %s:' % prefix
         print '#'
 
+    packages = False
     for dist in sorted(install.linked(prefix)):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
@@ -54,7 +56,11 @@ def list_packages(prefix, regex=None, verbose=True):
                                             common.disp_features(features))
         except: # IOError, KeyError, ValueError
             print '%-25s %-15s %15s' % tuple(dist.rsplit('-', 2))
+        packages = True
 
+    if not packages:
+        # Be Unix-friendly
+        sys.exit(1)
 
 def execute(args, parser):
     prefix = common.get_prefix(args)
