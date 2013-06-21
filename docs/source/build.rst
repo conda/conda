@@ -39,8 +39,8 @@ repositories, such as PyPI.
 
 .. TODO: Link to docs for conda skeleton
 
-The meta.yaml file:
--------------------
+The meta.yaml file
+------------------
 
 .. TODO: Document things like [osx]
 
@@ -175,8 +175,8 @@ need to put the same selector on multiple lines.
      url: http://path/to/unix/source        [unix]
      md5: 88510902197cba0d1ab4791e0f41a66e  [unix]
 
-Environment variables set during the build process:
----------------------------------------------------
+Environment variables set during the build process
+--------------------------------------------------
 
 The following environment variables are set, both on Unix (build.sh) and on
 Windows (bld.bat) during the build process:
