@@ -44,7 +44,7 @@ The meta.yaml file
 
 .. TODO: Document things like [osx]
 
-.. code-block:: YAML
+.. code-block:: yaml
 
 
     package:
