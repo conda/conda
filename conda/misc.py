@@ -56,10 +56,15 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     # allow updating environment variables from metadata
     if 'app_env' in info:
         env.update(info['app_env'])
+
     # call the entry command
     args = info['app_entry'].split()
     args = [a.replace('${PREFIX}', prefix) for a in args]
-    args[0] = find_executable(args[0], env['PATH'])
+    arg0 = find_executable(args[0], env['PATH'])
+    if arg0 is None:
+        raise Exception('Executable not found: %s' % args[0])
+    args[0] = arg0
+
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
