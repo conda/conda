@@ -43,6 +43,9 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     if info is None:
         return None
 
+    if not info.get('type') == 'app':
+        raise Exception('Not an application: %s' % fn)
+
     # prepend the bin directory to the path
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
     env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
