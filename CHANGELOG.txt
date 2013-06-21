@@ -2,6 +2,7 @@
 -------------------
   * fix "executable" not being found on Windows when ending with .bat when
     launching application
+  * give a better error message from when a repository does not exist
 
 
 2013-06-20   1.7.0:
