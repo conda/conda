@@ -27,6 +27,8 @@ def fetch_repodata(url):
             try:
                 fi = connectionhandled_urlopen(url + fn)
 
+                if not fi:
+                    raise RuntimeError("failed to fetch repo data from %s" % url)
                 log.debug("fetched: %s [%s] ..." % (fn, url))
                 data = fi.read()
                 fi.close()

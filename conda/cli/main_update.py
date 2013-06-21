@@ -75,4 +75,5 @@ def execute(args, parser):
 
     if not pscheck.main(args):
         common.confirm_yn(args)
+
     plan.execute_actions(actions, index, verbose=not args.quiet)
