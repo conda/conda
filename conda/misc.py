@@ -5,6 +5,7 @@ import sys
 import shutil
 import subprocess
 from collections import defaultdict
+from distutils.spawn import find_executable
 from os.path import abspath, basename, expanduser, join
 
 import config
@@ -55,6 +56,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     # call the entry command
     args = info['app_entry'].split()
     args = [a.replace('${PREFIX}', prefix) for a in args]
+    args[0] = find_executable(args[0], env['PATH'])
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
