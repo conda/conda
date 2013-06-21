@@ -18,14 +18,14 @@ Installation
 Getting Started
 ---------------
 
-To demonstrate the ease of a typical ``conda`` workflow, we will create an Anaconda environment 
+To demonstrate the ease of a typical ``conda`` workflow, we will create an Anaconda environment
 with a version of NumPy different from the default version.
 
 First, we will check our system NumPy version
 
 .. code-block:: bash
 
-    
+
 
     $ python
     Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
@@ -73,6 +73,7 @@ User Guide
 
    intro
    examples
+   build
 
 Reference Guide
 ---------------
