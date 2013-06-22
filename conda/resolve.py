@@ -285,7 +285,7 @@ class Resolve(object):
     def find_substitute(self, installed, features, fn):
         """
         Find a substitute package for `fn` (given `installed` packages)
-        which does *NOT* have `featues`.  If found, the substitute will
+        which does *NOT* have `features`.  If found, the substitute will
         have the same package namd and version and its dependencies will
         match the installed packages as closely as possible.
         If no substribute is found, None is returned.
