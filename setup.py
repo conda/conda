@@ -33,6 +33,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author = "Continuum Analytics, Inc.",
     author_email = "ilan@continuum.io",
+    url = "https://github.com/ContinuumIO/conda",
     license = "BSD",
     description = "package management tool",
     long_description = open('README.rst').read(),

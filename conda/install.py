@@ -29,6 +29,7 @@ import json
 import shutil
 import stat
 import sys
+import subprocess
 import tarfile
 import traceback
 import logging
@@ -156,8 +157,6 @@ def post_link(prefix, dist, unlink=False):
             'bat' if on_win else 'sh'))
     if not isfile(path):
         return
-    import subprocess
-
     if on_win:
         args = [os.environ['COMSPEC'], '/c', path]
     else:
