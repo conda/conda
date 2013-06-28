@@ -2,6 +2,7 @@
 -------------------
   * fixed conda update when packages include a post-link step which was
     caused by subprocess being lazily imported, fixed by 0d0b860
+  * improve error message when chrpath is not installed
 
 
 2013-06-21:  1.7.1:
