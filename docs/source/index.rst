@@ -10,10 +10,12 @@ Conda
 
 The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
 
+
 Installation
 ------------
 
-``conda`` is a part of the Anaconda python distribution which can be downloaded `here <https://store.continuum.io/cshop/anaconda/>`_.
+``conda`` is a part of the Anaconda python distribution which can be downloaded `here <http://continuum.io/downloads>`_.
+
 
 Getting Started
 ---------------
@@ -24,8 +26,6 @@ with a version of NumPy different from the default version.
 First, we will check our system NumPy version
 
 .. code-block:: bash
-
-
 
     $ python
     Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
@@ -75,6 +75,7 @@ User Guide
    examples
    build
 
+
 Reference Guide
 ---------------
 
@@ -83,6 +84,7 @@ Reference Guide
 
    commands
 
+
 Requirements
 ------------
 
@@ -90,10 +92,12 @@ Requirements
 * pyyaml
 
 
+
 License Agreement
 -----------------
 
 ``conda`` is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
+
 
 Indices and tables
 ------------------
