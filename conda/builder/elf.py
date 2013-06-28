@@ -1,3 +1,5 @@
+from subprocess import call
+from distutils.spawn import find_executable
 from os.path import islink, isfile
 
 
@@ -17,3 +19,7 @@ def is_elf(path):
     with open(path, 'rb') as fi:
         head = fi.read(4)
     return bool(head ==  MAGIC)
+
+
+def chrpath(runpath, path):
+    call(['chrpath', '-c', '-r', runpath, path])
