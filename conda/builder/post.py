@@ -135,7 +135,7 @@ def mk_relative(f):
     path = join(build_prefix, f)
     if sys.platform == 'linux2' and is_obj(path):
         runpath = '$ORIGIN/' + utils.rel_lib(f)
-        elf.chrpath(runpath, path)
+        elf.chrpath(runpath, path, environ.unix_path)
 
     if sys.platform == 'darwin' and is_obj(path):
         mk_relative_osx(path)
