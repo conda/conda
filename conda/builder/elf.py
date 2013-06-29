@@ -23,10 +23,10 @@ def is_elf(path):
     return bool(head ==  MAGIC)
 
 
-def chrpath(runpath, elf_path, path=None):
-    if path is None:
-        path = os.environ['PATH']
-    executable = find_executable('chrpath', path)
+def chrpath(runpath, elf_path, PATH=None):
+    if PATH is None:
+        PATH = os.environ['PATH']
+    executable = find_executable('chrpath', PATH)
     if executable is None:
         sys.exit("""\
 Error:
