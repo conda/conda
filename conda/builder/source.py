@@ -102,7 +102,9 @@ def git_info(fo=sys.stdout):
 
 def apply_patch(src_dir, path):
     print 'Applying patch: %r' % path
-    assert isfile(path), path
+    if not isfile(path):
+        sys.exit('Error: no such patch: %s' % path)
+
     patch = r'C:\cygwin\bin\patch' if sys.platform == 'win32' else 'patch'
     check_call([patch, '-p0', '-i', path], cwd=src_dir)
 
