@@ -4,8 +4,8 @@ from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
 from config import croot
-from external import find_executable
 from utils import download, md5_file, rm_rf, tar_xf, unzip
+import external
 
 
 SRC_CACHE = join(croot, 'src_cache')
@@ -106,14 +106,14 @@ def apply_patch(src_dir, path):
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
 
-    patch = find_executable('patch')
+    patch = external.find_executable('patch')
     if patch is None:
         sys.exit("""\
 Error:
-    It does not seem that 'patch' is installed.
-    You can install 'patch' using apt-get, yum (on Linux), cygwin (on Windows),
-    Xcode (on MacOSX) or conda.
-""")
+    Did not find 'patch' in: %s
+    You can install 'patch' using apt-get, yum (Linux), Xcode (MacOSX),
+    or conda, cygwin (Windows),
+""" % (os.pathsep.join(external.dir_paths)))
     check_call([patch, '-p0', '-i', path], cwd=src_dir)
 
 
