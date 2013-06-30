@@ -59,9 +59,13 @@ def have_prefix_files(files):
             yield f
 
 def create_info_files(m, files):
-    os.makedirs(info_dir)
+    recipe_dir = join(info_dir, 'recipe')
+    os.makedirs(recipe_dir)
 
-    shutil.copytree(m.path, join(info_dir, 'recipe'))
+    for fn in os.listdir(m.path):
+        if fn.startswith('.'):
+            continue
+        shutil.copy(join(m.path, fn), join(recipe_dir, fn))
 
     with open(join(info_dir, 'files'), 'w') as fo:
         for f in files:

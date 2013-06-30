@@ -12,6 +12,7 @@ py_ver = '.'.join(str(CONDA_PY))
 stdlib_dir = join(build_prefix, 'Lib' if sys.platform == 'win32' else
                                 'lib/python%s' % py_ver)
 sp_dir = join(stdlib_dir, 'site-packages')
+unix_path = build_prefix + '/bin:/usr/local/bin:/bin:/usr/bin'
 
 
 def get_dict():
@@ -37,7 +38,7 @@ def get_dict():
         d['LIBRARY_LIB'] = join(d['LIBRARY_PREFIX'], 'lib')
 
     else:                               # -------- Unix
-        d['PATH'] = build_prefix + '/bin:/usr/local/bin:/bin:/usr/bin'
+        d['PATH'] = unix_path
         d['HOME'] = os.getenv('HOME', 'UNKNOWN')
         d['LANG'] = 'en_US.UTF-8'
 
