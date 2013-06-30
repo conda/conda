@@ -5,13 +5,14 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 """
-Tools for working with lockfiles
+Tools for working with locks
 
-A lockfile is just an empty directory. We use directories because this lets us
-use the race condition-proof os.makedirs.
+A lock is just an empty directory. We use directories because this lets us use
+the race condition-proof os.makedirs.
 
 For now, there is one global lock for all of conda, because some things happen
 globally (such as downloading packages).
+
 """
 
 from os.path import join
@@ -22,7 +23,7 @@ import config
 
 def create_lock(path, name):
     """
-    Creates a lockfile at `path`. Returns True if the file was created and
+    Creates a lock at `path`. Returns True if the file was created and
     False if the file already exists.
     """
     # Note, we do this instead of os.path.exists to avoid race conditions
@@ -39,7 +40,7 @@ def remove_lock(path, name):
 
 class Locked(object):
     """
-    Context manager to handle lockfiles.
+    Context manager to handle locks.
     """
     def __init__(self, path=config.root_dir, name=".conda_lock"):
         self.path = path
@@ -49,10 +50,10 @@ class Locked(object):
         lock = create_lock(self.path, self.name)
         if not lock:
             raise RuntimeError(("It looks like conda is already doing "
-                "something.  The lockfile %s was found. Wait for it to finish "
+                "something.  The lock %s was found. Wait for it to finish "
                 "before continuing. If you are sure that conda is not running, "
                 "remove it and try again."
-                ) % join(self.path, self.name))
+                ) % (join(self.path, self.name, '')))
 
     def __exit__(self, exc_type, exc_value, traceback):
         remove_lock(self.path, self.name)
