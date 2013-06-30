@@ -1,9 +1,10 @@
 import os
 import sys
+from distutils.spawn import find_executable
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
-from config import croot
+from config import croot, build_prefix
 from utils import download, md5_file, rm_rf, tar_xf, unzip
 
 
@@ -102,8 +103,24 @@ def git_info(fo=sys.stdout):
 
 def apply_patch(src_dir, path):
     print 'Applying patch: %r' % path
-    assert isfile(path), path
-    patch = r'C:\cygwin\bin\patch' if sys.platform == 'win32' else 'patch'
+    if not isfile(path):
+        sys.exit('Error: no such patch: %s' % path)
+
+    if sys.platform == 'win32':
+        PATH = r'%s\Scripts;C:\cygwin\bin;%s' % (build_prefix,
+                                                 os.environ['PATH'])
+    else:
+        import environ
+        PATH = environ.unix_path
+
+    patch = find_executable('patch', PATH)
+    if patch is None:
+        sys.exit("""\
+Error:
+    It does not seem that 'patch' is installed.
+    You can install 'patch' using apt-get, yum (on Linux), cygwin (on Windows),
+    Xcode (on MacOSX) or conda.
+""")
     check_call([patch, '-p0', '-i', path], cwd=src_dir)
 
 

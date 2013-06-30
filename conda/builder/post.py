@@ -3,7 +3,7 @@ import os
 import sys
 import stat
 from glob import glob
-from subprocess import call, check_call
+from subprocess import check_call
 from os.path import basename, islink, join, splitext
 
 from conda.install import prefix_placeholder
@@ -135,7 +135,7 @@ def mk_relative(f):
     path = join(build_prefix, f)
     if sys.platform == 'linux2' and is_obj(path):
         runpath = '$ORIGIN/' + utils.rel_lib(f)
-        call(['chrpath', '-c', '-r', runpath, path])
+        elf.chrpath(runpath, path, environ.unix_path)
 
     if sys.platform == 'darwin' and is_obj(path):
         mk_relative_osx(path)

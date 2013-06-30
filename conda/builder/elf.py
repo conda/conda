@@ -1,3 +1,7 @@
+import os
+import sys
+from subprocess import call
+from distutils.spawn import find_executable
 from os.path import islink, isfile
 
 
@@ -17,3 +21,17 @@ def is_elf(path):
     with open(path, 'rb') as fi:
         head = fi.read(4)
     return bool(head ==  MAGIC)
+
+
+def chrpath(runpath, elf_path, PATH=None):
+    if PATH is None:
+        PATH = os.environ['PATH']
+    executable = find_executable('chrpath', PATH)
+    if executable is None:
+        sys.exit("""\
+Error:
+    It does not seem that 'chrpath' is installed, which is necessary for
+    building conda packages on Linux with relocatable ELF libraries.
+    You can install chrpath using apt-get, yum or conda.
+""")
+    call([executable, '-c', '-r', runpath, elf_path])
