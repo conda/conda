@@ -1,10 +1,10 @@
 import os
 import sys
-from distutils.spawn import find_executable
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
-from config import croot, build_prefix
+from config import croot
+from external import find_executable
 from utils import download, md5_file, rm_rf, tar_xf, unzip
 
 
@@ -106,14 +106,7 @@ def apply_patch(src_dir, path):
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
 
-    if sys.platform == 'win32':
-        PATH = r'%s\Scripts;C:\cygwin\bin;%s' % (build_prefix,
-                                                 os.environ['PATH'])
-    else:
-        import environ
-        PATH = environ.unix_path
-
-    patch = find_executable('patch', PATH)
+    patch = find_executable('patch')
     if patch is None:
         sys.exit("""\
 Error:

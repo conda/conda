@@ -3,12 +3,13 @@ import os
 import sys
 import stat
 from glob import glob
-from subprocess import check_call
+from subprocess import call, check_call
 from os.path import basename, islink, join, splitext
 
 from conda.install import prefix_placeholder
 
 from config import build_prefix, build_python, PY3K
+from external import find_executable
 from source import WORK_DIR
 import environ
 import utils
@@ -120,7 +121,7 @@ def mk_relative_osx(path):
         # command.
         names = macho.otool(path)
         if names:
-            args = ['install_name_tool','-id', basename(names[0]), path]
+            args = ['install_name_tool', '-id', basename(names[0]), path]
             print ' '.join(args)
             check_call(args)
 
@@ -135,7 +136,15 @@ def mk_relative(f):
     path = join(build_prefix, f)
     if sys.platform == 'linux2' and is_obj(path):
         runpath = '$ORIGIN/' + utils.rel_lib(f)
-        elf.chrpath(runpath, path, environ.unix_path)
+        chrpath = find_executable('chrpath')
+        if chrpath is None:
+            sys.exit("""\
+Error:
+    It does not seem that 'chrpath' is installed, which is necessary for
+    building conda packages on Linux with relocatable ELF libraries.
+    You can install chrpath using apt-get, yum or conda.
+""")
+        call([chrpath, '-c', '-r', runpath, path])
 
     if sys.platform == 'darwin' and is_obj(path):
         mk_relative_osx(path)
