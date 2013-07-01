@@ -4,6 +4,8 @@
     caused by subprocess being lazily imported, fixed by 0d0b860
   * improve error message when 'chrpath' or 'patch' is not installed and
     needed by build framework
+  * fixed sharing/cloning being broken (issue 179(
+  * add the string LOCKERROR to the conda lock error message
 
 
 2013-06-21:  1.7.1:
