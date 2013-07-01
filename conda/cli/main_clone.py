@@ -40,12 +40,7 @@ def execute(args, parser):
     if not isfile(path):
         sys.exit("Error: no such file: %s" % path)
 
-    warnings = []
-    for w in clone_bundle(path, prefix):
-        if args.json:
-            warnings.append(w)
-        else:
-            print "Warning:", w
+    clone_bundle(path, prefix)
 
     if args.json:
-        json.dump(dict(warnings=warnings), sys.stdout, indent=2)
+        json.dump(dict(warnings=[]), sys.stdout, indent=2)
