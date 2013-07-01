@@ -49,7 +49,9 @@ class Locked(object):
     def __enter__(self):
         lock = create_lock(self.path, self.name)
         if not lock:
-            raise RuntimeError(("It looks like conda is already doing "
+            # Keep the string "LOCKERROR" in this string so that external
+            # programs can look for it.
+            raise RuntimeError(("LOCKERROR: It looks like conda is already doing "
                 "something.  The lock %s was found. Wait for it to finish "
                 "before continuing. If you are sure that conda is not running, "
                 "remove it and try again."
