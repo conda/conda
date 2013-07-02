@@ -42,7 +42,7 @@ def fix_shebang(f, osx_is_app=False):
 
     py_exec = (prefix_placeholder + '/python.app/Contents/MacOS/python'
                if sys.platform == 'darwin' and osx_is_app else
-               prefix_placeholder + '/bin/python')
+               prefix_placeholder + '/bin/' + basename(build_python))
     new_data = shebang_pat.sub('#!' + py_exec, data, count=1)
     if new_data == data:
         return
