@@ -1,3 +1,9 @@
+2013-07-XX   1.7.3:
+-------------------
+  * fix entry point scripts pointing to wrong python when building Python 3
+    packages
+
+
 2013-07-02   1.7.2:
 -------------------
   * fixed conda update when packages include a post-link step which was
