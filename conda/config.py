@@ -110,3 +110,17 @@ def get_channel_urls():
         base_urls = get_rc_urls()
 
     return normalize_urls(base_urls)
+
+
+def get_rc_proxy_servers():
+    return rc.get('proxy_servers',None)
+
+def get_proxy_servers():
+    if 'proxy_servers' not in rc:
+        proxy_servers = None
+    else:
+        proxy_servers = get_rc_proxy_servers()
+    return proxy_servers 
+
+
+
