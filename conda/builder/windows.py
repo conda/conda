@@ -4,11 +4,11 @@ import os
 import sys
 from os.path import isdir, isfile, join
 
-import config
-import environ
-import source
-from utils import _check_call
-from scripts import BAT_PROXY
+from . import config
+from . import environ
+from . import source
+from .utils import _check_call
+from .scripts import BAT_PROXY
 
 import conda.config as cc
 import psutil  # not conda

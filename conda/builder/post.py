@@ -18,9 +18,9 @@ from . import utils
 
 
 if sys.platform == 'linux2':
-    import elf
+    from . import elf
 elif sys.platform == 'darwin':
-    import macho
+    from . import macho
 
 
 
@@ -51,7 +51,7 @@ def fix_shebang(f, osx_is_app=False):
     print("updating shebang:", f)
     with open(path, 'w') as fo:
         fo.write(new_data)
-    os.chmod(path, 0755)
+    os.chmod(path, int('755', 8))
 
 
 def rm_egg_dirs():
@@ -182,7 +182,7 @@ def replace_bi_path(path):
 def fix_permissions():
     for root, dirs, files in os.walk(build_prefix):
         for dn in dirs:
-            os.chmod(join(root, dn), 0775)
+            os.chmod(join(root, dn), int('755', 8))
         for fn in files:
             p = join(root, fn)
             st = os.stat(p)

@@ -47,7 +47,7 @@ def create_entry_point(path, module, func):
         with open(path, 'w') as fo:
             fo.write('#!%s\n' % build_python)
             fo.write(pyscript)
-        os.chmod(path, 0755)
+        os.chmod(path, int('755', 8))
 
 
 def create_entry_points(items):

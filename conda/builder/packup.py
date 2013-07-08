@@ -128,7 +128,7 @@ def fix_shebang(tmp_dir, path):
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, 'w') as fo:
         fo.write(data)
-    os.chmod(tmp_path, 0755)
+    os.chmod(tmp_path, int('755',8))
     return True
 
 

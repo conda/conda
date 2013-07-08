@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 
-import conda_argparse
+from . import conda_argparse
 from conda.config import root_dir
 from conda.cli.common import confirm, add_parser_yes
 
