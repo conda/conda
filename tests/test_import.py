@@ -4,6 +4,7 @@ Created to test py3k compatibility.
 """
 
 import os
+import sys
 import unittest
 import conda
 
@@ -24,14 +25,16 @@ class TestImportAllConda(unittest.TestCase):
         __import__(module_prefix)
         
         # Import each module in given (sub)package
-        for fname in os.listdir(PREFIX):
+        for fname in os.listdir(prefix):
             # Discard files that are not of interest
             if fname.startswith('__'):
                 continue
             elif not fname.endswith('.py'):
                 continue
+            elif fname.startswith('windows') and sys.platform != 'win32':
+                continue
             # Import
-            modname = 'conda.%s' % fname.split('.')[0]
+            modname = module_prefix + '.' + fname.split('.')[0]
             __import__(modname)
             print('imported', modname)
     

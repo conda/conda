@@ -5,9 +5,13 @@ Tools for converting PyPI packages to conda recipes.
 from __future__ import print_function, division, absolute_import
 
 import sys
-import xmlrpclib
 from os import makedirs
 from os.path import join
+
+if sys.version_info < (3,):
+    from xmlrpclib import ServerProxy
+else:
+    from xmlrpc.client import ServerProxy
 
 from conda.utils import human_bytes
 
@@ -97,7 +101,7 @@ if errorlevel 1 exit 1
 """
 
 def main(args, parser):
-    client = xmlrpclib.ServerProxy(args.pypi_url)
+    client = ServerProxy(args.pypi_url)
     package_dicts = {}
     for package in args.packages:
         d = package_dicts.setdefault(package, {'packagename': package})
