@@ -1,0 +1,53 @@
+""" Test if we can import everything from conda.
+This basically tests syntax correctness and whether the internal imports work.
+Created to test py3k compatibility.
+"""
+
+import os
+import unittest
+import conda
+
+PREFIX = os.path.dirname(os.path.abspath(conda.__file__))
+
+
+class TestImportAllConda(unittest.TestCase):
+    
+    def _test_import(self, subpackage):
+        # Prepare
+        prefix = PREFIX
+        module_prefix = 'conda'
+        if subpackage:
+            prefix = os.path.join(prefix, subpackage)
+            module_prefix = '%s.%s' % (module_prefix, subpackage)
+        
+        # Try importing root
+        __import__(module_prefix)
+        
+        # Import each module in given (sub)package
+        for fname in os.listdir(PREFIX):
+            # Discard files that are not of interest
+            if fname.startswith('__'):
+                continue
+            elif not fname.endswith('.py'):
+                continue
+            # Import
+            modname = 'conda.%s' % fname.split('.')[0]
+            __import__(modname)
+            print('imported', modname)
+    
+    
+    def test_import_root(self):
+        self._test_import('')
+
+    def test_import_cli(self):
+        self._test_import('cli')
+    
+    def test_import_builder(self):
+        self._test_import('builder')
+    
+    def test_import_progressbar(self):
+        self._test_import('progressbar')
+
+
+if __name__ == '__main__':
+    unittest.main()
