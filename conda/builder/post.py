@@ -153,6 +153,7 @@ Error:
         mk_relative_osx(path)
 
 
+# I wonder whether this works on py3k ...
 bi_pat = re.compile(WORK_DIR)
 def replace_bi_path(path):
     if islink(path):

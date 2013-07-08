@@ -47,7 +47,7 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-    import pscheck
+    from . import pscheck
 
 
     prefix = common.get_prefix(args)
@@ -65,7 +65,7 @@ def execute(args, parser):
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
-        from main_list import list_packages
+        from .main_list import list_packages
 
         regex = '^(%s)$' %  '|'.join(args.pkg_names)
         print('# All packages already at latest version, nothing to do.')
