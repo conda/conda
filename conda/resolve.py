@@ -82,24 +82,44 @@ class Package(object):
             self.norm_version = verlib.NormalizedVersion(v)
         except verlib.IrrationalVersionError:
             self.norm_version = self.version
-
+    
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
-    #def __cmp__(self, other):
+#     def __cmp__(self, other):
+#         if self.name != other.name:
+#             raise ValueError('cannot compare packages with different '
+#                              'names: %r %r' % (self.fn, other.fn))
+#         try:
+#             return cmp((self.norm_version, self.build_number),
+#                       (other.norm_version, other.build_number))
+#         except TypeError:
+#             return cmp((self.version, self.build_number),
+#                       (other.version, other.build_number))
+    
     def __lt__(self, other):
         if self.name != other.name:
             raise ValueError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
-            #return cmp((self.norm_version, self.build_number),
-            #           (other.norm_version, other.build_number))
             return ((self.norm_version, self.build_number) <
                       (other.norm_version, other.build_number))
         except TypeError:
-            #return cmp((self.version, self.build_number),
-            #           (other.version, other.build_number))
             return ((self.version, self.build_number) <
-                       (other.version, other.build_number))
-
+                      (other.version, other.build_number))
+    
+    def __eq__(self, other):
+        if self.name != other.name:
+            raise ValueError('cannot compare packages with different '
+                             'names: %r %r' % (self.fn, other.fn))
+        try:
+            return ((self.norm_version, self.build_number) ==
+                      (other.norm_version, other.build_number))
+        except TypeError:
+            return ((self.version, self.build_number) ==
+                      (other.version, other.build_number))
+    
+    def __gt__(self, other):
+        return not (self.__lt__(other) or self.__eq__(other))
+    
     def __repr__(self):
         return '<Package %s>' % self.fn
 
