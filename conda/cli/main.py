@@ -125,9 +125,26 @@ following traceback to the conda GitHub issue tracker at:
 
     https://github.com/ContinuumIO/conda/issues"
 
-""")
-        exc_info = sys.exc_info()
-        raise exc_info[1], None, exc_info[2]
+""")    
+        raise  # as if we did not catch it
+
+# The above raise was:
+#
+#exc_info = sys.exc_info()
+#raise exc_info[1], None, exc_info[2]
+#
+# But that syntax is not supported in py3k. Simply
+# reraising (without argument!) should do the same. Try this:
+#
+# def foo():
+#     bar()
+# def bar():
+#     1/0
+# try:
+#     foo()
+# except Exception as e:
+#     #raise e  # does not show traceback
+#     raise  # Shows traceback as if we had not caught it
 
 
 if __name__ == '__main__':
