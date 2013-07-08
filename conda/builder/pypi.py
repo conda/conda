@@ -113,11 +113,11 @@ def main(args, parser):
             if not versions:
                 sys.exit("Error: Could not find any versions of package %s" % package)
             if len(versions) > 1:
-                print "Warning, the following versions were found for %s" % package
+                print("Warning, the following versions were found for %s" % package)
                 for ver in versions:
-                    print ver
-                print "Using %s" % versions[-1]
-                print "Use --version to specify a different version."
+                    print(ver)
+                print("Using %s" % versions[-1])
+                print("Use --version to specify a different version.")
             d['version'] = versions[-1]
 
         urls = client.release_urls(package, d['version'])
@@ -127,15 +127,15 @@ def main(args, parser):
         if not urls:
             sys.exit("Error: No source urls found for %s" % package)
         if len(urls) > 1:
-            print "More than one source version is available for %s:" % package
+            print("More than one source version is available for %s:" % package)
             for i, url in enumerate(urls):
-                print "%d: %s (%s) %s" % (i, url['url'],
-                    human_bytes(url['size']), url['comment_text'])
+                print("%d: %s (%s) %s" % (i, url['url'],
+                    human_bytes(url['size']), url['comment_text']))
             n = int(raw_input("Which version should I use? "))
         else:
             n = 0
 
-        print "Using url %s (%s) for %s." % (urls[n]['url'], urls[n]['size'], package)
+        print("Using url %s (%s) for %s." % (urls[n]['url'], urls[n]['size'], package))
 
         d['pypiurl'] = urls[n]['url']
         d['md5'] = urls[n]['md5_digest']
@@ -149,10 +149,10 @@ def main(args, parser):
         if not licenses:
             if data['license']:
                 # Some projects put the whole license text in this field
-                print "This is the license for %s" % package
-                print
-                print data['license']
-                print
+                print("This is the license for %s" % package)
+                print()
+                print(data['license'])
+                print()
                 license = raw_input("What license string should I use? ")
             else:
                 license = raw_input("No license could be found for %s on PyPI. What license should I use? " % package)
@@ -164,7 +164,7 @@ def main(args, parser):
         [output_dir] = args.output_dir
         d = package_dicts[package]
         makedirs(join(output_dir, package))
-        print "Writing recipe for %s" % package
+        print("Writing recipe for %s" % package)
         with open(join(output_dir, package, 'meta.yaml'),
             'w') as f:
             f.write(PYPI_META.format(**d))
@@ -173,4 +173,4 @@ def main(args, parser):
         with open(join(output_dir, package, 'bld.bat'), 'w') as f:
             f.write(PYPI_BLD_BAT.format(**d))
 
-    print "Done"
+    print("Done")

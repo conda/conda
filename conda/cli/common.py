@@ -96,7 +96,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
         sys.stdout.flush()
         user_choice = sys.stdin.readline().strip().lower()
         if user_choice not in choices:
-            print "Invalid choice: %s" % user_choice
+            print("Invalid choice: %s" % user_choice)
         else:
             sys.stdout.write("\n")
             sys.stdout.flush()

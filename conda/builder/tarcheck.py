@@ -38,9 +38,9 @@ class TarCheck(object):
             return
         for p in sorted(seta | setb):
             if p not in seta:
-                print '%r not in info/files' % p
+                print('%r not in info/files' % p)
             if p not in setb:
-                print '%r not in tarball' % p
+                print('%r not in tarball' % p)
         raise Exception('info/files')
 
     def index_json(self):

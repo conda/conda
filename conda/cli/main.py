@@ -119,13 +119,13 @@ def main():
         sys.exit("Error: %s" % e)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-            print """\
+            print("""\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 
     https://github.com/ContinuumIO/conda/issues"
 
-"""
+""")
         exc_info = sys.exc_info()
         raise exc_info[1], None, exc_info[2]
 

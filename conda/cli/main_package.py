@@ -67,13 +67,13 @@ def execute(args, parser):
 
         try:
             check_all(args.check)
-            print '%s OK' % basename(args.check)
+            print('%s OK' % basename(args.check))
         except Exception as e:
-            print e
-            print '%s FAILED' % basename(args.check)
+            print(e)
+            print('%s FAILED' % basename(args.check))
         return
 
-    print '# prefix:', prefix
+    print('# prefix:', prefix)
 
     if args.reset:
         remove(prefix, untracked(prefix))
@@ -81,9 +81,9 @@ def execute(args, parser):
 
     if args.untracked:
         files = sorted(untracked(prefix))
-        print '# untracked files: %d' % len(files)
+        print('# untracked files: %d' % len(files))
         for fn in files:
-            print fn
+            print(fn)
         return
 
     make_tarbz2(prefix,

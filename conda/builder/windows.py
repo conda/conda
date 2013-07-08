@@ -55,7 +55,7 @@ def msvc_env_cmd():
         return 'call "%s" %s\n' % (vcvarsall,
                                    {32: 'x86', 64: 'amd64'}[cc.bits])
     else:
-        print "Warning: Couldn't find Visual Studio: %r" % vcvarsall
+        print("Warning: Couldn't find Visual Studio: %r" % vcvarsall)
         return ''
 
 
@@ -66,11 +66,11 @@ def kill_processes():
         except psutil._error.NoSuchProcess:
             continue
         if p.name.lower() == 'msbuild.exe':
-            print 'Terminating:', p.name
+            print('Terminating:', p.name)
             try:
                 p.terminate()
             except psutil._error.NoSuchProcess:
-                print '    no such process, passing'
+                print('    no such process, passing')
 
 
 def build(recipe_dir):

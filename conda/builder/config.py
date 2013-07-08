@@ -31,6 +31,6 @@ test_python = _get_python(test_prefix)
 def show():
     import conda.config as cc
 
-    print 'CONDA_PY:', CONDA_PY
-    print 'CONDA_NPY:', CONDA_NPY
-    print 'subdir:', cc.subdir
+    print('CONDA_PY:', CONDA_PY)
+    print('CONDA_NPY:', CONDA_NPY)
+    print('subdir:', cc.subdir)

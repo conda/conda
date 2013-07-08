@@ -48,13 +48,13 @@ def main():
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
     else: # ..changeps1
-        print int(conda.config.changeps1)
+        print(int(conda.config.changeps1))
         sys.exit(0)
 
     for path in os.getenv('PATH').split(os.pathsep):
         if path != binpath:
             paths.append(path)
-    print os.pathsep.join(paths)
+    print(os.pathsep.join(paths))
 
 
 if __name__ == '__main__':

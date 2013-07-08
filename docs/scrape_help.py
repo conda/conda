@@ -101,7 +101,7 @@ if __name__ == '__main__':
             path = sys.argv[1]
         outpath = join(path, "%s.txt" % name)
 
-        print "Scraping help for '%s' -> %s" % (name, outpath)
+        print("Scraping help for '%s' -> %s" % (name, outpath))
 
         outfile = open(outpath, "w")
         outfile.write(output)

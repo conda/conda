@@ -253,9 +253,9 @@ class Resolve(object):
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
-            print 'Warning:', len(solutions)
+            print('Warning:', len(solutions))
             for sol in solutions:
-                print '\t', [w[lit] for lit in sol if lit > 0]
+                print('\t', [w[lit] for lit in sol if lit > 0])
 
         return [w[lit] for lit in solutions.pop() if lit > 0]
 

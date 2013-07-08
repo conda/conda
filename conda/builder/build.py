@@ -121,15 +121,15 @@ def build(m, get_src=True):
     rm_rf(prefix)
     create_env(prefix, [ms.spec for ms in m.ms_depends('build')])
 
-    print "BUILD START:", m.dist()
+    print("BUILD START:", m.dist())
 
     if get_src:
         source.provide(m.path, m.get_section('source'))
     assert isdir(source.WORK_DIR)
     if os.listdir(source.get_dir()):
-        print "source tree in:", source.get_dir()
+        print("source tree in:", source.get_dir())
     else:
-        print "no source"
+        print("no source")
 
     rm_rf(info_dir)
     files1 = prefix_files()
@@ -161,7 +161,7 @@ def build(m, get_src=True):
         t.add(join(prefix, f), f)
     t.close()
 
-    print "BUILD END:", m.dist()
+    print("BUILD END:", m.dist())
 
     # we're done building, perform some checks
     tarcheck.check_all(path)
@@ -176,10 +176,10 @@ def test(m):
     rm_rf(tmp_dir)
     os.makedirs(tmp_dir)
     if not create_files(tmp_dir, m):
-        print "Nothing to test for:", m.dist()
+        print("Nothing to test for:", m.dist())
         return
 
-    print "TEST START:", m.dist()
+    print("TEST START:", m.dist())
     rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
@@ -203,4 +203,4 @@ def test(m):
     _check_call([config.test_python, join(tmp_dir, 'run_test.py')],
                 env=env, cwd=tmp_dir)
 
-    print "TEST END:", m.dist()
+    print("TEST END:", m.dist())

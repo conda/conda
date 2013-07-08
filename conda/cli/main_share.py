@@ -34,5 +34,5 @@ def execute(args, parser):
         json.dump(d, sys.stdout, indent=2, sort_keys=True)
     else:
         for w in warnings:
-            print "Warning:", w
-        print path
+            print("Warning:", w)
+        print(path)

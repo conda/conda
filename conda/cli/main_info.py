@@ -68,7 +68,7 @@ def execute(args, parser):
 
     if args.all or all(not getattr(args, opt) for opt in options):
         info_dict['ppcs'] = ('\n' + 24 * ' ').join(info_dict['channels'])
-        print """
+        print("""
 Current conda install:
 
              platform : %(platform)s
@@ -77,34 +77,34 @@ conda command version : %(conda_version)s
        default prefix : %(default_prefix)s
          channel URLs : %(ppcs)s
           config file : %(rc_path)s
-""" % info_dict
+""" % info_dict )
 
     if args.envs:
-        print "# conda environments:"
-        print "#"
+        print("# conda environments:")
+        print("#")
         def disp_env(prefix):
             fmt = '%-20s  %s  %s'
             default = '*' if prefix == config.default_prefix else ' '
             name = (basename(prefix)
                     if prefix.startswith(config.envs_dir) else
                     '(root)')
-            print fmt % (name, default, prefix)
+            print(fmt % (name, default, prefix))
 
         disp_env(config.root_dir)
         for dn in sorted(os.listdir(config.envs_dir)):
             disp_env(join(config.envs_dir, dn))
-        print
+        print()
 
     if args.system:
-        print
-        print "PATH: %s" % os.getenv('PATH')
-        print "PYTHONPATH: %s" % os.getenv('PYTHONPATH')
+        print()
+        print("PATH: %s" % os.getenv('PATH'))
+        print("PYTHONPATH: %s" % os.getenv('PYTHONPATH'))
         if config.platform == 'linux':
-            print "LD_LIBRARY_PATH: %s" % os.getenv('LD_LIBRARY_PATH')
+            print("LD_LIBRARY_PATH: %s" % os.getenv('LD_LIBRARY_PATH'))
         elif sys.platform == 'darwin':
-            print "DYLD_LIBRARY_PATH: %s" % os.getenv('DYLD_LIBRARY_PATH')
-        print "CONDA_DEFAULT_ENV: %s" % os.getenv('CONDA_DEFAULT_ENV')
-        print
+            print("DYLD_LIBRARY_PATH: %s" % os.getenv('DYLD_LIBRARY_PATH'))
+        print("CONDA_DEFAULT_ENV: %s" % os.getenv('CONDA_DEFAULT_ENV'))
+        print()
 
     if args.license:
         try:

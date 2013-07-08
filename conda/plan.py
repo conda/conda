@@ -40,26 +40,26 @@ PROGRESS = 'PROGRESS'
 
 def print_dists(dists, index=None):
     fmt = "    %-27s|%17s"
-    print fmt % ('package', 'build')
-    print fmt % ('-' * 27, '-' * 17)
+    print(fmt % ('package', 'build'))
+    print(fmt % ('-' * 27, '-' * 17))
     for dist in dists:
         line = fmt % tuple(dist.rsplit('-', 1))
         fn = dist + '.tar.bz2'
         if index and fn in index:
             line += '%15s' % human_bytes(index[fn]['size'])
-        print line
+        print(line)
 
 def display_actions(actions, index=None):
     if actions.get(FETCH):
-        print "\nThe following packages will be downloaded:\n"
+        print("\nThe following packages will be downloaded:\n")
         print_dists(actions[FETCH], index)
     if actions.get(UNLINK):
-        print "\nThe following packages will be UN-linked:\n"
+        print("\nThe following packages will be UN-linked:\n")
         print_dists(actions[UNLINK])
     if actions.get(LINK):
-        print "\nThe following packages will be linked:\n"
+        print("\nThe following packages will be linked:\n")
         print_dists(actions[LINK])
-    print
+    print()
 
 
 # the order matters here, don't change it

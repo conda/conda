@@ -98,11 +98,11 @@ def execute(args, parser):
         actions = plan.remove_actions(prefix, specs)
 
     if plan.nothing_to_do(actions):
-        print 'No packages found to remove from environment: %s' % prefix
+        print('No packages found to remove from environment: %s' % prefix)
         return
 
-    print
-    print "Package plan for package removal in environment %s:" % prefix
+    print()
+    print("Package plan for package removal in environment %s:" % prefix)
     plan.display_actions(actions)
 
     if not pscheck.main(args):
