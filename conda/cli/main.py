@@ -37,6 +37,9 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 '''
+
+from __future__ import print_function, division, absolute_import
+
 import sys
 import argparse
 

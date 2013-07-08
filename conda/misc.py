@@ -1,5 +1,8 @@
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
+
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 import shutil

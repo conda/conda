@@ -7,6 +7,8 @@
 discussion at PyCon 2009.
 """
 
+from __future__ import print_function, division, absolute_import
+
 import re
 
 class IrrationalVersionError(Exception):

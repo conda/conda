@@ -2,6 +2,8 @@
 Tools for converting PyPI packages to conda recipes.
 """
 
+from __future__ import print_function, division, absolute_import
+
 import sys
 import xmlrpclib
 from os import makedirs

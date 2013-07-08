@@ -20,7 +20,7 @@
 
 '''Default ProgressBar widgets'''
 
-from __future__ import division
+from __future__ import print_function, division, absolute_import
 
 import datetime
 import math

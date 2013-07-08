@@ -7,6 +7,9 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
+
+from __future__ import print_function, division, absolute_import
+
 from logging import getLogger
 
 from collections import defaultdict
