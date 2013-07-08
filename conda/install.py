@@ -24,6 +24,9 @@ standalone, i.e. not import any other parts of `conda` (only depend on
 the standard library).
 
 '''
+
+from __future__ import print_function, division, absolute_import
+
 import os
 import json
 import shutil
