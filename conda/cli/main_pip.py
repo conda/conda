@@ -15,7 +15,7 @@ descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
 
 
 def configure_parser(sub_parsers):
-    from common import add_parser_yes
+    from .common import add_parser_yes
     p = sub_parsers.add_parser('pip', description=descr, help=descr)
 
     common.add_parser_prefix(p)

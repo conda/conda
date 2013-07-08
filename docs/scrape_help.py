@@ -32,7 +32,7 @@ def scrape_help(cmd_name):
 
     p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
 
-    output = p.stdout.read()
+    output = p.stdout.read().decode('utf-8')
 
 
     if cmd_name in ['remove','package','install']:

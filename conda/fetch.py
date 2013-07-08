@@ -35,7 +35,7 @@ def fetch_repodata(url):
                 data = fi.read()
                 fi.close()
                 if fn.endswith('.bz2'):
-                    data = bz2.decompress(data)
+                    data = bz2.decompress(data).decode('utf-8')
                 return json.loads(data)
 
             except IOError:

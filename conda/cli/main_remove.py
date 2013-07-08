@@ -59,7 +59,7 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
-    import pscheck
+    from . import pscheck
 
     if not (args.all or args.package_names):
         sys.exit('Error: no package names supplied,\n'

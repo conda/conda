@@ -65,10 +65,10 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
-    import pscheck
+    from . import pscheck
 
     prefix = common.get_prefix(args)
-
+    
     # handle explict installs of conda packages
     if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
         from conda.misc import install_local_packages
@@ -103,7 +103,7 @@ def execute(args, parser):
                                    force=args.force, only_names=only_names)
 
     if plan.nothing_to_do(actions):
-        from main_list import list_packages
+        from .main_list import list_packages
 
         regex = '^(%s)$' %  '|'.join(spec_names)
         print('# All requested packages already installed.')

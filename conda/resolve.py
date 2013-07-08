@@ -186,6 +186,7 @@ class Resolve(object):
 
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms)
+
         if not pkgs:
             raise RuntimeError("No packages found matching: %s" % ms)
         maxpkg = max(pkgs)
@@ -274,7 +275,7 @@ class Resolve(object):
 
         clauses = self.gen_clauses(v, dists, specs, features)
         solutions = min_sat(clauses)
-
+        
         if len(solutions) == 0:
             raise RuntimeError("Unsatisfiable package specifications")
 

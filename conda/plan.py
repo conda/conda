@@ -189,11 +189,17 @@ def add_defaults_to_specs(r, linked, specs):
 def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
-
-    if is_root_prefix(prefix):
+    
+    # Here is a temporary fix to prevent adding conda to the specs;
+    # Bootstrapping problem: conda is not available as a conda package for 
+    # py3k yet.
+    import sys
+    PY3 = sys.version_info[0] == 3
+    
+    if is_root_prefix(prefix) and not PY3:
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
-
+    
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked]):
         dist = fn[:-8]
@@ -202,7 +208,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
             continue
         must_have[name] = dist
 
-    if is_root_prefix(prefix):
+    if is_root_prefix(prefix) and not PY3:
         if not force:
             # ensure conda is in root environment
             assert 'conda' in must_have
@@ -283,7 +289,7 @@ def cmds_from_plan(plan):
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
-        from console import setup_handlers
+        from .console import setup_handlers
         setup_handlers()
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
