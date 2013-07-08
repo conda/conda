@@ -5,7 +5,7 @@ import os
 import sys
 from os.path import isdir, join
 
-from config import build_prefix, build_python
+from .config import build_prefix, build_python
 
 
 BAT_PROXY = """\

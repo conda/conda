@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-import common
+from . import common
 from argparse import RawDescriptionHelpFormatter
 
 

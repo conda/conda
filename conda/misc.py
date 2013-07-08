@@ -11,9 +11,9 @@ from collections import defaultdict
 from distutils.spawn import find_executable
 from os.path import abspath, basename, expanduser, join
 
-import config
-import install
-from plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
+from . import config
+from . import install
+from .plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
 
 
 

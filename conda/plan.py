@@ -15,12 +15,12 @@ from logging import getLogger
 from collections import defaultdict
 from os.path import abspath, isfile, join
 
-import config
-import install
-from naming import name_dist
-from utils import md5_file, human_bytes
-from fetch import fetch_pkg
-from resolve import MatchSpec, Resolve
+from . import config
+from . import install
+from .naming import name_dist
+from .utils import md5_file, human_bytes
+from .fetch import fetch_pkg
+from .resolve import MatchSpec, Resolve
 
 log = getLogger(__name__)
 

@@ -43,22 +43,22 @@ from __future__ import print_function, division, absolute_import
 import sys
 import argparse
 
-import conda_argparse
-import main_build
-import main_clone
-import main_create
-import main_help
-import main_index
-import main_info
-import main_install
-import main_list
-import main_remove
-import main_package
-import main_pip
-import main_search
-import main_share
-import main_update
-import main_skeleton
+from . import conda_argparse
+from . import main_build
+from . import main_clone
+from . import main_create
+from . import main_help
+from . import main_index
+from . import main_info
+from . import main_install
+from . import main_list
+from . import main_remove
+from . import main_package
+from . import main_pip
+from . import main_search
+from . import main_share
+from . import main_update
+from . import main_skeleton
 
 from conda.lock import Locked
 

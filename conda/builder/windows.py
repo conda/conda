@@ -11,7 +11,7 @@ from utils import _check_call
 from scripts import BAT_PROXY
 
 import conda.config as cc
-import psutil
+import psutil  # not conda
 
 
 assert sys.platform == 'win32'

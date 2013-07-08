@@ -3,10 +3,10 @@ from __future__ import print_function, division, absolute_import
 import os
 from os.path import dirname, isdir, join
 
-import config
-import install
-from naming import fn2spec
-from fetch import fetch_index
+from . import config
+from . import install
+from .naming import fn2spec
+from .fetch import fetch_index
 
 
 

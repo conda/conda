@@ -12,16 +12,16 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.install import prefix_placeholder
 
-import config
+from . import config
 from conda.fetch import fetch_index
-import environ
-import source
-import tarcheck
-from scripts import create_entry_points, bin_dirname
-from post import post_process, post_build, is_obj, fix_permissions
-from utils import rm_rf, url_path, _check_call
-from index import update_index
-from create_test import create_files
+from . import environ
+from . import source
+from . import tarcheck
+from .scripts import create_entry_points, bin_dirname
+from .post import post_process, post_build, is_obj, fix_permissions
+from .utils import rm_rf, url_path, _check_call
+from .index import update_index
+from .create_test import create_files
 
 
 prefix = config.build_prefix

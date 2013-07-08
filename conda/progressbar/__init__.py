@@ -55,8 +55,8 @@ try:
 except ImportError:
     pass
 
-from compat import *
-from widgets import *
+from .compat import *
+from .widgets import *
 
 
 __author__ = 'Nilton Volpato'

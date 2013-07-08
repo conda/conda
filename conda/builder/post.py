@@ -10,11 +10,11 @@ from os.path import basename, islink, join, splitext
 
 from conda.install import prefix_placeholder
 
-from config import build_prefix, build_python, PY3K
-from source import WORK_DIR
-import external
-import environ
-import utils
+from .config import build_prefix, build_python, PY3K
+from .source import WORK_DIR
+from . import external
+from . import environ
+from . import utils
 
 
 if sys.platform == 'linux2':

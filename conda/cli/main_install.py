@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from . import common
 
 
 help = "Install a list of packages into a specified conda environment."
