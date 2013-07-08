@@ -16,7 +16,7 @@ from os.path import join
 from . import config
 from .utils import memoized
 from .connection_handling import connectionhandled_urlopen
-
+from conda.compat import itervalues
 
 log = getLogger(__name__)
 
@@ -50,7 +50,7 @@ def fetch_index(channel_urls):
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url)
         new_index = repodata['packages']
-        for info in new_index.itervalues():
+        for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
     return index

@@ -9,7 +9,7 @@ import tarfile
 from os.path import isdir, join, getmtime
 
 from .utils import file_info
-
+from conda.compat import iteritems
 
 
 def read_index_tar(tar_path):
@@ -85,7 +85,7 @@ def update_index(dir_path, verbose=False, force=False):
         icons_dir = join(dir_path, 'icons')
         if not isdir(icons_dir):
             os.mkdir(icons_dir)
-        for md5, raw in icons.iteritems():
+        for md5, raw in iteritems(icons):
             with open(join(icons_dir, '%s.png' % md5), 'wb') as fo:
                 fo.write(raw)
 
