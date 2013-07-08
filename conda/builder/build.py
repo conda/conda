@@ -55,8 +55,11 @@ def have_prefix_files(files):
             continue
         if is_obj(path):
             continue
-        with open(path) as fi:
-            data = fi.read()
+        try:
+            with open(path) as fi:
+                data = fi.read()
+        except UnicodeDecodeError:
+            continue
         if prefix_placeholder in data:
             yield f
 

@@ -22,7 +22,7 @@ class TarCheck(object):
         self.name, self.version, self.build = self.dist.rsplit('-', 2)
 
     def info_files(self):
-        lista = [p.strip() for p in
+        lista = [p.strip().decode('utf-8') for p in
                  self.t.extractfile('info/files').readlines()]
         seta = set(lista)
         if len(lista) != len(seta):
@@ -44,7 +44,7 @@ class TarCheck(object):
         raise Exception('info/files')
 
     def index_json(self):
-        info = json.load(self.t.extractfile('info/index.json'))
+        info = json.loads(self.t.extractfile('info/index.json').read().decode('utf-8'))
         for varname in 'name', 'version', 'build':
             if info[varname] != getattr(self, varname):
                 raise Exception('%s: %r != %r' % (varname, info[varname],

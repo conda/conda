@@ -14,7 +14,7 @@ from conda.compat import iteritems
 
 def read_index_tar(tar_path):
     with tarfile.open(tar_path) as t:
-        info = json.load(t.extractfile('info/index.json'))
+        info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
         try:
             raw = t.extractfile('info/icon.png').read()
             info['_icondata'] = base64.b64encode(raw)
@@ -33,7 +33,7 @@ def write_repodata(repodata, dir_path):
     with open(join(dir_path, 'repodata.json'), 'w') as fo:
         fo.write(data)
     with open(join(dir_path, 'repodata.json.bz2'), 'wb') as fo:
-        fo.write(bz2.compress(data))
+        fo.write(bz2.compress(data.encode('utf-8')))
 
 def update_index(dir_path, verbose=False, force=False):
     if verbose:
