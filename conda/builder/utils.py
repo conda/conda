@@ -5,11 +5,16 @@ import sys
 import hashlib
 import shutil
 import tarfile
-import urllib2
 import zipfile
 import subprocess
 from os.path import (abspath, dirname, getmtime, getsize, isdir, isfile,
                      islink, join, normpath)
+
+import sys
+if sys.version_info < (3,):
+    import urllib2
+else:
+    import urllib.request as urllib2
 
 from conda.utils import md5_file
 
