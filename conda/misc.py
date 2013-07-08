@@ -14,7 +14,7 @@ from os.path import abspath, basename, expanduser, join
 from . import config
 from . import install
 from .plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
-
+from conda.compat import iteritems
 
 
 def install_local_packages(prefix, paths, verbose=False):
@@ -53,7 +53,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
     env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
     # copy existing environment variables, but not anything with PATH in it
-    for k, v in os.environ.iteritems():
+    for k, v in iteritems(os.environ):
         if 'PATH' not in k:
             env[k] = v
     # allow updating environment variables from metadata

@@ -18,6 +18,7 @@ else:
     import urllib.request as urllib2
     from urllib import parse as urlparse
 
+from conda.compat import iteritems
 
 log = getLogger(__name__)
 
@@ -82,7 +83,7 @@ def connectionhandled_urlopen(url):
             #decrease user input. otherwise you'd need to assign a user/pwd to
             #each proxy type
             if firstconnection == True:
-                for aprotocol, aproxy in proxies_dict.iteritems():
+                for aprotocol, aproxy in iteritems(proxies_dict):
                     proxypwdmgr.add_password(None, aproxy, uname, pword)
                 firstconnection == False
             else:#...assign a uname pwd for the specific protocol proxy type

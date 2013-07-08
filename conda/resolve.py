@@ -8,7 +8,7 @@ from collections import defaultdict
 
 from . import verlib
 from .utils import memoize
-
+from conda.compat import itervalues, iteritems
 
 log = logging.getLogger(__name__)
 
@@ -83,15 +83,21 @@ class Package(object):
         except verlib.IrrationalVersionError:
             self.norm_version = self.version
 
-    def __cmp__(self, other):
+    # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
+    #def __cmp__(self, other):
+    def __lt__(self, other):
         if self.name != other.name:
             raise ValueError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
-            return cmp((self.norm_version, self.build_number),
-                       (other.norm_version, other.build_number))
+            #return cmp((self.norm_version, self.build_number),
+            #           (other.norm_version, other.build_number))
+            return ((self.norm_version, self.build_number) <
+                      (other.norm_version, other.build_number))
         except TypeError:
-            return cmp((self.version, self.build_number),
+            #return cmp((self.version, self.build_number),
+            #           (other.version, other.build_number))
+            return ((self.version, self.build_number) <
                        (other.version, other.build_number))
 
     def __repr__(self):
@@ -111,7 +117,7 @@ def min_sat(clauses, max_n=1000):
     """
     import pycosat
 
-    min_tl, solutions = sys.maxint, []
+    min_tl, solutions = sys.maxsize, []
     for sol in islice(pycosat.itersolve(clauses), max_n):
         tl = sum(lit > 0 for lit in sol) # number of true literals
         if tl < min_tl:
@@ -127,7 +133,7 @@ class Resolve(object):
     def __init__(self, index):
         self.index = index
         self.groups = defaultdict(list) # map name to list of filenames
-        for fn, info in index.iteritems():
+        for fn, info in iteritems(index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
 
@@ -187,7 +193,7 @@ class Resolve(object):
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
-        for filenames in groups.itervalues():
+        for filenames in itervalues(groups):
             # ensure packages with the same name conflict
             for fn1 in filenames:
                 v1 = v[fn1]

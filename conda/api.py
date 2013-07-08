@@ -7,7 +7,7 @@ from . import config
 from . import install
 from .naming import fn2spec
 from .fetch import fetch_index
-
+from conda.compat import iteritems
 
 
 def get_index(channel_urls=(), prepend=True):
@@ -27,7 +27,7 @@ def app_get_index():
     return the index of available applications on the channels
     """
     index = get_index()
-    return {fn: info for fn, info in index.iteritems()
+    return {fn: info for fn, info in iteritems(index)
             if info.get('type') == 'app'}
 
 

@@ -13,6 +13,7 @@ from scripts import BAT_PROXY
 import conda.config as cc
 import psutil  # not conda
 
+from conda.compat import iteritems
 
 assert sys.platform == 'win32'
 
@@ -91,7 +92,7 @@ def build(recipe_dir):
         fo.write(msvc_env_cmd())
         # more debuggable with echo on
         fo.write('@echo on\n')
-        for kv in env.iteritems():
+        for kv in iteritems(env):
             fo.write('set %s=%s\n' % kv)
         fo.write("REM ===== end generated header =====\n")
         fo.write(data)
