@@ -6,9 +6,17 @@
 
 from __future__ import print_function, division, absolute_import
 
-import urllib2
-import urlparse
 from logging import getLogger
+
+import sys
+if sys.version_info < (3,):
+    # Python 2.x
+    import urllib2
+    import urlparse
+else:
+    # Python 3.x
+    import urllib.request as urllib2
+    from urllib import parse as urlparse
 
 
 log = getLogger(__name__)

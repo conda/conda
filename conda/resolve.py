@@ -7,7 +7,7 @@ from itertools import islice
 from collections import defaultdict
 
 from . import verlib
-from utils import memoize
+from .utils import memoize
 
 
 log = logging.getLogger(__name__)
