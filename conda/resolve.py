@@ -6,7 +6,7 @@ import logging
 from itertools import islice
 from collections import defaultdict
 
-import verlib
+from . import verlib
 from utils import memoize
 
 

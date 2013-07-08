@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from . import common
 
 
 help = "Remove a list of packages from a specified conda environment."

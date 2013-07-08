@@ -5,7 +5,7 @@ import sys
 from os.path import isfile, join
 
 import conda.config as cc
-from config import build_prefix
+from .config import build_prefix
 
 
 

@@ -8,8 +8,8 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-import common
-import main_install
+from . import common
+from . import main_install
 
 descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
 

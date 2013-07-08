@@ -8,7 +8,7 @@ import hashlib
 import tarfile
 from os.path import isdir, join, getmtime
 
-from utils import file_info
+from .utils import file_info
 
 
 

@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from . import common
 
 
 descr = ("Create a new conda environment from a list of specified "

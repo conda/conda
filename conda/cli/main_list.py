@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-import common
+from . import common
 
 
 def configure_parser(sub_parsers):
