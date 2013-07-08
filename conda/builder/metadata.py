@@ -13,6 +13,7 @@ import yaml
 
 
 def ns_cfg():
+    # Remember to update the docs of any of this changes
     plat = config.subdir
     py = CONDA_PY
     np = CONDA_NPY
