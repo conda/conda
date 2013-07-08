@@ -91,4 +91,4 @@ if __name__ == '__main__':
     if not fn.endswith('.tar.bz2'):
         fn += '.tar.bz2'
     p = launch(fn, opts.prefix, args[1:])
-    print 'PID:', p.pid
+    print('PID:', p.pid)

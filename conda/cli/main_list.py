@@ -39,8 +39,8 @@ def list_packages(prefix, regex=None, verbose=True):
     pat = re.compile(regex, re.I) if regex else None
 
     if verbose:
-        print '# packages in environment at %s:' % prefix
-        print '#'
+        print('# packages in environment at %s:' % prefix)
+        print('#')
 
     packages = False
     for dist in sorted(install.linked(prefix)):
@@ -48,17 +48,17 @@ def list_packages(prefix, regex=None, verbose=True):
         if pat and pat.search(name) is None:
             continue
         if not verbose:
-            print dist
+            print(dist)
             continue
         try:
             info = install.is_linked(prefix, dist)
             features = set(info.get('features', '').split())
-            print '%-25s %-15s %15s  %s' % (info['name'],
+            print('%-25s %-15s %15s  %s' % (info['name'],
                                             info['version'],
                                             info['build'],
-                                            common.disp_features(features))
+                                            common.disp_features(features)) )
         except: # IOError, KeyError, ValueError
-            print '%-25s %-15s %15s' % tuple(dist.rsplit('-', 2))
+            print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
         packages = True
 
     if not packages:

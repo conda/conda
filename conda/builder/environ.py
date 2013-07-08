@@ -60,4 +60,4 @@ if __name__ == '__main__':
     e = get_dict()
     for k in sorted(e):
         assert isinstance(e[k], str), k
-        print '%s=%s' % (k, e[k])
+        print('%s=%s' % (k, e[k]))

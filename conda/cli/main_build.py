@@ -50,12 +50,12 @@ def execute(args, parser):
             build.test(m)
         elif args.source:
             source.provide(m.path, m.get_section('source'))
-            print 'Source tree in:', source.get_dir()
+            print('Source tree in:', source.get_dir())
         else:
             build.build(m)
 
-        print """\
+        print("""\
 # If you want to upload this package to binstar.org, type:
 #
 # $ binstar upload %s
-""" % build.bldpkg_path(m)
+""" % build.bldpkg_path(m) )

@@ -77,12 +77,12 @@ def execute(args, parser):
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             dist = pkg.fn[:-8]
             if args.canonical:
-                print dist
+                print(dist)
                 continue
             inst = '*' if dist in linked else ' '
-            print '%-25s %s  %-15s %15s  %s' % (
+            print('%-25s %s  %-15s %15s  %s' % (
                 disp_name, inst,
                 pkg.version,
                 r.index[pkg.fn]['build'],
-                common.disp_features(r.features(pkg.fn)))
+                common.disp_features(r.features(pkg.fn))) )
             disp_name = ''

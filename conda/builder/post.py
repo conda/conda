@@ -48,7 +48,7 @@ def fix_shebang(f, osx_is_app=False):
     new_data = shebang_pat.sub('#!' + py_exec, data, count=1)
     if new_data == data:
         return
-    print "updating shebang:", f
+    print("updating shebang:", f)
     with open(path, 'w') as fo:
         fo.write(new_data)
     os.chmod(path, 0755)
@@ -59,7 +59,7 @@ def rm_egg_dirs():
     sp_dir = environ.sp_dir
     egg_dirs = glob(join(sp_dir, '*-py*.egg'))
     for egg_dir in egg_dirs:
-        print 'moving egg dir:', egg_dir
+        print('moving egg dir:', egg_dir)
         try:
             os.rename(join(egg_dir, 'EGG-INFO/PKG-INFO'), egg_dir + '-info')
         except OSError:
@@ -89,7 +89,7 @@ def compile_missing_pyc():
             if fn.endswith('.py') and fn + 'c' not in files:
                 need_compile = True
     if need_compile:
-        print 'compiling .pyc files...'
+        print('compiling .pyc files...')
         check_call([build_python, '-Wi', join(environ.stdlib_dir,
                                               'compileall.py'),
                     '-q', '-x', 'port_v3', sp_dir])
@@ -124,7 +124,7 @@ def mk_relative_osx(path):
         names = macho.otool(path)
         if names:
             args = ['install_name_tool', '-id', basename(names[0]), path]
-            print ' '.join(args)
+            print(' '.join(args))
             check_call(args)
 
     for name in macho.otool(path):
@@ -162,7 +162,7 @@ def replace_bi_path(path):
         matches = list(bi_pat.finditer(data))
         if not matches:
             return
-        print "Replacing build and install path in:", path
+        print("Replacing build and install path in:", path)
         for m in matches:
             s = m.group(0)
             if s == WORK_DIR:
@@ -190,7 +190,7 @@ def fix_permissions():
 
 
 def post_build(files):
-    print 'number of files:', len(files)
+    print('number of files:', len(files))
     fix_permissions()
     for f in files:
         if sys.platform != 'win32':

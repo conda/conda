@@ -72,7 +72,7 @@ def git_source(meta):
 
     # now clone into the work directory
     checkout = meta.get('git_tag') or meta.get('git_branch') or 'master'
-    print 'checkout: %r' % checkout
+    print('checkout: %r' % checkout)
 
     check_call(['git', 'clone', cache_repo_arg, WORK_DIR])
     check_call(['git', 'checkout', checkout], cwd=WORK_DIR)
@@ -104,7 +104,7 @@ def git_info(fo=sys.stdout):
 
 
 def apply_patch(src_dir, path):
-    print 'Applying patch: %r' % path
+    print('Applying patch: %r' % path)
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
 
@@ -141,8 +141,8 @@ def provide(recipe_dir, meta, patch=True):
 
 
 if __name__ == '__main__':
-    print provide('.', dict(
+    print( provide('.', dict(
         url = 'http://pypi.python.org/packages/source/b/bitarray/bitarray-0.8.0.tar.gz',
         git_url = 'git@github.com:ilanschnell/bitarray.git',
         git_tag = '0.5.2',
-    ))
+    )) )

@@ -381,9 +381,9 @@ def main():
             p.error('exactly one argument expected')
 
     if opts.verbose:
-        print "pkgs_dir: %r" % opts.pkgs_dir
-        print "prefix  : %r" % opts.prefix
-        print "dist    : %r" % dist
+        print("pkgs_dir: %r" % opts.pkgs_dir)
+        print("prefix  : %r" % opts.prefix)
+        print("dist    : %r" % dist)
 
 
     if opts.list:

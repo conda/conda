@@ -37,7 +37,7 @@ def write_repodata(repodata, dir_path):
 
 def update_index(dir_path, verbose=False, force=False):
     if verbose:
-        print "updating index in:", dir_path
+        print("updating index in:", dir_path)
     index_path = join(dir_path, '.index.json')
     if force:
         index = {}
@@ -54,7 +54,7 @@ def update_index(dir_path, verbose=False, force=False):
         if fn in index and index[fn]['mtime'] == getmtime(path):
             continue
         if verbose:
-            print 'updating:', fn
+            print('updating:', fn)
         d = read_index_tar(path)
         d.update(file_info(path))
         index[fn] = d
@@ -62,7 +62,7 @@ def update_index(dir_path, verbose=False, force=False):
     # remove files from the index which are not on disk
     for fn in set(index) - files:
         if verbose:
-            print "removing:", fn
+            print("removing:", fn)
         del index[fn]
 
     with open(index_path, 'w') as fo:

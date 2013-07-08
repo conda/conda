@@ -106,12 +106,12 @@ def execute(args, parser):
         from main_list import list_packages
 
         regex = '^(%s)$' %  '|'.join(spec_names)
-        print '# All requested packages already installed.'
+        print('# All requested packages already installed.')
         list_packages(prefix, regex)
         return
 
-    print
-    print "Package plan for installation in environment %s:" % prefix
+    print()
+    print("Package plan for installation in environment %s:" % prefix)
     plan.display_actions(actions, index)
 
     if not pscheck.main(args):

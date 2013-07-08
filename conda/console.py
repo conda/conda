@@ -51,7 +51,7 @@ class PrintHandler(logging.Handler):
 
     def emit(self, record):
         if record.name == 'print':
-            print record.msg
+            print(record.msg)
 
 
 setup = False
