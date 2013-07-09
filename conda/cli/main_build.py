@@ -32,6 +32,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
+    import shutil
     import tarfile
     import tempfile
     from os.path import abspath, isdir, isfile
@@ -46,8 +47,11 @@ def execute(args, parser):
             t = tarfile.open(arg, 'r:*')
             t.extractall(path=recipe_dir)
             t.close()
+            need_cleanup = True
         else:
             recipe_dir = abspath(arg)
+            need_cleanup = False
+
         if not isdir(recipe_dir):
             sys.exit("Error: no such directory: %s" % recipe_dir)
 
@@ -59,6 +63,9 @@ def execute(args, parser):
             print 'Source tree in:', source.get_dir()
         else:
             build.build(m)
+
+        if need_cleanup:
+            shutil.rmtree(recipe_dir)
 
         print """\
 # If you want to upload this package to binstar.org, type:
