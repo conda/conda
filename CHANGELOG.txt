@@ -2,6 +2,7 @@
 -------------------
   * fix entry point scripts pointing to wrong python when building Python 3
     packages
+  * allow conda build to take tarballs containing a recipe as arguments
 
 
 2013-07-02   1.7.2:
