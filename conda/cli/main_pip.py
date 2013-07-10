@@ -8,14 +8,14 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-from . import common
-from . import main_install
+from conda.cli import common
+from conda.cli import main_install
 
 descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
 
 
 def configure_parser(sub_parsers):
-    from .common import add_parser_yes
+    from conda.cli.common import add_parser_yes
     p = sub_parsers.add_parser('pip', description=descr, help=descr)
 
     common.add_parser_prefix(p)

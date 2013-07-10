@@ -14,7 +14,7 @@ from conda.resolve import MatchSpec
 import conda.install as install
 import conda.plan as plan
 
-from .packup import untracked, create_conda_pkg
+from conda.builder.packup import untracked, create_conda_pkg
 
 
 def get_requires(prefix):

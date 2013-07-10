@@ -10,17 +10,17 @@ from os.path import basename, islink, join, splitext
 
 from conda.install import prefix_placeholder
 
-from .config import build_prefix, build_python, PY3K
-from .source import WORK_DIR
-from . import external
-from . import environ
-from . import utils
+from conda.builder.config import build_prefix, build_python, PY3K
+from conda.builder.source import WORK_DIR
+from conda.builder import external
+from conda.builder import environ
+from conda.builder import utils
 
 
 if sys.platform == 'linux2':
-    from . import elf
+    from conda.builder import elf
 elif sys.platform == 'darwin':
-    from . import macho
+    from conda.builder import macho
 
 
 

@@ -3,6 +3,8 @@ This basically tests syntax correctness and whether the internal imports work.
 Created to test py3k compatibility.
 """
 
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 import unittest

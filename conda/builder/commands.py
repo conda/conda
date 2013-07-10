@@ -5,7 +5,7 @@ import sys
 from subprocess import check_call, CalledProcessError
 from os.path import isfile, join
 
-from .packup import untracked, packup_and_reinstall
+from conda.builder.packup import untracked, packup_and_reinstall
 
 
 def to_name(s):

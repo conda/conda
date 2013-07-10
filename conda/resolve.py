@@ -6,8 +6,8 @@ import logging
 from itertools import islice
 from collections import defaultdict
 
-from . import verlib
-from .utils import memoize
+from conda import verlib
+from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 
 log = logging.getLogger(__name__)
