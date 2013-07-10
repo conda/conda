@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-help = "Build a package from recipe. (ADVANCED)"
+help = "Build a package from a (conda) recipe. (ADVANCED)"
 descr = help + """  For examples of recipes, see:
 https://github.com/ContinuumIO/conda-recipes"""
 
@@ -32,14 +32,26 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
-    from os.path import abspath, isdir
+    import shutil
+    import tarfile
+    import tempfile
+    from os.path import abspath, isdir, isfile
 
     import conda.builder.build as build
     import conda.builder.source as source
     from conda.builder.metadata import MetaData
 
     for arg in args.recipe:
-        recipe_dir = abspath(arg)
+        if isfile(arg):
+            recipe_dir = tempfile.mkdtemp()
+            t = tarfile.open(arg, 'r:*')
+            t.extractall(path=recipe_dir)
+            t.close()
+            need_cleanup = True
+        else:
+            recipe_dir = abspath(arg)
+            need_cleanup = False
+
         if not isdir(recipe_dir):
             sys.exit("Error: no such directory: %s" % recipe_dir)
 
@@ -51,6 +63,9 @@ def execute(args, parser):
             print 'Source tree in:', source.get_dir()
         else:
             build.build(m)
+
+        if need_cleanup:
+            shutil.rmtree(recipe_dir)
 
         print """\
 # If you want to upload this package to binstar.org, type:
