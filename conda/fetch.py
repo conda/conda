@@ -13,9 +13,9 @@ import hashlib
 from logging import getLogger
 from os.path import join
 
-from . import config
-from .utils import memoized
-from .connection_handling import connectionhandled_urlopen
+from conda import config
+from conda.utils import memoized
+from conda.connection_handling import connectionhandled_urlopen
 from conda.compat import itervalues
 
 log = getLogger(__name__)

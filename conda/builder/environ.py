@@ -6,8 +6,8 @@ from os.path import join
 
 import conda.config as cc
 
-from .config import CONDA_PY, PY3K, build_prefix, build_python
-from . import source
+from conda.builder.config import CONDA_PY, PY3K, build_prefix, build_python
+from conda.builder import source
 
 
 py_ver = '.'.join(str(CONDA_PY))

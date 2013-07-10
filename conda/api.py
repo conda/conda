@@ -3,10 +3,10 @@ from __future__ import print_function, division, absolute_import
 import os
 from os.path import dirname, isdir, join
 
-from . import config
-from . import install
-from .naming import fn2spec
-from .fetch import fetch_index
+from conda import config
+from conda import install
+from conda.naming import fn2spec
+from conda.fetch import fetch_index
 from conda.compat import iteritems
 
 

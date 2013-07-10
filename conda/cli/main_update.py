@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
-from . import common
+from conda.cli import common
 
 
 descr = "Update conda packages."
@@ -47,7 +47,7 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-    from . import pscheck
+    from conda.cli import pscheck
 
 
     prefix = common.get_prefix(args)
@@ -65,7 +65,7 @@ def execute(args, parser):
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
-        from .main_list import list_packages
+        from conda.cli.main_list import list_packages
 
         regex = '^(%s)$' %  '|'.join(args.pkg_names)
         print('# All packages already at latest version, nothing to do.')

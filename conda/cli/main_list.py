@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-from . import common
+from conda.cli import common
 
 
 def configure_parser(sub_parsers):

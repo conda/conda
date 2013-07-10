@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from . import common
+from conda.cli import common
 
 
 help = "Display information about current conda install."

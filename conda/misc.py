@@ -11,9 +11,9 @@ from collections import defaultdict
 from distutils.spawn import find_executable
 from os.path import abspath, basename, expanduser, join
 
-from . import config
-from . import install
-from .plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
+from conda import config
+from conda import install
+from conda.plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
 from conda.compat import iteritems
 
 

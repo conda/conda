@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
-from . import common
+from conda.cli import common
 
 
 help = "Remove a list of packages from a specified conda environment."
@@ -59,7 +59,7 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
-    from . import pscheck
+    from conda.cli import pscheck
 
     if not (args.all or args.package_names):
         sys.exit('Error: no package names supplied,\n'

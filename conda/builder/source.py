@@ -5,9 +5,9 @@ import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
-from .config import croot
-from .utils import download, md5_file, rm_rf, tar_xf, unzip
-from . import external
+from conda.builder.config import croot
+from conda.builder.utils import download, md5_file, rm_rf, tar_xf, unzip
+from conda.builder import external
 
 
 SRC_CACHE = join(croot, 'src_cache')

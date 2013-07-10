@@ -15,12 +15,12 @@ from logging import getLogger
 from collections import defaultdict
 from os.path import abspath, isfile, join
 
-from . import config
-from . import install
-from .naming import name_dist
-from .utils import md5_file, human_bytes
-from .fetch import fetch_pkg
-from .resolve import MatchSpec, Resolve
+from conda import config
+from conda import install
+from conda.naming import name_dist
+from conda.utils import md5_file, human_bytes
+from conda.fetch import fetch_pkg
+from conda.resolve import MatchSpec, Resolve
 
 log = getLogger(__name__)
 
@@ -289,7 +289,7 @@ def cmds_from_plan(plan):
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
-        from .console import setup_handlers
+        from conda.console import setup_handlers
         setup_handlers()
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
