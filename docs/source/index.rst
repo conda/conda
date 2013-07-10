@@ -14,7 +14,7 @@ The ``conda`` command is the primary interface for managing Anaconda installatio
 Installation
 ------------
 
-``conda`` is a part of the Anaconda python distribution which can be downloaded `here <http://continuum.io/downloads>`_.
+``conda`` is a part of the Anaconda distribution which can be downloaded `here <http://continuum.io/downloads>`_.
 
 
 Getting Started
@@ -28,12 +28,12 @@ First, we will check our system NumPy version
 .. code-block:: bash
 
     $ python
-    Python 2.7.3 |Anaconda 1.2.1 (x86_64)| (default, Nov 20 2012, 22:44:26)
+    Python 2.7.5 |Anaconda 1.2.1 (x86_64)| (default, Jun 28 2013, 22:20:13)
     [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import numpy
-    >>> numpy.version.full_version
-    '1.7.0b2'
+    >>> numpy.__version__
+    '1.7.1'
 
 Next we will create an Anaconda environment using a different version of NumPy
 
@@ -58,11 +58,11 @@ Finally, we check the version again
 .. code-block:: bash
 
     $ python
-    Python 2.7.3 |AnacondaCE 1.3.0 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
+    Python 2.7.5 |Anaconda 1.6.1 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
     [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import numpy
-    >>> numpy.version.full_version
+    >>> numpy.__version__
     '1.6.2'
 
 
