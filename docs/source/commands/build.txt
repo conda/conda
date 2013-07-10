@@ -1,17 +1,11 @@
-Build a package from source. (EXPERIMENTAL)
+Build a package from recipe. (ADVANCED) For examples of recipes, see: https://github.com/ContinuumIO/conda-recipes
 
-**usage**: ``conda build [-h] [--git | --tar | --zip | --svn | --dir] [-n NAME | -p PREFIX] URL``
+**usage**: ``conda build [-h] [-s] [-t] PATH [PATH ...]``
 
-*URL*
-        name of source (url, tarball, path, etc...)
+*PATH*
+	path to recipe directory
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --git                 build from git url
-  --tar                 build from local source tarball
-  --zip                 build from local source zipfile
-  --svn                 build from svn
-  --dir                 build from local source directory
-  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
-  -p PREFIX, --prefix PREFIX
-                        full path to environment prefix (default: ROOT_DIR)
+  -h, --help    show this help message and exit
+  -s, --source  only obtain the source (but don't build)
+  -t, --test    test package (assumes package is already build)
