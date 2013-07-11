@@ -4,6 +4,7 @@
     packages
   * allow conda build to take tarballs containing a recipe as arguments
   * add PKG_CONFIG_PATH to build environment variables
+  * made activate/deactivate work with zsh (thanks to mika-fischer)
 
 
 2013-07-02   1.7.2:
