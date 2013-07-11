@@ -250,6 +250,13 @@ On Mac OS X, we have:
 
   * - ``OSX_ARCH``
     - ``i386`` or ``x86_64``, depending Python build
+    - ``PKG_CONFIG_PATH``
+
+On Linux, we have:
+
+.. list-table::
+
+  * - ``PKG_CONFIG_PATH``
 
 Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echos each
 command that is run, and the ``-e`` makes it exit whenever a command in the
