@@ -28,7 +28,7 @@ First, we will check our system NumPy version
 .. code-block:: bash
 
     $ python
-    Python 2.7.5 |Anaconda 1.2.1 (x86_64)| (default, Jun 28 2013, 22:20:13)
+    Python 2.7.5 |Anaconda 1.6.1 (x86_64)| (default, Jun 28 2013, 22:20:13)
     [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import numpy
