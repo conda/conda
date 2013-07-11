@@ -65,7 +65,12 @@ def create_info_files(m, files):
     for fn in os.listdir(m.path):
         if fn.startswith('.'):
             continue
-        shutil.copy(join(m.path, fn), join(recipe_dir, fn))
+        src_path = join(m.path, fn)
+        dst_path = join(recipe_dir, fn)
+        if isdir(src_path):
+            shutil.copytree(src_path, dst_path)
+        else:
+            shutil.copy(src_path, dst_path)
 
     with open(join(info_dir, 'files'), 'w') as fo:
         for f in files:
