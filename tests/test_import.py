@@ -37,8 +37,8 @@ class TestImportAllConda(unittest.TestCase):
                 continue
             # Import
             modname = module_prefix + '.' + fname.split('.')[0]
+            print('importing', modname)
             __import__(modname)
-            print('imported', modname)
 
 
     def test_import_root(self):
