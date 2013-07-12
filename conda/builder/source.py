@@ -78,14 +78,6 @@ def git_source(meta):
     check_call(['git', 'clone', cache_repo_arg, WORK_DIR])
     check_call(['git', 'checkout', checkout], cwd=WORK_DIR)
 
-    if meta.get('git_submodules'):
-        check_call(['git', 'submodule', 'init'], cwd=WORK_DIR)
-        if sys.platform == 'win32':
-            from replace import replace
-            replace([('https://github.com/', 'git@github.com:')],
-                    join(WORK_DIR, '.git', 'config'), assert_change=False)
-        check_call(['git', 'submodule', 'update'], cwd=WORK_DIR)
-
     git_info()
     return WORK_DIR
 
