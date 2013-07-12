@@ -68,7 +68,7 @@ def execute(args, parser):
     from conda.cli import pscheck
 
     prefix = common.get_prefix(args)
-    
+
     # handle explict installs of conda packages
     if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
         from conda.misc import install_local_packages

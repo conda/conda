@@ -82,7 +82,7 @@ class Package(object):
             self.norm_version = verlib.NormalizedVersion(v)
         except verlib.IrrationalVersionError:
             self.norm_version = self.version
-    
+
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
 #     def __cmp__(self, other):
 #         if self.name != other.name:
@@ -94,7 +94,7 @@ class Package(object):
 #         except TypeError:
 #             return cmp((self.version, self.build_number),
 #                       (other.version, other.build_number))
-    
+
     def __lt__(self, other):
         if self.name != other.name:
             raise ValueError('cannot compare packages with different '
@@ -105,7 +105,7 @@ class Package(object):
         except TypeError:
             return ((self.version, self.build_number) <
                       (other.version, other.build_number))
-    
+
     def __eq__(self, other):
         if self.name != other.name:
             raise ValueError('cannot compare packages with different '
@@ -116,10 +116,10 @@ class Package(object):
         except TypeError:
             return ((self.version, self.build_number) ==
                       (other.version, other.build_number))
-    
+
     def __gt__(self, other):
         return not (self.__lt__(other) or self.__eq__(other))
-    
+
     def __repr__(self):
         return '<Package %s>' % self.fn
 
@@ -275,7 +275,7 @@ class Resolve(object):
 
         clauses = self.gen_clauses(v, dists, specs, features)
         solutions = min_sat(clauses)
-        
+
         if len(solutions) == 0:
             raise RuntimeError("Unsatisfiable package specifications")
 

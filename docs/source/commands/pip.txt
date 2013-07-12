@@ -3,7 +3,7 @@ Call pip and create a conda package in an environment. (DEPRECATED)
 **usage**: ``conda pip [-h] [-n NAME | -p PREFIX] [--yes] [--dry-run] name [name ...]``
 
 *name*
-	name of package to pip install
+        name of package to pip install
 
 optional arguments:
   -h, --help            show this help message and exit
