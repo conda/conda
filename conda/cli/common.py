@@ -193,3 +193,5 @@ def stdout_json(d):
 
     json.dump(d, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write('\n')
+
+root_no_rm = 'python', 'pycosat', 'conda'

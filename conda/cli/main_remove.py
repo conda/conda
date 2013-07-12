@@ -90,7 +90,7 @@ def execute(args, parser):
 
     else:
         specs = common.specs_from_args(args.package_names)
-        no_rm = 'python', 'pycosat', 'conda'
+        no_rm = common.root_no_rm
         if (plan.is_root_prefix(prefix) and
             common.names_in_specs(no_rm, specs)):
             sys.exit('Error: cannot remove %s from root environment' %
