@@ -64,7 +64,7 @@ from conda.lock import Locked
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate', '..changeps1'):
-        import activate
+        import conda.cli.activate as activate
         activate.main()
         return
     if len(sys.argv) == 1:

@@ -49,7 +49,7 @@ def app_info_packages(fn):
     Returns a list of tuples (pkg_name, pkg_version, size,
     fetched? True or False).
     """
-    from resolve import Resolve
+    from conda.resolve import Resolve
 
     index = get_index()
     r = Resolve(index)
@@ -83,7 +83,7 @@ def app_install(fn, prefix=config.root_dir):
     Install the application `fn` into prefix (which defauts to the root
     environment).
     """
-    import plan
+    import conda.plan as plan
 
     index = get_index()
     actions = plan.install_actions(prefix, index, [fn2spec(fn)])
@@ -97,7 +97,7 @@ def app_launch(fn, prefix=config.root_dir, additional_args=None):
     Returned is the process object (the one returned by subprocess.Popen),
     or None if the application `fn` is not installed in the prefix.
     """
-    from misc import launch
+    from conda.misc import launch
 
     return launch(fn, prefix, additional_args)
 
