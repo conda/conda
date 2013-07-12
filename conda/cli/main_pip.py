@@ -59,6 +59,7 @@ def execute(args, parser):
                 args.no_deps = False
                 args.override_channels = False
                 args.channel = None
+                args.quiet = False
                 main_install.execute(args, parser)
                 continue
 

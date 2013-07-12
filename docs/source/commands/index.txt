@@ -3,7 +3,7 @@ Updates repodata.json in channel directories. (ADVANCED)
 **usage**: ``conda index [-h] [-f] [-q] [DIRECTORIES [DIRECTORIES ...]]``
 
 *DIRECTORIES*
-        optional arguments:
+	optional arguments:
 
 optional arguments:
   -h, --help   show this help message and exit

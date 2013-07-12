@@ -21,7 +21,6 @@ cmd_names = [
     'pip',
     'index',
     'share',
-    'launch',
     'build',
     'clone'
 ]
