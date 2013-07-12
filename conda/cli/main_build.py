@@ -4,7 +4,10 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 help = "Build a package from a (conda) recipe. (ADVANCED)"
+
 descr = help + """  For examples of recipes, see:
 https://github.com/ContinuumIO/conda-recipes"""
 
@@ -60,15 +63,15 @@ def execute(args, parser):
             build.test(m)
         elif args.source:
             source.provide(m.path, m.get_section('source'))
-            print 'Source tree in:', source.get_dir()
+            print('Source tree in:', source.get_dir())
         else:
             build.build(m)
-
+        
         if need_cleanup:
             shutil.rmtree(recipe_dir)
-
-        print """\
+            
+        print("""\
 # If you want to upload this package to binstar.org, type:
 #
 # $ binstar upload %s
-""" % build.bldpkg_path(m)
+""" % build.bldpkg_path(m) )

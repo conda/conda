@@ -15,10 +15,12 @@ globally (such as downloading packages).
 
 """
 
+from __future__ import print_function, division, absolute_import
+
 from os.path import join
 from os import rmdir, makedirs
 
-import config
+from conda import config
 
 
 def create_lock(path, name):

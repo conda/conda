@@ -1,11 +1,13 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 from os.path import join
 
 import conda.config as cc
 
-from config import CONDA_PY, PY3K, build_prefix, build_python
-import source
+from conda.builder.config import CONDA_PY, PY3K, build_prefix, build_python
+from conda.builder import source
 
 
 py_ver = '.'.join(str(CONDA_PY))
@@ -59,4 +61,4 @@ if __name__ == '__main__':
     e = get_dict()
     for k in sorted(e):
         assert isinstance(e[k], str), k
-        print '%s=%s' % (k, e[k])
+        print('%s=%s' % (k, e[k]))

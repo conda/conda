@@ -4,9 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from conda.cli import common
 
 
 help = "Install a list of packages into a specified conda environment."
@@ -63,10 +65,10 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
-    import pscheck
+    from conda.cli import pscheck
 
     prefix = common.get_prefix(args)
-
+    
     # handle explict installs of conda packages
     if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
         from conda.misc import install_local_packages
@@ -101,15 +103,15 @@ def execute(args, parser):
                                    force=args.force, only_names=only_names)
 
     if plan.nothing_to_do(actions):
-        from main_list import list_packages
+        from conda.cli.main_list import list_packages
 
         regex = '^(%s)$' %  '|'.join(spec_names)
-        print '# All requested packages already installed.'
+        print('# All requested packages already installed.')
         list_packages(prefix, regex)
         return
 
-    print
-    print "Package plan for installation in environment %s:" % prefix
+    print()
+    print("Package plan for installation in environment %s:" % prefix)
     plan.display_actions(actions, index)
 
     if not pscheck.main(args):

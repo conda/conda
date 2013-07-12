@@ -4,9 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from conda.cli import common
 
 
 descr = "Update conda packages."
@@ -45,7 +47,7 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
-    import pscheck
+    from conda.cli import pscheck
 
 
     prefix = common.get_prefix(args)
@@ -63,14 +65,14 @@ def execute(args, parser):
     actions = plan.install_actions(prefix, index, args.pkg_names)
 
     if plan.nothing_to_do(actions):
-        from main_list import list_packages
+        from conda.cli.main_list import list_packages
 
         regex = '^(%s)$' %  '|'.join(args.pkg_names)
-        print '# All packages already at latest version, nothing to do.'
+        print('# All packages already at latest version, nothing to do.')
         list_packages(prefix, regex)
         return
 
-    print "Updating conda environment at %s" % prefix
+    print("Updating conda environment at %s" % prefix)
     plan.display_actions(actions, index)
 
     if not pscheck.main(args):

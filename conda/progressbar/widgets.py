@@ -20,7 +20,7 @@
 
 '''Default ProgressBar widgets'''
 
-from __future__ import division
+from __future__ import print_function, division, absolute_import
 
 import datetime
 import math
@@ -121,13 +121,13 @@ class ETA(Timer):
 
 class FileTransferSpeed(Widget):
     'Widget for showing the transfer speed (useful for file transfers).'
-
-    format = '%6.2f %s%s/s'
+    
     prefixes = ' kMGTPEZY'
     __slots__ = ('unit', 'format')
 
     def __init__(self, unit='B'):
         self.unit = unit
+        self.format = '%6.2f %s%s/s'
 
     def update(self, pbar):
         'Updates the widget with the current SI prefixed speed.'

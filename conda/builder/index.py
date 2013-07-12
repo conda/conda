@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import bz2
 import json
@@ -6,13 +8,13 @@ import hashlib
 import tarfile
 from os.path import isdir, join, getmtime
 
-from utils import file_info
-
+from conda.builder.utils import file_info
+from conda.compat import iteritems
 
 
 def read_index_tar(tar_path):
     with tarfile.open(tar_path) as t:
-        info = json.load(t.extractfile('info/index.json'))
+        info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
         try:
             raw = t.extractfile('info/icon.png').read()
             info['_icondata'] = base64.b64encode(raw)
@@ -31,11 +33,11 @@ def write_repodata(repodata, dir_path):
     with open(join(dir_path, 'repodata.json'), 'w') as fo:
         fo.write(data)
     with open(join(dir_path, 'repodata.json.bz2'), 'wb') as fo:
-        fo.write(bz2.compress(data))
+        fo.write(bz2.compress(data.encode('utf-8')))
 
 def update_index(dir_path, verbose=False, force=False):
     if verbose:
-        print "updating index in:", dir_path
+        print("updating index in:", dir_path)
     index_path = join(dir_path, '.index.json')
     if force:
         index = {}
@@ -52,7 +54,7 @@ def update_index(dir_path, verbose=False, force=False):
         if fn in index and index[fn]['mtime'] == getmtime(path):
             continue
         if verbose:
-            print 'updating:', fn
+            print('updating:', fn)
         d = read_index_tar(path)
         d.update(file_info(path))
         index[fn] = d
@@ -60,7 +62,7 @@ def update_index(dir_path, verbose=False, force=False):
     # remove files from the index which are not on disk
     for fn in set(index) - files:
         if verbose:
-            print "removing:", fn
+            print("removing:", fn)
         del index[fn]
 
     with open(index_path, 'w') as fo:
@@ -83,7 +85,7 @@ def update_index(dir_path, verbose=False, force=False):
         icons_dir = join(dir_path, 'icons')
         if not isdir(icons_dir):
             os.mkdir(icons_dir)
-        for md5, raw in icons.iteritems():
+        for md5, raw in iteritems(icons):
             with open(join(icons_dir, '%s.png' % md5), 'wb') as fo:
                 fo.write(raw)
 
