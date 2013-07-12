@@ -102,8 +102,29 @@ def app_launch(fn, prefix=config.root_dir, additional_args=None):
     return launch(fn, prefix, additional_args)
 
 
-def app_uninstall(fn):
-    pass
+def app_uninstall(fn, prefix=config.root_dir):
+    """
+    Uninstall application `fn` (but not its dependencies).
+
+    Like `conda remove fn`.
+
+    """
+    import conda.cli.common as common
+    import conda.plan as plan
+
+    index = None
+    specs = [fn2spec(fn)]
+    if (plan.is_root_prefix(prefix) and
+        common.names_in_specs(common.root_no_rm, specs)):
+        raise ValueError("Cannot remove %s from the root environment" %
+            ', '.join(common.root_no_rm))
+
+    actions = plan.remove_actions(prefix, specs)
+
+    if plan.nothing_to_do(actions):
+        raise ValueError("Nothing to do")
+
+    plan.execute_actions(actions, index)
 
 
 if __name__ == '__main__':
