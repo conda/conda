@@ -20,6 +20,8 @@ from __future__ import print_function, division, absolute_import
 from os.path import join
 from os import rmdir, makedirs
 
+import errno
+
 from conda import config
 
 
@@ -31,7 +33,9 @@ def create_lock(path, name):
     # Note, we do this instead of os.path.exists to avoid race conditions
     try:
         makedirs(join(path, name))
-    except OSError:
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise RuntimeError("LOCKERROR: Could not create the lockfile: %s" % e.strerror)
         return False
     return True
 
