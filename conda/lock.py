@@ -35,7 +35,8 @@ def create_lock(path, name):
         makedirs(join(path, name))
     except OSError as e:
         if e.errno != errno.EEXIST:
-            raise RuntimeError("LOCKERROR: Could not create the lockfile: %s" % e.strerror)
+            raise RuntimeError("LOCKERROR: Could not create the lock %s: %s" %
+                (join(path, name), e.strerror))
         return False
     return True
 
