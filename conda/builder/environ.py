@@ -42,6 +42,7 @@ def get_dict():
         d['PATH'] = build_prefix + '/bin:/usr/local/bin:/bin:/usr/bin'
         d['HOME'] = os.getenv('HOME', 'UNKNOWN')
         d['LANG'] = 'en_US.UTF-8'
+        d['PKG_CONFIG_PATH'] = join(build_prefix, 'lib', 'pkgconfig')
 
     if sys.platform == 'darwin':         # -------- OSX
         d['OSX_ARCH'] = 'i386' if cc.bits == 32 else 'x86_64'

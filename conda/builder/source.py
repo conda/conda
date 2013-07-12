@@ -48,7 +48,7 @@ def unpack(meta):
     elif src_path.endswith('.zip'):
         unzip(src_path, WORK_DIR)
     else:
-        raise Exception("not a vaild source")
+        raise Exception("not a valid source")
 
 
 def git_source(meta):
