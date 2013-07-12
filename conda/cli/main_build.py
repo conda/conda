@@ -66,10 +66,10 @@ def execute(args, parser):
             print('Source tree in:', source.get_dir())
         else:
             build.build(m)
-        
+
         if need_cleanup:
             shutil.rmtree(recipe_dir)
-            
+
         print("""\
 # If you want to upload this package to binstar.org, type:
 #

@@ -14,7 +14,7 @@ PREFIX = os.path.dirname(os.path.abspath(conda.__file__))
 
 
 class TestImportAllConda(unittest.TestCase):
-    
+
     def _test_import(self, subpackage):
         # Prepare
         prefix = PREFIX
@@ -22,10 +22,10 @@ class TestImportAllConda(unittest.TestCase):
         if subpackage:
             prefix = os.path.join(prefix, subpackage)
             module_prefix = '%s.%s' % (module_prefix, subpackage)
-        
+
         # Try importing root
         __import__(module_prefix)
-        
+
         # Import each module in given (sub)package
         for fname in os.listdir(prefix):
             # Discard files that are not of interest
@@ -39,17 +39,17 @@ class TestImportAllConda(unittest.TestCase):
             modname = module_prefix + '.' + fname.split('.')[0]
             __import__(modname)
             print('imported', modname)
-    
-    
+
+
     def test_import_root(self):
         self._test_import('')
 
     def test_import_cli(self):
         self._test_import('cli')
-    
+
     def test_import_builder(self):
         self._test_import('builder')
-    
+
     def test_import_progressbar(self):
         self._test_import('progressbar')
 
