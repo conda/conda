@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 import json
@@ -10,16 +12,16 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.install import prefix_placeholder
 
-import config
+from conda.builder import config
 from conda.fetch import fetch_index
-import environ
-import source
-import tarcheck
-from scripts import create_entry_points, bin_dirname
-from post import post_process, post_build, is_obj, fix_permissions
-from utils import rm_rf, url_path, _check_call
-from index import update_index
-from create_test import create_files
+from conda.builder import environ
+from conda.builder import source
+from conda.builder import tarcheck
+from conda.builder.scripts import create_entry_points, bin_dirname
+from conda.builder.post import post_process, post_build, is_obj, fix_permissions
+from conda.builder.utils import rm_rf, url_path, _check_call
+from conda.builder.index import update_index
+from conda.builder.create_test import create_files
 
 
 prefix = config.build_prefix
@@ -53,8 +55,11 @@ def have_prefix_files(files):
             continue
         if is_obj(path):
             continue
-        with open(path) as fi:
-            data = fi.read()
+        try:
+            with open(path) as fi:
+                data = fi.read()
+        except UnicodeDecodeError:
+            continue
         if prefix_placeholder in data:
             yield f
 
@@ -124,15 +129,15 @@ def build(m, get_src=True):
     rm_rf(prefix)
     create_env(prefix, [ms.spec for ms in m.ms_depends('build')])
 
-    print "BUILD START:", m.dist()
+    print("BUILD START:", m.dist())
 
     if get_src:
         source.provide(m.path, m.get_section('source'))
     assert isdir(source.WORK_DIR)
     if os.listdir(source.get_dir()):
-        print "source tree in:", source.get_dir()
+        print("source tree in:", source.get_dir())
     else:
-        print "no source"
+        print("no source")
 
     rm_rf(info_dir)
     files1 = prefix_files()
@@ -164,7 +169,7 @@ def build(m, get_src=True):
         t.add(join(prefix, f), f)
     t.close()
 
-    print "BUILD END:", m.dist()
+    print("BUILD END:", m.dist())
 
     # we're done building, perform some checks
     tarcheck.check_all(path)
@@ -179,10 +184,10 @@ def test(m):
     rm_rf(tmp_dir)
     os.makedirs(tmp_dir)
     if not create_files(tmp_dir, m):
-        print "Nothing to test for:", m.dist()
+        print("Nothing to test for:", m.dist())
         return
 
-    print "TEST START:", m.dist()
+    print("TEST START:", m.dist())
     rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
@@ -206,4 +211,4 @@ def test(m):
     _check_call([config.test_python, join(tmp_dir, 'run_test.py')],
                 env=env, cwd=tmp_dir)
 
-    print "TEST END:", m.dist()
+    print("TEST END:", m.dist())

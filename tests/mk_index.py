@@ -17,7 +17,7 @@ for info in index.itervalues():
         except KeyError:
             pass
 
-print len(index)
+print(len(index))
 
 data = json.dumps(index, indent=2, sort_keys=True)
 data = '\n'.join(line.rstrip() for line in data.split('\n'))

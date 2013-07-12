@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import re
 import os
 import sys
@@ -8,17 +10,17 @@ from os.path import basename, islink, join, splitext
 
 from conda.install import prefix_placeholder
 
-from config import build_prefix, build_python, PY3K
-from source import WORK_DIR
-import external
-import environ
-import utils
+from conda.builder.config import build_prefix, build_python, PY3K
+from conda.builder.source import WORK_DIR
+from conda.builder import external
+from conda.builder import environ
+from conda.builder import utils
 
 
 if sys.platform == 'linux2':
-    import elf
+    from conda.builder import elf
 elif sys.platform == 'darwin':
-    import macho
+    from conda.builder import macho
 
 
 
@@ -46,10 +48,10 @@ def fix_shebang(f, osx_is_app=False):
     new_data = shebang_pat.sub('#!' + py_exec, data, count=1)
     if new_data == data:
         return
-    print "updating shebang:", f
+    print("updating shebang:", f)
     with open(path, 'w') as fo:
         fo.write(new_data)
-    os.chmod(path, 0755)
+    os.chmod(path, int('755', 8))
 
 
 def rm_egg_dirs():
@@ -57,7 +59,7 @@ def rm_egg_dirs():
     sp_dir = environ.sp_dir
     egg_dirs = glob(join(sp_dir, '*-py*.egg'))
     for egg_dir in egg_dirs:
-        print 'moving egg dir:', egg_dir
+        print('moving egg dir:', egg_dir)
         try:
             os.rename(join(egg_dir, 'EGG-INFO/PKG-INFO'), egg_dir + '-info')
         except OSError:
@@ -87,7 +89,7 @@ def compile_missing_pyc():
             if fn.endswith('.py') and fn + 'c' not in files:
                 need_compile = True
     if need_compile:
-        print 'compiling .pyc files...'
+        print('compiling .pyc files...')
         check_call([build_python, '-Wi', join(environ.stdlib_dir,
                                               'compileall.py'),
                     '-q', '-x', 'port_v3', sp_dir])
@@ -122,7 +124,7 @@ def mk_relative_osx(path):
         names = macho.otool(path)
         if names:
             args = ['install_name_tool', '-id', basename(names[0]), path]
-            print ' '.join(args)
+            print(' '.join(args))
             check_call(args)
 
     for name in macho.otool(path):
@@ -151,16 +153,17 @@ Error:
         mk_relative_osx(path)
 
 
+# I wonder whether this works on py3k ...
 bi_pat = re.compile(WORK_DIR)
 def replace_bi_path(path):
     if islink(path):
         return
     with open(path, 'r+b') as f:
-        data = f.read()
+        data = f.read().decode('utf-8', 'ignore')
         matches = list(bi_pat.finditer(data))
         if not matches:
             return
-        print "Replacing build and install path in:", path
+        print("Replacing build and install path in:", path)
         for m in matches:
             s = m.group(0)
             if s == WORK_DIR:
@@ -174,13 +177,13 @@ def replace_bi_path(path):
             assert len(r) == len(s)
             assert m.start() + len(r) == m.end()
             f.seek(m.start())
-            f.write(r)
+            f.write(r.encode('utf-8'))
 
 
 def fix_permissions():
     for root, dirs, files in os.walk(build_prefix):
         for dn in dirs:
-            os.chmod(join(root, dn), 0775)
+            os.chmod(join(root, dn), int('755', 8))
         for fn in files:
             p = join(root, fn)
             st = os.stat(p)
@@ -188,7 +191,7 @@ def fix_permissions():
 
 
 def post_build(files):
-    print 'number of files:', len(files)
+    print('number of files:', len(files))
     fix_permissions()
     for f in files:
         if sys.platform != 'win32':

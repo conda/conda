@@ -1,11 +1,13 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
-from config import croot
-from utils import download, md5_file, rm_rf, tar_xf, unzip
-import external
+from conda.builder.config import croot
+from conda.builder.utils import download, md5_file, rm_rf, tar_xf, unzip
+from conda.builder import external
 
 
 SRC_CACHE = join(croot, 'src_cache')
@@ -70,7 +72,7 @@ def git_source(meta):
 
     # now clone into the work directory
     checkout = meta.get('git_tag') or meta.get('git_branch') or 'master'
-    print 'checkout: %r' % checkout
+    print('checkout: %r' % checkout)
 
     check_call(['git', 'clone', cache_repo_arg, WORK_DIR])
     check_call(['git', 'checkout', checkout], cwd=WORK_DIR)
@@ -102,7 +104,7 @@ def git_info(fo=sys.stdout):
 
 
 def apply_patch(src_dir, path):
-    print 'Applying patch: %r' % path
+    print('Applying patch: %r' % path)
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
 
@@ -139,8 +141,8 @@ def provide(recipe_dir, meta, patch=True):
 
 
 if __name__ == '__main__':
-    print provide('.', dict(
+    print( provide('.', dict(
         url = 'http://pypi.python.org/packages/source/b/bitarray/bitarray-0.8.0.tar.gz',
         git_url = 'git@github.com:ilanschnell/bitarray.git',
         git_tag = '0.5.2',
-    ))
+    )) )

@@ -1,11 +1,13 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 from os.path import dirname, isdir, join
 
-import config
-import install
-from naming import fn2spec
-from fetch import fetch_index
-
+from conda import config
+from conda import install
+from conda.naming import fn2spec
+from conda.fetch import fetch_index
+from conda.compat import iteritems
 
 
 def get_index(channel_urls=(), prepend=True):
@@ -25,7 +27,7 @@ def app_get_index():
     return the index of available applications on the channels
     """
     index = get_index()
-    return {fn: info for fn, info in index.iteritems()
+    return {fn: info for fn, info in iteritems(index)
             if info.get('type') == 'app'}
 
 
@@ -107,6 +109,6 @@ def app_uninstall(fn):
 if __name__ == '__main__':
     from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
-    #print app_install('twisted-12.3.0-py27_0.tar.bz2')
+    #print(app_install('twisted-12.3.0-py27_0.tar.bz2'))
     #pprint(get_index())
-    print app_get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2')
+    print(app_get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2'))

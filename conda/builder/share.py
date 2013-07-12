@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import re
 import json
@@ -12,7 +14,7 @@ from conda.resolve import MatchSpec
 import conda.install as install
 import conda.plan as plan
 
-from packup import untracked, create_conda_pkg
+from conda.builder.packup import untracked, create_conda_pkg
 
 
 def get_requires(prefix):
@@ -27,7 +29,7 @@ def get_requires(prefix):
 
 def update_info(info):
     h = hashlib.new('sha1')
-    print info
+    print(info)
     for spec in info['depends']:
         assert MatchSpec(spec).strictness == 3
         h.update(spec)
@@ -107,7 +109,7 @@ def clone_bundle(path, prefix):
 
 if __name__ == '__main__':
     #path, warnings = create_bundle(config.root_dir)
-    #print warnings
+    #print(warnings)
     #os.system('tarinfo --si ' + path)
     path = ('/Users/ilan/src/'
             'share-fffeff0d78414137f40fff7065c1cfc77f0dd317-0.tar.bz2')

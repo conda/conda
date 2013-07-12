@@ -3,16 +3,19 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+
+from __future__ import print_function, division, absolute_import
+
 import sys
 
-import common
-import main_install
+from conda.cli import common
+from conda.cli import main_install
 
 descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
 
 
 def configure_parser(sub_parsers):
-    from common import add_parser_yes
+    from conda.cli.common import add_parser_yes
     p = sub_parsers.add_parser('pip', description=descr, help=descr)
 
     common.add_parser_prefix(p)
@@ -39,7 +42,7 @@ def execute(args, parser):
     r = Resolve(index)
     for pkg_request in args.packages:
         if pkg_request.lower() in r.groups:
-            print ("The package {package} is already available in conda. "
+            print( "The package {package} is already available in conda. "
                    "You can install it with 'conda install "
                    "{package_lower}'.").format(
                 package=pkg_request,

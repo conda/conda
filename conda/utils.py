@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import hashlib
 import collections
 from functools import partial
