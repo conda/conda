@@ -4,9 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from conda.cli import common
 
 
 help = "Remove a list of packages from a specified conda environment."
@@ -57,7 +59,7 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
-    import pscheck
+    from conda.cli import pscheck
 
     if not (args.all or args.package_names):
         sys.exit('Error: no package names supplied,\n'
@@ -96,11 +98,11 @@ def execute(args, parser):
         actions = plan.remove_actions(prefix, specs)
 
     if plan.nothing_to_do(actions):
-        print 'No packages found to remove from environment: %s' % prefix
+        print('No packages found to remove from environment: %s' % prefix)
         return
 
-    print
-    print "Package plan for package removal in environment %s:" % prefix
+    print()
+    print("Package plan for package removal in environment %s:" % prefix)
     plan.display_actions(actions)
 
     if not pscheck.main(args):

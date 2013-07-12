@@ -7,17 +7,20 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
+
+from __future__ import print_function, division, absolute_import
+
 from logging import getLogger
 
 from collections import defaultdict
 from os.path import abspath, isfile, join
 
-import config
-import install
-from naming import name_dist
-from utils import md5_file, human_bytes
-from fetch import fetch_pkg
-from resolve import MatchSpec, Resolve
+from conda import config
+from conda import install
+from conda.naming import name_dist
+from conda.utils import md5_file, human_bytes
+from conda.fetch import fetch_pkg
+from conda.resolve import MatchSpec, Resolve
 
 log = getLogger(__name__)
 
@@ -37,26 +40,26 @@ PROGRESS = 'PROGRESS'
 
 def print_dists(dists, index=None):
     fmt = "    %-27s|%17s"
-    print fmt % ('package', 'build')
-    print fmt % ('-' * 27, '-' * 17)
+    print(fmt % ('package', 'build'))
+    print(fmt % ('-' * 27, '-' * 17))
     for dist in dists:
         line = fmt % tuple(dist.rsplit('-', 1))
         fn = dist + '.tar.bz2'
         if index and fn in index:
             line += '%15s' % human_bytes(index[fn]['size'])
-        print line
+        print(line)
 
 def display_actions(actions, index=None):
     if actions.get(FETCH):
-        print "\nThe following packages will be downloaded:\n"
+        print("\nThe following packages will be downloaded:\n")
         print_dists(actions[FETCH], index)
     if actions.get(UNLINK):
-        print "\nThe following packages will be UN-linked:\n"
+        print("\nThe following packages will be UN-linked:\n")
         print_dists(actions[UNLINK])
     if actions.get(LINK):
-        print "\nThe following packages will be linked:\n"
+        print("\nThe following packages will be linked:\n")
         print_dists(actions[LINK])
-    print
+    print()
 
 
 # the order matters here, don't change it
@@ -186,11 +189,17 @@ def add_defaults_to_specs(r, linked, specs):
 def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
-
-    if is_root_prefix(prefix):
+    
+    # Here is a temporary fix to prevent adding conda to the specs;
+    # Bootstrapping problem: conda is not available as a conda package for 
+    # py3k yet.
+    import sys
+    PY3 = sys.version_info[0] == 3
+    
+    if is_root_prefix(prefix) and not PY3:
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
-
+    
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked]):
         dist = fn[:-8]
@@ -199,7 +208,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
             continue
         must_have[name] = dist
 
-    if is_root_prefix(prefix):
+    if is_root_prefix(prefix) and not PY3:
         if not force:
             # ensure conda is in root environment
             assert 'conda' in must_have
@@ -280,7 +289,7 @@ def cmds_from_plan(plan):
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
-        from console import setup_handlers
+        from conda.console import setup_handlers
         setup_handlers()
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])

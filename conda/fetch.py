@@ -4,6 +4,8 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 import os
 import bz2
 import json
@@ -11,10 +13,10 @@ import hashlib
 from logging import getLogger
 from os.path import join
 
-import config
-from utils import memoized
-from connection_handling import connectionhandled_urlopen
-
+from conda import config
+from conda.utils import memoized
+from conda.connection_handling import connectionhandled_urlopen
+from conda.compat import itervalues
 
 log = getLogger(__name__)
 
@@ -33,7 +35,7 @@ def fetch_repodata(url):
                 data = fi.read()
                 fi.close()
                 if fn.endswith('.bz2'):
-                    data = bz2.decompress(data)
+                    data = bz2.decompress(data).decode('utf-8')
                 return json.loads(data)
 
             except IOError:
@@ -48,7 +50,7 @@ def fetch_index(channel_urls):
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url)
         new_index = repodata['packages']
-        for info in new_index.itervalues():
+        for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
     return index

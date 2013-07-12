@@ -1,4 +1,6 @@
-import common
+from __future__ import print_function, division, absolute_import
+
+from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -32,5 +34,5 @@ def execute(args, parser):
         json.dump(d, sys.stdout, indent=2, sort_keys=True)
     else:
         for w in warnings:
-            print "Warning:", w
-        print path
+            print("Warning:", w)
+        print(path)

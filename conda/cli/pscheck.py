@@ -1,7 +1,9 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 
-import conda_argparse
+from conda.cli import conda_argparse
 from conda.config import root_dir
 from conda.cli.common import confirm, add_parser_yes
 
@@ -48,7 +50,7 @@ def check_processes():
         try:
             if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
                 processcmd = ' '.join(p.cmdline)
-                print "WARNING: the process %s (%d) is running" % (processcmd, n)
+                print("WARNING: the process %s (%d) is running" % (processcmd, n))
                 ok = False
         except (psutil._error.AccessDenied, WindowsError):
             pass
