@@ -118,7 +118,7 @@ def hg_source(meta):
 
     # now clone in to work directory
     update = meta.get('hg_tag') or 'tip'
-    print 'checkout: %r' % update
+    print('checkout: %r' % update)
 
     check_call(['hg', 'clone', cache_repo, WORK_DIR])
     check_call(['hg', 'update', '-C', update], cwd=WORK_DIR)
