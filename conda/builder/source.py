@@ -10,6 +10,7 @@ import external
 
 SRC_CACHE = join(croot, 'src_cache')
 GIT_CACHE = join(croot, 'git_cache')
+HG_CACHE = join(croot, 'hg_cache')
 WORK_DIR = join(croot, 'work')
 
 
@@ -101,6 +102,27 @@ def git_info(fo=sys.stdout):
         fo.write(stdout + '\n')
 
 
+def hg_source(meta):
+    hg_url = meta['hg_url']
+    if not isdir(HG_CACHE):
+        os.makedirs(HG_CACHE)
+    hg_dn = hg_url.split(':')[-1].replace('/', '_')
+    cache_repo = join(HG_CACHE, hg_dn)
+    if isdir(cache_repo):
+        check_call(['hg', 'pull'], cwd=cache_repo)
+    else:
+        check_call(['hg', 'clone', hg_url, cache_repo])
+        assert isdir(cache_repo)
+
+    # now clone in to work directory
+    update = meta.get('hg_tag') or 'tip'
+    print 'checkout: %r' % update
+
+    check_call(['hg', 'clone', cache_repo, WORK_DIR])
+    check_call(['hg', 'update', '-C', update], cwd=WORK_DIR)
+    return WORK_DIR
+
+
 def apply_patch(src_dir, path):
     print 'Applying patch: %r' % path
     if not isfile(path):
@@ -129,6 +151,8 @@ def provide(recipe_dir, meta, patch=True):
         unpack(meta)
     elif 'git_url' in meta:
         git_source(meta)
+    elif 'hg_url' in meta:
+        hg_source(meta)
     else: # no source
         os.makedirs(WORK_DIR)
 
