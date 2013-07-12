@@ -9,6 +9,7 @@ import hashlib
 import tarfile
 import tempfile
 from os.path import abspath, basename, dirname, isfile, islink, join
+from os import listdir
 
 import conda.config as config
 import conda.install as install
@@ -66,6 +67,11 @@ def walk_prefix(prefix):
                 path = join(root, dn)
                 if islink(path):
                     res.add(rel_path(prefix, path))
+                elif not listdir(path):
+                    res.add(join(prefix, path))
+            if not dirs and not files:
+                # Empty directories
+                res.add(root)
     return res
 
 
