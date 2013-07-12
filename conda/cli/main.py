@@ -125,7 +125,7 @@ following traceback to the conda GitHub issue tracker at:
 
     https://github.com/ContinuumIO/conda/issues"
 
-""")    
+""")
         raise  # as if we did not catch it
 
 # The above raise was:

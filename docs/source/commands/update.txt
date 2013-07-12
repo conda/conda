@@ -3,7 +3,7 @@ Update conda packages.
 **usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [-q] [-c CHANNEL] [--override-channels] package_name [package_name ...]``
 
 *package_name*
-	names of packages to update
+        names of packages to update
 
 optional arguments:
   -h, --help            show this help message and exit

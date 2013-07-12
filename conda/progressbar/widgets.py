@@ -121,7 +121,7 @@ class ETA(Timer):
 
 class FileTransferSpeed(Widget):
     'Widget for showing the transfer speed (useful for file transfers).'
-    
+
     prefixes = ' kMGTPEZY'
     __slots__ = ('unit', 'format')
 
