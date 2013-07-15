@@ -3,9 +3,9 @@ For compatibility between Python versions.
 Taken mostly from six.py by Benjamin Peterson.
 """
 
-import operator
 import sys
 import types
+
 
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3
