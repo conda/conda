@@ -39,7 +39,16 @@ import traceback
 import logging
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
-from conda.lock import Locked
+try:
+    from conda.lock import Locked
+except ImportError:
+    # Make sure this still works as a standalone script for the Anaconda
+    # installer.
+    class Locked(object):
+        def __enter__(self):
+            pass
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
 
 on_win = bool(sys.platform == 'win32')
 
