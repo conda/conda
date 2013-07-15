@@ -27,6 +27,7 @@ the standard library).
 
 from __future__ import print_function, division, absolute_import
 
+import contextlib
 import os
 import json
 import shutil
@@ -37,6 +38,8 @@ import tarfile
 import traceback
 import logging
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
+
+from conda.lock import Locked
 
 on_win = bool(sys.platform == 'win32')
 
@@ -181,8 +184,9 @@ def is_fetched(pkgs_dir, dist):
     return isfile(join(pkgs_dir, dist + '.tar.bz2'))
 
 def rm_fetched(pkgs_dir, dist):
-    path = join(pkgs_dir, dist + '.tar.bz2')
-    rm_rf(path)
+    with Locked(pkgs_dir):
+        path = join(pkgs_dir, dist + '.tar.bz2')
+        rm_rf(path)
 
 # ------- package cache ----- extracted
 
@@ -199,18 +203,20 @@ def extract(pkgs_dir, dist):
     Extarct a package, i.e. make a package available for linkage.  We assume
     that the compressed packages is located in the packages directory.
     """
-    path = join(pkgs_dir, dist)
-    t = tarfile.open(path + '.tar.bz2')
-    t.extractall(path=path)
-    t.close()
+    with Locked(pkgs_dir):
+        path = join(pkgs_dir, dist)
+        t = tarfile.open(path + '.tar.bz2')
+        t.extractall(path=path)
+        t.close()
 
 def is_extracted(pkgs_dir, dist):
     return (isfile(join(pkgs_dir, dist, 'info', 'files')) and
             isfile(join(pkgs_dir, dist, 'info', 'index.json')))
 
 def rm_extracted(pkgs_dir, dist):
-    path = join(pkgs_dir, dist)
-    rm_rf(path)
+    with Locked(pkgs_dir):
+        path = join(pkgs_dir, dist)
+        rm_rf(path)
 
 # ------- linkage of packages
 
@@ -251,32 +257,34 @@ def link(pkgs_dir, prefix, dist):
     dist_dir = join(pkgs_dir, dist)
     info_dir = join(dist_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
-    for f in files:
-        src = join(dist_dir, f)
-        fdn, fbn = os.path.split(f)
-        dst_dir = join(prefix, fdn)
-        if not isdir(dst_dir):
-            os.makedirs(dst_dir)
-        dst = join(dst_dir, fbn)
-        if os.path.exists(dst):
-            log.warn("file already exists: %r" % dst)
+
+    with contextlib.nested(Locked(prefix), Locked(pkgs_dir)):
+        for f in files:
+            src = join(dist_dir, f)
+            fdn, fbn = os.path.split(f)
+            dst_dir = join(prefix, fdn)
+            if not isdir(dst_dir):
+                os.makedirs(dst_dir)
+            dst = join(dst_dir, fbn)
+            if os.path.exists(dst):
+                log.warn("file already exists: %r" % dst)
+                try:
+                    os.unlink(dst)
+                except OSError:
+                    log.error('failed to unlink: %r' % dst)
             try:
-                os.unlink(dst)
+                _link(src, dst)
             except OSError:
-                log.error('failed to unlink: %r' % dst)
-        try:
-            _link(src, dst)
-        except OSError:
-            log.error('failed to link (src=%r, dst=%r)' % (src, dst))
+                log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
-    has_prefix_path = join(info_dir, 'has_prefix')
-    if isfile(has_prefix_path):
-        for f in yield_lines(has_prefix_path):
-            update_prefix(join(prefix, f), prefix)
+        has_prefix_path = join(info_dir, 'has_prefix')
+        if isfile(has_prefix_path):
+            for f in yield_lines(has_prefix_path):
+                update_prefix(join(prefix, f), prefix)
 
-    create_meta(prefix, dist, info_dir, files)
-    mk_menus(prefix, files, remove=False)
-    post_link(prefix, dist)
+        create_meta(prefix, dist, info_dir, files)
+        mk_menus(prefix, files, remove=False)
+        post_link(prefix, dist)
 
 
 def unlink(prefix, dist):
@@ -289,36 +297,40 @@ def unlink(prefix, dist):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
         return
-    post_link(prefix, dist, unlink=True)
 
-    meta_path = join(prefix, 'conda-meta', dist + '.json')
-    with open(meta_path) as fi:
-        meta = json.load(fi)
+    with Locked(prefix):
+        post_link(prefix, dist, unlink=True)
 
-    mk_menus(prefix, meta['files'], remove=True)
-    dst_dirs1 = set()
-    for f in meta['files']:
-        dst = join(prefix, f)
-        dst_dirs1.add(dirname(dst))
-        try:
-            os.unlink(dst)
-        except OSError: # file might not exist
-            log.debug("could not remove file: '%s'" % dst)
+        meta_path = join(prefix, 'conda-meta', dist + '.json')
+        with open(meta_path) as fi:
+            meta = json.load(fi)
 
-    # remove the meta-file last
-    os.unlink(meta_path)
+        mk_menus(prefix, meta['files'], remove=True)
+        dst_dirs1 = set()
 
-    dst_dirs2 = set()
-    for path in dst_dirs1:
-        while len(path) > len(prefix):
-            dst_dirs2.add(path)
-            path = dirname(path)
-    # in case there is nothing left
-    dst_dirs2.add(join(prefix, 'conda-meta'))
-    dst_dirs2.add(prefix)
 
-    for path in sorted(dst_dirs2, key=len, reverse=True):
-        rm_empty_dir(path)
+        for f in meta['files']:
+            dst = join(prefix, f)
+            dst_dirs1.add(dirname(dst))
+            try:
+                os.unlink(dst)
+            except OSError: # file might not exist
+                log.debug("could not remove file: '%s'" % dst)
+
+        # remove the meta-file last
+        os.unlink(meta_path)
+
+        dst_dirs2 = set()
+        for path in dst_dirs1:
+            while len(path) > len(prefix):
+                dst_dirs2.add(path)
+                path = dirname(path)
+        # in case there is nothing left
+        dst_dirs2.add(join(prefix, 'conda-meta'))
+        dst_dirs2.add(prefix)
+
+        for path in sorted(dst_dirs2, key=len, reverse=True):
+            rm_empty_dir(path)
 
 
 # =========================== end API functions ==========================

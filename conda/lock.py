@@ -66,3 +66,9 @@ class Locked(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         remove_lock(self.path, self.name)
+        try:
+            # Remove the locked path if it is empty, since this means that it
+            # did not exist when we created the lock.
+            rmdir(self.path)
+        except OSError:
+            pass

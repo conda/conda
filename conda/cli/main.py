@@ -117,8 +117,7 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     try:
-        with Locked():
-            args.func(args, p)
+        args.func(args, p)
     except RuntimeError as e:
         sys.exit(filldedent("Error: %s" % e))
     except Exception as e:
