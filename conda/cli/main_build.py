@@ -41,36 +41,39 @@ def execute(args, parser):
     from os.path import abspath, isdir, isfile
 
     import conda.builder.build as build
+    from conda.builder.config import croot
     import conda.builder.source as source
     from conda.builder.metadata import MetaData
+    from conda.lock import Locked
 
-    for arg in args.recipe:
-        if isfile(arg):
-            recipe_dir = tempfile.mkdtemp()
-            t = tarfile.open(arg, 'r:*')
-            t.extractall(path=recipe_dir)
-            t.close()
-            need_cleanup = True
-        else:
-            recipe_dir = abspath(arg)
-            need_cleanup = False
+    with Locked(croot):
+        for arg in args.recipe:
+            if isfile(arg):
+                recipe_dir = tempfile.mkdtemp()
+                t = tarfile.open(arg, 'r:*')
+                t.extractall(path=recipe_dir)
+                t.close()
+                need_cleanup = True
+            else:
+                recipe_dir = abspath(arg)
+                need_cleanup = False
 
-        if not isdir(recipe_dir):
-            sys.exit("Error: no such directory: %s" % recipe_dir)
+            if not isdir(recipe_dir):
+                sys.exit("Error: no such directory: %s" % recipe_dir)
 
-        m = MetaData(recipe_dir)
-        if args.test:
-            build.test(m)
-        elif args.source:
-            source.provide(m.path, m.get_section('source'))
-            print('Source tree in:', source.get_dir())
-        else:
-            build.build(m)
+            m = MetaData(recipe_dir)
+            if args.test:
+                build.test(m)
+            elif args.source:
+                source.provide(m.path, m.get_section('source'))
+                print('Source tree in:', source.get_dir())
+            else:
+                build.build(m)
 
-        if need_cleanup:
-            shutil.rmtree(recipe_dir)
+            if need_cleanup:
+                shutil.rmtree(recipe_dir)
 
-        print("""\
+            print("""\
 # If you want to upload this package to binstar.org, type:
 #
 # $ binstar upload %s
