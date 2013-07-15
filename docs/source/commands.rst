@@ -20,7 +20,7 @@ Contents:
    commands/list
    commands/local
    commands/package
-   commands/pip
+   .. commands/pip
    commands/remove
    commands/search_
    commands/share

@@ -7,9 +7,9 @@ Below are a few examples using conda commands with a variety of optional argumen
 Contents:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 7
 
    examples/information
    examples/basic
    examples/advanced
-   examples/packaging
+   .. examples/packaging
