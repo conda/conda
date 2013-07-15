@@ -62,6 +62,10 @@ from conda.cli import main_skeleton
 
 from conda.lock import Locked
 
+# Borrowed from SymPy
+from textwrap import fill, dedent
+filldedent = lambda s, w=70: '\n' + fill(dedent(str(s)).strip('\n'), width=w)
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate', '..changeps1'):
         import conda.cli.activate as activate
@@ -116,7 +120,7 @@ def main():
         with Locked():
             args.func(args, p)
     except RuntimeError as e:
-        sys.exit("Error: %s" % e)
+        sys.exit(filldedent("Error: %s" % e))
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             print("""\
