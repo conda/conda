@@ -311,7 +311,7 @@ def link(pkgs_dir, prefix, dist):
 
 def unlink(prefix, dist):
     '''
-    Remove a package from the specified environment, it is an error of the
+    Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
