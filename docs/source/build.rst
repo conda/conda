@@ -49,7 +49,7 @@ The meta.yaml file
 
     package:
       name: bsdiff4     # lower case name of package, may contain '-' but no spaces
-      version: 1.1.4    # version of package
+      version: 1.1.4    # version of package. Should use the PEP-386 verlib conventions.
 
     source:
     # The source section specifies where the source code of the package is coming
