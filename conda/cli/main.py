@@ -60,8 +60,6 @@ from conda.cli import main_share
 from conda.cli import main_update
 from conda.cli import main_skeleton
 
-from conda.lock import Locked
-
 # Borrowed from SymPy
 from textwrap import fill, dedent
 filldedent = lambda s, w=70: '\n' + fill(dedent(str(s)).strip('\n'), width=w)
