@@ -54,14 +54,17 @@ def configure_parser(sub_parsers):
         nargs = 1,
         action = "append",
         help = "get the configuration value",
-        default = []
+        default = [],
+        metavar = ('KEY'),
         )
     action.add_argument(
         "--add",
         nargs = 2,
         action = "append",
-        help = "add one configuration value to a list key. The default is to prepend.",
-        default = []
+        help = """add one configuration value to a list key. The default
+        behavior is to prepend.""",
+        default = [],
+        metavar = ('KEY', 'VALUE'),
         )
     action.add_argument(
         "--set",
@@ -69,8 +72,8 @@ def configure_parser(sub_parsers):
         action = "append",
         help = "set a boolean key.",
         default = [],
+        metavar = ('KEY', 'BOOL_VALUE'),
         )
-    p.set_defaults(func=execute)
 
     p.add_argument(
         "-f", "--force",
@@ -78,6 +81,9 @@ def configure_parser(sub_parsers):
         help = """Write to the config file using the yaml parser.  This will
         remove any comments or structure from the file."""
         )
+
+    p.set_defaults(func=execute)
+
 
 def execute(args, parser):
     try:
