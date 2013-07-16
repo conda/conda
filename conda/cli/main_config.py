@@ -127,7 +127,12 @@ def execute(args, parser):
                 new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
                 added = True
         if not added:
-            raise NotImplementedError("Adding new keys is not yet implemented")
+            # TODO: Try to guess the correct amount of leading space for the
+            # key. Right now it is zero.
+
+            # TODO: Check somehow if the key is actually usable
+            new_rc_text += ['', '%s:' % key, '  - %s' % item]
+
 
     if args.add:
         # Verify that the new rc text parses to the same thing as if we had
