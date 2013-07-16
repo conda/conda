@@ -104,6 +104,8 @@ def execute(args, parser):
         new_rc_config.setdefault(key, []).insert(0, item)
 
     if args.force:
+        # Note, force will also remove any checking that the keys are in
+        # config.rc_keys
         with open(rc_path, 'w') as rc:
             rc.write(yaml.dump(new_rc_config))
         return
@@ -117,6 +119,9 @@ def execute(args, parser):
 
     new_rc_text = rc_text[:].split("\n")
     for key, item in args.add:
+        if key not in config.rc_keys:
+            raise ValueError("key must be one of %s, not %s" %
+                (config.rc_keys, key))
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = keyregexes[key].match(line)
@@ -129,8 +134,6 @@ def execute(args, parser):
         if not added:
             # TODO: Try to guess the correct amount of leading space for the
             # key. Right now it is zero.
-
-            # TODO: Check somehow if the key is actually usable
             new_rc_text += ['', '%s:' % key, '  - %s' % item]
 
 
