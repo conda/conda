@@ -98,9 +98,12 @@ def execute(args, parser):
     else:
         rc_path = config.user_rc_path
 
-    with open(rc_path, 'r') as rc:
+    # Create the file if it doesn't exist
+    with open(rc_path, 'r+') as rc:
         rc_text = rc.read()
     rc_config = yaml.load(rc_text)
+    if rc_config is None:
+        rc_config = {}
 
     # Get
     for key, in args.get:
