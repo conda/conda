@@ -48,6 +48,9 @@ def configure_parser(sub_parsers):
         help = "write to the given file",
         )
 
+    # XXX: Does this really have to be mutually exclusive. I think the below
+    # code will work even if it is a regular group (although combination of
+    # --add and --remove with the same keys will not be well-defined).
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
@@ -73,6 +76,23 @@ def configure_parser(sub_parsers):
         help = "set a boolean key.",
         default = [],
         metavar = ('KEY', 'BOOL_VALUE'),
+        )
+    action.add_argument(
+        "--remove",
+        nargs = 2,
+        action = "append",
+        help = """remove a configuration value from a list key. This removes
+    all instances of the value""",
+        default = [],
+        metavar = ('KEY', 'VALUE'),
+        )
+    action.add_argument(
+        "--remove-key",
+        nargs = 1,
+        action = "append",
+        help = """remove a configuration key (and all its values)""",
+        default = [],
+        metavar = "KEY",
         )
 
     p.add_argument(
@@ -121,7 +141,6 @@ def execute(args, parser):
                 # Use repr so that it can be pasted back in to conda config --add
                 print "--add", key, repr(item)
 
-    # Add
 
     # PyYaml does not support round tripping, so if we use yaml.dump, it
     # will clear all comments and structure from the configuration file.
@@ -130,17 +149,34 @@ def execute(args, parser):
     # the end to see if we did it right.
 
     # First, do it the pyyaml way
-
     new_rc_config = rc_config.copy()
+
+    # Add
     for key, item in args.add:
         new_rc_config.setdefault(key, []).insert(0, item)
 
+    # Set
     for key, item in args.set:
         yamlitem = yaml.load(item)
         if not isinstance(yamlitem, bool):
             raise RuntimeError("%s is not a boolean" % item)
 
         new_rc_config[key] = yamlitem
+
+    # Remove
+    for key, item in args.remove:
+        if key not in new_rc_config:
+            raise RuntimeError("key %s is not in the config file" % repr(key))
+        if item not in new_rc_config[key]:
+            raise RuntimeError("%s is not in the %s key of the config file" %
+                (repr(item), repr(key)))
+        new_rc_config[key] = [i for i in new_rc_config[key] if i != item]
+
+    # Remove Key
+    for key, in args.remove_key:
+        if key not in new_rc_config:
+            raise RuntimeError("key %s is not in the config file" % key)
+        del new_rc_config[key]
 
     if args.force:
         # Note, force will also remove any checking that the keys are in
@@ -200,6 +236,14 @@ def execute(args, parser):
                 raise CouldntParse("existing bool key couldn't be found")
             new_rc_text += ['%s: %s' % (key, item)]
 
+    for key, item in args.remove:
+        raise NotImplementedError("--remove without --force is not implemented "
+            "yet")
+
+    for key, in args.remove_key:
+        raise NotImplementedError("--remove-key without --force is not "
+            "implemented yet")
+
     if args.add or args.set:
         # Verify that the new rc text parses to the same thing as if we had
         # used yaml.
@@ -212,7 +256,6 @@ def execute(args, parser):
                 print parsed_new_rc_text
                 print new_rc_config
                 raise CouldntParse("modified yaml doesn't match what it should be")
-
 
 
     if args.add or args.set:
