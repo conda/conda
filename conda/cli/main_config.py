@@ -143,7 +143,7 @@ def execute(args, parser):
                 raise CouldntParse("existing list key couldn't be found")
             # TODO: Try to guess the correct amount of leading space for the
             # key. Right now it is zero.
-            new_rc_text += ['', '%s:' % key, '  - %s' % item]
+            new_rc_text += ['%s:' % key, '  - %s' % item]
 
 
     if args.add:
