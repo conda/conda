@@ -63,7 +63,7 @@ from conda.cli import main_config
 
 # Borrowed from SymPy
 from textwrap import fill, dedent
-filldedent = lambda s, w=70: '\n' + fill(dedent(str(s)).strip('\n'), width=w)
+filldedent = lambda s, w=70: fill(dedent(str(s)).strip('\n'), width=w)
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate', '..changeps1'):
