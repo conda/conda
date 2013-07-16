@@ -86,7 +86,7 @@ def execute(args, parser):
     # Get
     for key, in args.get:
         for item in rc_config.get(key, []):
-            # Use repr so that it can be pasted back in
+            # Use repr so that it can be pasted back in to conda config --add
             print key, repr(item)
 
     # Add
