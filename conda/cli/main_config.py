@@ -98,6 +98,8 @@ def execute(args, parser):
 
     # Get
     for key, in args.get:
+        if key not in config.rc_list_keys + config.rc_bool_keys:
+            print "%s is not a valid key" % key
         if key not in rc_config:
             continue
         if isinstance(rc_config[key], bool):
