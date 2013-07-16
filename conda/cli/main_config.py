@@ -105,7 +105,10 @@ def execute(args, parser):
         if isinstance(rc_config[key], bool):
             print "--set", key, rc_config[key]
         else:
-            for item in rc_config.get(key, []):
+            # Note, since conda config --add prepends, these are printed in
+            # the reverse order so that entering them in this order will
+            # recreate the same file
+            for item in reversed(rc_config.get(key, [])):
                 # Use repr so that it can be pasted back in to conda config --add
                 print "--add", key, repr(item)
 
