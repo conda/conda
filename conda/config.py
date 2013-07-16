@@ -51,6 +51,13 @@ else:
 
 # ----- rc file -----
 
+# This is used by conda config to check which keys are allowed in the config
+# file. Be sure to update it when new keys are added.
+rc_keys = [
+    'channels',
+    'changeps1',
+    ]
+
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 def get_rc_path():
