@@ -19,6 +19,12 @@ examples:
     conda config --add channels foo
 """
 
+class CouldntParse(NotImplementedError):
+    def __init__(self, reason):
+        self.args = ["""Could not parse the yaml file. Use -f to use the
+yaml parser (this will remove any structure or comments from the existing
+.condarc file). Reason: %s""" % reason]
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
@@ -132,6 +138,9 @@ def execute(args, parser):
                 new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
                 added = True
         if not added:
+            if key in rc_config:
+                # We should have found it above
+                raise CouldntParse("existing list key couldn't be found")
             # TODO: Try to guess the correct amount of leading space for the
             # key. Right now it is zero.
             new_rc_text += ['', '%s:' % key, '  - %s' % item]
@@ -142,16 +151,12 @@ def execute(args, parser):
         # used yaml.
         try:
             parsed_new_rc_text = yaml.load('\n'.join(new_rc_text))
-            parsed = True
         except yaml.parser.ParserError:
-            parsed = False
+            raise CouldntParse("couldn't parse modified yaml")
         else:
-            parsed = parsed_new_rc_text == new_rc_config
+            if not parsed_new_rc_text == new_rc_config:
+                raise CouldntParse("modified yaml doesn't match what it should be")
 
-        if not parsed:
-            raise NotImplementedError("Could not parse the yaml file. Use -f "
-            "to use the yaml parser (this will remove any structure or "
-            "comments from the existing .condarc file)")
 
 
     if args.add:
