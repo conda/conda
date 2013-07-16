@@ -53,8 +53,10 @@ else:
 
 # This is used by conda config to check which keys are allowed in the config
 # file. Be sure to update it when new keys are added.
-rc_keys = [
+rc_list_keys = [
     'channels',
+    ]
+rc_bool_keys = [
     'changeps1',
     ]
 

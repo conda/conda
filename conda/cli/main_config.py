@@ -60,8 +60,15 @@ def configure_parser(sub_parsers):
         "--add",
         nargs = 2,
         action = "append",
-        help = "add one configuration value. The default is to prepend.",
+        help = "add one configuration value to a list key. The default is to prepend.",
         default = []
+        )
+    action.add_argument(
+        "--set",
+        nargs = 2,
+        action = "append",
+        help = "set a boolean key.",
+        default = [],
         )
     p.set_defaults(func=execute)
 
@@ -91,9 +98,14 @@ def execute(args, parser):
 
     # Get
     for key, in args.get:
-        for item in rc_config.get(key, []):
-            # Use repr so that it can be pasted back in to conda config --add
-            print key, repr(item)
+        if key not in rc_config:
+            continue
+        if isinstance(rc_config[key], bool):
+            print "--set", key, rc_config[key]
+        else:
+            for item in rc_config.get(key, []):
+                # Use repr so that it can be pasted back in to conda config --add
+                print "--add", key, repr(item)
 
     # Add
 
@@ -109,6 +121,13 @@ def execute(args, parser):
     for key, item in args.add:
         new_rc_config.setdefault(key, []).insert(0, item)
 
+    for key, item in args.set:
+        yamlitem = yaml.load(item)
+        if not isinstance(yamlitem, bool):
+            raise RuntimeError("%s is not a boolean" % item)
+
+        new_rc_config[key] = yamlitem
+
     if args.force:
         # Note, force will also remove any checking that the keys are in
         # config.rc_keys
@@ -119,18 +138,21 @@ def execute(args, parser):
     # Now, try to parse the condarc file.
 
     # Just support "   key:  " for now
-    keyregexes = {key:re.compile(r"( *)%s *" % key)
+    listkeyregexes = {key:re.compile(r"( *)%s *" % key)
         for key in dict(args.add)
+        }
+    setkeyregexes = {key:re.compile(r"( *)%s( *):( *)" % key)
+        for key in dict(args.set)
         }
 
     new_rc_text = rc_text[:].split("\n")
     for key, item in args.add:
-        if key not in config.rc_keys:
-            raise ValueError("key must be one of %s, not %s" %
-                (config.rc_keys, key))
+        if key not in config.rc_list_keys:
+            raise RuntimeError("key must be one of %s, not %s" %
+                (config.rc_list_keys, key))
         added = False
         for pos, line in enumerate(new_rc_text[:]):
-            matched = keyregexes[key].match(line)
+            matched = listkeyregexes[key].match(line)
             if matched:
                 leading_space = matched.group(1)
                 # TODO: Try to guess how much farther to indent the
@@ -145,8 +167,26 @@ def execute(args, parser):
             # key. Right now it is zero.
             new_rc_text += ['%s:' % key, '  - %s' % item]
 
+    for key, item in args.set:
+        if key not in config.rc_bool_keys:
+            raise RuntimeError("key must be one of %s, not %s" %
+                (config.rc_bool_keys, key))
+        added = False
+        for pos, line in enumerate(new_rc_text[:]):
+            matched = setkeyregexes[key].match(line)
+            if matched:
+                leading_space = matched.group(1)
+                precol_space = matched.group(2)
+                postcol_space = matched.group(3)
+                new_rc_text[pos] = '%s%s%s:%s%s' % (leading_space, key,
+                    precol_space, postcol_space, item)
+                added = True
+        if not added:
+            if key in rc_config:
+                raise CouldntParse("existing bool key couldn't be found")
+            new_rc_text += ['%s: %s' % (key, item)]
 
-    if args.add:
+    if args.add or args.set:
         # Verify that the new rc text parses to the same thing as if we had
         # used yaml.
         try:
@@ -155,10 +195,12 @@ def execute(args, parser):
             raise CouldntParse("couldn't parse modified yaml")
         else:
             if not parsed_new_rc_text == new_rc_config:
+                print parsed_new_rc_text
+                print new_rc_config
                 raise CouldntParse("modified yaml doesn't match what it should be")
 
 
 
-    if args.add:
+    if args.add or args.set:
         with open(rc_path, 'w') as rc:
             rc.write('\n'.join(new_rc_text))
