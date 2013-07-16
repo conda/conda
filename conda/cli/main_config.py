@@ -6,7 +6,6 @@
 import re
 from argparse import RawDescriptionHelpFormatter
 
-import common
 import conda.config as config
 
 descr = """
@@ -128,7 +127,7 @@ def execute(args, parser):
                 new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
                 added = True
         if not added:
-            raise NotImplementedError("Adding new keys")
+            raise NotImplementedError("Adding new keys is not yet implemented")
 
     if args.add:
         # Verify that the new rc text parses to the same thing as if we had
