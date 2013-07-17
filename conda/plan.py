@@ -299,7 +299,9 @@ def execute_plan(plan, index=None, verbose=False):
     cmds = cmds_from_plan(plan)
     for j, (cmd, arg) in enumerate(cmds):
         if should_do_win_subprocess(cmd, arg, prefix):
-            print("cannot install")
+            with open(join(prefix, "remainder.plan"), 'w') as f:
+                f.writelines(plan[i:])
+
         if i is not None and cmd in progress_cmds:
             i += 1
             getLogger('progress.update').info((name_dist(arg), i))
