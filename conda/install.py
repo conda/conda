@@ -274,6 +274,8 @@ def link(pkgs_dir, prefix, dist):
               dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
+        print("Cannot update %s on Windows in the root environment" %
+            dist.rsplit('-', 2)[0])
         return
 
     dist_dir = join(pkgs_dir, dist)
@@ -318,6 +320,8 @@ def unlink(prefix, dist):
               dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
+        print("Cannot update %s on Windows in the root environment" %
+            dist.rsplit('-', 2)[0])
         return
 
     with Locked(prefix):
