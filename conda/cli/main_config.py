@@ -54,10 +54,10 @@ def configure_parser(sub_parsers):
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
-        nargs = 1,
-        action = "append",
+        nargs = '*',
+        action = "store",
         help = "get the configuration value",
-        default = [],
+        default = None,
         metavar = ('KEY'),
         )
     action.add_argument(
@@ -126,7 +126,9 @@ def execute(args, parser):
         rc_config = {}
 
     # Get
-    for key, in args.get:
+    if args.get == []:
+        args.get = config.rc_list_keys + config.rc_bool_keys
+    for key in args.get:
         if key not in config.rc_list_keys + config.rc_bool_keys:
             print "%s is not a valid key" % key
         if key not in rc_config:
