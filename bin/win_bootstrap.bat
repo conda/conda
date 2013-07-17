@@ -35,4 +35,4 @@
 
 :: @echo off
 
-FOR /F %%i "%1" DO @echo %%i
+FOR /F "tokens=1,2 delims=," %%i ("%1") DO @echo %%i %%j
