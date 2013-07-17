@@ -300,7 +300,7 @@ def execute_plan(plan, index=None, verbose=False):
     for j, (cmd, arg) in enumerate(cmds):
         if should_do_win_subprocess(cmd, arg, prefix):
             with open(join(prefix, "remainder.plan"), 'w') as f:
-                f.writelines(plan[i:])
+                f.write('\n'.join(plan[i:]))
 
         if i is not None and cmd in progress_cmds:
             i += 1
