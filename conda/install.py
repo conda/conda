@@ -296,7 +296,7 @@ def link(pkgs_dir, prefix, dist):
                     log.error('failed to unlink: %r' % dst)
             try:
                 _link(src, dst)
-            except OSError:
+            except (OSError, IOError):
                 log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
         has_prefix_path = join(info_dir, 'has_prefix')
