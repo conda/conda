@@ -32,7 +32,8 @@
 :: Vista or later)
 :: - On older systems, like Windows XP, `fsutil.exe hardlink create` creates
 :: hard links.
+:: - In either case, the order of the arguments is backwards, dest source
 
 :: @echo off
 
-FOR /F "tokens=1,2 delims=|" %%i in (%1) DO @echo %%i %%j
+FOR /F "tokens=1,2 delims=|" %%i in (%1) DO mklink /H %%j %%i || fsutil.exe hardlink create %%j %%i
