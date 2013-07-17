@@ -74,7 +74,7 @@ def configure_parser(sub_parsers):
         "--set",
         nargs = 2,
         action = "append",
-        help = "set a boolean key.",
+        help = "set a boolean key. BOOL_VALUE should be 'yes' or 'no'",
         default = [],
         metavar = ('KEY', 'BOOL_VALUE'),
         )
