@@ -14,6 +14,7 @@ from logging import getLogger
 
 from collections import defaultdict
 from os.path import abspath, isfile, join
+import sys
 
 from conda import config
 from conda import install
@@ -326,6 +327,19 @@ def execute_plan(plan, index=None, verbose=False):
         if i is not None and cmd in progress_cmds and maxval == i:
             i = None
             getLogger('progress.stop').info(None)
+
+
+def should_do_win_subprocess(cmd, arg, prefix):
+    """
+    If the cmd needs to call out to a separate process on Windows (because the
+    Windows file lock prevents Python from updating itself).
+    """
+    return (
+        cmd in ('LINK', 'UNLINK') and
+        install.on_win and
+        abspath(prefix) == abspath(sys.prefix) and
+        arg.rsplit('-', 2)[0] in install.win_ignore
+        )
 
 
 def execute_actions(actions, index=None, verbose=False):
