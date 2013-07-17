@@ -35,6 +35,4 @@
 
 :: @echo off
 
-set file="%%1"
-
-FOR /F %%i "%file%" DO @echo %%i
+FOR /F %%i "%1" DO @echo %%i
