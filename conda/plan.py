@@ -296,7 +296,10 @@ def execute_plan(plan, index=None, verbose=False):
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
     prefix = config.root_dir
     i = None
-    for cmd, arg in cmds_from_plan(plan):
+    cmds = cmds_from_plan(plan)
+    for j, (cmd, arg) in enumerate(cmds):
+        if should_do_win_subprocess(cmd, arg, prefix):
+            print("cannot install")
         if i is not None and cmd in progress_cmds:
             i += 1
             getLogger('progress.update').info((name_dist(arg), i))
