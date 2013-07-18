@@ -46,14 +46,15 @@ BAT_HEADER  = """\
 
 {links}
 
-conda ..continue
+conda ..continue {verboseflag}
 """
 
 WINXP_LINK="fsutil.exe hardlink create {dest} {source}"
 
 WINVISTA_LINK="mklink /H {dest} {source}"
 
-def make_bat(files, prefix, dist_dir):
+def make_bat(files, prefix, dist_dir, verbose=False):
+    verboseflag = "-v" if verbose else ""
     links = []
     LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
     for file in files:
@@ -64,9 +65,9 @@ def make_bat(files, prefix, dist_dir):
             os.makedirs(dst_dir)
         dest = join(dst_dir, fbn)
         links.append(LINK.format(source=source, dest=dest))
-    batchfile = BAT_HEADER.format(links=links)
+    batchfile = BAT_HEADER.format(links=links, verboseflag=verboseflag)
 
-    filepath = join(prefix, 'batlink.bat') 
+    filepath = join(prefix, 'batlink.bat')
     with open(filepath, 'w') as f:
         f.write(batchfile)
 
