@@ -323,13 +323,15 @@ def execute_plan(plan, index=None, verbose=False):
                     meta = json.load(fi)
 
                 files = []
+                directories1 = []
                 for f in meta['files']:
-                    dst = join(prefix, f)
-                    files.append(dirname(dst))
+                    dst = abspath(join(prefix, f))
+                    files.append(dst)
+                    directories1.append(dirname(dst))
                 files.append(meta_path)
 
                 directories = []
-                for path in files:
+                for path in directories1:
                     while len(path) > len(prefix):
                         directories.append(path)
                         path = dirname(path)
