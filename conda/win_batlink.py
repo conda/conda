@@ -42,17 +42,21 @@ from os.path import join, isdir
 import platform
 
 BAT_HEADER  = """\
+{deletes}
 {links}
 
 conda ..continue {verboseflag}
 """
 
-WINXP_LINK="fsutil.exe hardlink create {dest} {source}"
+WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
 
-WINVISTA_LINK="mklink /H {dest} {source}"
+WINVISTA_LINK = "mklink /H {dest} {source}"
+
+DELETE = "del {dest}"
 
 def make_bat(files, prefix, dist_dir, verbose=False):
     verboseflag = "-v" if verbose else ""
+    deletes = []
     links = []
     LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
     for file in files:
@@ -62,8 +66,11 @@ def make_bat(files, prefix, dist_dir, verbose=False):
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         dest = join(dst_dir, fbn)
+        deletes.append(DELETE.format(dest=dest))
         links.append(LINK.format(source=source, dest=dest))
-    batchfile = BAT_HEADER.format(links='\n'.join(links), verboseflag=verboseflag)
+
+    batchfile = BAT_HEADER.format(deletes='\n'.join(deletes),
+        links='\n'.join(links), verboseflag=verboseflag)
 
     filepath = join(prefix, 'batlink.bat')
     with open(filepath, 'w') as f:
