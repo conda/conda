@@ -299,8 +299,10 @@ def execute_plan(plan, index=None, verbose=False):
     cmds = cmds_from_plan(plan)
     for j, (cmd, arg) in enumerate(cmds):
         if should_do_win_subprocess(cmd, arg, prefix):
+            assert sys.platform == 'win32'
             with open(join(prefix, "remainder.plan"), 'w') as f:
-                f.write('\n'.join(plan[1:] + plan[j+1:]))
+                metaplan = "CREATEMETA %s" % arg
+                f.write('\n'.join(plan[1:] + [metaplan] + plan[j+1:]))
 
         if i is not None and cmd in progress_cmds:
             i += 1
@@ -326,6 +328,12 @@ def execute_plan(plan, index=None, verbose=False):
             install.link(config.pkgs_dir, prefix, arg)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
+        elif cmd == 'CREATEMETA':
+            assert sys.platform == 'win32'
+            dist_dir = join(config.pkgs_dir, arg)
+            info_dir = join(dist_dir, 'info')
+            files = list(install.yield_lines(join(info_dir, 'files')))
+            install.create_meta(prefix, arg, info_dir, files)
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
