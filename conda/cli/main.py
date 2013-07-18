@@ -70,10 +70,11 @@ def main():
         if sys.argv[1] in ('..activate', '..deactivate'):
             import conda.cli.activate as activate
             activate.main()
+            return
         if sys.argv[1] in ('..changeps1', '..continue'):
             import conda.cli.misc as misc
             misc.main()
-        return
+            return
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
