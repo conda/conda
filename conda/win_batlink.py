@@ -63,9 +63,9 @@ WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
 
 WINVISTA_LINK = "mklink /H {dest} {source}"
 
-FILE_DELETE = "del {dest}"
+FILE_DELETE = "del /Q {dest}"
 
-DIR_DELETE = "rmdir {dest}"
+DIR_DELETE = "rmdir /Q {dest}"
 
 def make_bat_link(files, prefix, dist_dir, verbose=False):
     verboseflag = "-v" if verbose else ""
