@@ -13,7 +13,7 @@ from __future__ import print_function, division, absolute_import
 from logging import getLogger
 
 from collections import defaultdict
-from os.path import abspath, isfile, join
+from os.path import abspath, isfile, join, dirname
 import sys
 
 from conda import config
@@ -302,18 +302,44 @@ def execute_plan(plan, index=None, verbose=False):
             assert sys.platform == 'win32'
 
             import subprocess
-            from conda.win_batlink import make_bat
-
-            with open(join(prefix, "remainder.plan"), 'w') as f:
-                metaplan = "CREATEMETA %s" % arg
-                f.write('\n'.join(plan[:1] + [metaplan] + plan[j+1:]))
+            import json
+            from conda.win_batlink import make_bat_link, make_bat_unlink
 
             dist_dir = join(config.pkgs_dir, arg)
             info_dir = join(dist_dir, 'info')
-            files = list(install.yield_lines(join(info_dir, 'files')))
 
-            batpath = make_bat(files, prefix, dist_dir,
-                verbose=verbose, link=(cmd == "LINK"))
+            if cmd == "LINK":
+                files = list(install.yield_lines(join(info_dir, 'files')))
+                with open(join(prefix, "remainder.plan"), 'w') as f:
+                    metaplan = "CREATEMETA %s" % arg
+                    f.write('\n'.join(plan[:1] + [metaplan] + plan[j+1:]))
+
+                batpath = make_bat_link(files, prefix, dist_dir,
+                    verbose=verbose)
+
+            else: # cmd == "UNLINK"
+                meta_path = join(prefix, 'conda-meta', arg + '.json')
+                with open(meta_path) as fi:
+                    meta = json.load(fi)
+
+                files = []
+                for f in meta['files']:
+                    dst = join(prefix, f)
+                    files.append(dirname(dst))
+                files.append(meta_path)
+
+                directories = []
+                for path in files:
+                    while len(path) > len(prefix):
+                        directories.append(path)
+                        path = dirname(path)
+                directories.append(join(prefix, 'conda-meta'))
+                directories.append(prefix)
+
+                directories.sort(key=len, reverse=True)
+
+                batpath = make_bat_unlink(files, directories, prefix,
+                    dist_dir, verbose=verbose)
 
             print("running subprocess")
             subprocess.Popen([batpath])
