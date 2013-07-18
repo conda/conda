@@ -41,9 +41,20 @@ import os.path
 from os.path import join, isdir
 import platform
 
-BAT_HEADER  = """\
+BAT_LINK_HEADER = """\
 {deletes}
 {links}
+
+conda ..continue {verboseflag}
+"""
+
+BAT_UNLINK_HEADER = """\
+{filedeletes}
+
+:: Same behavior as rm_empty_dir() in install.py
+2>&1 (
+{dirdeletes}
+)
 
 conda ..continue {verboseflag}
 """
@@ -52,9 +63,11 @@ WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
 
 WINVISTA_LINK = "mklink /H {dest} {source}"
 
-DELETE = "del {dest}"
+FILE_DELETE = "del {dest}"
 
-def make_bat(files, prefix, dist_dir, verbose=False, link=True):
+DIR_DELETE = "rmdir {dest}"
+
+def make_bat_link(files, prefix, dist_dir, verbose=False):
     verboseflag = "-v" if verbose else ""
     deletes = []
     links = []
@@ -66,12 +79,24 @@ def make_bat(files, prefix, dist_dir, verbose=False, link=True):
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         dest = join(dst_dir, fbn)
-        deletes.append(DELETE.format(dest=dest))
-        if link:
-            links.append(LINK.format(source=source, dest=dest))
+        deletes.append(FILE_DELETE.format(dest=dest))
+        links.append(LINK.format(source=source, dest=dest))
 
-    batchfile = BAT_HEADER.format(deletes='\n'.join(deletes),
+    batchfile = BAT_LINK_HEADER.format(deletes='\n'.join(deletes),
         links='\n'.join(links), verboseflag=verboseflag)
+
+    filepath = join(prefix, 'batlink.bat')
+    with open(filepath, 'w') as f:
+        f.write(batchfile)
+
+    return filepath
+
+def make_bat_unlink(files, directories, prefix, dist_dir, verbose=False):
+    verboseflag = "-v" if verbose else ""
+    filedeletes = [FILE_DELETE.format(dest=file) for file in files]
+    dirdeletes = [DIR_DELETE.format(dest=dir) for dir in directories]
+    batchfile = BAT_UNLINK_HEADER.format(filedeletes='\n'.join(filedeletes),
+        dirdeletes='\n'.join(dirdeletes), verboseflag=verboseflag)
 
     filepath = join(prefix, 'batlink.bat')
     with open(filepath, 'w') as f:
