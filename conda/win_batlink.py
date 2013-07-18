@@ -63,7 +63,7 @@ def make_bat(files, prefix, dist_dir, verbose=False):
             os.makedirs(dst_dir)
         dest = join(dst_dir, fbn)
         links.append(LINK.format(source=source, dest=dest))
-    batchfile = BAT_HEADER.format(links=links, verboseflag=verboseflag)
+    batchfile = BAT_HEADER.format(links='\n'.join(links), verboseflag=verboseflag)
 
     filepath = join(prefix, 'batlink.bat')
     with open(filepath, 'w') as f:
