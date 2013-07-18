@@ -50,10 +50,7 @@ conda ..continue {verboseflag}
 BAT_UNLINK_HEADER = """\
 {filedeletes}
 
-:: Same behavior as rm_empty_dir() in install.py
-2>&1 (
 {dirdeletes}
-)
 
 conda ..continue {verboseflag}
 """
