@@ -312,7 +312,7 @@ def execute_plan(plan, index=None, verbose=False):
             info_dir = join(dist_dir, 'info')
             files = list(install.yield_lines(join(info_dir, 'files')))
 
-            batpath = make_bat(files, prefix, dist_dir)
+            batpath = make_bat(files, prefix, dist_dir, verbose=verbose)
             subprocess.Popen([batpath])
             sys.exit(0)
 

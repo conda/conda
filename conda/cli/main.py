@@ -66,9 +66,13 @@ from textwrap import fill, dedent
 filldedent = lambda s, w=70: fill(dedent(str(s)).strip('\n'), width=w)
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate', '..changeps1'):
-        import conda.cli.activate as activate
-        activate.main()
+    if len(sys.argv) > 1:
+        if sys.argv[1] in ('..activate', '..deactivate'):
+            import conda.cli.activate as activate
+            activate.main()
+        if sys.argv[1] in ('..changeps1', '..continue'):
+            import conda.cli.misc as misc
+            misc.main()
         return
     if len(sys.argv) == 1:
         sys.argv.append('-h')
