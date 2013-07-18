@@ -54,7 +54,7 @@ WINVISTA_LINK = "mklink /H {dest} {source}"
 
 DELETE = "del {dest}"
 
-def make_bat(files, prefix, dist_dir, verbose=False):
+def make_bat(files, prefix, dist_dir, verbose=False, link=True):
     verboseflag = "-v" if verbose else ""
     deletes = []
     links = []
@@ -67,7 +67,8 @@ def make_bat(files, prefix, dist_dir, verbose=False):
             os.makedirs(dst_dir)
         dest = join(dst_dir, fbn)
         deletes.append(DELETE.format(dest=dest))
-        links.append(LINK.format(source=source, dest=dest))
+        if link:
+            links.append(LINK.format(source=source, dest=dest))
 
     batchfile = BAT_HEADER.format(deletes='\n'.join(deletes),
         links='\n'.join(links), verboseflag=verboseflag)
