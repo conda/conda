@@ -306,7 +306,7 @@ def execute_plan(plan, index=None, verbose=False):
 
             with open(join(prefix, "remainder.plan"), 'w') as f:
                 metaplan = "CREATEMETA %s" % arg
-                f.write('\n'.join(plan[1:] + [metaplan] + plan[j+1:]))
+                f.write('\n'.join(plan[:1] + [metaplan] + plan[j+1:]))
 
             dist_dir = join(config.pkgs_dir, arg)
             info_dir = join(dist_dir, 'info')
