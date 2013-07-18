@@ -322,23 +322,23 @@ def execute_plan(plan, index=None, verbose=False):
                 with open(meta_path) as fi:
                     meta = json.load(fi)
 
-                files = []
-                directories1 = []
+                files = set([])
+                directories1 = set([])
                 for f in meta['files']:
                     dst = abspath(join(prefix, f))
-                    files.append(dst)
-                    directories1.append(dirname(dst))
-                files.append(meta_path)
+                    files.add(dst)
+                    directories1.add(dirname(dst))
+                files.add(meta_path)
 
                 directories = []
                 for path in directories1:
                     while len(path) > len(prefix):
-                        directories.append(path)
+                        directories.add(path)
                         path = dirname(path)
-                directories.append(join(prefix, 'conda-meta'))
-                directories.append(prefix)
+                directories.add(join(prefix, 'conda-meta'))
+                directories.add(prefix)
 
-                directories.sort(key=len, reverse=True)
+                directories = sorted(directories, key=len, reverse=True)
 
                 batpath = make_bat_unlink(files, directories, prefix,
                     dist_dir, verbose=verbose)
