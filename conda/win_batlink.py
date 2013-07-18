@@ -42,8 +42,6 @@ from os.path import join, isdir
 import platform
 
 BAT_HEADER  = """\
-@echo off
-
 {links}
 
 conda ..continue {verboseflag}
