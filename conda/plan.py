@@ -300,9 +300,21 @@ def execute_plan(plan, index=None, verbose=False):
     for j, (cmd, arg) in enumerate(cmds):
         if should_do_win_subprocess(cmd, arg, prefix):
             assert sys.platform == 'win32'
+
+            import subprocess
+            from conda.win_batlink import make_bat
+
             with open(join(prefix, "remainder.plan"), 'w') as f:
                 metaplan = "CREATEMETA %s" % arg
                 f.write('\n'.join(plan[1:] + [metaplan] + plan[j+1:]))
+
+            dist_dir = join(config.pkgs_dir, arg)
+            info_dir = join(dist_dir, 'info')
+            files = list(install.yield_lines(join(info_dir, 'files')))
+
+            batpath = make_bat(files, prefix, dist_dir)
+            subprocess.Popen([batpath])
+            sys.exit(0)
 
         if i is not None and cmd in progress_cmds:
             i += 1
@@ -329,6 +341,9 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
         elif cmd == 'CREATEMETA':
+            # We have to skip link() and use win_batlink in Windows, but this
+            # is the one step from install.link() that is needed for those
+            # packages that is not done there.
             assert sys.platform == 'win32'
             dist_dir = join(config.pkgs_dir, arg)
             info_dir = join(dist_dir, 'info')
