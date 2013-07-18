@@ -42,7 +42,6 @@ from os.path import join, isdir
 import platform
 
 BAT_LINK_HEADER = """\
-{deletes}
 {links}
 
 conda ..continue {verboseflag}
@@ -69,7 +68,6 @@ DIR_DELETE = "rmdir /Q {dest}"
 
 def make_bat_link(files, prefix, dist_dir, verbose=False):
     verboseflag = "-v" if verbose else ""
-    deletes = []
     links = []
     LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
     for file in files:
@@ -79,11 +77,10 @@ def make_bat_link(files, prefix, dist_dir, verbose=False):
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         dest = join(dst_dir, fbn)
-        deletes.append(FILE_DELETE.format(dest=dest))
         links.append(LINK.format(source=source, dest=dest))
 
-    batchfile = BAT_LINK_HEADER.format(deletes='\n'.join(deletes),
-        links='\n'.join(links), verboseflag=verboseflag)
+    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links),
+        verboseflag=verboseflag)
 
     filepath = join(prefix, 'batlink.bat')
     with open(filepath, 'w') as f:
