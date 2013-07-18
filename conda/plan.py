@@ -330,7 +330,7 @@ def execute_plan(plan, index=None, verbose=False):
                     directories1.add(dirname(dst))
                 files.add(meta_path)
 
-                directories = []
+                directories = set([])
                 for path in directories1:
                     while len(path) > len(prefix):
                         directories.add(path)
