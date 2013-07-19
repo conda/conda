@@ -371,8 +371,8 @@ def win_subprocess_re_sort(plan, prefix):
     # TODO: Fix the progress numbers
     newplan = []
     winplan = []
-    for line in plan.split('\n'):
-        cmd, arg = cmds_from_plan(line)
+    for line in plan:
+        cmd, arg = cmds_from_plan([line])
         if should_do_win_subprocess(*cmds_from_plan(line), prefix=prefix):
             if cmd == LINK:
                 # The one post-link action that we need to worry about
