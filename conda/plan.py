@@ -305,6 +305,7 @@ def execute_plan(plan, index=None, verbose=False):
         winplan = ''
         wincmds = []
 
+    print (cmds)
     for cmd, arg in cmds:
         if i is not None and cmd in progress_cmds:
             i += 1
