@@ -373,6 +373,7 @@ def win_subprocess_re_sort(plan, prefix):
     winplan = []
     for line in plan:
         cmd_arg = cmds_from_plan([line])
+        print(line, cmd_arg)
         if cmd_arg:
             cmd, arg = cmd_arg
         else:
