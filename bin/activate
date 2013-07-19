@@ -3,7 +3,7 @@
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    $_THIS_DIR/conda ..activate -h
+    $(dirname $0)/conda ..activate -h
     exit 1
 fi
 
