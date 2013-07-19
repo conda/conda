@@ -30,7 +30,7 @@ hard links.
 """
 
 import os.path
-from os.path import join, isdir
+from os.path import join, isdir, abspath
 import platform
 
 BAT_LINK_HEADER = """\
@@ -55,12 +55,12 @@ def make_bat_link(files, prefix, dist_dir):
     links = []
     LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
     for file in files:
-        source = join(dist_dir, file)
+        source = abspath(join(dist_dir, file))
         fdn, fbn = os.path.split(file)
         dst_dir = join(prefix, fdn)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
-        dest = join(dst_dir, fbn)
+        dest = abspath(join(dst_dir, fbn))
         links.append(LINK.format(source=source, dest=dest))
 
     batchfile = BAT_LINK_HEADER.format(links='\n'.join(links))
@@ -68,8 +68,8 @@ def make_bat_link(files, prefix, dist_dir):
     return batchfile
 
 def make_bat_unlink(files, directories, prefix, dist_dir):
-    filedeletes = [FILE_DELETE.format(dest=file) for file in files]
-    dirdeletes = [DIR_DELETE.format(dest=dir) for dir in directories]
+    filedeletes = [FILE_DELETE.format(dest=abspath(file)) for file in files]
+    dirdeletes = [DIR_DELETE.format(dest=abspath(dir)) for dir in directories]
     batchfile = BAT_UNLINK_HEADER.format(filedeletes='\n'.join(filedeletes),
         dirdeletes='\n'.join(dirdeletes))
 
