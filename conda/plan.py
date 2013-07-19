@@ -377,7 +377,7 @@ def win_subprocess_re_sort(plan, prefix):
             [[cmd, arg]] = cmd_arg
         else:
             continue
-        if should_do_win_subprocess(*cmds_from_plan(line), prefix=prefix):
+        if should_do_win_subprocess(cmd, arg, prefix=prefix):
             if cmd == LINK:
                 # The one post-link action that we need to worry about
                 newplan.append("CREATEMETA %s" % arg)
