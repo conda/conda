@@ -299,7 +299,7 @@ def execute_plan(plan, index=None, verbose=False):
     cmds = cmds_from_plan(plan)
 
     if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
-        plan, winplan = win_subprocess_re_sort(plan)
+        plan, winplan = win_subprocess_re_sort(plan, prefix)
         cmds, wincmds = cmds_from_plan(plan), cmds_from_plan(winplan)
     else:
         winplan = ''
