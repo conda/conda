@@ -372,7 +372,11 @@ def win_subprocess_re_sort(plan, prefix):
     newplan = []
     winplan = []
     for line in plan:
-        cmd, arg = cmds_from_plan([line])
+        cmd_arg = cmds_from_plan([line])
+        if cmd_arg:
+            cmd, arg = cmd_arg
+        else:
+            continue
         if should_do_win_subprocess(*cmds_from_plan(line), prefix=prefix):
             if cmd == LINK:
                 # The one post-link action that we need to worry about
