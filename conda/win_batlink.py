@@ -8,24 +8,16 @@ itself cannot do should be in them. The rest should be done by conda.
 
 The way this works is that when conda comes to an action that it cannot
 perform (such as linking Python in the root environment), it serializes the
-rest of the actions it intends to perform, serializes the action that it
-cannot perform into a batch script (that's what's done here in this module),
-calls this script, and exits (see conda.plan.execute_plan()). This script then
-performs the action conda could not perform and then calls conda to continue
-where it left off.
+actions that it cannot perform into a batch script (that's what's done here in
+this module), performs the rest of the actions that it can perform, calls this
+script, and exits (see conda.plan.execute_plan()).
 
-Implementation wise, the conda searlization is just a text dump of the
-remainder of the plan in %PREFIX%\remainder.plan. The plan is already in a
-nice text format (see tests/simple.plan for an example), so little work needs
-to be done serialization-wise. The action serialization is just a custom batch
-file that does the linking of everything in the package list of pairs of files
-that should be linked, written to %PREFIX%\batlink.bat (note, we can assume
-that we have write permissions to %PREFIX% because otherwise we wouldn't be
-able to install in the root environment anyway (this issue only comes up when
-installing into the root environment)). conda calls this script and
-exits. This script reads the action file, links the files listed therein, and
-calls conda ..continue (and then exits). conda ..continue causes conda to pick
-up where it left off from the remainder.plan file.
+Implementation wise, the action serialization is just a custom batch file that
+does the linking/unlinking of everything in the package list, written to
+%PREFIX%\batlink.bat (note, we can assume that we have write permissions to
+%PREFIX% because otherwise we wouldn't be able to install in the root
+environment anyway (this issue only comes up when installing into the root
+environment)). conda calls this script and exits.
 
 Notes:
 
@@ -43,16 +35,12 @@ import platform
 
 BAT_LINK_HEADER = """\
 {links}
-
-conda ..continue {verboseflag}
 """
 
 BAT_UNLINK_HEADER = """\
 {filedeletes}
 
 {dirdeletes}
-
-conda ..continue {verboseflag}
 """
 
 WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
@@ -63,8 +51,7 @@ FILE_DELETE = "del /Q {dest}"
 
 DIR_DELETE = "rmdir /Q {dest}"
 
-def make_bat_link(files, prefix, dist_dir, verbose=False):
-    verboseflag = "-v" if verbose else ""
+def make_bat_link(files, prefix, dist_dir):
     links = []
     LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
     for file in files:
@@ -76,24 +63,14 @@ def make_bat_link(files, prefix, dist_dir, verbose=False):
         dest = join(dst_dir, fbn)
         links.append(LINK.format(source=source, dest=dest))
 
-    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links),
-        verboseflag=verboseflag)
+    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links))
 
-    filepath = join(prefix, 'batlink.bat')
-    with open(filepath, 'w') as f:
-        f.write(batchfile)
+    return batchfile
 
-    return filepath
-
-def make_bat_unlink(files, directories, prefix, dist_dir, verbose=False):
-    verboseflag = "-v" if verbose else ""
+def make_bat_unlink(files, directories, prefix, dist_dir):
     filedeletes = [FILE_DELETE.format(dest=file) for file in files]
     dirdeletes = [DIR_DELETE.format(dest=dir) for dir in directories]
     batchfile = BAT_UNLINK_HEADER.format(filedeletes='\n'.join(filedeletes),
-        dirdeletes='\n'.join(dirdeletes), verboseflag=verboseflag)
+        dirdeletes='\n'.join(dirdeletes))
 
-    filepath = join(prefix, 'batlink.bat')
-    with open(filepath, 'w') as f:
-        f.write(batchfile)
-
-    return filepath
+    return batchfile
