@@ -299,54 +299,7 @@ def execute_plan(plan, index=None, verbose=False):
     cmds = cmds_from_plan(plan)
     for j, (cmd, arg) in enumerate(cmds):
         if should_do_win_subprocess(cmd, arg, prefix):
-            assert sys.platform == 'win32'
-
-            import subprocess
-            import json
-            from conda.win_batlink import make_bat_link, make_bat_unlink
-
-            dist_dir = join(config.pkgs_dir, arg)
-            info_dir = join(dist_dir, 'info')
-
-            if cmd == "LINK":
-                files = list(install.yield_lines(join(info_dir, 'files')))
-                with open(join(prefix, "remainder.plan"), 'w') as f:
-                    metaplan = "CREATEMETA %s" % arg
-                    f.write('\n'.join(plan[:1] + [metaplan] + plan[j+1:]))
-
-                batpath = make_bat_link(files, prefix, dist_dir,
-                    verbose=verbose)
-
-            else: # cmd == "UNLINK"
-                meta_path = join(prefix, 'conda-meta', arg + '.json')
-                with open(meta_path) as fi:
-                    meta = json.load(fi)
-
-                files = set([])
-                directories1 = set([])
-                for f in meta['files']:
-                    dst = abspath(join(prefix, f))
-                    files.add(dst)
-                    directories1.add(dirname(dst))
-                files.add(meta_path)
-
-                directories = set([])
-                for path in directories1:
-                    while len(path) > len(prefix):
-                        directories.add(path)
-                        path = dirname(path)
-                directories.add(join(prefix, 'conda-meta'))
-                directories.add(prefix)
-
-                directories = sorted(directories, key=len, reverse=True)
-
-                batpath = make_bat_unlink(files, directories, prefix,
-                    dist_dir, verbose=verbose)
-
-            print("running subprocess")
-            subprocess.Popen([batpath])
-            sys.exit(0)
-
+            do_win_subprocess(cmd, arg, prefix, plan, j, verbose=verbose)
         if i is not None and cmd in progress_cmds:
             i += 1
             getLogger('progress.update').info((name_dist(arg), i))
@@ -400,6 +353,54 @@ def should_do_win_subprocess(cmd, arg, prefix):
         arg.rsplit('-', 2)[0] in install.win_ignore
         )
 
+def do_win_subprocess(cmd, arg, prefix, plan, pos, verbose=False):
+    assert sys.platform == 'win32'
+
+    import subprocess
+    import json
+    from conda.win_batlink import make_bat_link, make_bat_unlink
+
+    dist_dir = join(config.pkgs_dir, arg)
+    info_dir = join(dist_dir, 'info')
+
+    if cmd == "LINK":
+        files = list(install.yield_lines(join(info_dir, 'files')))
+        with open(join(prefix, "remainder.plan"), 'w') as f:
+            metaplan = "CREATEMETA %s" % arg
+            f.write('\n'.join(plan[:1] + [metaplan] + plan[pos+1:]))
+
+        batpath = make_bat_link(files, prefix, dist_dir,
+            verbose=verbose)
+
+    else: # cmd == "UNLINK"
+        meta_path = join(prefix, 'conda-meta', arg + '.json')
+        with open(meta_path) as fi:
+            meta = json.load(fi)
+
+        files = set([])
+        directories1 = set([])
+        for f in meta['files']:
+            dst = abspath(join(prefix, f))
+            files.add(dst)
+            directories1.add(dirname(dst))
+        files.add(meta_path)
+
+        directories = set([])
+        for path in directories1:
+            while len(path) > len(prefix):
+                directories.add(path)
+                path = dirname(path)
+        directories.add(join(prefix, 'conda-meta'))
+        directories.add(prefix)
+
+        directories = sorted(directories, key=len, reverse=True)
+
+        batpath = make_bat_unlink(files, directories, prefix,
+            dist_dir, verbose=verbose)
+
+    print("running subprocess")
+    subprocess.Popen([batpath])
+    sys.exit(0)
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
