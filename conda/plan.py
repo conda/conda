@@ -402,7 +402,7 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
 
         return make_bat_link(files, prefix, dist_dir)
 
-    else: # cmd == "UNLINK"
+    elif cmd == UNLINK: # cmd == "UNLINK"
         meta_path = join(prefix, 'conda-meta', arg + '.json')
         with open(meta_path) as fi:
             meta = json.load(fi)
@@ -426,6 +426,8 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
         directories = sorted(directories, key=len, reverse=True)
 
         return make_bat_unlink(files, directories, prefix, dist_dir)
+    else:
+        raise ValueError
 
 def do_win_subprocess(batfile, prefix):
     import subprocess
