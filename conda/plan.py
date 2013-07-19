@@ -297,9 +297,15 @@ def execute_plan(plan, index=None, verbose=False):
     prefix = config.root_dir
     i = None
     cmds = cmds_from_plan(plan)
-    for j, (cmd, arg) in enumerate(cmds):
-        if should_do_win_subprocess(cmd, arg, prefix):
-            do_win_subprocess(cmd, arg, prefix, plan, j, verbose=verbose)
+
+    if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
+        plan, winplan = win_subprocess_re_sort(plan)
+        cmds, wincmds = cmds_from_plan(plan), cmds_from_plan(winplan)
+    else:
+        winplan = ''
+        wincmds = []
+
+    for cmd, arg in cmds:
         if i is not None and cmd in progress_cmds:
             i += 1
             getLogger('progress.update').info((name_dist(arg), i))
@@ -341,6 +347,14 @@ def execute_plan(plan, index=None, verbose=False):
             getLogger('progress.stop').info(None)
 
 
+    batfiles = []
+    for cmds, arg in wincmds:
+        batfiles.apppend(win_subprocess_write_bat(cmd, arg, prefix, plan))
+    if wincmds:
+        batfile = '\n'.join(batfiles)
+        do_win_subprocess(batfile, prefix)
+
+
 def should_do_win_subprocess(cmd, arg, prefix):
     """
     If the cmd needs to call out to a separate process on Windows (because the
@@ -353,10 +367,25 @@ def should_do_win_subprocess(cmd, arg, prefix):
         arg.rsplit('-', 2)[0] in install.win_ignore
         )
 
-def do_win_subprocess(cmd, arg, prefix, plan, pos, verbose=False):
+def win_subprocess_re_sort(plan, prefix):
+    # TODO: Fix the progress numbers
+    newplan = []
+    winplan = []
+    for line in plan.split('\n'):
+        cmd, arg = cmds_from_plan(line)
+        if should_do_win_subprocess(*cmds_from_plan(line), prefix=prefix):
+            if cmd == LINK:
+                # The one post-link action that we need to worry about
+                newplan.append("CREATEMETA %s" % arg)
+            winplan.append(line)
+        else:
+            newplan.append(line)
+
+    return '\n'.join(newplan), '\n'.join(winplan)
+
+def win_subprocess_write_bat(cmd, arg, prefix, plan):
     assert sys.platform == 'win32'
 
-    import subprocess
     import json
     from conda.win_batlink import make_bat_link, make_bat_unlink
 
@@ -365,12 +394,8 @@ def do_win_subprocess(cmd, arg, prefix, plan, pos, verbose=False):
 
     if cmd == "LINK":
         files = list(install.yield_lines(join(info_dir, 'files')))
-        with open(join(prefix, "remainder.plan"), 'w') as f:
-            metaplan = "CREATEMETA %s" % arg
-            f.write('\n'.join(plan[:1] + [metaplan] + plan[pos+1:]))
 
-        batpath = make_bat_link(files, prefix, dist_dir,
-            verbose=verbose)
+        return make_bat_link(files, prefix, dist_dir)
 
     else: # cmd == "UNLINK"
         meta_path = join(prefix, 'conda-meta', arg + '.json')
@@ -395,11 +420,15 @@ def do_win_subprocess(cmd, arg, prefix, plan, pos, verbose=False):
 
         directories = sorted(directories, key=len, reverse=True)
 
-        batpath = make_bat_unlink(files, directories, prefix,
-            dist_dir, verbose=verbose)
+        return make_bat_unlink(files, directories, prefix, dist_dir)
 
+def do_win_subprocess(batfile, prefix):
+    import subprocess
+    with open(join(prefix, 'batlink.bat'), 'w') as f:
+        f.write(batfile)
     print("running subprocess")
-    subprocess.Popen([batpath])
+    subprocess.Popen([join(prefix, 'batlink.bat')])
+    # If we ever hit a race condition, maybe we should use atexit
     sys.exit(0)
 
 def execute_actions(actions, index=None, verbose=False):
