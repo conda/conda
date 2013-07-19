@@ -427,6 +427,7 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
 
         return make_bat_unlink(files, directories, prefix, dist_dir)
     else:
+        print (cmd)
         raise ValueError
 
 def do_win_subprocess(batfile, prefix):
