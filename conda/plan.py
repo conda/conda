@@ -305,7 +305,6 @@ def execute_plan(plan, index=None, verbose=False):
         winplan = ''
         wincmds = []
 
-    print (cmds)
     for cmd, arg in cmds:
         if i is not None and cmd in progress_cmds:
             i += 1
@@ -386,7 +385,7 @@ def win_subprocess_re_sort(plan, prefix):
         else:
             newplan.append(line)
 
-    return '\n'.join(newplan), '\n'.join(winplan)
+    return newplan, winplan
 
 def win_subprocess_write_bat(cmd, arg, prefix, plan):
     assert sys.platform == 'win32'
