@@ -348,6 +348,7 @@ def execute_plan(plan, index=None, verbose=False):
 
 
     batfiles = []
+    print (wincmds)
     for cmds, arg in wincmds:
         batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
     if wincmds:
@@ -427,7 +428,6 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
 
         return make_bat_unlink(files, directories, prefix, dist_dir)
     else:
-        print (cmd)
         raise ValueError
 
 def do_win_subprocess(batfile, prefix):
