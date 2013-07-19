@@ -348,7 +348,6 @@ def execute_plan(plan, index=None, verbose=False):
 
 
     batfiles = []
-    print(wincmds)
     for cmds, arg in wincmds:
         batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
     if wincmds:
@@ -397,7 +396,7 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
     dist_dir = join(config.pkgs_dir, arg)
     info_dir = join(dist_dir, 'info')
 
-    if cmd == "LINK":
+    if cmd == LINK:
         files = list(install.yield_lines(join(info_dir, 'files')))
 
         return make_bat_link(files, prefix, dist_dir)
