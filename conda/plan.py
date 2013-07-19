@@ -348,6 +348,7 @@ def execute_plan(plan, index=None, verbose=False):
 
 
     batfiles = []
+    print(wincmds)
     for cmds, arg in wincmds:
         batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
     if wincmds:
