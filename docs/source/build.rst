@@ -2,7 +2,7 @@ Conda build framework
 =====================
 
 Building a package requires a recipe.  A recipe is flat directory which
-contains to following files:
+contains the following files:
 
   * meta.yaml (metadata file)
   * build.sh (Unix build script which is executed using bash)
