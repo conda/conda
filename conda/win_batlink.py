@@ -33,16 +33,24 @@ import os.path
 from os.path import join, isdir, abspath, dirname
 import platform
 
+
 BAT_LINK_HEADER = """\
+@echo off
 {mkdirs}
 
 {links}
 """
 
+# Hide stderr for this one because it warns about nonempty directories, like
+# C:\Anaconda.
 BAT_UNLINK_HEADER = """\
+@echo off
+
+2>&1 (
 {filedeletes}
 
 {dirdeletes}
+)
 """
 
 WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
