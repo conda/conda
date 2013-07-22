@@ -168,7 +168,7 @@ def main(args, parser):
         [output_dir] = args.output_dir
         d = package_dicts[package]
         makedirs(join(output_dir, package.lower()))
-        print("Writing recipe for %s" % package)
+        print("Writing recipe for %s" % package.lower())
         with open(join(output_dir, package.lower(), 'meta.yaml'),
             'w') as f:
             f.write(PYPI_META.format(**d))
