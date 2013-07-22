@@ -33,12 +33,15 @@ import os.path
 from os.path import join, isdir, abspath, dirname
 import platform
 
-
+# Redirect stderr on the mkdirs to ignore errors about directories that
+# already exist
 BAT_LINK_HEADER = """\
 @echo off
-> NUL (
+> NUL 2>&1 (
 {mkdirs}
+)
 
+> NUL
 {links}
 )
 """
