@@ -36,9 +36,11 @@ import platform
 
 BAT_LINK_HEADER = """\
 @echo off
+> NUL (
 {mkdirs}
 
 {links}
+)
 """
 
 # Hide stderr for this one because it warns about nonempty directories, like
@@ -46,7 +48,7 @@ BAT_LINK_HEADER = """\
 BAT_UNLINK_HEADER = """\
 @echo off
 
-2>&1 (
+> NUL 2>&1 (
 {filedeletes}
 
 {dirdeletes}
