@@ -120,7 +120,7 @@ def main(args, parser):
                 print("Warning, the following versions were found for %s" % package)
                 for ver in versions:
                     print(ver)
-                print("Using %s" % versions[-1])
+                print("Using %s" % versions[0])
                 print("Use --version to specify a different version.")
             d['version'] = versions[-1]
 
