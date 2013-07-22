@@ -41,7 +41,7 @@ BAT_LINK_HEADER = """\
 {mkdirs}
 )
 
-> NUL
+> NUL (
 {links}
 )
 """
