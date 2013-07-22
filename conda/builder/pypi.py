@@ -104,7 +104,7 @@ def main(args, parser):
     client = ServerProxy(args.pypi_url)
     package_dicts = {}
     for package in args.packages:
-        d = package_dicts.setdefault(package, {'packagename': package})
+        d = package_dicts.setdefault(package, {'packagename': package.lower()})
         if args.version:
             [version] = args.version
             versions = client.package_releases(package, True)
@@ -167,14 +167,14 @@ def main(args, parser):
     for package in package_dicts:
         [output_dir] = args.output_dir
         d = package_dicts[package]
-        makedirs(join(output_dir, package))
+        makedirs(join(output_dir, package.lower()))
         print("Writing recipe for %s" % package)
-        with open(join(output_dir, package, 'meta.yaml'),
+        with open(join(output_dir, package.lower(), 'meta.yaml'),
             'w') as f:
             f.write(PYPI_META.format(**d))
-        with open(join(output_dir, package, 'build.sh'), 'w') as f:
+        with open(join(output_dir, package.lower(), 'build.sh'), 'w') as f:
             f.write(PYPI_BUILD_SH.format(**d))
-        with open(join(output_dir, package, 'bld.bat'), 'w') as f:
+        with open(join(output_dir, package.lower(), 'bld.bat'), 'w') as f:
             f.write(PYPI_BLD_BAT.format(**d))
 
     print("Done")
