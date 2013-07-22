@@ -1,12 +1,14 @@
 2013-XX-XX   1.8.0:
 -------------------
-  * fix entry point scripts pointing to wrong python when building Python 3
-    packages
-  * allow conda build to take tarballs containing a recipe as arguments
-  * add PKG_CONFIG_PATH to build environment variables
-  * made activate/deactivate work with zsh (thanks to mika-fischer)
   * add Python 3 support (thanks almarklein)
   * add Mercurial support when building from source (thanks delicb)
+  * add conda config command
+  * improve locking to be finer grained
+  * made activate/deactivate work with zsh (thanks to mika-fischer)
+  * allow conda build to take tarballs containing a recipe as arguments
+  * add PKG_CONFIG_PATH to build environment variables
+  * fix entry point scripts pointing to wrong python when building Python 3
+    packages
 
 
 2013-07-02   1.7.2:

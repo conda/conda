@@ -125,7 +125,11 @@ class MetaData(object):
             ms = MatchSpec(spec)
             for name, ver in [('python', CONDA_PY), ('numpy', CONDA_NPY)]:
                 if ms.name == name:
-                    assert ms.strictness == 1
+                    if ms.strictness != 1:
+                        sys.exit("""Error:
+    You cannot specify a version for package '%s' in the requirements.
+    Please use the environment variables CONDA_PY or CONDA_NPY.
+""" % name)
                     ms = MatchSpec('%s %s*' % (name, '.'.join(str(ver))))
             res.append(ms)
         return res
