@@ -47,6 +47,8 @@ WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
 
 WINVISTA_LINK = "mklink /H {dest} {source}"
 
+MAKE_DIR = "mkdir {dst_dir}"
+
 FILE_DELETE = "del /Q {dest}"
 
 DIR_DELETE = "rmdir /Q {dest}"
@@ -59,8 +61,7 @@ def make_bat_link(files, prefix, dist_dir):
         fdn, fbn = os.path.split(file)
         dst_dir = join(prefix, fdn)
         if not isdir(dst_dir):
-            print("Making dir:", dst_dir)
-            os.makedirs(dst_dir)
+            links.append(MAKE_DIR.format(dst_dir=dst_dir))
         dest = abspath(join(dst_dir, fbn))
         links.append(LINK.format(source=source, dest=dest))
 
