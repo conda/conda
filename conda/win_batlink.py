@@ -69,7 +69,7 @@ def make_bat_link(files, prefix, dist_dir):
 
     # mkdir will make intermediate directories, so we do not need to care
     # about the order
-    mkdirs = [MAKE_DIR.format(dn) for dn in dirs]
+    mkdirs = [MAKE_DIR.format(dst_dir=dn) for dn in dirs]
 
     batchfile = BAT_LINK_HEADER.format(links='\n'.join(links), mkdirs='\n'.join(mkdirs))
 
