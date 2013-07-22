@@ -61,7 +61,7 @@ def make_bat_link(files, prefix, dist_dir):
         fdn, fbn = os.path.split(file)
         dst_dir = join(prefix, fdn)
         if not isdir(dst_dir):
-            links.append(MAKE_DIR.format(dst_dir=dst_dir))
+            links.append(MAKE_DIR.format(dst_dir=abspath(dst_dir)))
         dest = abspath(join(dst_dir, fbn))
         links.append(LINK.format(source=source, dest=dest))
 
