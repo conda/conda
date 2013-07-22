@@ -86,6 +86,9 @@ def create_info_files(m, files):
     with open(join(info_dir, 'index.json'), 'w') as fo:
         json.dump(m.info_index(), fo, indent=2, sort_keys=True)
 
+    with open(join(info_dir, 'recipe.json'), 'w') as fo:
+        json.dump(m.meta, fo, indent=2, sort_keys=True)
+
     if sys.platform != 'win32':
         prefix_files = list(have_prefix_files(files))
         if prefix_files:

@@ -3,7 +3,7 @@
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    $_THIS_DIR/conda ..activate -h
+    $(dirname $0)/conda ..activate -h
     exit 1
 fi
 
@@ -19,11 +19,15 @@ fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
 
 if [[ -n $CONDA_DEFAULT_ENV ]]; then
-    _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
-    export PATH=$_NEW_PATH
-    if (( $($_THIS_DIR/conda ..changeps1) )); then
-        export PS1=$CONDA_OLD_PS1
-        unset CONDA_OLD_PS1
+    if $_THIS_DIR/conda ..checkenv "$@"; then
+        _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
+        export PATH=$_NEW_PATH
+        if (( $($_THIS_DIR/conda ..changeps1) )); then
+            export PS1=$CONDA_OLD_PS1
+            unset CONDA_OLD_PS1
+        fi
+    else
+        return 1
     fi
 fi
 

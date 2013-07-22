@@ -27,7 +27,6 @@ the standard library).
 
 from __future__ import print_function, division, absolute_import
 
-import contextlib
 import os
 import json
 import shutil
@@ -280,7 +279,7 @@ def link(pkgs_dir, prefix, dist):
     info_dir = join(dist_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
 
-    with contextlib.nested(Locked(prefix), Locked(pkgs_dir)):
+    with Locked(prefix), Locked(pkgs_dir):
         for f in files:
             src = join(dist_dir, f)
             fdn, fbn = os.path.split(f)

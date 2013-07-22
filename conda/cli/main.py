@@ -67,7 +67,7 @@ filldedent = lambda s, w=70: fill(dedent(str(s)).strip('\n'), width=w)
 
 def main():
     if len(sys.argv) > 1:
-        if sys.argv[1] in ('..activate', '..deactivate'):
+        if sys.argv[1] in ('..activate', '..deactivate', '..checkenv'):
             import conda.cli.activate as activate
             activate.main()
             return
