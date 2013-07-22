@@ -71,7 +71,7 @@ def main():
             import conda.cli.activate as activate
             activate.main()
             return
-        if sys.argv[1] in ('..changeps1', '..continue'):
+        if sys.argv[1] in ('..changeps1'):
             import conda.cli.misc as misc
             misc.main()
             return
