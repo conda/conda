@@ -30,10 +30,12 @@ hard links.
 """
 
 import os.path
-from os.path import join, isdir, abspath
+from os.path import join, isdir, abspath, dirname
 import platform
 
 BAT_LINK_HEADER = """\
+{mkdirs}
+
 {links}
 """
 
@@ -56,16 +58,20 @@ DIR_DELETE = "rmdir /Q {dest}"
 def make_bat_link(files, prefix, dist_dir):
     links = []
     LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
+    dirs = set()
     for file in files:
         source = abspath(join(dist_dir, file))
         fdn, fbn = os.path.split(file)
         dst_dir = join(prefix, fdn)
-        if not isdir(dst_dir):
-            links.append(MAKE_DIR.format(dst_dir=abspath(dst_dir)))
+        dirs.add(abspath(dst_dir))
         dest = abspath(join(dst_dir, fbn))
         links.append(LINK.format(source=source, dest=dest))
 
-    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links))
+    # mkdir will make intermediate directories, so we do not need to care
+    # about the order
+    mkdirs = [MAKE_DIR.format(dn) for dn in dirs]
+
+    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links), mkdirs='\n'.join(mkdirs))
 
     return batchfile
 
