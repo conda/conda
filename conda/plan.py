@@ -352,7 +352,7 @@ def execute_plan(plan, index=None, verbose=False):
         batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
     batfiles.append("""
 echo done
-echo
+echo.
 """)
     if wincmds:
         batfile = '\n'.join(batfiles)
