@@ -30,13 +30,14 @@ def download_to_cache(meta):
         os.makedirs(SRC_CACHE)
 
     fn = meta['fn']
-    md5 = meta.get('md5')
     path = join(SRC_CACHE, fn)
     if not isfile(path):
-        download(meta['url'], path, md5)
+        download(meta['url'], path)
 
-    if md5 and not md5_file(path) == md5:
+    if 'md5' in meta and md5_file != meta['md5']:
         raise Exception("MD5 mismatch: %r" % meta)
+
+    
     return path
 
 
