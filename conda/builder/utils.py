@@ -10,7 +10,6 @@ import subprocess
 from os.path import (abspath, dirname, getmtime, getsize, isdir, isfile,
                      islink, join, normpath)
 
-import sys
 if sys.version_info < (3,):
     import urllib2
 else:
@@ -26,6 +25,17 @@ def rel_lib(f):
         return normpath((f.count('/') - 1) * '../')
     else:
         return normpath(f.count('/') * '../') + '/lib'
+
+
+def sha1_file(path):
+    with open(path, 'rb') as fi:
+        h = hashlib.new('sha1')
+        while True:
+            chunk = fi.read(262144)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _check_call(args, **kwargs):
