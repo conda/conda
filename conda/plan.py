@@ -397,7 +397,6 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
     info_dir = join(dist_dir, 'info')
 
     if cmd == LINK:
-        print("Creating LINK file")
         files = list(install.yield_lines(join(info_dir, 'files')))
 
         return make_bat_link(files, prefix, dist_dir)
