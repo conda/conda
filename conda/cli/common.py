@@ -103,13 +103,15 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(args, message="Proceed", default='yes'):
+def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.yes:
-        return
+        return True
     choice = confirm(args, message=message, choices=('yes', 'no'), default=default)
     if choice == 'yes':
-        return
-    sys.exit(1)
+        return True
+    if exit_no:
+        sys.exit(1)
+    return False
 
 # --------------------------------------------------------------------
 
