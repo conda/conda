@@ -53,6 +53,16 @@ def configure_parser(sub_parsers):
         default='http://pypi.python.org/pypi',
         help = "Url to use for PyPI",
         )
+    pypi.add_argument(
+        "--no-download",
+        action = "store_false",
+        dest = "download",
+        default=True,
+        help="""Don't download the package. This will keep the recipe from
+        finding the right dependencies and entry points if the package uses
+        distribute.  WARNING: The default option downloads and runs the
+        package's setup.py script."""
+        )
     p.set_defaults(func=execute)
 
 
