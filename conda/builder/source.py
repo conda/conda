@@ -5,8 +5,9 @@ import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
+from conda.utils import hashsum_file
 from conda.builder.config import croot
-from conda.builder.utils import download, md5_file, rm_rf, tar_xf, unzip
+from conda.builder.utils import download, rm_rf, tar_xf, unzip
 from conda.builder import external
 
 
@@ -30,13 +31,15 @@ def download_to_cache(meta):
         os.makedirs(SRC_CACHE)
 
     fn = meta['fn']
-    md5 = meta.get('md5')
     path = join(SRC_CACHE, fn)
     if not isfile(path):
-        download(meta['url'], path, md5)
+        download(meta['url'], path)
 
-    if md5 and not md5_file(path) == md5:
-        raise Exception("MD5 mismatch: %r" % meta)
+    for tp in 'md5', 'sha1':
+        if tp in meta and hashsum_file(path, tp) != meta[tp]:
+            raise RuntimeError("%s mismatch: '%s' != '%s'" %
+                               (tp.upper(), hashsum_file(path, tp), meta[tp]))
+
     return path
 
 

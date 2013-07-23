@@ -10,7 +10,6 @@ import subprocess
 from os.path import (abspath, dirname, getmtime, getsize, isdir, isfile,
                      islink, join, normpath)
 
-import sys
 if sys.version_info < (3,):
     import urllib2
 else:
