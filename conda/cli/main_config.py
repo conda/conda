@@ -3,6 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+from __future__ import print_function, division, absolute_import
 import re
 from argparse import RawDescriptionHelpFormatter
 
@@ -132,18 +133,18 @@ def execute(args, parser):
             args.get = config.rc_list_keys + config.rc_bool_keys
         for key in args.get:
             if key not in config.rc_list_keys + config.rc_bool_keys:
-                print "%s is not a valid key" % key
+                print("%s is not a valid key" % key)
             if key not in rc_config:
                 continue
             if isinstance(rc_config[key], bool):
-                print "--set", key, rc_config[key]
+                print("--set", key, rc_config[key])
             else:
                 # Note, since conda config --add prepends, these are printed in
                 # the reverse order so that entering them in this order will
                 # recreate the same file
                 for item in reversed(rc_config.get(key, [])):
                     # Use repr so that it can be pasted back in to conda config --add
-                    print "--add", key, repr(item)
+                    print("--add", key, repr(item))
 
 
     # PyYaml does not support round tripping, so if we use yaml.dump, it
