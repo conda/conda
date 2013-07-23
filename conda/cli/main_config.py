@@ -257,8 +257,6 @@ def execute(args, parser):
             raise CouldntParse("couldn't parse modified yaml")
         else:
             if not parsed_new_rc_text == new_rc_config:
-                print parsed_new_rc_text
-                print new_rc_config
                 raise CouldntParse("modified yaml doesn't match what it should be")
 
 
