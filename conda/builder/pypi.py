@@ -6,7 +6,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 from os import makedirs, listdir, getcwd, chdir
-from os.path import join, isdir, exists
+from os.path import join, isdir, exists, isfile
 from tempfile import mkdtemp
 
 if sys.version_info < (3,):
@@ -14,9 +14,10 @@ if sys.version_info < (3,):
 else:
     from xmlrpc.client import ServerProxy
 
-from conda.utils import human_bytes
+from conda.utils import human_bytes, hashsum_file
 from conda.install import rm_rf
 from conda.builder.utils import download, tar_xf, unzip
+from conda.builder.source import SRC_CACHE
 
 PYPI_META = """\
 package:
@@ -183,10 +184,17 @@ def main(args, parser):
             indent = '\n    - '
 
             try:
-                download(d['pypiurl'], join(tempdir, d['filename']),
-                    md5=d['md5'])
+                # Download it to the build source cache. That way, you have
+                # it.
+                download_path = join(SRC_CACHE, d['filename'])
+                if not isfile(download_path) or hashsum_file(download_path,
+                    'md5') != d['md5']:
+                    download(d['pypiurl'], join(SRC_CACHE, d['filename']),
+                        md5=d['md5'])
+                else:
+                    print("Using cached download")
                 print("Unpacking %s..." % package)
-                unpack(join(tempdir, d['filename']), tempdir)
+                unpack(join(SRC_CACHE, d['filename']), tempdir)
                 print("done")
                 print("working in %s" % tempdir)
                 src_dir = get_dir(tempdir)
