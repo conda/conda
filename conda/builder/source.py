@@ -36,7 +36,7 @@ def download_to_cache(meta):
         download(meta['url'], path)
 
     for tp in 'md5', 'sha1':
-        if tp in meta and hashsum_file(path, tp) != meta[tp]:
+        if meta.get(tp) and hashsum_file(path, tp) != meta[tp]:
             raise RuntimeError("%s mismatch: '%s' != '%s'" %
                                (tp.upper(), hashsum_file(path, tp), meta[tp]))
 
