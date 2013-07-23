@@ -6,6 +6,7 @@
 from __future__ import print_function, division, absolute_import
 import re
 from argparse import RawDescriptionHelpFormatter
+import os
 
 import conda.config as config
 
@@ -121,8 +122,11 @@ def execute(args, parser):
         rc_path = config.user_rc_path
 
     # Create the file if it doesn't exist
-    with open(rc_path, 'r+') as rc:
-        rc_text = rc.read()
+    if not os.path.exists(rc_path):
+        rc_text = ""
+    else:
+        with open(rc_path, 'r') as rc:
+            rc_text = rc.read()
     rc_config = yaml.load(rc_text)
     if rc_config is None:
         rc_config = {}
