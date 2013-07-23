@@ -5,8 +5,9 @@ Tools for converting PyPI packages to conda recipes.
 from __future__ import print_function, division, absolute_import
 
 import sys
-from os import makedirs
-from os.path import join
+from os import makedirs, listdir, getcwd, chdir
+from os.path import join, isdir, exists
+from tempfile import mkdtemp
 
 if sys.version_info < (3,):
     from xmlrpclib import ServerProxy
@@ -14,6 +15,8 @@ else:
     from xmlrpc.client import ServerProxy
 
 from conda.utils import human_bytes
+from conda.install import rm_rf
+from conda.builder.utils import download, tar_xf, unzip
 
 PYPI_META = """\
 package:
@@ -28,14 +31,15 @@ source:
    # List any patch files here
    # - fix.patch
 
-# build:
-  # entry_points:
+{build_comment}build:
+  {build_comment}entry_points:
     # Put any entry points (scripts to be generated automatically) here. The
     # syntax is module:function.  For example
     #
-    # - {packagename}:main
+    # - {packagename} = {packagename}:main
     #
-    # Would call {packagename}.main()
+    # Would create an entry point called {packagename} that calls {packagename}.main()
+{entry_points}
 
   # If this is a new build for the same version, increment the build
   # number. If you do not include this key, it defaults to 0.
@@ -43,23 +47,20 @@ source:
 
 requirements:
   build:
-    - python
-    # If setuptools is required to run setup.py, add distribute to the build
-    # requirements.
-    #
-    # - distribute
+    - python{build_depends}
 
   run:
-    - python
+    - python{run_depends}
 
 test:
   # Python imports
   imports:
     - {packagename}
 
-  # commands:
+  {build_comment}commands:
     # You can put test commands to be run here.  Use this to test that the
     # entry points work.
+{test_commands}
 
   # You can also put a file called run_test.py in the recipe that will be run
   # at test time.
@@ -103,8 +104,13 @@ if errorlevel 1 exit 1
 def main(args, parser):
     client = ServerProxy(args.pypi_url)
     package_dicts = {}
+    [output_dir] = args.output_dir
     for package in args.packages:
-        d = package_dicts.setdefault(package, {'packagename': package.lower()})
+        if exists(join(output_dir, package.lower())):
+            raise RuntimeError("The directory %s already exists" % package.lower())
+        d = package_dicts.setdefault(package, {'packagename': package.lower(),
+            'run_depends':'', 'build_depends':'', 'entry_points':'',
+            'build_comment':'# ', 'test_commands':''})
         if args.version:
             [version] = args.version
             versions = client.package_releases(package, True)
@@ -164,8 +170,45 @@ def main(args, parser):
             license = ' or '.join(licenses)
         d['license'] = license
 
+        # Unfortunately, two important pieces of metadata are only stored in
+        # the package itself: the dependencies, and the entry points (if the
+        # package uses distribute).  Our strategy is to download the package
+        # and "fake" distribute/setuptools's setup() function to get this
+        # information from setup.py. If this sounds evil, keep in mind that
+        # distribute itself already works by monkeypatching setuptools.
+        if args.download:
+            import yaml
+            print("Downloading %s (use --no-download to skip this step)" % package)
+            tempdir = mkdtemp('conda_skeleton')
+            indent = '\n    - '
+
+            try:
+                download(d['pypiurl'], join(tempdir, d['filename']),
+                    md5=d['md5'])
+                print("Unpacking %s..." % package)
+                unpack(join(tempdir, d['filename']), tempdir)
+                print("done")
+                print("working in %s" % tempdir)
+                src_dir = get_dir(tempdir)
+                patch_distutils(tempdir)
+                write_setuppy(src_dir)
+                with open(join(tempdir, 'pkginfo.yaml')) as fn:
+                    pkginfo = yaml.load(fn)
+
+                if pkginfo['install_requires']:
+                    deps = [remove_version_information(dep) for dep in pkginfo['install_requires']]
+                    d['build_depends'] = indent.join(['', 'distribute'] + deps)
+                    d['run_depends'] = indent.join([''] + deps)
+                if pkginfo['entry_points']:
+                    entry_list = pkginfo['entry_points']['console_scripts']
+                    d['entry_points'] = indent.join([''] + entry_list)
+                    d['build_comment'] = ''
+                    d['test_commands'] = indent.join([''] + make_entry_tests(entry_list))
+            finally:
+                rm_rf(tempdir)
+
+
     for package in package_dicts:
-        [output_dir] = args.output_dir
         d = package_dicts[package]
         makedirs(join(output_dir, package.lower()))
         print("Writing recipe for %s" % package.lower())
@@ -178,3 +221,56 @@ def main(args, parser):
             f.write(PYPI_BLD_BAT.format(**d))
 
     print("Done")
+
+def unpack(src_path, tempdir):
+    if src_path.endswith(('.tar.gz', '.tar.bz2', '.tgz', '.tar.xz', '.tar')):
+        tar_xf(src_path, tempdir)
+    elif src_path.endswith('.zip'):
+        unzip(src_path, tempdir)
+    else:
+        raise Exception("not a valid source")
+
+def get_dir(tempdir):
+    lst = [fn for fn in listdir(tempdir) if not fn.startswith('.') and
+        isdir(join(tempdir, fn))]
+    if len(lst) == 1:
+        dir_path = join(tempdir, lst[0])
+        if isdir(dir_path):
+            return dir_path
+    raise Exception("could not find unpacked source dir")
+
+def patch_distutils(tempdir):
+    # Note, distribute doesn't actually patch the setup function.
+    import distutils.core
+    import yaml
+
+    def setup(*args, **kwargs):
+        data = {}
+        data['install_requires'] = kwargs.get('install_requires', [])
+        data['entry_points'] = kwargs.get('entry_points', [])
+        with open(join(tempdir, "pkginfo.yaml"), 'w') as fn:
+            fn.write(yaml.dump(data))
+
+    distutils.core.setup = setup
+
+def write_setuppy(src_dir):
+    import sys
+    sys.argv = ['setup.py', 'install']
+    sys.path.insert(0, src_dir)
+    d = {}
+    cwd = getcwd()
+    chdir(src_dir)
+    execfile(join(src_dir, 'setup.py'), d)
+    chdir(cwd)
+
+def remove_version_information(pkgstr):
+    # TODO: Actually incorporate the version information into the meta.yaml
+    # file.
+    return pkgstr.partition(' ')[0].partition('<')[0].partition('!')[0].partition('>')[0].partition('=')[0]
+
+def make_entry_tests(entry_list):
+    tests = []
+    for entry_point in entry_list:
+        entry = entry_point.partition('=')[0].strip()
+        tests.append(entry + " --help")
+    return tests
