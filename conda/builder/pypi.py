@@ -176,7 +176,7 @@ def main(args, parser):
         # package uses distribute).  Our strategy is to download the package
         # and "fake" distribute/setuptools's setup() function to get this
         # information from setup.py. If this sounds evil, keep in mind that
-        # distribute itself already works by monkeypatching setuptools.
+        # distribute itself already works by monkeypatching distutils.
         if args.download:
             import yaml
             print("Downloading %s (use --no-download to skip this step)" % package)
