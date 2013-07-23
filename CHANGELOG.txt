@@ -9,6 +9,7 @@
   * add PKG_CONFIG_PATH to build environment variables
   * fix entry point scripts pointing to wrong python when building Python 3
     packages
+  * allow source/sha1 in meta.yaml, issue 196
 
 
 2013-07-02   1.7.2:
