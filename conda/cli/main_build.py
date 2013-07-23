@@ -6,6 +6,10 @@
 
 from __future__ import print_function, division, absolute_import
 
+import subprocess
+
+from conda.cli import common
+
 help = "Build a package from a (conda) recipe. (ADVANCED)"
 
 descr = help + """  For examples of recipes, see:
@@ -14,6 +18,7 @@ https://github.com/ContinuumIO/conda-recipes"""
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)
 
+    common.add_parser_yes(p)
     p.add_argument(
         '-s', "--source",
         action  = "store_true",
@@ -73,8 +78,16 @@ def execute(args, parser):
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
 
-            print("""\
-# If you want to upload this package to binstar.org, type:
+            upload = common.confirm_yn(args, message="Do you want to upload this "
+                "package to binstar", default='no', exit_no=False)
+
+
+            if not upload:
+                print("""\
+# If you want to upload this package to binstar.org later, type:
 #
 # $ binstar upload %s
 """ % build.bldpkg_path(m) )
+                continue
+
+            subprocess.check_call(['binstar', 'upload', build.bldpkg_path(m)])
