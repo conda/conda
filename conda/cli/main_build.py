@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 import subprocess
 
 from conda.cli import common
+import conda.config as config
 
 help = "Build a package from a (conda) recipe. (ADVANCED)"
 
@@ -23,7 +24,7 @@ def configure_parser(sub_parsers):
         action = "store_false",
         help = "do not ask to upload the package to binstar",
         dest='binstar_upload',
-        default=True,
+        default=config.binstar_upload,
     )
     p.add_argument(
         '-s', "--source",
@@ -84,12 +85,13 @@ def execute(args, parser):
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
 
-            upload = False
-            if args.binstar_upload:
+            if args.binstar_upload is None:
                 args.yes = False
                 args.dry_run = False
                 upload = common.confirm_yn(args, message="Do you want to upload this "
                     "package to binstar", default='yes', exit_no=False)
+            else:
+                upload = args.binstar_upload
 
             if not upload:
                 print("""\

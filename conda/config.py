@@ -58,6 +58,7 @@ rc_list_keys = [
     ]
 rc_bool_keys = [
     'changeps1',
+    'binstar_upload',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -80,6 +81,7 @@ def load_condarc(path):
 rc = load_condarc(rc_path)
 
 changeps1 = rc.get('changeps1', True)
+binstar_upload = rc.get('binstar_upload', None) # None means ask
 
 # ----- channels -----
 
