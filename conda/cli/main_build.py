@@ -79,7 +79,7 @@ def execute(args, parser):
                 shutil.rmtree(recipe_dir)
 
             upload = common.confirm_yn(args, message="Do you want to upload this "
-                "package to binstar", default='no', exit_no=False)
+                "package to binstar", default='yes', exit_no=False)
 
 
             if not upload:
