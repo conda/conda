@@ -18,7 +18,13 @@ https://github.com/ContinuumIO/conda-recipes"""
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)
 
-    common.add_parser_yes(p)
+    p.add_argument(
+        "--no-binstar-upload",
+        action = "store_false",
+        help = "do not ask to upload the package to binstar",
+        dest='binstar_upload',
+        default=True,
+    )
     p.add_argument(
         '-s', "--source",
         action  = "store_true",
@@ -78,9 +84,12 @@ def execute(args, parser):
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
 
-            upload = common.confirm_yn(args, message="Do you want to upload this "
-                "package to binstar", default='yes', exit_no=False)
-
+            upload = False
+            if args.binstar_upload:
+                args.yes = False
+                args.dry_run = False
+                upload = common.confirm_yn(args, message="Do you want to upload this "
+                    "package to binstar", default='yes', exit_no=False)
 
             if not upload:
                 print("""\
@@ -90,4 +99,4 @@ def execute(args, parser):
 """ % build.bldpkg_path(m) )
                 continue
 
-            subprocess.check_call(['binstar', 'upload', build.bldpkg_path(m)])
+            subprocess.call(['binstar', 'upload', build.bldpkg_path(m)])
