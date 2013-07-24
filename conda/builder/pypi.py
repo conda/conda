@@ -106,6 +106,13 @@ def main(args, parser):
     client = ServerProxy(args.pypi_url)
     package_dicts = {}
     [output_dir] = args.output_dir
+
+    if len(args.package) > 1 and args.download:
+        # Because if a package's setup.py imports setuptools, it will make all
+        # future packages look like they depend on distribute. Also, who knows
+        # what kind of monkeypatching the setup.pys out there could be doing.
+        print("WARNING: building more than one recipe at once without "
+            "--no-download is not recommended")
     for package in args.packages:
         if exists(join(output_dir, package.lower())):
             raise RuntimeError("The directory %s already exists" % package.lower())
@@ -199,13 +206,16 @@ def main(args, parser):
                 print("working in %s" % tempdir)
                 src_dir = get_dir(tempdir)
                 patch_distutils(tempdir)
-                write_setuppy(src_dir)
+                run_setuppy(src_dir)
                 with open(join(tempdir, 'pkginfo.yaml')) as fn:
                     pkginfo = yaml.load(fn)
 
-                if pkginfo['install_requires']:
+                uses_distribute = 'setuptools' in sys.modules
+
+                if pkginfo['install_requires'] or uses_distribute:
                     deps = [remove_version_information(dep) for dep in pkginfo['install_requires']]
-                    d['build_depends'] = indent.join(['', 'distribute'] + deps)
+                    d['build_depends'] = indent.join([''] +
+                        ['distribute']*uses_distribute + deps)
                     d['run_depends'] = indent.join([''] + deps)
                 if pkginfo['entry_points']:
                     entry_list = pkginfo['entry_points']['console_scripts']
@@ -261,7 +271,7 @@ def patch_distutils(tempdir):
 
     distutils.core.setup = setup
 
-def write_setuppy(src_dir):
+def run_setuppy(src_dir):
     import sys
     sys.argv = ['setup.py', 'install']
     sys.path.insert(0, src_dir)
