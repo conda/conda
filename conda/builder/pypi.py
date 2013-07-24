@@ -107,7 +107,7 @@ def main(args, parser):
     package_dicts = {}
     [output_dir] = args.output_dir
 
-    if len(args.package) > 1 and args.download:
+    if len(args.packages) > 1 and args.download:
         # Because if a package's setup.py imports setuptools, it will make all
         # future packages look like they depend on distribute. Also, who knows
         # what kind of monkeypatching the setup.pys out there could be doing.
