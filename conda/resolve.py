@@ -288,6 +288,7 @@ class Resolve(object):
                             pass
                         else:
                             rem = set(specs) - set(comb)
+                            rem.discard('conda')
                             if len(rem) == 1:
                                 print("Hint: removing %s would help" %
                                     rem.pop())
