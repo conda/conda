@@ -277,32 +277,8 @@ class Resolve(object):
         solutions = min_sat(clauses)
 
         if len(solutions) == 0:
-            # Try to guess why.
             if guess:
-                # Try to find the largest satisfiable subset
-                found = False
-                for i in range(len(specs), 1, -1):
-                    if found:
-                        break
-                    for comb in combinations(specs, i):
-                        try:
-                            self.solve2(comb, features, guess=False)
-                        except RuntimeError:
-                            pass
-                        else:
-                            if not found:
-                                print("Hint, removing any of the following combinations results in satisfiable specifications:")
-                            rem = set(specs) - set(comb)
-                            rem.discard('conda')
-                            if len(rem) == 1:
-                                print("  - %s" % rem.pop())
-                            elif len(rem) == 2:
-                                print("  - %s and %s" % (rem.pop(), rem.pop()))
-                            else:
-                                print("  - %s" % ', and '.join(rem))
-
-                            found = True
-
+                print(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
@@ -311,6 +287,36 @@ class Resolve(object):
                 print('\t', [w[lit] for lit in sol if lit > 0])
 
         return [w[lit] for lit in solutions.pop() if lit > 0]
+
+    def guess_bad_solve(self, specs, features):
+        # TODO: Check features as well
+        hint = []
+        # Try to find the largest satisfiable subset
+        found = False
+        for i in range(len(specs), 0, -1):
+            if found:
+                break
+            for comb in combinations(specs, i):
+                try:
+                    self.solve2(comb, features, guess=False)
+                except RuntimeError:
+                    pass
+                else:
+                    rem = set(specs) - set(comb)
+                    rem.discard('conda')
+                    if len(rem) == 1:
+                        hint.append("  - %s" % rem.pop())
+                    else:
+                        hint.append("  - %s" % ' and '.join(rem))
+
+                    found = True
+        if not hint:
+            return ''
+        if len(hint) == 1:
+            return ("Hint, removing the following makes the remainder "
+                "satisfiable:\n%s" % hint[0])
+        return ("Hint, removing any of the following makes the remainder "
+                "satisfiable:\n%s" % '\n'.join(hint))
 
     def explicit(self, specs):
         """
