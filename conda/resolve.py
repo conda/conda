@@ -280,25 +280,28 @@ class Resolve(object):
             # Try to guess why.
             if guess:
                 # Try to find the largest satisfiable subset
+                found = False
                 for i in range(len(specs), 1, -1):
+                    if found:
+                        break
                     for comb in combinations(specs, i):
                         try:
                             self.solve2(comb, features, guess=False)
                         except RuntimeError:
                             pass
                         else:
+                            if not found:
+                                print("Hint, removing any of the following combinations results in satisfiable specifications:")
                             rem = set(specs) - set(comb)
                             rem.discard('conda')
                             if len(rem) == 1:
-                                print("Hint: removing %s would help" %
-                                    rem.pop())
+                                print("  - %s" % rem.pop())
                             elif len(rem) == 2:
-                                print("Hint: removing %s and %s would help" %
-                                    (rem.pop(), rem.pop()))
+                                print("  - %s and %s" % (rem.pop(), rem.pop()))
                             else:
-                                print("Hint: removing %s would help" % ', and '.join(rem))
+                                print("  - %s" % ', and '.join(rem))
 
-                            raise RuntimeError("Unsatisfiable package specifications")
+                            found = True
 
             raise RuntimeError("Unsatisfiable package specifications")
 
