@@ -278,7 +278,9 @@ class Resolve(object):
 
         if len(solutions) == 0:
             if guess:
+                print("Error: Unsatisfiable package specifications")
                 print(self.guess_bad_solve(specs, features))
+                sys.exit(1)
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
