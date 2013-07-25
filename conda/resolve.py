@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import islice
+from itertools import islice, combinations
 from collections import defaultdict
 
 from conda import verlib
@@ -279,17 +279,26 @@ class Resolve(object):
         if len(solutions) == 0:
             # Try to guess why.
             if guess:
-                bad = []
-                for i in range(len(specs)):
-                    try:
-                        self.solve2(specs[:i] + specs[i+1:], features,
-                            guess=False)
-                    except RuntimeError:
-                        pass
-                    else:
-                        bad.append(specs[i])
-                if bad:
-                    print("Hint: Removing %s would help" % ' or '.join(bad))
+                # Try to find the largest satisfiable subset
+                for i in range(len(specs), 1, -1):
+                    for comb in combinations(specs, i):
+                        try:
+                            self.solve2(comb, features, guess=False)
+                        except RuntimeError:
+                            pass
+                        else:
+                            rem = set(specs) - set(comb)
+                            if len(rem) == 1:
+                                print("Hint: removing %s would help" %
+                                    rem.pop())
+                            elif len(rem) == 2:
+                                print("Hint: removing %s and %s would help" %
+                                    (rem.pop(), rem.pop()))
+                            else:
+                                print("Hint: removing %s would help" % ', and '.join(rem))
+
+                            raise RuntimeError("Unsatisfiable package specifications")
+
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
