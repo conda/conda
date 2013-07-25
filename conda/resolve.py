@@ -305,18 +305,17 @@ class Resolve(object):
                     rem = set(specs) - set(comb)
                     rem.discard('conda')
                     if len(rem) == 1:
-                        hint.append("  - %s" % rem.pop())
+                        hint.append("%s" % rem.pop())
                     else:
-                        hint.append("  - %s" % ' and '.join(rem))
+                        hint.append("%s" % ' and '.join(rem))
 
                     found = True
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("Hint, removing the following makes the remainder "
-                "satisfiable:\n%s" % hint[0])
-        return ("Hint, removing any of the following makes the remainder "
-                "satisfiable:\n%s" % '\n'.join(hint))
+            return ("Hint, %s has a conflict with the remaining packages" % hint[0])
+        return ("Hint, the following combinations of packages create a "
+            "conflict with the remaining packages \n  - %s" % '\n  - '.join(hint))
 
     def explicit(self, specs):
         """
