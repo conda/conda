@@ -258,7 +258,7 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
-    def solve2(self, specs, features):
+    def solve2(self, specs, features, guess=True):
         dists = set()
         for spec in specs:
             for fn in self.get_max_dists(MatchSpec(spec)):
@@ -277,6 +277,19 @@ class Resolve(object):
         solutions = min_sat(clauses)
 
         if len(solutions) == 0:
+            # Try to guess why.
+            if guess:
+                bad = []
+                for i in range(len(specs)):
+                    try:
+                        self.solve2(specs[:i] + specs[i+1:], features,
+                            guess=False)
+                    except RuntimeError:
+                        pass
+                    else:
+                        bad.append(specs[i])
+                if bad:
+                    print("Hint: Removing %s would help" % ' or '.join(bad))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
