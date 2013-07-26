@@ -20,8 +20,7 @@ Remove unused packages and caches
 
 example = """
 examples:
-    conda clean --all the things
-    conda clean put a real example here
+    conda clean --tarballs
 """
 
 def configure_parser(sub_parsers):
