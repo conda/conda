@@ -57,7 +57,7 @@ requirements:
 test:
   # Python imports
   imports:
-    - {orig_packagename}{run_depends}
+    - {orig_packagename}
 
   {build_comment}commands:
     # You can put test commands to be run here.  Use this to test that the
@@ -67,9 +67,10 @@ test:
   # You can also put a file called run_test.py in the recipe that will be run
   # at test time.
 
-  # requires:
+  {test_requires_comment}requires:
     # Put any test requirements here.  For example
     # - nose
+    {run_depends}
 
 about:
   home: {homeurl}
@@ -120,7 +121,7 @@ def main(args, parser):
         d = package_dicts.setdefault(package, {'packagename':
             package.lower(), 'orig_packagename': package, 'run_depends':'',
             'build_depends':'', 'entry_points':'', 'build_comment':'# ',
-            'test_commands':'', 'usemd5':''})
+            'test_commands':'', 'usemd5':'', "test_requires_comment": '# '})
         if args.version:
             [version] = args.version
             versions = client.package_releases(package, True)
@@ -230,6 +231,8 @@ def main(args, parser):
                     d['build_depends'] = indent.join([''] +
                         ['distribute']*uses_distribute + deps)
                     d['run_depends'] = indent.join([''] + deps)
+                    if d['run_depends']:
+                        d['test_requires_comment'] = ''
                 if pkginfo['entry_points']:
                     if not isinstance(pkginfo['entry_points'], dict):
                         print("WARNING: Could not add entry points. They were:")
