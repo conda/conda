@@ -53,7 +53,7 @@ on_win = bool(sys.platform == 'win32')
 
 # on Windows we cannot update these packages in the root environment because
 # of the file lock problem
-win_ignore = set(['python', 'pycosat', 'menuinst'])
+win_ignore = set(['python', 'pycosat', 'menuinst', 'psutil'])
 
 if on_win:
     import ctypes
