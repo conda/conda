@@ -10,11 +10,10 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
+import sys
 from logging import getLogger
-
 from collections import defaultdict
 from os.path import abspath, isfile, join, dirname
-import sys
 
 from conda import config
 from conda import install
@@ -194,7 +193,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     # Here is a temporary fix to prevent adding conda to the specs;
     # Bootstrapping problem: conda is not available as a conda package for
     # py3k yet.
-    import sys
     PY3 = sys.version_info[0] == 3
 
     if is_root_prefix(prefix) and not PY3:
