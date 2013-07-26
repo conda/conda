@@ -114,7 +114,12 @@ class MetaData(object):
         return res
 
     def version(self):
-        return self.get_value('package/version')
+        res = self.get_value('package/version')
+        for c in '-=!@#$%^&*:;"\'\\|<>?/':
+            if c in res:
+                sys.exit("Error: bad character '%s' in package/version: %s" %
+                         (c, res))
+        return res
 
     def build_number(self):
         return int(self.get_value('build/number', 0))
