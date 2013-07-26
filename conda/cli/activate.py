@@ -48,10 +48,6 @@ def main():
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
-    elif sys.argv[1] == '..changeps1':
-        print(int(conda.config.changeps1))
-        sys.exit(0)
-
     elif sys.argv[1] == '..checkenv':
         binpath = join(conda.config.root_dir, 'envs', sys.argv[2], 'bin')
         if not isdir(binpath):
