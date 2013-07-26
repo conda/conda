@@ -52,7 +52,7 @@ requirements:
     - python{build_depends}
 
   run:
-    - python{run_depends}
+    - python
 
 test:
   # Python imports
@@ -68,7 +68,7 @@ test:
   # at test time.
 
   # requires:
-    # Put any test requirements here.  For example
+    # Put any additional test requirements here.  For example
     # - nose
 
 about:
