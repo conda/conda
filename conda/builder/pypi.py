@@ -57,7 +57,7 @@ requirements:
 test:
   # Python imports
   imports:
-    - {orig_packagename}
+    - {orig_packagename}{run_depends}
 
   {build_comment}commands:
     # You can put test commands to be run here.  Use this to test that the
