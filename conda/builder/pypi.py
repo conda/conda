@@ -283,7 +283,7 @@ def run_setuppy(src_dir):
     import sys
     sys.argv = ['setup.py', 'install']
     sys.path.insert(0, src_dir)
-    d = {}
+    d = {'__file__': 'setup.py', '__name__': '__main__'}
     cwd = getcwd()
     chdir(src_dir)
     execfile(join(src_dir, 'setup.py'), d)
