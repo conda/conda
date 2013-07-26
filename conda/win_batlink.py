@@ -29,7 +29,6 @@ hard links.
 
 """
 
-import platform
 from os.path import join, abspath, split
 from distutils.spawn import find_executable
 
