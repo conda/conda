@@ -60,6 +60,7 @@ from conda.cli import main_share
 from conda.cli import main_update
 from conda.cli import main_skeleton
 from conda.cli import main_config
+from conda.cli import main_clean
 
 # Borrowed from SymPy
 from textwrap import fill, dedent
@@ -115,6 +116,7 @@ def main():
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
+    main_clean.configure_parser(sub_parsers)
 
     args = p.parse_args()
 
