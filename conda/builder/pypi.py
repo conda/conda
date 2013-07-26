@@ -235,7 +235,9 @@ def main(args, parser):
                         print("WARNING: Could not add entry points. They were:")
                         print(pkginfo['entry_points'])
                     else:
-                        entry_list = pkginfo['entry_points']['console_scripts']
+                        entry_list = (
+                            pkginfo['entry_points'].get('console_scripts', [])
+                            + pkginfo['entry_points'].get('gui_scripts', []))
                         d['entry_points'] = indent.join([''] + entry_list)
                         d['build_comment'] = ''
                         d['test_commands'] = indent.join([''] + make_entry_tests(entry_list))
