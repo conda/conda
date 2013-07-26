@@ -231,7 +231,7 @@ def main(args, parser):
                         ['distribute']*uses_distribute + deps)
                     d['run_depends'] = indent.join([''] + deps)
                 if pkginfo['entry_points']:
-                    if not isinstance(pkginfo['entry_points'], list):
+                    if not isinstance(pkginfo['entry_points'], dict):
                         print("WARNING: Could not add entry points. They were:")
                         print(pkginfo['entry_points'])
                     else:
