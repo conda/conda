@@ -213,6 +213,11 @@ def main(args, parser):
                 print("done")
                 print("working in %s" % tempdir)
                 src_dir = get_dir(tempdir)
+                # TODO: Do this in a subprocess. That way would be safer (the
+                # setup.py can't mess up this code), it will allow building
+                # multiple recipes without a setuptools import messing
+                # everyone up, and it would prevent passing __future__ imports
+                # through.
                 patch_distutils(tempdir)
                 run_setuppy(src_dir)
                 with open(join(tempdir, 'pkginfo.yaml')) as fn:
