@@ -237,6 +237,7 @@ def main(args, parser):
                     else:
                         entry_list = (
                             pkginfo['entry_points'].get('console_scripts', [])
+                            # TODO: Use pythonw for these
                             + pkginfo['entry_points'].get('gui_scripts', []))
                         d['entry_points'] = indent.join([''] + entry_list)
                         d['build_comment'] = ''
