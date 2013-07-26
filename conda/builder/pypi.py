@@ -8,6 +8,7 @@ import sys
 from os import makedirs, listdir, getcwd, chdir
 from os.path import join, isdir, exists, isfile
 from tempfile import mkdtemp
+from collections import defaultdict
 
 if sys.version_info < (3,):
     from xmlrpclib import ServerProxy
@@ -27,7 +28,7 @@ package:
 source:
   fn: {filename}
   url: {pypiurl}
-  md5: {md5}
+  {usemd5}md5: {md5}
 #  patches:
    # List any patch files here
    # - fix.patch
@@ -119,7 +120,7 @@ def main(args, parser):
         d = package_dicts.setdefault(package, {'packagename':
             package.lower(), 'orig_packagename': package, 'run_depends':'',
             'build_depends':'', 'entry_points':'', 'build_comment':'# ',
-            'test_commands':''})
+            'test_commands':'', 'usemd5':''})
         if args.version:
             [version] = args.version
             versions = client.package_releases(package, True)
@@ -139,12 +140,18 @@ def main(args, parser):
                 print("Use --version to specify a different version.")
             d['version'] = versions[-1]
 
+        data = client.release_data(package, d['version'])
         urls = client.release_urls(package, d['version'])
         if not args.all_urls:
             # Try to find source urls
             urls = [url for url in urls if url['python_version'] == 'source']
         if not urls:
-            sys.exit("Error: No source urls found for %s" % package)
+            if 'download_url' in data:
+                urls = [defaultdict(str, {'url': data['download_url']})]
+                urls[0]['filename'] = urls[0]['url'].split('/')[-1]
+                d['usemd5'] = '#'
+            else:
+                sys.exit("Error: No source urls found for %s" % package)
         if len(urls) > 1:
             print("More than one source version is available for %s:" % package)
             for i, url in enumerate(urls):
@@ -160,7 +167,7 @@ def main(args, parser):
         d['md5'] = urls[n]['md5_digest']
         d['filename'] = urls[n]['filename']
 
-        data = client.release_data(package, d['version'])
+
         d['homeurl'] = data['home_page']
         license_classifier = "License :: OSI Approved ::"
         licenses = [classifier.lstrip(license_classifier) for classifier in
