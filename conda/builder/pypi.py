@@ -56,7 +56,7 @@ requirements:
 test:
   # Python imports
   imports:
-    - {packagename}
+    - {orig_packagename}
 
   {build_comment}commands:
     # You can put test commands to be run here.  Use this to test that the
@@ -116,9 +116,10 @@ def main(args, parser):
     for package in args.packages:
         if exists(join(output_dir, package.lower())):
             raise RuntimeError("The directory %s already exists" % package.lower())
-        d = package_dicts.setdefault(package, {'packagename': package.lower(),
-            'run_depends':'', 'build_depends':'', 'entry_points':'',
-            'build_comment':'# ', 'test_commands':''})
+        d = package_dicts.setdefault(package, {'packagename':
+            package.lower(), 'orig_packagename': package, 'run_depends':'',
+            'build_depends':'', 'entry_points':'', 'build_comment':'# ',
+            'test_commands':''})
         if args.version:
             [version] = args.version
             versions = client.package_releases(package, True)
