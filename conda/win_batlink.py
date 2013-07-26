@@ -29,9 +29,8 @@ hard links.
 
 """
 
-import os.path
-from os.path import join, isdir, abspath, dirname
 import platform
+from os.path import join, abspath, split
 
 # Redirect stderr on the mkdirs to ignore errors about directories that
 # already exist
@@ -74,7 +73,7 @@ def make_bat_link(files, prefix, dist_dir):
     dirs = set()
     for file in files:
         source = abspath(join(dist_dir, file))
-        fdn, fbn = os.path.split(file)
+        fdn, fbn = split(file)
         dst_dir = join(prefix, fdn)
         dirs.add(abspath(dst_dir))
         dest = abspath(join(dst_dir, fbn))
@@ -84,7 +83,8 @@ def make_bat_link(files, prefix, dist_dir):
     # about the order
     mkdirs = [MAKE_DIR.format(dst_dir=dn) for dn in dirs]
 
-    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links), mkdirs='\n'.join(mkdirs))
+    batchfile = BAT_LINK_HEADER.format(links='\n'.join(links),
+                                       mkdirs='\n'.join(mkdirs))
 
     return batchfile
 
