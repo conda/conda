@@ -345,7 +345,7 @@ def execute_plan(plan, index=None, verbose=False):
             getLogger('progress.stop').info(None)
 
 
-    batfiles = []
+    batfiles = ['sleep 3'] # Wait for conda to exit
     for cmd, arg in wincmds:
         batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
     batfiles.append("""
