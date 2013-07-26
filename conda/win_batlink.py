@@ -36,13 +36,12 @@ from distutils.spawn import find_executable
 # already exist
 BAT_LINK_HEADER = """\
 @echo off
-> NUL (
-{mkdirs}
-)
 
-> NUL (
+{mkdirs}
+
+
 {links}
-)
+
 """
 
 # Hide stderr for this one because it warns about nonempty directories, like
@@ -50,11 +49,11 @@ BAT_LINK_HEADER = """\
 BAT_UNLINK_HEADER = """\
 @echo off
 
-> NUL (
+
 {filedeletes}
 
 {dirdeletes}
-)
+
 """
 
 WINXP_LINK = "fsutil.exe hardlink create {dest} {source}"
