@@ -31,6 +31,7 @@ hard links.
 
 import platform
 from os.path import join, abspath, split
+from distutils.spawn import find_executable
 
 # Redirect stderr on the mkdirs to ignore errors about directories that
 # already exist
@@ -69,7 +70,8 @@ DIR_DELETE = "rmdir /Q {dest}"
 
 def make_bat_link(files, prefix, dist_dir):
     links = []
-    LINK = WINXP_LINK if platform.win32_ver()[0] == 'XP' else WINVISTA_LINK
+    has_mklink = find_executable('mklink')
+    LINK =  WINVISTA_LINK if has_mklink else WINXP_LINK
     dirs = set()
     for file in files:
         source = abspath(join(dist_dir, file))
