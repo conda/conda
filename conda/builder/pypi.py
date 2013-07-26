@@ -286,7 +286,8 @@ def run_setuppy(src_dir):
     d = {'__file__': 'setup.py', '__name__': '__main__'}
     cwd = getcwd()
     chdir(src_dir)
-    execfile(join(src_dir, 'setup.py'), d)
+    with open(join(src_dir, 'setup.py')) as f:
+        exec(compile(f.read(), 'setup.py', 'exec'), d)
     chdir(cwd)
 
 def remove_version_information(pkgstr):
