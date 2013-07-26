@@ -52,7 +52,7 @@ requirements:
     - python{build_depends}
 
   run:
-    - python
+    - python{run_depends}
 
 test:
   # Python imports
