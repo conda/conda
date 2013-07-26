@@ -36,7 +36,7 @@ from distutils.spawn import find_executable
 # already exist
 BAT_LINK_HEADER = """\
 @echo off
-> NUL 2>&1 (
+> NUL (
 {mkdirs}
 )
 
@@ -50,7 +50,7 @@ BAT_LINK_HEADER = """\
 BAT_UNLINK_HEADER = """\
 @echo off
 
-> NUL 2>&1 (
+> NUL (
 {filedeletes}
 
 {dirdeletes}
