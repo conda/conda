@@ -1,5 +1,8 @@
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
+
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 import shutil
@@ -8,10 +11,10 @@ from collections import defaultdict
 from distutils.spawn import find_executable
 from os.path import abspath, basename, expanduser, join
 
-import config
-import install
-from plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
-
+from conda import config
+from conda import install
+from conda.plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
+from conda.compat import iteritems
 
 
 def install_local_packages(prefix, paths, verbose=False):
@@ -50,7 +53,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
     env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
     # copy existing environment variables, but not anything with PATH in it
-    for k, v in os.environ.iteritems():
+    for k, v in iteritems(os.environ):
         if 'PATH' not in k:
             env[k] = v
     # allow updating environment variables from metadata
@@ -88,4 +91,4 @@ if __name__ == '__main__':
     if not fn.endswith('.tar.bz2'):
         fn += '.tar.bz2'
     p = launch(fn, opts.prefix, args[1:])
-    print 'PID:', p.pid
+    print('PID:', p.pid)

@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import re
 import sys
 from os.path import isdir, join
@@ -6,13 +8,14 @@ from conda.utils import memoized, md5_file
 import conda.config as config
 from conda.resolve import MatchSpec
 
-from config import CONDA_PY, CONDA_NPY
+from conda.builder.config import CONDA_PY, CONDA_NPY
 
 import yaml
 
 
 
 def ns_cfg():
+    # Remember to update the docs of any of this changes
     plat = config.subdir
     py = CONDA_PY
     np = CONDA_NPY
@@ -111,7 +114,12 @@ class MetaData(object):
         return res
 
     def version(self):
-        return self.get_value('package/version')
+        res = self.get_value('package/version')
+        for c in '-=!@#$%^&*:;"\'\\|<>?/':
+            if c in res:
+                sys.exit("Error: bad character '%s' in package/version: %s" %
+                         (c, res))
+        return res
 
     def build_number(self):
         return int(self.get_value('build/number', 0))
@@ -122,7 +130,11 @@ class MetaData(object):
             ms = MatchSpec(spec)
             for name, ver in [('python', CONDA_PY), ('numpy', CONDA_NPY)]:
                 if ms.name == name:
-                    assert ms.strictness == 1
+                    if ms.strictness != 1:
+                        sys.exit("""Error:
+    You cannot specify a version for package '%s' in the requirements.
+    Please use the environment variables CONDA_PY or CONDA_NPY.
+""" % name)
                     ms = MatchSpec('%s %s*' % (name, '.'.join(str(ver))))
             res.append(ms)
         return res

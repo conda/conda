@@ -4,7 +4,9 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import common
+from __future__ import print_function, division, absolute_import
+
+from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
 
@@ -75,12 +77,12 @@ def execute(args, parser):
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             dist = pkg.fn[:-8]
             if args.canonical:
-                print dist
+                print(dist)
                 continue
             inst = '*' if dist in linked else ' '
-            print '%-25s %s  %-15s %15s  %s' % (
+            print('%-25s %s  %-15s %15s  %s' % (
                 disp_name, inst,
                 pkg.version,
                 r.index[pkg.fn]['build'],
-                common.disp_features(r.features(pkg.fn)))
+                common.disp_features(r.features(pkg.fn))) )
             disp_name = ''

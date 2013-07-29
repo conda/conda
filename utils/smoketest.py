@@ -58,21 +58,21 @@ def tester(commands):
     fails = []
     for cmd in cmds:
         cmd = "conda %s" % cmd
-        print "-"*len(cmd)
-        print "%s" % cmd
-        print "-"*len(cmd)
+        print("-"*len(cmd))
+        print("%s" % cmd)
+        print("-"*len(cmd))
         try:
             child = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE, shell=status)
             data, err = child.communicate()
             ret = child.returncode
             if ret != 0:
-                print "\nFAILED\n"
+                print("\nFAILED\n")
                 errs.append("\n%s\n \n%s" % (cmd, err))
                 fails.append(cmd)
             else:
-                print "\nPASSED\n"
+                print("\nPASSED\n")
         except Exception as e:
-            print e
+            print(e)
             errs.append("\nThe script had the following error running %s: %s" % (cmd, e))
 
     return (fails, errs)
@@ -91,12 +91,12 @@ if __name__ == '__main__':
 
     fails, errs = tester(cmds)
     if fails:
-        print "These commands failed: \n"
+        print("These commands failed: \n")
         for line, fail in enumerate(fails, 1):
-            print "%d: %s\n" % (line, fail)
+            print("%d: %s\n" % (line, fail))
         header = 'Test Results For %s' % time.asctime()
         if options and 'log' in sys.argv:
-            print "Writing failed commands to conda-testlog.txt"
+            print("Writing failed commands to conda-testlog.txt")
             with open(TESTLOG, "a") as f:
                 f.write('%s\n%s\n' % (header, '-'*len(header)))
                 for error in errs:

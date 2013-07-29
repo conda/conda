@@ -1,12 +1,14 @@
+from __future__ import print_function, division, absolute_import
+
 import re
 import sys
 import logging
-from itertools import islice
+from itertools import islice, combinations
 from collections import defaultdict
 
-import verlib
-from utils import memoize
-
+from conda import verlib
+from conda.utils import memoize
+from conda.compat import itervalues, iteritems
 
 log = logging.getLogger(__name__)
 
@@ -81,16 +83,42 @@ class Package(object):
         except verlib.IrrationalVersionError:
             self.norm_version = self.version
 
-    def __cmp__(self, other):
+    # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
+#     def __cmp__(self, other):
+#         if self.name != other.name:
+#             raise ValueError('cannot compare packages with different '
+#                              'names: %r %r' % (self.fn, other.fn))
+#         try:
+#             return cmp((self.norm_version, self.build_number),
+#                       (other.norm_version, other.build_number))
+#         except TypeError:
+#             return cmp((self.version, self.build_number),
+#                       (other.version, other.build_number))
+
+    def __lt__(self, other):
         if self.name != other.name:
             raise ValueError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
-            return cmp((self.norm_version, self.build_number),
-                       (other.norm_version, other.build_number))
+            return ((self.norm_version, self.build_number) <
+                      (other.norm_version, other.build_number))
         except TypeError:
-            return cmp((self.version, self.build_number),
-                       (other.version, other.build_number))
+            return ((self.version, self.build_number) <
+                      (other.version, other.build_number))
+
+    def __eq__(self, other):
+        if self.name != other.name:
+            raise ValueError('cannot compare packages with different '
+                             'names: %r %r' % (self.fn, other.fn))
+        try:
+            return ((self.norm_version, self.build_number) ==
+                      (other.norm_version, other.build_number))
+        except TypeError:
+            return ((self.version, self.build_number) ==
+                      (other.version, other.build_number))
+
+    def __gt__(self, other):
+        return not (self.__lt__(other) or self.__eq__(other))
 
     def __repr__(self):
         return '<Package %s>' % self.fn
@@ -109,7 +137,7 @@ def min_sat(clauses, max_n=1000):
     """
     import pycosat
 
-    min_tl, solutions = sys.maxint, []
+    min_tl, solutions = sys.maxsize, []
     for sol in islice(pycosat.itersolve(clauses), max_n):
         tl = sum(lit > 0 for lit in sol) # number of true literals
         if tl < min_tl:
@@ -125,7 +153,7 @@ class Resolve(object):
     def __init__(self, index):
         self.index = index
         self.groups = defaultdict(list) # map name to list of filenames
-        for fn, info in index.iteritems():
+        for fn, info in iteritems(index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
 
@@ -158,6 +186,7 @@ class Resolve(object):
 
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms)
+
         if not pkgs:
             raise RuntimeError("No packages found matching: %s" % ms)
         maxpkg = max(pkgs)
@@ -185,7 +214,7 @@ class Resolve(object):
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
-        for filenames in groups.itervalues():
+        for filenames in itervalues(groups):
             # ensure packages with the same name conflict
             for fn1 in filenames:
                 v1 = v[fn1]
@@ -229,7 +258,7 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
-    def solve2(self, specs, features):
+    def solve2(self, specs, features, guess=True):
         dists = set()
         for spec in specs:
             for fn in self.get_max_dists(MatchSpec(spec)):
@@ -248,14 +277,47 @@ class Resolve(object):
         solutions = min_sat(clauses)
 
         if len(solutions) == 0:
+            if guess:
+                print("Error: Unsatisfiable package specifications")
+                print(self.guess_bad_solve(specs, features))
+                sys.exit(1)
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
-            print 'Warning:', len(solutions)
+            print('Warning:', len(solutions))
             for sol in solutions:
-                print '\t', [w[lit] for lit in sol if lit > 0]
+                print('\t', [w[lit] for lit in sol if lit > 0])
 
         return [w[lit] for lit in solutions.pop() if lit > 0]
+
+    def guess_bad_solve(self, specs, features):
+        # TODO: Check features as well
+        hint = []
+        # Try to find the largest satisfiable subset
+        found = False
+        for i in range(len(specs), 0, -1):
+            if found:
+                break
+            for comb in combinations(specs, i):
+                try:
+                    self.solve2(comb, features, guess=False)
+                except RuntimeError:
+                    pass
+                else:
+                    rem = set(specs) - set(comb)
+                    rem.discard('conda')
+                    if len(rem) == 1:
+                        hint.append("%s" % rem.pop())
+                    else:
+                        hint.append("%s" % ' and '.join(rem))
+
+                    found = True
+        if not hint:
+            return ''
+        if len(hint) == 1:
+            return ("Hint, %s has a conflict with the remaining packages" % hint[0])
+        return ("Hint, the following combinations of packages create a "
+            "conflict with the remaining packages \n  - %s" % '\n  - '.join(hint))
 
     def explicit(self, specs):
         """

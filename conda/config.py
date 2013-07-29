@@ -4,6 +4,8 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 import logging
@@ -49,9 +51,20 @@ else:
 
 # ----- rc file -----
 
+# This is used by conda config to check which keys are allowed in the config
+# file. Be sure to update it when new keys are added.
+rc_list_keys = [
+    'channels',
+    ]
+rc_bool_keys = [
+    'changeps1',
+    'binstar_upload',
+    ]
+
+user_rc_path = abspath(expanduser('~/.condarc'))
+sys_rc_path = join(sys.prefix, '.condarc')
 def get_rc_path():
-    for path in [abspath(expanduser('~/.condarc')),
-                 join(sys.prefix, '.condarc')]:
+    for path in [user_rc_path, sys_rc_path]:
         if isfile(path):
             return path
     return None
@@ -68,6 +81,7 @@ def load_condarc(path):
 rc = load_condarc(rc_path)
 
 changeps1 = rc.get('changeps1', True)
+binstar_upload = rc.get('binstar_upload', None) # None means ask
 
 # ----- channels -----
 

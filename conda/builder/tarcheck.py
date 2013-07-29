@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import json
 import tarfile
 from os.path import basename
@@ -20,7 +22,7 @@ class TarCheck(object):
         self.name, self.version, self.build = self.dist.rsplit('-', 2)
 
     def info_files(self):
-        lista = [p.strip() for p in
+        lista = [p.strip().decode('utf-8') for p in
                  self.t.extractfile('info/files').readlines()]
         seta = set(lista)
         if len(lista) != len(seta):
@@ -36,13 +38,13 @@ class TarCheck(object):
             return
         for p in sorted(seta | setb):
             if p not in seta:
-                print '%r not in info/files' % p
+                print('%r not in info/files' % p)
             if p not in setb:
-                print '%r not in tarball' % p
+                print('%r not in tarball' % p)
         raise Exception('info/files')
 
     def index_json(self):
-        info = json.load(self.t.extractfile('info/index.json'))
+        info = json.loads(self.t.extractfile('info/index.json').read().decode('utf-8'))
         for varname in 'name', 'version', 'build':
             if info[varname] != getattr(self, varname):
                 raise Exception('%s: %r != %r' % (varname, info[varname],

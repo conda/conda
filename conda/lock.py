@@ -15,10 +15,14 @@ globally (such as downloading packages).
 
 """
 
+from __future__ import print_function, division, absolute_import
+
 from os.path import join
 from os import rmdir, makedirs
 
-import config
+import errno
+
+from conda import config
 
 
 def create_lock(path, name):
@@ -29,7 +33,10 @@ def create_lock(path, name):
     # Note, we do this instead of os.path.exists to avoid race conditions
     try:
         makedirs(join(path, name))
-    except OSError:
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise RuntimeError("LOCKERROR: Could not create the lock %s: %s" %
+                (join(path, name), e.strerror))
         return False
     return True
 
@@ -59,3 +66,9 @@ class Locked(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         remove_lock(self.path, self.name)
+        try:
+            # Remove the locked path if it is empty, since this means that it
+            # did not exist when we created the lock.
+            rmdir(self.path)
+        except OSError:
+            pass

@@ -4,11 +4,22 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-import urllib2
-import urlparse
+from __future__ import print_function, division, absolute_import
+
 from logging import getLogger
 import config
 
+import sys
+if sys.version_info < (3,):
+    # Python 2.x
+    import urllib2
+    import urlparse
+else:
+    # Python 3.x
+    import urllib.request as urllib2
+    from urllib import parse as urlparse
+
+from conda.compat import iteritems
 
 log = getLogger(__name__)
 
@@ -81,7 +92,7 @@ def connectionhandled_urlopen(url):
             #decrease user input. otherwise you'd need to assign a user/pwd to
             #each proxy type
             if firstconnection == True:
-                for aprotocol, aproxy in proxies_dict.iteritems():
+                for aprotocol, aproxy in iteritems(proxies_dict):
                     proxypwdmgr.add_password(None, aproxy, uname, pword)
                 firstconnection == False
             else:#...assign a uname pwd for the specific protocol proxy type

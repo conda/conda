@@ -4,6 +4,8 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 help = """\
 Build skeleton recipes for packages from popular package hosting sites.
 """
@@ -50,6 +52,16 @@ def configure_parser(sub_parsers):
         nargs=1,
         default='http://pypi.python.org/pypi',
         help = "Url to use for PyPI",
+        )
+    pypi.add_argument(
+        "--no-download",
+        action = "store_false",
+        dest = "download",
+        default=True,
+        help="""Don't download the package. This will keep the recipe from
+        finding the right dependencies and entry points if the package uses
+        distribute.  WARNING: The default option downloads and runs the
+        package's setup.py script."""
         )
     p.set_defaults(func=execute)
 

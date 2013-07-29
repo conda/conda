@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import re
 import sys
@@ -126,7 +128,7 @@ def fix_shebang(tmp_dir, path):
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, 'w') as fo:
         fo.write(data)
-    os.chmod(tmp_path, 0755)
+    os.chmod(tmp_path, int('755', 8))
     return True
 
 
@@ -168,8 +170,8 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
             path = join(tmp_dir, basename(path))
             has_prefix.append(f)
         t.add(path, f)
-        h.update(f)
-        h.update('\x00')
+        h.update(f.encode('utf-8'))
+        h.update('\x00'.encode('utf-8'))
         if islink(path):
             link = os.readlink(path)
             h.update(link)
@@ -194,9 +196,9 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
                 files=None):
     if files is None:
         files = untracked(prefix)
-    print "# files: %d" % len(files)
+    print("# files: %d" % len(files))
     if len(files) == 0:
-        print "# failed: nothing to do"
+        print("# failed: nothing to do")
         return None
 
     if any('/site-packages/' in f for f in files):
@@ -209,8 +211,8 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     info = create_info(name, version, build_number, requires_py)
     tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     create_conda_pkg(prefix, files, info, tarbz2_fn)
-    print '# success'
-    print tarbz2_fn
+    print('# success')
+    print(tarbz2_fn)
     return tarbz2_fn
 
 

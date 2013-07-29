@@ -1,18 +1,23 @@
+from __future__ import print_function, division, absolute_import
+
 import hashlib
 import collections
 from functools import partial
 
 
 
-def md5_file(path):
+def hashsum_file(path, mode='md5'):
     with open(path, 'rb') as fi:
-        h = hashlib.new('md5')
+        h = hashlib.new(mode)
         while True:
             chunk = fi.read(262144)
             if not chunk:
                 break
             h.update(chunk)
     return h.hexdigest()
+
+def md5_file(path):
+    return hashsum_file(path, 'md5')
 
 
 def human_bytes(n):

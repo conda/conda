@@ -4,15 +4,16 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
+from __future__ import print_function, division, absolute_import
+
 from argparse import RawDescriptionHelpFormatter
 
-import common
+from conda.cli import common
 
 
 descr = ("Create a new conda environment from a list of specified "
-         "packages.  To use the created environment, invoke the binaries "
-         "in that environment's bin directory or adjust your PATH to "
-         "look in that directory first.  This command requires either "
+         "packages.  To use the created environment, use 'source activate "
+         "envname' look in that directory first.  This command requires either "
          "the -n NAME or -p PREFIX option.")
 
 example = """
@@ -85,11 +86,11 @@ def execute(args, parser):
     actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
-        print 'No matching packages could be found, nothing to do'
+        print('No matching packages could be found, nothing to do')
         return
 
-    print
-    print "Package plan for creating environment at %s:" % prefix
+    print()
+    print("Package plan for creating environment at %s:" % prefix)
     plan.display_actions(actions, index)
 
     common.confirm_yn(args)
@@ -99,10 +100,10 @@ def execute(args, parser):
         activate_name = prefix
         if args.name:
             activate_name = args.name
-        print "#"
-        print "# To activate this environment, use:"
-        print "# $ source activate %s" % activate_name
-        print "#"
-        print "# To deactivate this environment, use:"
-        print "# $ source deactivate"
-        print "#"
+        print("#")
+        print("# To activate this environment, use:")
+        print("# $ source activate %s" % activate_name)
+        print("#")
+        print("# To deactivate this environment, use:")
+        print("# $ source deactivate")
+        print("#")

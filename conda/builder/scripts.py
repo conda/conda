@@ -1,9 +1,11 @@
+from __future__ import print_function, division, absolute_import
+
 import re
 import os
 import sys
 from os.path import isdir, join
 
-from config import build_prefix, build_python
+from conda.builder.config import build_prefix, build_python
 
 
 BAT_PROXY = """\
@@ -45,7 +47,7 @@ def create_entry_point(path, module, func):
         with open(path, 'w') as fo:
             fo.write('#!%s\n' % build_python)
             fo.write(pyscript)
-        os.chmod(path, 0755)
+        os.chmod(path, int('755', 8))
 
 
 def create_entry_points(items):
