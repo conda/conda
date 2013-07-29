@@ -7,7 +7,6 @@
 from __future__ import print_function, division, absolute_import
 
 from logging import getLogger
-import config
 
 import sys
 if sys.version_info < (3,):
@@ -20,6 +19,7 @@ else:
     from urllib import parse as urlparse
 
 from conda.compat import iteritems
+from conda.config import get_proxy_servers
 
 log = getLogger(__name__)
 
@@ -37,8 +37,8 @@ proxies_dict=urllib2.getproxies()
 # the proxies are in a dict {'http':'http://proxy:8080'}
 # protocol:proxyserver
 
-if config.get_proxy_servers():
-    proxies_dict = config.get_proxy_servers()
+if get_proxy_servers():
+    proxies_dict = get_proxy_servers()
 
 #2. handle authentication
 

@@ -55,6 +55,7 @@ else:
 # file. Be sure to update it when new keys are added.
 rc_list_keys = [
     'channels',
+    'proxy_servers',
     ]
 rc_bool_keys = [
     'changeps1',
