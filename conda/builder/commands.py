@@ -31,5 +31,6 @@ def pip(prefix, pkg_request):
     try:
         check_call([pip_path, 'install', pkg_request])
     except CalledProcessError:
-        return
+        print('Error: The call to pip resulted in an error.')
+        raise
     packup_and_reinstall(prefix, files_before, to_name(pkg_request))
