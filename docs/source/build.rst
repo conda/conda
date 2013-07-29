@@ -2,7 +2,7 @@ Conda build framework
 =====================
 
 Building a package requires a recipe.  A recipe is flat directory which
-contains to following files:
+contains the following files:
 
   * meta.yaml (metadata file)
   * build.sh (Unix build script which is executed using bash)
@@ -49,7 +49,7 @@ The meta.yaml file
 
     package:
       name: bsdiff4     # lower case name of package, may contain '-' but no spaces
-      version: 1.1.4    # version of package
+      version: 1.1.4    # version of package. Should use the PEP-386 verlib conventions.
 
     source:
     # The source section specifies where the source code of the package is coming
@@ -97,6 +97,23 @@ The meta.yaml file
     about:            # (optional)
       home: https://github.com/ilanschnell/bsdiff4
       license: BSD
+
+
+Specifying versions in requirements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each element in the list of build and run-time requirements is a
+match specification, i.e. a is string, which (when split by spaces)
+has 1, 2 or 3 parts:
+  * the first part is always the (exact) name
+  * the second part refers to the version, and may contain special characters
+      '|' means "or", e.g. "1.0|1.2" matches either version 1.0 or 1.2
+      '*' means (in terms of regex) r'.*'
+    Example:
+      "1.0|1.4*"  matches 1.0, 1.4, 1.4.1b2, but not 1.2
+    (when there are 3 parts, the second part has to be the exact version)
+  * the third part is always the (exact) build string
+
 
 Preprocessing selectors
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,6 +250,13 @@ On Mac OS X, we have:
 
   * - ``OSX_ARCH``
     - ``i386`` or ``x86_64``, depending Python build
+    - ``PKG_CONFIG_PATH``
+
+On Linux, we have:
+
+.. list-table::
+
+  * - ``PKG_CONFIG_PATH``
 
 Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echos each
 command that is run, and the ``-e`` makes it exit whenever a command in the

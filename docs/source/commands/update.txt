@@ -1,9 +1,9 @@
 Update conda packages.
 
-**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [-q] [package_names [package_names ...]]``
+**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [-q] [-c CHANNEL] [--override-channels] package_name [package_name ...]``
 
-*package_names*
-        names of packages to update (default: anaconda)
+*package_name*
+        names of packages to update
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -13,6 +13,9 @@ optional arguments:
   -p PREFIX, --prefix PREFIX
                         full path to environment prefix (default: ROOT_DIR)
   -q, --quiet           do not display progress bar
+  -c CHANNEL, --channel CHANNEL
+                        additional channel to search for packages. These are searched in the order they are given, and then the defaults or channels from .condarc (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account.
+  --override-channels   Do not search default or .condarc channels. Requires --channel.
 
 examples:
     conda update -p ~/anaconda/envs/myenv scipy

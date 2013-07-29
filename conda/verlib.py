@@ -7,6 +7,8 @@
 discussion at PyCon 2009.
 """
 
+from __future__ import print_function, division, absolute_import
+
 import re
 
 class IrrationalVersionError(Exception):
@@ -196,7 +198,7 @@ class NormalizedVersion(object):
 
     def __eq__(self, other):
         if not isinstance(other, NormalizedVersion):
-            #print "error: self.parts = {0}, other = {1}".format(self.parts, other)
+            #print("error: self.parts = {0}, other = {1}".format(self.parts, other))
             self._cannot_compare(other)
         return self.parts == other.parts
 

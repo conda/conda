@@ -21,7 +21,6 @@ cmd_names = [
     'pip',
     'index',
     'share',
-    'launch',
     'build',
     'clone'
 ]
@@ -32,7 +31,7 @@ def scrape_help(cmd_name):
 
     p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
 
-    output = p.stdout.read()
+    output = p.stdout.read().decode('utf-8')
 
 
     if cmd_name in ['remove','package','install']:
@@ -101,7 +100,7 @@ if __name__ == '__main__':
             path = sys.argv[1]
         outpath = join(path, "%s.txt" % name)
 
-        print "Scraping help for '%s' -> %s" % (name, outpath)
+        print("Scraping help for '%s' -> %s" % (name, outpath))
 
         outfile = open(outpath, "w")
         outfile.write(output)

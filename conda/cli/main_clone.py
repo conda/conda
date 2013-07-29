@@ -1,4 +1,6 @@
-import common
+from __future__ import print_function, division, absolute_import
+
+from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
 

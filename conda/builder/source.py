@@ -1,15 +1,19 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
 
-from config import croot
-from utils import download, md5_file, rm_rf, tar_xf, unzip
-import external
+from conda.utils import hashsum_file
+from conda.builder.config import croot
+from conda.builder.utils import download, rm_rf, tar_xf, unzip
+from conda.builder import external
 
 
 SRC_CACHE = join(croot, 'src_cache')
 GIT_CACHE = join(croot, 'git_cache')
+HG_CACHE = join(croot, 'hg_cache')
 WORK_DIR = join(croot, 'work')
 
 
@@ -27,13 +31,15 @@ def download_to_cache(meta):
         os.makedirs(SRC_CACHE)
 
     fn = meta['fn']
-    md5 = meta.get('md5')
     path = join(SRC_CACHE, fn)
     if not isfile(path):
-        download(meta['url'], path, md5)
+        download(meta['url'], path)
 
-    if md5 and not md5_file(path) == md5:
-        raise Exception("MD5 mismatch: %r" % meta)
+    for tp in 'md5', 'sha1':
+        if meta.get(tp) and hashsum_file(path, tp) != meta[tp]:
+            raise RuntimeError("%s mismatch: '%s' != '%s'" %
+                               (tp.upper(), hashsum_file(path, tp), meta[tp]))
+
     return path
 
 
@@ -46,7 +52,7 @@ def unpack(meta):
     elif src_path.endswith('.zip'):
         unzip(src_path, WORK_DIR)
     else:
-        raise Exception("not a vaild source")
+        raise Exception("not a valid source")
 
 
 def git_source(meta):
@@ -70,18 +76,10 @@ def git_source(meta):
 
     # now clone into the work directory
     checkout = meta.get('git_tag') or meta.get('git_branch') or 'master'
-    print 'checkout: %r' % checkout
+    print('checkout: %r' % checkout)
 
     check_call(['git', 'clone', cache_repo_arg, WORK_DIR])
     check_call(['git', 'checkout', checkout], cwd=WORK_DIR)
-
-    if meta.get('git_submodules'):
-        check_call(['git', 'submodule', 'init'], cwd=WORK_DIR)
-        if sys.platform == 'win32':
-            from replace import replace
-            replace([('https://github.com/', 'git@github.com:')],
-                    join(WORK_DIR, '.git', 'config'), assert_change=False)
-        check_call(['git', 'submodule', 'update'], cwd=WORK_DIR)
 
     git_info()
     return WORK_DIR
@@ -101,8 +99,29 @@ def git_info(fo=sys.stdout):
         fo.write(stdout + '\n')
 
 
+def hg_source(meta):
+    hg_url = meta['hg_url']
+    if not isdir(HG_CACHE):
+        os.makedirs(HG_CACHE)
+    hg_dn = hg_url.split(':')[-1].replace('/', '_')
+    cache_repo = join(HG_CACHE, hg_dn)
+    if isdir(cache_repo):
+        check_call(['hg', 'pull'], cwd=cache_repo)
+    else:
+        check_call(['hg', 'clone', hg_url, cache_repo])
+        assert isdir(cache_repo)
+
+    # now clone in to work directory
+    update = meta.get('hg_tag') or 'tip'
+    print('checkout: %r' % update)
+
+    check_call(['hg', 'clone', cache_repo, WORK_DIR])
+    check_call(['hg', 'update', '-C', update], cwd=WORK_DIR)
+    return WORK_DIR
+
+
 def apply_patch(src_dir, path):
-    print 'Applying patch: %r' % path
+    print('Applying patch: %r' % path)
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
 
@@ -129,6 +148,8 @@ def provide(recipe_dir, meta, patch=True):
         unpack(meta)
     elif 'git_url' in meta:
         git_source(meta)
+    elif 'hg_url' in meta:
+        hg_source(meta)
     else: # no source
         os.makedirs(WORK_DIR)
 
@@ -139,8 +160,8 @@ def provide(recipe_dir, meta, patch=True):
 
 
 if __name__ == '__main__':
-    print provide('.', dict(
+    print( provide('.', dict(
         url = 'http://pypi.python.org/packages/source/b/bitarray/bitarray-0.8.0.tar.gz',
         git_url = 'git@github.com:ilanschnell/bitarray.git',
         git_tag = '0.5.2',
-    ))
+    )) )

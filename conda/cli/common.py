@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import sys
 import argparse
 from os.path import abspath, expanduser, join
@@ -94,20 +96,22 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
         sys.stdout.flush()
         user_choice = sys.stdin.readline().strip().lower()
         if user_choice not in choices:
-            print "Invalid choice: %s" % user_choice
+            print("Invalid choice: %s" % user_choice)
         else:
             sys.stdout.write("\n")
             sys.stdout.flush()
             return choices[user_choice]
 
 
-def confirm_yn(args, message="Proceed", default='yes'):
+def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.yes:
-        return
+        return True
     choice = confirm(args, message=message, choices=('yes', 'no'), default=default)
     if choice == 'yes':
-        return
-    sys.exit(1)
+        return True
+    if exit_no:
+        sys.exit(1)
+    return False
 
 # --------------------------------------------------------------------
 
@@ -191,3 +195,5 @@ def stdout_json(d):
 
     json.dump(d, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write('\n')
+
+root_no_rm = 'python', 'pycosat', 'conda'

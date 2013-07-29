@@ -4,13 +4,28 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-help = "Build a package from recipe. (ADVANCED)"
+from __future__ import print_function, division, absolute_import
+
+import subprocess
+
+from conda.cli import common
+import conda.config as config
+
+help = "Build a package from a (conda) recipe. (ADVANCED)"
+
 descr = help + """  For examples of recipes, see:
 https://github.com/ContinuumIO/conda-recipes"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)
 
+    p.add_argument(
+        "--no-binstar-upload",
+        action = "store_false",
+        help = "do not ask to upload the package to binstar",
+        dest='binstar_upload',
+        default=config.binstar_upload,
+    )
     p.add_argument(
         '-s', "--source",
         action  = "store_true",
@@ -32,28 +47,58 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
-    from os.path import abspath, isdir
+    import shutil
+    import tarfile
+    import tempfile
+    from os.path import abspath, isdir, isfile
 
     import conda.builder.build as build
+    from conda.builder.config import croot
     import conda.builder.source as source
     from conda.builder.metadata import MetaData
+    from conda.lock import Locked
 
-    for arg in args.recipe:
-        recipe_dir = abspath(arg)
-        if not isdir(recipe_dir):
-            sys.exit("Error: no such directory: %s" % recipe_dir)
+    with Locked(croot):
+        for arg in args.recipe:
+            if isfile(arg):
+                recipe_dir = tempfile.mkdtemp()
+                t = tarfile.open(arg, 'r:*')
+                t.extractall(path=recipe_dir)
+                t.close()
+                need_cleanup = True
+            else:
+                recipe_dir = abspath(arg)
+                need_cleanup = False
 
-        m = MetaData(recipe_dir)
-        if args.test:
-            build.test(m)
-        elif args.source:
-            source.provide(m.path, m.get_section('source'))
-            print 'Source tree in:', source.get_dir()
-        else:
-            build.build(m)
+            if not isdir(recipe_dir):
+                sys.exit("Error: no such directory: %s" % recipe_dir)
 
-        print """\
-# If you want to upload this package to binstar.org, type:
+            m = MetaData(recipe_dir)
+            if args.test:
+                build.test(m)
+            elif args.source:
+                source.provide(m.path, m.get_section('source'))
+                print('Source tree in:', source.get_dir())
+            else:
+                build.build(m)
+
+            if need_cleanup:
+                shutil.rmtree(recipe_dir)
+
+            if args.binstar_upload is None:
+                args.yes = False
+                args.dry_run = False
+                upload = common.confirm_yn(args, message="Do you want to upload this "
+                    "package to binstar", default='yes', exit_no=False)
+            else:
+                upload = args.binstar_upload
+
+            if not upload:
+                print("""\
+# If you want to upload this package to binstar.org later, type:
 #
 # $ binstar upload %s
-""" % build.bldpkg_path(m)
+""" % build.bldpkg_path(m) )
+                continue
+
+            subprocess.call(['binstar', 'upload', build.bldpkg_path(m)])

@@ -1,11 +1,13 @@
+from __future__ import print_function, division, absolute_import
+
 import os
 import sys
 from os.path import join
 
 import conda.config as cc
 
-from config import CONDA_PY, PY3K, build_prefix, build_python
-import source
+from conda.builder.config import CONDA_PY, PY3K, build_prefix, build_python
+from conda.builder import source
 
 
 py_ver = '.'.join(str(CONDA_PY))
@@ -40,6 +42,7 @@ def get_dict():
         d['PATH'] = build_prefix + '/bin:/usr/local/bin:/bin:/usr/bin'
         d['HOME'] = os.getenv('HOME', 'UNKNOWN')
         d['LANG'] = 'en_US.UTF-8'
+        d['PKG_CONFIG_PATH'] = join(build_prefix, 'lib', 'pkgconfig')
 
     if sys.platform == 'darwin':         # -------- OSX
         d['OSX_ARCH'] = 'i386' if cc.bits == 32 else 'x86_64'
@@ -58,4 +61,4 @@ if __name__ == '__main__':
     e = get_dict()
     for k in sorted(e):
         assert isinstance(e[k], str), k
-        print '%s=%s' % (k, e[k])
+        print('%s=%s' % (k, e[k]))

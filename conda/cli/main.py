@@ -37,33 +37,45 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 '''
+
+from __future__ import print_function, division, absolute_import
+
 import sys
 import argparse
 
-import conda_argparse
-import main_build
-import main_clone
-import main_create
-import main_help
-import main_index
-import main_info
-import main_install
-import main_list
-import main_remove
-import main_package
-import main_pip
-import main_search
-import main_share
-import main_update
-import main_skeleton
+from conda.cli import conda_argparse
+from conda.cli import main_build
+from conda.cli import main_clone
+from conda.cli import main_create
+from conda.cli import main_help
+from conda.cli import main_index
+from conda.cli import main_info
+from conda.cli import main_install
+from conda.cli import main_list
+from conda.cli import main_remove
+from conda.cli import main_package
+from conda.cli import main_pip
+from conda.cli import main_search
+from conda.cli import main_share
+from conda.cli import main_update
+from conda.cli import main_skeleton
+from conda.cli import main_config
+from conda.cli import main_clean
 
-from conda.lock import Locked
+# Borrowed from SymPy
+from textwrap import fill, dedent
+filldedent = lambda s, w=70: fill(dedent(str(s)).strip('\n'), width=w)
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in ('..activate', '..deactivate', '..changeps1'):
-        import activate
-        activate.main()
-        return
+    if len(sys.argv) > 1:
+        if sys.argv[1] in ('..activate', '..deactivate', '..checkenv'):
+            import conda.cli.activate as activate
+            activate.main()
+            return
+        if sys.argv[1] in ('..changeps1'):
+            import conda.cli.misc as misc
+            misc.main()
+            return
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
@@ -103,6 +115,8 @@ def main():
     main_clone.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
+    main_config.configure_parser(sub_parsers)
+    main_clean.configure_parser(sub_parsers)
 
     args = p.parse_args()
 
@@ -110,21 +124,37 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     try:
-        with Locked():
-            args.func(args, p)
+        args.func(args, p)
     except RuntimeError as e:
-        sys.exit("Error: %s" % e)
+        sys.exit(filldedent("Error: %s" % e))
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-            print """\
+            print("""\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 
     https://github.com/ContinuumIO/conda/issues"
 
-"""
-        exc_info = sys.exc_info()
-        raise exc_info[1], None, exc_info[2]
+""")
+        raise  # as if we did not catch it
+
+# The above raise was:
+#
+#exc_info = sys.exc_info()
+#raise exc_info[1], None, exc_info[2]
+#
+# But that syntax is not supported in py3k. Simply
+# reraising (without argument!) should do the same. Try this:
+#
+# def foo():
+#     bar()
+# def bar():
+#     1/0
+# try:
+#     foo()
+# except Exception as e:
+#     #raise e  # does not show traceback
+#     raise  # Shows traceback as if we had not caught it
 
 
 if __name__ == '__main__':

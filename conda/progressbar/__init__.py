@@ -40,7 +40,7 @@ The progressbar module is very easy to use, yet very powerful. It will also
 automatically enable features like auto-resizing when the system supports it.
 '''
 
-from __future__ import division
+from __future__ import print_function, division, absolute_import
 
 import math
 import os
@@ -55,8 +55,8 @@ try:
 except ImportError:
     pass
 
-from compat import *
-from widgets import *
+from conda.progressbar.compat import *
+from conda.progressbar.widgets import *
 
 
 __author__ = 'Nilton Volpato'
