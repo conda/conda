@@ -18,6 +18,7 @@
   * ability to set the proxy urls in condarc
   * conda build asks to upload to binstar. This can also be configured by
     changing binstar_upload in condarc.
+  * removed the conda pip command
 
 
 2013-07-02   1.7.2:
