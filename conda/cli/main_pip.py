@@ -42,11 +42,11 @@ def execute(args, parser):
     r = Resolve(index)
     for pkg_request in args.packages:
         if pkg_request.lower() in r.groups:
-            print( "The package {package} is already available in conda. "
+            print(("The package {package} is already available in conda. "
                    "You can install it with 'conda install "
                    "{package_lower}'.").format(
                 package=pkg_request,
-                package_lower=pkg_request.lower())
+                package_lower=pkg_request.lower()))
 
             choice = common.confirm(args, "Install with conda, install with "
                 "pip, or abort", ('conda', 'pip', 'abort'), default='conda')

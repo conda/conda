@@ -16,12 +16,14 @@ if PY3:
     class_types = type,
     text_type = str
     binary_type = bytes
+    input = input
 else:
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
+    input = raw_input
 
 if PY3:
     _iterkeys = "keys"
