@@ -6,7 +6,7 @@ from os.path import join
 import conda.config as cc
 
 
-CONDA_PY = int(os.getenv('CONDA_PY', 27))
+CONDA_PY = int(os.getenv('CONDA_PY', cc.default_python.replace('.', '')))
 CONDA_NPY = int(os.getenv('CONDA_NPY', 17))
 PY3K = int(bool(CONDA_PY >= 30))
 
