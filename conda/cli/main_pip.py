@@ -28,10 +28,11 @@ following reasons:
   * the command is Python centric, whereas conda (from a package management
     perspective) is Python agnostic
   * packages created with conda pip are not robust, i.e. they will maybe
-    not work on other peoples systems
+    not work on other people's systems
 
 In short:
   * use "conda build" is you want to build a conda package
-  * use "pip" if you want to install something
-
+  * use "conda install" if you want to install something
+  * use "pip" if you want to install something that is on PyPI for which there
+    isn't a conda package.
 """)
