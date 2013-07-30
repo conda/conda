@@ -6,8 +6,3 @@ channels:
  - http://repo.continuum.io/pkgs/dev
  - http://repo.continuum.io/pkgs/gpl
  - http://repo.continuum.io/pkgs/free
-
-# environment locations. These locations are in *addition* to the system
-# location at $ROOT_DIR/envs.
-locations:
- - ~/envs
