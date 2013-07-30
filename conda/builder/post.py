@@ -159,7 +159,7 @@ def replace_bi_path(path):
     if islink(path):
         return
     with open(path, 'r+b') as f:
-        data = f.read().decode('utf-8', 'ignore')
+        data = bytes(f.read())
         matches = list(bi_pat.finditer(data))
         if not matches:
             return
@@ -177,7 +177,7 @@ def replace_bi_path(path):
             assert len(r) == len(s)
             assert m.start() + len(r) == m.end()
             f.seek(m.start())
-            f.write(r.encode('utf-8'))
+            f.write(bytes(r))
 
 
 def fix_permissions():
