@@ -2,7 +2,8 @@
 -------------------
   * add Python 3 support (thanks almarklein)
   * add Mercurial support when building from source (thanks delicb)
-  * allow updating Python in root environment on Windows
+  * allow Python (and other packages which are used by conda itself)
+    to be updated in root environment on Windows
   * add conda config command
   * improve locking to be finer grained
   * made activate/deactivate work with zsh (thanks to mika-fischer)
