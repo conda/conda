@@ -2,7 +2,9 @@
 Tools for converting PyPI packages to conda recipes.
 """
 
-from __future__ import print_function, division, absolute_import
+# Don't put print_function here, it breaks the running of setup.py for
+# packages that don't use it.
+from __future__ import division, absolute_import
 
 import sys
 from os import makedirs, listdir, getcwd, chdir
