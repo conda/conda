@@ -44,7 +44,7 @@ except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
     class Locked(object):
-        def __init__(self, *args):
+        def __init__(self, *args, **kwargs):
             pass
         def __enter__(self):
             pass
