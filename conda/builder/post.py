@@ -6,12 +6,11 @@ import sys
 import stat
 from glob import glob
 from subprocess import call, check_call
-from os.path import basename, islink, join, splitext
+from os.path import basename, join, splitext
 
 from conda.install import prefix_placeholder
 
 from conda.builder.config import build_prefix, build_python, PY3K
-from conda.builder.source import WORK_DIR
 from conda.builder import external
 from conda.builder import environ
 from conda.builder import utils
@@ -37,7 +36,11 @@ def fix_shebang(f, osx_is_app=False):
     if is_obj(path):
         return
     with open(path) as fi:
-        data = fi.read()
+        try:
+            data = fi.read()
+        except UnicodeDecodeError:
+            # The file is binary
+            return
     m = shebang_pat.match(data)
     if not (m and 'python' in m.group()):
         return
@@ -153,33 +156,6 @@ Error:
         mk_relative_osx(path)
 
 
-# I wonder whether this works on py3k ...
-bi_pat = re.compile(WORK_DIR)
-def replace_bi_path(path):
-    if islink(path):
-        return
-    with open(path, 'r+b') as f:
-        data = bytes(f.read())
-        matches = list(bi_pat.finditer(data))
-        if not matches:
-            return
-        print("Replacing build and install path in:", path)
-        for m in matches:
-            s = m.group(0)
-            if s == WORK_DIR:
-                t = 'src-dir'
-            elif s == build_prefix:
-                t = 'install-prefix'
-            else:
-                raise Exception("did not excpet to get here")
-            d = len(s) - len(t)
-            r = (d // 2 * '-' + t + (d // 2 + 3) * '-')[:len(s)]
-            assert len(r) == len(s)
-            assert m.start() + len(r) == m.end()
-            f.seek(m.start())
-            f.write(bytes(r))
-
-
 def fix_permissions():
     for root, dirs, files in os.walk(build_prefix):
         for dn in dirs:
@@ -196,4 +172,3 @@ def post_build(files):
     for f in files:
         if sys.platform != 'win32':
             mk_relative(f)
-        replace_bi_path(join(build_prefix, f))
