@@ -21,6 +21,7 @@ from conda.utils import human_bytes, hashsum_file
 from conda.install import rm_rf
 from conda.builder.utils import download, tar_xf, unzip
 from conda.builder.source import SRC_CACHE
+from conda.compat import input
 
 PYPI_META = """\
 package:
@@ -159,7 +160,7 @@ def main(args, parser):
             for i, url in enumerate(urls):
                 print("%d: %s (%s) %s" % (i, url['url'],
                     human_bytes(url['size']), url['comment_text']))
-            n = int(raw_input("Which version should I use? "))
+            n = int(input("Which version should I use? "))
         else:
             n = 0
 
@@ -181,9 +182,9 @@ def main(args, parser):
                 print()
                 print(data['license'])
                 print()
-                license = raw_input("What license string should I use? ")
+                license = input("What license string should I use? ")
             else:
-                license = raw_input("No license could be found for %s on PyPI. What license should I use? " % package)
+                license = input("No license could be found for %s on PyPI. What license should I use? " % package)
         else:
             license = ' or '.join(licenses)
         d['license'] = license

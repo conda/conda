@@ -18,7 +18,7 @@ else:
     import urllib.request as urllib2
     from urllib import parse as urlparse
 
-from conda.compat import iteritems
+from conda.compat import iteritems, input
 from conda.config import get_proxy_servers
 
 log = getLogger(__name__)
@@ -50,7 +50,7 @@ def get_userandpass(proxytype='',realm=''):
     can be replaced with anything like some gui"""
     import getpass
 
-    uname = raw_input(proxytype + ' proxy username:')
+    uname = input(proxytype + ' proxy username:')
     pword = getpass.getpass()
     return uname, pword
 
