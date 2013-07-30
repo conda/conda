@@ -13,6 +13,8 @@
     packages
   * allow source/sha1 in meta.yaml, issue 196
   * add conda clean command
+  * more informative message when there are unsatisfiable package
+    specifications
 
 
 2013-07-02   1.7.2:
