@@ -13,10 +13,12 @@ from platform import machine
 from os.path import abspath, expanduser, isfile, join
 
 
+from conda.compat import PY3
+
 log = logging.getLogger(__name__)
 
 
-default_python = '2.7'
+default_python = '3.3' if PY3 else '2.7'
 default_numpy = '1.7'
 
 # ----- constant paths -----
