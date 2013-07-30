@@ -52,6 +52,6 @@ def install_name_change(path, cb_func):
             changes.append((link, new_link))
 
     for old, new in changes:
-        args = ['install_name_tool','-change', old, new, path]
+        args = ['install_name_tool', '-change', old, new, path]
         print(' '.join(args))
         subprocess.check_call(args)
