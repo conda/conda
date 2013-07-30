@@ -19,6 +19,7 @@ else:
     from urllib import parse as urlparse
 
 from conda.compat import iteritems
+from conda.config import get_proxy_servers
 
 log = getLogger(__name__)
 
@@ -35,6 +36,9 @@ proxies_dict=urllib2.getproxies()
 # from condarc and overrwrite any system proxies
 # the proxies are in a dict {'http':'http://proxy:8080'}
 # protocol:proxyserver
+
+if get_proxy_servers():
+    proxies_dict = get_proxy_servers()
 
 #2. handle authentication
 
@@ -57,10 +61,13 @@ def installopener():
         urllib2.ProxyHandler(proxies_dict),
         urllib2.ProxyBasicAuthHandler(proxypwdmgr),
         urllib2.ProxyDigestAuthHandler(proxypwdmgr),
+        urllib2.HTTPHandler,
     )
     # digest auth may not work with all proxies
     # http://bugs.python.org/issue16095
     # could add windows/nltm authentication here
+    #opener=urllib2.build_opener(urllib2.ProxyHandler(proxies_dict), urllib2.HTTPHandler)
+
     urllib2.install_opener(opener)
 
 
@@ -68,6 +75,8 @@ firstconnection = True
 #i made this func so i wouldn't alter the original code much
 def connectionhandled_urlopen(url):
     """handles aspects of establishing the connection with the remote"""
+
+    installopener()
 
     try: return urllib2.urlopen(url)
 

@@ -15,6 +15,7 @@ import conda.config as config
 config.rc_path = join(dirname(dirname(__file__)), 'condarc')
 
 # unset CIO_TEST
+
 try:
     del os.environ['CIO_TEST']
 except KeyError:
@@ -42,6 +43,14 @@ class TestConfig(unittest.TestCase):
 #                         ['http://repo.continuum.io/pkgs/dev/foo/',
 #                          'http://repo.continuum.io/pkgs/gpl/foo/',
 #                          'http://repo.continuum.io/pkgs/free/foo/'])
+
+
+    def test_proxy_settings(self):
+        config.rc = config.load_condarc(config.rc_path)
+        servers = config.get_proxy_servers()
+        self.assertEqual(len(servers),2)
+        self.assertEqual(servers['http'],'http://user:pass@corp.com:8080')
+        self.assertEqual(servers['https'], 'https://user:pass@corp.com:8080')
 
 
 if __name__ == '__main__':
