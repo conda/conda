@@ -15,6 +15,9 @@
   * add conda clean command
   * more informative message when there are unsatisfiable package
     specifications
+  * ability to set the proxy urls in condarc
+  * conda build asks to upload to binstar. This can also be configured by
+    changing binstar_upload in condarc.
 
 
 2013-07-02   1.7.2:
