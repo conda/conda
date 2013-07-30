@@ -12,6 +12,7 @@
   * fix entry point scripts pointing to wrong python when building Python 3
     packages
   * allow source/sha1 in meta.yaml, issue 196
+  * add conda clean command
 
 
 2013-07-02   1.7.2:
