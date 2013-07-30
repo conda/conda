@@ -8,59 +8,30 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-from conda.cli import common
-from conda.cli import main_install
-
-descr = "Call pip and create a conda package in an environment. (DEPRECATED)"
-
 
 def configure_parser(sub_parsers):
-    from conda.cli.common import add_parser_yes
-    p = sub_parsers.add_parser('pip', description=descr, help=descr)
-
-    common.add_parser_prefix(p)
-
-    p.add_argument(
-        'packages',
-        action  = "store",
-        metavar = 'name',
-        nargs   = '+',
-        help    = "name of package to pip install",
-    )
-    add_parser_yes(p)
+    p = sub_parsers.add_parser('pip')
+    p.add_argument('packages', nargs='*')
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    from conda.builder.commands import pip
-    from conda.api import get_index
-    from conda.resolve import Resolve
+    sys.exit("""ERROR:
+The "conda pip" command has been removed from conda version 1.8 for the
+following reasons:
+  * users get the wrong impression that you *must* use conda pip (instead
+    of simply pip) when using Anaconda
+  * there should only be one preferred way to build packages, and that is
+    the conda build command
+  * the command did too many things at once, i.e. build a package and
+    then also install it
+  * the command is Python centric, whereas conda (from a package management
+    perspective) is Python agnostic
+  * packages created with conda pip are not robust, i.e. they will maybe
+    not work on other peoples systems
 
-    prefix = common.get_prefix(args)
+In short:
+  * use "conda build" is you want to build a conda package
+  * use "pip" if you want to install something
 
-    index = get_index()
-    r = Resolve(index)
-    for pkg_request in args.packages:
-        if pkg_request.lower() in r.groups:
-            print(("The package {package} is already available in conda. "
-                   "You can install it with 'conda install "
-                   "{package_lower}'.").format(
-                package=pkg_request,
-                package_lower=pkg_request.lower()))
-
-            choice = common.confirm(args, "Install with conda, install with "
-                "pip, or abort", ('conda', 'pip', 'abort'), default='conda')
-            if choice == 'abort':
-                sys.exit(1)
-            if choice == 'conda':
-                # conda pip options do not correspond to conda install options
-                args.force = False
-                args.file = None
-                args.no_deps = False
-                args.override_channels = False
-                args.channel = None
-                args.quiet = False
-                main_install.execute(args, parser)
-                continue
-
-        pip(prefix, pkg_request)
+""")
