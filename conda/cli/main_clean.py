@@ -37,6 +37,7 @@ def configure_parser(sub_parsers):
         "-t", "--tarballs",
         action = "store_true",
         help = "Remove cached package tarballs",
+        required=True,
         )
 
     p.set_defaults(func=execute)
