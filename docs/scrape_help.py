@@ -18,7 +18,6 @@ cmd_names = [
     'update',
     'remove',
     'package',
-    'pip',
     'index',
     'share',
     'build',
