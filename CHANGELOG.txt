@@ -1,4 +1,4 @@
-2013-07-XX   1.8.0:
+2013-07-31   1.8.0:
 -------------------
   * add Python 3 support (thanks almarklein)
   * add Mercurial support when building from source (thanks delicb)
