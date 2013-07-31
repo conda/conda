@@ -19,6 +19,8 @@
   * ability to set the proxy urls in condarc
   * conda build asks to upload to binstar. This can also be configured by
     changing binstar_upload in condarc.
+  * basic tab completion if the argcomplete package is installed and eval
+    "$(register-python-argcomplete conda)" is added to the bash profile.
 
 
 2013-07-02   1.7.2:
