@@ -136,6 +136,12 @@ In short:
     main_clone.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 
+    try:
+        import argcomplete
+        argcomplete.autocomplete(p)
+    except ImportError:
+        pass
+
     args = p.parse_args()
 
     if args.debug:
