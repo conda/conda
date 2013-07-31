@@ -30,6 +30,6 @@ def pip(prefix, pkg_request):
     files_before = untracked(prefix)
     try:
         check_call([pip_path, 'install', pkg_request])
-    except CalledProcessError:
-        return
+    except CalledProcessError as err:
+        raise RuntimeError('The call to pip resulted in an error:\n%s' % err)
     packup_and_reinstall(prefix, files_before, to_name(pkg_request))
