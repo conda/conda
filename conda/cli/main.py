@@ -53,7 +53,6 @@ from conda.cli import main_install
 from conda.cli import main_list
 from conda.cli import main_remove
 from conda.cli import main_package
-from conda.cli import main_pip
 from conda.cli import main_search
 from conda.cli import main_share
 from conda.cli import main_update
@@ -75,6 +74,27 @@ def main():
             import conda.cli.misc as misc
             misc.main()
             return
+        if sys.argv[1] == 'pip':
+            sys.exit("""ERROR:
+The "conda pip" command has been removed from conda version 1.8 for the
+following reasons:
+  * users get the wrong impression that you *must* use conda pip (instead
+    of simply pip) when using Anaconda
+  * there should only be one preferred way to build packages, and that is
+    the conda build command
+  * the command did too many things at once, i.e. build a package and
+    then also install it
+  * the command is Python centric, whereas conda (from a package management
+    perspective) is Python agnostic
+  * packages created with conda pip are not robust, i.e. they will maybe
+    not work on other people's systems
+
+In short:
+  * use "conda build" is you want to build a conda package
+  * use "conda install" if you want to install something
+  * use "pip" if you want to install something that is on PyPI for which there
+    isn't a conda package.
+""")
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
@@ -115,7 +135,6 @@ def main():
     main_share.configure_parser(sub_parsers)
     main_clone.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
-    main_pip.configure_parser(sub_parsers)
 
     args = p.parse_args()
 
