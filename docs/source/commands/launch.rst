@@ -1,5 +1,0 @@
-------
-launch
-------
-
-.. include:: launch.txt
