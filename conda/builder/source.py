@@ -4,6 +4,7 @@ import os
 import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
+from shutil import copytree, ignore_patterns
 
 from conda.utils import hashsum_file
 from conda.builder.config import croot
@@ -14,6 +15,7 @@ from conda.builder import external
 SRC_CACHE = join(croot, 'src_cache')
 GIT_CACHE = join(croot, 'git_cache')
 HG_CACHE = join(croot, 'hg_cache')
+SVN_CACHE = join(croot, 'svn_cache')
 WORK_DIR = join(croot, 'work')
 
 
@@ -120,6 +122,25 @@ def hg_source(meta):
     return WORK_DIR
 
 
+
+def svn_source(meta):
+    svn_url = meta['svn_url']
+    if not isdir(SVN_CACHE):
+        os.makedirs(SVN_CACHE)
+    # XXX: better use urlparse because this would fail if port is specified
+    svn_dn = svn_url.split(':')[-1].replace('/', '_')
+    cache_repo = join(SVN_CACHE, svn_dn)
+    if isdir(cache_repo):
+        check_call(['svn', 'up'], cwd=cache_repo)
+    else:
+        check_call(['svn', 'co', svn_url, cache_repo])
+        assert isdir(cache_repo)
+
+    # now copy into work directory
+    copytree(cache_repo, WORK_DIR, ignore=ignore_patterns("*.svn"))
+    return WORK_DIR
+
+
 def apply_patch(src_dir, path):
     print('Applying patch: %r' % path)
     if not isfile(path):
@@ -150,6 +171,8 @@ def provide(recipe_dir, meta, patch=True):
         git_source(meta)
     elif 'hg_url' in meta:
         hg_source(meta)
+    elif 'svn_url' in meta:
+        svn_source(meta)
     else: # no source
         os.makedirs(WORK_DIR)
 
