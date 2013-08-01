@@ -23,7 +23,7 @@ if [[ -n $CONDA_DEFAULT_ENV ]]; then
         _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
         export PATH=$_NEW_PATH
         if (( $($_THIS_DIR/conda ..changeps1) )); then
-            export PS1=$CONDA_OLD_PS1
+            PS1=$CONDA_OLD_PS1
             unset CONDA_OLD_PS1
         fi
     else
@@ -36,8 +36,8 @@ if (( $? == 0 )); then
     export PATH=$_NEW_PATH
     export CONDA_DEFAULT_ENV="$@"
     if (( $($_THIS_DIR/conda ..changeps1) ));  then
-        export CONDA_OLD_PS1="$PS1"
-        export PS1="($CONDA_DEFAULT_ENV)$PS1"
+        CONDA_OLD_PS1="$PS1"
+        PS1="($CONDA_DEFAULT_ENV)$PS1"
     fi
 else
     return $?
