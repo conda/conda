@@ -124,16 +124,24 @@ def hg_source(meta):
 
 
 def svn_source(meta):
+    def parse_bool(s):
+        return str(s).lower().strip() in ('yes', 'true', '1', 'on')
+    
     svn_url = meta['svn_url']
+    svn_revision = meta.get('svn_rev') or 'head'
+    svn_ignore_externals = parse_bool(meta.get('svn_ignore_externals') or 'no')
     if not isdir(SVN_CACHE):
         os.makedirs(SVN_CACHE)
-    # XXX: better use urlparse because this would fail if port is specified
-    svn_dn = svn_url.split(':')[-1].replace('/', '_')
+    svn_dn = svn_url.split(':', 1)[-1].replace('/', '_').replace(':', '_')
     cache_repo = join(SVN_CACHE, svn_dn)
-    if isdir(cache_repo):
-        check_call(['svn', 'up'], cwd=cache_repo)
+    if svn_ignore_externals:
+        extra_args = ['--ignore-externals']
     else:
-        check_call(['svn', 'co', svn_url, cache_repo])
+        extra_args = []
+    if isdir(cache_repo):
+        check_call(['svn', 'up', '-r', svn_revision] + extra_args, cwd=cache_repo)
+    else:
+        check_call(['svn', 'co', '-r', svn_revision] + extra_args + [svn_url, cache_repo])
         assert isdir(cache_repo)
 
     # now copy into work directory
