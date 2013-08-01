@@ -1,0 +1,10 @@
+Build skeleton recipes for packages from popular package hosting sites.
+
+**usage**: ``conda skeleton [-h] {pypi} ...``
+
+*positional arguments*:
+	{pypi} -- Create recipes from packages on PyPI
+
+
+optional arguments:
+  -h HELP, --help  show this help message and exit
