@@ -73,6 +73,9 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
             except IOError:
                 log.debug("Attempt %d failed at urlopen" % x)
                 continue
+            if fi is None:
+                log.debug("Could not fetch (urlopen returned None)")
+                continue
             log.debug("Fetching: %s" % url)
             n = 0
             h = hashlib.new('md5')
