@@ -1,11 +1,14 @@
-Build a package from recipe. (ADVANCED) For examples of recipes, see: https://github.com/ContinuumIO/conda-recipes
+Build a package from a (conda) recipe. 
 
-**usage**: ``conda build [-h] [-s] [-t] PATH [PATH ...]``
+(ADVANCED) For examples of recipes, see: https://github.com/ContinuumIO/conda-recipes
+
+**usage**: ``conda build [-h] [--no-binstar-upload] [-s] [-t] PATH [PATH ...]``
 
 *PATH*
-        path to recipe directory
+	path to recipe directory
 
 optional arguments:
-  -h, --help    show this help message and exit
-  -s, --source  only obtain the source (but don't build)
-  -t, --test    test package (assumes package is already build)
+  -h, --help           show this help message and exit
+  --no-binstar-upload  do not ask to upload the package to binstar
+  -s, --source         only obtain the source (but don't build)
+  -t, --test           test package (assumes package is already build)
