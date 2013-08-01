@@ -92,7 +92,8 @@ conda command version : %(conda_version)s
 
         disp_env(config.root_dir)
         for dn in sorted(os.listdir(config.envs_dir)):
-            disp_env(join(config.envs_dir, dn))
+            if os.path.isdir(os.path.join(config.envs_dir, dn)):
+                disp_env(join(config.envs_dir, dn))
         print()
 
     if args.system:
