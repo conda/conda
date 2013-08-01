@@ -10,6 +10,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 
+import conda.config as config
 
 descr = "Update conda packages."
 example = """
@@ -57,7 +58,7 @@ def execute(args, parser):
         if '=' in name:
             sys.exit("Invalid package name: '%s'" % (name))
         if name not in linked:
-            sys.exit("Error: package '%s' is not installed" % name)
+            sys.exit("Error: package '%s' is not installed in %s" % (name, config.default_prefix))
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
