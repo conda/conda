@@ -302,9 +302,9 @@ def execute_plan(plan, index=None, verbose=False):
             test_win_subprocess(prefix)
         except:
             # If anything doesn't work, let's bail
+            print("It failed")
             winplan = ''
             wincmds = []
-            print("It failed")
         else:
             print("It succeeded")
             plan, winplan = win_subprocess_re_sort(plan, prefix)
@@ -416,6 +416,7 @@ def test_win_subprocess(prefix):
         dist_dir = join(config.pkgs_dir, 'battest_pkg', 'battest')
 
         # First create a file in the prefix.
+        print("making file in the prefix")
         prefix_battest = join(prefix, 'battest')
         os.makedirs(join(prefix, 'battest'))
         with open(join(prefix_battest, 'battest1'), 'w') as f:
@@ -424,10 +425,12 @@ def test_win_subprocess(prefix):
             assert f.read() == 'test1'
 
         # Now unlink it.
+        print("making unlink command")
         batfiles.append(make_bat_unlink([join(prefix_battest, 'battest1')],
         [prefix_battest], prefix, dist_dir))
 
         # Now create a file in the pkgs dir
+        print("making file in pkgs dir")
         os.makedirs(dist_dir)
         with open(join(dist_dir, 'battest', 'battest2'), 'w') as f:
             f.write('test2')
@@ -435,14 +438,18 @@ def test_win_subprocess(prefix):
             assert f.read() == 'test2'
 
         # And link it
+        print("making link command")
         batfiles.append(make_bat_link(['battest2'], prefix, dist_dir))
 
         batfile = '\n'.join(batfiles)
 
+        print("writing batlink_test.bat file")
         with open(join(prefix, 'batlink_test.bat'), 'w') as f:
             f.write(batfile)
+        print("running batlink_test.bat file")
         subprocess.check_call([join(prefix, 'batlink_test.bat')])
 
+        print("testing result")
         assert not os.path.exists(join(prefix_battest, 'battest1'))
         assert os.path.exists(join(prefix_battest, 'battest2'))
         with open(join(prefix_battest, 'battest2')) as f:
