@@ -300,9 +300,10 @@ def execute_plan(plan, index=None, verbose=False):
     if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
         try:
             test_win_subprocess(prefix)
-        except:
+        except Exception as e:
             # If anything doesn't work, let's bail
             print("It failed")
+            print(e)
             winplan = ''
             wincmds = []
         else:
