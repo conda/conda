@@ -418,9 +418,12 @@ def test_win_subprocess(prefix):
         # First create a file in the prefix.
         print("making file in the prefix")
         prefix_battest = join(prefix, 'battest')
+        print("making directories")
         os.makedirs(join(prefix, 'battest'))
+        print("making file")
         with open(join(prefix_battest, 'battest1'), 'w') as f:
             f.write('test1')
+        print("testing file")
         with open(join(prefix_battest, 'battest1')) as f:
             assert f.read() == 'test1'
 
