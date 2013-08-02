@@ -467,7 +467,8 @@ def test_win_subprocess(prefix):
         try:
             rm_rf(join(prefix, 'batlink'))
             rm_rf(join(config.pkgs_dir, 'batlink_pkg'))
-        except:
+        except Exception as e:
+            print(e)
             pass
 
 def win_subprocess_write_bat(cmd, arg, prefix, plan):
