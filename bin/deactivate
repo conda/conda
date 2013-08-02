@@ -29,3 +29,12 @@ if (( $? == 0 )); then
 else
     return $?
 fi
+
+if [[ -n $BASH_VERSION ]]; then
+    hash -r
+elif [[ -n $ZSH_VERSION ]]; then
+    rehash
+else
+    echo "Only bash and zsh are supported"
+    return 1
+fi
