@@ -438,10 +438,10 @@ def test_win_subprocess(prefix):
         print("making directories")
         os.makedirs(join(dist_dir))
         print("making file")
-        with open(join(dist_dir, 'battest2'), 'w') as f:
+        with open(join(dist_dir, 'battest', 'battest2'), 'w') as f:
             f.write('test2')
         print("testing file")
-        with open(join(dist_dir, 'battest2')) as f:
+        with open(join(dist_dir, 'battest', 'battest2')) as f:
             assert f.read() == 'test2'
 
         # And link it
