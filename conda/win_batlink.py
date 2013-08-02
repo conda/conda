@@ -35,7 +35,6 @@ from distutils.spawn import find_executable
 # Redirect stderr on the mkdirs to ignore errors about directories that
 # already exist
 BAT_LINK_HEADER = """\
-@echo off
 
 {mkdirs}
 
@@ -47,9 +46,6 @@ BAT_LINK_HEADER = """\
 # Hide stderr for this one because it warns about nonempty directories, like
 # C:\Anaconda.
 BAT_UNLINK_HEADER = """\
-@echo off
-
-
 {filedeletes}
 
 {dirdeletes}
