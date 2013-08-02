@@ -467,7 +467,7 @@ def test_win_subprocess(prefix):
     finally:
         print("cleaning up")
         try:
-            rm_rf(join(prefix, 'batlink'))
+            rm_rf(join(prefix, 'battest'))
             rm_rf(join(config.pkgs_dir, 'batlink_pkg'))
         except Exception as e:
             print(e)
