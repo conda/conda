@@ -408,7 +408,7 @@ def test_win_subprocess(prefix):
     """
     import subprocess
     from conda.win_batlink import make_bat_link, make_bat_unlink
-    from conda.install import rm_rf
+    from conda.builder.utils import rm_rf
 
     try:
         print("Testing if we can install certain packages")
