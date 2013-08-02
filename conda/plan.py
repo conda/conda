@@ -436,7 +436,7 @@ def test_win_subprocess(prefix):
         # Now create a file in the pkgs dir
         print("making file in pkgs dir")
         print("making directories")
-        os.makedirs(join(dist_dir))
+        os.makedirs(join(dist_dir, 'battest'))
         print("making file")
         with open(join(dist_dir, 'battest', 'battest2'), 'w') as f:
             f.write('test2')
