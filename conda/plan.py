@@ -465,7 +465,7 @@ def test_win_subprocess(prefix):
         with open(join(prefix_battest, 'battest2')) as f:
             assert f.read() == 'test2'
         print("testing content of pkg file")
-        with open(join(dist_dir, 'battest2')) as f:
+        with open(join(dist_dir, 'battest', 'battest2')) as f:
             assert f.read() == 'test2'
 
     finally:
