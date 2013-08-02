@@ -465,12 +465,12 @@ def test_win_subprocess(prefix):
             assert f.read() == 'test2'
 
     finally:
+        print("cleaning up")
         try:
             rm_rf(join(prefix, 'batlink'))
             rm_rf(join(config.pkgs_dir, 'batlink_pkg'))
         except Exception as e:
             print(e)
-            pass
 
 def win_subprocess_write_bat(cmd, arg, prefix, plan):
     assert sys.platform == 'win32'
