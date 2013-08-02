@@ -304,7 +304,9 @@ def execute_plan(plan, index=None, verbose=False):
             # If anything doesn't work, let's bail
             winplan = ''
             wincmds = []
+            print("It failed")
         else:
+            print("It succeeded")
             plan, winplan = win_subprocess_re_sort(plan, prefix)
             cmds, wincmds = cmds_from_plan(plan), cmds_from_plan(winplan)
     else:
