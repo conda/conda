@@ -457,10 +457,14 @@ def test_win_subprocess(prefix):
         subprocess.check_call([join(prefix, 'batlink_test.bat')])
 
         print("testing result")
+        print("testing if old file does not exist")
         assert not os.path.exists(join(prefix_battest, 'battest1'))
+        print("testing if new file does exist")
         assert os.path.exists(join(prefix_battest, 'battest2'))
+        print("testing content of installed file")
         with open(join(prefix_battest, 'battest2')) as f:
             assert f.read() == 'test2'
+        print("testing content of pkg file")
         with open(join(dist_dir, 'battest2')) as f:
             assert f.read() == 'test2'
 
