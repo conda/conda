@@ -11,6 +11,7 @@ NOTE:
 from __future__ import print_function, division, absolute_import
 
 import sys
+import os
 from logging import getLogger
 from collections import defaultdict
 from os.path import abspath, isfile, join, dirname
@@ -297,8 +298,15 @@ def execute_plan(plan, index=None, verbose=False):
     cmds = cmds_from_plan(plan)
 
     if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
-        plan, winplan = win_subprocess_re_sort(plan, prefix)
-        cmds, wincmds = cmds_from_plan(plan), cmds_from_plan(winplan)
+        try:
+            test_win_subprocess(prefix)
+        except:
+            # If anything doesn't work, let's bail
+            winplan = ''
+            wincmds = []
+        else:
+            plan, winplan = win_subprocess_re_sort(plan, prefix)
+            cmds, wincmds = cmds_from_plan(plan), cmds_from_plan(winplan)
     else:
         winplan = ''
         wincmds = []
@@ -391,6 +399,61 @@ def win_subprocess_re_sort(plan, prefix):
             newplan.append(line)
 
     return newplan, winplan
+
+def test_win_subprocess(prefix):
+    """
+    Make sure the windows subprocess stuff will work before we try it.
+    """
+    import subprocess
+    from conda.win_batlink import make_bat_link, make_bat_unlink
+    from conda.install import rm_rf
+
+    try:
+        print("Testing if we can install certain packages")
+        batfiles = ['ping 1.1.1.1 -n 1 -w 3000 > nul']
+        dist_dir = join(config.pkgs_dir, 'battest_pkg', 'battest')
+
+        # First create a file in the prefix.
+        prefix_battest = join(prefix, 'battest')
+        os.makedirs(join(prefix, 'battest'))
+        with open(join(prefix_battest, 'battest1'), 'w') as f:
+            f.write('test1')
+        with open(join(prefix_battest, 'battest1')) as f:
+            assert f.read() == 'test1'
+
+        # Now unlink it.
+        batfiles.append(make_bat_unlink([join(prefix_battest, 'battest1')],
+        [prefix_battest], prefix, dist_dir))
+
+        # Now create a file in the pkgs dir
+        os.makedirs(dist_dir)
+        with open(join(dist_dir, 'battest', 'battest2'), 'w') as f:
+            f.write('test2')
+        with open(join(dist_dir, 'battest', 'battest2')) as f:
+            assert f.read() == 'test2'
+
+        # And link it
+        batfiles.append(make_bat_link(['battest2'], prefix, dist_dir))
+
+        batfile = '\n'.join(batfiles)
+
+        with open(join(prefix, 'batlink_test.bat'), 'w') as f:
+            f.write(batfile)
+        subprocess.check_call([join(prefix, 'batlink_test.bat')])
+
+        assert not os.path.exists(join(prefix_battest, 'battest1'))
+        assert os.path.exists(join(prefix_battest, 'battest2'))
+        with open(join(prefix_battest, 'battest2')) as f:
+            assert f.read() == 'test2'
+        with open(join(dist_dir, 'battest2')) as f:
+            assert f.read() == 'test2'
+
+    finally:
+        try:
+            rm_rf(join(prefix, 'batlink'))
+            rm_rf(join(config.pkgs_dir, 'batlink_pkg'))
+        except:
+            pass
 
 def win_subprocess_write_bat(cmd, arg, prefix, plan):
     assert sys.platform == 'win32'
