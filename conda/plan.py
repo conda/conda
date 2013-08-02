@@ -345,7 +345,10 @@ def execute_plan(plan, index=None, verbose=False):
             getLogger('progress.stop').info(None)
 
 
-    batfiles = ['sleep 3'] # Wait for conda to exit
+    # Wait for conda to exit
+    # This is the portable way to sleep for 3 seconds. See
+    # http://stackoverflow.com/a/1672349/161801
+    batfiles = ['ping 1.1.1.1 -n 1 -w 3000 > nul']
     for cmd, arg in wincmds:
         batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
     batfiles.append("""
