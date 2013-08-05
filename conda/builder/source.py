@@ -126,7 +126,7 @@ def hg_source(meta):
 def svn_source(meta):
     def parse_bool(s):
         return str(s).lower().strip() in ('yes', 'true', '1', 'on')
-    
+
     svn_url = meta['svn_url']
     svn_revision = meta.get('svn_rev') or 'head'
     svn_ignore_externals = parse_bool(meta.get('svn_ignore_externals') or 'no')
