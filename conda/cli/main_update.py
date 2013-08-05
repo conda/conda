@@ -34,7 +34,7 @@ def configure_parser(sub_parsers):
         'pkg_names',
         metavar = 'package_name',
         action = "store",
-        nargs = '+',
+        nargs = '*',
         help = "names of packages to update",
     )
     common.add_parser_channels(p)
@@ -50,6 +50,9 @@ def execute(args, parser):
 
     from conda.cli import pscheck
 
+
+    if len(args.pkg_names) == 0:
+        sys.exit("Error: no package names supplied")
 
     prefix = common.get_prefix(args)
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
