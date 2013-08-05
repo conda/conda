@@ -1,3 +1,5 @@
+.. _skeleton_ref:
+
 --------
 skeleton
 --------

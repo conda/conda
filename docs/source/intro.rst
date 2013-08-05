@@ -17,7 +17,9 @@ conda Overview
 .. index::
     pair: terminology; environment
 
-``conda`` is an application for finding and installing Anaconda software packages. An Anaconda **package** is a binary tarball containing system-level libraries, python modules, executable programs, or other components. ``conda`` keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. An Anaconda **environment** is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides NumPy 1.7, and another environment that provides NumPy 1.6 for legacy testing. ``conda`` makes this kind of mixing and matching easy.  To begin using an environment, simply set your PATH variable to point to its `bin` directory.
+``conda`` is an application for finding and installing Anaconda software packages. An Anaconda *package* is a binary tarball containing system-level libraries, python modules, executable programs, or other components. ``conda`` keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. 
+
+An Anaconda *environment* is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides NumPy 1.7, and another environment that provides NumPy 1.6 for legacy testing. ``conda`` makes this kind of mixing and matching easy.  To begin using an environment, simply set your **PATH** variable to point to its `bin` directory.
 
 .. _channel:
 .. index::
@@ -35,7 +37,7 @@ conda Overview
 .. index::
     pair: terminology; deactivated
 
-Anaconda packages are downloaded from remote **channels**, which are simply URLs to directories containing Anaconda packages.
+Anaconda packages are downloaded from remote *channels*, which are simply URLs to directories containing Anaconda packages.
 The ``conda`` command starts with a default set of channels to search, but users may exert control over this list; for example, if they wish to maintain a private or internal channel (see Configuration_ for details).
 Continuum provides the following standard channels:
  * ``http://repo.continuum.io/pkgs/dev`` - Experimental or developmental versions of packages
@@ -43,9 +45,9 @@ Continuum provides the following standard channels:
  * ``http://repo.continuum.io/pkgs/free`` - non GPL open source packages
 To view all available packages, you can use ``conda search --all``.  See the :ref:`search command examples <search_example>` for more information.
 
-Once an Anaconda package has been downloaded, it is said to be **locally available**.
-A locally available package that has been linked into an Anaconda environment is said to be **activated**.
-Conversely, unlinking a package from an environment causes it to be **deactivated**.
+Once an Anaconda package has been downloaded, it is said to be *locally available*.
+A locally available package that has been linked into an Anaconda environment is said to be *activated*.
+Conversely, unlinking a package from an environment causes it to be *deactivated*.
 
 
 .. _location:
@@ -56,7 +58,7 @@ Conversely, unlinking a package from an environment causes it to be **deactivate
 .. index::
     pair: terminology; known
 
-Since Anaconda environments are simply directories, they may be created anywhere. However, Anaconda has a notion of **locations** which are also simply directories that are known to ``conda``, and contain environments within. Anaconda environments created in such locations are said to be **known**, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
+Since Anaconda environments are simply directories, they may be created anywhere. However, Anaconda has a notion of *locations* which are also simply directories that are known to ``conda``, and contain environments within. Anaconda environments created in such locations are said to be *known*, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
 
 
 --------------------------
@@ -117,7 +119,7 @@ These components are illustrated in the following figure:
     pair: terminology; package specification
     seealso: package spec; package specification
 
-Additionally, a **package specification** is a package name, together with a package version (which may be partial or absent), joined by "=". Here are some examples:
+Additionally, a *package specification* is a package name, together with a package version (which may be partial or absent), joined by "=". Here are some examples:
 
 * *python=2.7.3*
 * *python=2.7*
@@ -130,7 +132,7 @@ In usage documentation, these will be referred to by ``package_spec``.
 -------------
 Meta-Packages
 -------------
-``conda`` also provides the notion of **meta-packages**. A meta-package is an Anaconda package that contains a list of explicit
+``conda`` also provides the notion of *meta-packages*. A meta-package is an Anaconda package that contains a list of explicit
 packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an Anaconda environment. When creating, updating, or installing into environments, only one meta-package may be specified, and no additional packages may be specified.
 
 .. _directory_structure:
@@ -141,8 +143,8 @@ Directory Structure
 
 The Anaconda installation has the following directory structure:
 
-*ROOT_DIR*
-    The directory that Anaconda was installed into; for example, */opt/anaconda* or *C:\\Anaconda*
+**ROOT_DIR**
+    The directory that Anaconda was installed into; for example, */opt/Anaconda* or *C:\\Anaconda*
 
     */pkgs*
         Also referred to as *PKGS_DIR*. This directory contains exploded packages, ready to be activated in Anaconda environments. Each package resides in a subdirectory corresponding to its canonical name.
@@ -156,7 +158,7 @@ The Anaconda installation has the following directory structure:
     |   */share*
     |       These subdirectories comprise the default Anaconda environment.
 
-Other Anaconda environments contain the same subdirectories as the default environment, and may be located anywhere on the same filesystem as *PKGS_DIR*.
+Other Anaconda environments contain the same subdirectories as the default environment, and may be located anywhere on the same filesystem as PKGS_DIR.
 
 .. _config:
 
@@ -197,17 +199,17 @@ command.
 
     $ conda create -n py33 python=3.3 anaconda
 
-Here, 'py33' is the name of the environment to create, and "anaconda" is the
+Here, 'py33' is the name of the environment to create, and 'anaconda' is the
 meta-package that includes all of the actual Python packages comprising
 the Anaconda distribution.  When creating a new environment and installing
-the Anaconda meta-package, the numpy and python versions can be specified,
-e.g. "numpy=1.7" or "python=3.3".
+the Anaconda meta-package, the NumPy and Python versions can be specified,
+e.g. ``numpy=1.7`` or ``python=3.3``.
 
 .. code-block:: bash
 
     $ conda create -n py26 python=2.6 anaconda
 
-After the environment creation process completes, adjust your PATH variable
+After the environment creation process completes, adjust your **PATH** variable
 to point to this directory.  On Linux/MacOSX systems, this can be easily
 done using:
 
@@ -224,12 +226,12 @@ This will modify your Bash PS1 to include the name of the environment.
    $ source activate myenv
    (myenv)$
 
-On Windows systems, you should change or set the PATH manually.
+On Windows systems, you should change or set the **PATH** manually.
 
 Now you're ready to begin using the Python located in your created
 environment.
 
-If you would like to deactivate this environment and revert your PATH to its previous state, use:
+If you would like to deactivate this environment and revert your **PATH** to its previous state, use:
 
 .. code-block:: bash
 
@@ -240,7 +242,7 @@ If you would like to deactivate this environment and revert your PATH to its pre
 Update Anaconda to latest version
 ---------------------------------
 
-To update to the latest version of Anaconda, you must first ensure you have the latest version of conda:
+To update to the latest version of Anaconda, you must first ensure you have the latest version of ``conda``:
 
 .. code-block:: bash
 
