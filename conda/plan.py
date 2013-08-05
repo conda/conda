@@ -297,6 +297,10 @@ def execute_plan(plan, index=None, verbose=False):
     i = None
     cmds = cmds_from_plan(plan)
 
+    for cmd, arg in cmds:
+        if cmd == PREFIX:
+            prefix = arg
+
     if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
         try:
             test_win_subprocess(prefix)
