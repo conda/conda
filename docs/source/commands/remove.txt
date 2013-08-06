@@ -4,7 +4,7 @@ Normally, only the specified package is removed, and not the packages
 **usage**: ``conda remove [-h] [--yes] [--dry-run] [--all] [--features] [-c CHANNEL] [--override-channels] [-n NAME | -p PREFIX] [-q] [package_name [package_name ...]]``
 
 *package_name*
-	package names to remove from environment
+        package names to remove from environment
 
 optional arguments:
   -h, --help       show this help message and exit

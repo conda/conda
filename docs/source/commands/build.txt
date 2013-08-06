@@ -1,11 +1,11 @@
-Build a package from a (conda) recipe. 
+Build a package from a (conda) recipe.
 
 (ADVANCED) For examples of recipes, see: https://github.com/ContinuumIO/conda-recipes
 
 **usage**: ``conda build [-h] [--no-binstar-upload] [-s] [-t] PATH [PATH ...]``
 
 *PATH*
-	path to recipe directory
+        path to recipe directory
 
 optional arguments:
   -h, --help           show this help message and exit
