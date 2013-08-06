@@ -88,7 +88,9 @@ def execute(args, parser):
             if args.binstar_upload is None:
                 args.yes = False
                 args.dry_run = False
-                upload = common.confirm_yn(args, message="Do you want to upload this "
+                upload = common.confirm_yn(
+                    args,
+                    message="Do you want to upload this "
                     "package to binstar", default='yes', exit_no=False)
             else:
                 upload = args.binstar_upload
