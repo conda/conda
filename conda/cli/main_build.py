@@ -27,6 +27,12 @@ def configure_parser(sub_parsers):
         default=config.binstar_upload,
     )
     p.add_argument(
+        "--output",
+        action = "store_true",
+        help = "output the conda package filename which would have been "
+               "created and exit",
+    )
+    p.add_argument(
         '-s', "--source",
         action  = "store_true",
         help    = "only obtain the source (but don't build)",
@@ -74,7 +80,10 @@ def execute(args, parser):
                 sys.exit("Error: no such directory: %s" % recipe_dir)
 
             m = MetaData(recipe_dir)
-            if args.test:
+            if args.output:
+                print(build.bldpkg_path(m))
+                continue
+            elif args.test:
                 build.test(m)
             elif args.source:
                 source.provide(m.path, m.get_section('source'))
