@@ -3,7 +3,7 @@ Build skeleton recipes for packages from popular package hosting sites.
 **usage**: ``conda skeleton [-h] {pypi} ...``
 
 *positional arguments*:
-	{pypi} -- Create recipes from packages on PyPI
+        {pypi} -- Create recipes from packages on PyPI
 
 
 optional arguments:

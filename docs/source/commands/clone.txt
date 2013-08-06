@@ -3,7 +3,7 @@ Clone a "share package" (created using the share command)
 **usage**: ``conda clone [-h] [-n NAME | -p PREFIX] PATH``
 
 *PATH*
-	path to "share package"
+        path to "share package"
 
 optional arguments:
   -h, --help       show this help message and exit
