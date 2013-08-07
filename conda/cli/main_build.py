@@ -109,7 +109,7 @@ def execute(args, parser):
 # If you want to upload this package to binstar.org later, type:
 #
 # $ binstar upload %s
-""" % build.bldpkg_path(m) )
+""" % build.bldpkg_path(m))
                 continue
 
             subprocess.call(['binstar', 'upload', build.bldpkg_path(m)])

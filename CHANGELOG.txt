@@ -1,4 +1,4 @@
-2013-08-??   1.8.1:
+2013-08-07   1.8.1:
 -------------------
   * fixed conda update for no arguments, issue 237
   * fix setting prefix before calling should_do_win_subprocess()
