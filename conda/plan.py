@@ -297,9 +297,10 @@ def execute_plan(plan, index=None, verbose=False):
     i = None
     cmds = cmds_from_plan(plan)
 
-    for cmd, arg in cmds:
-        if cmd == PREFIX:
-            prefix = arg
+    if sys.platform == 'win32':
+        for cmd, arg in cmds:
+            if cmd == PREFIX:
+                prefix = arg
 
     if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
         try:
@@ -359,20 +360,20 @@ def execute_plan(plan, index=None, verbose=False):
             i = None
             getLogger('progress.stop').info(None)
 
-
-    # Wait for conda to exit
-    # This is the portable way to sleep for 3 seconds. See
-    # http://stackoverflow.com/a/1672349/161801
-    batfiles = ['ping 1.1.1.1 -n 1 -w 3000 > nul']
-    for cmd, arg in wincmds:
-        batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
-    batfiles.append("""
+    if sys.platform == 'win32':
+        # Wait for conda to exit
+        # This is the portable way to sleep for 3 seconds. See
+        # http://stackoverflow.com/a/1672349/161801
+        batfiles = ['ping 1.1.1.1 -n 1 -w 3000 > nul']
+        for cmd, arg in wincmds:
+            batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
+        batfiles.append("""
 echo done
 echo.
 """)
-    if wincmds:
-        batfile = '\n'.join(batfiles)
-        do_win_subprocess(batfile, prefix)
+        if wincmds:
+            batfile = '\n'.join(batfiles)
+            do_win_subprocess(batfile, prefix)
 
 
 def should_do_win_subprocess(cmd, arg, prefix):
