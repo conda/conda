@@ -52,7 +52,10 @@ def execute(args, parser):
 
 
     if len(args.pkg_names) == 0:
-        sys.exit("Error: no package names supplied")
+        sys.exit("""Error: no package names supplied
+# If you want to update to a newer version of Anaconda, type:
+# $ conda update anaconda
+""")
 
     prefix = common.get_prefix(args)
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
