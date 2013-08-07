@@ -62,6 +62,7 @@ FILE_DELETE = "del /Q {dest}"
 
 DIR_DELETE = "rmdir /Q {dest}"
 
+
 def make_bat_link(files, prefix, dist_dir):
     links = []
     has_mklink = find_executable('mklink')
@@ -84,10 +85,11 @@ def make_bat_link(files, prefix, dist_dir):
 
     return batchfile
 
+
 def make_bat_unlink(files, directories, prefix, dist_dir):
     filedeletes = [FILE_DELETE.format(dest=abspath(file)) for file in files]
     dirdeletes = [DIR_DELETE.format(dest=abspath(dir)) for dir in directories]
     batchfile = BAT_UNLINK_HEADER.format(filedeletes='\n'.join(filedeletes),
-        dirdeletes='\n'.join(dirdeletes))
+                                         dirdeletes='\n'.join(dirdeletes))
 
     return batchfile

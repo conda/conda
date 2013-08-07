@@ -17,8 +17,8 @@ globally (such as downloading packages).
 
 from __future__ import print_function, division, absolute_import
 
+import os
 from os.path import join
-from os import rmdir, makedirs
 
 import errno
 
@@ -32,7 +32,7 @@ def create_lock(path, name):
     """
     # Note, we do this instead of os.path.exists to avoid race conditions
     try:
-        makedirs(join(path, name))
+        os.makedirs(join(path, name))
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise RuntimeError("LOCKERROR: Could not create the lock %s: %s" %
@@ -40,10 +40,12 @@ def create_lock(path, name):
         return False
     return True
 
+
 def remove_lock(path, name):
     # Intentionally raise an exception if the directory is not there, or if it
     # is nonempty.
-    rmdir(join(path, name))
+    os.rmdir(join(path, name))
+
 
 class Locked(object):
     """
@@ -58,17 +60,17 @@ class Locked(object):
         if not lock:
             # Keep the string "LOCKERROR" in this string so that external
             # programs can look for it.
-            raise RuntimeError(("LOCKERROR: It looks like conda is already doing "
+            raise RuntimeError(
+                "LOCKERROR: It looks like conda is already doing "
                 "something.  The lock %s was found. Wait for it to finish "
                 "before continuing. If you are sure that conda is not running, "
-                "remove it and try again."
-                ) % (join(self.path, self.name, '')))
+                "remove it and try again." % join(self.path, self.name, ''))
 
     def __exit__(self, exc_type, exc_value, traceback):
         remove_lock(self.path, self.name)
         try:
             # Remove the locked path if it is empty, since this means that it
             # did not exist when we created the lock.
-            rmdir(self.path)
+            os.rmdir(self.path)
         except OSError:
             pass
