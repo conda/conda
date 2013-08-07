@@ -451,7 +451,8 @@ def test_win_subprocess(prefix):
 
         # And link it
         print("making link command")
-        batfiles.append(make_bat_link([join('battest', 'battest2')], prefix, dist_dir))
+        batfiles.append(make_bat_link([join('battest', 'battest2')],
+                                      prefix, dist_dir))
 
         batfile = '\n'.join(batfiles)
 
