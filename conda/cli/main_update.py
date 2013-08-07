@@ -54,6 +54,7 @@ def execute(args, parser):
     if len(args.pkg_names) == 0:
         sys.exit("""Error: no package names supplied
 # If you want to update to a newer version of Anaconda, type:
+#
 # $ conda update anaconda
 """)
 
