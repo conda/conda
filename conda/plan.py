@@ -191,12 +191,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
 
-    # Here is a temporary fix to prevent adding conda to the specs;
-    # Bootstrapping problem: conda is not available as a conda package for
-    # py3k yet.
-    PY3 = sys.version_info[0] == 3
-
-    if is_root_prefix(prefix) and not PY3:
+    if is_root_prefix(prefix):
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
 
@@ -208,7 +203,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
             continue
         must_have[name] = dist
 
-    if is_root_prefix(prefix) and not PY3:
+    if is_root_prefix(prefix):
         if not force:
             # ensure conda is in root environment
             assert 'conda' in must_have
