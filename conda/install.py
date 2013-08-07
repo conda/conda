@@ -74,16 +74,16 @@ if on_win:
 log = logging.getLogger(__name__)
 
 class NullHandler(logging.Handler):
-  """ Copied from Python 2.7 to avoid getting
-      `No handlers could be found for logger "patch"`
-      http://bugs.python.org/issue16539
-  """
-  def handle(self, record):
-    pass
-  def emit(self, record):
-    pass
-  def createLock(self):
-    self.lock = None
+    """ Copied from Python 2.7 to avoid getting
+        `No handlers could be found for logger "patch"`
+        http://bugs.python.org/issue16539
+    """
+    def handle(self, record):
+        pass
+    def emit(self, record):
+        pass
+    def createLock(self):
+        self.lock = None
 
 log.addHandler(NullHandler())
 
