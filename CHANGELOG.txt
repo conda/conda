@@ -4,6 +4,7 @@
   * fix setting prefix before calling should_do_win_subprocess()
     part of issue 235
   * add basic subversion support when building
+  * add --output option to conda build
 
 
 2013-07-31   1.8.0:
