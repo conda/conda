@@ -8,8 +8,8 @@ a directory (specified with ``-p/--prefix``), for one or more packages.  We have
 a progress bar, displayed as it creates the environment.
 
 
-`conda` will also gather and activate all necessary package dependencies.  Those that are
-not locally available will also be downloaded.
+`conda` will also gather and link all necessary package dependencies.
+Those that are not locally available will also be downloaded.
 
 If the package version is not specified, `conda` will choose the latest version by
 default.
