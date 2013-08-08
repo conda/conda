@@ -6,7 +6,7 @@ Install
 ``conda install`` places a package in an environment that may already exist,
 in this case ``/envs/myenv``.
 
-As before, ``conda`` will activate all necessary dependencies.
+As before, ``conda`` will link all necessary dependencies.
 
 .. code-block:: bash
 

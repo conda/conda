@@ -3,7 +3,7 @@
 List
 ----
 
-``conda list -p`` shows the activated packages and their versions in a specific 
+``conda list -p`` shows the linked packages and their versions in a specific 
 environment directory. ``--prefix`` also works.  If no prefix is provided,
 conda will look in the default environment.
 
