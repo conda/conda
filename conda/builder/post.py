@@ -69,6 +69,8 @@ def rm_egg_dirs():
             pass
         utils.rm_rf(join(egg_dir, 'EGG-INFO'))
         for fn in os.listdir(egg_dir):
+            if fn == '__pycache__':
+                continue
             os.rename(join(egg_dir, fn), join(sp_dir, fn))
         utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
