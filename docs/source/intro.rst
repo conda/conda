@@ -45,8 +45,8 @@ Continuum provides the following standard channels:
 To view all available packages, you can use ``conda search --all``.  See the :ref:`search command examples <search_example>` for more information.
 
 Once an Anaconda package has been downloaded, it is said to be *locally available*.
-A locally available package that has been linked into an Anaconda environment is said to be *activated*.
-Conversely, unlinking a package from an environment causes it to be *deactivated*.
+A locally available package that has been linked into an Anaconda environment is said to be *linked*.
+Conversely, unlinking a package from an environment causes it to be *unlinked*.
 
 
 .. _location:
@@ -146,7 +146,7 @@ The Anaconda installation has the following directory structure:
     The directory that Anaconda was installed into; for example, */opt/Anaconda* or *C:\\Anaconda*
 
     */pkgs*
-        Also referred to as *PKGS_DIR*. This directory contains exploded packages, ready to be activated in Anaconda environments. Each package resides in a subdirectory corresponding to its canonical name.
+        Also referred to as *PKGS_DIR*. This directory contains exploded packages, ready to be linked in Anaconda environments. Each package resides in a subdirectory corresponding to its canonical name.
 
     */envs*
         The system location for additional Anaconda environments to be created.
