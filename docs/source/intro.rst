@@ -1,4 +1,3 @@
-
 ============
 Introduction
 ============
@@ -250,7 +249,7 @@ To update to the latest version of Anaconda, you must first ensure you have the 
 
     # Now you are ready to update Anaconda
 
-    $ conda update
+    $ conda update anaconda
 
 Look here for additional :ref:`update examples <update_example>`.
 
