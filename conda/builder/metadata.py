@@ -44,13 +44,20 @@ def ns_cfg():
 sel_pat = re.compile(r'(.+?)\s*\[(.+)\]$')
 def select_lines(data, namespace):
     lines = []
-    for line in data.splitlines():
+    for i, line in enumerate(data.splitlines()):
         line = line.rstrip()
         m = sel_pat.match(line)
         if m:
             cond = m.group(2)
-            if eval(cond, namespace, {}):
-                lines.append(m.group(1))
+            try:
+                if eval(cond, namespace, {}):
+                    lines.append(m.group(1))
+            except:
+                sys.exit('''\
+Error: Invalid selector in meta.yaml line %d:
+%s
+''' % (i + 1, line))
+                sys.exit(1)
             continue
         lines.append(line)
     return '\n'.join(lines) + '\n'
