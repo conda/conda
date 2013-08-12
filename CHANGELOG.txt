@@ -2,6 +2,7 @@
 -------------------
   * fixed error in recipe causing conda traceback, issue 158
   * fixes conda build erro in Python 3, issue 238
+  * improve error message when test command fails, as well as issue 229
 
 
 2013-08-07   1.8.1:
