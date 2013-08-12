@@ -10,7 +10,8 @@ from conda.cli.common import confirm, add_parser_yes
 try:
     WindowsError
 except NameError:
-    class WindowsError(Exception): pass
+    class WindowsError(Exception):
+        pass
 
 def main(args, windowsonly=True):
     # Returns True for force, otherwise None
@@ -31,8 +32,8 @@ def check_processes():
     # hard dependency)
     try:
         import psutil
-        # Old versions of psutil don't have this error, causing the below code to
-        # fail.
+        # Old versions of psutil don't have this error,
+        # causing the below code to fail.
         psutil._error.AccessDenied
     except:
         return True
@@ -55,9 +56,11 @@ def check_processes():
         except (psutil._error.AccessDenied, WindowsError):
             pass
     if not ok:
-        print("WARNING: Continuing installation while the above processes are "
-            "running is not recommended.\n"
-            "Close all Anaconda programs before installing or updating things with conda.")
+        print("""\
+WARNING: Continuing installation while the above processes are running is
+not recommended.  Please, close all Anaconda programs before installing or
+updating things with conda.
+""")
     return ok
 
 if __name__ == '__main__':
