@@ -26,7 +26,7 @@ def create_files(dir_path, m):
 
         for cmd in m.get_value('test/commands'):
             fo.write('print("command: %r")\n' % cmd)
-            fo.write('check_call(cmd_args(%r))\n\n' % cmd)
+            fo.write('call_args(%r)\n\n' % cmd)
             has_tests = True
 
         for name in m.get_value('test/imports'):

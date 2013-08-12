@@ -1,6 +1,6 @@
 import sys
+import subprocess
 from distutils.spawn import find_executable
-from subprocess import check_call
 
 
 if sys.platform == 'win32':
@@ -8,12 +8,17 @@ if sys.platform == 'win32':
 else:
     bin_dir = sys.prefix + '/bin'
 
-def cmd_args(string):
+
+def call_args(string):
     args = string.split()
     arg0 = args[0]
     args[0] = find_executable(arg0, path=bin_dir)
     if not args[0]:
         sys.exit("Command not found: '%s'" % arg0)
-    return args
+
+    try:
+        subprocess.check_call(args)
+    except subprocess.CalledProcessError:
+        sys.exit('Error: command failed: %s' % ' '.join(args))
 
 # --- end header
