@@ -60,9 +60,6 @@ from conda.cli import main_skeleton
 from conda.cli import main_config
 from conda.cli import main_clean
 
-# Borrowed from SymPy
-from textwrap import fill, dedent
-filldedent = lambda s, w=70: fill(dedent(str(s)).strip('\n'), width=w)
 
 def main():
     if len(sys.argv) > 1:
@@ -150,7 +147,7 @@ In short:
     try:
         args.func(args, p)
     except RuntimeError as e:
-        sys.exit(filldedent("Error: %s" % e))
+        sys.exit("Error: %s" % e)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             print("""\

@@ -278,9 +278,8 @@ class Resolve(object):
 
         if len(solutions) == 0:
             if guess:
-                print("Error: Unsatisfiable package specifications")
-                print(self.guess_bad_solve(specs, features))
-                sys.exit(1)
+                raise RuntimeError("Unsatisfiable package specifications\n" +
+                                   self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
@@ -315,9 +314,12 @@ class Resolve(object):
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("Hint, %s has a conflict with the remaining packages" % hint[0])
-        return ("Hint, the following combinations of packages create a "
-            "conflict with the remaining packages \n  - %s" % '\n  - '.join(hint))
+            return ("Hint: %s has a conflict with the remaining packages" %
+                    hint[0])
+        return ("""\
+Hint: the following combinations of packages create a conflict with the
+remaining packages:
+  - %s""" % '\n  - '.join(hint))
 
     def explicit(self, specs):
         """
