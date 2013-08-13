@@ -34,11 +34,29 @@ def configure_parser(sub_parsers):
 
     common.add_parser_yes(p)
     p.add_argument(
+        "-l", "--lock",
+        action = "store_true",
+        help = "remove all conda lock files",
+    )
+    p.add_argument(
         "-t", "--tarballs",
         action = "store_true",
         help = "remove cached package tarballs",
     )
     p.set_defaults(func=execute)
+
+
+def rm_lock():
+    from os.path import join
+
+    from conda.lock import LOCKFN
+
+    for root, dirs, files in os.walk(sys.prefix):
+        for dn in dirs:
+            if dn == LOCKFN:
+                path = join(root, dn)
+                print('removing: %s' % path)
+                os.rmdir(path)
 
 
 def rm_tarballs(args):
@@ -72,5 +90,7 @@ def rm_tarballs(args):
 
 
 def execute(args, parser):
+    if args.lock:
+        rm_lock()
     if args.tarballs:
         rm_tarballs(args)
