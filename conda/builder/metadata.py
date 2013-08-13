@@ -4,6 +4,7 @@ import re
 import sys
 from os.path import isdir, join
 
+from conda.compat import iteritems
 from conda.utils import memoized, md5_file
 import conda.config as config
 from conda.resolve import MatchSpec
@@ -96,6 +97,20 @@ def parse(data):
     return res
 
 
+FIELDS = {
+    'package': ['name', 'version'],
+    'source': ['fn', 'url', 'md5', 'sha1',
+               'git_url', 'git_tag', 'git_branch',
+               'patches'],
+    'build': ['number', 'entry_points', 'osx_is_app', 'rm_py',
+              'features', 'track_features'],
+    'requirements': ['build', 'run', 'conflicts'],
+    'app': ['entry', 'icon', 'summary', 'type', 'cli_opts'],
+    'test': ['requires', 'commands', 'files', 'imports'],
+    'about': ['home', 'license', 'summary'],
+}
+
+
 class MetaData(object):
 
     def __init__(self, path):
@@ -110,6 +125,15 @@ class MetaData(object):
     def get_value(self, field, default=None):
         section, key = field.split('/')
         return self.get_section(section).get(key, default)
+
+    def check_fields(self):
+        for section, submeta in iteritems(self.meta):
+            if section not in FIELDS:
+                sys.exit("Error: unknown section: %s" % section)
+            for key in submeta:
+                if key not in FIELDS[section]:
+                    sys.exit("Error: in section %r: unknown key %r" %
+                             (section, key))
 
     def name(self):
         res = self.get_value('package/name')

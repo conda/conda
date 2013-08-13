@@ -1,5 +1,6 @@
 2013-08-??   1.8.2:
 -------------------
+  * add conda build --check option
   * fixed error in recipe causing conda traceback, issue 158
   * fixes conda build erro in Python 3, issue 238
   * improve error message when test command fails, as well as issue 229

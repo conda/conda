@@ -20,6 +20,11 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)
 
     p.add_argument(
+        '-c', "--check",
+        action = "store_true",
+        help   = "only check (validate) the recipe",
+    )
+    p.add_argument(
         "--no-binstar-upload",
         action = "store_false",
         help = "do not ask to upload the package to binstar",
@@ -67,11 +72,14 @@ def execute(args, parser):
     with Locked(croot):
         for arg in args.recipe:
             if isfile(arg):
-                recipe_dir = tempfile.mkdtemp()
-                t = tarfile.open(arg, 'r:*')
-                t.extractall(path=recipe_dir)
-                t.close()
-                need_cleanup = True
+                if arg.endswith(('.tar', '.tar.gz', '.tgz', '.tar.bz2')):
+                    recipe_dir = tempfile.mkdtemp()
+                    t = tarfile.open(arg, 'r:*')
+                    t.extractall(path=recipe_dir)
+                    t.close()
+                    need_cleanup = True
+                else:
+                    print("Ignoring: %s" % arg)
             else:
                 recipe_dir = abspath(arg)
                 need_cleanup = False
@@ -80,6 +88,11 @@ def execute(args, parser):
                 sys.exit("Error: no such directory: %s" % recipe_dir)
 
             m = MetaData(recipe_dir)
+            if args.check and len(args.recipe) > 1:
+                print(m.path)
+            m.check_fields()
+            if args.check:
+                continue
             if args.output:
                 print(build.bldpkg_path(m))
                 continue
