@@ -381,7 +381,7 @@ def should_do_win_subprocess(cmd, arg, prefix):
         install.on_win and
         abspath(prefix) == abspath(sys.prefix) and
         arg.rsplit('-', 2)[0] in install.win_ignore
-        )
+    )
 
 def win_subprocess_re_sort(plan, prefix):
     # TODO: Fix the progress numbers
@@ -492,7 +492,7 @@ def win_subprocess_write_bat(cmd, arg, prefix, plan):
 
         return make_bat_link(files, prefix, dist_dir)
 
-    elif cmd == UNLINK: # cmd == "UNLINK"
+    elif cmd == UNLINK:
         meta_path = join(prefix, 'conda-meta', arg + '.json')
         with open(meta_path) as fi:
             meta = json.load(fi)
