@@ -80,6 +80,7 @@ def execute(args, parser):
                     need_cleanup = True
                 else:
                     print("Ignoring: %s" % arg)
+                    continue
             else:
                 recipe_dir = abspath(arg)
                 need_cleanup = False
