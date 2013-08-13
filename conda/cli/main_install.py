@@ -63,6 +63,8 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import sys
+
     import conda.plan as plan
     from conda.api import get_index
     from conda.cli import pscheck
@@ -74,9 +76,9 @@ def execute(args, parser):
         from conda.misc import install_local_packages
         install_local_packages(prefix, args.packages, verbose=not args.quiet)
         return
+
     if any(s.endswith('.tar.bz2') for s in args.packages):
-        raise RuntimeError("cannot mix specifications with conda package "
-                           "filenames")
+        sys.exit("cannot mix specifications with conda package filenames")
 
     if args.force:
         args.no_deps = True

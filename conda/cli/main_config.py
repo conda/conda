@@ -4,9 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
+
 import re
-from argparse import RawDescriptionHelpFormatter
 import os
+import sys
+from argparse import RawDescriptionHelpFormatter
 
 import conda.config as config
 
@@ -112,7 +114,7 @@ def execute(args, parser):
     try:
         import yaml
     except ImportError:
-        raise RuntimeError("pyyaml is required to modify configuration")
+        sys.exit("Error: pyyaml is required to modify configuration")
 
     if args.system:
         rc_path = config.sys_rc_path
@@ -168,23 +170,23 @@ def execute(args, parser):
     for key, item in args.set:
         yamlitem = yaml.load(item)
         if not isinstance(yamlitem, bool):
-            raise RuntimeError("%s is not a boolean" % item)
+            sys.exit("Error: %r is not a boolean" % item)
 
         new_rc_config[key] = yamlitem
 
     # Remove
     for key, item in args.remove:
         if key not in new_rc_config:
-            raise RuntimeError("key %s is not in the config file" % repr(key))
+            sys.exit("Error: key %r is not in the config file" % key)
         if item not in new_rc_config[key]:
-            raise RuntimeError("%s is not in the %s key of the config file" %
-                (repr(item), repr(key)))
+            sys.exit("Error: %r is not in the %r key of the config file" %
+                     (item, key))
         new_rc_config[key] = [i for i in new_rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in new_rc_config:
-            raise RuntimeError("key %s is not in the config file" % key)
+            sys.exit("Error: key %s is not in the config file" % key)
         del new_rc_config[key]
 
     if args.force:
@@ -207,8 +209,8 @@ def execute(args, parser):
     new_rc_text = rc_text[:].split("\n")
     for key, item in args.add:
         if key not in config.rc_list_keys:
-            raise RuntimeError("key must be one of %s, not %s" %
-                (config.rc_list_keys, key))
+            sys.exit("Error: key must be one of %s, not %s" %
+                     (config.rc_list_keys, key))
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = listkeyregexes[key].match(line)
@@ -228,8 +230,8 @@ def execute(args, parser):
 
     for key, item in args.set:
         if key not in config.rc_bool_keys:
-            raise RuntimeError("key must be one of %s, not %s" %
-                (config.rc_bool_keys, key))
+            sys.exit("Error key must be one of %s, not %s" %
+                     (config.rc_bool_keys, key))
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = setkeyregexes[key].match(line)
@@ -262,8 +264,8 @@ def execute(args, parser):
             raise CouldntParse("couldn't parse modified yaml")
         else:
             if not parsed_new_rc_text == new_rc_config:
-                raise CouldntParse("modified yaml doesn't match what it should be")
-
+                raise CouldntParse("modified yaml doesn't match what it "
+                                   "should be")
 
     if args.add or args.set:
         with open(rc_path, 'w') as rc:

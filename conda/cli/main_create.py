@@ -65,12 +65,7 @@ def execute(args, parser):
     prefix = common.get_prefix(args)
 
     if exists(prefix):
-        if args.prefix:
-            raise RuntimeError("'%s' already exists, must supply new "
-                               "directory for -p/--prefix" % prefix)
-        else:
-            raise RuntimeError("'%s' already exists, must supply new "
-                               "directory for -n/--name" % prefix)
+        sys.exit("Error: prefix already exists: %s" % prefix)
 
     if args.file:
         specs = common.specs_from_file(args.file)
