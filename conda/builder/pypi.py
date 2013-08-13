@@ -118,8 +118,9 @@ def main(args, parser):
         print("WARNING: building more than one recipe at once without "
             "--no-download is not recommended")
     for package in args.packages:
-        if exists(join(output_dir, package.lower())):
-            raise RuntimeError("The directory %s already exists" % package.lower())
+        dir_path = join(output_dir, package.lower())
+        if exists(dir_path):
+            raise RuntimeError("directory already exists: %s" % dir_path)
         d = package_dicts.setdefault(package, {'packagename':
             package.lower(), 'orig_packagename': package, 'run_depends':'',
             'build_depends':'', 'entry_points':'', 'build_comment':'# ',
