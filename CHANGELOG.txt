@@ -50,7 +50,7 @@
   * add the string LOCKERROR to the conda lock error message
 
 
-2013-06-21:  1.7.1:
+2013-06-21   1.7.1:
 -------------------
   * fix "executable" not being found on Windows when ending with .bat when
     launching application
