@@ -36,18 +36,16 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "-t", "--tarballs",
         action = "store_true",
-        help = "Remove cached package tarballs",
-        required=True,
-        )
+        help = "remove cached package tarballs",
+    )
     p.set_defaults(func=execute)
 
 
-def execute(args, parser):
+def rm_tarballs(args):
     rmlist = []
-    if args.tarballs:
-        for f in os.listdir(config.pkgs_dir):
-            if f.endswith('.tar.bz2') or f.endswith('.tar.bz2.part'):
-               rmlist.append(f)
+    for f in os.listdir(config.pkgs_dir):
+        if f.endswith('.tar.bz2') or f.endswith('.tar.bz2.part'):
+            rmlist.append(f)
 
     if not rmlist:
         print("There are no tarballs to remove")
@@ -60,9 +58,9 @@ def execute(args, parser):
     for f in rmlist:
         size = os.stat(os.path.join(config.pkgs_dir, f))[stat.ST_SIZE]
         totalsize += size
-        print("%s%s%s" % (f, ' '*(maxlen + 2 - len(f)), human_bytes(size)))
-    print('-'*(maxlen + 2 + 10))
-    print("Total:%s%s" % (' '*(maxlen + 2 - len("Total:")),
+        print("%s%s%s" % (f, ' ' * (maxlen + 2 - len(f)), human_bytes(size)))
+    print('-' * (maxlen + 2 + 10))
+    print("Total:%s%s" % (' ' * (maxlen + 2 - len("Total:")),
         human_bytes(totalsize)))
     print()
 
@@ -71,3 +69,8 @@ def execute(args, parser):
     for f in rmlist:
         print("removing %s" % f)
         os.unlink(os.path.join(config.pkgs_dir, f))
+
+
+def execute(args, parser):
+    if args.tarballs:
+        rm_tarballs(args)
