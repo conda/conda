@@ -8,18 +8,19 @@ from __future__ import print_function, division, absolute_import
 
 from logging import getLogger
 
-import sys
-if sys.version_info < (3,):
-    # Python 2.x
-    import urllib2
-    import urlparse
-else:
+from conda.compat import PY3
+from conda.compat import iteritems, input
+from conda.config import get_proxy_servers
+
+if PY3:
     # Python 3.x
     import urllib.request as urllib2
     from urllib import parse as urlparse
+else:
+    # Python 2.x
+    import urllib2
+    import urlparse
 
-from conda.compat import iteritems, input
-from conda.config import get_proxy_servers
 
 log = getLogger(__name__)
 
