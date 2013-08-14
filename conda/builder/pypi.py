@@ -230,10 +230,17 @@ def main(args, parser):
                 uses_distribute = 'setuptools' in sys.modules
 
                 if pkginfo['install_requires'] or uses_distribute:
-                    deps = [remove_version_information(dep) for dep in pkginfo['install_requires']]
+                    deps = [remove_version_information(dep) for dep in
+                        pkginfo['install_requires']]
+                    if 'setuptools' in deps:
+                        deps.remove('setuptools')
+                        if 'distribute' not in deps:
+                            deps.append('distribute')
+                            uses_distribute = False
                     d['build_depends'] = indent.join([''] +
                         ['distribute']*uses_distribute + deps)
                     d['run_depends'] = indent.join([''] + deps)
+
                 if pkginfo['entry_points']:
                     if not isinstance(pkginfo['entry_points'], dict):
                         print("WARNING: Could not add entry points. They were:")
