@@ -331,7 +331,6 @@ def unlink(prefix, dist):
         mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
 
-
         for f in meta['files']:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
