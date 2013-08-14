@@ -101,10 +101,10 @@ class Package(object):
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number) <
-                      (other.norm_version, other.build_number))
+                    (other.norm_version, other.build_number))
         except TypeError:
             return ((self.version, self.build_number) <
-                      (other.version, other.build_number))
+                    (other.version, other.build_number))
 
     def __eq__(self, other):
         if self.name != other.name:
@@ -112,10 +112,10 @@ class Package(object):
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number) ==
-                      (other.norm_version, other.build_number))
+                    (other.norm_version, other.build_number))
         except TypeError:
             return ((self.version, self.build_number) ==
-                      (other.version, other.build_number))
+                    (other.version, other.build_number))
 
     def __gt__(self, other):
         return not (self.__lt__(other) or self.__eq__(other))
