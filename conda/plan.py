@@ -10,11 +10,9 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import sys
-import os
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join, dirname
+from os.path import abspath, isfile, join
 
 from conda import config
 from conda import install
@@ -292,28 +290,6 @@ def execute_plan(plan, index=None, verbose=False):
     i = None
     cmds = cmds_from_plan(plan)
 
-    if sys.platform == 'win32':
-        for cmd, arg in cmds:
-            if cmd == PREFIX:
-                prefix = arg
-
-    if any(should_do_win_subprocess(cmd, arg, prefix) for (cmd, arg) in cmds):
-        try:
-            test_win_subprocess(prefix)
-        except Exception as e:
-            # If anything doesn't work, let's bail
-            print("It failed")
-            print(e)
-            winplan = ''
-            wincmds = []
-        else:
-            print("It succeeded")
-            plan, winplan = win_subprocess_re_sort(plan, prefix)
-            cmds, wincmds = cmds_from_plan(plan), cmds_from_plan(winplan)
-    else:
-        winplan = ''
-        wincmds = []
-
     for cmd, arg in cmds:
         if i is not None and cmd in progress_cmds:
             i += 1
@@ -339,15 +315,6 @@ def execute_plan(plan, index=None, verbose=False):
             install.link(config.pkgs_dir, prefix, arg)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
-        elif cmd == 'CREATEMETA':
-            # We have to skip link() and use win_batlink in Windows, but this
-            # is the one step from install.link() that is needed for those
-            # packages that is not done there.
-            assert sys.platform == 'win32'
-            dist_dir = join(config.pkgs_dir, arg)
-            info_dir = join(dist_dir, 'info')
-            files = list(install.yield_lines(join(info_dir, 'files')))
-            install.create_meta(prefix, arg, info_dir, files)
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
@@ -355,178 +322,6 @@ def execute_plan(plan, index=None, verbose=False):
             i = None
             getLogger('progress.stop').info(None)
 
-    if sys.platform == 'win32':
-        # Wait for conda to exit
-        # This is the portable way to sleep for 3 seconds. See
-        # http://stackoverflow.com/a/1672349/161801
-        batfiles = ['ping 1.1.1.1 -n 1 -w 3000 > nul']
-        for cmd, arg in wincmds:
-            batfiles.append(win_subprocess_write_bat(cmd, arg, prefix, plan))
-        batfiles.append("""
-echo done
-echo.
-""")
-        if wincmds:
-            batfile = '\n'.join(batfiles)
-            do_win_subprocess(batfile, prefix)
-
-
-def should_do_win_subprocess(cmd, arg, prefix):
-    """
-    If the cmd needs to call out to a separate process on Windows (because the
-    Windows file lock prevents Python from updating itself).
-    """
-    return (
-        cmd in ('LINK', 'UNLINK') and
-        install.on_win and
-        abspath(prefix) == abspath(sys.prefix) and
-        arg.rsplit('-', 2)[0] in install.win_ignore
-    )
-
-def win_subprocess_re_sort(plan, prefix):
-    # TODO: Fix the progress numbers
-    newplan = []
-    winplan = []
-    for line in plan:
-        cmd_arg = cmds_from_plan([line])
-        if cmd_arg:
-            [[cmd, arg]] = cmd_arg
-        else:
-            continue
-        if should_do_win_subprocess(cmd, arg, prefix=prefix):
-            if cmd == LINK:
-                # The one post-link action that we need to worry about
-                newplan.append("CREATEMETA %s" % arg)
-            winplan.append(line)
-        else:
-            newplan.append(line)
-
-    return newplan, winplan
-
-def test_win_subprocess(prefix):
-    """
-    Make sure the windows subprocess stuff will work before we try it.
-    """
-    import subprocess
-    from conda.win_batlink import make_bat_link, make_bat_unlink
-    from conda.builder.utils import rm_rf
-
-    try:
-        print("Testing if we can install certain packages")
-        batfiles = ['ping 1.1.1.1 -n 1 -w 3000 > nul']
-        dist_dir = join(config.pkgs_dir, 'battest_pkg', 'battest')
-
-        # First create a file in the prefix.
-        print("making file in the prefix")
-        prefix_battest = join(prefix, 'battest')
-        print("making directories")
-        os.makedirs(join(prefix, 'battest'))
-        print("making file")
-        with open(join(prefix_battest, 'battest1'), 'w') as f:
-            f.write('test1')
-        print("testing file")
-        with open(join(prefix_battest, 'battest1')) as f:
-            assert f.read() == 'test1'
-
-        # Now unlink it.
-        print("making unlink command")
-        batfiles.append(make_bat_unlink([join(prefix_battest, 'battest1')],
-        [prefix_battest], prefix, dist_dir))
-
-        # Now create a file in the pkgs dir
-        print("making file in pkgs dir")
-        print("making directories")
-        os.makedirs(join(dist_dir, 'battest'))
-        print("making file")
-        with open(join(dist_dir, 'battest', 'battest2'), 'w') as f:
-            f.write('test2')
-        print("testing file")
-        with open(join(dist_dir, 'battest', 'battest2')) as f:
-            assert f.read() == 'test2'
-
-        # And link it
-        print("making link command")
-        batfiles.append(make_bat_link([join('battest', 'battest2')],
-                                      prefix, dist_dir))
-
-        batfile = '\n'.join(batfiles)
-
-        print("writing batlink_test.bat file")
-        with open(join(prefix, 'batlink_test.bat'), 'w') as f:
-            f.write(batfile)
-        print("running batlink_test.bat file")
-        subprocess.check_call([join(prefix, 'batlink_test.bat')])
-
-        print("testing result")
-        print("testing if old file does not exist")
-        assert not os.path.exists(join(prefix_battest, 'battest1'))
-        print("testing if new file does exist")
-        assert os.path.exists(join(prefix_battest, 'battest2'))
-        print("testing content of installed file")
-        with open(join(prefix_battest, 'battest2')) as f:
-            assert f.read() == 'test2'
-        print("testing content of pkg file")
-        with open(join(dist_dir, 'battest', 'battest2')) as f:
-            assert f.read() == 'test2'
-
-    finally:
-        try:
-            print("cleaning up")
-            rm_rf(join(prefix, 'battest'))
-            rm_rf(join(config.pkgs_dir, 'battest_pkg'))
-            rm_rf(join(prefix, 'batlink_test.bat'))
-        except Exception as e:
-            print(e)
-
-def win_subprocess_write_bat(cmd, arg, prefix, plan):
-    assert sys.platform == 'win32'
-
-    import json
-    from conda.win_batlink import make_bat_link, make_bat_unlink
-
-    dist_dir = join(config.pkgs_dir, arg)
-    info_dir = join(dist_dir, 'info')
-
-    if cmd == LINK:
-        files = list(install.yield_lines(join(info_dir, 'files')))
-
-        return make_bat_link(files, prefix, dist_dir)
-
-    elif cmd == UNLINK:
-        meta_path = join(prefix, 'conda-meta', arg + '.json')
-        with open(meta_path) as fi:
-            meta = json.load(fi)
-
-        files = set([])
-        directories1 = set([])
-        for f in meta['files']:
-            dst = abspath(join(prefix, f))
-            files.add(dst)
-            directories1.add(dirname(dst))
-        files.add(meta_path)
-
-        directories = set([])
-        for path in directories1:
-            while len(path) > len(prefix):
-                directories.add(path)
-                path = dirname(path)
-        directories.add(join(prefix, 'conda-meta'))
-        directories.add(prefix)
-
-        directories = sorted(directories, key=len, reverse=True)
-
-        return make_bat_unlink(files, directories, prefix, dist_dir)
-    else:
-        raise ValueError
-
-def do_win_subprocess(batfile, prefix):
-    import subprocess
-    with open(join(prefix, 'batlink.bat'), 'w') as f:
-        f.write(batfile)
-    print("running subprocess")
-    subprocess.Popen([join(prefix, 'batlink.bat')])
-    # If we ever hit a race condition, maybe we should use atexit
-    sys.exit(0)
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
