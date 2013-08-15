@@ -5,6 +5,8 @@
   * fixed error in recipe causing conda traceback, issue 158
   * fixes conda build erro in Python 3, issue 238
   * improve error message when test command fails, as well as issue 229
+  * disable Python (and other packages which are used by conda itself)
+    to be updated in root environment on Windows
 
 
 2013-08-07   1.8.1:
