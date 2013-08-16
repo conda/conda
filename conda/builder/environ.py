@@ -39,7 +39,7 @@ def get_dict():
         d['LIBRARY_LIB'] = join(d['LIBRARY_PREFIX'], 'lib')
 
     else:                               # -------- Unix
-        d['PATH'] = build_prefix + '/bin:/usr/local/bin:/bin:/usr/bin'
+        d['PATH'] = '%s/bin:%s' % (build_prefix, os.getenv('PATH'))
         d['HOME'] = os.getenv('HOME', 'UNKNOWN')
         d['LANG'] = 'en_US.UTF-8'
         d['PKG_CONFIG_PATH'] = join(build_prefix, 'lib', 'pkgconfig')
