@@ -275,6 +275,7 @@ def link(pkgs_dir, prefix, dist):
               dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
+        print('Ignored: %s' % dist)
         return
 
     dist_dir = join(pkgs_dir, dist)
@@ -319,6 +320,7 @@ def unlink(prefix, dist):
               dist.rsplit('-', 2)[0] in win_ignore):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
+        print('Ignored: %s' % dist)
         return
 
     with Locked(prefix):
