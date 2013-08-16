@@ -15,65 +15,39 @@ globally (such as downloading packages).
 
 """
 
-from __future__ import print_function, division, absolute_import
-
 import os
-from os.path import join
-
-import errno
-
-from conda import config
+from os.path import exists, join
 
 
 LOCKFN = '.conda_lock'
-
-
-def create_lock(lock_path):
-    """
-    Creates a lock at `path`. Returns True if the file was created and
-    False if the file already exists.
-    """
-    # Note, we do this instead of os.path.exists to avoid race conditions
-    try:
-        os.makedirs(lock_path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise RuntimeError("LOCKERROR: Could not create the lock %s: %s" %
-                               lock_path, e.strerror)
-        return False
-    return True
-
-
-def remove_lock(lock_path):
-    # Intentionally raise an exception if the directory is not there, or if it
-    # is nonempty.
-    os.rmdir(lock_path)
 
 
 class Locked(object):
     """
     Context manager to handle locks.
     """
-    def __init__(self, path=config.root_dir):
+    def __init__(self, path):
         self.path = path
         self.lock_path = join(self.path, LOCKFN)
 
     def __enter__(self):
-        lock = create_lock(self.lock_path)
-        if not lock:
+        if exists(self.lock_path):
             # Keep the string "LOCKERROR" in this string so that external
             # programs can look for it.
             raise RuntimeError("""\
 LOCKERROR: It looks like conda is already doing something.
 The lock %s was found. Wait for it to finish before continuing.
-If you are sure that conda is not running, remove it and try again.""" %
-                               self.lock_path)
+If you are sure that conda is not running, remove it and try again.
+You can also use: $ conda clean --lock""" % self.lock_path)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        remove_lock(self.lock_path)
         try:
-            # Remove the locked path if it is empty, since this means that it
-            # did not exist when we created the lock.
-            os.rmdir(self.path)
+            os.makedirs(self.lock_path)
         except OSError:
             pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for path in self.lock_path, self.path:
+            try:
+                os.rmdir(path)
+            except OSError:
+                pass
