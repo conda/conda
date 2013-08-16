@@ -32,7 +32,10 @@ class ArgumentParser(argparse.ArgumentParser):
         if exc:
             # this is incredibly lame, but argparse stupidly does not expose
             # reasonable hooks for customizing error handling
-            argument = self._get_action_from_name(exc.argument_name)
+            if hasattr(exc, 'argument_name'):
+                argument = self._get_action_from_name(exc.argument_name)
+            else:
+                argument = None
             if argument and argument.dest == "cmd":
                 import re
                 m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
