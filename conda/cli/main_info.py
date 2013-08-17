@@ -44,7 +44,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import os
     import sys
-    from os.path import basename, join
+    from os.path import basename, dirname, join
 
     import conda
     import conda.config as config
@@ -54,6 +54,7 @@ def execute(args, parser):
 
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
+                     conda_location=dirname(conda.__file__),
                      root_prefix=config.root_dir,
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
@@ -72,9 +73,10 @@ def execute(args, parser):
 Current conda install:
 
              platform : %(platform)s
-conda command version : %(conda_version)s
-       root directory : %(root_prefix)s
-       default prefix : %(default_prefix)s
+        conda version : %(conda_version)s
+       conda location : %(conda_location)s
+     root environment : %(root_prefix)s
+  default environment : %(default_prefix)s
          channel URLs : %(ppcs)s
           config file : %(rc_path)s
 """ % info_dict )
