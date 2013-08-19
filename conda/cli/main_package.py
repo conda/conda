@@ -22,6 +22,11 @@ def configure_parser(sub_parsers):
         help    = "check (validate) the given conda packages (PATH) and exit",
     )
     p.add_argument(
+        "--which",
+        action  = "store_true",
+        help    = "given some PATH print which conda package the file came from",
+    )
+    p.add_argument(
         '-r', "--reset",
         action  = "store_true",
         help    = "remove all untracked files and exit",
@@ -60,7 +65,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
-    from os.path import basename
+    from os.path import abspath, basename
 
     from conda.builder.packup import make_tarbz2, untracked, remove
 
@@ -70,13 +75,22 @@ def execute(args, parser):
     if args.check:
         from conda.builder.tarcheck import check_all
 
-        for arg in args.path:
+        for path in args.path:
             try:
-                check_all(arg)
-                print('%s OK' % basename(arg))
+                check_all(path)
+                print('%s OK' % basename(path))
             except Exception as e:
                 print(e)
-                print('%s FAILED' % basename(arg))
+                print('%s FAILED' % basename(path))
+        return
+
+    if args.which:
+        from conda.builder.packup import which_package
+
+        for path in args.path:
+            path = abspath(path)
+            for dist in  which_package(path):
+                print('%-55s %s' % (path, dist))
         return
 
     if args.path:
