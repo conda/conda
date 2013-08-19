@@ -182,16 +182,20 @@ packages may be specified.
 Directory Structure
 -------------------
 
-The Anaconda installation has the following directory structure:
+The conda system has the following directory structure:
 
 **ROOT_DIR**
-    The directory that Anaconda was installed into; for example, */opt/Anaconda* or *C:\\Anaconda*
+    The directory that Anaconda (or Miniconda) was installed
+    into; for example, */opt/Anaconda* or *C:\\Anaconda*
 
     */pkgs*
-        Also referred to as *PKGS_DIR*. This directory contains exploded packages, ready to be linked in Anaconda environments. Each package resides in a subdirectory corresponding to its canonical name.
+        Also referred to as *PKGS_DIR*. This directory contains exploded
+        packages, ready to be linked in conda environments.
+        Each package resides in a subdirectory corresponding to its
+        canonical name.
 
     */envs*
-        The system location for additional Anaconda environments to be created.
+        The system location for additional conda environments to be created.
 
     |   */bin*
     |   */include*
@@ -199,7 +203,8 @@ The Anaconda installation has the following directory structure:
     |   */share*
     |       These subdirectories comprise the default Anaconda environment.
 
-Other Anaconda environments contain the same subdirectories as the default environment, and may be located anywhere on the same filesystem as PKGS_DIR.
+Other conda environments usually contain the same subdirectories as the
+default environment.
 
 .. _config:
 
@@ -267,7 +272,8 @@ On Windows systems, you should change or set the **PATH** manually.
 Now you're ready to begin using the Python located in your created
 environment.
 
-If you would like to deactivate this environment and revert your **PATH** to its previous state, use:
+If you would like to deactivate this environment and revert your **PATH** to
+its previous state, use:
 
 .. code-block:: bash
 
@@ -278,7 +284,8 @@ If you would like to deactivate this environment and revert your **PATH** to its
 Update Anaconda to latest version
 ---------------------------------
 
-To update to the latest version of Anaconda, you must first ensure you have the latest version of ``conda``:
+To update to the latest version of Anaconda, it is best to first
+ensure you have the latest version of ``conda``:
 
 .. code-block:: bash
 
