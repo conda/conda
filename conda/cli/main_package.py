@@ -18,9 +18,8 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     p.add_argument(
         '-c', "--check",
-        action  = "store",
-        help    = "check (validate) the given tar package and exit",
-        metavar = 'PATH',
+        action  = "store_true",
+        help    = "check (validate) the given conda packages (PATH) and exit",
     )
     p.add_argument(
         '-r', "--reset",
@@ -32,7 +31,6 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         help    = "display all untracked files and exit",
     )
-
     p.add_argument(
         "--pkg-name",
         action  = "store",
@@ -51,10 +49,17 @@ def configure_parser(sub_parsers):
         default = 0,
         help    = "package build number of the created package",
     )
+    p.add_argument(
+        'path',
+        metavar = 'PATH',
+        action = "store",
+        nargs = '*',
+    )
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    import sys
     from os.path import basename
 
     from conda.builder.packup import make_tarbz2, untracked, remove
@@ -65,13 +70,17 @@ def execute(args, parser):
     if args.check:
         from conda.builder.tarcheck import check_all
 
-        try:
-            check_all(args.check)
-            print('%s OK' % basename(args.check))
-        except Exception as e:
-            print(e)
-            print('%s FAILED' % basename(args.check))
+        for arg in args.path:
+            try:
+                check_all(arg)
+                print('%s OK' % basename(arg))
+            except Exception as e:
+                print(e)
+                print('%s FAILED' % basename(arg))
         return
+
+    if args.path:
+        sys.exit("Error: no positional arguments expected.")
 
     print('# prefix:', prefix)
 
