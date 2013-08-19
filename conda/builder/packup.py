@@ -8,7 +8,7 @@ import shutil
 import hashlib
 import tarfile
 import tempfile
-from os.path import abspath, basename, dirname, isfile, islink, join
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 import conda.config as config
 import conda.install as install
@@ -237,6 +237,34 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
         return
     remove(prefix, files)
     install_local_packages(prefix, [fn])
+
+
+def get_prefix(path):
+    prefix = abspath(path)
+    while True:
+        if isdir(join(prefix, 'conda-meta')):
+            # we found the it, so let's return it
+            return prefix
+        if prefix == dirname(prefix):
+            return None
+        prefix = dirname(prefix)
+
+
+def which_package(path):
+    """
+    given some path (of a conda installed file) iterate over the conda
+    packages the file came from.  Usually the iteration yields only one
+    package.
+    """
+    path = abspath(path)
+    prefix = get_prefix(path)
+    if prefix is None:
+        raise RuntimeError("could not determine conda prefix from: %s" % path)
+    for dist in install.linked(prefix):
+        meta = install.is_linked(prefix, dist)
+        for f in meta['files']:
+            if abspath(join(prefix, f)) == path:
+                yield dist
 
 
 if __name__ == '__main__':
