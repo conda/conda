@@ -262,9 +262,8 @@ def which_package(path):
         raise RuntimeError("could not determine conda prefix from: %s" % path)
     for dist in install.linked(prefix):
         meta = install.is_linked(prefix, dist)
-        for f in meta['files']:
-            if abspath(join(prefix, f)) == path:
-                yield dist
+        if any(abspath(join(prefix, f)) == path for f in meta['files']):
+            yield dist
 
 
 if __name__ == '__main__':
