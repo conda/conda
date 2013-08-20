@@ -109,6 +109,8 @@ def create_env(pref, specs):
     if not isdir(bldpkgs_dir):
         os.makedirs(bldpkgs_dir)
     update_index(bldpkgs_dir)
+    # remove the cache such that a refetch is made,
+    # this is necessary because we add the local build repo URL
     fetch_index.cache = {}
     index = get_index([url_path(config.croot)])
 
