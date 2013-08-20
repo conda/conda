@@ -5,7 +5,7 @@ Update
 
 ``conda update`` replaces old packages in a given environment with the latest versions.
 
-For this first example, we will use an environment ``/tmp/matplotlib`` , which we can select using the prefix (``-p``) option.
+For this first example, we will use an environment */tmp/matplotlib*, which we can select using the prefix (``-p``) option.
 
 .. code-block:: bash
 
@@ -27,11 +27,11 @@ For this first example, we will use an environment ``/tmp/matplotlib`` , which w
     Proceed ([y]/n)?
 
 For this next example, we will do almost the same thing, but instead of using the prefix option, we will use name (``-n``)
-on an environment ``/home/test/anaconda/envs/matplotlib``.
+on an environment */home/test/anaconda/envs/matplotlib*.
 
 .. code-block:: bash
 
-    $conda update -n matplot matplotlib
+    $ conda update -n matplot matplotlib
     Updating conda environment at /home/test/anaconda/envs/matplotlib
 
     The following packages will be UN-linked:
