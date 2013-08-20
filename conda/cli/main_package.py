@@ -22,9 +22,9 @@ def configure_parser(sub_parsers):
         help    = "check (validate) the given conda packages (PATH) and exit",
     )
     p.add_argument(
-        "--which",
-        action  = "store_true",
-        help    = "given some PATH print which conda package the file came from",
+        '-w', "--which",
+        action = "store_true",
+        help = "given some PATH print which conda package the file came from",
     )
     p.add_argument(
         '-r', "--reset",
@@ -65,7 +65,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
-    from os.path import abspath, basename
+    from os.path import basename
 
     from conda.builder.packup import make_tarbz2, untracked, remove
 
@@ -88,9 +88,8 @@ def execute(args, parser):
         from conda.builder.packup import which_package
 
         for path in args.path:
-            path = abspath(path)
             for dist in  which_package(path):
-                print('%-55s %s' % (path, dist))
+                print('%-50s  %s' % (path, dist))
         return
 
     if args.path:
