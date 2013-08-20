@@ -89,7 +89,7 @@ useful for the purposes of debugging.
   DYLD_LIBRARY_PATH: None
   CONDA_DEFAULT_ENV: None
 
-To display all relevant information at once, use the ``conda info --all` option.
+To display all relevant information at once, use the ``conda info --all`` option.
 
 .. code-block:: bash
 
