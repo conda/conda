@@ -240,21 +240,26 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
 
 
 def get_prefix(path):
+    """
+    given the path (to a (presumably) conda installed file) return the
+    environment prefix in which the file in located
+    """
     prefix = abspath(path)
     while True:
         if isdir(join(prefix, 'conda-meta')):
             # we found the it, so let's return it
             return prefix
         if prefix == dirname(prefix):
+            # we cannot chop off any more directories, so we didn't find it
             return None
         prefix = dirname(prefix)
 
 
 def which_package(path):
     """
-    given some path (of a conda installed file) iterate over the conda
-    packages the file came from.  Usually the iteration yields only one
-    package.
+    given the path (of a (presumably) conda installed file) iterate over
+    the conda packages the file came from.  Usually the iteration yields
+    only one package.
     """
     path = abspath(path)
     prefix = get_prefix(path)
