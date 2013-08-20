@@ -3,10 +3,10 @@
 Search
 ------
 
-``conda search`` is a versatile conda option that can be used in a variety of ways.
+**conda search** is a versatile option that can be used to explore packages available from known repositories or installed locally.
 
-In the first example, we want to simply search for scipy and see if it is in
-conda's list of packages.
+In the first example, we want to simply search for SciPy and see if it is in
+**conda's** list of packages.
 
 .. code-block:: bash
 
@@ -31,9 +31,9 @@ conda's list of packages.
                               *  0.12.0              np17py27_p0  [mkl]
                                  ...
 
-Notice the asterisk in the previous example; this indicates the currently installed version of the package.
+Notice the asterisk in the above example; this indicates the currently installed version of the package.
 
-In this next example, we will refine our search a bit.  With ``^l.*py$`` we want to find any packages
+In this next example, we will refine our search a bit.  With ``^l.*py$``, we want to find any packages
 that begin with ``l`` followed by any number of characters, and ending with ``py``.
 
 .. code-block:: bash
@@ -62,10 +62,10 @@ that begin with ``l`` followed by any number of characters, and ending with ``py
     D:\Test>conda search "^l.*py$"
 
 
-While the previous examples have illustrated conda's basic usefulness, they have only scratched
+While the previous examples have illustrated **conda's** basic usefulness, they have only scratched
 the surface of what this option can do.
 
-For this example, we will use an environment containing scipy=0.11.0, numpy=1.7, python=2.7 and their dependencies.
+For this example, we will use an environment containing *scipy=0.11.0*, *numpy=1.7*, *python=2.7* and their dependencies.
 Using the prefix option (``-p``), we can select an environment, and search for all packages that are compatible with it.
 
 .. code-block:: bash

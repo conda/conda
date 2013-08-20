@@ -8,19 +8,18 @@ Conda
 =====
 
 
-The ``conda`` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
+The `conda` command is the primary interface for managing `Anaconda <http://docs.continuum.io/anaconda/index.html>`_ installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
 
 
 Installation
-------------
-
-``conda`` is a part of the Anaconda distribution which can be downloaded `here <http://continuum.io/downloads>`_.
+-----------
+conda is a part of the Anaconda distribution which can be downloaded `here <https://store.continuum.io/cshop/anaconda/>`_.
 
 
 Getting Started
 ---------------
 
-To demonstrate the ease of a typical ``conda`` workflow, we will create an Anaconda environment
+To demonstrate the ease of a typical conda workflow, we will create an Anaconda environment
 with a version of `NumPy <http://www.numpy.org>`_ different from the default version.
 
 First, we will check our system NumPy version
@@ -47,7 +46,7 @@ Next we will create an Anaconda environment using a different version of NumPy
 
     [      COMPLETE      ] |#################################################| 100%
 
-Now we adjust our *PATH* variable to point to the new environment
+Now we adjust our **PATH** variable to point to the new environment
 
 .. code-block:: bash
 
@@ -96,7 +95,7 @@ Requirements
 License Agreement
 -----------------
 
-``conda`` is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
+conda is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
 
 
 Indices and tables

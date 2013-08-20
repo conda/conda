@@ -2,10 +2,14 @@
 Introduction
 ============
 
+<<<<<<< Updated upstream
 The ``conda`` command is the primary interface for managing installations
 of various packages.  It can query and search the package index and current
 installation, create new environments, and install and update packages
 into existing conda environments.
+=======
+The `conda` command is the primary interface for managing Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
+>>>>>>> Stashed changes
 
 ------------------
 conda Overview
@@ -19,6 +23,7 @@ conda Overview
 .. index::
     pair: terminology; environment
 
+<<<<<<< Updated upstream
 ``conda`` is an application for finding and installing software packages.
 A conda *package* is a binary tarball containing system-level libraries,
 python modules, executable programs, or other components.
@@ -32,6 +37,11 @@ have one environment that provides NumPy 1.7, and another environment that
 provides NumPy 1.6 for legacy testing.  ``conda`` makes this kind of mixing
 and matching easy.  To begin using an environment, simply set
 your **PATH** variable to point to its `bin` directory.
+=======
+conda is an application for finding and installing Anaconda software packages. An Anaconda *package* is a binary tarball containing system-level libraries, python modules, executable programs, or other components. conda keeps track of dependencies between packages and platform specifics, making it simple to create working environments from different sets of packages. 
+
+An Anaconda *environment* is a filesystem directory that contains a specific collection of Anaconda packages. As a concrete example, you might want to have one environment that provides NumPy 1.7, and another environment that provides NumPy 1.6 for legacy testing. conda makes this kind of mixing and matching easy.  To begin using an environment, simply set your **PATH** variable to point to its `bin` directory.
+>>>>>>> Stashed changes
 
 .. _channel:
 .. index::
@@ -49,9 +59,14 @@ your **PATH** variable to point to its `bin` directory.
 .. index::
     pair: terminology; deactivated
 
+<<<<<<< Updated upstream
 Conda packages are downloaded from remote *channels*, which are simply URLs
 to directories containing conda packages.
 The ``conda`` command starts with a default set of channels to search, but users may exert control over this list; for example, if they wish to maintain a private or internal channel (see Configuration_ for details).
+=======
+Anaconda packages are downloaded from remote *channels*, which are simply URLs to directories containing Anaconda packages.
+The conda command starts with a default set of channels to search, but users may exert control over this list; for example, if they wish to maintain a private or internal channel (see Configuration_ for details).
+>>>>>>> Stashed changes
 Continuum provides the following standard channels:
  * ``http://repo.continuum.io/pkgs/dev`` - Experimental or developmental versions of packages
  * ``http://repo.continuum.io/pkgs/gpl`` - GPL licensed packages
@@ -73,6 +88,7 @@ Conversely, unlinking a package from an environment causes it to be *unlinked*.
 .. index::
     pair: terminology; known
 
+<<<<<<< Updated upstream
 Since conda environments are simply directories, they may be created
 anywhere.  However, conda has a notion of *locations* which are also
 simply directories that are known to ``conda``, and contain environments
@@ -80,6 +96,9 @@ within.  Conda environments created in such locations are said to
 be *known*, and can be displayed for easy reference.  Conda has a default
 system location, but additional locations may be specified (see `Directory
 Structure`_ and Configuration_, respectively, for more details).
+=======
+Since Anaconda environments are simply directories, they may be created anywhere. However, Anaconda has a notion of *locations* which are also simply directories that are known to conda, and contain environments within. Anaconda environments created in such locations are said to be *known*, and can be displayed for easy reference. Anaconda has a default system location, but additional locations may be specified (see `Directory Structure`_ and Configuration_, respectively, for more details).
+>>>>>>> Stashed changes
 
 
 --------------------------
@@ -165,6 +184,7 @@ In usage documentation, these will be referred to by ``package_spec``.
 -------------
 Meta-Packages
 -------------
+<<<<<<< Updated upstream
 
 ``conda`` also provides the notion of *meta-packages*.
 A meta-package is an conda package that contains a list of explicit
@@ -174,6 +194,10 @@ replace any existing package versions that may already be installed in an
 conda environment.  When creating, updating, or installing into
 environments, only one meta-package may be specified, and no additional
 packages may be specified.
+=======
+conda also provides the notion of *meta-packages*. A meta-package is an Anaconda package that contains a list of explicit
+packages to install without any further dependency checking. When installing a meta-package, its listed packages override and will replace any existing package versions that may already be installed in an Anaconda environment. When creating, updating, or installing into environments, only one meta-package may be specified, and no additional packages may be specified.
+>>>>>>> Stashed changes
 
 .. _directory_structure:
 
@@ -211,7 +235,7 @@ default environment.
 -------------
 Configuration
 -------------
-There is very little user configuration that ``conda`` requires; however, ``conda`` will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_.
+There is very little user configuration that conda requires; however, conda will read minimal configuration from a *$HOME/.condarc* file, if it is present. The *.condarc* file follows simple `YAML syntax`_.
 
 Here is an example:
 
@@ -244,7 +268,7 @@ Here, 'py33' is the name of the environment to create, and 'anaconda' is the
 meta-package that includes all of the actual Python packages comprising
 the Anaconda distribution.  When creating a new environment and installing
 the Anaconda meta-package, the NumPy and Python versions can be specified,
-e.g. ``numpy=1.7`` or ``python=3.3``.
+e.g. `numpy=1.7` or `python=3.3`.
 
 .. code-block:: bash
 
@@ -285,7 +309,7 @@ Update Anaconda to latest version
 ---------------------------------
 
 To update to the latest version of Anaconda, it is best to first
-ensure you have the latest version of ``conda``:
+ensure you have the latest version of conda:
 
 .. code-block:: bash
 
