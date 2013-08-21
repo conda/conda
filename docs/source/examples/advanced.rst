@@ -7,5 +7,3 @@ Advanced Package Management
 
 .. toctree::
 
-    env
-    local

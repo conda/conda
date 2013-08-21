@@ -8,7 +8,7 @@ installation, create new environments, and install and update packages
 into existing conda environments.
 
 ------------------
-conda Overview
+Conda Overview
 ------------------
 
 .. _package:
@@ -26,7 +26,7 @@ conda keeps track of dependencies between packages and platform
 specifics, making it simple to create working environments from different
 sets of packages. 
 
-A conda `environment` is a filesystem directory that contains a specific
+A `conda environment` is a filesystem directory that contains a specific
 collection of conda packages.  As a concrete example, you might want to
 have one environment that provides NumPy 1.7, and another environment that
 provides NumPy 1.6 for legacy testing.  conda makes this kind of mixing
