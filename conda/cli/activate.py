@@ -4,7 +4,7 @@ import os
 import sys
 from os.path import isdir, join
 
-import conda.config
+import conda.config as config
 
 def help():
     if sys.argv[1] == '..activate':
@@ -28,7 +28,7 @@ def main():
         if len(sys.argv) == 2:
             sys.exit("Error: no environment provided.")
         elif len(sys.argv) == 3:
-            binpath = join(conda.config.root_dir, 'envs', sys.argv[2], 'bin')
+            binpath = join(config.envs_dir, sys.argv[2], 'bin')
         else:
             sys.exit("Error: did not expect more than one argument")
 
@@ -43,13 +43,13 @@ def main():
 
         if 'CONDA_DEFAULT_ENV' not in os.environ:
             sys.exit("Error: No environment to deactivate")
-        binpath = join(conda.config.root_dir, 'envs',
-            os.getenv('CONDA_DEFAULT_ENV'), 'bin')
+        binpath = join(config.envs_dir,
+                       os.getenv('CONDA_DEFAULT_ENV'), 'bin')
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
-        binpath = join(conda.config.root_dir, 'envs', sys.argv[2], 'bin')
+        binpath = join(config.envs_dir, sys.argv[2], 'bin')
         if not isdir(binpath):
             sys.exit("Error: no such directory: %s" % binpath)
         sys.exit(0)
