@@ -8,13 +8,13 @@ a directory (specified with ``-p/--prefix``), for one or more packages.  We have
 a progress bar, displayed as it creates the environment.
 
 
-`conda` will also gather and link all necessary package dependencies.
+conda will also gather and link all necessary package dependencies.
 Those that are not locally available will also be downloaded.
 
-If the package version is not specified, `conda` will choose the latest version by
+If the package version is not specified, conda will choose the latest version by
 default.
 
-We'll start with an environment created in a specific path (``~/anaconda/envs/test2``) using the --prefix option (``-p``).
+We'll start with an environment created in a specific path (`~/anaconda/envs/test2`) using the --prefix option (``-p``).
 
 .. code-block:: bash
 
@@ -64,12 +64,12 @@ We'll start with an environment created in a specific path (``~/anaconda/envs/te
 
 
 In this next example, rather than selecting an environment directory with a prefix, we will use the name option (``-n/--name``).
-This will create an environment in the default Anaconda/envs ROOT_DIR (which can be displayed by using `conda's` :ref:`info --locations <locations_example>` option),
-where it will be discoverable by using `conda's`
+This will create an environment in the default `Anaconda/envs` **ROOT_DIR** (which can be displayed by using conda's :ref:`info --locations <locations_example>` option),
+where it will be discoverable by using conda's
 :ref:`info --envs <envs_example>` option.
 
 It is possible to disable a progress bar (``--quiet``) if you don't wish to show the status of any
-packages `conda` has to download.  You can also skip the ``Proceed(y/n)?`` check with ``--yes``
+packages conda has to download.  You can also skip the ``Proceed(y/n)?`` check with ``--yes``
 
 .. code-block:: bash
 
