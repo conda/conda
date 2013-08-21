@@ -101,6 +101,8 @@ FIELDS = {
     'package': ['name', 'version'],
     'source': ['fn', 'url', 'md5', 'sha1',
                'git_url', 'git_tag', 'git_branch',
+               'hg_url', 'hg_tag',
+               'svn_url', 'svn_rev', 'svn_ignore_externals',
                'patches'],
     'build': ['number', 'entry_points', 'osx_is_app', 'rm_py',
               'features', 'track_features'],
