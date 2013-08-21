@@ -62,8 +62,8 @@ The ``--all`` option can be used to remove all packages from a given environment
     Unlinking packages ...
     [      COMPLETE      ] |###############| 100%
 
-The ``--features`` option can be used to remove a feature, such as ``mkl``.
-For example, if we have ``mkl`` installed, which we can see with ``conda
+The ``--features`` option can be used to remove a feature, such as MKL.
+For example, if we have MKL installed, which we can see with ``conda
 search``
 
 .. code-block:: bash
@@ -99,7 +99,7 @@ the MKL feature.  To remove MKL, we would do
 
     $ conda remove --features mkl
 
-    Package plan for package removal in environment /Users/aaronmeurer/Documents/Continuum/conda-recipes/vtk/testdir/test:
+    Package plan for package removal in environment /Users/test/Documents/Continuum/conda-recipes/vtk/testdir/test:
 
     The following packages will be downloaded:
 
@@ -158,7 +158,7 @@ support.
                                  0.12.0              np16py26_p0  [mkl]
                                  0.12.0               np15py26_0
 
-If we had just removed ``mkl`` without the ``--features`` option, it would
+If we had just removed MKL without the ``--features`` option, it would
 only remove MKL, but would not change the features of any of the installed
 packages.
 
@@ -166,7 +166,7 @@ packages.
 
     $ conda remove mkl
 
-    Package plan for package removal in environment /Users/aaronmeurer/Documents/Continuum/conda-recipes/vtk/testdir/test:
+    Package plan for package removal in environment /Users/test/Documents/Continuum/conda-recipes/vtk/testdir/test:
 
     The following packages will be UN-linked:
 
