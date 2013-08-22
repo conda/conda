@@ -62,6 +62,31 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+def install_tar(prefix, tar_path, verbose=False):
+    import os
+    import shutil
+    import tarfile
+    import tempfile
+    from os.path import join
+
+    from conda.misc import install_local_packages
+
+    tmp_dir = tempfile.mkdtemp()
+    t = tarfile.open(tar_path, 'r')
+    t.extractall(path=tmp_dir)
+    t.close()
+
+    paths = []
+    for root, dirs, files in os.walk(tmp_dir):
+        for fn in files:
+            if fn.endswith('.tar.bz2'):
+                paths.append(join(root, fn))
+
+    install_local_packages(prefix, paths, verbose=verbose)
+
+    shutil.rmtree(tmp_dir)
+
+
 def execute(args, parser):
     import sys
 
@@ -70,6 +95,13 @@ def execute(args, parser):
     from conda.cli import pscheck
 
     prefix = common.get_prefix(args)
+
+    # handle tar file containaing conda packages
+    if len(args.packages) == 1:
+        tar_path = args.packages[0]
+        if tar_path.endswith('.tar'):
+            install_tar(prefix, tar_path, verbose=not args.quiet)
+            return
 
     # handle explict installs of conda packages
     if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
