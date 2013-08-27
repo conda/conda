@@ -129,5 +129,9 @@ def execute(args, parser):
 
             binstar = find_executable('binstar')
             if binstar is None:
-                sys.exit('Error: cannot locate binstar (required for upload)')
+                sys.exit('''
+Error: cannot locate binstar (required for upload)
+# Try:
+# $ conda install binstar
+''')
             subprocess.call([binstar, 'upload', build.bldpkg_path(m)])
