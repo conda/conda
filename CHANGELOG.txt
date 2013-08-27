@@ -3,6 +3,7 @@
   * add conda package --which option, closes issue 163
   * add ability to install file which contains multiple packages, issue 256
   * update documentation
+  * improve error messages when external dependencies are unavailable
 
 
 2013-08-16   1.8.2:
