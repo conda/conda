@@ -129,7 +129,7 @@ def main(args, parser):
             [version] = args.version
             versions = client.package_releases(package, True)
             if version not in versions:
-                sys.exit("Error: Version %s of %s is not avalaiable on PyPI."
+                sys.exit("Error: Version %s of %s is not available on PyPI."
                     % (version, package))
             d['version'] = version
         else:
@@ -142,7 +142,7 @@ def main(args, parser):
                     print(ver)
                 print("Using %s" % versions[0])
                 print("Use --version to specify a different version.")
-            d['version'] = versions[-1]
+            d['version'] = versions[0]
 
         data = client.release_data(package, d['version'])
         urls = client.release_urls(package, d['version'])
