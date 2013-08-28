@@ -357,6 +357,16 @@ def unlink(prefix, dist):
             rm_empty_dir(path)
 
 
+def link_messages(prefix):
+    path = join(prefix, '.link-messages.txt')
+    try:
+        with open(path) as fi:
+            sys.stdout.write(fi.read())
+    except IOError:
+        pass
+    finally:
+        rm_rf(path)
+
 # =========================== end API functions ==========================
 
 def main():
