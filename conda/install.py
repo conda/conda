@@ -438,6 +438,7 @@ def main():
     elif opts.link_all:
         for dist in sorted(extracted(opts.pkgs_dir)):
             link(opts.pkgs_dir, opts.prefix, dist)
+        link_messages(opts.prefix)
 
     elif opts.extract:
         extract(opts.pkgs_dir, dist)
