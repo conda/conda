@@ -357,8 +357,8 @@ def unlink(prefix, dist):
             rm_empty_dir(path)
 
 
-def link_messages(prefix):
-    path = join(prefix, '.link-messages.txt')
+def messages(prefix):
+    path = join(prefix, '.messages.txt')
     try:
         with open(path) as fi:
             sys.stdout.write(fi.read())
@@ -439,7 +439,7 @@ def main():
     elif opts.link_all:
         for dist in sorted(extracted(pkgs_dir)):
             link(pkgs_dir, prefix, dist)
-        link_messages(prefix)
+        messages(prefix)
 
     elif opts.extract:
         extract(pkgs_dir, dist)
