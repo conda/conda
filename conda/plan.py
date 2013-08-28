@@ -323,7 +323,7 @@ def execute_plan(plan, index=None, verbose=False):
             i = None
             getLogger('progress.stop').info(None)
 
-    install.link_messages(prefix)
+    install.messages(prefix)
 
 
 def execute_actions(actions, index=None, verbose=False):
