@@ -29,7 +29,6 @@ def get_requires(prefix):
 
 def update_info(info):
     h = hashlib.new('sha1')
-    print(info)
     for spec in info['depends']:
         assert MatchSpec(spec).strictness == 3
         h.update(spec)
