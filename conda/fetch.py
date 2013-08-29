@@ -29,9 +29,9 @@ def fetch_repodata(url):
         for fn in 'repodata.json.bz2', 'repodata.json':
             try:
                 fi = connectionhandled_urlopen(url + fn)
-
-                if not fi:
+                if fi is None:
                     raise RuntimeError("failed to fetch repo data from %s" % url)
+
                 log.debug("fetched: %s [%s] ..." % (fn, url))
                 data = fi.read()
                 fi.close()
