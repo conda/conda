@@ -79,7 +79,8 @@ def connectionhandled_urlopen(url):
 
     installopener()
 
-    try: return urllib2.urlopen(url)
+    try:
+        return urllib2.urlopen(url)
 
     except urllib2.HTTPError as HTTPErrorinst:
         if HTTPErrorinst.code in (407, 401):
@@ -107,4 +108,4 @@ def connectionhandled_urlopen(url):
             # but i just want to exec to start from the top again
 
     except:
-        raise # returns anything unhandled here to the caller
+        raise None # returns anything unhandled here to the caller
