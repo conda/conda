@@ -97,7 +97,7 @@ def connectionhandled_urlopen(url):
                 for aprotocol, aproxy in iteritems(proxies_dict):
                     proxypwdmgr.add_password(None, aproxy, uname, pword)
                 firstconnection == False
-            else:#...assign a uname pwd for the specific protocol proxy type
+            else: #...assign a uname pwd for the specific protocol proxy type
                 assert(firstconnection == False)
                 protocol = urlparse.urlparse(url).scheme
                 proxypwdmgr.add_password(None, proxies_dict[protocol],
@@ -108,4 +108,4 @@ def connectionhandled_urlopen(url):
             # but i just want to exec to start from the top again
 
     except:
-        raise None # returns anything unhandled here to the caller
+        raise # returns anything unhandled here to the caller

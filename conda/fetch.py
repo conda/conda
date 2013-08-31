@@ -15,7 +15,7 @@ from os.path import join
 
 from conda import config
 from conda.utils import memoized
-from conda.connection_handling import connectionhandled_urlopen
+from conda.connection import connectionhandled_urlopen
 from conda.compat import itervalues
 from conda.lock import Locked
 
