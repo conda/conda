@@ -79,6 +79,7 @@ def execute(args, parser):
         disp_name = name
         if pat and pat.search(name) is None:
             continue
+
         if args.outdated:
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
                          if dist.rsplit('-', 2)[0] == name]
