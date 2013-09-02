@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 import os
-from os.path import dirname, isdir, join
+from os.path import abspath, dirname, isdir, isfile, join
 
 from conda import config
 from conda import install
@@ -38,7 +38,12 @@ def app_get_icon_url(fn):
     index = get_index()
     info = index[fn]
     base_url = dirname(info['channel'].rstrip('/'))
-    return '%s/icons/%s' % (base_url, info['icon'])
+    icon_fn = info['icon']
+    icon_cache_path = abspath(join(config.pkgs_dir, 'cache', icon_fn))
+    if isfile(icon_cache_path):
+        return 'file://' + icon_cache_path
+    else:
+        return '%s/icons/%s' % (base_url, icon_fn)
 
 
 def app_info_packages(fn):
