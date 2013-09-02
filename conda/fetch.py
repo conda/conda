@@ -33,7 +33,7 @@ retries = 3
 
 def fetch_repodata(url, cache={}):
     log.debug("fetching repodata: %s ..." % url)
-
+    
     request = urllib2.Request(url + 'repodata.json.bz2')
     if url in cache:
         d = cache[url]
@@ -47,10 +47,16 @@ def fetch_repodata(url, cache={}):
         data = u.read()
         u.close()
         d = json.loads(bz2.decompress(data).decode('utf-8'))
-        etag = u.info().getheader('Etag')
+        if PY3:
+            etag = u.headers.get('Etag')
+        else:
+            etag = u.info().getheader('Etag')
         if etag:
             d['_etag'] = etag
-        timestamp = u.info().getheader('Last-Modified')
+        if PY3:
+            timestamp = u.headers.get('Last-Modified')
+        else:
+            timestamp = u.info().getheader('Last-Modified')
         if timestamp:
             d['_mod'] = timestamp
         cache[url] = d
