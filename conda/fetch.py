@@ -12,7 +12,7 @@ import sys
 import json
 import hashlib
 from logging import getLogger
-from os.path import isdir, join
+from os.path import join
 
 from conda import config
 from conda.utils import memoized
@@ -31,29 +31,43 @@ log = getLogger(__name__)
 retries = 3
 
 
-def fetch_repodata(url, cache={}):
+def create_cache_dir():
+    cache_dir = join(config.pkgs_dir, 'cache')
+    try:
+        os.makedirs(cache_dir)
+    except OSError:
+        pass
+    return cache_dir
+
+
+def fetch_repodata(url):
     log.debug("fetching repodata: %s ..." % url)
 
+    cache_path = join(create_cache_dir(),
+                      '%s.json' % hashlib.md5(url).hexdigest())
+    try:
+        cache = json.load(open(cache_path))
+    except IOError:
+        cache = {}
+
     request = urllib2.Request(url + 'repodata.json.bz2')
-    if url in cache:
-        d = cache[url]
-        if '_etag' in d:
-            request.add_header('If-None-Match', d['_etag'])
-        if '_mod' in d:
-            request.add_header('If-Modified-Since', d['_mod'])
+    if '_etag' in cache:
+        request.add_header('If-None-Match', cache['_etag'])
+    if '_mod' in cache:
+        request.add_header('If-Modified-Since', cache['_mod'])
 
     try:
         u = connectionhandled_urlopen(request)
         data = u.read()
         u.close()
-        d = json.loads(bz2.decompress(data).decode('utf-8'))
+        cache = json.loads(bz2.decompress(data).decode('utf-8'))
+        cache['_url'] = url
         etag = u.info().getheader('Etag')
         if etag:
-            d['_etag'] = etag
+            cache['_etag'] = etag
         timestamp = u.info().getheader('Last-Modified')
         if timestamp:
-            d['_mod'] = timestamp
-        cache[url] = d
+            cache['_mod'] = timestamp
 
     except urllib2.HTTPError as e:
         msg = "HTTPError: %d  %s\n" % (e.code, e.msg)
@@ -64,35 +78,26 @@ def fetch_repodata(url, cache={}):
     except urllib2.URLError:
         sys.stderr.write("Error: unknown host: %s\n" % url)
 
-    return cache.get(url)
+    try:
+        with open(cache_path, 'w') as fo:
+            json.dump(cache, fo, indent=2, sort_keys=True)
+    except IOError:
+        pass
+
+    return cache or None
 
 
 @memoized
 def fetch_index(channel_urls):
-    cache_dir = join(config.pkgs_dir, 'cache')
-    if not isdir(cache_dir):
-        os.makedirs(cache_dir)
-    cache_path = join(cache_dir, 'index.json')
-    try:
-        cache = json.load(open(cache_path))
-    except IOError:
-        cache = {}
-
     index = {}
     for url in reversed(channel_urls):
-        repodata = fetch_repodata(url, cache)
+        repodata = fetch_repodata(url)
         if repodata is None:
             continue
         new_index = repodata['packages']
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
-
-    try:
-        with open(cache_path, 'w') as fo:
-            json.dump(cache, fo, indent=2, sort_keys=True)
-    except IOError:
-        pass
 
     return index
 
