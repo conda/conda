@@ -3,6 +3,7 @@
   * add caching of repodata index
   * add conda package --which option, closes issue 163
   * add ability to install file which contains multiple packages, issue 256
+  * move conda share functionality to conda package --share
   * update documentation
   * improve error messages when external dependencies are unavailable
   * add implementation for issue 194: post-link or pre-unlink may append

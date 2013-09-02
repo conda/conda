@@ -54,7 +54,6 @@ from conda.cli import main_list
 from conda.cli import main_remove
 from conda.cli import main_package
 from conda.cli import main_search
-from conda.cli import main_share
 from conda.cli import main_update
 from conda.cli import main_skeleton
 from conda.cli import main_config
@@ -129,7 +128,6 @@ In short:
     main_build.configure_parser(sub_parsers)
     main_skeleton.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
-    main_share.configure_parser(sub_parsers)
     main_clone.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 

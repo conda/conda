@@ -18,6 +18,7 @@ def hashsum_file(path, mode='md5'):
             h.update(chunk)
     return h.hexdigest()
 
+
 def md5_file(path):
     return hashsum_file(path, 'md5')
 
