@@ -1,10 +1,11 @@
 from __future__ import print_function, division, absolute_import
 
 import os
-from os.path import abspath, dirname, isdir, isfile, join
+from os.path import dirname, isdir, isfile, join
 
 from conda import config
 from conda import install
+from conda.utils import url_path
 from conda.naming import fn2spec
 from conda.fetch import fetch_index
 from conda.compat import iteritems
@@ -39,9 +40,9 @@ def app_get_icon_url(fn):
     info = index[fn]
     base_url = dirname(info['channel'].rstrip('/'))
     icon_fn = info['icon']
-    icon_cache_path = abspath(join(config.pkgs_dir, 'cache', icon_fn))
+    icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
     if isfile(icon_cache_path):
-        return 'file://' + icon_cache_path
+        return url_path(icon_cache_path)
     else:
         return '%s/icons/%s' % (base_url, icon_fn)
 
@@ -133,7 +134,7 @@ def app_uninstall(fn, prefix=config.root_dir):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
+    #from pprint import pprint
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
     #print(app_install('twisted-12.3.0-py27_0.tar.bz2'))
     #pprint(get_index())
