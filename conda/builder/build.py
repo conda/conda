@@ -9,6 +9,7 @@ from os.path import exists, isdir, islink, join
 
 import conda.config as cc
 import conda.plan as plan
+from conda.utils import url_path
 from conda.api import get_index
 from conda.install import prefix_placeholder
 
@@ -19,7 +20,7 @@ from conda.builder import source
 from conda.builder import tarcheck
 from conda.builder.scripts import create_entry_points, bin_dirname
 from conda.builder.post import post_process, post_build, is_obj, fix_permissions
-from conda.builder.utils import rm_rf, url_path, _check_call
+from conda.builder.utils import rm_rf, _check_call
 from conda.builder.index import update_index
 from conda.builder.create_test import create_files
 
