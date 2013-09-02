@@ -64,7 +64,7 @@ def fetch_repodata(url, cache={}):
     except urllib2.URLError:
         sys.stderr.write("Error: unknown host: %s\n" % url)
 
-    return cache[url]
+    return cache.get(url)
 
 
 @memoized
@@ -81,6 +81,8 @@ def fetch_index(channel_urls):
     index = {}
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url, cache)
+        if repodata is None:
+            continue
         new_index = repodata['packages']
         for info in itervalues(new_index):
             info['channel'] = url
