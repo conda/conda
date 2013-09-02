@@ -109,7 +109,7 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
     with Locked(dst_dir):
         for x in range(retries):
             try:
-                fi = connectionhandled_urlopen(url)#urllib2.urlopen(url)
+                fi = connectionhandled_urlopen(url)
             except IOError:
                 log.debug("Attempt %d failed at urlopen" % x)
                 continue
