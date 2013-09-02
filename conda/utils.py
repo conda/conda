@@ -1,8 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
+import sys
 import hashlib
 import collections
 from functools import partial
+from os.path import abspath
 
 
 
@@ -18,6 +20,13 @@ def hashsum_file(path, mode='md5'):
 
 def md5_file(path):
     return hashsum_file(path, 'md5')
+
+
+def url_path(path):
+    path = abspath(path)
+    if sys.platform == 'win32':
+        path = '/' + path.replace(':', '|')
+    return 'file://%s' % path
 
 
 def human_bytes(n):

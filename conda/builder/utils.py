@@ -7,10 +7,10 @@ import shutil
 import tarfile
 import zipfile
 import subprocess
-from os.path import (abspath, dirname, getmtime, getsize, isdir, isfile,
+from os.path import (dirname, getmtime, getsize, isdir, isfile,
                      islink, join, normpath)
 
-if sys.version_info < (3,):
+if sys.version_info[0] < 3:
     import urllib2
 else:
     import urllib.request as urllib2
@@ -32,13 +32,6 @@ def _check_call(args, **kwargs):
         subprocess.check_call(args, **kwargs)
     except subprocess.CalledProcessError:
         sys.exit('Command failed: %s' % ' '.join(args))
-
-
-def url_path(path):
-    path = abspath(path)
-    if sys.platform == 'win32':
-        path = '/' + path.replace(':', '|')
-    return 'file://%s' % path
 
 
 def download(url, dst_path, md5=None):
