@@ -65,7 +65,6 @@ def fetch_repodata(url):
         data = u.read()
         u.close()
         cache = json.loads(bz2.decompress(data).decode('utf-8'))
-        cache['_url'] = url
         etag = u.info().getheader('Etag')
         if etag:
             cache['_etag'] = etag
@@ -84,6 +83,7 @@ def fetch_repodata(url):
         if fail_unknown_host:
             sys.exit(1)
 
+    cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
             json.dump(cache, fo, indent=2, sort_keys=True)
