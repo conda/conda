@@ -23,7 +23,7 @@ versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
 scripts = ['bin/conda']
 if sys.platform == 'win32':
-    pass #scripts.extend(['bin/activate.bat'])
+    scripts.extend(['bin/activate.bat'])
 else:
     scripts.extend(['bin/activate', 'bin/deactivate'])
 
