@@ -44,7 +44,7 @@ def cache_fn_url(url):
     return '%s.json' % hashlib.md5(url).hexdigest()
 
 
-def fetch_repodata(url):
+def fetch_repodata(url, fail_unknown_host=False):
     log.debug("fetching repodata: %s ..." % url)
 
     cache_path = join(create_cache_dir(), cache_fn_url(url))
@@ -80,6 +80,8 @@ def fetch_repodata(url):
 
     except urllib2.URLError:
         sys.stderr.write("Error: unknown host: %s\n" % url)
+        if fail_unknown_host:
+            sys.exit(1)
 
     try:
         with open(cache_path, 'w') as fo:
@@ -91,10 +93,10 @@ def fetch_repodata(url):
 
 
 @memoized
-def fetch_index(channel_urls):
+def fetch_index(channel_urls, fail_unknown_host=False):
     index = {}
     for url in reversed(channel_urls):
-        repodata = fetch_repodata(url)
+        repodata = fetch_repodata(url, fail_unknown_host)
         if repodata is None:
             continue
         new_index = repodata['packages']
