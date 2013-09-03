@@ -28,6 +28,7 @@ else:
 
 log = getLogger(__name__)
 
+fail_unknown_host = False
 retries = 3
 
 
@@ -44,7 +45,7 @@ def cache_fn_url(url):
     return '%s.json' % hashlib.md5(url).hexdigest()
 
 
-def fetch_repodata(url, fail_unknown_host=False):
+def fetch_repodata(url):
     log.debug("fetching repodata: %s ..." % url)
 
     cache_path = join(create_cache_dir(), cache_fn_url(url))
@@ -93,10 +94,10 @@ def fetch_repodata(url, fail_unknown_host=False):
 
 
 @memoized
-def fetch_index(channel_urls, fail_unknown_host=False):
+def fetch_index(channel_urls):
     index = {}
     for url in reversed(channel_urls):
-        repodata = fetch_repodata(url, fail_unknown_host)
+        repodata = fetch_repodata(url)
         if repodata is None:
             continue
         new_index = repodata['packages']
