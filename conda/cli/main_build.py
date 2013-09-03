@@ -64,6 +64,7 @@ def execute(args, parser):
     from os.path import abspath, isdir, isfile
 
     import conda.builder.build as build
+    from conda.builder.external import find_executable
     from conda.builder.config import croot
     import conda.builder.source as source
     from conda.builder.metadata import MetaData
@@ -126,4 +127,11 @@ def execute(args, parser):
 """ % build.bldpkg_path(m))
                 continue
 
-            subprocess.call(['binstar', 'upload', build.bldpkg_path(m)])
+            binstar = find_executable('binstar')
+            if binstar is None:
+                sys.exit('''
+Error: cannot locate binstar (required for upload)
+# Try:
+# $ conda install binstar
+''')
+            subprocess.call([binstar, 'upload', build.bldpkg_path(m)])

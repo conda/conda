@@ -74,12 +74,16 @@ def installopener():
 
 firstconnection = True
 #i made this func so i wouldn't alter the original code much
-def connectionhandled_urlopen(url):
+def connectionhandled_urlopen(request):
     """handles aspects of establishing the connection with the remote"""
 
     installopener()
 
-    try: return urllib2.urlopen(url)
+    if isinstance(request, (str, unicode)):
+        request = urllib2.Request(request)
+
+    try:
+        return urllib2.urlopen(request)
 
     except urllib2.HTTPError as HTTPErrorinst:
         if HTTPErrorinst.code in (407, 401):
@@ -96,15 +100,16 @@ def connectionhandled_urlopen(url):
                 for aprotocol, aproxy in iteritems(proxies_dict):
                     proxypwdmgr.add_password(None, aproxy, uname, pword)
                 firstconnection == False
-            else:#...assign a uname pwd for the specific protocol proxy type
+            else: #...assign a uname pwd for the specific protocol proxy type
                 assert(firstconnection == False)
-                protocol = urlparse.urlparse(url).scheme
+                protocol = urlparse.urlparse(request.get_full_url()).scheme
                 proxypwdmgr.add_password(None, proxies_dict[protocol],
                                          uname, pword)
             installopener()
-            return connectionhandled_urlopen(url)
             # i'm uncomfortable with this
             # but i just want to exec to start from the top again
+            return connectionhandled_urlopen(request)
+        raise
 
     except:
-        raise # returns anything unhandled here to the caller
+        raise

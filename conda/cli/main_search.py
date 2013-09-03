@@ -32,6 +32,11 @@ def configure_parser(sub_parsers):
         help    = "output canonical names of packages only",
     )
     p.add_argument(
+        '-o', "--outdated",
+        action  = "store_true",
+        help    = "only display installed but outdated packages",
+    )
+    p.add_argument(
         '-v', "--verbose",
         action  = "store_true",
         help    = "Show available packages as blocks of data",
@@ -74,6 +79,20 @@ def execute(args, parser):
         disp_name = name
         if pat and pat.search(name) is None:
             continue
+
+        if args.outdated:
+            vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
+                         if dist.rsplit('-', 2)[0] == name]
+            if not vers_inst:
+                continue
+            assert len(vers_inst) == 1, name
+            pkgs = sorted(r.get_pkgs(MatchSpec(name)))
+            if not pkgs:
+                continue
+            latest = pkgs[-1]
+            if latest.version == vers_inst[0]:
+                continue
+
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             dist = pkg.fn[:-8]
             if args.canonical:
@@ -81,8 +100,8 @@ def execute(args, parser):
                 continue
             inst = '*' if dist in linked else ' '
             print('%-25s %s  %-15s %15s  %s' % (
-                disp_name, inst,
-                pkg.version,
-                r.index[pkg.fn]['build'],
-                common.disp_features(r.features(pkg.fn))) )
+                    disp_name, inst,
+                    pkg.version,
+                    r.index[pkg.fn]['build'],
+                    common.disp_features(r.features(pkg.fn))) )
             disp_name = ''

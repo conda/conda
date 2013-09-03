@@ -301,6 +301,9 @@ def link(pkgs_dir, prefix, dist):
             except OSError:
                 log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
+        if dist.rsplit('-', 2)[0]  == '_cache':
+            return
+
         has_prefix_path = join(info_dir, 'has_prefix')
         if isfile(has_prefix_path):
             for f in yield_lines(has_prefix_path):
@@ -356,6 +359,16 @@ def unlink(prefix, dist):
         for path in sorted(dst_dirs2, key=len, reverse=True):
             rm_empty_dir(path)
 
+
+def messages(prefix):
+    path = join(prefix, '.messages.txt')
+    try:
+        with open(path) as fi:
+            sys.stdout.write(fi.read())
+    except IOError:
+        pass
+    finally:
+        rm_rf(path)
 
 # =========================== end API functions ==========================
 
@@ -416,27 +429,29 @@ def main():
         else:
             p.error('exactly one argument expected')
 
+    pkgs_dir = opts.pkgs_dir
+    prefix = opts.prefix
     if opts.verbose:
-        print("pkgs_dir: %r" % opts.pkgs_dir)
-        print("prefix  : %r" % opts.prefix)
+        print("pkgs_dir: %r" % pkgs_dir)
+        print("prefix  : %r" % prefix)
         print("dist    : %r" % dist)
 
-
     if opts.list:
-        pprint(sorted(linked(opts.prefix)))
+        pprint(sorted(linked(prefix)))
 
     elif opts.link_all:
-        for dist in sorted(extracted(opts.pkgs_dir)):
-            link(opts.pkgs_dir, opts.prefix, dist)
+        for dist in sorted(extracted(pkgs_dir)):
+            link(pkgs_dir, prefix, dist)
+        messages(prefix)
 
     elif opts.extract:
-        extract(opts.pkgs_dir, dist)
+        extract(pkgs_dir, dist)
 
     elif opts.link:
-        link(opts.pkgs_dir, opts.prefix, dist)
+        link(pkgs_dir, prefix, dist)
 
     elif opts.unlink:
-        unlink(opts.prefix, dist)
+        unlink(prefix, dist)
 
 
 if __name__ == '__main__':

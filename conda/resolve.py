@@ -135,7 +135,11 @@ def min_sat(clauses, max_n=1000):
     be much more efficient.  However, for our purpose the current
     implementation is good enough.
     """
-    import pycosat
+    try:
+        import pycosat
+    except ImportError:
+        sys.exit('Error: could not import pycosat (required for dependency '
+                 'resolving)')
 
     min_tl, solutions = sys.maxsize, []
     for sol in islice(pycosat.itersolve(clauses), max_n):
