@@ -301,6 +301,9 @@ def link(pkgs_dir, prefix, dist):
             except OSError:
                 log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
+        if dist.rsplit('-', 2)[0]  == '_cache':
+            return
+
         has_prefix_path = join(info_dir, 'has_prefix')
         if isfile(has_prefix_path):
             for f in yield_lines(has_prefix_path):
