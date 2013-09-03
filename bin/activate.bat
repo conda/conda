@@ -1,10 +1,11 @@
 @echo off
 
-REM Should this be set globally on install?
-if "%ANACONDA_ENVS%" == "" set ANACONDA_ENVS=C:\Anaconda\envs
+for /f %%i in ("%~dp0..\envs") do (
+    set ANACONDA_ENVS=%%~fi
+)
 
 if not "%1" == "" goto skipmissingarg
-    echo Usage: condactivate envname
+    echo Usage: activate envname
     echo.
     echo Deactivates previously activated Anaconda
     echo environment, then activates the chosen one.
@@ -29,3 +30,4 @@ if "%CONDACTIVATED%" == "" goto skipdeactivate
 set CONDACTIVATED=%1
 echo Activating environment "%CONDACTIVATED%"...
 set PATH=%ANACONDA_ENVS%\%CONDACTIVATED%;%ANACONDA_ENVS%\%CONDACTIVATED%\Scripts;%PATH%
+set PROMPT=[%1] $P$G
