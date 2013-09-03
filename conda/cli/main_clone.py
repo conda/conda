@@ -4,7 +4,7 @@ from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
 
-descr = 'Clone a "share package" (created using the share command)'
+descr = 'Clone a "share package" (created by conda package --share)'
 
 
 def configure_parser(sub_parsers):

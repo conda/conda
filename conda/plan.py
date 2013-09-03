@@ -286,6 +286,7 @@ def execute_plan(plan, index=None, verbose=False):
         setup_handlers()
 
     progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+    # set default prefix
     prefix = config.root_dir
     i = None
     cmds = cmds_from_plan(plan)
@@ -321,6 +322,8 @@ def execute_plan(plan, index=None, verbose=False):
         if i is not None and cmd in progress_cmds and maxval == i:
             i = None
             getLogger('progress.stop').info(None)
+
+    install.messages(prefix)
 
 
 def execute_actions(actions, index=None, verbose=False):

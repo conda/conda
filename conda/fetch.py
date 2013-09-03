@@ -8,6 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import bz2
+import sys
 import json
 import hashlib
 from logging import getLogger
@@ -15,34 +16,81 @@ from os.path import join
 
 from conda import config
 from conda.utils import memoized
-from conda.connection_handling import connectionhandled_urlopen
-from conda.compat import itervalues
+from conda.connection import connectionhandled_urlopen
+from conda.compat import PY3, itervalues
 from conda.lock import Locked
+
+if PY3:
+    import urllib.request as urllib2
+else:
+    import urllib2
+
 
 log = getLogger(__name__)
 
+fail_unknown_host = False
 retries = 3
 
 
+def create_cache_dir():
+    cache_dir = join(config.pkgs_dir, 'cache')
+    try:
+        os.makedirs(cache_dir)
+    except OSError:
+        pass
+    return cache_dir
+
+
+def cache_fn_url(url):
+    return '%s.json' % hashlib.md5(url).hexdigest()
+
+
 def fetch_repodata(url):
-    for x in range(retries):
-        for fn in 'repodata.json.bz2', 'repodata.json':
-            try:
-                fi = connectionhandled_urlopen(url + fn)
+    log.debug("fetching repodata: %s ..." % url)
 
-                if not fi:
-                    raise RuntimeError("failed to fetch repo data from %s" % url)
-                log.debug("fetched: %s [%s] ..." % (fn, url))
-                data = fi.read()
-                fi.close()
-                if fn.endswith('.bz2'):
-                    data = bz2.decompress(data).decode('utf-8')
-                return json.loads(data)
+    cache_path = join(create_cache_dir(), cache_fn_url(url))
+    try:
+        cache = json.load(open(cache_path))
+    except IOError:
+        cache = {}
 
-            except IOError:
-                log.debug('download failed try: %d' % x)
+    request = urllib2.Request(url + 'repodata.json.bz2')
+    if '_etag' in cache:
+        request.add_header('If-None-Match', cache['_etag'])
+    if '_mod' in cache:
+        request.add_header('If-Modified-Since', cache['_mod'])
 
-    raise RuntimeError("failed to fetch repodata from %r" % url)
+    try:
+        u = connectionhandled_urlopen(request)
+        data = u.read()
+        u.close()
+        cache = json.loads(bz2.decompress(data).decode('utf-8'))
+        etag = u.info().getheader('Etag')
+        if etag:
+            cache['_etag'] = etag
+        timestamp = u.info().getheader('Last-Modified')
+        if timestamp:
+            cache['_mod'] = timestamp
+
+    except urllib2.HTTPError as e:
+        msg = "HTTPError: %d  %s\n" % (e.code, e.msg)
+        log.debug(msg)
+        if e.code != 304:
+            raise RuntimeError(msg)
+
+    except urllib2.URLError:
+        sys.stderr.write("Error: unknown host: %s\n" % url)
+        if fail_unknown_host:
+            sys.exit(1)
+
+    cache['_url'] = url
+    try:
+        with open(cache_path, 'w') as fo:
+            json.dump(cache, fo, indent=2, sort_keys=True)
+    except IOError:
+        pass
+
+    return cache or None
 
 
 @memoized
@@ -50,10 +98,13 @@ def fetch_index(channel_urls):
     index = {}
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url)
+        if repodata is None:
+            continue
         new_index = repodata['packages']
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
+
     return index
 
 
@@ -69,7 +120,7 @@ def fetch_pkg(info, dst_dir=config.pkgs_dir):
     with Locked(dst_dir):
         for x in range(retries):
             try:
-                fi = connectionhandled_urlopen(url)#urllib2.urlopen(url)
+                fi = connectionhandled_urlopen(url)
             except IOError:
                 log.debug("Attempt %d failed at urlopen" % x)
                 continue

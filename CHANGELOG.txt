@@ -1,8 +1,15 @@
-2013-XX-XX   1.8.3:
+2013-09-XX   1.9.0:
 -------------------
+  * add caching of repodata index
   * add conda package --which option, closes issue 163
   * add ability to install file which contains multiple packages, issue 256
+  * move conda share functionality to conda package --share
   * update documentation
+  * improve error messages when external dependencies are unavailable
+  * add implementation for issue 194: post-link or pre-unlink may append
+    to a special file ${PREFIX}/.messages.txt for messages, which is display
+    to the user's console after conda completes all actions
+  * add conda search --outdated option
 
 
 2013-08-16   1.8.2:
@@ -10,7 +17,7 @@
   * add conda build --check option
   * add conda clean --lock option
   * fixed error in recipe causing conda traceback, issue 158
-  * fixes conda build erro in Python 3, issue 238
+  * fixes conda build error in Python 3, issue 238
   * improve error message when test command fails, as well as issue 229
   * disable Python (and other packages which are used by conda itself)
     to be updated in root environment on Windows

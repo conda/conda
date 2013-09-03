@@ -11,8 +11,11 @@ from conda.resolve import MatchSpec
 
 from conda.builder.config import CONDA_PY, CONDA_NPY
 
-import yaml
-
+try:
+    import yaml
+except ImportError:
+    sys.exit('Error: could not import yaml (required to read meta.yaml '
+             'files of conda recipes)')
 
 
 def ns_cfg():
