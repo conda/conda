@@ -1,14 +1,16 @@
 from __future__ import print_function, division, absolute_import
 
 import os
+from collections import defaultdict
 from os.path import dirname, isdir, isfile, join
 
 from conda import config
 from conda import install
 from conda.utils import url_path
-from conda.naming import fn2spec
+from conda.naming import fn2spec, name_fn
 from conda.fetch import fetch_index
-from conda.compat import iteritems
+from conda.compat import iteritems, itervalues
+from conda.resolve import Package
 
 
 def get_index(channel_urls=(), prepend=True):
@@ -23,13 +25,24 @@ def get_index(channel_urls=(), prepend=True):
     return fetch_index(tuple(channel_urls))
 
 
-def app_get_index():
+def app_get_index(all_version=False):
     """
     return the index of available applications on the channels
     """
-    index = get_index()
-    return {fn: info for fn, info in iteritems(index)
-            if info.get('type') == 'app'}
+    index = {fn: info for fn, info in iteritems(get_index())
+             if info.get('type') == 'app'}
+    if all_version:
+        return index
+
+    d = defaultdict(list) # name -> list of Package objects
+    for fn, info in iteritems(index):
+        d[name_fn(fn)].append(Package(fn, info))
+
+    res = {}
+    for pkgs in itervalues(d):
+        pkg = max(pkgs)
+        res[pkg.fn] = index[pkg.fn]
+    return res
 
 
 def app_get_icon_url(fn):
@@ -40,11 +53,10 @@ def app_get_icon_url(fn):
     info = index[fn]
     base_url = dirname(info['channel'].rstrip('/'))
     icon_fn = info['icon']
-    icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-    if isfile(icon_cache_path):
-        return url_path(icon_cache_path)
-    else:
-        return '%s/icons/%s' % (base_url, icon_fn)
+    #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+    #if isfile(icon_cache_path):
+    #    return url_path(icon_cache_path)
+    return '%s/icons/%s' % (base_url, icon_fn)
 
 
 def app_info_packages(fn):
@@ -134,8 +146,9 @@ def app_uninstall(fn, prefix=config.root_dir):
 
 
 if __name__ == '__main__':
-    #from pprint import pprint
+    from pprint import pprint
+    pprint(app_get_index())
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
     #print(app_install('twisted-12.3.0-py27_0.tar.bz2'))
     #pprint(get_index())
-    print(app_get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2'))
+    #print(app_get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2'))
