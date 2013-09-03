@@ -40,11 +40,14 @@ def create_cache_dir():
     return cache_dir
 
 
+def cache_fn_url(url):
+    return '%s.json' % hashlib.md5(url).hexdigest()
+
+
 def fetch_repodata(url):
     log.debug("fetching repodata: %s ..." % url)
 
-    cache_path = join(create_cache_dir(),
-                      '%s.json' % hashlib.md5(url).hexdigest())
+    cache_path = join(create_cache_dir(), cache_fn_url(url))
     try:
         cache = json.load(open(cache_path))
     except IOError:
