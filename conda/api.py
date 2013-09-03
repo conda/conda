@@ -2,11 +2,11 @@ from __future__ import print_function, division, absolute_import
 
 import os
 from collections import defaultdict
-from os.path import dirname, isdir, isfile, join
+from os.path import dirname, isdir, join
 
 from conda import config
 from conda import install
-from conda.utils import url_path
+#from conda.utils import url_path
 from conda.naming import fn2spec, name_fn
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
@@ -28,6 +28,9 @@ def get_index(channel_urls=(), prepend=True):
 def app_get_index(all_version=False):
     """
     return the index of available applications on the channels
+
+    By default only the latest version of each app is included in the result,
+    unless all_version is set to True.
     """
     index = {fn: info for fn, info in iteritems(get_index())
              if info.get('type') == 'app'}
