@@ -45,6 +45,12 @@ def cache_fn_url(url):
     return '%s.json' % hashlib.md5(url.encode('utf-8')).hexdigest()
 
 
+def add_http_value_to_dict(u, http_key, d, dict_key):
+    value = u.headers.get(http_key) if PY3 else u.info().getheader(http_key)
+    if value:
+        d[dict_key] = value
+
+
 def fetch_repodata(url):
     log.debug("fetching repodata: %s ..." % url)
 
@@ -65,12 +71,8 @@ def fetch_repodata(url):
         data = u.read()
         u.close()
         cache = json.loads(bz2.decompress(data).decode('utf-8'))
-        etag = u.info().getheader('Etag')
-        if etag:
-            cache['_etag'] = etag
-        timestamp = u.info().getheader('Last-Modified')
-        if timestamp:
-            cache['_mod'] = timestamp
+        add_http_value_to_dict(u, 'Etag', cache, '_etag')
+        add_http_value_to_dict(u, 'Last-Modified', cache, '_mod')
 
     except urllib2.HTTPError as e:
         msg = "HTTPError: %d  %s\n" % (e.code, e.msg)

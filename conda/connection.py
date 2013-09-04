@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from logging import getLogger
 
-from conda.compat import PY3
+from conda.compat import PY3, string_types
 from conda.compat import iteritems, input
 from conda.config import get_proxy_servers
 
@@ -79,7 +79,7 @@ def connectionhandled_urlopen(request):
 
     installopener()
 
-    if isinstance(request, (str, unicode)):
+    if isinstance(request, string_types):
         request = urllib2.Request(request)
 
     try:
