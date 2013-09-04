@@ -125,20 +125,20 @@ def yield_lines(path):
         yield line
 
 
-prefix_placeholder = ('/opt/anaconda1anaconda2'
+prefix_placeholder = (b'/opt/anaconda1anaconda2'
                       # this is intentionally split into parts,
                       # such that running this program on itself
                       # will leave it unchanged
-                      'anaconda3')
+                      b'anaconda3')
 def update_prefix(path, new_prefix):
-    with open(path) as fi:
+    with open(path, 'rb') as fi:
         data = fi.read()
-    new_data = data.replace(prefix_placeholder, new_prefix)
+    new_data = data.replace(prefix_placeholder, new_prefix.encode('utf-8'))
     if new_data == data:
         return
     st = os.stat(path)
     os.unlink(path)
-    with open(path, 'w') as fo:
+    with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
