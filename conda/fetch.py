@@ -42,7 +42,7 @@ def create_cache_dir():
 
 
 def cache_fn_url(url):
-    return '%s.json' % hashlib.md5(url).hexdigest()
+    return '%s.json' % hashlib.md5(url.encode('utf-8')).hexdigest()
 
 
 def fetch_repodata(url):
