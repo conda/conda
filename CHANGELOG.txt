@@ -10,7 +10,9 @@
   * add implementation for issue 194: post-link or pre-unlink may append
     to a special file ${PREFIX}/.messages.txt for messages, which is display
     to the user's console after conda completes all actions
-  * add conda search --outdated option
+  * add conda search --outdated option, which lists only installed packages
+    for which newer versions are available
+  * fixed numerous Py3k issues, in particular with the build command
 
 
 2013-08-16   1.8.2:
