@@ -171,7 +171,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
             has_prefix.append(f)
         t.add(path, f)
         h.update(f.encode('utf-8'))
-        h.update('\x00'.encode('utf-8'))
+        h.update(b'\x00')
         if islink(path):
             link = os.readlink(path)
             h.update(link)

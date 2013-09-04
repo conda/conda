@@ -32,7 +32,7 @@ def update_info(info):
     for spec in info['depends']:
         assert MatchSpec(spec).strictness == 3
         h.update(spec.encode('utf-8'))
-        h.update('\x00'.encode('utf-8'))
+        h.update(b'\x00')
     h.update(info['file_hash'].encode('utf-8'))
     info['version'] = h.hexdigest()
 
