@@ -95,10 +95,10 @@ def git_info(fo=sys.stdout):
                 ('git status', True)]:
         p = Popen(cmd.split(), stdout=PIPE, stderr=PIPE, cwd=WORK_DIR)
         stdout, stderr = p.communicate()
-        if check_error and stderr and stderr.strip():
-            raise Exception("git error: %s" % stderr)
+        if check_error and stderr and stderr.decode('utf-8').strip():
+            raise Exception("git error: %s" % stderr.decode('utf-8'))
         fo.write('==> %s <==\n' % cmd)
-        fo.write(stdout + '\n')
+        fo.write(stdout.decode('utf-8') + '\n')
 
 
 def hg_source(meta):
