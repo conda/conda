@@ -91,14 +91,16 @@ def execute(args, parser):
     common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
 
-    if sys.platform != 'win32':
-        activate_name = prefix
-        if args.name:
-            activate_name = args.name
-        print("#")
-        print("# To activate this environment, use:")
+    activate_name = prefix
+    if args.name:
+        activate_name = args.name
+    print("#")
+    print("# To activate this environment, use:")
+    if sys.platform == 'win32':
+        print("# > activate %s" % activate_name)
+    else:
         print("# $ source activate %s" % activate_name)
         print("#")
         print("# To deactivate this environment, use:")
         print("# $ source deactivate")
-        print("#")
+    print("#")
