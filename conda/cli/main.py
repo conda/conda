@@ -137,7 +137,7 @@ In short:
     except ImportError:
         pass
     except AttributeError:
-        # On Python 3.3, argcomplete can be an empty namespace package when 
+        # On Python 3.3, argcomplete can be an empty namespace package when
         # argcomplete is not installed. Not sure why, but this fixes it.
         pass
 
