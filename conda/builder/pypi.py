@@ -202,6 +202,9 @@ def main(args, parser):
             tempdir = mkdtemp('conda_skeleton')
             indent = '\n    - '
 
+            if not isdir(SRC_CACHE):
+                makedirs(SRC_CACHE)
+
             try:
                 # Download it to the build source cache. That way, you have
                 # it.
