@@ -149,8 +149,9 @@ def app_uninstall(fn, prefix=config.root_dir):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
-    pprint(app_get_index())
+    #from pprint import pprint
+    for fn in app_get_index():
+        print('%s: %s' % (fn, app_is_installed(fn)))
     #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
     #print(app_install('twisted-12.3.0-py27_0.tar.bz2'))
     #pprint(get_index())
