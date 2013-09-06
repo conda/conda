@@ -58,7 +58,7 @@ def fetch_repodata(url):
     try:
         cache = json.load(open(cache_path))
     except IOError:
-        cache = {}
+        cache = {'packages': {}}
 
     request = urllib2.Request(url + 'repodata.json.bz2')
     if '_etag' in cache:
