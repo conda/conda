@@ -1,4 +1,4 @@
-2013-09-XX   1.9.0:
+2013-09-05   1.9.0:
 -------------------
   * add caching of repodata index
   * add activate command on Windows
