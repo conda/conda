@@ -49,6 +49,7 @@ def list_packages(prefix, regex=None, verbose=True):
             continue
         if not verbose:
             print(dist)
+            packages = True
             continue
         try:
             info = install.is_linked(prefix, dist)
@@ -64,6 +65,7 @@ def list_packages(prefix, regex=None, verbose=True):
     if not packages:
         # Be Unix-friendly
         sys.exit(1)
+
 
 def execute(args, parser):
     prefix = common.get_prefix(args)
