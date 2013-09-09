@@ -130,7 +130,12 @@ def execute(args, parser):
         only_names = None
 
     if not isdir(prefix):
-        sys.exit("Error: environment does not exist: %s" % prefix)
+        sys.exit("""\
+Error: environment does not exist: %s
+#
+# Use 'conda create' to create an environment before installing packages
+# into it.
+#""" % prefix)
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
