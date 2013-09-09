@@ -89,6 +89,7 @@ def install_tar(prefix, tar_path, verbose=False):
 
 def execute(args, parser):
     import sys
+    from os.path import isdir
 
     import conda.plan as plan
     from conda.api import get_index
@@ -127,6 +128,9 @@ def execute(args, parser):
         only_names = spec_names
     else:
         only_names = None
+
+    if not isdir(prefix):
+        sys.exit("Error: environment does not exist: %s" % prefix)
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
