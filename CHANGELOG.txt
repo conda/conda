@@ -1,3 +1,9 @@
+2013-XX-XX   1.9.2:
+-------------------
+  * fixed behavior when installing into an environment which does not
+    exist yet
+
+
 2013-09-06   1.9.1:
 -------------------
   * fix bug in new caching of repodata index
