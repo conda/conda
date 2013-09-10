@@ -66,11 +66,25 @@ if on_win:
     CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
                                wintypes.LPVOID]
 
-    def platform_link(src, dst, softlink=True):
-        "Equivalent to os.link, using the win32 CreateHardLink call."
-        if not CreateHardLink(dst, src, None):
-            raise OSError('win32 link failed')
+    try:
+        CreateSymbolicLink = ctypes.windll.kernel32.CreateSymbolicLinkW
+        CreateSymbolicLink.restype = wintypes.BOOL
+        CreateSymbolicLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                       wintypes.DWORD]
 
+        def platform_link(src, dst, softlink=True):
+            "Equivalent to os.link, using the win32 CreateHardLink call."
+            if not CreateHardLink(dst, src, None):
+                if not softlink or \
+                   not CreateSymbolicLink(dst, src, os.path.isdir(src)):
+                   raise OSError('win32 link failed:')
+
+    except AttributeError:
+        # CreateSymbolicLink is not present
+        def platform_link(src, dst, softlink=False):
+            "Equivalent to os.link, using the win32 CreateHardLink call."
+            if not CreateHardLink(dst, src, None):
+                raise OSError('win32 link failed:')
 else:
     def platform_link(src, dst, softlink=True):
         if not softlink:
