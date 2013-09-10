@@ -66,10 +66,18 @@ if on_win:
     CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
                                wintypes.LPVOID]
 
-    def win32link(src, dst):
+    def platform_link(src, dst):
         "Equivalent to os.link, using the win32 CreateHardLink call."
         if not CreateHardLink(dst, src, None):
-            raise OSError('win32link failed:')
+            if not CreateSymbolicLink(dst, src, 0):
+                raise OSError('win32link failed:')
+
+else:
+    def platform_link(src, dst):
+        try:
+            os.link(src, dst)
+        except OSError:
+            os.symlink(src, dst)
 
 log = logging.getLogger(__name__)
 
@@ -89,10 +97,7 @@ log.addHandler(NullHandler())
 
 def _link(src, dst):
     try:
-        if on_win:
-            win32link(src, dst)
-        else:
-            os.link(src, dst)
+        platform_link(src, dst)
     except OSError:
         shutil.copy2(src, dst)
 
@@ -270,7 +275,7 @@ def is_linked(prefix, dist):
 def link(pkgs_dir, prefix, dist):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
-    the packages has been extracted (using extect() above).
+    the packages has been extracted (using extract() above).
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
               dist.rsplit('-', 2)[0] in win_ignore):
