@@ -27,6 +27,42 @@ root_dir = os.getenv('CONDA_ROOT', sys.prefix)
 pkgs_dir = os.getenv('CONDA_PACKAGE_CACHE', join(root_dir, 'pkgs'))
 envs_dir = os.getenv('CONDA_ENV_PATH', join(root_dir, 'envs'))
 
+_user_root_dir = os.getenv('CONDA_USER_ROOT', join(expanduser('~'), 'conda'))
+user_pkgs_dir = os.getenv('CONDA_USER_PACKAGE_CACHE', join(_user_root_dir, 'pkgs'))
+user_envs_dir = os.getenv('CONDA_USER_ENV_PATH', join(_user_root_dir, 'envs'))
+
+system_pkgs_dir = pkgs_dir
+system_envs_dir = envs_dir
+
+
+# Check to see if we can write to a particular directory
+def test_write(direc):
+    tmpname = "_conda_test_file.delme"
+    test_write = "A test string"
+    fname = join(direc, tmpname)
+    try:
+        with open(fname, 'wb') as f:
+            f.write(test_write)
+        os.unlink(fname)
+        return True
+    except:
+        return False
+
+# Setup config variables to point to user_variables if
+#  not writeable
+#  FIXME:  This may fail if user_pkgs_dir or user_envs_dir is still not
+#          writeable.
+if not test_write(pkgs_dir):
+    if not os.path.exists(user_pkgs_dir):
+        os.makedirs(user_pkgs_dir)
+    pkgs_dir = user_pkgs_dir
+
+if not test_write(envs_dir):
+    if not os.path.exists(user_envs_dir):
+        os.makedirs(user_envs_dir)
+    envs_dir = user_envs_dir
+
+usermode = (pkgs_dir != system_pkgs_dir) or (envs_dir != system_envs_dir)
 # ----- default environment prefix -----
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')

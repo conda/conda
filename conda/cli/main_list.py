@@ -35,7 +35,13 @@ def configure_parser(sub_parsers):
 def list_packages(prefix, regex=None, verbose=True):
     import re
     import conda.install as install
+    import os.path
 
+    if not os.path.isdir(prefix):
+        sys.exit("""\
+Error: environment does not exist: %s
+#
+# Use 'conda create' to create an environment before listing its packages.""" % prefix) 
     pat = re.compile(regex, re.I) if regex else None
 
     if verbose:
