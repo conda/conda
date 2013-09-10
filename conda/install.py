@@ -66,18 +66,26 @@ if on_win:
     CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
                                wintypes.LPVOID]
 
-    def platform_link(src, dst):
+    CreateSymbolicLink = ctypes.windll.kernel32.CreateSymbolicLinkW
+    CreateSymbolicLink.restype = wintypes.BOOL
+    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
+                               wintypes.DWORD]
+
+    def platform_link(src, dst, softlink=True):
         "Equivalent to os.link, using the win32 CreateHardLink call."
         if not CreateHardLink(dst, src, None):
-            if not CreateSymbolicLink(dst, src, 0):
-                raise OSError('win32link failed:')
+            if not softlink or not CreateSymbolicLink(dst, src, os.path.isdir(src)):
+                raise OSError('win32 link failed:')
 
 else:
-    def platform_link(src, dst):
-        try:
+    def platform_link(src, dst, softlink=True):
+        if not softlink:
             os.link(src, dst)
-        except OSError:
-            os.symlink(src, dst)
+        else:
+            try:
+                os.link(src, dst)
+            except OSError:
+                os.symlink(src, dst)
 
 log = logging.getLogger(__name__)
 
@@ -95,9 +103,9 @@ class NullHandler(logging.Handler):
 
 log.addHandler(NullHandler())
 
-def _link(src, dst):
+def _link(src, dst, softlink=True):
     try:
-        platform_link(src, dst)
+        platform_link(src, dst, softlink)
     except OSError:
         shutil.copy2(src, dst)
 
@@ -229,7 +237,7 @@ def extracted(pkgs_dir):
 
 def extract(pkgs_dir, dist):
     """
-    Extarct a package, i.e. make a package available for linkage.  We assume
+    Extract a package, i.e. make a package available for linkage.  We assume
     that the compressed packages is located in the packages directory.
     """
     with Locked(pkgs_dir):
@@ -272,7 +280,7 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist):
+def link(pkgs_dir, prefix, dist, softlink=True):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
@@ -303,7 +311,7 @@ def link(pkgs_dir, prefix, dist):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             try:
-                _link(src, dst)
+                _link(src, dst, softlink)
             except OSError:
                 log.error('failed to link (src=%r, dst=%r)' % (src, dst))
 
