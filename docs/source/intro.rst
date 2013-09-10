@@ -21,7 +21,7 @@ Conda Overview
 
 conda is an application for finding and installing software packages.
 A conda `package` is a binary tarball containing system-level libraries,
-python modules, executable programs, or other components.
+Python modules, executable programs, or other components.
 conda keeps track of dependencies between packages and platform
 specifics, making it simple to create working environments from different
 sets of packages. 
