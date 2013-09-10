@@ -63,6 +63,24 @@ if not test_write(envs_dir):
     envs_dir = user_envs_dir
 
 usermode = (pkgs_dir != system_pkgs_dir) or (envs_dir != system_envs_dir)
+
+# Usermode affects a few commands (FIXME -- not implemented yet)
+# conda create (new environments created in envs_dir by default)
+# conda install (packages should be linked from system if available or
+#                 downloaded to user_pkgs_dir)
+#   FIXME:  really the pkgs directory should be a list of available
+#           cache directories to use to link environments to and always
+#           be treated as a list (with only the first entry assumed writeable)
+# conda info (states whether usermode is enabled and lists system and user)
+# conda update (same as install)
+# conda clean (FIXME:  What do we do about dangling environments that are
+#                      unkown to the system --- i.e. this command could remove
+#                      packages that other usermode environments need)
+#       
+# Possible partial proposal: the conda-meta directory in every file should 
+#           contain a file that maps the packages defined in the environment 
+#           to which pkgs directory it came from
+
 # ----- default environment prefix -----
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
