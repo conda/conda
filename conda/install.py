@@ -293,7 +293,7 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist, linktype=LINK_SOFT):
+def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
