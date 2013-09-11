@@ -80,6 +80,7 @@ if on_win:
 
     def win_soft_link(src, dst):
         "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
+        assert CreateSymbolicLink is not None
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
 
