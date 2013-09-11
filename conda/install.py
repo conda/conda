@@ -65,35 +65,24 @@ if on_win:
     CreateHardLink.restype = wintypes.BOOL
     CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
                                wintypes.LPVOID]
-
     try:
         CreateSymbolicLink = ctypes.windll.kernel32.CreateSymbolicLinkW
         CreateSymbolicLink.restype = wintypes.BOOL
         CreateSymbolicLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
                                        wintypes.DWORD]
-
-        def platform_link(src, dst, softlink=True):
-            "Equivalent to os.link, using the win32 CreateHardLink call."
-            if not CreateHardLink(dst, src, None):
-                if not softlink or \
-                   not CreateSymbolicLink(dst, src, os.path.isdir(src)):
-                   raise OSError('win32 link failed:')
-
     except AttributeError:
-        # CreateSymbolicLink is not present
-        def platform_link(src, dst, softlink=False):
-            "Equivalent to os.link, using the win32 CreateHardLink call."
-            if not CreateHardLink(dst, src, None):
-                raise OSError('win32 link failed:')
-else:
-    def platform_link(src, dst, softlink=True):
-        if not softlink:
-            os.link(src, dst)
-        else:
-            try:
-                os.link(src, dst)
-            except OSError:
-                os.symlink(src, dst)
+        CreateSymbolicLink = None
+
+    def win_hard_link(src, dst):
+        "Equivalent to os.link, using the win32 CreateHardLink call."
+        if not CreateHardLink(dst, src, None):
+            raise OSError('win32 hard link failed')
+
+    def win_soft_link(src, dst):
+        "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
+        if not CreateSymbolicLink(dst, src, isdir(src)):
+            raise OSError('win32 soft link failed')
+
 
 log = logging.getLogger(__name__)
 
@@ -111,11 +100,26 @@ class NullHandler(logging.Handler):
 
 log.addHandler(NullHandler())
 
-def _link(src, dst, softlink=True):
-    try:
-        platform_link(src, dst, softlink)
-    except OSError:
+LINK_HARD = 1
+LINK_SOFT = 2
+LINK_COPY = 3
+
+def _link(src, dst, linktype=LINK_HARD):
+    if linktype == LINK_HARD:
+        if on_win:
+            win_hard_link(src, dst)
+        else:
+            os.link(src, dst)
+    elif linktype == LINK_SOFT:
+        if on_win:
+            win_soft_link(src, dst)
+        else:
+            os.symlink(src, dst)
+    elif linktype == LINK_COPY:
         shutil.copy2(src, dst)
+    else:
+        raise Exception("Did not expect linktype=%r" % linktype)
+
 
 def rm_rf(path):
     if islink(path) or isfile(path):
@@ -288,7 +292,7 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist, softlink=True):
+def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
@@ -319,9 +323,12 @@ def link(pkgs_dir, prefix, dist, softlink=True):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             try:
-                _link(src, dst, softlink)
+                _link(src, dst, linktype)
+                log.error('_link (src=%r, dst=%r, type=%r)' %
+                          (src, dst, linktype))
             except OSError:
-                log.error('failed to link (src=%r, dst=%r)' % (src, dst))
+                log.error('failed to link (src=%r, dst=%r, type=%r)' %
+                          (src, dst, linktype))
 
         if dist.rsplit('-', 2)[0]  == '_cache':
             return
