@@ -57,7 +57,7 @@ def display_actions(actions, index=None):
         print_dists(actions[UNLINK])
     if actions.get(LINK):
         print("\nThe following packages will be linked:\n")
-        print_dists(actions[LINK])
+        print_dists(t[0] for t in actions[LINK])
     print()
 
 
@@ -88,9 +88,18 @@ def plan_from_actions(actions):
             res.append('PRINT %sing packages ...' % op.capitalize())
         if op not in (FETCH, RM_FETCHED, RM_EXTRACTED):
             res.append('PROGRESS %d' % len(actions[op]))
-        for dist in actions[op]:
-            res.append('%s %s' % (op, dist))
+        for elt in actions[op]:
+            if isinstance(elt, tuple):
+                elt = ' '.join(elt)
+            res.append('%s %s' % (op, elt))
     return res
+
+
+def extracted_where(dist):
+    for pkgs_dir in config.pkgs_dirs:
+        if install.is_extracted(pkgs_dir, dist):
+            return pkgs_dir
+    return None
 
 
 def ensure_linked_actions(dists, prefix):
@@ -99,7 +108,13 @@ def ensure_linked_actions(dists, prefix):
     for dist in dists:
         if install.is_linked(prefix, dist):
             continue
-        actions[LINK].append(dist)
+
+        extracted_in = extracted_where(dist)
+        if extracted_in:
+            actions[LINK].append((dist, extracted_in))
+            continue
+        actions[LINK].append((dist, config.pkgs_dir))
+
         if install.is_extracted(config.pkgs_dir, dist):
             continue
         actions[EXTRACT].append(dist)
@@ -127,7 +142,7 @@ def force_linked_actions(dists, index, prefix):
         actions[EXTRACT].append(dist)
         if isfile(join(prefix, 'conda-meta', dist + '.json')):
             actions[UNLINK].append(dist)
-        actions[LINK].append(dist)
+        actions[LINK].append((dist, config.pkgs_dir))
     return actions
 
 # -------------------------------------------------------------------
@@ -313,7 +328,8 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == RM_FETCHED:
             install.rm_fetched(config.pkgs_dir, arg)
         elif cmd == LINK:
-            install.link(config.pkgs_dir, prefix, arg)
+            dist, pkgs_dir = arg.split()
+            install.link(pkgs_dir, prefix, dist)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
         else:
