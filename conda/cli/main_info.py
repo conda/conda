@@ -56,6 +56,8 @@ def execute(args, parser):
                      conda_version=conda.__version__,
                      conda_location=dirname(conda.__file__),
                      root_prefix=config.root_dir,
+                     pkgs_dirs=config.pkgs_dirs,
+                     envs_dirs=config.envs_dirs,
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path)
@@ -68,7 +70,8 @@ def execute(args, parser):
             setattr(args, option, True)
 
     if args.all or all(not getattr(args, opt) for opt in options):
-        info_dict['ppcs'] = ('\n' + 24 * ' ').join(info_dict['channels'])
+        for key in 'pkgs_dirs', 'envs_dirs', 'channels':
+            info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         print("""
 Current conda install:
 
@@ -77,9 +80,11 @@ Current conda install:
        conda location : %(conda_location)s
      root environment : %(root_prefix)s
   default environment : %(default_prefix)s
-         channel URLs : %(ppcs)s
+        package cache : %(_pkgs_dirs)s
+                 envs : %(_envs_dirs)s
+         channel URLs : %(_channels)s
           config file : %(rc_path)s
-""" % info_dict )
+""" % info_dict)
 
     if args.envs:
         print("# conda environments:")
