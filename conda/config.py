@@ -21,80 +21,6 @@ log = logging.getLogger(__name__)
 default_python = '3.3' if PY3 else '2.7'
 default_numpy = '1.7'
 
-# ----- constant paths -----
-
-root_dir = os.getenv('CONDA_ROOT', sys.prefix)
-pkgs_dir = os.getenv('CONDA_PACKAGE_CACHE', join(root_dir, 'pkgs'))
-envs_dir = os.getenv('CONDA_ENV_PATH', join(root_dir, 'envs'))
-
-_user_root_dir = os.getenv('CONDA_USER_ROOT', join(expanduser('~'), 'conda'))
-user_pkgs_dir = os.getenv('CONDA_USER_PACKAGE_CACHE', join(_user_root_dir, 'pkgs'))
-user_envs_dir = os.getenv('CONDA_USER_ENV_PATH', join(_user_root_dir, 'envs'))
-
-system_pkgs_dir = pkgs_dir
-system_envs_dir = envs_dir
-
-
-# Check to see if we can write to a particular directory
-def test_write(direc):
-    tmpname = "_conda_test_file.delme"
-    test_write = "A test string"
-    fname = join(direc, tmpname)
-    try:
-        with open(fname, 'wb') as f:
-            f.write(test_write)
-        os.unlink(fname)
-        return True
-    except:
-        return False
-
-# Setup config variables to point to user_variables if
-#  not writeable
-#  FIXME:  This may fail if user_pkgs_dir or user_envs_dir is still not
-#          writeable.
-if not test_write(pkgs_dir):
-    if not os.path.exists(user_pkgs_dir):
-        os.makedirs(user_pkgs_dir)
-    pkgs_dir = user_pkgs_dir
-
-if not test_write(envs_dir):
-    if not os.path.exists(user_envs_dir):
-        os.makedirs(user_envs_dir)
-    envs_dir = user_envs_dir
-
-usermode = (pkgs_dir != system_pkgs_dir) or (envs_dir != system_envs_dir)
-
-pkgs_direcs = [pkgs_dir]
-if pkgs_dir != system_pkgs_dir:
-    pkgs_direcs.append(system_pkgs_dir)
-
-# pkgs_direcs could theoretically get larger with all but first directory
-#  assumed to be read-only
-
-# Usermode affects a few commands (FIXME -- not implemented yet)
-# conda create (new environments created in envs_dir by default)
-# conda install (packages should be linked from system if available or
-#                 downloaded to user_pkgs_dir)
-# conda info (states whether usermode is enabled and lists system and user)
-# conda update (same as install)
-# conda clean (FIXME:  What do we do about dangling environments that are
-#                      unkown to the system --- i.e. this command could remove
-#                      packages that other usermode environments need)
-#
-# Possible partial proposal: the conda-meta directory in every file should 
-#           contain a file that maps the packages defined in the environment 
-#           to which pkgs directory it came from
-
-# ----- default environment prefix -----
-
-_default_env = os.getenv('CONDA_DEFAULT_ENV')
-if not _default_env:
-    default_prefix = root_dir
-elif os.sep in _default_env:
-    default_prefix = abspath(_default_env)
-else:
-    default_prefix = join(envs_dir, _default_env)
-
 # ----- operating system and architecture -----
 
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
@@ -144,6 +70,43 @@ def load_condarc(path):
 
 rc = load_condarc(rc_path)
 
+# ----- local directories -----
+
+def pathsep_env(name):
+    x = os.getenv(name)
+    if x:
+        return x.split(os.pathsep)
+    else:
+        return []
+
+root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
+                                        rc.get('root_dir', sys.prefix))))
+pkgs_dirs = [abspath(expanduser(path)) for path in (
+        pathsep_env('CONDA_PACKAGE_CACHE') or
+        rc.get('pkgs_dirs') or
+        [join(root_dir, 'pkgs')]
+        )]
+envs_dirs = [abspath(expanduser(path)) for path in (
+        pathsep_env('CONDA_ENV_PATH') or
+        rc.get('envs_dirs') or
+        [join(root_dir, 'envs')]
+        )]
+
+pkgs_dir = pkgs_dirs[0]
+envs_dir = envs_dirs[0]
+
+# ----- default environment prefix -----
+
+_default_env = os.getenv('CONDA_DEFAULT_ENV')
+if not _default_env:
+    default_prefix = root_dir
+elif os.sep in _default_env:
+    default_prefix = abspath(_default_env)
+else:
+    default_prefix = join(envs_dir, _default_env)
+
+# ----- misc -----
+
 changeps1 = rc.get('changeps1', True)
 binstar_upload = rc.get('binstar_upload', None) # None means ask
 
@@ -189,6 +152,7 @@ def get_channel_urls():
 
     return normalize_urls(base_urls)
 
+# ----- proxy -----
 
 def get_rc_proxy_servers():
     return rc.get('proxy_servers',None)
