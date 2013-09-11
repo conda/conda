@@ -308,6 +308,11 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     info_dir = join(dist_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
 
+    try:
+        has_prefix_files = set(yield_lines(join(info_dir, 'has_prefix')))
+    except IOError:
+        has_prefix_files = set()
+
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
             src = join(dist_dir, f)
@@ -322,21 +327,19 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
+            lt = LINK_COPY if f in has_prefix_files else linktype
             try:
-                _link(src, dst, linktype)
-                log.error('_link (src=%r, dst=%r, type=%r)' %
-                          (src, dst, linktype))
+                _link(src, dst, lt)
+                log.error('_link (src=%r, dst=%r, type=%r)' % (src, dst, lt))
             except OSError:
                 log.error('failed to link (src=%r, dst=%r, type=%r)' %
-                          (src, dst, linktype))
+                          (src, dst, lt))
 
         if dist.rsplit('-', 2)[0]  == '_cache':
             return
 
-        has_prefix_path = join(info_dir, 'has_prefix')
-        if isfile(has_prefix_path):
-            for f in yield_lines(has_prefix_path):
-                update_prefix(join(prefix, f), prefix)
+        for f in sorted(has_prefix_files):
+            update_prefix(join(prefix, f), prefix)
 
         create_meta(prefix, dist, info_dir, files)
         mk_menus(prefix, files, remove=False)
