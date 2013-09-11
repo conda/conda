@@ -292,7 +292,7 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
+def link(pkgs_dir, prefix, dist, linktype=LINK_SOFT):
     '''
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
@@ -327,7 +327,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
-            lt = LINK_COPY if f in has_prefix_files else linktype
+            lt = (LINK_COPY if f in has_prefix_files else linktype)
             try:
                 _link(src, dst, lt)
                 log.debug('_link (src=%r, dst=%r, type=%r)' % (src, dst, lt))
