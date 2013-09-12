@@ -41,7 +41,7 @@ def list_packages(prefix, regex=None, verbose=True):
         sys.exit("""\
 Error: environment does not exist: %s
 #
-# Use 'conda create' to create an environment before listing its packages.""" % prefix) 
+# Use 'conda create' to create an environment before listing its packages.""" % prefix)
     pat = re.compile(regex, re.I) if regex else None
 
     if verbose:
