@@ -291,10 +291,10 @@ def link(prefix, arg):
     if len(args) == 1:
         dist, pkgs_dir, lt = args[0], config.pkgs_dir, install.LINK_HARD
     elif len(args) == 3:
-        dist, pkgs_dir, lt = args
+        dist, pkgs_dir, lt = args[0], args[1], int(args[2])
     else:
-        raise Exception("did not expect: %r" % args)
-    install.link(pkgs_dir, prefix, dist)
+        raise Exception("did not expect: %s" % arg)
+    install.link(pkgs_dir, prefix, dist, lt)
 
 def cmds_from_plan(plan):
     res = []
