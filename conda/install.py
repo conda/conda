@@ -238,6 +238,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
         return False
     finally:
         rm_rf(dst)
+        rm_empty_dir(prefix)
 
 # ------- package cache ----- fetched
 
@@ -343,7 +344,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
-            lt = (LINK_COPY if f in has_prefix_files else linktype)
+            lt = (LINK_COPY if f in has_prefix_files or
+                  f.startswith('bin/python') else linktype)
             try:
                 _link(src, dst, lt)
                 log.debug('_link (src=%r, dst=%r, type=%r)' % (src, dst, lt))
