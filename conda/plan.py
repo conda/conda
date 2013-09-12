@@ -38,27 +38,52 @@ PROGRESS = 'PROGRESS'
 
 
 
-def print_dists(dists, index=None):
+def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
-    for dist in dists:
+    for dist, extra in dists_extras:
         line = fmt % tuple(dist.rsplit('-', 1))
-        fn = dist + '.tar.bz2'
-        if index and fn in index:
-            line += '%15s' % human_bytes(index[fn]['size'])
+        if extra:
+            line += extra
         print(line)
+
+def split_linkarg(arg):
+    "Return tuple(dist, pkgs_dir, linktype)"
+    args = arg.split()
+    if len(args) == 1:
+        return args[0], config.pkgs_dir, install.LINK_HARD
+    elif len(args) == 3:
+        return args[0], args[1], int(args[2])
+    else:
+        raise Exception("did not expect: %s" % arg)
+
+ltm = {
+    install.LINK_HARD: 'hard',
+    install.LINK_SOFT: 'soft',
+    install.LINK_COPY: 'copy',
+}
 
 def display_actions(actions, index=None):
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
-        print_dists(actions[FETCH], index)
+        print_dists([
+                (dist, '%15s' % human_bytes(index[dist + '.tar.bz2']['size']))
+                for dist in actions[FETCH]])
     if actions.get(UNLINK):
         print("\nThe following packages will be UN-linked:\n")
-        print_dists(actions[UNLINK])
+        print_dists([
+                (dist, None)
+                for dist in actions[UNLINK]])
     if actions.get(LINK):
         print("\nThe following packages will be linked:\n")
-        print_dists(arg.split()[0] for arg in actions[LINK])
+        lst = []
+        for arg in actions[LINK]:
+            dist, pkgs_dir, lt = split_linkarg(arg)
+            extra = '   %s (%d)' % (ltm.get(lt),
+                                    config.pkgs_dirs.index(pkgs_dir))
+            lst.append((dist, extra))
+        print_dists(lst)
     print()
 
 
@@ -287,13 +312,7 @@ def fetch(index, dist):
     fetch_pkg(index[fn])
 
 def link(prefix, arg):
-    args = arg.split()
-    if len(args) == 1:
-        dist, pkgs_dir, lt = args[0], config.pkgs_dir, install.LINK_HARD
-    elif len(args) == 3:
-        dist, pkgs_dir, lt = args[0], args[1], int(args[2])
-    else:
-        raise Exception("did not expect: %s" % arg)
+    dist, pkgs_dir, lt = split_linkarg(arg)
     install.link(pkgs_dir, prefix, dist, lt)
 
 def cmds_from_plan(plan):
