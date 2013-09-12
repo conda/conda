@@ -83,22 +83,22 @@ def pathsep_env(name):
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 
-def default_pkgs_dirs():
-    root_pkgs = join(root_dir, 'pkgs')
-    if try_write(root_pkgs):
-        return [root_pkgs]
+def default_dirs(tp='pkgs'):
+    root_tp = join(root_dir, tp)
+    if try_write(root_tp):
+        return [root_tp]
     else:
-        return [abspath(expanduser('~/conda')), root_pkgs]
+        return [abspath(join(expanduser('~/conda'), tp)), root_tp]
 
 pkgs_dirs = [abspath(expanduser(path)) for path in (
         pathsep_env('CONDA_PACKAGE_CACHE') or
         rc.get('pkgs_dirs') or
-        default_pkgs_dirs()
+        default_dirs('pkgs')
         )]
 envs_dirs = [abspath(expanduser(path)) for path in (
         pathsep_env('CONDA_ENV_PATH') or
         rc.get('envs_dirs') or
-        [join(root_dir, 'envs')]
+        default_dirs('envs')
         )]
 
 pkgs_dir = pkgs_dirs[0]
