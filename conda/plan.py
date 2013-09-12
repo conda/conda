@@ -117,8 +117,8 @@ def ensure_linked_actions(dists, prefix):
                       install.LINK_SOFT)
             actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
             continue
+
         actions[LINK].append(dist)
-        #assert not install.is_extracted(config.pkgs_dir, dist)
         actions[EXTRACT].append(dist)
         if install.is_fetched(config.pkgs_dir, dist):
             continue
