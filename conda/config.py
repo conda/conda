@@ -12,8 +12,9 @@ import logging
 from platform import machine
 from os.path import abspath, expanduser, isfile, join
 
-
 from conda.compat import PY3
+from conda.install import try_write
+
 
 log = logging.getLogger(__name__)
 
@@ -81,10 +82,18 @@ def pathsep_env(name):
 
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
+
+def default_pkgs_dirs():
+    root_pkgs = join(root_dir, 'pkgs')
+    if try_write(root_pkgs):
+        return [root_pkgs]
+    else:
+        return [abspath(expanduser('~/conda')), root_pkgs]
+
 pkgs_dirs = [abspath(expanduser(path)) for path in (
         pathsep_env('CONDA_PACKAGE_CACHE') or
         rc.get('pkgs_dirs') or
-        [join(root_dir, 'pkgs')]
+        default_pkgs_dirs()
         )]
 envs_dirs = [abspath(expanduser(path)) for path in (
         pathsep_env('CONDA_ENV_PATH') or

@@ -224,6 +224,19 @@ def post_link(prefix, dist, unlink=False):
 
 # ========================== begin API functions =========================
 
+def try_write(dir_path):
+    path = join(dir_path, '.tmp-conda')
+    assert isdir(dir_path)
+    assert not isfile(path)
+    try:
+        with open(path, 'wb') as fo:
+            fo.write(b'This is a test file.\n')
+        return True
+    except IOError:
+        return False
+    finally:
+        rm_rf(path)
+
 def try_hard_link(pkgs_dir, prefix, dist):
     src = join(pkgs_dir, dist, 'info', 'index.json')
     dst = join(prefix, '.tmp-%s' % dist)
