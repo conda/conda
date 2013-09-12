@@ -10,6 +10,7 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
+import sys
 from logging import getLogger
 from collections import defaultdict
 from os.path import abspath, isfile, join
@@ -109,7 +110,12 @@ def ensure_linked_actions(dists, prefix):
 
         extracted_in = extracted_where(dist)
         if extracted_in:
-            actions[LINK].append(dist + ' ' + extracted_in)
+            if install.try_hard_link(extracted_in, prefix, dist):
+                lt = install.LINK_HARD
+            else:
+                lt = (install.LINK_COPY if sys.platform == 'win32' else
+                      install.LINK_SOFT)
+            actions[LINK].append('%s %s %d' (dist, extracted_in, lt))
             continue
         actions[LINK].append(dist)
 
@@ -285,8 +291,11 @@ def fetch(index, dist):
 def link(prefix, arg):
     args = arg.split()
     if len(args) == 1:
-        args.append(config.pkgs_dir)
-    dist, pkgs_dir = args
+        dist, pkgs_dir, lt = args[0], config.pkgs_dir, install.LINK_HARD
+    elif len(args) == 3:
+        dist, pkgs_dir, lt = args
+    else:
+        raise Exception("did not expect: %r" % args)
     install.link(pkgs_dir, prefix, dist)
 
 def cmds_from_plan(plan):

@@ -224,6 +224,21 @@ def post_link(prefix, dist, unlink=False):
 
 # ========================== begin API functions =========================
 
+def try_hard_link(pkgs_dir, prefix, dist):
+    src = join(pkgs_dir, dist, 'info', 'index.json')
+    dst = join(prefix, '.tmp-%s' % dist)
+    assert isfile(src)
+    assert not isfile(dst)
+    if not isdir(prefix):
+        os.makedirs(prefix)
+    try:
+        _link(src, dst, LINK_HARD)
+        return True
+    except OSError:
+        return False
+    finally:
+        rm_rf(dst)
+
 # ------- package cache ----- fetched
 
 def fetched(pkgs_dir):
