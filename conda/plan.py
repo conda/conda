@@ -115,7 +115,7 @@ def ensure_linked_actions(dists, prefix):
             else:
                 lt = (install.LINK_COPY if sys.platform == 'win32' else
                       install.LINK_SOFT)
-            actions[LINK].append('%s %s %d' (dist, extracted_in, lt))
+            actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
             continue
         actions[LINK].append(dist)
 
