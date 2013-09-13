@@ -53,13 +53,13 @@ except ImportError:
 
 on_win = bool(sys.platform == 'win32')
 
-# on Windows we cannot update these packages in the root environment because
-# of the file lock problem
-win_ignore = set(['python', 'pycosat', 'menuinst', 'psutil'])
-
 if on_win:
     import ctypes
     from ctypes import wintypes
+
+    # on Windows we cannot update these packages in the root environment
+    # because of the file lock problem
+    win_ignore = set(['python', 'pycosat', 'menuinst', 'psutil'])
 
     CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
