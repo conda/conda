@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import argparse
-from os.path import abspath, expanduser, join
+from os.path import abspath, expanduser, isdir, join
 
 import conda.config as config
 
@@ -126,8 +126,13 @@ def ensure_name_or_prefix(args, command):
                  '       try "conda %s -h" for more details' % command)
 
 
-def get_prefix(args):
+def get_prefix(args, search=True):
     if args.name:
+        if search:
+            for envs_dir in config.envs_dirs:
+                prefix = join(envs_dir, args.name)
+                if isdir(prefix):
+                    return prefix
         return join(config.envs_dir, args.name)
 
     if args.prefix:
