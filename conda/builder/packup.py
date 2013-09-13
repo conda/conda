@@ -239,7 +239,7 @@ def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
     install_local_packages(prefix, [fn])
 
 
-def get_prefix(path):
+def which_prefix(path):
     """
     given the path (to a (presumably) conda installed file) return the
     environment prefix in which the file in located
@@ -262,7 +262,7 @@ def which_package(path):
     only one package.
     """
     path = abspath(path)
-    prefix = get_prefix(path)
+    prefix = which_prefix(path)
     if prefix is None:
         raise RuntimeError("could not determine conda prefix from: %s" % path)
     for dist in install.linked(prefix):
