@@ -84,11 +84,10 @@ def pathsep_env(name):
         return []
 
 def default_dirs(tp='pkgs'):
-    root_tp = join(root_dir, tp)
-    if try_write(root_tp):
-        return [root_tp]
-    else:
-        return [abspath(join(expanduser('~/conda'), tp)), root_tp]
+    lst = [join(root_dir, tp)]
+    if not try_write(lst[0]):
+        lst.insert(0, abspath(join(expanduser('~/conda'), tp)))
+    return lst
 
 pkgs_dirs = [abspath(expanduser(path)) for path in (
         pathsep_env('CONDA_PACKAGE_CACHE') or
