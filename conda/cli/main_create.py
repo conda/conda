@@ -62,7 +62,7 @@ def execute(args, parser):
                  'package specs or --file')
 
     common.ensure_name_or_prefix(args, 'create')
-    prefix = common.get_prefix(args)
+    prefix = common.get_prefix(args, search=False)
 
     if exists(prefix):
         sys.exit("Error: prefix already exists: %s" % prefix)

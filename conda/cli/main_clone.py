@@ -36,7 +36,7 @@ def execute(args, parser):
 
     common.ensure_name_or_prefix(args, 'clone')
 
-    prefix = common.get_prefix(args)
+    prefix = common.get_prefix(args, search=False)
 
     path = args.path[0]
     if not isfile(path):
