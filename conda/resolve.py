@@ -73,6 +73,7 @@ class Package(object):
         self.name = info['name']
         self.version = info['version']
         self.build_number = info['build_number']
+        self.build = info['build']
 
         v = self.version
         v = v.replace('rc', '.dev99999')
@@ -100,8 +101,8 @@ class Package(object):
             raise ValueError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
-            return ((self.norm_version, self.build_number) <
-                    (other.norm_version, other.build_number))
+            return ((self.norm_version, self.build_number, self.build) <
+                    (other.norm_version, other.build_number, other.build))
         except TypeError:
             return ((self.version, self.build_number) <
                     (other.version, other.build_number))
