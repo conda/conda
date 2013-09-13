@@ -7,7 +7,6 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 import os
-import stat
 import sys
 
 from conda.cli import common
@@ -60,10 +59,14 @@ def rm_lock():
 
 
 def rm_tarballs(args):
+    from os.path import join, getsize
+
+    print('Cache location: %s' % config.pkgs_dir)
+
     rmlist = []
-    for f in os.listdir(config.pkgs_dir):
-        if f.endswith('.tar.bz2') or f.endswith('.tar.bz2.part'):
-            rmlist.append(f)
+    for fn in os.listdir(config.pkgs_dir):
+        if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
+            rmlist.append(fn)
 
     if not rmlist:
         print("There are no tarballs to remove")
@@ -73,20 +76,20 @@ def rm_tarballs(args):
     print()
     totalsize = 0
     maxlen = len(max(rmlist, key=lambda x: len(str(x))))
-    for f in rmlist:
-        size = os.stat(os.path.join(config.pkgs_dir, f))[stat.ST_SIZE]
+    fmt = "%-40s %10s"
+    for fn in rmlist:
+        size = getsize(join(config.pkgs_dir, fn))
         totalsize += size
-        print("%s%s%s" % (f, ' ' * (maxlen + 2 - len(f)), human_bytes(size)))
+        print(fmt % (fn, human_bytes(size)))
     print('-' * (maxlen + 2 + 10))
-    print("Total:%s%s" % (' ' * (maxlen + 2 - len("Total:")),
-        human_bytes(totalsize)))
+    print(fmt % ('Total:', human_bytes(totalsize)))
     print()
 
     common.confirm_yn(args)
 
-    for f in rmlist:
-        print("removing %s" % f)
-        os.unlink(os.path.join(config.pkgs_dir, f))
+    for fn in rmlist:
+        print("removing %s" % fn)
+        os.unlink(os.path.join(config.pkgs_dir, fn))
 
 
 def execute(args, parser):

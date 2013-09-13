@@ -35,7 +35,7 @@ def human_bytes(n):
     Return the number of bytes n in more human readable form.
     """
     if n < 1024:
-        return '%d bytes' % n
+        return '%d B' % n
     k = (n - 1) / 1024 + 1
     if k < 1024:
         return '%d KB' % k
