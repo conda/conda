@@ -247,6 +247,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         if not (force or only_names):
             # ensure conda is in root environment
             assert 'conda' in must_have
+        if sys.platform == 'win32':
+            for name in install.win_ignore:
+                if name in must_have:
+                    del must_have[name]
     else:
         # discard conda from other environments
         if 'conda' in must_have:
