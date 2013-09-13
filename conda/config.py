@@ -73,15 +73,15 @@ rc = load_condarc(rc_path)
 
 # ----- local directories -----
 
+root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
+                                        rc.get('root_dir', sys.prefix))))
+
 def pathsep_env(name):
     x = os.getenv(name)
     if x:
         return x.split(os.pathsep)
     else:
         return []
-
-root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
-                                        rc.get('root_dir', sys.prefix))))
 
 def default_dirs(tp='pkgs'):
     root_tp = join(root_dir, tp)
