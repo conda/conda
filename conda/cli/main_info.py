@@ -93,15 +93,15 @@ Current conda install:
         def disp_env(prefix):
             fmt = '%-20s  %s  %s'
             default = '*' if prefix == config.default_prefix else ' '
-            name = (basename(prefix)
-                    if prefix.startswith(config.envs_dir) else
-                    '(root)')
+            name = ('(root)' if prefix == config.root_dir else
+                    basename(prefix))
             print(fmt % (name, default, prefix))
 
         disp_env(config.root_dir)
-        for dn in sorted(os.listdir(config.envs_dir)):
-            if os.path.isdir(os.path.join(config.envs_dir, dn)):
-                disp_env(join(config.envs_dir, dn))
+        for envs_dir in config.envs_dirs:
+            for dn in sorted(os.listdir(envs_dir)):
+                if os.path.isdir(join(envs_dir, dn)):
+                    disp_env(join(envs_dir, dn))
         print()
 
     if args.system:
