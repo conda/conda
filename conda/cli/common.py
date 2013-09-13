@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import sys
 import argparse
 from os.path import abspath, expanduser, isdir, join
@@ -12,7 +13,8 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-n', "--name",
         action = "store",
-        help = "name of environment (directory in %s)" % config.envs_dir,
+        help = "name of environment (in %s)" %
+                               os.pathsep.join(config.envs_dirs),
     )
     npgroup.add_argument(
         '-p', "--prefix",
