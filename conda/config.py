@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, expanduser, isfile, join
+from os.path import abspath, expanduser, isfile, isdir, join
 
 from conda.compat import PY3
 from conda.install import try_write
@@ -111,7 +111,12 @@ if not _default_env:
 elif os.sep in _default_env:
     default_prefix = abspath(_default_env)
 else:
-    default_prefix = join(envs_dir, _default_env)
+    for envs_dir in envs_dirs:
+        default_prefix = join(envs_dir, _default_env)
+        if isdir(default_prefix):
+            break
+    else:
+        default_prefix = join(envs_dirs[0], _default_env)
 
 # ----- misc -----
 
