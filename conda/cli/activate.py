@@ -55,7 +55,7 @@ def main():
         sys.exit(0)
 
     else:
-        # This means there is a big in main.py
+        # This means there is a bug in main.py
         raise ValueError("unexpected command")
 
     for path in os.getenv('PATH').split(os.pathsep):
