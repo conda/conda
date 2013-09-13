@@ -90,7 +90,7 @@ def app_is_installed(fn):
     prefixes = [config.root_dir]
     for envs_dir in config.envs_dirs:
         for fn2 in os.listdir(envs_dir):
-            prefix = join(config.envs_dir, fn2)
+            prefix = join(envs_dir, fn2)
             if isdir(prefix):
                 prefixes.append(prefix)
     dist = fn[:-8]
