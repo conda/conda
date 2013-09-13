@@ -170,14 +170,14 @@ def update_prefix(path, new_prefix):
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
-def create_meta(prefix, dist, info_dir, files):
+def create_meta(prefix, dist, info_dir, extra_info):
     """
     Create the conda metadata, in a given prefix, for a given package.
     """
     meta_dir = join(prefix, 'conda-meta')
     with open(join(info_dir, 'index.json')) as fi:
         meta = json.load(fi)
-    meta['files'] = files
+    meta.update(extra_info)
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, dist + '.json'), 'w') as fo:
@@ -372,7 +372,11 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         for f in sorted(has_prefix_files):
             update_prefix(join(prefix, f), prefix)
 
-        create_meta(prefix, dist, info_dir, files)
+        create_meta(prefix, dist, info_dir, {
+                'files': files,
+                'pkgs_dir': pkgs_dir,
+                'linktype': linktype,
+                })
         mk_menus(prefix, files, remove=False)
         post_link(prefix, dist)
 
