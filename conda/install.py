@@ -105,6 +105,11 @@ log.addHandler(NullHandler())
 LINK_HARD = 1
 LINK_SOFT = 2
 LINK_COPY = 3
+link_name_map = {
+    LINK_HARD: 'hard',
+    LINK_SOFT: 'soft',
+    LINK_COPY: 'copy',
+}
 
 def _link(src, dst, linktype=LINK_HARD):
     if linktype == LINK_HARD:
@@ -375,8 +380,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
         create_meta(prefix, dist, info_dir, {
                 'files': files,
-                'pkgs_dir': pkgs_dir,
-                'linktype': linktype,
+                'link': {'pkgs_dir': pkgs_dir,
+                         'type': link_name_map.get(linktype)},
                 })
         mk_menus(prefix, files, remove=False)
         post_link(prefix, dist)

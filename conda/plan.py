@@ -58,12 +58,6 @@ def split_linkarg(arg):
     else:
         raise Exception("did not expect: %s" % arg)
 
-ltm = {
-    install.LINK_HARD: 'hard',
-    install.LINK_SOFT: 'soft',
-    install.LINK_COPY: 'copy',
-}
-
 def display_actions(actions, index=None):
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
@@ -80,7 +74,7 @@ def display_actions(actions, index=None):
         lst = []
         for arg in actions[LINK]:
             dist, pkgs_dir, lt = split_linkarg(arg)
-            extra = '   %s (%d)' % (ltm.get(lt),
+            extra = '   %s (%d)' % (install.link_name_map.get(lt),
                                     config.pkgs_dirs.index(pkgs_dir))
             lst.append((dist, extra))
         print_dists(lst)
