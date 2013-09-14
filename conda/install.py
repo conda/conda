@@ -59,7 +59,7 @@ if on_win:
 
     # on Windows we cannot update these packages in the root environment
     # because of the file lock problem
-    win_ignore = set(['python', 'pycosat', 'menuinst', 'psutil'])
+    win_ignore_root = set(['python', 'pycosat', 'menuinst', 'psutil'])
 
     CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
@@ -329,7 +329,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     the packages has been extracted (using extract() above).
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-              dist.rsplit('-', 2)[0] in win_ignore):
+              dist.rsplit('-', 2)[0] in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
         print('Ignored: %s' % dist)
@@ -388,7 +388,7 @@ def unlink(prefix, dist):
     package does not exist in the prefix.
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-              dist.rsplit('-', 2)[0] in win_ignore):
+              dist.rsplit('-', 2)[0] in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
         print('Ignored: %s' % dist)

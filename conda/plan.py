@@ -248,7 +248,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
             # ensure conda is in root environment
             assert 'conda' in must_have
         if install.on_win:
-            for name in install.win_ignore:
+            for name in install.win_ignore_root:
                 if name in must_have:
                     del must_have[name]
     else:
