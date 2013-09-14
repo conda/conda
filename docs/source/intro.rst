@@ -58,7 +58,7 @@ Continuum provides the following standard channels:
  * ``http://repo.continuum.io/pkgs/dev`` - Experimental or developmental versions of packages
  * ``http://repo.continuum.io/pkgs/gpl`` - GPL licensed packages
  * ``http://repo.continuum.io/pkgs/free`` - non GPL open source packages
-To view all available packages, you can use ``conda search --all``.  See the :ref:`search command examples <search_example>` for more information.
+To view all available packages, you can use ``conda search``.  See the :ref:`search command examples <search_example>` for more information.
 
 Once a conda package has been downloaded, it is said to
 be `locally available`.
