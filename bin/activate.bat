@@ -7,7 +7,7 @@ for /f %%i in ("%~dp0..\envs") do (
 if not "%1" == "" goto skipmissingarg
     echo Usage: activate envname
     echo.
-    echo Deactivates previously activated Anaconda
+    echo Deactivates previously activated Conda
     echo environment, then activates the chosen one.
     exit /b 1
 :skipmissingarg
