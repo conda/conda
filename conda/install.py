@@ -340,8 +340,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         print('Ignored: %s' % dist)
         return
 
-    dist_dir = join(pkgs_dir, dist)
-    info_dir = join(dist_dir, 'info')
+    source_dir = join(pkgs_dir, dist)
+    info_dir = join(source_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
 
     try:
@@ -351,7 +351,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
-            src = join(dist_dir, f)
+            src = join(source_dir, f)
             fdn, fbn = os.path.split(f)
             dst_dir = join(prefix, fdn)
             if not isdir(dst_dir):
@@ -380,7 +380,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
         create_meta(prefix, dist, info_dir, {
                 'files': files,
-                'link': {'pkgs_dir': pkgs_dir,
+                'link': {'source': source_dir,
                          'type': link_name_map.get(linktype)},
                 })
         mk_menus(prefix, files, remove=False)
