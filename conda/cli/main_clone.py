@@ -4,8 +4,8 @@ from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
 
-descr = 'Clone a "share package" (created by conda package --share)'
-
+descr = ('Clone an existing environment or a "share package" '
+         '(created by conda package --share)')
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -17,9 +17,9 @@ def configure_parser(sub_parsers):
     p.add_argument(
         'path',
         metavar = 'PATH',
-        action  = "store",
-        nargs   = 1,
-        help    = 'path to "share package"',
+        action = "store",
+        nargs = 1,
+        help = 'path existing environment or "share package"',
     )
     common.add_parser_prefix(p)
     common.add_parser_json(p)
@@ -29,20 +29,25 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import sys
     import json
-    from os.path import isfile
-
-    from conda.builder.share import clone_bundle
+    from os.path import exists, isdir, isfile
 
 
     common.ensure_name_or_prefix(args, 'clone')
 
     prefix = common.get_prefix(args, search=False)
+    if exists(prefix):
+        sys.exit("Error: prefix already exists: %s" % prefix)
 
     path = args.path[0]
-    if not isfile(path):
-        sys.exit("Error: no such file: %s" % path)
+    if isfile(path):
+        from conda.builder.share import clone_bundle
+        clone_bundle(path, prefix)
+        if args.json:
+            json.dump(dict(warnings=[]), sys.stdout, indent=2)
 
-    clone_bundle(path, prefix)
+    elif isdir(path):
+        from conda.misc import clone_env
+        clone_env(path, prefix)
 
-    if args.json:
-        json.dump(dict(warnings=[]), sys.stdout, indent=2)
+    else:
+        sys.exit("Error: no such file or directory: %s" % path)
