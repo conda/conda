@@ -72,7 +72,8 @@ def execute(args, parser):
     import sys
     from os.path import basename
 
-    from conda.builder.packup import make_tarbz2, untracked, remove
+    from conda.misc import untracked
+    from conda.builder.packup import make_tarbz2, remove
 
 
     prefix = common.get_prefix(args)

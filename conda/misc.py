@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from collections import defaultdict
 from distutils.spawn import find_executable
-from os.path import abspath, basename, expanduser, join
+from os.path import abspath, basename, expanduser, isfile, islink, join
 
 from conda import config
 from conda import install
@@ -30,6 +30,47 @@ def conda_installed_files(prefix, exclude_self_build=False):
             continue
         res.update(set(meta['files']))
     return res
+
+
+def rel_path(prefix, path):
+    res = path[len(prefix) + 1:]
+    if sys.platform == 'win32':
+        res = res.replace('\\', '/')
+    return res
+
+
+def walk_prefix(prefix):
+    """
+    Return the set of all files in a given prefix directory.
+    """
+    res = set()
+    prefix = abspath(prefix)
+    ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', '.conda_lock',
+              'users', 'LICENSE.txt', 'info', '.index', '.unionfs'}
+    for fn in os.listdir(prefix):
+        if fn in ignore:
+            continue
+        if isfile(join(prefix, fn)):
+            res.add(fn)
+            continue
+        for root, dirs, files in os.walk(join(prefix, fn)):
+            for fn in files:
+                res.add(rel_path(prefix, join(root, fn)))
+            for dn in dirs:
+                path = join(root, dn)
+                if islink(path):
+                    res.add(rel_path(prefix, path))
+    return res
+
+
+def untracked(prefix, exclude_self_build=False):
+    """
+    Return (the set) of all untracked files for a given prefix.
+    """
+    conda_files = conda_installed_files(prefix, exclude_self_build)
+    return {path for path in walk_prefix(prefix) - conda_files
+            if not (path.endswith('~') or (path.endswith('.pyc') and
+                                           path[:-1] in conda_files))}
 
 
 def clone_env(prefix1, prefix2):
