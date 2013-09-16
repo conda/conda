@@ -9,7 +9,8 @@ import shutil
 import subprocess
 from collections import defaultdict
 from distutils.spawn import find_executable
-from os.path import abspath, basename, expanduser, isfile, islink, join
+from os.path import (abspath, basename, dirname, expanduser,
+                     isdir, isfile, islink, join)
 
 from conda import config
 from conda import install
@@ -87,7 +88,18 @@ def clone_env(prefix1, prefix2, verbose=True):
     actions = ensure_linked_actions(dists, prefix2)
     execute_actions(actions, index=get_index(), verbose=verbose)
 
-    raise NotImplementedError
+    for f in untracked_files:
+        src = join(prefix1, f)
+        dst = join(prefix2, f)
+        dst_dir = dirname(dst)
+        if islink(dst_dir) or isfile(dst_dir):
+            os.unlink(dst_dir)
+        if not isdir(dst_dir):
+            os.makedirs(dst_dir)
+        try:
+            install._link(src, dst)
+        except OSError:
+            shutil.copy2(src, dst)
 
 
 def install_local_packages(prefix, paths, verbose=False):
