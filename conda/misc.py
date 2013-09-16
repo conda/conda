@@ -13,7 +13,9 @@ from os.path import abspath, basename, expanduser, isfile, islink, join
 
 from conda import config
 from conda import install
-from conda.plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
+from conda.api import get_index
+from conda.plan import (RM_EXTRACTED, EXTRACT, UNLINK, LINK,
+                        ensure_linked_actions, execute_actions)
 from conda.compat import iteritems
 
 
@@ -73,10 +75,18 @@ def untracked(prefix, exclude_self_build=False):
                                            path[:-1] in conda_files))}
 
 
-def clone_env(prefix1, prefix2):
+def clone_env(prefix1, prefix2, verbose=True):
     """
     clone existing prefix1 into new prefix2
     """
+    untracked_files = untracked(prefix1)
+    dists = install.linked(prefix1)
+    print('Packages: %d' % len(dists))
+    print('Files: %d' % len(untracked_files))
+
+    actions = ensure_linked_actions(dists, prefix2)
+    execute_actions(actions, index=get_index(), verbose=verbose)
+
     raise NotImplementedError
 
 
