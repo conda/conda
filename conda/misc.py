@@ -17,6 +17,13 @@ from conda.plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
 from conda.compat import iteritems
 
 
+def clone_env(prefix1, prefix2):
+    """
+    clone existing prefix1 into new prefix2
+    """
+    raise NotImplementedError
+
+
 def install_local_packages(prefix, paths, verbose=False):
     # copy packages to pkgs dir
     dists = []
