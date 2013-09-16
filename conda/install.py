@@ -352,11 +352,10 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
             src = join(source_dir, f)
-            fdn, fbn = os.path.split(f)
-            dst_dir = join(prefix, fdn)
+            dst = join(prefix, f)
+            dst_dir = dirname(dst)
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
-            dst = join(dst_dir, fbn)
             if os.path.exists(dst):
                 log.warn("file already exists: %r" % dst)
                 try:
