@@ -17,6 +17,21 @@ from conda.plan import RM_EXTRACTED, EXTRACT, UNLINK, LINK, execute_actions
 from conda.compat import iteritems
 
 
+
+def conda_installed_files(prefix, exclude_self_build=False):
+    """
+    Return the set of files which have been installed (using conda) into
+    a given prefix.
+    """
+    res = set()
+    for dist in install.linked(prefix):
+        meta = install.is_linked(prefix, dist)
+        if exclude_self_build and 'file_hash' in meta:
+            continue
+        res.update(set(meta['files']))
+    return res
+
+
 def clone_env(prefix1, prefix2):
     """
     clone existing prefix1 into new prefix2
