@@ -38,8 +38,7 @@ def fix_shebang(f, osx_is_app=False):
     with open(path) as fi:
         try:
             data = fi.read()
-        except UnicodeDecodeError:
-            # The file is binary
+        except UnicodeDecodeError: # file is binary
             return
     m = shebang_pat.match(data)
     if not (m and 'python' in m.group()):

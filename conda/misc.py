@@ -100,6 +100,17 @@ def clone_env(prefix1, prefix2, verbose=True):
             install._link(src, dst)
         except OSError:
             shutil.copy2(src, dst)
+            
+        with open(dst, 'r+') as fp:
+            try:
+                data = fp.read()
+            except UnicodeDecodeError: # file is binary
+                continue
+            new_data = data.replace(prefix1, prefix2)
+            if new_data == data:
+                continue
+            fp.seek(0)
+            fp.write(new_data)
 
 
 def install_local_packages(prefix, paths, verbose=False):
