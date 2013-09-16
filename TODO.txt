@@ -1,8 +1,0 @@
-Version 1.6.0 goals:
-====================
-  * add equivalent of "source activate" in Windows
-
-
-Other goals:
-============
-  * "export" packages into other formats, e.g. RPM, wheel, eggs, ..
