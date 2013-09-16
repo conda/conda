@@ -18,8 +18,8 @@ from conda.misc import install_local_packages
 
 def conda_installed_files(prefix, exclude_self_build=False):
     """
-    Return the set of files which have been installed (using conda) info
-    given prefix.
+    Return the set of files which have been installed (using conda) into
+    a given prefix.
     """
     res = set()
     for dist in install.linked(prefix):
