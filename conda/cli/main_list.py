@@ -26,7 +26,8 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-e', "--export",
         action  = "store_true",
-        help    = "output requirement string only",
+        help    = "output requirement string only "
+                  "(output may be used by conda install --file)",
     )
     p.add_argument(
         'regex',
@@ -53,13 +54,12 @@ Error: environment does not exist: %s
         print('# packages in environment at %s:' % prefix)
         print('#')
         res = 1
-    else:
-        res = 0
 
     for dist in sorted(install.linked(prefix)):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
+        res = 0
         if format == 'canonical':
             print(dist)
             continue
@@ -72,10 +72,9 @@ Error: environment does not exist: %s
             print('%-25s %-15s %15s  %s' % (info['name'],
                                             info['version'],
                                             info['build'],
-                                            common.disp_features(features)) )
+                                            common.disp_features(features)))
         except: # IOError, KeyError, ValueError
             print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
-        res = 0
 
     return res
 
