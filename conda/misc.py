@@ -85,9 +85,6 @@ def clone_env(prefix1, prefix2, verbose=True):
     print('Packages: %d' % len(dists))
     print('Files: %d' % len(untracked_files))
 
-    actions = ensure_linked_actions(dists, prefix2)
-    execute_actions(actions, index=get_index(), verbose=verbose)
-
     for f in untracked_files:
         src = join(prefix1, f)
         dst = join(prefix2, f)
@@ -97,19 +94,25 @@ def clone_env(prefix1, prefix2, verbose=True):
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
 
-        with open(src, 'rb') as fi:
-            data = fi.read()
+        try:
+            with open(src, 'rb') as fi:
+                data = fi.read()
+        except IOError:
+            continue
 
         try:
             s = data.decode('utf-8')
             s = s.replace(prefix1, prefix2)
             data = s.encode('utf-8')
-        except UnicodeDecodeError: # file was binary
+        except UnicodeDecodeError: # data is binary
             pass
 
         with open(dst, 'wb') as fo:
             fo.write(data)
         shutil.copystat(src, dst)
+
+    actions = ensure_linked_actions(dists, prefix2)
+    execute_actions(actions, index=get_index(), verbose=verbose)
 
 
 def install_local_packages(prefix, paths, verbose=False):
