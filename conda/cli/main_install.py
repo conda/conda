@@ -91,11 +91,14 @@ def execute(args, parser):
     import sys
     from os.path import isdir
 
+    import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
     from conda.cli import pscheck
 
+
     prefix = common.get_prefix(args)
+    config.set_pkgs_dirs(prefix)
 
     # handle tar file containaing conda packages
     if len(args.packages) == 1:

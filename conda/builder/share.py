@@ -85,12 +85,13 @@ def clone_bundle(path, prefix):
     assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
     dist = fn[:-8]
 
-    if not install.is_extracted(config.pkgs_dir, dist):
-        shutil.copyfile(path, join(config.pkgs_dir, dist + '.tar.bz2'))
+    pkgs_dir = config.pkgs_dirs[0]
+    if not install.is_extracted(pkgs_dir, dist):
+        shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
         plan.execute_plan(['%s %s' % (plan.EXTRACT, dist)])
-    assert install.is_extracted(config.pkgs_dir, dist)
+    assert install.is_extracted(pkgs_dir, dist)
 
-    with open(join(config.pkgs_dir, dist, 'info', 'index.json')) as fi:
+    with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
         meta = json.load(fi)
 
     # for backwards compatibility, use "requires" when "depends" is not there

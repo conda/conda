@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, expanduser, isfile, isdir, join
+from os.path import abspath, dirname, expanduser, isfile, isdir, join
 
 from conda.compat import PY3
 from conda.install import try_write
@@ -76,32 +76,42 @@ rc = load_condarc(rc_path)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 
-def pathsep_env(name):
+def _pathsep_env(name):
     x = os.getenv(name)
     if x:
         return x.split(os.pathsep)
     else:
         return []
 
-def default_dirs(tp='pkgs'):
-    lst = [join(root_dir, tp)]
+def _default_envs_dirs():
+    lst = [join(root_dir, 'envs')]
     if not try_write(lst[0]):
-        lst.insert(0, abspath(join(expanduser('~/conda'), tp)))
+        lst.insert(0, '~/envs')
     return lst
 
-pkgs_dirs = [abspath(expanduser(path)) for path in (
-        pathsep_env('CONDA_PACKAGE_CACHE') or
-        rc.get('pkgs_dirs') or
-        default_dirs('pkgs')
-        )]
 envs_dirs = [abspath(expanduser(path)) for path in (
-        pathsep_env('CONDA_ENV_PATH') or
+        _pathsep_env('CONDA_ENV_PATH') or
         rc.get('envs_dirs') or
-        default_dirs('envs')
+        _default_envs_dirs()
         )]
 
-pkgs_dir = pkgs_dirs[0]
-envs_dir = envs_dirs[0]
+def pkgs_dir_prefix(prefix):
+    if (abspath(prefix) == root_dir or
+            abspath(dirname(prefix)) == abspath(join(root_dir, 'envs'))):
+        return join(root_dir, 'pkgs')
+    else:
+        return abspath(join(prefix, '..', '.pkgs'))
+
+def set_pkgs_dirs(prefix=None):
+    global pkgs_dirs
+
+    pkgs_dirs = [pkgs_dir_prefix(prefix)] if prefix else []
+    for envs_dir in envs_dirs:
+        pkgs_dir = pkgs_dir_prefix(join(envs_dir, 'dummy'))
+        if pkgs_dir not in pkgs_dirs:
+            pkgs_dirs.append(pkgs_dir)
+
+set_pkgs_dirs()
 
 # ----- default environment prefix -----
 

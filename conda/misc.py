@@ -122,7 +122,7 @@ def install_local_packages(prefix, paths, verbose=False):
         assert src_path.endswith('.tar.bz2')
         fn = basename(src_path)
         dists.append(fn[:-8])
-        dst_path = join(config.pkgs_dir, fn)
+        dst_path = join(config.pkgs_dirs[0], fn)
         if abspath(src_path) == abspath(dst_path):
             continue
         shutil.copyfile(src_path, dst_path)

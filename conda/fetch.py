@@ -33,7 +33,7 @@ retries = 3
 
 
 def create_cache_dir():
-    cache_dir = join(config.pkgs_dir, 'cache')
+    cache_dir = join(config.pkgs_dirs[0], 'cache')
     try:
         os.makedirs(cache_dir)
     except OSError:
@@ -110,10 +110,13 @@ def fetch_index(channel_urls):
     return index
 
 
-def fetch_pkg(info, dst_dir=config.pkgs_dir):
+def fetch_pkg(info, dst_dir=None):
     '''
     fetch a package `fn` from `url` and store it into `dst_dir`
     '''
+    if dst_dir is None:
+        dst_dir = config.pkgs_dirs[0]
+
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
     path = join(dst_dir, fn)
