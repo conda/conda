@@ -36,6 +36,12 @@ def configure_parser(sub_parsers):
         action = "store",
         help = "filename to read package specs from",
     )
+    p.add_argument(
+        "--clone",
+        action = "store",
+        help = 'path existing environment or "share package"',
+        metavar = 'ENV',
+    )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
@@ -56,16 +62,19 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
 
+    common.ensure_name_or_prefix(args, 'create')
+    prefix = common.get_prefix(args, search=False)
+    if exists(prefix):
+        sys.exit("Error: prefix already exists: %s" % prefix)
+
+    if args.clone:
+        print("CLONE: %r" % args.clone)
+        sys.exit('Not implemented yet')
+        return
 
     if len(args.package_specs) == 0 and not args.file:
         sys.exit('Error: too few arguments, must supply command line '
                  'package specs or --file')
-
-    common.ensure_name_or_prefix(args, 'create')
-    prefix = common.get_prefix(args, search=False)
-
-    if exists(prefix):
-        sys.exit("Error: prefix already exists: %s" % prefix)
 
     if args.file:
         specs = common.specs_from_file(args.file)
@@ -77,7 +86,8 @@ def execute(args, parser):
     channel_urls = args.channel or ()
 
     common.ensure_override_channels_requires_channel(args)
-    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels)
+    index = get_index(channel_urls=channel_urls,
+                      prepend=not args.override_channels)
     actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
