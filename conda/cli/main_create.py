@@ -60,6 +60,7 @@ def execute(args, parser):
     import sys
     from os.path import abspath, exists, isfile
 
+    import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
 
@@ -67,6 +68,7 @@ def execute(args, parser):
     prefix = common.get_prefix(args, search=False)
     if exists(prefix):
         sys.exit("Error: prefix already exists: %s" % prefix)
+    config.set_pkgs_dirs(prefix)
 
     if args.clone:
         path = abspath(args.clone)

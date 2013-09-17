@@ -10,7 +10,6 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 
-import conda.config as config
 
 descr = "Update conda packages."
 example = """
@@ -45,6 +44,7 @@ def execute(args, parser):
     import sys
 
     import conda.install as ci
+    import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
 
@@ -59,6 +59,7 @@ def execute(args, parser):
 """)
 
     prefix = common.get_prefix(args)
+    config.set_pkgs_dirs(prefix)
     linked = set(plan.name_dist(d) for d in ci.linked(prefix))
     for name in args.pkg_names:
         common.arg2spec(name)

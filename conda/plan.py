@@ -49,10 +49,11 @@ def print_dists(dists_extras):
         print(line)
 
 def split_linkarg(arg):
+    #print('XXX', config.pkgs_dirs)
     "Return tuple(dist, pkgs_dir, linktype)"
     args = arg.split()
     if len(args) == 1:
-        return args[0], config.pkgs_dir, install.LINK_HARD
+        return args[0], config.pkgs_dirs[0], install.LINK_HARD
     elif len(args) == 3:
         return args[0], args[1], int(args[2])
     else:
@@ -74,8 +75,7 @@ def display_actions(actions, index=None):
         lst = []
         for arg in actions[LINK]:
             dist, pkgs_dir, lt = split_linkarg(arg)
-            extra = '   %s (%d)' % (install.link_name_map.get(lt),
-                                    config.pkgs_dirs.index(pkgs_dir))
+            extra = '   %s %s' % (install.link_name_map.get(lt), pkgs_dir)
             lst.append((dist, extra))
         print_dists(lst)
     print()
@@ -139,7 +139,7 @@ def ensure_linked_actions(dists, prefix):
 
         actions[LINK].append(dist)
         actions[EXTRACT].append(dist)
-        if install.is_fetched(config.pkgs_dir, dist):
+        if install.is_fetched(config.pkgs_dirs[0], dist):
             continue
         actions[FETCH].append(dist)
     return actions
@@ -152,7 +152,7 @@ def force_linked_actions(dists, index, prefix):
                            UNLINK, LINK)
     for dist in dists:
         fn = dist + '.tar.bz2'
-        pkg_path = join(config.pkgs_dir, fn)
+        pkg_path = join(config.pkgs_dirs[0], fn)
         if isfile(pkg_path):
             if md5_file(pkg_path) != index[fn]['md5']:
                 actions[RM_FETCHED].append(dist)
@@ -350,11 +350,11 @@ def execute_plan(plan, index=None, verbose=False):
             maxval = int(arg)
             getLogger('progress.start').info(maxval)
         elif cmd == EXTRACT:
-            install.extract(config.pkgs_dir, arg)
+            install.extract(config.pkgs_dirs[0], arg)
         elif cmd == RM_EXTRACTED:
-            install.rm_extracted(config.pkgs_dir, arg)
+            install.rm_extracted(config.pkgs_dirs[0], arg)
         elif cmd == RM_FETCHED:
-            install.rm_fetched(config.pkgs_dir, arg)
+            install.rm_fetched(config.pkgs_dirs[0], arg)
         elif cmd == LINK:
             link(prefix, arg)
         elif cmd == UNLINK:

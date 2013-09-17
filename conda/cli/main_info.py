@@ -81,8 +81,8 @@ Current conda install:
        conda location : %(conda_location)s
      root environment : %(root_prefix)s
   default environment : %(default_prefix)s
-        package cache : %(_pkgs_dirs)s
                  envs : %(_envs_dirs)s
+        package cache : %(_pkgs_dirs)s
          channel URLs : %(_channels)s
           config file : %(rc_path)s
 """ % info_dict)
