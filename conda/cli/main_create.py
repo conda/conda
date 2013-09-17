@@ -56,8 +56,9 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    import os
     import sys
-    from os.path import exists
+    from os.path import abspath, exists, isfile
 
     import conda.plan as plan
     from conda.api import get_index
@@ -68,20 +69,35 @@ def execute(args, parser):
         sys.exit("Error: prefix already exists: %s" % prefix)
 
     if args.clone:
-        print("CLONE: %r" % args.clone)
-        sys.exit('Not implemented yet')
-        return
+        path = abspath(args.clone)
+        if isfile(path):
+            from conda.builder.share import clone_bundle
 
-    if len(args.package_specs) == 0 and not args.file:
-        sys.exit('Error: too few arguments, must supply command line '
-                 'package specs or --file')
+            clone_bundle(path, prefix)
+            return
+        else:
+            from conda.misc import clone_env
+
+            if os.sep in args.clone:
+                src_prefix = path
+            else:
+                src_prefix = common.find_prefix_name(args.clone)
+            print("src_prefix: %r" % src_prefix)
+            clone_env(src_prefix, prefix)
+    else:
+        if len(args.package_specs) == 0 and not args.file:
+            sys.exit('Error: too few arguments, must supply command line '
+                     'package specs or --file')
 
     if args.file:
         specs = common.specs_from_file(args.file)
     else:
         specs = common.specs_from_args(args.package_specs)
 
-    common.check_specs(prefix, specs)
+    if args.clone and len(specs) == 0:
+        return
+    else:
+        common.check_specs(prefix, specs)
 
     channel_urls = args.channel or ()
 
