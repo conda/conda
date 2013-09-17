@@ -24,6 +24,11 @@ def configure_parser(sub_parsers):
         help    = "output canonical names of packages only",
     )
     p.add_argument(
+        '-e', "--export",
+        action  = "store_true",
+        help    = "output requirement string only",
+    )
+    p.add_argument(
         'regex',
         action  = "store",
         nargs   = "?",
@@ -32,7 +37,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def list_packages(prefix, regex=None, verbose=True):
+def list_packages(prefix, regex=None, format='human'):
     import re
     import conda.install as install
     import os.path
@@ -44,18 +49,22 @@ Error: environment does not exist: %s
 # Use 'conda create' to create an environment before listing its packages.""" % prefix)
     pat = re.compile(regex, re.I) if regex else None
 
-    if verbose:
+    if format == 'human':
         print('# packages in environment at %s:' % prefix)
         print('#')
+        res = 1
+    else:
+        res = 0
 
-    packages = False
     for dist in sorted(install.linked(prefix)):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
-        if not verbose:
+        if format == 'canonical':
             print(dist)
-            packages = True
+            continue
+        if format == 'export':
+            print('='.join(dist.rsplit('-', 2)))
             continue
         try:
             info = install.is_linked(prefix, dist)
@@ -66,14 +75,18 @@ Error: environment does not exist: %s
                                             common.disp_features(features)) )
         except: # IOError, KeyError, ValueError
             print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
-        packages = True
+        res = 0
 
-    if not packages:
-        # Be Unix-friendly
-        sys.exit(1)
+    return res
 
 
 def execute(args, parser):
     prefix = common.get_prefix(args)
 
-    list_packages(prefix, args.regex, not args.canonical)
+    if args.canonical:
+        format = 'canonical'
+    elif args.export:
+        format = 'export'
+    else:
+        format = 'human'
+    sys.exit(list_packages(prefix, args.regex, format=format))
