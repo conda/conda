@@ -83,7 +83,10 @@ def execute(args, parser):
             else:
                 src_prefix = common.find_prefix_name(args.clone)
             print("src_prefix: %r" % src_prefix)
+            if src_prefix is None:
+                sys.exit('Error: could not find environment: %s' % args.clone)
             clone_env(src_prefix, prefix)
+            args.yes = True
     else:
         if len(args.package_specs) == 0 and not args.file:
             sys.exit('Error: too few arguments, must supply command line '
