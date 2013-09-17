@@ -44,7 +44,6 @@ import argparse
 
 from conda.cli import conda_argparse
 from conda.cli import main_build
-from conda.cli import main_clone
 from conda.cli import main_create
 from conda.cli import main_help
 from conda.cli import main_index
@@ -128,7 +127,6 @@ In short:
     main_build.configure_parser(sub_parsers)
     main_skeleton.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
-    main_clone.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
 
     try:
