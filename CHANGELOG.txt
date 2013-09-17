@@ -5,6 +5,7 @@
   * fixed behavior when installing into an environment which does not
     exist yet, i.e. an error occurs
   * fixed install --no-deps option
+  * added --export option to list command
 
 
 2013-09-06   1.9.1:
