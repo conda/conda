@@ -4,7 +4,7 @@ import os
 import sys
 from os.path import isdir, join
 
-import conda.config as config
+from conda.cli.common import find_prefix_name
 
 def help():
     if sys.argv[1] == '..activate':
@@ -20,6 +20,22 @@ removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
 
 
+def prefix_from_arg(arg):
+    if os.sep in arg:
+        return arg
+    prefix = find_prefix_name(arg)
+    if prefix is None:
+        sys.exit('Error: could not find environment: %s' % arg)
+    return prefix
+
+
+def binpath_from_arg(arg):
+    path = join(prefix_from_arg(arg), 'bin')
+    if not isdir(path):
+        sys.exit("Error: no such directory: %s" % path)
+    return path
+
+
 def main():
     if '-h' in sys.argv or '--help' in sys.argv:
         help()
@@ -28,12 +44,10 @@ def main():
         if len(sys.argv) == 2:
             sys.exit("Error: no environment provided.")
         elif len(sys.argv) == 3:
-            binpath = join(config.envs_dir, sys.argv[2], 'bin')
+            binpath = binpath_from_arg(sys.argv[2])
         else:
             sys.exit("Error: did not expect more than one argument")
 
-        if not isdir(binpath):
-            sys.exit("Error: no such directory: %s" % binpath)
         paths = [binpath]
         sys.stderr.write("prepending %s to PATH\n" % binpath)
 
@@ -43,15 +57,12 @@ def main():
 
         if 'CONDA_DEFAULT_ENV' not in os.environ:
             sys.exit("Error: No environment to deactivate")
-        binpath = join(config.envs_dir,
-                       os.getenv('CONDA_DEFAULT_ENV'), 'bin')
+        binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
-        binpath = join(config.envs_dir, sys.argv[2], 'bin')
-        if not isdir(binpath):
-            sys.exit("Error: no such directory: %s" % binpath)
+        binpath_from_arg(sys.argv[2])
         sys.exit(0)
 
     else:
