@@ -366,7 +366,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                   f.startswith('bin/python') else linktype)
             try:
                 _link(src, dst, lt)
-                log.debug('_link (src=%r, dst=%r, type=%r)' % (src, dst, lt))
+                #log.debug('_link (src=%r, dst=%r, type=%r)' % (src, dst, lt))
             except OSError:
                 log.error('failed to link (src=%r, dst=%r, type=%r)' %
                           (src, dst, lt))
