@@ -44,7 +44,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import os
     import sys
-    from os.path import basename, dirname, join
+    from os.path import basename, dirname, isdir, join
 
     import conda
     import conda.config as config
@@ -100,7 +100,7 @@ Current conda install:
         disp_env(config.root_dir)
         for envs_dir in config.envs_dirs:
             for dn in sorted(os.listdir(envs_dir)):
-                if os.path.isdir(join(envs_dir, dn)):
+                if dn != '.pkgs' and isdir(join(envs_dir, dn)):
                     disp_env(join(envs_dir, dn))
         print()
 
