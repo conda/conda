@@ -96,21 +96,20 @@ def clone_env(prefix1, prefix2, verbose=True):
             os.unlink(dst_dir)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
+
+        with open(src, 'rb') as fi:
+            data = fi.read()
+
         try:
-            install._link(src, dst)
-        except OSError:
-            shutil.copy2(src, dst)
-            
-        with open(dst, 'r+') as fp:
-            try:
-                data = fp.read()
-            except UnicodeDecodeError: # file is binary
-                continue
-            new_data = data.replace(prefix1, prefix2)
-            if new_data == data:
-                continue
-            fp.seek(0)
-            fp.write(new_data)
+            s = data.decode('utf-8')
+            s = s.replace(prefix1, prefix2)
+            data = s.encode('utf-8')
+        except UnicodeDecodeError: # file was binary
+            pass
+
+        with open(dst, 'wb') as fo:
+            fo.write(data)
+        shutil.copystat(src, dst)
 
 
 def install_local_packages(prefix, paths, verbose=False):
