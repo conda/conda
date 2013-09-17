@@ -126,14 +126,23 @@ def ensure_name_or_prefix(args, command):
         sys.exit('Error: either -n NAME or -p PREFIX option required,\n'
                  '       try "conda %s -h" for more details' % command)
 
+root_env_name = 'root'
+
+def find_prefix_name(name):
+    if name == root_env_name:
+        return config.root_dir
+    for envs_dir in config.envs_dirs:
+        prefix = join(envs_dir, name)
+        if isdir(prefix):
+            return prefix
+    return None
 
 def get_prefix(args, search=True):
     if args.name:
         if search:
-            for envs_dir in config.envs_dirs:
-                prefix = join(envs_dir, args.name)
-                if isdir(prefix):
-                    return prefix
+            prefix = find_prefix_name(args.name)
+            if prefix:
+                return prefix
         return join(config.envs_dir, args.name)
 
     if args.prefix:
