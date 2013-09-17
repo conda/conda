@@ -93,7 +93,7 @@ Current conda install:
         def disp_env(prefix):
             fmt = '%-20s  %s  %s'
             default = '*' if prefix == config.default_prefix else ' '
-            name = ('(root)' if prefix == config.root_dir else
+            name = (common.root_env_name if prefix == config.root_dir else
                     basename(prefix))
             print(fmt % (name, default, prefix))
 
