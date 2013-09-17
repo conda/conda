@@ -78,7 +78,8 @@ def app_info_packages(fn):
     for fn2 in r.solve([fn2spec(fn)]):
         info = index[fn2]
         res.append((info['name'], info['version'], info['size'],
-                    install.is_fetched(config.pkgs_dir, fn2[:-8])))
+                    any(install.is_fetched(pkgs_dir, fn2[:-8])
+                        for pkgs_dir in config.pkgs_dirs)))
     return res
 
 
