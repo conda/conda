@@ -109,7 +109,8 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.yes:
         return True
     try:
-        choice = confirm(args, message=message, choices=('yes', 'no'), default=default)
+        choice = confirm(args, message=message, choices=('yes', 'no'),
+                         default=default)
     except KeyboardInterrupt:
         # no need to exit by showing the traceback
         sys.exit("\nOperation aborted.  Exiting.")
