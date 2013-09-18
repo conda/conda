@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import
-import sys
+
 import os
+import sys
 from os.path import join
 
 import conda.config as cc

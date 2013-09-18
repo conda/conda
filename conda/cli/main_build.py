@@ -23,14 +23,14 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-c', "--check",
         action = "store_true",
-        help   = "only check (validate) the recipe",
+        help = "only check (validate) the recipe",
     )
     p.add_argument(
         "--no-binstar-upload",
         action = "store_false",
         help = "do not ask to upload the package to binstar",
-        dest='binstar_upload',
-        default=config.binstar_upload,
+        dest = 'binstar_upload',
+        default = config.binstar_upload,
     )
     p.add_argument(
         "--output",
@@ -40,13 +40,13 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '-s', "--source",
-        action  = "store_true",
-        help    = "only obtain the source (but don't build)",
+        action = "store_true",
+        help = "only obtain the source (but don't build)",
     )
     p.add_argument(
         '-t', "--test",
-        action  = "store_true",
-        help    = "test package (assumes package is already build)",
+        action = "store_true",
+        help = "test package (assumes package is already build)",
     )
     p.add_argument(
         'recipe',
@@ -138,6 +138,7 @@ def execute(args, parser):
                 print('Source tree in:', source.get_dir())
             else:
                 build.build(m)
+                build.test(m)
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
