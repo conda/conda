@@ -75,6 +75,7 @@ rc = load_condarc(rc_path)
 
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
+root_writable = try_write(root_dir)
 
 def _pathsep_env(name):
     x = os.getenv(name)
@@ -85,7 +86,7 @@ def _pathsep_env(name):
 
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
-    if not try_write(lst[0]):
+    if not root_writable:
         lst.insert(0, '~/envs')
     return lst
 
