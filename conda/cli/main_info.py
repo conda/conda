@@ -60,12 +60,10 @@ def execute(args, parser):
                      envs_dirs=config.envs_dirs,
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
-                     rc_path=config.rc_path)
-    if args.json:
-        common.stdout_json(info_dict)
-        return
+                     rc_path=config.rc_path,
+                     envs=[])
 
-    if args.all:
+    if args.all or args.json:
         for option in options:
             setattr(args, option, True)
 
@@ -81,30 +79,35 @@ Current conda install:
        conda location : %(conda_location)s
      root environment : %(root_prefix)s
   default environment : %(default_prefix)s
-                 envs : %(_envs_dirs)s
+     envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
          channel URLs : %(_channels)s
           config file : %(rc_path)s
 """ % info_dict)
 
     if args.envs:
-        print("# conda environments:")
-        print("#")
+        if not args.json:
+            print("# conda environments:")
+            print("#")
         def disp_env(prefix):
             fmt = '%-20s  %s  %s'
             default = '*' if prefix == config.default_prefix else ' '
             name = (common.root_env_name if prefix == config.root_dir else
                     basename(prefix))
-            print(fmt % (name, default, prefix))
+            if not args.json:
+                print(fmt % (name, default, prefix))
 
         disp_env(config.root_dir)
         for envs_dir in config.envs_dirs:
             for dn in sorted(os.listdir(envs_dir)):
-                if dn != '.pkgs' and isdir(join(envs_dir, dn)):
-                    disp_env(join(envs_dir, dn))
+                prefix = join(envs_dir, dn)
+                if dn != '.pkgs' and isdir(prefix):
+                    prefix = join(envs_dir, dn)
+                    disp_env(prefix)
+                    info_dict['envs'].append(prefix)
         print()
 
-    if args.system:
+    if args.system and not args.json:
         print()
         print("PATH: %s" % os.getenv('PATH'))
         print("PYTHONPATH: %s" % os.getenv('PYTHONPATH'))
@@ -115,10 +118,13 @@ Current conda install:
         print("CONDA_DEFAULT_ENV: %s" % os.getenv('CONDA_DEFAULT_ENV'))
         print()
 
-    if args.license:
+    if args.license and not args.json:
         try:
             from _license import show_info
             show_info()
         except ImportError:
             print("WARNING: could import _license.show_info,\n"
                   "         try: conda install _license")
+
+    if args.json:
+        common.stdout_json(info_dict)
