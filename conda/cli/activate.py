@@ -62,7 +62,10 @@ def main():
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
-        binpath_from_arg(sys.argv[2])
+        try:
+            binpath_from_arg(sys.argv[2])
+        except IndexError:
+            sys.exit(1)
         sys.exit(0)
 
     else:
