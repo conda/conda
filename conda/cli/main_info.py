@@ -97,7 +97,6 @@ Current conda install:
             if not args.json:
                 print(fmt % (name, default, prefix))
 
-        disp_env(config.root_dir)
         for envs_dir in config.envs_dirs:
             for dn in sorted(os.listdir(envs_dir)):
                 prefix = join(envs_dir, dn)
@@ -105,6 +104,7 @@ Current conda install:
                     prefix = join(envs_dir, dn)
                     disp_env(prefix)
                     info_dict['envs'].append(prefix)
+        disp_env(config.root_dir)
         print()
 
     if args.system and not args.json:
