@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
-from os.path import join
+from os.path import abspath, expanduser, join
 
 import conda.config as cc
 
@@ -11,7 +11,11 @@ CONDA_PY = int(os.getenv('CONDA_PY', cc.default_python.replace('.', '')))
 CONDA_NPY = int(os.getenv('CONDA_NPY', 17))
 PY3K = int(bool(CONDA_PY >= 30))
 
-croot = join(cc.root_dir, 'conda-bld')
+if cc.root_writable:
+    croot = join(cc.root_dir, 'conda-bld')
+else:
+    croot = abspath(expanduser('~/conda-bld'))
+
 build_prefix = join(cc.envs_dirs[0], '_build')
 test_prefix = join(cc.envs_dirs[0], '_test')
 
@@ -34,3 +38,4 @@ def show():
     print('CONDA_PY:', CONDA_PY)
     print('CONDA_NPY:', CONDA_NPY)
     print('subdir:', cc.subdir)
+    print('croot:', croot)

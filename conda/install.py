@@ -231,7 +231,7 @@ def post_link(prefix, dist, unlink=False):
 # ========================== begin API functions =========================
 
 def try_write(dir_path):
-    path = join(dir_path, '.tmp-conda')
+    path = join(dir_path, '.conda-try-write')
     assert isdir(dir_path)
     assert not isfile(path)
     try:
