@@ -58,11 +58,12 @@ def configure_parser(sub_parsers):
 
 def check_prefix(prefix):
     from os.path import basename, exists
+    from conda.config import root_env_name
 
     name = basename(prefix)
     if name.startswith('.'):
         sys.exit("Error: environment name cannot start with '.': %s" % name)
-    if name == common.root_env_name:
+    if name == root_env_name:
         sys.exit("Error: '%s' is a reserved environment name" % name)
     if exists(prefix):
         sys.exit("Error: prefix already exists: %s" % prefix)
