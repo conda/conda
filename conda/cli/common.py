@@ -163,6 +163,21 @@ def name_prefix(prefix):
         return config.root_env_name
     return basename(prefix)
 
+def check_write(prefix):
+    if inroot_notwritable(prefix):
+        sys.exit("""\
+Error: Missing write permissions in: %(rt)s
+#
+# You don't appear to have the necessary permissions to change packages
+# in the install area '%(rt)s'.
+# However you can clone this environment into your home directory and then
+# make changes to it.
+# This may be done using the command:
+#
+# $ conda create -n my_%(name)s --clone=%(prefix)s
+""" % dict(rt=config.root_dir, prefix=prefix, name=name_prefix(prefix)))
+
+# -------------------------------------------------------------------------
 
 def arg2spec(arg):
     parts = arg.split('=')
