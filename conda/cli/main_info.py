@@ -43,7 +43,6 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import os
-    import sys
     from os.path import basename, dirname, isdir, join
 
     import conda
@@ -99,8 +98,10 @@ Current conda install:
 
         for envs_dir in config.envs_dirs:
             for dn in sorted(os.listdir(envs_dir)):
+                if dn.startswith('.'):
+                    continue
                 prefix = join(envs_dir, dn)
-                if dn != '.pkgs' and isdir(prefix):
+                if isdir(prefix):
                     prefix = join(envs_dir, dn)
                     disp_env(prefix)
                     info_dict['envs'].append(prefix)
@@ -109,15 +110,13 @@ Current conda install:
 
     if args.system and not args.json:
         evars = ['PATH', 'PYTHONPATH', 'CONDA_DEFAULT_ENV', 'CIO_TEST',
-                 'CONDA_ENV_PATH']
+                 'CONDA_ENVS_PATH']
         if config.platform == 'linux':
             evars.append('LD_LIBRARY_PATH')
-        elif sys.platform == 'darwin':
+        elif config.platform == 'osx':
             evars.append('DYLD_LIBRARY_PATH')
-
-        print()
         for ev in sorted(evars):
-            print("%s: %s" % (ev, os.getenv(ev)))
+            print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
         print()
 
     if args.license and not args.json:
