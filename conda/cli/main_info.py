@@ -36,7 +36,7 @@ def configure_parser(sub_parsers):
     els_group.add_argument(
         '-s', "--system",
         action = "store_true",
-        help = "list PATH and PYTHONPATH environments for debugging purposes",
+        help = "list environment variables",
     )
     p.set_defaults(func=execute)
 
@@ -108,14 +108,16 @@ Current conda install:
         print()
 
     if args.system and not args.json:
-        print()
-        print("PATH: %s" % os.getenv('PATH'))
-        print("PYTHONPATH: %s" % os.getenv('PYTHONPATH'))
+        evars = ['PATH', 'PYTHONPATH', 'CONDA_DEFAULT_ENV', 'CIO_TEST',
+                 'CONDA_ENV_PATH']
         if config.platform == 'linux':
-            print("LD_LIBRARY_PATH: %s" % os.getenv('LD_LIBRARY_PATH'))
+            evars.append('LD_LIBRARY_PATH')
         elif sys.platform == 'darwin':
-            print("DYLD_LIBRARY_PATH: %s" % os.getenv('DYLD_LIBRARY_PATH'))
-        print("CONDA_DEFAULT_ENV: %s" % os.getenv('CONDA_DEFAULT_ENV'))
+            evars.append('DYLD_LIBRARY_PATH')
+
+        print()
+        for ev in sorted(evars):
+            print("%s: %s" % (ev, os.getenv(ev)))
         print()
 
     if args.license and not args.json:
