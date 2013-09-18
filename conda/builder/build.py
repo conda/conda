@@ -182,7 +182,6 @@ def build(m, get_src=True):
     update_index(bldpkgs_dir)
     # remove from packages, because we're going to test it
     rm_pkgs_cache(m.dist())
-    test(m)
 
 
 def test(m):
