@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
+from os.path import abspath
 
 from conda.cli import conda_argparse
 from conda.config import root_dir
@@ -41,16 +42,17 @@ def check_processes():
     ok = True
     curpid = os.getpid()
     for n in psutil.get_pid_list():
-        if n == curpid:
-            # The Python that conda is running is OK
+        if n == curpid: # The Python that conda is running is OK
             continue
         try:
             p = psutil.Process(n)
         except psutil._error.NoSuchProcess:
             continue
         try:
-            if os.path.realpath(p.exe).startswith(os.path.realpath(root_dir)):
+            if abspath(p.exe).startswith(root_dir):
                 processcmd = ' '.join(p.cmdline)
+                if processcmd.startswith('conda '):
+                    continue
                 print("WARNING: the process %s (%d) is running" %
                       (processcmd, n))
                 ok = False
