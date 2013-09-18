@@ -62,8 +62,8 @@ def check_prefix(prefix):
     name = basename(prefix)
     if name.startswith('.'):
         sys.exit("Error: environment name cannot start with '.': %s" % name)
-    if name == 'root':
-        sys.exit("Error: 'root' is a reserved environment name")
+    if name == common.root_env_name:
+        sys.exit("Error: '%s' is a reserved environment name" % name)
     if exists(prefix):
         sys.exit("Error: prefix already exists: %s" % prefix)
 
