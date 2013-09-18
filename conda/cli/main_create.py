@@ -6,6 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import sys
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
@@ -55,10 +56,19 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+def check_prefix(prefix):
+    from os.path import basename, exists
+
+    name = basename(prefix)
+    if name.startswith('.'):
+        sys.exit("Error: bad environment name: %s" % name)
+    if exists(prefix):
+        sys.exit("Error: prefix already exists: %s" % prefix)
+
+
 def execute(args, parser):
     import os
-    import sys
-    from os.path import abspath, exists, isfile
+    from os.path import abspath, isfile
 
     import conda.config as config
     import conda.plan as plan
@@ -66,8 +76,7 @@ def execute(args, parser):
 
     common.ensure_name_or_prefix(args, 'create')
     prefix = common.get_prefix(args, search=False)
-    if exists(prefix):
-        sys.exit("Error: prefix already exists: %s" % prefix)
+    check_prefix(prefix)
     config.set_pkgs_dirs(prefix)
 
     if args.clone:
