@@ -151,7 +151,7 @@ Error: environment does not exist: %s
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
 
-        regex = '^(%s)$' %  '|'.join(spec_names)
+        regex = '^(%s)$' % '|'.join(spec_names)
         print('# All requested packages already installed.')
         list_packages(prefix, regex)
         return
@@ -159,6 +159,20 @@ Error: environment does not exist: %s
     print()
     print("Package plan for installation in environment %s:" % prefix)
     plan.display_actions(actions, index)
+
+    if common.inroot_notwritable(prefix):
+        sys.exit("""\
+Error: Missing write permissions in: %(rt)s
+#
+# You don't appear to have the necessary permissions to install packages
+# into the install area '%(rt)s'.
+# However you can clone this environment into your home directory and
+# then make changes to it.
+# This may be done using the command:
+#
+# $ conda create -n my_%(name)s --clone=%(prefix)s %(ap)s
+""" % dict(rt=config.root_dir, prefix=prefix, name=common.name_prefix(prefix),
+           ap=' '.join(args.packages)))
 
     if not pscheck.main(args):
         common.confirm_yn(args)
