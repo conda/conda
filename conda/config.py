@@ -90,7 +90,7 @@ def _default_envs_dirs():
     return lst
 
 envs_dirs = [abspath(expanduser(path)) for path in (
-        _pathsep_env('CONDA_ENV_PATH') or
+        _pathsep_env('CONDA_ENVS_PATH') or
         rc.get('envs_dirs') or
         _default_envs_dirs()
         )]
