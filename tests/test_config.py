@@ -36,6 +36,16 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.subdir)
         self.assertTrue(config.arch_name)
 
+    def test_pkgs_dir_prefix(self):
+        root_dir = config.root_dir
+        root_pkgs = join(root_dir, 'pkgs')
+        for pi, po in [
+            (root_dir, root_pkgs),
+            (join(root_dir, 'envs', 'foo'), root_pkgs),
+            ('/usr/local/foo', '/usr/local/.pkgs'),
+            ]:
+            self.assertEqual(config.pkgs_dir_prefix(pi), po)
+
     def test_proxy_settings(self):
         config.rc = config.load_condarc(config.rc_path)
         servers = config.get_proxy_servers()
