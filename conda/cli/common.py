@@ -137,6 +137,9 @@ def find_prefix_name(name):
     return None
 
 def get_prefix(args, search=True):
+    if args.name == config.root_env_name:
+        return config.root_dir
+
     if args.name:
         if search:
             prefix = find_prefix_name(args.name)
