@@ -28,22 +28,13 @@ class TestConfig(unittest.TestCase):
 
     def test_globals(self):
         self.assertTrue(config.root_dir)
-        self.assertTrue(config.pkgs_dir)
-        self.assertTrue(config.envs_dir)
+        self.assertTrue(config.pkgs_dirs)
+        self.assertTrue(config.envs_dirs)
         self.assertTrue(config.default_prefix)
         self.assertTrue(config.platform)
         self.assertTrue(config.bits)
         self.assertTrue(config.subdir)
         self.assertTrue(config.arch_name)
-
-#    def test_channel_urls(self):
-#        config.subdir = 'foo'
-#        urls = config.get_channel_urls()
-#        self.assertEqual(urls,
-#                         ['http://repo.continuum.io/pkgs/dev/foo/',
-#                          'http://repo.continuum.io/pkgs/gpl/foo/',
-#                          'http://repo.continuum.io/pkgs/free/foo/'])
-
 
     def test_proxy_settings(self):
         config.rc = config.load_condarc(config.rc_path)
