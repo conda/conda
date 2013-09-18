@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import argparse
-from os.path import abspath, expanduser, isdir, join
+from os.path import abspath, basename, expanduser, isdir, join
 
 import conda.config as config
 
@@ -137,10 +137,9 @@ def find_prefix_name(name):
     return None
 
 def get_prefix(args, search=True):
-    if args.name == config.root_env_name:
-        return config.root_dir
-
     if args.name:
+        if args.name == config.root_env_name:
+            return config.root_dir
         if search:
             prefix = find_prefix_name(args.name)
             if prefix:
@@ -151,6 +150,18 @@ def get_prefix(args, search=True):
         return abspath(expanduser(args.prefix))
 
     return config.default_prefix
+
+def inroot_notwritable(prefix):
+    """
+    return True if the prefix is under root and root is not writeable
+    """
+    return (abspath(prefix).startswith(config.root_dir) and
+            not config.root_writable)
+
+def name_prefix(prefix):
+    if abspath(prefix) == config.root_dir:
+        return config.root_env_name
+    return basename(prefix)
 
 
 def arg2spec(arg):
