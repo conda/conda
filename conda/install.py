@@ -333,6 +333,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
     '''
+    log.debug('link(pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
+              (pkgs_dir, prefix, dist, linktype))
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
               dist.rsplit('-', 2)[0] in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
@@ -366,7 +368,6 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                   f.startswith('bin/python') else linktype)
             try:
                 _link(src, dst, lt)
-                #log.debug('_link (src=%r, dst=%r, type=%r)' % (src, dst, lt))
             except OSError:
                 log.error('failed to link (src=%r, dst=%r, type=%r)' %
                           (src, dst, lt))
