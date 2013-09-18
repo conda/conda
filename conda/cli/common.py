@@ -144,7 +144,7 @@ def get_prefix(args, search=True):
             prefix = find_prefix_name(args.name)
             if prefix:
                 return prefix
-        return join(config.envs_dir, args.name)
+        return join(config.envs_dirs[0], args.name)
 
     if args.prefix:
         return abspath(expanduser(args.prefix))
