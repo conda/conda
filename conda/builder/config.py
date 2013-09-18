@@ -12,8 +12,8 @@ CONDA_NPY = int(os.getenv('CONDA_NPY', 17))
 PY3K = int(bool(CONDA_PY >= 30))
 
 croot = join(cc.root_dir, 'conda-bld')
-build_prefix = join(croot, 'build_env')
-test_prefix = join(croot, 'test_env')
+build_prefix = join(cc.envs_dirs[0], '_build')
+test_prefix = join(cc.envs_dirs[0], '_test')
 
 def _get_python(prefix):
     if sys.platform == 'win32':
