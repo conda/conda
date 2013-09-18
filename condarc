@@ -13,3 +13,12 @@ channels:
 proxy_servers:
     http: http://user:pass@corp.com:8080
     https: https://user:pass@corp.com:8080
+
+envs_dirs:
+  - /opt/anaconda/envs
+  - /home/joe/my-envs
+
+changeps1: False
+
+# binstar.org upload (not defined here means ask)
+binstar_upload: True
