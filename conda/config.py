@@ -76,6 +76,7 @@ rc = load_condarc(rc_path)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
+root_env_name = 'root'
 
 def _pathsep_env(name):
     x = os.getenv(name)
@@ -117,7 +118,7 @@ set_pkgs_dirs()
 # ----- default environment prefix -----
 
 _default_env = os.getenv('CONDA_DEFAULT_ENV')
-if not _default_env:
+if _default_env in (None, root_env_name):
     default_prefix = root_dir
 elif os.sep in _default_env:
     default_prefix = abspath(_default_env)
