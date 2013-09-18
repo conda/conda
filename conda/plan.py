@@ -75,7 +75,7 @@ def display_actions(actions, index=None):
         lst = []
         for arg in actions[LINK]:
             dist, pkgs_dir, lt = split_linkarg(arg)
-            extra = '   %s %s' % (install.link_name_map.get(lt), pkgs_dir)
+            extra = '   %s' % install.link_name_map.get(lt)
             lst.append((dist, extra))
         print_dists(lst)
     print()

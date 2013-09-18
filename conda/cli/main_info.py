@@ -68,8 +68,7 @@ def execute(args, parser):
 
     if args.all or all(not getattr(args, opt) for opt in options):
         for key in 'pkgs_dirs', 'envs_dirs', 'channels':
-            info_dict['_' + key] = ('\n' + 24 * ' ').join(
-                  ('%s (%d)' % (n, i) for i, n in enumerate(info_dict[key])))
+            info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         print("""
 Current conda install:
 
