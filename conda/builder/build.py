@@ -115,7 +115,8 @@ def create_env(pref, specs):
     fetch_index.cache = {}
     index = get_index([url_path(config.croot)])
 
-    actions = plan.install_actions(pref, index, specs)#, force=True)
+    cc.pkgs_dirs = cc.pkgs_dirs[:1]
+    actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
     # ensure prefix exists, even if empty, i.e. when specs are empty
@@ -123,6 +124,7 @@ def create_env(pref, specs):
         os.makedirs(pref)
 
 def rm_pkgs_cache(dist):
+    cc.pkgs_dirs = cc.pkgs_dirs[:1]
     rmplan = ['RM_FETCHED %s' % dist,
               'RM_EXTRACTED %s' % dist]
     plan.execute_plan(rmplan)
