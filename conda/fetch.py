@@ -120,6 +120,7 @@ def fetch_pkg(info, dst_dir=None):
 
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
+    log.debug("url=" % url)
     path = join(dst_dir, fn)
     pp = path + '.part'
 
@@ -128,12 +129,11 @@ def fetch_pkg(info, dst_dir=None):
             try:
                 fi = connectionhandled_urlopen(url)
             except IOError:
-                log.debug("Attempt %d failed at urlopen" % x)
+                log.debug("attempt %d failed at urlopen" % x)
                 continue
             if fi is None:
-                log.debug("Could not fetch (urlopen returned None)")
+                log.debug("could not fetch (urlopen returned None)")
                 continue
-            log.debug("Fetching: %s" % url)
             n = 0
             h = hashlib.new('md5')
             getLogger('fetch.start').info((fn, info['size']))
@@ -142,7 +142,7 @@ def fetch_pkg(info, dst_dir=None):
                 fo = open(pp, 'wb')
             except IOError:
                 raise RuntimeError("Could not open %r for writing.  "
-                             "Permissions problem or missing directory?" % pp)
+                          "Permissions problem or missing directory?" % pp)
             while True:
                 try:
                     chunk = fi.read(16384)
