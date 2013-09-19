@@ -19,7 +19,8 @@ from conda.builder import environ
 from conda.builder import source
 from conda.builder import tarcheck
 from conda.builder.scripts import create_entry_points, bin_dirname
-from conda.builder.post import post_process, post_build, is_obj, fix_permissions
+from conda.builder.post import (post_process, post_build, is_obj,
+                                fix_permissions)
 from conda.builder.utils import rm_rf, _check_call
 from conda.builder.index import update_index
 from conda.builder.create_test import create_files
@@ -27,7 +28,6 @@ from conda.builder.create_test import create_files
 
 prefix = config.build_prefix
 info_dir = join(prefix, 'info')
-
 bldpkgs_dir = join(config.croot, cc.subdir)
 
 
@@ -115,7 +115,7 @@ def create_env(pref, specs):
     fetch_index.cache = {}
     index = get_index([url_path(config.croot)])
 
-    actions = plan.install_actions(pref, index, specs)
+    actions = plan.install_actions(pref, index, specs)#, force=True)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
     # ensure prefix exists, even if empty, i.e. when specs are empty
@@ -179,11 +179,12 @@ def build(m, get_src=True):
     # we're done building, perform some checks
     tarcheck.check_all(path)
     update_index(bldpkgs_dir)
-    # remove from packages, because we're going to test it
-    rm_pkgs_cache(m.dist())
 
 
 def test(m):
+    # remove from package cache
+    rm_pkgs_cache(m.dist())
+
     tmp_dir = join(config.croot, 'test-tmp_dir')
     rm_rf(tmp_dir)
     os.makedirs(tmp_dir)
