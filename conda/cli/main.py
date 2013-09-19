@@ -61,18 +61,19 @@ from conda.cli import main_clean
 
 def main():
     if len(sys.argv) > 1:
-        if sys.argv[1] in ('..activate', '..deactivate', '..checkenv'):
+        argv1 = sys.argv[1]
+        if argv1 in ('..activate', '..deactivate', '..checkenv'):
             import conda.cli.activate as activate
             activate.main()
             return
-        if sys.argv[1] in ('..changeps1'):
+        if argv1 in ('..changeps1'):
             import conda.cli.misc as misc
             misc.main()
             return
-        if sys.argv[1] == 'pip':
+        if argv1 == 'pip':
             sys.exit("""ERROR:
-The "conda pip" command has been removed from conda version 1.8 for the
-following reasons:
+The "conda pip" command has been removed from conda (as of version 1.8) for
+the following reasons:
   * users get the wrong impression that you *must* use conda pip (instead
     of simply pip) when using Anaconda
   * there should only be one preferred way to build packages, and that is
@@ -90,6 +91,13 @@ In short:
   * use "pip" if you want to install something that is on PyPI for which there
     isn't a conda package.
 """)
+        if argv1 in ('activate', 'deactivate'):
+            sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
+            if sys.platform != 'win32':
+                sys.stderr.write('Maybe you meant "source %s"?\n' %
+                                 ' '.join(sys.argv[1:]))
+            sys.exit(1)
+
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
