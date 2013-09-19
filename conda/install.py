@@ -333,7 +333,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     Set up a packages in a specified (environment) prefix.  We assume that
     the packages has been extracted (using extract() above).
     '''
-    log.debug('link(pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
+    log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
               dist.rsplit('-', 2)[0] in win_ignore_root):
