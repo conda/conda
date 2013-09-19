@@ -120,7 +120,7 @@ def fetch_pkg(info, dst_dir=None):
 
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
-    log.debug("url=" % url)
+    log.debug("url=%r" % url)
     path = join(dst_dir, fn)
     pp = path + '.part'
 
