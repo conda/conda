@@ -12,8 +12,9 @@ from argparse import RawDescriptionHelpFormatter
 from conda.cli import common
 
 
-descr = ("Create a new conda environment from a list of specified "
-         "packages.  To use the created environment, use 'source activate "
+help = "Create a new conda environment from a list of specified packages. "
+descr = (help +
+         "To use the created environment, use 'source activate "
          "envname' look in that directory first.  This command requires either "
          "the -n NAME or -p PREFIX option.")
 
@@ -28,7 +29,7 @@ def configure_parser(sub_parsers):
         'create',
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
-        help = descr,
+        help = help,
         epilog  = example,
     )
     common.add_parser_yes(p)

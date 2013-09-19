@@ -6,12 +6,13 @@
 
 from __future__ import print_function, division, absolute_import
 
-help = """\
-Build skeleton recipes for packages from popular package hosting sites.
-"""
+
+descr = ("Build skeleton recipes for packages from popular package hosting "
+         "sites. (ADVANCED)")
+
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('skeleton', description=help, help=help)
+    p = sub_parsers.add_parser('skeleton', description=descr, help=descr)
 
     repos = p.add_subparsers(
         dest="repo"

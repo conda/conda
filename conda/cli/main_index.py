@@ -6,7 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-descr = "Updates repodata.json in channel directories. (ADVANCED)"
+
+descr = "Creates (or updates) repodata.json in channel directories. (ADVANCED)"
 
 
 def configure_parser(sub_parsers):
