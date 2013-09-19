@@ -158,19 +158,20 @@ Error:
         mk_relative_osx(path)
 
 
-def fix_permissions():
-    for root, dirs, files in os.walk(build_prefix):
+def fix_permissions(files):
+    for root, dirs, unused_files in os.walk(build_prefix):
         for dn in dirs:
             os.chmod(join(root, dn), int('755', 8))
-        for fn in files:
-            p = join(root, fn)
-            st = os.stat(p)
-            os.chmod(p, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+
+    for f in files:
+        path = join(build_prefix, f)
+        st = os.stat(path)
+        os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
 
 
 def post_build(files):
     print('number of files:', len(files))
-    fix_permissions()
+    fix_permissions(files)
     for f in files:
         if sys.platform != 'win32':
             mk_relative(f)

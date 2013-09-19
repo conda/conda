@@ -167,7 +167,7 @@ def build(m, get_src=True):
     post_build(sorted_files)
     create_info_files(m, sorted_files)
     files3 = prefix_files()
-    fix_permissions()
+    fix_permissions(files3 - files1)
 
     path = bldpkg_path(m)
     t = tarfile.open(path, 'w:bz2')
