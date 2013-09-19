@@ -97,6 +97,7 @@ def fetch_repodata(url):
 
 @memoized
 def fetch_index(channel_urls):
+    log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url)
