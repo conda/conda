@@ -215,18 +215,46 @@ Configuration
 -------------
 There is very little user configuration that conda requires; however, conda will read minimal configuration from a `$HOME/.condarc` file, if it is present. The `.condarc` file follows simple `YAML syntax`_.
 
+The condarc file can be used to affect
+
+- Channels - Where conda looks for packages
+
+- Proxy Settings - Configure to use conda behind a proxy server
+
+- Environment Directories - Where conda lists known environments
+
+- Bash prompt - Whether to update the bash prompt with the current activated environment name
+
+- Binstar Upload - Whether user-built packages should be uploaded to Binstar.org
+
 Here is an example:
 
 .. code-block:: bash
 
-    # This is the default conda runtime configuration
+    # This is a sample .condarc file
 
     # channel locations. These override conda defaults, i.e., conda will
-    # search *only* the channels listed here, in the order given.
+    # search *only* the channels listed here, in the order given. Use "default" to
+    # automatically include all default channels.
+
     channels:
-      - http://repo.continuum.io/pkgs/dev
-      - http://repo.continuum.io/pkgs/gpl
-      - http://repo.continuum.io/pkgs/free
+      - defaults
+      - http://some.custom/channel
+
+    # Proxy settings
+    #  http://[username]:[password]@[server]:[port]
+    proxy_servers:
+        http: http://user:pass@corp.com:8080
+        https: https://user:pass@corp.com:8080
+
+    envs_dirs:
+      - /opt/anaconda/envs
+      - /home/joe/my-envs
+
+    changeps1: False
+
+    # binstar.org upload (not defined here means ask)
+    binstar_upload: True
 
 
 ----------------------------------------------
