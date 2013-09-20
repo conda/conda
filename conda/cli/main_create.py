@@ -41,7 +41,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--clone",
         action = "store",
-        help = 'path existing environment or "share package"',
+        help = 'path to (or name of) existing environment or "share package"',
         metavar = 'ENV',
     )
     common.add_parser_channels(p)
