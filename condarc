@@ -15,10 +15,14 @@ proxy_servers:
     https: https://user:pass@corp.com:8080
 
 envs_dirs:
-  - /opt/anaconda/envs
   - /home/joe/my-envs
+  - /opt/anaconda/envs
 
 changeps1: False
 
 # binstar.org upload (not defined here means ask)
 binstar_upload: True
+
+# disallowed specification names
+# disallow:
+#   - anaconda
