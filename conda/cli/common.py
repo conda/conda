@@ -186,6 +186,8 @@ def arg2spec(arg):
         if c in name:
             sys.exit("Error: Invalid character '%s' in package "
                      "name: '%s'" % (c, name))
+    if name in config.disallow:
+        sys.exit("Error: specification '%s' is disallowed" % name)
     if len(parts) == 1:
         return name
     if len(parts) == 2:
