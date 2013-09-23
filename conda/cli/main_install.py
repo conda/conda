@@ -161,18 +161,11 @@ Error: environment does not exist: %s
     plan.display_actions(actions, index)
 
     if common.inroot_notwritable(prefix):
-        sys.exit("""\
-Error: Missing write permissions in: %(rt)s
-#
-# You don't appear to have the necessary permissions to install packages
-# into the install area '%(rt)s'.
-# However you can clone this environment into your home directory and
-# then make changes to it.
-# This may be done using the command:
-#
-# $ conda create -n my_%(name)s --clone=%(prefix)s %(ap)s
-""" % dict(rt=config.root_dir, prefix=prefix, name=common.name_prefix(prefix),
-           ap=' '.join(args.packages)))
+        from conda.cli.help import ro_install
+        ro_install(dict(root_dir=config.root_dir, prefix=prefix,
+                        name=common.name_prefix(prefix),
+                        args=' '.join(args.packages)))
+        sys.exit(1)
 
     if not pscheck.main(args):
         common.confirm_yn(args)
