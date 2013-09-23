@@ -1,4 +1,3 @@
-import sys
 from os.path import join
 
 from conda.config import root_dir
@@ -9,9 +8,8 @@ help_dir = join(root_dir, '.conda-help')
 
 
 def ro_install(info=None):
-    hp = join(help_dir, 'ro_install.txt')
     try:
-        with open(hp) as fi:
+        with open(join(help_dir, 'ro_install.txt')) as fi:
             msg = fi.read().decode('utf-8')
     except IOError:
         msg = """\
@@ -26,6 +24,6 @@ Error: Missing write permissions in: %(root_dir)s
 # $ conda create -n my_%(name)s --clone=%(prefix)s %(args)s
 """
     if '%' in msg and info:
-        sys.stderr.write(msg % info)
+        return msg % info
     else:
-        sys.stderr.write(msg)
+        return msg
