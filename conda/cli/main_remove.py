@@ -100,6 +100,7 @@ def execute(args, parser):
     if plan.nothing_to_do(actions):
         if args.all:
             rm_rf(prefix)
+            return
         sys.exit('Error: no packages found to remove from '
                  'environment: %s' % prefix)
 
