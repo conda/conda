@@ -5,7 +5,8 @@
 # automatically include all default channels.
 
 channels:
-  - defaults
+  - http://repo.continuum.io/pkgs/free
+  - http://repo.continuum.io/pkgs/pro
   - http://some.custom/channel
 
 # Proxy settings
