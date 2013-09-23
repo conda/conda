@@ -134,6 +134,7 @@ else:
 
 changeps1 = rc.get('changeps1', True)
 binstar_upload = rc.get('binstar_upload', None) # None means ask
+disallow = set(rc.get('disallow', []))
 
 # ----- channels -----
 
