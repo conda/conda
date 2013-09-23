@@ -8,6 +8,7 @@
   * added --export option to list command
   * allow building of packages in "user mode"
   * regular environment locations now used for build and test
+  * add ability to disallow specification names
 
 
 2013-09-06   1.9.1:
