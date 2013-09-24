@@ -94,6 +94,9 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7']), None)
 
+    def test_empty(self):
+        self.assertEqual(r.solve([]), [])
+
     def test_anaconda_14(self):
         specs = ['anaconda 1.4.0 np17py33_0']
         res = r.explicit(specs)
