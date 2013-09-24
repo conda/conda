@@ -90,7 +90,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
             options.append(option[0])
     message = "%s (%s)? " % (message, '/'.join(options))
     choices = {alt:choice for choice in choices for alt in [choice,
-        choice[0]]}
+                                                            choice[0]]}
     choices[''] = default
     while True:
         # raw_input has a bug and prints to stderr, not desirable
