@@ -96,6 +96,8 @@ Current conda install:
                 print(fmt % (name, default, prefix))
 
         for envs_dir in config.envs_dirs:
+            if not isdir(envs_dir):
+                continue
             for dn in sorted(os.listdir(envs_dir)):
                 if dn.startswith('.'):
                     continue
