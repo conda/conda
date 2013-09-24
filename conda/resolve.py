@@ -328,19 +328,25 @@ remaining packages:
 
     def explicit(self, specs):
         """
-        Return the dependencies, given the specifications, iff (i) only
-        one explicit specification (strictness=3) is given, and (ii) all
-        dependencies of this package are explicit as well,
-        and None otherwise.
+        Given the specifications, return:
+          A. if one explicit specification (strictness=3) is given, and
+             all dependencies of this package are explicit as well ->
+             return the filenames of those dependencies (as well as the
+             explicit specification)
+          B. if not one explicit specifications are given ->
+             return the filenames of those (no thier dependencies)
+          C. None in all other cases
         """
-        if len(specs) != 1:
-            return None
-        ms = MatchSpec(specs[0])
-        fn = ms.to_filename()
-        if fn is None:
-            return None
-        res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
-        res.append(fn)
+        if len(specs) == 1:
+            ms = MatchSpec(specs[0])
+            fn = ms.to_filename()
+            if fn is None:
+                return None
+            res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
+            res.append(fn)
+        else:
+            res = [MatchSpec(spec).to_filename() for spec in specs]
+
         if None in res:
             return None
         res.sort()
