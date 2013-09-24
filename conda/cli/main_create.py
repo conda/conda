@@ -70,10 +70,43 @@ def check_prefix(prefix):
         sys.exit("Error: prefix already exists: %s" % prefix)
 
 
-def execute(args, parser):
+def print_activate(arg):
+    print("#")
+    print("# To activate this environment, use:")
+    if sys.platform == 'win32':
+        print("# > activate %s" % arg)
+    else:
+        print("# $ source activate %s" % arg)
+        print("#")
+        print("# To deactivate this environment, use:")
+        print("# $ source deactivate")
+    print("#")
+
+
+def clone(src_arg, prefix):
     import os
     from os.path import abspath, isfile
 
+    path = abspath(src_arg)
+    if isfile(path):
+        from conda.builder.share import clone_bundle
+
+        clone_bundle(path, prefix)
+
+    else:
+        from conda.misc import clone_env
+
+        if os.sep in src_arg:
+            src_prefix = path
+        else:
+            src_prefix = common.find_prefix_name(src_arg)
+        print("src_prefix: %r" % src_prefix)
+        if src_prefix is None:
+            sys.exit('Error: could not find environment: %s' % src_arg)
+        clone_env(src_prefix, prefix)
+
+
+def execute(args, parser):
     import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
@@ -84,38 +117,22 @@ def execute(args, parser):
     config.set_pkgs_dirs(prefix)
 
     if args.clone:
-        path = abspath(args.clone)
-        if isfile(path):
-            from conda.builder.share import clone_bundle
+        if args.package_specs:
+            sys.exit('Error: did not expect any arguments for --clone')
+        clone(args.clone, prefix)
+        print_activate(args.name if args.name else prefix)
+        return
 
-            clone_bundle(path, prefix)
-            return
-        else:
-            from conda.misc import clone_env
-
-            if os.sep in args.clone:
-                src_prefix = path
-            else:
-                src_prefix = common.find_prefix_name(args.clone)
-            print("src_prefix: %r" % src_prefix)
-            if src_prefix is None:
-                sys.exit('Error: could not find environment: %s' % args.clone)
-            clone_env(src_prefix, prefix)
-            args.yes = True
-    else:
-        if len(args.package_specs) == 0 and not args.file:
-            sys.exit('Error: too few arguments, must supply command line '
-                     'package specs or --file')
+    if len(args.package_specs) == 0 and not args.file:
+        sys.exit('Error: too few arguments, must supply command line '
+                 'package specs or --file')
 
     if args.file:
         specs = common.specs_from_file(args.file)
     else:
         specs = common.specs_from_args(args.package_specs)
 
-    if args.clone and len(specs) == 0:
-        return
-    else:
-        common.check_specs(prefix, specs)
+    common.check_specs(prefix, specs)
 
     channel_urls = args.channel or ()
 
@@ -135,16 +152,4 @@ def execute(args, parser):
     common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
 
-    activate_name = prefix
-    if args.name:
-        activate_name = args.name
-    print("#")
-    print("# To activate this environment, use:")
-    if sys.platform == 'win32':
-        print("# > activate %s" % activate_name)
-    else:
-        print("# $ source activate %s" % activate_name)
-        print("#")
-        print("# To deactivate this environment, use:")
-        print("# $ source deactivate")
-    print("#")
+    print_activate(args.name if args.name else prefix)
