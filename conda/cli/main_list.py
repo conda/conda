@@ -6,8 +6,12 @@
 
 from __future__ import print_function, division, absolute_import
 
+import re
 import sys
+from os.path import isdir
 
+import conda.install as install
+import conda.config as config
 from conda.cli import common
 
 
@@ -27,7 +31,7 @@ def configure_parser(sub_parsers):
         '-e', "--export",
         action  = "store_true",
         help    = "output requirement string only "
-                  "(output may be used by conda install --file)",
+                  "(output may be used by conda create --file)",
     )
     p.add_argument(
         'regex',
@@ -38,12 +42,14 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def list_packages(prefix, regex=None, format='human'):
-    import re
-    import conda.install as install
-    import os.path
+def print_export_header():
+    print('# This file may be used to create an environment using:')
+    print('# $ conda create --name <env> --file <this file>')
+    print('# platform: %s' % config.subdir)
 
-    if not os.path.isdir(prefix):
+
+def list_packages(prefix, regex=None, format='human'):
+    if not isdir(prefix):
         sys.exit("""\
 Error: environment does not exist: %s
 #
@@ -54,6 +60,8 @@ Error: environment does not exist: %s
         print('# packages in environment at %s:' % prefix)
         print('#')
         res = 1
+    if format == 'export':
+        print_export_header()
 
     for dist in sorted(install.linked(prefix)):
         name = dist.rsplit('-', 2)[0]
