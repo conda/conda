@@ -1,3 +1,4 @@
+import sys
 from os.path import join
 
 from conda.config import root_dir
@@ -24,6 +25,6 @@ Error: Missing write permissions in: %(root_dir)s
 # $ conda create -n my_%(name)s --clone=%(prefix)s %(args)s
 """
     if '%' in msg and info:
-        return msg % info
-    else:
-        return msg
+        msg = msg % info
+    sys.exit(msg)
+

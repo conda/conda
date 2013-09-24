@@ -162,10 +162,9 @@ Error: environment does not exist: %s
 
     if common.inroot_notwritable(prefix):
         from conda.cli.help import ro_install
-        msg = ro_install(dict(root_dir=config.root_dir, prefix=prefix,
-                              name=common.name_prefix(prefix),
-                              args=' '.join(args.packages)))
-        sys.exit(msg)
+        ro_install(dict(root_dir=config.root_dir, prefix=prefix,
+                        name=common.name_prefix(prefix),
+                        args=' '.join(args.packages)))
 
     if not pscheck.main(args):
         common.confirm_yn(args)
