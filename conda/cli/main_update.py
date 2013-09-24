@@ -85,7 +85,7 @@ def execute(args, parser):
 
     print("Updating conda environment at %s" % prefix)
     plan.display_actions(actions, index)
-    common.check_write(prefix)
+    common.check_write('update', prefix)
 
     if not pscheck.main(args):
         common.confirm_yn(args)

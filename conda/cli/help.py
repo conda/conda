@@ -2,29 +2,35 @@ import sys
 from os.path import join
 
 from conda.config import root_dir
-
+from conda.cli.common import name_prefix
 
 
 help_dir = join(root_dir, '.conda-help')
 
 
-def ro_install(info=None):
+def root_read_only(command, prefix):
+    assert command in {'install', 'update', 'remove'}
     try:
-        with open(join(help_dir, 'ro_install.txt')) as fi:
-            msg = fi.read().decode('utf-8')
+        with open(join(help_dir, 'ro_%s.txt' % command)) as fi:
+            tmpl = fi.read().decode('utf-8')
     except IOError:
-        msg = """\
+        tmpl = """\
 Error: Missing write permissions in: %(root_dir)s
 #
-# You don't appear to have the necessary permissions to install packages
+# You don't appear to have the necessary permissions to %(command)s packages
 # into the install area '%(root_dir)s'.
 # However you can clone this environment into your home directory and
 # then make changes to it.
 # This may be done using the command:
 #
-# $ conda create -n my_%(name)s --clone=%(prefix)s %(args)s
+# $ conda create -n my_%(name)s --clone=%(prefix)s
 """
-    if '%' in msg and info:
-        msg = msg % info
-    sys.exit(msg)
 
+    if '%' in tmpl:
+        msg = tmpl % dict(root_dir=root_dir,
+                          prefix=prefix,
+                          name=name_prefix(prefix),
+                          command=command)
+    else:
+        msg = tmpl
+    sys.exit(msg)

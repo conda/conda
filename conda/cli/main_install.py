@@ -159,12 +159,7 @@ Error: environment does not exist: %s
     print()
     print("Package plan for installation in environment %s:" % prefix)
     plan.display_actions(actions, index)
-
-    if common.inroot_notwritable(prefix):
-        from conda.cli.help import ro_install
-        ro_install(dict(root_dir=config.root_dir, prefix=prefix,
-                        name=common.name_prefix(prefix),
-                        args=' '.join(args.packages)))
+    common.check_write('install', prefix)
 
     if not pscheck.main(args):
         common.confirm_yn(args)
