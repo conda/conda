@@ -9,6 +9,7 @@
   * allow building of packages in "user mode"
   * regular environment locations now used for build and test
   * add ability to disallow specification names
+  * add ability to read help messages from a file when install location is RO
 
 
 2013-09-06   1.9.1:
