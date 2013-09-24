@@ -68,7 +68,7 @@ def execute(args, parser):
                  '       try "conda remove -h" for more details')
 
     prefix = common.get_prefix(args)
-    common.check_write(prefix)
+    common.check_write('remove', prefix)
 
     index = None
     if args.features:
