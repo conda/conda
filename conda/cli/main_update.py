@@ -67,7 +67,7 @@ def execute(args, parser):
             sys.exit("Invalid package name: '%s'" % (name))
         if name not in linked:
             sys.exit("Error: package '%s' is not installed in %s" %
-                     (name, config.default_prefix))
+                     (name, prefix))
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
