@@ -154,6 +154,7 @@ if __name__ == '__main__':
     #path, warnings = create_bundle(config.root_dir)
     #print(warnings)
     #os.system('tarinfo --si ' + path)
-    path = ('/Users/ilan/src/'
-            'share-fffeff0d78414137f40fff7065c1cfc77f0dd317-0.tar.bz2')
-    clone_bundle(path, join(config.envs_dirs[0], 'test3'))
+    #path = ('/Users/ilan/src/'
+    #        'share-fffeff0d78414137f40fff7065c1cfc77f0dd317-0.tar.bz2')
+    #clone_bundle(path, join(config.envs_dirs[0], 'test3'))
+    pass
