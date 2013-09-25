@@ -161,29 +161,6 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     return tarbz2_fn
 
 
-def guess_pkg_version(files, pkg_name):
-    """
-    Guess the package version from (usually untracked) files.
-    """
-    pat = re.compile(r'site-packages[/\\]' + pkg_name + r'-([^\-]+)-', re.I)
-    for f in files:
-        m = pat.search(f)
-        if m:
-            return m.group(1)
-    return '0.0'
-
-
-def packup_and_reinstall(prefix, ignore_files, pkg_name, pkg_version=None):
-    files = untracked(prefix) - ignore_files
-    if pkg_version is None:
-        pkg_version = guess_pkg_version(files, pkg_name)
-    fn = make_tarbz2(prefix, name=pkg_name, version=pkg_version, files=files)
-    if fn is None:
-        return
-    remove(prefix, files)
-    install_local_packages(prefix, [fn])
-
-
 def which_prefix(path):
     """
     given the path (to a (presumably) conda installed file) return the
