@@ -28,7 +28,7 @@ def execute(args, parser):
     import sys
     import json
 
-    from conda.builder.share import create_bundle
+    from conda.bundle import create_bundle
 
 
     prefix = common.get_prefix(args)
