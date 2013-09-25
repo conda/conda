@@ -37,11 +37,6 @@ def configure_parser(sub_parsers):
         help    = "display all untracked files and exit",
     )
     p.add_argument(
-        "--share",
-        action  = "store_true",
-        help = 'Create a "share package"',
-    )
-    p.add_argument(
         "--pkg-name",
         action  = "store",
         default = "unknown",
@@ -112,15 +107,6 @@ def execute(args, parser):
         print('# untracked files: %d' % len(files))
         for fn in files:
             print(fn)
-        return
-
-    if args.share:
-        from conda.builder.share import create_bundle
-
-        path, warnings = create_bundle(prefix)
-        for w in warnings:
-            print("Warning:", w)
-        print(path)
         return
 
     make_tarbz2(prefix,
