@@ -15,29 +15,32 @@ import conda.config as config
 from conda.cli import common
 
 
+descr = "List linked packages in a conda environment."
+
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'list',
-        description = "List linked packages in a conda environment.",
-        help        = "List linked packages in a conda environment.",
+        description = descr,
+        help = descr,
     )
     common.add_parser_prefix(p)
     p.add_argument(
         '-c', "--canonical",
-        action  = "store_true",
-        help    = "output canonical names of packages only",
+        action = "store_true",
+        help = "output canonical names of packages only",
     )
     p.add_argument(
         '-e', "--export",
-        action  = "store_true",
-        help    = "output requirement string only "
+        action = "store_true",
+        help = "output requirement string only "
                   "(output may be used by conda create --file)",
     )
     p.add_argument(
         'regex',
-        action  = "store",
-        nargs   = "?",
-        help    = "list only packages matching this regular expression",
+        action = "store",
+        nargs = "?",
+        help = "list only packages matching this regular expression",
     )
     p.set_defaults(func=execute)
 
