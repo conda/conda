@@ -37,7 +37,7 @@ def update_info(info):
     h.update(info['file_hash'].encode('utf-8'))
     info['version'] = h.hexdigest()
 
-def create_bundle(prefix, data_path=None):
+def create_bundle(prefix):
     """
     Create a "bundle package" of the environment located in `prefix`,
     and return the full path to the created package.  This file is
