@@ -77,7 +77,7 @@ def create_bundle(prefix, data_path=None):
             f = 'bundle/' + basename(data_path)
             t.add(data_path, f)
             add_hash(h, data_path, f)
-        if isdir(data_path):
+        elif isdir(data_path):
             for root, dirs, files in os.walk(data_path):
                 for fn in files:
                     if fn.endswith(('~', '.pyc')):
