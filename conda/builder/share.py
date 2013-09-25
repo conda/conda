@@ -96,7 +96,7 @@ def clone_bundle(path, prefix):
 
     # for backwards compatibility, use "requires" when "depends" is not there
     dists = ['-'.join(r.split())
-             for r in meta.get('depends', meta.get('requires'))
+             for r in meta.get('depends', meta.get('requires', []))
              if not r.startswith('conda ')]
     dists.append(dist)
 
