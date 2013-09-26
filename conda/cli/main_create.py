@@ -41,7 +41,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--clone",
         action = "store",
-        help = 'path to (or name of) existing environment or "share package"',
+        help = 'path to (or name of) existing environment',
         metavar = 'ENV',
     )
     common.add_parser_channels(p)
@@ -83,27 +83,24 @@ def print_activate(arg):
     print("#")
 
 
-def clone(src_arg, prefix):
+def clone(src_arg, dst_prefix):
     import os
-    from os.path import abspath, isfile
+    from os.path import abspath, isdir
 
-    path = abspath(src_arg)
-    if isfile(path):
-        from conda.bundle import clone_bundle
+    from conda.misc import clone_env
 
-        clone_bundle(path, prefix)
-
+    if os.sep in src_arg:
+        src_prefix = abspath(src_arg)
+        if not isdir(src_prefix):
+            sys.exit('Error: could such directory: %s' % src_arg)
     else:
-        from conda.misc import clone_env
-
-        if os.sep in src_arg:
-            src_prefix = path
-        else:
-            src_prefix = common.find_prefix_name(src_arg)
-        print("src_prefix: %r" % src_prefix)
+        src_prefix = common.find_prefix_name(src_arg)
         if src_prefix is None:
             sys.exit('Error: could not find environment: %s' % src_arg)
-        clone_env(src_prefix, prefix)
+
+    print("src_prefix: %r" % src_prefix)
+    print("dst_prefix: %r" % dst_prefix)
+    clone_env(src_prefix, dst_prefix)
 
 
 def execute(args, parser):
