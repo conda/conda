@@ -89,7 +89,7 @@ def clone(src_arg, prefix):
 
     path = abspath(src_arg)
     if isfile(path):
-        from conda.builder.share import clone_bundle
+        from conda.bundle import clone_bundle
 
         clone_bundle(path, prefix)
 
