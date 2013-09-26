@@ -34,14 +34,15 @@ def execute(args, parser):
     import sys
     import json
 
-    from conda.bundle import create_bundle
+    import conda.bundle as bundle
 
 
     prefix = common.get_prefix(args)
-    out_path = create_bundle(prefix, args.path, args.bundle_name)
+    bundle.warn = []
+    out_path = bundle.create_bundle(prefix, args.path, args.bundle_name)
 
     if args.json:
-        d = dict(path=out_path)
+        d = dict(path=out_path, warnings=bundle.warn)
         json.dump(d, sys.stdout, indent=2, sort_keys=True)
     else:
         print(out_path)
