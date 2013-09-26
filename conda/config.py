@@ -67,7 +67,7 @@ def load_condarc(path):
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file)')
 
-    return yaml.load(open(path))
+    return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
 
