@@ -50,7 +50,7 @@ def add_data(t, h, data_path):
     else:
         raise RuntimeError('no such file or directory: %s' % data_path)
 
-def create_bundle(prefix, data_path=None, bundle_name=None):
+def create_bundle(prefix=None, data_path=None, bundle_name=None):
     """
     Create a "bundle package" of the environment located in `prefix`,
     and return the full path to the created package.  This file is
@@ -74,7 +74,7 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
         add_data(t, h, data_path)
 
     meta = dict(
-        name = bundle_name or 'noname',
+        name = bundle_name,
         platform = config.platform,
         arch = config.arch_name,
         prefix = prefix,
@@ -92,10 +92,10 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
     return path
 
 
-def clone_bundle(path, prefix, bundle_name=None):
+def clone_bundle(path, prefix=None, bundle_name=None):
     """
     Clone the bundle (located at `path`) by creating a new environment at
-    `prefix`.
+    `prefix` (unless prefix is None or the prefix directory already exists)
     """
     t = tarfile.open(path, 'r:*')
     try:
