@@ -61,13 +61,14 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
     t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
-    prefix = abspath(prefix)
-    if not prefix.startswith('/opt/anaconda'):
-        for f in sorted(untracked(prefix, exclude_self_build=True)):
-            if f.startswith(BDP) or f == BMJ:
-                raise RuntimeError('bad untracked file: %s' % f)
-            path = join(prefix, f)
-            add_file(t, h, path, f)
+    if prefix:
+        prefix = abspath(prefix)
+        if not prefix.startswith('/opt/anaconda'):
+            for f in sorted(untracked(prefix, exclude_self_build=True)):
+                if f.startswith(BDP) or f == BMJ:
+                    raise RuntimeError('bad untracked file: %s' % f)
+                path = join(prefix, f)
+                add_file(t, h, path, f)
 
     if data_path:
         add_data(t, h, data_path)
@@ -77,7 +78,7 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
         platform = config.platform,
         arch = config.arch_name,
         prefix = prefix,
-        linked = sorted(install.linked(prefix)),
+        linked = sorted(install.linked(prefix)) if prefix else [],
     )
     meta_path = join(tmp_dir, BMJ)
     with open(meta_path, 'w') as fo:
@@ -102,7 +103,7 @@ def clone_bundle(path, prefix, bundle_name=None):
     except KeyError:
         raise RuntimeError("no archive '%s' in: %s" % (BMJ, path))
 
-    if not isdir(prefix):
+    if prefix and not isdir(prefix):
         for m in t.getmembers():
             if m.path.startswith(BDP) or m.path == BMJ:
                 continue

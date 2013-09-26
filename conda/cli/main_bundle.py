@@ -24,14 +24,19 @@ def configure_parser(sub_parsers):
                          metavar = "PATH")
 
     common.add_parser_prefix(p)
+    p.add_argument("--bundle-name",
+                   action = "store",
+                   help = "name of bundle",
+                   metavar = 'NAME',
+                   )
     p.add_argument("--data-path",
                    action = "store",
                    help = "path to data to be included in bundle",
                    metavar = "PATH"
                    )
-    p.add_argument("--bundle-name",
-                   action = "store",
-                   help = "name of bundle",
+    p.add_argument("--no-env",
+                   action = "store_true",
+                   help = "no environment",
                    metavar = 'NAME',
                    )
     common.add_parser_json(p)
@@ -49,6 +54,8 @@ def execute(args, parser):
         sys.exit("Error: either -c/--create or -x/--extract is required")
 
     prefix = common.get_prefix(args)
+    if args.no_env:
+        prefix = None
 
     if args.create:
         bundle.warn = []
