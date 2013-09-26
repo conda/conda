@@ -1,14 +1,13 @@
 from __future__ import print_function, division, absolute_import
 
 import os
-import re
+import sys
 import json
 import hashlib
 import tarfile
 import tempfile
-import shutil
 from logging import getLogger
-from os.path import abspath, basename, isdir, isfile, islink, join
+from os.path import abspath, expanduser, basename, isdir, isfile, islink, join
 
 import conda.config as config
 from conda.api import get_index
@@ -98,45 +97,36 @@ def clone_bundle(path, prefix):
     """
     Clone the bundle (located at `path`) by creating a new environment at
     `prefix`.
-    The directory `path` is located in should be some temp directory or
-    some other directory OUTSITE /opt/anaconda (this function handles
-    copying the of the file if necessary for you).  After calling this
-    funtion, the original file (at `path`) may be removed.
     """
-    assert not abspath(path).startswith(abspath(config.root_dir))
-    assert not isdir(prefix)
-    fn = basename(path)
-    assert re.match(r'share-[0-9a-f]{40}-\d+\.tar\.bz2$', fn), fn
-    dist = fn[:-8]
+    t = tarfile.open(path, 'r:*')
+    try:
+        meta = json.load(t.extractfile(BMJ))
+    except KeyError:
+        raise RuntimeError("no archive '%s' in: %s" % (BMJ, path))
 
-    pkgs_dir = config.pkgs_dirs[0]
-    if not install.is_extracted(pkgs_dir, dist):
-        shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-        plan.execute_plan(['%s %s' % (plan.EXTRACT, dist)])
-    assert install.is_extracted(pkgs_dir, dist)
+    if not isdir(prefix):
+        for m in t.getmembers():
+            if m.path.startswith(BDP) or m.path == BMJ:
+                continue
+            t.extract(m, path=prefix)
+        actions = plan.ensure_linked_actions(meta['linked'], prefix)
+        index = get_index()
+        plan.display_actions(actions, index)
+        plan.execute_actions(actions, index, verbose=True)
 
-    with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
-        meta = json.load(fi)
+    bundle_dir = abspath(expanduser('~/bundles/%s' % meta['name']))
+    for m in t.getmembers():
+        if m.path.startswith(BDP):
+            targetpath = join(bundle_dir, m.path[len(BDP):])
+            t._extract_member(m, targetpath)
 
-    # for backwards compatibility, use "requires" when "depends" is not there
-    dists = ['-'.join(r.split())
-             for r in meta.get('depends', meta.get('requires', []))
-             if not r.startswith('conda ')]
-    dists.append(dist)
-
-    actions = plan.ensure_linked_actions(dists, prefix)
-    index = get_index()
-    plan.display_actions(actions, index)
-    plan.execute_actions(actions, index, verbose=True)
-
-    os.unlink(join(prefix, 'conda-meta', dist + '.json'))
+    t.close()
 
 
 if __name__ == '__main__':
-    #path, warnings = create_bundle(config.root_dir)
-    #print(warnings)
-    #os.system('tarinfo --si ' + path)
-    #path = ('/Users/ilan/src/'
-    #        'share-fffeff0d78414137f40fff7065c1cfc77f0dd317-0.tar.bz2')
-    #clone_bundle(path, join(config.envs_dirs[0], 'test3'))
-    pass
+    try:
+        path = sys.argv[1]
+    except IndexError:
+        path = 'bundle-90809033a16372615e953f6961a6a272a4b35a1a.tar.bz2'
+    clone_bundle(path,
+                 join(config.envs_dirs[0], 'tc001'))
