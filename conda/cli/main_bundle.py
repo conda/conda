@@ -19,21 +19,21 @@ def configure_parser(sub_parsers):
                          action = "store_true",
                          help = "create bundle")
     cxgroup.add_argument('-x', "--extract",
-                         action = "store_true",
-                         help = "extact bundle")
+                         action = "store",
+                         help = "extact bundle located at PATH",
+                         metavar = "PATH")
 
     common.add_parser_prefix(p)
-    p.add_argument(
-        "--path",
-        action = "store",
-        help = "path to data to be included in bundle",
-    )
-    p.add_argument(
-        "--bundle-name",
-        action = "store",
-        help = "name of bundle",
-        metavar = 'NAME',
-    )
+    p.add_argument("--data-path",
+                   action = "store",
+                   help = "path to data to be included in bundle",
+                   metavar = "PATH"
+                   )
+    p.add_argument("--bundle-name",
+                   action = "store",
+                   help = "name of bundle",
+                   metavar = 'NAME',
+                   )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
@@ -52,7 +52,8 @@ def execute(args, parser):
 
     if args.create:
         bundle.warn = []
-        out_path = bundle.create_bundle(prefix, args.path, args.bundle_name)
+        out_path = bundle.create_bundle(prefix, args.data_path,
+                                        args.bundle_name)
 
         if args.json:
             d = dict(path=out_path, warnings=bundle.warn)
@@ -61,6 +62,9 @@ def execute(args, parser):
             print(out_path)
 
     if args.extract:
-        path = args.path
+        if args.data_path:
+            sys.exit("Error: -x/--extract does not allow --data-path option")
+
+        path = args.extract
 
         bundle.clone_bundle(path, prefix, args.bundle_name)
