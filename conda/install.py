@@ -11,7 +11,8 @@ These API functions have argument names referring to:
 
     dist:        canonical package name (e.g. 'numpy-1.6.2-py26_0')
 
-    pkgs_dir:    the "packages directory" (e.g. '/opt/anaconda/pkgs')
+    pkgs_dir:    the "packages directory" (e.g. '/opt/anaconda/pkgs' or
+                 '/home/joe/envs/.pkgs')
 
     prefix:      the prefix of a particular environment, which may also
                  be the "default" environment (i.e. sys.prefix),
