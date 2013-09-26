@@ -66,7 +66,8 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
     prefix = abspath(prefix)
     if not prefix.startswith('/opt/anaconda'):
         for f in sorted(untracked(prefix, exclude_self_build=True)):
-            assert not (f.startswith(BDP) or f == BMJ)
+            if f.startswith(BDP) or f == BMJ:
+                raise RuntimeError('bad untracked file: %s' % f)
             path = join(prefix, f)
             add_file(t, h, path, f)
 

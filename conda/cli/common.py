@@ -21,6 +21,7 @@ def add_parser_prefix(p):
         action = "store",
         help = "full path to environment prefix (default: %s)" %
                                            config.default_prefix,
+        metavar = 'PATH',
     )
 
 

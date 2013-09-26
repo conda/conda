@@ -24,6 +24,7 @@ def configure_parser(sub_parsers):
         "--bundle-name",
         action = "store",
         help = "name of bundle",
+        metavar = 'NAME',
     )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
