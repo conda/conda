@@ -86,7 +86,6 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
     add_file(t, h, meta_path, BMJ)
 
     t.close()
-    print('tar_path:', tar_path)
 
     path = join(tmp_dir, 'bundle-%s.tar.bz2' % h.hexdigest())
     os.rename(tar_path, path)
