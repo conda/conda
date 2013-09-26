@@ -114,7 +114,7 @@ def clone_bundle(path, prefix):
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
 
-    bundle_dir = abspath(expanduser('~/bundles/%s' % meta['name']))
+    bundle_dir = abspath(expanduser('~/bundles/%(name)s' % meta))
     for m in t.getmembers():
         if m.path.startswith(BDP):
             targetpath = join(bundle_dir, m.path[len(BDP):])

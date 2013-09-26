@@ -10,6 +10,8 @@
   * regular environment locations now used for build and test
   * add ability to disallow specification names
   * add ability to read help messages from a file when install location is RO
+  * restore backwards compatibility of share/clone for conda-api
+  * add new conda bundle command and format
 
 
 2013-09-06   1.9.1:
