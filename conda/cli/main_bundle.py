@@ -37,7 +37,6 @@ def configure_parser(sub_parsers):
     p.add_argument("--no-env",
                    action = "store_true",
                    help = "no environment",
-                   metavar = 'NAME',
                    )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
