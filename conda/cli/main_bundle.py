@@ -63,4 +63,4 @@ def execute(args, parser):
     if args.extract:
         path = args.path
 
-        bundle.clone_bundle(path, prefix)
+        bundle.clone_bundle(path, prefix, args.bundle_name)
