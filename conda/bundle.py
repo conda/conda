@@ -91,7 +91,7 @@ def create_bundle(prefix, data_path=None, bundle_name=None):
     return path
 
 
-def clone_bundle(path, prefix):
+def clone_bundle(path, prefix, bundle_name=None):
     """
     Clone the bundle (located at `path`) by creating a new environment at
     `prefix`.
@@ -112,7 +112,10 @@ def clone_bundle(path, prefix):
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
 
-    bundle_dir = abspath(expanduser('~/bundles/%(name)s' % meta))
+    if not bundle_name:
+        bundle_name = meta['name']
+
+    bundle_dir = abspath(expanduser('~/bundles/%s' % bundle_name))
     for m in t.getmembers():
         if m.path.startswith(BDP):
             targetpath = join(bundle_dir, m.path[len(BDP):])
