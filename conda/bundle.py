@@ -9,7 +9,7 @@ import tarfile
 import tempfile
 import shutil
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir, isfile, islink, join
+from os.path import abspath, basename, isdir, isfile, islink, join
 
 import conda.config as config
 from conda.api import get_index
@@ -54,6 +54,24 @@ def add_hash(h, path, f):
         if path.endswith('.egg-link'):
             log.warn('found egg link: %s' % f)
 
+def add_data(t, h, data_path):
+    data_path = abspath(data_path)
+    if isfile(data_path):
+        f = 'bundle/' + basename(data_path)
+        t.add(data_path, f)
+        add_hash(h, data_path, f)
+    elif isdir(data_path):
+        for root, dirs, files in os.walk(data_path):
+            for fn in files:
+                if fn.endswith(('~', '.pyc')):
+                    continue
+                path = join(root, fn)
+                f = 'bundle/' + path[len(data_path) + 1:]
+                t.add(path, f)
+                add_hash(h, path, f)
+    else:
+        raise RuntimeError('no such file or directory: %s' % data_path)
+
 def create_bundle(prefix, data_path=None):
     """
     Create a "bundle package" of the environment located in `prefix`,
@@ -61,7 +79,6 @@ def create_bundle(prefix, data_path=None):
     created in a temp directory, and it is the callers responsibility
     to remove this directory (after the file has been handled in some way).
     """
-    has_prefix = []
     tmp_dir = tempfile.mkdtemp()
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
     t = tarfile.open(tar_path, 'w:bz2')
@@ -72,22 +89,7 @@ def create_bundle(prefix, data_path=None):
         add_hash(h, path, f)
 
     if data_path:
-        data_path = abspath(data_path)
-        if isfile(data_path):
-            f = 'bundle/' + basename(data_path)
-            t.add(data_path, f)
-            add_hash(h, data_path, f)
-        elif isdir(data_path):
-            for root, dirs, files in os.walk(data_path):
-                for fn in files:
-                    if fn.endswith(('~', '.pyc')):
-                        continue
-                    path = join(root, fn)
-                    f = path[len(data_path) + 1:]
-                    t.add(path, f)
-                    add_hash(h, path, f)
-        else:
-            raise RuntimeError('no such file or directory: %s' % data_path)
+        add_data(t, h, data_path)
 
     print('h:', h.hexdigest())
     t.close()
@@ -103,13 +105,10 @@ def create_bundle(prefix, data_path=None):
         arch = config.arch_name,
         depends = get_requires(prefix),
     )
-    #warnings = create_conda_pkg(prefix,
-    #                            untracked(prefix, exclude_self_build=True),
-    #                            info, tmp_path, update_info)
 
     path = join(tmp_dir, '%(name)s-%(version)s-%(build)s.tar.bz2' % info)
-    os.rename(tmp_path, path)
-    return path, warnings
+    os.rename(tar_path, path)
+    return path
 
 
 def clone_bundle(path, prefix):
