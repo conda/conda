@@ -1,3 +1,6 @@
+# NOTE:
+#     This module is deprecated.  Don't import from this here when writing
+#     new code.
 from __future__ import print_function, division, absolute_import
 
 import os
