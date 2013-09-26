@@ -20,6 +20,11 @@ def configure_parser(sub_parsers):
         action = "store",
         help = "path to data to be included in bundle",
     )
+    p.add_argument(
+        "--bundle-name",
+        action = "store",
+        help = "name of bundle",
+    )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
@@ -32,12 +37,10 @@ def execute(args, parser):
 
 
     prefix = common.get_prefix(args)
-    out_path, warnings = create_bundle(prefix, args.path)
+    out_path = create_bundle(prefix, args.path, args.bundle_name)
 
     if args.json:
-        d = dict(path=out_path, warnings=warnings)
+        d = dict(path=out_path)
         json.dump(d, sys.stdout, indent=2, sort_keys=True)
     else:
-        for w in warnings:
-            print("Warning:", w)
         print(out_path)

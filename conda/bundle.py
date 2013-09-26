@@ -2,7 +2,6 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import re
-import sys
 import json
 import hashlib
 import tarfile
@@ -14,34 +13,17 @@ from os.path import abspath, basename, isdir, isfile, islink, join
 import conda.config as config
 from conda.api import get_index
 from conda.misc import untracked
-from conda.resolve import MatchSpec
 import conda.install as install
 import conda.plan as plan
 
 
 log = getLogger(__name__)
 
+BDP = 'bundle-data/'
+BMJ = 'bundle-meta.json'
 
-def get_requires(prefix):
-    res = []
-    for dist in install.linked(prefix):
-        meta = install.is_linked(prefix, dist)
-        assert meta
-        if 'file_hash' not in meta:
-            res.append('%(name)s %(version)s %(build)s' % meta)
-    res.sort()
-    return res
-
-def update_info(info):
-    h = hashlib.new('sha1')
-    for spec in info['depends']:
-        assert MatchSpec(spec).strictness == 3
-        h.update(spec.encode('utf-8'))
-        h.update(b'\x00')
-    h.update(info['file_hash'].encode('utf-8'))
-    info['version'] = h.hexdigest()
-
-def add_hash(h, path, f):
+def add_file(t, h, path, f):
+    t.add(path, f)
     h.update(f.encode('utf-8'))
     h.update(b'\x00')
     if islink(path):
@@ -57,22 +39,20 @@ def add_hash(h, path, f):
 def add_data(t, h, data_path):
     data_path = abspath(data_path)
     if isfile(data_path):
-        f = 'bundle/' + basename(data_path)
-        t.add(data_path, f)
-        add_hash(h, data_path, f)
+        f = BDP + basename(data_path)
+        add_file(t, h, data_path, f)
     elif isdir(data_path):
         for root, dirs, files in os.walk(data_path):
             for fn in files:
                 if fn.endswith(('~', '.pyc')):
                     continue
                 path = join(root, fn)
-                f = 'bundle/' + path[len(data_path) + 1:]
-                t.add(path, f)
-                add_hash(h, path, f)
+                f = BDP + path[len(data_path) + 1:]
+                add_file(t, h, path, f)
     else:
         raise RuntimeError('no such file or directory: %s' % data_path)
 
-def create_bundle(prefix, data_path=None):
+def create_bundle(prefix, data_path=None, bundle_name=None):
     """
     Create a "bundle package" of the environment located in `prefix`,
     and return the full path to the created package.  This file is
@@ -83,30 +63,32 @@ def create_bundle(prefix, data_path=None):
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
     t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
-    for f in sorted(untracked(prefix, exclude_self_build=True)):
-        path = join(prefix, f)
-        t.add(path, f)
-        add_hash(h, path, f)
+    prefix = abspath(prefix)
+    if not prefix.startswith('/opt/anaconda'):
+        for f in sorted(untracked(prefix, exclude_self_build=True)):
+            assert not (f.startswith(BDP) or f == BMJ)
+            path = join(prefix, f)
+            add_file(t, h, path, f)
 
     if data_path:
         add_data(t, h, data_path)
 
-    print('h:', h.hexdigest())
+    meta = dict(
+        name = bundle_name or 'noname',
+        platform = config.platform,
+        arch = config.arch_name,
+        prefix = prefix,
+        linked = sorted(install.linked(prefix)),
+    )
+    meta_path = join(tmp_dir, BMJ)
+    with open(meta_path, 'w') as fo:
+        json.dump(meta, fo, indent=2, sort_keys=True)
+    add_file(t, h, meta_path, BMJ)
+
     t.close()
     print('tar_path:', tar_path)
 
-    sys.exit(0)
-
-    info = dict(
-        name = 'share',
-        build = '0',
-        build_number = 0,
-        platform = config.platform,
-        arch = config.arch_name,
-        depends = get_requires(prefix),
-    )
-
-    path = join(tmp_dir, '%(name)s-%(version)s-%(build)s.tar.bz2' % info)
+    path = join(tmp_dir, 'bundle-%s.tar.bz2' % h.hexdigest())
     os.rename(tar_path, path)
     return path
 
