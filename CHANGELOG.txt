@@ -1,7 +1,7 @@
 2013-XX-XX   2.0.0:
 -------------------
   * added user/root mode and ability to soft-link across filesystems
-  * added create --clone option in favor of clone command
+  * added create --clone option for copying local environments
   * fixed behavior when installing into an environment which does not
     exist yet, i.e. an error occurs
   * fixed install --no-deps option
