@@ -4,7 +4,7 @@ from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
 
-descr = 'Create a "bundle package" (EXPERIMENTAL)'
+descr = 'Create or extract a "bundle package" (EXPERIMENTAL)'
 
 
 def configure_parser(sub_parsers):
@@ -14,6 +14,14 @@ def configure_parser(sub_parsers):
         description = descr,
         help = descr,
     )
+    cxgroup = p.add_mutually_exclusive_group()
+    cxgroup.add_argument('-c', "--create",
+                         action = "store_true",
+                         help = "create bundle")
+    cxgroup.add_argument('-x', "--extract",
+                         action = "store_true",
+                         help = "extact bundle")
+
     common.add_parser_prefix(p)
     p.add_argument(
         "--path",
@@ -37,12 +45,22 @@ def execute(args, parser):
     import conda.bundle as bundle
 
 
-    prefix = common.get_prefix(args)
-    bundle.warn = []
-    out_path = bundle.create_bundle(prefix, args.path, args.bundle_name)
+    if not (args.create or args.extract):
+        sys.exit("Error: either -c/--create or -x/--extract is required")
 
-    if args.json:
-        d = dict(path=out_path, warnings=bundle.warn)
-        json.dump(d, sys.stdout, indent=2, sort_keys=True)
-    else:
-        print(out_path)
+    prefix = common.get_prefix(args)
+
+    if args.create:
+        bundle.warn = []
+        out_path = bundle.create_bundle(prefix, args.path, args.bundle_name)
+
+        if args.json:
+            d = dict(path=out_path, warnings=bundle.warn)
+            json.dump(d, sys.stdout, indent=2, sort_keys=True)
+        else:
+            print(out_path)
+
+    if args.extract:
+        path = args.path
+
+        bundle.clone_bundle(path, prefix)
