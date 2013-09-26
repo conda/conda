@@ -6,7 +6,6 @@ import json
 import hashlib
 import tarfile
 import tempfile
-from logging import getLogger
 from os.path import abspath, expanduser, basename, isdir, isfile, islink, join
 
 import conda.config as config
@@ -16,7 +15,7 @@ import conda.install as install
 import conda.plan as plan
 
 
-log = getLogger(__name__)
+warn = []
 
 BDP = 'bundle-data/'
 BMJ = 'bundle-meta.json'
@@ -29,11 +28,11 @@ def add_file(t, h, path, f):
         link = os.readlink(path)
         h.update(link)
         if link.startswith('/'):
-            log.warn('found symlink to absolute path: %s -> %s' % (f, link))
+            warn.append('found symlink to absolute path: %s -> %s' % (f, link))
     elif isfile(path):
         h.update(open(path, 'rb').read())
         if path.endswith('.egg-link'):
-            log.warn('found egg link: %s' % f)
+            warn.append('found egg link: %s' % f)
 
 def add_data(t, h, data_path):
     data_path = abspath(data_path)
