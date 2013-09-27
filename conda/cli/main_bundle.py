@@ -34,6 +34,11 @@ def configure_parser(sub_parsers):
                    help = "path to data to be included in bundle",
                    metavar = "PATH"
                    )
+    p.add_argument("--extra-meta",
+                   action = "store",
+                   help = "path to json file with additional meta-data no",
+                   metavar = "PATH",
+                   )
     p.add_argument("--no-env",
                    action = "store_true",
                    help = "no environment",
@@ -57,10 +62,15 @@ def execute(args, parser):
         prefix = None
 
     if args.create:
+        if args.extra_meta:
+            with open(args.extra_meta) as fi:
+                extra = json.load(fi)
+        else:
+            extra = None
+
         bundle.warn = []
         out_path = bundle.create_bundle(prefix, args.data_path,
-                                        args.bundle_name)
-
+                                        args.bundle_name, extra)
         if args.json:
             d = dict(path=out_path, warnings=bundle.warn)
             json.dump(d, sys.stdout, indent=2, sort_keys=True)
@@ -69,7 +79,9 @@ def execute(args, parser):
 
     if args.extract:
         if args.data_path:
-            sys.exit("Error: -x/--extract does not allow --data-path option")
+            sys.exit("Error: -x/--extract does not allow --data-path")
+        if args.extra_meta:
+            sys.exit("Error: -x/--extract does not allow --extra-meta")
 
         path = args.extract
 
