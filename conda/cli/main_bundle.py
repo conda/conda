@@ -1,6 +1,5 @@
 from __future__ import print_function, division, absolute_import
 
-import os
 from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 
@@ -48,10 +47,9 @@ def configure_parser(sub_parsers):
                    action = "store_true",
                    help = "no environment",
                    )
-    p.add_argument("--outdir",
+    p.add_argument('-o', "--output",
                    action = "store",
-                   default = os.getcwd(),
-                   help = "output directory, defaults to CWD",
+                   help = "output file",
                    metavar = "PATH",
                    )
     common.add_parser_json(p)
@@ -86,12 +84,13 @@ def execute(args, parser):
         bundle.warn = []
         out_path = bundle.create_bundle(prefix, args.data_path,
                                         args.bundle_name, extra,
-                                        output_dir=args.outdir)
+                                        output_path=args.output)
         if args.json:
             d = dict(path=out_path, warnings=bundle.warn)
             json.dump(d, sys.stdout, indent=2, sort_keys=True)
         else:
-            print(out_path)
+            if not args.output:
+                print(out_path)
 
     if args.extract:
         if args.data_path:
