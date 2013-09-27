@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import json
+import time
 import shutil
 import hashlib
 import tarfile
@@ -68,6 +69,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         name = bundle_name,
         platform = config.platform,
         arch = config.arch_name,
+        creation_time = time.strftime("%Y-%m-%d %H:%M:%S %Z"),
     )
     tmp_dir = tempfile.mkdtemp()
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
