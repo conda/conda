@@ -45,8 +45,10 @@ def add_data(t, h, data_path):
                 if fn.endswith(('~', '.pyc')):
                     continue
                 path = join(root, fn)
-                f = BDP + path[len(data_path) + 1:]
-                add_file(t, h, path, f)
+                f = path[len(data_path) + 1:]
+                if f.startswith('.git'):
+                    continue
+                add_file(t, h, path, BDP + f)
     else:
         raise RuntimeError('no such file or directory: %s' % data_path)
 
