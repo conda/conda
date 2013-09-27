@@ -28,6 +28,7 @@ def configure_parser(sub_parsers):
                          metavar = "PATH")
 
     common.add_parser_prefix(p)
+    common.add_parser_quiet(p)
     p.add_argument("--bundle-name",
                    action = "store",
                    help = "name of bundle",
@@ -59,6 +60,9 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import sys
     import json
+    import shutil
+    import tempfile
+    from os.path import isfile
 
     import conda.bundle as bundle
 
@@ -92,13 +96,31 @@ def execute(args, parser):
             if not args.output:
                 print(out_path)
 
+
     if args.extract:
         if args.data_path or args.extra_meta or args.output:
             sys.exit("""\
 Error: -x/--extract does not allow --data-path, --extra-meta or --output""")
 
-        path = args.extract
+        if isfile(args.extract):
+            tmp_dir = None
+            path = args.extract
+        elif '://' in args.extract:
+            from conda.fetch import download
+
+            if not args.quiet:
+                from conda.console import setup_handlers
+                setup_handlers()
+            tmp_dir = tempfile.mkdtemp()
+            path = download(args.extract, tmp_dir)
+        else:
+            sys.exit('Error: did not recognize: %s' % args.extract)
+
         bundle.clone_bundle(path, prefix, args.bundle_name)
+
+        if tmp_dir:
+            shutil.rmtree(tmp_dir)
+
 
     if args.metadump:
         import tarfile
