@@ -50,13 +50,19 @@ def add_data(t, h, data_path):
     else:
         raise RuntimeError('no such file or directory: %s' % data_path)
 
-def create_bundle(prefix=None, data_path=None, bundle_name=None):
+def create_bundle(prefix=None, data_path=None, bundle_name=None,
+                  extra_meta=None):
     """
     Create a "bundle package" of the environment located in `prefix`,
     and return the full path to the created package.  This file is
     created in a temp directory, and it is the callers responsibility
     to remove this directory (after the file has been handled in some way).
     """
+    meta = dict(
+        name = bundle_name,
+        platform = config.platform,
+        arch = config.arch_name,
+    )
     tmp_dir = tempfile.mkdtemp()
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
     t = tarfile.open(tar_path, 'w:bz2')
@@ -69,17 +75,15 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None):
                     raise RuntimeError('bad untracked file: %s' % f)
                 path = join(prefix, f)
                 add_file(t, h, path, f)
+        meta['prefix'] = prefix
+        meta['linked'] = sorted(install.linked(prefix))
 
     if data_path:
         add_data(t, h, data_path)
 
-    meta = dict(
-        name = bundle_name,
-        platform = config.platform,
-        arch = config.arch_name,
-        prefix = prefix,
-        linked = sorted(install.linked(prefix)) if prefix else [],
-    )
+    if extra_meta:
+        meta.update(extra_meta)
+
     meta_path = join(tmp_dir, BMJ)
     with open(meta_path, 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
@@ -108,13 +112,13 @@ def clone_bundle(path, prefix=None, bundle_name=None):
             if m.path.startswith(BDP) or m.path == BMJ:
                 continue
             t.extract(m, path=prefix)
-        actions = plan.ensure_linked_actions(meta['linked'], prefix)
+        actions = plan.ensure_linked_actions(meta.get('linked', []), prefix)
         index = get_index()
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
 
     if not bundle_name:
-        bundle_name = meta['name']
+        bundle_name = meta.get('name')
 
     bundle_dir = abspath(expanduser('~/bundles/%s' % bundle_name))
     for m in t.getmembers():
