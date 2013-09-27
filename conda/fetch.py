@@ -188,7 +188,6 @@ def download(url, dst_dir):
     size = u.headers.get(http_key) if PY3 else u.info().getheader(http_key)
     if size:
         size = int(size)
-        print(repr(size))
         getLogger('fetch.start').info((fn[:14], size))
 
     n = 0
