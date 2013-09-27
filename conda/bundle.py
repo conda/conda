@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import json
+import shutil
 import hashlib
 import tarfile
 import tempfile
@@ -52,13 +53,13 @@ def add_data(t, h, data_path):
     else:
         raise RuntimeError('no such file or directory: %s' % data_path)
 
+
 def create_bundle(prefix=None, data_path=None, bundle_name=None,
-                  extra_meta=None):
+                  extra_meta=None, output_dir=os.getcwd()):
     """
-    Create a "bundle package" of the environment located in `prefix`,
-    and return the full path to the created package.  This file is
-    created in a temp directory, and it is the callers responsibility
-    to remove this directory (after the file has been handled in some way).
+    Create a "bundle" of the environment located in `prefix`,
+    and return the full path to the created package, which is going to be
+    located in the current working directory, unless specified otherwise.
     """
     meta = dict(
         name = bundle_name,
@@ -93,9 +94,10 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
 
     t.close()
 
-    path = join(tmp_dir, 'bundle-%s.tar.bz2' % h.hexdigest())
-    os.rename(tar_path, path)
-    return path
+    path = join(output_dir, 'bundle-%s.tar.bz2' % h.hexdigest())
+    shutil.move(tar_path, path)
+    shutil.rmtree(tmp_dir)
+    return basename(path)
 
 
 def clone_bundle(path, prefix=None, bundle_name=None):
