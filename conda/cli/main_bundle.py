@@ -65,6 +65,8 @@ def execute(args, parser):
         if args.extra_meta:
             with open(args.extra_meta) as fi:
                 extra = json.load(fi)
+            if not isinstance(extra, dict):
+                sys.exit('Error: no dictionary in: %s' % args.extra_meta)
         else:
             extra = None
 
