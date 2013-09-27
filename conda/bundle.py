@@ -69,7 +69,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         name = bundle_name,
         platform = config.platform,
         arch = config.arch_name,
-        creation_time = time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+        ctime = time.strftime("%Y-%m-%d %H:%M:%S %Z"),
     )
     tmp_dir = tempfile.mkdtemp()
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
