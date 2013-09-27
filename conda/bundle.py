@@ -21,25 +21,21 @@ warn = []
 BDP = 'bundle-data/'
 BMJ = 'bundle-meta.json'
 
-def add_file(t, h, path, f):
+def add_file(t, path, f):
     t.add(path, f)
-    h.update(f.encode('utf-8'))
-    h.update(b'\x00')
     if islink(path):
         link = os.readlink(path)
-        h.update(link)
         if link.startswith('/'):
             warn.append('found symlink to absolute path: %s -> %s' % (f, link))
     elif isfile(path):
-        h.update(open(path, 'rb').read())
         if path.endswith('.egg-link'):
             warn.append('found egg link: %s' % f)
 
-def add_data(t, h, data_path):
+def add_data(t, data_path):
     data_path = abspath(data_path)
     if isfile(data_path):
         f = BDP + basename(data_path)
-        add_file(t, h, data_path, f)
+        add_file(t, data_path, f)
     elif isdir(data_path):
         for root, dirs, files in os.walk(data_path):
             for fn in files:
@@ -49,13 +45,20 @@ def add_data(t, h, data_path):
                 f = path[len(data_path) + 1:]
                 if f.startswith('.git'):
                     continue
-                add_file(t, h, path, BDP + f)
+                add_file(t, path, BDP + f)
     else:
         raise RuntimeError('no such file or directory: %s' % data_path)
 
 
+def sha1_name(bundle_name):
+    s = repr((os.getenv('USER'), bundle_name))
+    h = hashlib.new('sha1')
+    h.update(s.encode('utf-8'))
+    return h.hexdigest()
+
+
 def create_bundle(prefix=None, data_path=None, bundle_name=None,
-                  extra_meta=None, output_dir=os.getcwd()):
+                  extra_meta=None, output_path=None):
     """
     Create a "bundle" of the environment located in `prefix`,
     and return the full path to the created package, which is going to be
@@ -69,7 +72,6 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     tmp_dir = tempfile.mkdtemp()
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
     t = tarfile.open(tar_path, 'w:bz2')
-    h = hashlib.new('sha1')
     if prefix:
         prefix = abspath(prefix)
         if not prefix.startswith('/opt/anaconda'):
@@ -77,12 +79,12 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
                 if f.startswith(BDP) or f == BMJ:
                     raise RuntimeError('bad untracked file: %s' % f)
                 path = join(prefix, f)
-                add_file(t, h, path, f)
+                add_file(t, path, f)
         meta['prefix'] = prefix
         meta['linked'] = sorted(install.linked(prefix))
 
     if data_path:
-        add_data(t, h, data_path)
+        add_data(t, data_path)
 
     if extra_meta:
         meta.update(extra_meta)
@@ -90,14 +92,15 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     meta_path = join(tmp_dir, BMJ)
     with open(meta_path, 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
-    add_file(t, h, meta_path, BMJ)
+    add_file(t, meta_path, BMJ)
 
     t.close()
 
-    path = join(output_dir, 'bundle-%s.tar.bz2' % h.hexdigest())
-    shutil.move(tar_path, path)
+    if output_path is None:
+        output_path = 'bundle-%s.tar.bz2' % sha1_name(bundle_name)
+    shutil.move(tar_path, output_path)
     shutil.rmtree(tmp_dir)
-    return basename(path)
+    return output_path
 
 
 def clone_bundle(path, prefix=None, bundle_name=None):
