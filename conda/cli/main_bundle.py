@@ -22,6 +22,10 @@ def configure_parser(sub_parsers):
                          action = "store",
                          help = "extact bundle located at PATH",
                          metavar = "PATH")
+    cxgroup.add_argument("--metadump",
+                         action = "store",
+                         help = "dump metadata of bundle at PATH",
+                         metavar = "PATH")
 
     common.add_parser_prefix(p)
     p.add_argument("--bundle-name",
@@ -54,9 +58,11 @@ def execute(args, parser):
     import conda.bundle as bundle
 
 
-    if not (args.create or args.extract):
-        sys.exit("Error: either -c/--create or -x/--extract is required")
-
+    if not (args.create or args.extract or args.metadump):
+        sys.exit("""Error:
+    either one of the following options is required:
+       -c/--create  -x/--extract  --metadump
+    (see -h for more details)""")
     prefix = common.get_prefix(args)
     if args.no_env:
         prefix = None
@@ -86,5 +92,17 @@ def execute(args, parser):
             sys.exit("Error: -x/--extract does not allow --extra-meta")
 
         path = args.extract
-
         bundle.clone_bundle(path, prefix, args.bundle_name)
+
+    if args.metadump:
+        import tarfile
+
+        path = args.metadump
+        t = tarfile.open(path, 'r:*')
+        try:
+            f = t.extractfile(bundle.BMJ)
+            sys.stdout.write(f.read())
+            sys.stdout.write('\n')
+        except KeyError:
+            raise RuntimeError("no archive '%s' in: %s" % (bundle.BMJ, path))
+        t.close()
