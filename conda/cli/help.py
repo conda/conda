@@ -10,10 +10,15 @@ help_dir = join(root_dir, '.conda-help')
 
 def root_read_only(command, prefix):
     assert command in {'install', 'update', 'remove'}
-    try:
-        with open(join(help_dir, 'ro_%s.txt' % command)) as fi:
-            tmpl = fi.read().decode('utf-8')
-    except IOError:
+    for path in [join(help_dir, 'ro_%s.txt' % command),
+                 join(help_dir, 'ro.txt')]:
+        try:
+            with open(path) as fi:
+                tmpl = fi.read().decode('utf-8')
+            break
+        except IOError:
+            pass
+    else:
         tmpl = """\
 Error: Missing write permissions in: %(root_dir)s
 #
