@@ -189,10 +189,11 @@ def download(url, dst_dir):
     if size:
         size = int(size)
         print(repr(size))
-        getLogger('fetch.start').info((fn, size))
+        getLogger('fetch.start').info((fn[:14], size))
 
     n = 0
-    fo = open(join(dst_dir, fn), 'wb')
+    path = join(dst_dir, fn)
+    fo = open(path, 'wb')
     while True:
         chunk = u.read(16384)
         if not chunk:
@@ -207,4 +208,4 @@ def download(url, dst_dir):
     u.close()
     if size:
         getLogger('fetch.stop').info(None)
-    return fn
+    return path
