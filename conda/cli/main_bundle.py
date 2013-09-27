@@ -93,10 +93,9 @@ def execute(args, parser):
                 print(out_path)
 
     if args.extract:
-        if args.data_path:
-            sys.exit("Error: -x/--extract does not allow --data-path")
-        if args.extra_meta:
-            sys.exit("Error: -x/--extract does not allow --extra-meta")
+        if args.data_path or args.extra_meta or args.output:
+            sys.exit("""\
+Error: -x/--extract does not allow --data-path, --extra-meta or --output""")
 
         path = args.extract
         bundle.clone_bundle(path, prefix, args.bundle_name)
