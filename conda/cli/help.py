@@ -1,11 +1,11 @@
 import sys
 from os.path import join
 
-from conda.config import root_dir
+import conda.config as config
 from conda.cli.common import name_prefix
 
 
-help_dir = join(root_dir, '.conda-help')
+help_dir = join(config.root_dir, '.conda-help')
 
 
 def root_read_only(command, prefix):
@@ -32,9 +32,10 @@ Error: Missing write permissions in: %(root_dir)s
 """
 
     if '%' in tmpl:
-        msg = tmpl % dict(root_dir=root_dir,
+        msg = tmpl % dict(root_dir=config.root_dir,
                           prefix=prefix,
                           name=name_prefix(prefix),
+                          env0=config.envs_dirs[0],
                           command=command)
     else:
         msg = tmpl
