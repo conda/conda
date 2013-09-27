@@ -12,7 +12,7 @@ import sys
 import json
 import hashlib
 from logging import getLogger
-from os.path import join
+from os.path import basename, join
 
 from conda import config
 from conda.utils import memoized
@@ -174,3 +174,37 @@ def fetch_pkg(info, dst_dir=None):
             return
 
     raise RuntimeError("Could not locate '%s'" % url)
+
+
+def download(url, dst_dir):
+    try:
+        u = connectionhandled_urlopen(url)
+    except IOError:
+        raise RuntimeError("Could not open '%s'" % url)
+
+    fn = basename(url)
+
+    http_key = 'Content-Length'
+    size = u.headers.get(http_key) if PY3 else u.info().getheader(http_key)
+    if size:
+        size = int(size)
+        print(repr(size))
+        getLogger('fetch.start').info((fn, size))
+
+    n = 0
+    fo = open(join(dst_dir, fn), 'wb')
+    while True:
+        chunk = u.read(16384)
+        if not chunk:
+            break
+        fo.write(chunk)
+        n += len(chunk)
+        if size:
+            getLogger('fetch.update').info(n)
+
+    fo.close()
+
+    u.close()
+    if size:
+        getLogger('fetch.stop').info(None)
+    return fn
