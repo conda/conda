@@ -53,11 +53,11 @@ def add_data(t, data_path):
         raise RuntimeError('no such file or directory: %s' % data_path)
 
 
-def sha1_name(bundle_name):
-    s = repr((os.getenv('USER'), bundle_name))
+def get_filename(un, bn):
+    s = '%s:%s' % (un, bn)
     h = hashlib.new('sha1')
     h.update(s.encode('utf-8'))
-    return h.hexdigest()
+    return 'bundle-%s.tar.bz2' % h.hexdigest()
 
 
 def create_bundle(prefix=None, data_path=None, bundle_name=None,
@@ -101,7 +101,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     t.close()
 
     if output_path is None:
-        output_path = 'bundle-%s.tar.bz2' % sha1_name(bundle_name)
+        output_path = get_filename(os.getenv('USER'), bundle_name)
     shutil.move(tar_path, output_path)
     shutil.rmtree(tmp_dir)
     return output_path
