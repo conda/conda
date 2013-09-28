@@ -17,7 +17,7 @@ from os.path import basename, join
 from conda import config
 from conda.utils import memoized
 from conda.connection import connectionhandled_urlopen
-from conda.compat import PY3, itervalues
+from conda.compat import PY3, itervalues, get_http_value
 from conda.lock import Locked
 
 if PY3:
@@ -46,7 +46,7 @@ def cache_fn_url(url):
 
 
 def add_http_value_to_dict(u, http_key, d, dict_key):
-    value = u.headers.get(http_key) if PY3 else u.info().getheader(http_key)
+    value = get_http_value(u, http_key)
     if value:
         d[dict_key] = value
 
@@ -184,8 +184,7 @@ def download(url, dst_dir):
 
     fn = basename(url)
 
-    http_key = 'Content-Length'
-    size = u.headers.get(http_key) if PY3 else u.info().getheader(http_key)
+    size = get_http_value(u, 'Content-Length')
     if size:
         size = int(size)
         getLogger('fetch.start').info((fn[:14], size))

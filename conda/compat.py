@@ -46,3 +46,9 @@ def itervalues(d):
 def iteritems(d):
     """Return an iterator over the (key, value) pairs of a dictionary."""
     return iter(getattr(d, _iteritems)())
+
+def get_http_value(u, key):
+    if PY3:
+        return u.headers.get(key)
+    else:
+        return u.info().getheader(key)
