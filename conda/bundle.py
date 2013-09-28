@@ -17,10 +17,12 @@ import conda.install as install
 import conda.plan as plan
 
 
-warn = []
-
+ISO8601 = "%Y-%m-%d %H:%M:%S %z"
 BDP = 'bundle-data/'
 BMJ = 'bundle-meta.json'
+
+warn = []
+
 
 def add_file(t, path, f):
     t.add(path, f)
@@ -69,7 +71,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         name = bundle_name,
         platform = config.platform,
         arch = config.arch_name,
-        ctime = time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+        ctime = time.strftime(ISO8601)
     )
     tmp_dir = tempfile.mkdtemp()
     tar_path = join(tmp_dir, 'bundle.tar.bz2')
