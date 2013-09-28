@@ -112,7 +112,11 @@ def clone_bundle(path, prefix=None, bundle_name=None):
     Clone the bundle (located at `path`) by creating a new environment at
     `prefix` (unless prefix is None or the prefix directory already exists)
     """
-    t = tarfile.open(path, 'r:*')
+    try:
+        t = tarfile.open(path, 'r:*')
+    except tarfile.ReadError:
+        raise RuntimeError('bad tar archive: %s' % path)
+
     try:
         meta = json.load(t.extractfile(BMJ))
     except KeyError:
