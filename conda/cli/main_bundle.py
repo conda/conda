@@ -126,11 +126,15 @@ Error: -x/--extract does not allow --data-path, --extra-meta or --output""")
         import tarfile
 
         path = args.metadump
-        t = tarfile.open(path, 'r:*')
         try:
+            t = tarfile.open(path, 'r:*')
             f = t.extractfile(bundle.BMJ)
             sys.stdout.write(f.read())
             sys.stdout.write('\n')
+        except IOError:
+            sys.exit("Error: no such file: %s" % path)
+        except tarfile.ReadError:
+            sys.exit("Error: bad tar archive: %s" % path)
         except KeyError:
-            raise RuntimeError("no archive '%s' in: %s" % (bundle.BMJ, path))
+            sys.exit("Error: no archive '%s' in: %s" % (bundle.BMJ, path))
         t.close()
