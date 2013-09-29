@@ -115,11 +115,9 @@ def clone_bundle(path, prefix=None, bundle_name=None):
     """
     try:
         t = tarfile.open(path, 'r:*')
+        meta = json.load(t.extractfile(BMJ))
     except tarfile.ReadError:
         raise RuntimeError('bad tar archive: %s' % path)
-
-    try:
-        meta = json.load(t.extractfile(BMJ))
     except KeyError:
         raise RuntimeError("no archive '%s' in: %s" % (BMJ, path))
 
