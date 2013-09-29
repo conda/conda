@@ -2,6 +2,7 @@ import json
 import unittest
 from os.path import dirname, join
 
+from conda.config import default_python
 import conda.plan as plan
 from conda.resolve import Resolve
 
@@ -52,11 +53,12 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def test_4(self):
         self.linked = []
+        ps = 'python %s*' % default_python
         for specs, added in [
-            (['python'],     ['python 2.7*']),
-            (['numpy'],      ['python 2.7*', 'numpy 1.7*']),
-            (['scipy'],      ['python 2.7*', 'numpy 1.7*']),
-            (['anaconda'],   ['python 2.7*', 'numpy 1.7*']),
+            (['python'],     [ps]),
+            (['numpy'],      [ps, 'numpy 1.7*']),
+            (['scipy'],      [ps, 'numpy 1.7*']),
+            (['anaconda'],   [ps, 'numpy 1.7*']),
             (['anaconda 1.5.0 np17py27_0'], []),
             (['sympy 0.7.2 py27_0'], []),
             (['scipy 0.12.0 np16py27_0'], []),
