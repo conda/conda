@@ -132,7 +132,7 @@ def clone_bundle(path, prefix=None, bundle_name=None):
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
 
-    if not bundle_name:
+    if bundle_name is None:
         bundle_name = meta.get('name')
 
     bundle_dir = abspath(expanduser('~/bundles/%s' % bundle_name))
