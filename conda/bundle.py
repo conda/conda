@@ -53,8 +53,8 @@ def add_data(t, data_path):
         raise RuntimeError('no such file or directory: %s' % data_path)
 
 
-def get_filename(un, bn):
-    s = '%s:%s' % (un, bn)
+def get_filename(meta):
+    s = '%(creator)s:%(name)s' % meta
     h = hashlib.new('sha1')
     h.update(s.encode('utf-8'))
     return 'bundle-%s.tar.bz2' % h.hexdigest()
@@ -69,6 +69,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     """
     meta = dict(
         name = bundle_name,
+        creator = os.getenv('USER'),
         platform = config.platform,
         arch = config.arch_name,
         ctime = time.strftime(ISO8601)
@@ -101,7 +102,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     t.close()
 
     if output_path is None:
-        output_path = get_filename(os.getenv('USER'), bundle_name)
+        output_path = get_filename(meta)
     shutil.move(tar_path, output_path)
     shutil.rmtree(tmp_dir)
     return output_path
@@ -132,10 +133,8 @@ def clone_bundle(path, prefix=None, bundle_name=None):
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
 
-    if bundle_name is None:
-        bundle_name = meta.get('name')
-
-    bundle_dir = abspath(expanduser('~/bundles/%s' % bundle_name))
+    bundle_dir = abspath(expanduser('~/bundles/%s' %
+                                    (bundle_name or meta.get('name'))))
     for m in t.getmembers():
         if m.path.startswith(BDP):
             targetpath = join(bundle_dir, m.path[len(BDP):])
