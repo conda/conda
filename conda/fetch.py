@@ -75,7 +75,7 @@ def fetch_repodata(url):
         add_http_value_to_dict(u, 'Last-Modified', cache, '_mod')
 
     except urllib2.HTTPError as e:
-        msg = "HTTPError: %d  %s\n" % (e.code, e.msg)
+        msg = "HTTPError: %d  %s  %s\n" % (e.code, e.msg, url)
         log.debug(msg)
         if e.code != 304:
             raise RuntimeError(msg)
