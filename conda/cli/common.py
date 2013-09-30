@@ -198,16 +198,19 @@ def specs_from_args(args):
     return [arg2spec(arg) for arg in args]
 
 
-def specs_from_file(path):
-    try:
+def specs_from_url(url):
+    from conda.fetch import TmpDownload
+
+    with TmpDownload(url, verbose=False) as path:
         specs = []
-        for line in open(path):
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            specs.append(arg2spec(line))
-    except IOError:
-        sys.exit('Error: cannot open file: %s' % path)
+        try:
+            for line in open(path):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                specs.append(arg2spec(line))
+        except IOError:
+            sys.exit('Error: cannot open file: %s' % path)
     return specs
 
 
