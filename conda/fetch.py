@@ -183,6 +183,8 @@ def download(url, dst_dir):
         u = connectionhandled_urlopen(url)
     except IOError:
         raise RuntimeError("Could not open '%s'" % url)
+    except ValueError as e:
+        raise RuntimeError(e)
 
     fn = basename(url)
 
