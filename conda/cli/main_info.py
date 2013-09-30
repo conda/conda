@@ -21,11 +21,11 @@ def configure_parser(sub_parsers):
         '-a', "--all",
         action  = "store_true",
         help    = "show all information, (environments, license, and system "
-                  "information.")
+                  "information")
     p.add_argument(
         '-e', "--envs",
         action  = "store_true",
-        help    = "list all known conda environments.",
+        help    = "list all known conda environments",
     )
     p.add_argument(
         "--license",
@@ -51,8 +51,7 @@ def execute(args, parser):
     options = 'envs', 'system', 'license'
 
     info_dict = dict(platform=config.subdir,
-                     conda_version=conda.__version__,
-                     conda_location=dirname(conda.__file__),
+                     conda_version=conda.__version__,                    
                      root_prefix=config.root_dir,
                      pkgs_dirs=config.pkgs_dirs,
                      envs_dirs=config.envs_dirs,
@@ -73,7 +72,6 @@ Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
-       conda location : %(conda_location)s
      root environment : %(root_prefix)s
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
@@ -109,6 +107,14 @@ Current conda install:
         print()
 
     if args.system and not args.json:
+        import sys
+
+        print("sys.version: %s..." % (sys.version[:40]))
+        print("sys.prefix: %s" % sys.prefix)
+        print("sys.executable: %s" % sys.executable)
+        print("conda location: %s" % dirname(conda.__file__))
+        print()
+
         evars = ['PATH', 'PYTHONPATH', 'CONDA_DEFAULT_ENV', 'CIO_TEST',
                  'CONDA_ENVS_PATH']
         if config.platform == 'linux':
