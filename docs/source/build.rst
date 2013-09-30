@@ -211,6 +211,11 @@ Windows (``bld.bat``) during the build process:
 
 .. list-table::
 
+  * - ``ARCH``
+    - either ``32`` or ``64``, to specify whether the build is 32-bit or
+      64-bit.  The value depends on the ``ARCH`` environment variable, and
+      defaults to the architecture the interpreter running conda was
+      compiled with
   * - ``CONDA_BUILD=1``
     - always set
   * - ``SRC_DIR``

@@ -18,6 +18,7 @@ sp_dir = join(stdlib_dir, 'site-packages')
 
 def get_dict():
     d = {'CONDA_BUILD': '1'}
+    d['ARCH'] = str(cc.bits)
     d['PREFIX'] = build_prefix
     d['PYTHON'] = build_python
     d['PY3K'] = str(PY3K)
