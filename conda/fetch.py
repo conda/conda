@@ -219,19 +219,19 @@ class TmpDownload(object):
     """
     def __init__(self, url, verbose=True):
         self.url = url
-        if isfile(url): # if we provide the file itself, no tmp dir is created
+        self.verbose = verbose
+
+    def __enter__(self):
+        if isfile(self.url):
+            # if we provide the file itself, no tmp dir is created
             self.tmp_dir = None
+            return self.url
         else:
-            if verbose:
+            if self.verbose:
                 from conda.console import setup_handlers
                 setup_handlers()
             self.tmp_dir = tempfile.mkdtemp()
-
-    def __enter__(self):
-        if self.tmp_dir:
             return download(self.url, self.tmp_dir)
-        else:
-            return self.url
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:

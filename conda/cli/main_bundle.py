@@ -60,9 +60,6 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     import sys
     import json
-    import shutil
-    import tempfile
-    from os.path import isfile
 
     import conda.bundle as bundle
     from conda.fetch import TmpDownload
@@ -103,14 +100,14 @@ def execute(args, parser):
             sys.exit("""\
 Error: -x/--extract does not allow --data-path, --extra-meta or --output""")
 
-        with TmpDownload(args.extract) as path:
+        with TmpDownload(args.extract, verbose=not args.quiet) as path:
             bundle.clone_bundle(path, prefix, args.bundle_name)
 
 
     if args.metadump:
         import tarfile
 
-        with TmpDownload(args.metadump) as path:
+        with TmpDownload(args.metadump, verbose=not args.quiet) as path:
             try:
                 t = tarfile.open(path, 'r:*')
                 f = t.extractfile(bundle.BMJ)
