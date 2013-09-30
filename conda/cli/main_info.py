@@ -51,7 +51,7 @@ def execute(args, parser):
     options = 'envs', 'system', 'license'
 
     info_dict = dict(platform=config.subdir,
-                     conda_version=conda.__version__,                    
+                     conda_version=conda.__version__,
                      root_prefix=config.root_dir,
                      pkgs_dirs=config.pkgs_dirs,
                      envs_dirs=config.envs_dirs,
