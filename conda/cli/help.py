@@ -5,38 +5,39 @@ import conda.config as config
 from conda.cli.common import name_prefix
 
 
-help_dir = join(config.root_dir, '.conda-help')
+
+def read_message(fn):
+    res = []
+    for envs_dir in config.envs_dirs:
+        path = join(envs_dir, '.conda-help', fn)
+        try:
+            with open(path) as fi:
+                s = fi.read().decode('utf-8')
+            s = s.replace('${envs_dir}', envs_dir)
+            res.append(s)
+        except IOError:
+            pass
+    return ''.join(res)
 
 
 def root_read_only(command, prefix):
     assert command in {'install', 'update', 'remove'}
-    for path in [join(help_dir, 'ro_%s.txt' % command),
-                 join(help_dir, 'ro.txt')]:
-        try:
-            with open(path) as fi:
-                tmpl = fi.read().decode('utf-8')
-            break
-        except IOError:
-            pass
-    else:
-        tmpl = """\
-Error: Missing write permissions in: %(root_dir)s
+
+    msg = read_message('ro.txt')
+    if not msg:
+        msg = """\
+Error: Missing write permissions in: ${root_dir}
 #
-# You don't appear to have the necessary permissions to %(command)s packages
-# into the install area '%(root_dir)s'.
+# You don't appear to have the necessary permissions to ${command} packages
+# into the install area '${root_dir}'.
 # However you can clone this environment into your home directory and
 # then make changes to it.
 # This may be done using the command:
 #
-# $ conda create -n my_%(name)s --clone=%(prefix)s
+# $ conda create -n my_${name} --clone=${prefix}
 """
-
-    if '%' in tmpl:
-        msg = tmpl % dict(root_dir=config.root_dir,
-                          prefix=prefix,
-                          name=name_prefix(prefix),
-                          env0=config.envs_dirs[0],
-                          command=command)
-    else:
-        msg = tmpl
+    msg = msg.replace('${root_dir}', config.root_dir)
+    msg = msg.replace('${prefix}', prefix)
+    msg = msg.replace('${name}', name_prefix(prefix))
+    msg = msg.replace('${command}', command)
     sys.exit(msg)
