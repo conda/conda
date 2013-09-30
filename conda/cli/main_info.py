@@ -17,23 +17,22 @@ def configure_parser(sub_parsers):
                                description = help,
                                help = help)
     common.add_parser_json(p)
-    els_group = p.add_mutually_exclusive_group()
-    els_group.add_argument(
+    p.add_argument(
         '-a', "--all",
         action  = "store_true",
         help    = "show all information, (environments, license, and system "
                   "information.")
-    els_group.add_argument(
+    p.add_argument(
         '-e', "--envs",
         action  = "store_true",
         help    = "list all known conda environments.",
     )
-    els_group.add_argument(
+    p.add_argument(
         "--license",
         action  = "store_true",
         help    = "display information about local conda licenses list",
     )
-    els_group.add_argument(
+    p.add_argument(
         '-s', "--system",
         action = "store_true",
         help = "list environment variables",
