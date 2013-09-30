@@ -65,6 +65,7 @@ def execute(args, parser):
     from os.path import isfile
 
     import conda.bundle as bundle
+    from conda.fetch import TmpDownload
 
 
     if not (args.create or args.extract or args.metadump):
@@ -102,39 +103,23 @@ def execute(args, parser):
             sys.exit("""\
 Error: -x/--extract does not allow --data-path, --extra-meta or --output""")
 
-        if isfile(args.extract):
-            tmp_dir = None
-            path = args.extract
-        elif '://' in args.extract:
-            from conda.fetch import download
-
-            if not args.quiet:
-                from conda.console import setup_handlers
-                setup_handlers()
-            tmp_dir = tempfile.mkdtemp()
-            path = download(args.extract, tmp_dir)
-        else:
-            sys.exit('Error: did not recognize: %s' % args.extract)
-
-        bundle.clone_bundle(path, prefix, args.bundle_name)
-
-        if tmp_dir:
-            shutil.rmtree(tmp_dir)
+        with TmpDownload(args.extract) as path:
+            bundle.clone_bundle(path, prefix, args.bundle_name)
 
 
     if args.metadump:
         import tarfile
 
-        path = args.metadump
-        try:
-            t = tarfile.open(path, 'r:*')
-            f = t.extractfile(bundle.BMJ)
-            sys.stdout.write(f.read())
-            sys.stdout.write('\n')
-        except IOError:
-            sys.exit("Error: no such file: %s" % path)
-        except tarfile.ReadError:
-            sys.exit("Error: bad tar archive: %s" % path)
-        except KeyError:
-            sys.exit("Error: no archive '%s' in: %s" % (bundle.BMJ, path))
-        t.close()
+        with TmpDownload(args.metadump) as path:
+            try:
+                t = tarfile.open(path, 'r:*')
+                f = t.extractfile(bundle.BMJ)
+                sys.stdout.write(f.read())
+                sys.stdout.write('\n')
+            except IOError:
+                sys.exit("Error: no such file: %s" % path)
+            except tarfile.ReadError:
+                sys.exit("Error: bad tar archive: %s" % path)
+            except KeyError:
+                sys.exit("Error: no archive '%s' in: %s" % (bundle.BMJ, path))
+            t.close()
