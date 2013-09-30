@@ -10,9 +10,11 @@ import os
 import bz2
 import sys
 import json
+import shutil
 import hashlib
+import tempfile
 from logging import getLogger
-from os.path import basename, join
+from os.path import basename, isfile, join
 
 from conda import config
 from conda.utils import memoized
@@ -207,3 +209,28 @@ def download(url, dst_dir):
     if size:
         getLogger('fetch.stop').info(None)
     return path
+
+
+class TmpDownload(object):
+    """
+    Context manager to handle downloads to a tempfile
+    """
+    def __init__(self, url, verbose=True):
+        self.url = url
+        if isfile(url): # if we provide the file itself, no tmp dir is created
+            self.tmp_dir = None
+        else:
+            if verbose:
+                from conda.console import setup_handlers
+                setup_handlers()
+            self.tmp_dir = tempfile.mkdtemp()
+
+    def __enter__(self):
+        if self.tmp_dir:
+            return download(self.url, self.tmp_dir)
+        else:
+            return self.url
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.tmp_dir:
+            shutil.rmtree(self.tmp_dir)
