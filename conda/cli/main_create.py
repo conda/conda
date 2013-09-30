@@ -125,7 +125,7 @@ def execute(args, parser):
                  'package specs or --file')
 
     if args.file:
-        specs = common.specs_from_file(args.file)
+        specs = common.specs_from_url(args.file)
     else:
         specs = common.specs_from_args(args.package_specs)
 

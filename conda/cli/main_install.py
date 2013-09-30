@@ -120,7 +120,7 @@ def execute(args, parser):
         args.no_deps = True
 
     if args.file:
-        specs = common.specs_from_file(args.file)
+        specs = common.specs_from_url(args.file)
     else:
         specs = common.specs_from_args(args.packages)
 
