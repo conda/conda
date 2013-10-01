@@ -1,14 +1,23 @@
-Create a conda package in an environment. (ADVANCED)
+Low-level conda package utility. (ADVANCED)
 
-**usage**: ``conda package [-h] [-n NAME | -p PREFIX] [-c PATH] [-r] [-u] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD]``
+positional arguments:
+
+**usage**: ``conda package [-h] [-n NAME | -p PATH] [-c] [-w] [-r] [-u] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD] [PATH [PATH ...]]
+
+Low-level conda package utility. (ADVANCED)
+
+positional arguments:``
+
+*PATH*
+	optional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
-  -p PREFIX, --prefix PREFIX
-                        full path to environment prefix (default: ROOT_DIR)
-  -c PATH, --check PATH
-                        check (validate) the given tar package and exit
+  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -p PATH, --prefix PATH
+                        full path to environment prefix (default: /home/ilan/a150)
+  -c, --check           check (validate) the given conda packages (PATH) and exit
+  -w, --which           given some PATH print which conda package the file came from
   -r, --reset           remove all untracked files and exit
   -u, --untracked       display all untracked files and exit
   --pkg-name PKG_NAME   package name of the created package

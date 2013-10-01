@@ -1,16 +1,17 @@
 Search for packages and display their information.
 
-**usage**: ``conda search [-h] [-n NAME | -p PREFIX] [-c] [-v] [--channel CHANNEL] [--override-channels] [regex]``
+**usage**: ``conda search [-h] [-n NAME | -p PATH] [-c] [-o] [-v] [--channel CHANNEL] [--override-channels] [regex]``
 
 *regex*
-        package specification or regular expression to search for (default: display all packages)
+	package specification or regular expression to search for (default: display all packages)
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
-  -p PREFIX, --prefix PREFIX
-                        full path to environment prefix (default: ROOT_DIR)
+  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -p PATH, --prefix PATH
+                        full path to environment prefix (default: /home/ilan/a150)
   -c, --canonical       output canonical names of packages only
+  -o, --outdated        only display installed but outdated packages
   -v, --verbose         Show available packages as blocks of data
   --channel CHANNEL     additional channel to search for packages. These are searched in the order they are given, and then the defaults or channels from .condarc (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account.
   --override-channels   Do not search default or .condarc channels. Requires --channel.

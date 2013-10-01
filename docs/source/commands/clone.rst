@@ -1,5 +1,0 @@
------
-clone
------
-
-.. include:: clone.txt

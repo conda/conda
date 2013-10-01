@@ -1,10 +1,13 @@
 Install a list of packages into a specified conda environment.
 The arguments may be packages specifications (e.g. bitarray=0.8),
 
-**usage**: ``conda install [-h] [--yes] [--dry-run] [-f] [--file FILE] [--no-deps] [-c CHANNEL] [--override-channels] [-n NAME | -p PREFIX] [-q] [package_spec [package_spec ...]]``
+**usage**: ``conda install [-h] [--yes] [--dry-run] [-f] [--file FILE] [--no-deps] [-c CHANNEL] [--override-channels] [-n NAME | -p PATH] [-q] [package_spec [package_spec ...]]
+
+Install a list of packages into a specified conda environment.
+The arguments may be packages specifications (e.g. bitarray=0.8),``
 
 *package_spec*
-        package versions to install into conda environment
+	package versions to install into conda environment
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -16,9 +19,9 @@ optional arguments:
   -c CHANNEL, --channel CHANNEL
                         additional channel to search for packages. These are searched in the order they are given, and then the defaults or channels from .condarc (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account.
   --override-channels   Do not search default or .condarc channels. Requires --channel.
-  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
-  -p PREFIX, --prefix PREFIX
-                        full path to environment prefix (default: ROOT_DIR)
+  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -p PATH, --prefix PATH
+                        full path to environment prefix (default: /home/ilan/a150)
   -q, --quiet           do not display progress bar
 
 examples:

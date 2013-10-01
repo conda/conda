@@ -1,5 +1,0 @@
------
-share
------
-
-.. include:: share.txt
