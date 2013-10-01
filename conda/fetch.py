@@ -178,7 +178,7 @@ def fetch_pkg(info, dst_dir=None):
     raise RuntimeError("Could not locate '%s'" % url)
 
 
-def download(url, dst_dir):
+def download(url, dst_path):
     try:
         u = connectionhandled_urlopen(url)
     except IOError:
@@ -186,16 +186,14 @@ def download(url, dst_dir):
     except ValueError as e:
         raise RuntimeError(e)
 
-    fn = basename(url)
-
     size = get_http_value(u, 'Content-Length')
     if size:
         size = int(size)
+        fn = basename(dst_path)
         getLogger('fetch.start').info((fn[:14], size))
 
     n = 0
-    path = join(dst_dir, fn)
-    fo = open(path, 'wb')
+    fo = open(dst_path, 'wb')
     while True:
         chunk = u.read(16384)
         if not chunk:
@@ -204,13 +202,11 @@ def download(url, dst_dir):
         n += len(chunk)
         if size:
             getLogger('fetch.update').info(n)
-
     fo.close()
 
     u.close()
     if size:
         getLogger('fetch.stop').info(None)
-    return path
 
 
 class TmpDownload(object):
@@ -231,7 +227,9 @@ class TmpDownload(object):
                 from conda.console import setup_handlers
                 setup_handlers()
             self.tmp_dir = tempfile.mkdtemp()
-            return download(self.url, self.tmp_dir)
+            dst = join(self.tmp_dir, basename(self.url))
+            download(self.url, dst)
+            return dst
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:
