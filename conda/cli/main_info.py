@@ -53,6 +53,7 @@ def execute(args, parser):
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
                      root_prefix=config.root_dir,
+                     root_writable=config.root_writable,
                      pkgs_dirs=config.pkgs_dirs,
                      envs_dirs=config.envs_dirs,
                      default_prefix=config.default_prefix,
@@ -67,12 +68,14 @@ def execute(args, parser):
     if args.all or all(not getattr(args, opt) for opt in options):
         for key in 'pkgs_dirs', 'envs_dirs', 'channels':
             info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
+        info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
+                               'read only')
         print("""\
 Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
-     root environment : %(root_prefix)s
+     root environment : %(root_prefix)s  (%(_rtwro)s)
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
