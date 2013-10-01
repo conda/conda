@@ -1,9 +1,9 @@
-
 from __future__ import print_function, division, absolute_import
 
 import logging
 
-from conda.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
+from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
+                               ProgressBar)
 
 
 fetch_progress = ProgressBar(
@@ -57,7 +57,7 @@ class PrintHandler(logging.Handler):
 setup = False
 def setup_handlers():
     global setup
-    if setup:
+    if setup: # avoid setting up handlers more than once
         return
     setup = True
 
