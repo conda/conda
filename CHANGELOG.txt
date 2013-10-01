@@ -13,6 +13,9 @@
   * restore backwards compatibility of share/clone for conda-api
   * add new conda bundle command and format
   * pass ARCH environment variable to build scripts
+  * added progress bar to source download for conda build, issue #230
+  * added ability to use url instead of local file to conda install --file
+    and conda create --file options
 
 
 2013-09-06   1.9.1:
