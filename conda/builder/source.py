@@ -7,8 +7,9 @@ from os.path import join, isdir, isfile
 from shutil import copytree, ignore_patterns
 
 from conda.utils import hashsum_file
+from conda.fetch import download
 from conda.builder.config import croot
-from conda.builder.utils import download, rm_rf, tar_xf, unzip
+from conda.builder.utils import rm_rf, tar_xf, unzip
 from conda.builder import external
 
 

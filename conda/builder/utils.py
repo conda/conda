@@ -34,19 +34,6 @@ def _check_call(args, **kwargs):
         sys.exit('Command failed: %s' % ' '.join(args))
 
 
-def download(url, dst_path, md5=None):
-    try:
-        fi = urllib2.urlopen(url)
-    except urllib2.URLError:
-        raise urllib2.URLError("Error could not open URL: %r" % url)
-    data = fi.read()
-    fi.close()
-    if md5:
-        assert hashlib.md5(data).hexdigest() == md5
-    with open(dst_path, 'wb') as fo:
-        fo.write(data)
-
-
 def tar_xf(tarball, dir_path, mode='r:*'):
     if tarball.endswith('.tar.xz'):
         subprocess.check_call(['unxz', '-f', '-k', tarball])
