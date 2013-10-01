@@ -17,9 +17,10 @@ if sys.version_info < (3,):
 else:
     from xmlrpc.client import ServerProxy
 
+from conda.fetch import download
 from conda.utils import human_bytes, hashsum_file
 from conda.install import rm_rf
-from conda.builder.utils import download, tar_xf, unzip
+from conda.builder.utils import tar_xf, unzip
 from conda.builder.source import SRC_CACHE
 from conda.compat import input
 
@@ -210,9 +211,8 @@ def main(args, parser):
                 # it.
                 download_path = join(SRC_CACHE, d['filename'])
                 if not isfile(download_path) or hashsum_file(download_path,
-                    'md5') != d['md5']:
-                    download(d['pypiurl'], join(SRC_CACHE, d['filename']),
-                        md5=d['md5'])
+                                                             'md5') != d['md5']:
+                    download(d['pypiurl'], join(SRC_CACHE, d['filename']))
                 else:
                     print("Using cached download")
                 print("Unpacking %s..." % package)
