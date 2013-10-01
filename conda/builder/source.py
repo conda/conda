@@ -30,12 +30,17 @@ def get_dir():
 
 
 def download_to_cache(meta):
+    print('Source cache directory is: %s' % SRC_CACHE)
     if not isdir(SRC_CACHE):
         os.makedirs(SRC_CACHE)
 
     fn = meta['fn']
     path = join(SRC_CACHE, fn)
-    if not isfile(path):
+
+    if isfile(path):
+        print('Found source in cache: %s' % fn)
+    else:
+        print('Downloading source to cache: %s' % fn)
         download(meta['url'], path)
 
     for tp in 'md5', 'sha1':
