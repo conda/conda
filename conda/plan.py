@@ -17,7 +17,6 @@ from os.path import abspath, isfile, join
 
 from conda import config
 from conda import install
-from conda.naming import name_dist
 from conda.utils import md5_file, human_bytes
 from conda.fetch import fetch_pkg
 from conda.resolve import MatchSpec, Resolve
@@ -179,7 +178,7 @@ def add_defaults_to_specs(r, linked, specs):
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
-    names_linked = {name_dist(dist): dist for dist in linked}
+    names_linked = {install.name_dist(dist): dist for dist in linked}
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
     for name, def_ver in [('python', config.default_python),
@@ -232,7 +231,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked]):
         dist = fn[:-8]
-        name = name_dist(dist)
+        name = install.name_dist(dist)
         if only_names and name not in only_names:
             continue
         must_have[name] = dist
@@ -257,7 +256,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         actions = ensure_linked_actions(smh, prefix)
 
     for dist in sorted(linked):
-        name = name_dist(dist)
+        name = install.name_dist(dist)
         if name in must_have and dist != must_have[name]:
             actions[UNLINK].append(dist)
 
@@ -337,7 +336,7 @@ def execute_plan(plan, index=None, verbose=False):
     for cmd, arg in cmds:
         if i is not None and cmd in progress_cmds:
             i += 1
-            getLogger('progress.update').info((name_dist(arg), i))
+            getLogger('progress.update').info((install.name_dist(arg), i))
 
         if cmd == PREFIX:
             prefix = arg

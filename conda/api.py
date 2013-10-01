@@ -7,10 +7,18 @@ from os.path import dirname, isdir, join
 from conda import config
 from conda import install
 #from conda.utils import url_path
-from conda.naming import fn2spec, name_fn
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
 from conda.resolve import Package
+
+
+def _name_fn(fn):
+    assert fn.endswith('.tar.bz2')
+    return install.name_dist(fn[:-8])
+
+def _fn2spec(fn):
+    assert fn.endswith('.tar.bz2')
+    return ' '.join(fn[:-8].rsplit('-', 2))
 
 
 def get_index(channel_urls=(), prepend=True):
@@ -39,7 +47,7 @@ def app_get_index(all_version=False):
 
     d = defaultdict(list) # name -> list of Package objects
     for fn, info in iteritems(index):
-        d[name_fn(fn)].append(Package(fn, info))
+        d[_name_fn(fn)].append(Package(fn, info))
 
     res = {}
     for pkgs in itervalues(d):
@@ -75,7 +83,7 @@ def app_info_packages(fn):
     index = get_index()
     r = Resolve(index)
     res = []
-    for fn2 in r.solve([fn2spec(fn)]):
+    for fn2 in r.solve([_fn2spec(fn)]):
         info = index[fn2]
         res.append((info['name'], info['version'], info['size'],
                     any(install.is_fetched(pkgs_dir, fn2[:-8])
@@ -109,7 +117,7 @@ def app_install(fn, prefix=config.root_dir):
     import conda.plan as plan
 
     index = get_index()
-    actions = plan.install_actions(prefix, index, [fn2spec(fn)])
+    actions = plan.install_actions(prefix, index, [_fn2spec(fn)])
     plan.execute_actions(actions, index)
 
 
@@ -136,7 +144,7 @@ def app_uninstall(fn, prefix=config.root_dir):
     import conda.plan as plan
 
     index = None
-    specs = [fn2spec(fn)]
+    specs = [_fn2spec(fn)]
     if (plan.is_root_prefix(prefix) and
         common.names_in_specs(common.root_no_rm, specs)):
         raise ValueError("Cannot remove %s from the root environment" %

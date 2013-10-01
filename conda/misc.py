@@ -15,7 +15,6 @@ from os.path import (abspath, basename, dirname, expanduser,
 from conda import config
 from conda import install
 from conda.api import get_index
-from conda.naming import name_dist
 from conda.plan import (RM_EXTRACTED, EXTRACT, UNLINK, LINK,
                         ensure_linked_actions, execute_actions)
 from conda.compat import iteritems
@@ -78,7 +77,7 @@ def untracked(prefix, exclude_self_build=False):
 
 
 def discard_conda(dists):
-    return [dist for dist in dists if not name_dist(dist) == 'conda']
+    return [dist for dist in dists if not install.name_dist(dist) == 'conda']
 
 
 def clone_env(prefix1, prefix2, verbose=True):

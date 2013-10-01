@@ -60,7 +60,7 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
     config.set_pkgs_dirs(prefix)
-    linked = set(plan.name_dist(d) for d in ci.linked(prefix))
+    linked = set(ci.name_dist(d) for d in ci.linked(prefix))
     for name in args.pkg_names:
         common.arg2spec(name)
         if '=' in name:
