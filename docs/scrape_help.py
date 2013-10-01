@@ -1,4 +1,4 @@
-# (c) 2012 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -17,11 +17,10 @@ cmd_names = [
     'install',
     'update',
     'remove',
+    'build',
     'package',
     'index',
-    'share',
-    'build',
-    'clone'
+    'bundle',
 ]
 
 def scrape_help(cmd_name):

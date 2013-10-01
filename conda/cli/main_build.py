@@ -97,11 +97,11 @@ def execute(args, parser):
     import tempfile
     from os.path import abspath, isdir, isfile
 
-    import conda.builder.build as build
-    from conda.builder.config import croot
-    import conda.builder.source as source
-    from conda.builder.metadata import MetaData
     from conda.lock import Locked
+    import conda.builder.build as build
+    import conda.builder.source as source
+    from conda.builder.config import croot
+    from conda.builder.metadata import MetaData
 
     with Locked(croot):
         for arg in args.recipe:
