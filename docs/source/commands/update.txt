@@ -1,17 +1,17 @@
 Update conda packages.
 
-**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PREFIX] [-q] [-c CHANNEL] [--override-channels] package_name [package_name ...]``
+**usage**: ``conda update [-h] [--yes] [--dry-run] [-n NAME | -p PATH] [-q] [-c CHANNEL] [--override-channels] [package_name [package_name ...]]``
 
 *package_name*
-        names of packages to update
+	names of packages to update
 
 optional arguments:
   -h, --help            show this help message and exit
   --yes                 do not ask for confirmation
   --dry-run             only display what would have been done
-  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
-  -p PREFIX, --prefix PREFIX
-                        full path to environment prefix (default: ROOT_DIR)
+  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -p PATH, --prefix PATH
+                        full path to environment prefix (default: /home/ilan/a150)
   -q, --quiet           do not display progress bar
   -c CHANNEL, --channel CHANNEL
                         additional channel to search for packages. These are searched in the order they are given, and then the defaults or channels from .condarc (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account.

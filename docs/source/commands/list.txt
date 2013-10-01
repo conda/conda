@@ -1,13 +1,14 @@
 List linked packages in a conda environment.
 
-**usage**: ``conda list [-h] [-n NAME | -p PREFIX] [-c] [regex]``
+**usage**: ``conda list [-h] [-n NAME | -p PATH] [-c] [-e] [regex]``
 
 *regex*
-        list only packages matching this regular expression
+	list only packages matching this regular expression
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n NAME, --name NAME  name of environment (directory in ROOT_DIR/envs)
-  -p PREFIX, --prefix PREFIX
-                        full path to environment prefix (default: ROOT_DIR)
+  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -p PATH, --prefix PATH
+                        full path to environment prefix (default: /home/ilan/a150)
   -c, --canonical       output canonical names of packages only
+  -e, --export          output requirement string only (output may be used by conda create --file)
