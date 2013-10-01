@@ -177,6 +177,10 @@ def update_prefix(path, new_prefix):
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
+def name_dist(dist):
+    return dist.rsplit('-', 2)[0]
+
+
 def create_meta(prefix, dist, info_dir, extra_info):
     """
     Create the conda metadata, in a given prefix, for a given package.
@@ -213,9 +217,8 @@ def mk_menus(prefix, files, remove=False):
 
 
 def post_link(prefix, dist, unlink=False):
-    name = dist.rsplit('-', 2)[0]
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
-            name,
+            name_dist(dist),
             'pre-unlink' if unlink else 'post-link',
             'bat' if on_win else 'sh'))
     if not isfile(path):
@@ -337,7 +340,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-              dist.rsplit('-', 2)[0] in win_ignore_root):
+              name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
         print('Ignored: %s' % dist)
@@ -373,7 +376,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 log.error('failed to link (src=%r, dst=%r, type=%r)' %
                           (src, dst, lt))
 
-        if dist.rsplit('-', 2)[0]  == '_cache':
+        if name_dist(dist) == '_cache':
             return
 
         for f in sorted(has_prefix_files):
@@ -394,7 +397,7 @@ def unlink(prefix, dist):
     package does not exist in the prefix.
     '''
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
-              dist.rsplit('-', 2)[0] in win_ignore_root):
+              name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
         print('Ignored: %s' % dist)
