@@ -15,6 +15,7 @@ from os.path import (abspath, basename, dirname, expanduser,
 from conda import config
 from conda import install
 from conda.api import get_index
+from conda.naming import name_dist
 from conda.plan import (RM_EXTRACTED, EXTRACT, UNLINK, LINK,
                         ensure_linked_actions, execute_actions)
 from conda.compat import iteritems
@@ -76,12 +77,16 @@ def untracked(prefix, exclude_self_build=False):
                                            path[:-1] in conda_files))}
 
 
+def discard_conda(dists):
+    return [dist for dist in dists if not name_dist(dist) == 'conda']
+
+
 def clone_env(prefix1, prefix2, verbose=True):
     """
     clone existing prefix1 into new prefix2
     """
     untracked_files = untracked(prefix1)
-    dists = install.linked(prefix1)
+    dists = discard_conda(install.linked(prefix1))
     print('Packages: %d' % len(dists))
     print('Files: %d' % len(untracked_files))
 

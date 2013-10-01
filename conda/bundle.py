@@ -12,7 +12,7 @@ from os.path import abspath, expanduser, basename, isdir, isfile, islink, join
 
 import conda.config as config
 from conda.api import get_index
-from conda.misc import untracked
+from conda.misc import untracked, discard_conda
 import conda.install as install
 import conda.plan as plan
 
@@ -126,7 +126,8 @@ def clone_bundle(path, prefix=None, bundle_name=None):
             if m.path.startswith(BDP) or m.path == BMJ:
                 continue
             t.extract(m, path=prefix)
-        actions = plan.ensure_linked_actions(meta.get('linked', []), prefix)
+        dists = discard_conda(meta.get('linked', []))
+        actions = plan.ensure_linked_actions(dists, prefix)
         index = get_index()
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
