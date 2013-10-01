@@ -28,7 +28,7 @@ def configure_parser(sub_parsers):
         help    = "list all known conda environments",
     )
     p.add_argument(
-        "--license",
+        '-l', "--license",
         action  = "store_true",
         help    = "display information about local conda licenses list",
     )
@@ -133,8 +133,10 @@ Current conda install:
             from _license import show_info
             show_info()
         except ImportError:
-            print("WARNING: could import _license.show_info,\n"
-                  "         try: conda install _license")
+            print("""\
+WARNING: could import _license.show_info
+# try:
+# $ conda install -n root _license""")
 
     if args.json:
         common.stdout_json(info_dict)
