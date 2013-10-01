@@ -95,7 +95,7 @@ In short:
         if argv1 in ('activate', 'deactivate'):
             sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
             if sys.platform != 'win32':
-                sys.stderr.write('Did you mean "source %s"?\n' %
+                sys.stderr.write('Did you mean "source %s" ?\n' %
                                  ' '.join(sys.argv[1:]))
             sys.exit(1)
 
