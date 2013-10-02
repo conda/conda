@@ -24,15 +24,12 @@ default_numpy = '1.7'
 
 # ----- operating system and architecture -----
 
-_ARCH = os.getenv('ARCH')
-if _ARCH not in (None, '', '32', '64'):
-    sys.exit("Error: unreasonable value for ARCH: %s  (expected 32 or 64)"
-             % _ARCH)
-
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
             'darwin': 'osx', 'win32': 'win'}
 platform = _sys_map.get(sys.platform, 'unknown')
-bits = int(_ARCH or 8 * tuple.__itemsize__)
+bits = 8 * tuple.__itemsize__
+if os.getenv('ARCH'):
+    bits = 64 if '64' in os.getenv('ARCH', '') else 32
 
 if platform == 'linux' and machine() == 'armv6l':
     subdir = 'linux-armv6l'
