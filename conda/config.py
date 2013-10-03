@@ -183,4 +183,4 @@ def get_channel_urls():
 # ----- proxy -----
 
 def get_proxy_servers():
-    return rc.get('proxy_servers', None)
+    return rc.get('proxy_servers')

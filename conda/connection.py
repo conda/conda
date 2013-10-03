@@ -36,11 +36,7 @@ log = getLogger(__name__)
 # from condarc and overrwrite any system proxies
 # the proxies are in a dict {'http':'http://proxy:8080'}
 # protocol:proxyserver
-
-if get_proxy_servers():
-    proxies_dict = get_proxy_servers()
-else:
-    proxies_dict = urllib2.getproxies()
+proxies_dict = get_proxy_servers() or urllib2.getproxies()
 
 #2. handle authentication
 
