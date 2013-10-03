@@ -185,10 +185,13 @@ def create_meta(prefix, dist, info_dir, extra_info):
     """
     Create the conda metadata, in a given prefix, for a given package.
     """
-    meta_dir = join(prefix, 'conda-meta')
+    # read info/index.json first
     with open(join(info_dir, 'index.json')) as fi:
         meta = json.load(fi)
+    # add extra info
     meta.update(extra_info)
+    # write into <env>/conda-meta/<dist>.json
+    meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, dist + '.json'), 'w') as fo:
