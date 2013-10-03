@@ -31,7 +31,6 @@ log = getLogger(__name__)
 # typically http, https, ftp
 
 # 1. get the proxies list
-proxies_dict=urllib2.getproxies()
 # urllib can only get proxies on windows and mac. so on linux or if the user
 # wants to specify the proxy there has to be a way to do that. TODO get proxies
 # from condarc and overrwrite any system proxies
@@ -40,6 +39,8 @@ proxies_dict=urllib2.getproxies()
 
 if get_proxy_servers():
     proxies_dict = get_proxy_servers()
+else:
+    proxies_dict = urllib2.getproxies()
 
 #2. handle authentication
 
