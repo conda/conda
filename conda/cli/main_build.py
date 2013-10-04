@@ -87,6 +87,7 @@ Error: cannot locate binstar (required for upload)
 # Try:
 # $ conda install binstar
 ''')
+    print("Uploading to binstar")
     subprocess.call([binstar, 'upload', path])
 
 
