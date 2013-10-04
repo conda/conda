@@ -87,7 +87,8 @@ Reference Guide
 Requirements
 ------------
 
-* python 2.7
+* python 2.7 or 3.3
+* pycosat
 * pyyaml
 
 
