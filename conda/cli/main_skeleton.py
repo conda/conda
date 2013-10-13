@@ -66,7 +66,7 @@ def configure_parser(sub_parsers):
         )
     pypi.add_argument(
         "--no-prompt",
-        action="store_false",
+        action="store_true",
         default=False,
         dest="noprompt",
         help="""Don't prompt the user on ambiguous choices.  Instead, make the 
