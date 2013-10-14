@@ -64,6 +64,14 @@ def configure_parser(sub_parsers):
         distribute.  WARNING: The default option downloads and runs the
         package's setup.py script."""
         )
+    pypi.add_argument(
+        "--no-prompt",
+        action="store_true",
+        default=False,
+        dest="noprompt",
+        help="""Don't prompt the user on ambiguous choices.  Instead, make the 
+        best possible choice and continue."""
+        )
     p.set_defaults(func=execute)
 
 
