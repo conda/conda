@@ -157,7 +157,7 @@ def main(args, parser):
                 d['usemd5'] = '#'
             else:
                 sys.exit("Error: No source urls found for %s" % package)
-        if len(urls) > 1:
+        if len(urls) > 1 and not args.noprompt:
             print("More than one source version is available for %s:" % package)
             for i, url in enumerate(urls):
                 print("%d: %s (%s) %s" % (i, url['url'],
@@ -179,14 +179,20 @@ def main(args, parser):
             data['classifiers'] if classifier.startswith(license_classifier)]
         if not licenses:
             if data['license']:
-                # Some projects put the whole license text in this field
-                print("This is the license for %s" % package)
-                print()
-                print(data['license'])
-                print()
-                license = input("What license string should I use? ")
+                if args.noprompt:
+                    license = data['license']
+                else:
+                    # Some projects put the whole license text in this field
+                    print("This is the license for %s" % package)
+                    print()
+                    print(data['license'])
+                    print()
+                    license = input("What license string should I use? ")
             else:
-                license = input("No license could be found for %s on PyPI. What license should I use? " % package)
+                if args.noprompt:
+                    license = "UNKNOWN"
+                else:
+                    license = input("No license could be found for %s on PyPI. What license should I use? " % package)
         else:
             license = ' or '.join(licenses)
         d['license'] = license
@@ -242,7 +248,10 @@ def main(args, parser):
                             uses_distribute = False
                     d['build_depends'] = indent.join([''] +
                         ['distribute']*uses_distribute + deps)
-                    d['run_depends'] = indent.join([''] + deps)
+                    ### Could be more discriminatory but enough
+                    ### packages also need distribute at run_time...
+                    d['run_depends'] = indent.join([''] + 
+                        ['distribute']*uses_distribute + deps)
 
                 if pkginfo['entry_points']:
                     if not isinstance(pkginfo['entry_points'], dict):
