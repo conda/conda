@@ -12,6 +12,8 @@ from conda.compat import itervalues, iteritems
 
 log = logging.getLogger(__name__)
 
+class NoPackageError(RuntimeError):
+    pass
 
 class MatchSpec(object):
 
@@ -193,7 +195,7 @@ class Resolve(object):
         pkgs = self.get_pkgs(ms)
 
         if not pkgs:
-            raise RuntimeError("No packages found matching: %s" % ms)
+            raise NoPackageError("No packages found matching: %s" % ms)
         maxpkg = max(pkgs)
         for pkg in pkgs:
             if pkg == maxpkg:
