@@ -9,7 +9,8 @@ from __future__ import print_function, division, absolute_import
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
-
+from conda.resolve import NoPackageError
+from conda.from_pypi import install_from_pypi
 
 help = "Install a list of packages into a specified conda environment."
 descr = help + """
@@ -49,6 +50,12 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "do not install dependencies",
     )
+    p.add_argument(
+        "--no-pypi",
+        action = "store_false",
+        default=True,
+        dest="pypi"
+        )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
@@ -145,8 +152,14 @@ Error: environment does not exist: %s
     index = get_index(channel_urls=channel_urls, prepend=not
         args.override_channels)
 
-    actions = plan.install_actions(prefix, index, specs,
+    try:
+        actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
+    except NoPackageError as err:
+        if args.pypi:
+            install_from_pypi(args, parser)
+        else:
+            raise NoPackageError(err)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
