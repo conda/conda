@@ -152,14 +152,15 @@ Error: environment does not exist: %s
     index = get_index(channel_urls=channel_urls, prepend=not
         args.override_channels)
 
-    try:
-        actions = plan.install_actions(prefix, index, specs,
+    if args.pypi:
+        # Remove from specs packages that are not in conda index
+        # And install them via pypi method
+        # Return an updated specs
+        specs = install_from_pypi(prefix, index, specs)
+        if not specs: return
+
+    actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
-    except NoPackageError as err:
-        if args.pypi:
-            install_from_pypi(args, parser)
-        else:
-            raise NoPackageError(err)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
