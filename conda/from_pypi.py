@@ -1,19 +1,26 @@
 from __future__ import print_function, division, absolute_import
+from conda.resolve import MatchSpec, Resolve
 
-def install_from_pypi(args, parser):
-    print("Conda package not available, attempting to create one from pypi...")
-    import pdb
-    pdb.set_trace()
-    try:
-        print("Creating recipe...")
-        # run conda skeleton pypi <package-name> --no-prompt --output-dir root-prefix/conda-recipes
-        print("Building recipe...")
-        # run conda build root-prefix/conda-recipes/package-name --no-binstar-upload
-        print("Installing conda package...")
-        # run conda install root-prefix/conda-bld/<platform>/<package-name><...>.tar.bz2
-    except Exception as err:
-        print(err)
-        raise RuntimeError("Could not install package from pypi")
+def create_recipe(prefix, spec):
+    pass
 
+def build_pacakge(prefix, recipedir):
+    pass
 
+def install_package(prefix, pkgname):
+    pass
 
+def install_from_pypi(prefix, index, specs):
+    r = Resolve(index)
+    for_conda = []
+    for s in specs:
+        try:
+            r.find_matches(MatchSpec(s)).next()
+        except StopIteration:
+            print("Conda package not available for %s, attempting to create one from pypi" % s)
+            recipedir = create_recipe(prefix, s)
+            pkgname = build_package(prefix, recipedir)
+            install_package(prefix, pkgname)
+        else:
+            for_conda.append(s)            
+    return for_conda
