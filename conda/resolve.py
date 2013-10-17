@@ -9,6 +9,7 @@ from collections import defaultdict
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
+from conda.from_pypi import install_from_pypi
 
 log = logging.getLogger(__name__)
 
