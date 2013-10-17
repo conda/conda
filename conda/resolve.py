@@ -13,9 +13,6 @@ from conda.from_pypi import install_from_pypi
 
 log = logging.getLogger(__name__)
 
-class NoPackageError(RuntimeError):
-    pass
-
 class MatchSpec(object):
 
     def __init__(self, spec):
@@ -196,7 +193,7 @@ class Resolve(object):
         pkgs = self.get_pkgs(ms)
 
         if not pkgs:
-            raise NoPackageError("No packages found matching: %s" % ms)
+            raise RuntimeError("No packages found matching: %s" % ms)
         maxpkg = max(pkgs)
         for pkg in pkgs:
             if pkg == maxpkg:
