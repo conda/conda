@@ -181,8 +181,6 @@ def add_defaults_to_specs(r, linked, specs):
     log.debug('H0 specs=%r' % specs)
     names_linked = {install.name_dist(dist): dist for dist in linked}
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
-    import pdb
-    pdb.set_trace()
 
     for name, def_ver in [('python', config.default_python),
                           ('numpy', config.default_numpy)]:
