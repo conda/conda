@@ -9,7 +9,6 @@ from __future__ import print_function, division, absolute_import
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
-from conda.resolve import NoPackageError
 from conda.from_pypi import install_from_pypi
 
 help = "Install a list of packages into a specified conda environment."
@@ -102,7 +101,6 @@ def execute(args, parser):
     import conda.plan as plan
     from conda.api import get_index
     from conda.cli import pscheck
-
 
     prefix = common.get_prefix(args)
     config.set_pkgs_dirs(prefix)
