@@ -73,10 +73,16 @@ def load_condarc(path):
 
 rc = load_condarc(rc_path)
 
+sys_prefix = sys.prefix
+# Correct sys.prefix on mac when run with pythonw on Mac (i.e. in qtconsole)
+if sys.platform == 'darwin' and 'python.app' in sys_prefix:
+    ind = sys_prefix.find('python.app')
+    sys_prefix = sys_prefix[:ind-1]
+
 # ----- local directories -----
 
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
-                                        rc.get('root_dir', sys.prefix))))
+                                        rc.get('root_dir', sys_prefix))))
 root_writable = try_write(root_dir)
 root_env_name = 'root'
 
