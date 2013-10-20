@@ -10,6 +10,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.from_pypi import install_from_pypi
+from conda.api import get_index
 
 help = "Install a list of packages into a specified conda environment."
 descr = help + """
@@ -53,8 +54,16 @@ def configure_parser(sub_parsers):
         "--no-pypi",
         action = "store_false",
         default=True,
-        dest="pypi"
-        )
+        dest="pypi",
+        help = "do not install from pypi",
+    )
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        dest='use_local',
+        help = "use locally built packages",
+    )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
@@ -149,6 +158,15 @@ Error: environment does not exist: %s
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
         args.override_channels)
+
+    if args.use_local:
+        from conda.fetch import fetch_index
+        from conda.utils import url_path
+        from conda.builder import config as build_config
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = get_index([url_path(build_config.croot)])        
 
     if args.pypi:
         # Remove from specs packages that are not in conda index
