@@ -7,9 +7,11 @@
 from __future__ import print_function, division, absolute_import
 
 import sys
+import os.path
 
 from conda.cli import common
 import conda.config as config
+
 
 
 help = "Build a package from a (conda) recipe. (ADVANCED)"
@@ -127,7 +129,12 @@ def execute(args, parser):
                 need_cleanup = False
 
             if not isdir(recipe_dir):
-                sys.exit("Error: no such directory: %s" % recipe_dir)
+                # See if it's a spec and the directory is in 
+                # conda-recipes
+                recipe_dir = os.path.join(config.root_dir,
+                                          'conda-recipes', arg)
+                if not isdir(recipe_dir):
+                    sys.exit("Error: no such directory: %s" % abspath(arg))
 
             m = MetaData(recipe_dir)
             if args.check and len(args.recipe) > 1:
