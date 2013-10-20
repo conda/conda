@@ -55,6 +55,12 @@ def configure_parser(sub_parsers):
         nargs = '+',
         help = "path to recipe directory",
     )
+    p.add_argument(
+        '--no-test',
+        action='store_true',
+        dest='notest',
+        help="do not test the package"
+    )
     p.set_defaults(func=execute)
 
 
@@ -139,7 +145,8 @@ def execute(args, parser):
                 print('Source tree in:', source.get_dir())
             else:
                 build.build(m)
-                build.test(m)
+                if not args.notest:
+                    build.test(m)
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)

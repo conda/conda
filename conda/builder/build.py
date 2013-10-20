@@ -116,6 +116,11 @@ def create_env(pref, specs):
     index = get_index([url_path(config.croot)])
 
     cc.pkgs_dirs = cc.pkgs_dirs[:1]
+
+    # FIXME: Probably should allow --no-pypi to over-ride
+    from conda.from_pypi import install_from_pypi
+    specs = install_from_pypi(pref, index, specs)
+
     actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
