@@ -137,6 +137,8 @@ else:
 changeps1 = rc.get('changeps1', True)
 binstar_upload = rc.get('binstar_upload', None) # None means ask
 disallow = set(rc.get('disallow', []))
+# packages which are added to a newly created environment by default
+create_default_packages = list(rc.get('create_default_packages', []))
 
 # ----- channels -----
 
