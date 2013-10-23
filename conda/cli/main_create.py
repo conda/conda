@@ -125,6 +125,9 @@ def execute(args, parser):
         print_activate(args.name if args.name else prefix)
         return
 
+    if not args.no_default_packages:
+        args.package_specs.extend(config.create_default_packages)
+
     if len(args.package_specs) == 0 and not args.file:
         sys.exit('Error: too few arguments, must supply command line '
                  'package specs or --file')
@@ -132,8 +135,6 @@ def execute(args, parser):
     if args.file:
         specs = common.specs_from_url(args.file)
     else:
-        if not args.no_default_packages and config.create_default_packages:
-            args.package_specs.extend(config.create_default_packages)
         specs = common.specs_from_args(args.package_specs)
 
     common.check_specs(prefix, specs)
