@@ -44,6 +44,11 @@ def configure_parser(sub_parsers):
         help = 'path to (or name of) existing environment',
         metavar = 'ENV',
     )
+    p.add_argument(
+        "--no-default-packages",
+        action = "store_true",
+        help = 'ignore create_default_packages in condarc file',
+    )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
@@ -127,6 +132,8 @@ def execute(args, parser):
     if args.file:
         specs = common.specs_from_url(args.file)
     else:
+        if not args.no_default_packages and config.create_default_packages:
+            args.package_specs.extend(config.create_default_packages)
         specs = common.specs_from_args(args.package_specs)
 
     common.check_specs(prefix, specs)
