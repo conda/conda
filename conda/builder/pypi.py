@@ -250,7 +250,7 @@ def main(args, parser):
                         ['distribute']*uses_distribute + deps)
                     ### Could be more discriminatory but enough
                     ### packages also need distribute at run_time...
-                    d['run_depends'] = indent.join([''] + 
+                    d['run_depends'] = indent.join([''] +
                         ['distribute']*uses_distribute + deps)
 
                 if pkginfo['entry_points']:

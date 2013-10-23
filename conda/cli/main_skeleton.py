@@ -69,7 +69,7 @@ def configure_parser(sub_parsers):
         action="store_true",
         default=False,
         dest="noprompt",
-        help="""Don't prompt the user on ambiguous choices.  Instead, make the 
+        help="""Don't prompt the user on ambiguous choices.  Instead, make the
         best possible choice and continue."""
         )
     p.set_defaults(func=execute)
