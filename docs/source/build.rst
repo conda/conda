@@ -76,7 +76,7 @@ The meta.yaml file
 
     # The build number should be incremented for new builds of the same version
     build:            # (optional)
-      number: 1                          (optional, defaults to 0)
+      number: 1                        # (optional, defaults to 0)
     # optional Python entry points
       entry_points:
         - bsdiff4 = bsdiff4.cli:main_bsdiff4
