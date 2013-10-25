@@ -33,6 +33,11 @@ def configure_parser(sub_parsers):
 
     common.add_parser_yes(p)
     p.add_argument(
+        "-i", "--index-cache",
+        action = "store_true",
+        help = "remove index cache",
+    )
+    p.add_argument(
         "-l", "--lock",
         action = "store_true",
         help = "remove all conda lock files",
@@ -93,8 +98,19 @@ def rm_tarballs(args):
         os.unlink(os.path.join(pkgs_dir, fn))
 
 
+def rm_index_cache():
+    from os.path import join
+
+    from conda.config import pkgs_dirs
+    from conda.install import rm_rf
+
+    rm_rf(join(pkgs_dirs[0], 'cache'))
+
+
 def execute(args, parser):
     if args.lock:
         rm_lock()
     if args.tarballs:
         rm_tarballs(args)
+    if args.index_cache:
+        rm_index_cache()
