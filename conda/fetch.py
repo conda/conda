@@ -59,7 +59,7 @@ def fetch_repodata(url):
     cache_path = join(create_cache_dir(), cache_fn_url(url))
     try:
         cache = json.load(open(cache_path))
-    except IOError:
+    except (IOError, ValueError):
         cache = {'packages': {}}
 
     request = urllib2.Request(url + 'repodata.json.bz2')
