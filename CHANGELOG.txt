@@ -3,7 +3,6 @@
   * update bundle format
   * fix bug when displaying packages to be downloaded (thanks Crystal)
 
-
 2013-10-27   2.0.2:
 -------------------
   * add --index-cache option to clean command, see issue #321
