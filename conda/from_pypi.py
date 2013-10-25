@@ -66,7 +66,8 @@ def pip_install(prefix, s):
     #  We may need to update something after install
     # Also conda remove should uninstall pip-installed packages
     # FIXME: we need to make sure we are running in the correct environment
-    ret = subprocess.call(['pip','install', s])
+    path_to_pip = os.path.join(prefix, 'bin', 'pip')
+    ret = subprocess.call([path_to_pip,'install', s])
     if ret != 0:
         print("Could not install %s using pip" % s)
     return
