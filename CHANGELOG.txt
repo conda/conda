@@ -1,6 +1,7 @@
 2013-10-XX   2.0.2:
 -------------------
   * add --index-cache option to clean command, see issue #321
+  * when building packages on Linux, use RPATH (instead of RUNPATH)
 
 
 2013-10-23   2.0.1:
