@@ -107,8 +107,8 @@ LINK_HARD = 1
 LINK_SOFT = 2
 LINK_COPY = 3
 link_name_map = {
-    LINK_HARD: 'hard',
-    LINK_SOFT: 'soft',
+    LINK_HARD: 'hard-link',
+    LINK_SOFT: 'soft-link',
     LINK_COPY: 'copy',
 }
 
