@@ -4,6 +4,7 @@ import argparse
 import os.path
 from conda.builder import build, metadata
 from conda import config
+import subprocess
 
 def configure_and_call_function(args, message):
     from conda.cli import main_skeleton
@@ -58,3 +59,34 @@ def install_from_pypi(prefix, index, specs):
         else:
             for_conda.append(s)            
     return for_conda
+
+def pip_install(prefix, s):
+    # pip install <s>
+    # It would be great if conda list could show pip installed packages too
+    #  We may need to update something after install
+    # Also conda remove should uninstall pip-installed packages
+    # FIXME: we need to make sure we are running in the correct environment
+    ret = subprocess.call(['pip','install', s])
+    if ret != 0:
+        print("Could not install %s using pip" % s)
+    return
+
+def install_with_pip(prefix, index, specs):
+    r = Resolve(index)
+    for_conda = []
+
+    try:
+        r.find_matches(MatchSpec('pip')).next()
+    except StopIteration:
+        install_package(prefix, 'pip')
+
+    for s in specs:
+        try:
+            r.find_matches(MatchSpec(s)).next()
+        except StopIteration:
+            print("Conda package not available for %s, attempting to install via pip" % s)
+            pip_install(prefix, s)
+        else:
+            for_conda.append(s)            
+    return for_conda
+
