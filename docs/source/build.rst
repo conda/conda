@@ -24,7 +24,7 @@ When building a package, the following steps are invoked:
   6. run the actual build script. The current working directory is the source
      directory with environment variables set. The build script installs into
      the build environment
-  7. do some necessary post processing steps: shebang, runpath, etc.
+  7. do some necessary post processing steps: shebang, rpath, etc.
   8. add conda metadata to the build environment
   9. package up the new files in the build environment into a conda package
   10. test the new conda package:
