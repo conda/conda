@@ -103,7 +103,7 @@ Error: -x/--extract does not allow --data-path or --extra-meta""")
         with TmpDownload(args.metadump, verbose=not args.quiet) as path:
             try:
                 t = tarfile.open(path, 'r:*')
-                f = t.extractfile(bundle.BMJ)
+                f = t.extractfile('info/index.json')
                 sys.stdout.write(f.read())
                 sys.stdout.write('\n')
             except IOError:

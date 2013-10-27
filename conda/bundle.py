@@ -91,7 +91,10 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
                 path = join(prefix, f)
                 add_file(t, path, f)
         meta['bundle_prefix'] = prefix
-        meta['linked'] = sorted(install.linked(prefix))
+        meta['depends'] = [' '.join(dist.rsplit('-', 2)) for dist in
+                           sorted(install.linked(prefix))]
+    else:
+        meta['depends'] = []
 
     if data_path:
         add_data(t, data_path)
@@ -120,18 +123,19 @@ def clone_bundle(path, prefix=None, bundle_name=None):
     """
     try:
         t = tarfile.open(path, 'r:*')
-        meta = json.load(t.extractfile(BMJ))
+        meta = json.load(t.extractfile('info/index.json'))
     except tarfile.ReadError:
         raise RuntimeError('bad tar archive: %s' % path)
     except KeyError:
-        raise RuntimeError("no archive '%s' in: %s" % (BMJ, path))
+        raise RuntimeError("no archive 'info/index.json' in: %s" % (path))
 
     if prefix and not isdir(prefix):
         for m in t.getmembers():
-            if m.path.startswith(BDP) or m.path == BMJ:
+            if m.path.startswith((BDP, 'info/')):
                 continue
             t.extract(m, path=prefix)
-        dists = discard_conda(meta.get('linked', []))
+        dists = discard_conda('-'.join(s.split())
+                              for s in meta.get('depends', []))
         actions = plan.ensure_linked_actions(dists, prefix)
         index = get_index()
         plan.display_actions(actions, index)
