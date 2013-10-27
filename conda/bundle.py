@@ -19,7 +19,6 @@ import conda.plan as plan
 
 ISO8601 = "%Y-%m-%d %H:%M:%S %z"
 BDP = 'bundle-data/'
-BMJ = 'bundle-meta.json'
 
 warn = []
 
@@ -53,39 +52,45 @@ def add_data(t, data_path):
         raise RuntimeError('no such file or directory: %s' % data_path)
 
 
-def get_filename(meta):
-    s = '%(creator)s:%(name)s' % meta
+def get_version(meta):
+    s = '%(creator)s:%(bundle_name)s' % meta
     h = hashlib.new('sha1')
     h.update(s.encode('utf-8'))
-    return 'bundle-%s.tar.bz2' % h.hexdigest()
+    return h.hexdigest()
 
 
 def create_bundle(prefix=None, data_path=None, bundle_name=None,
-                  extra_meta=None, output_path=None):
+                  extra_meta=None):
     """
     Create a "bundle" of the environment located in `prefix`,
     and return the full path to the created package, which is going to be
     located in the current working directory, unless specified otherwise.
     """
     meta = dict(
-        name = bundle_name,
+        name = 'bundle',
+        build = '0',
+        build_number = 0,
+        bundle_name = bundle_name,
         creator = os.getenv('USER'),
         platform = config.platform,
         arch = config.arch_name,
         ctime = time.strftime(ISO8601)
     )
-    tmp_dir = tempfile.mkdtemp()
-    tar_path = join(tmp_dir, 'bundle.tar.bz2')
+    meta['version'] = get_version(meta)
+
+    tar_path = join('bundle-%(version)s-0.tar.bz2' % meta)
     t = tarfile.open(tar_path, 'w:bz2')
     if prefix:
         prefix = abspath(prefix)
         if not prefix.startswith('/opt/anaconda'):
             for f in sorted(untracked(prefix, exclude_self_build=True)):
-                if f.startswith(BDP) or f == BMJ:
+                if f.startswith(BDP):
                     raise RuntimeError('bad untracked file: %s' % f)
+                if f.startswith('info/'):
+                    continue
                 path = join(prefix, f)
                 add_file(t, path, f)
-        meta['prefix'] = prefix
+        meta['bundle_prefix'] = prefix
         meta['linked'] = sorted(install.linked(prefix))
 
     if data_path:
@@ -94,18 +99,18 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     if extra_meta:
         meta.update(extra_meta)
 
-    meta_path = join(tmp_dir, BMJ)
-    with open(meta_path, 'w') as fo:
+    tmp_dir = tempfile.mkdtemp()
+    with open(join(tmp_dir, 'index.json'), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
-    add_file(t, meta_path, BMJ)
+    with open(join(tmp_dir, 'files'), 'w') as fo:
+        for m in t.getmembers():
+            fo.write(m.path + '\n')
+    for fn in os.listdir(tmp_dir):
+        add_file(t, join(tmp_dir, fn), 'info/' + fn)
+    shutil.rmtree(tmp_dir)
 
     t.close()
-
-    if output_path is None:
-        output_path = get_filename(meta)
-    shutil.move(tar_path, output_path)
-    shutil.rmtree(tmp_dir)
-    return output_path
+    return tar_path
 
 
 def clone_bundle(path, prefix=None, bundle_name=None):

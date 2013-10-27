@@ -48,11 +48,6 @@ def configure_parser(sub_parsers):
                    action = "store_true",
                    help = "no environment",
                    )
-    p.add_argument('-o', "--output",
-                   action = "store",
-                   help = "output file",
-                   metavar = "PATH",
-                   )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
@@ -85,20 +80,18 @@ def execute(args, parser):
 
         bundle.warn = []
         out_path = bundle.create_bundle(prefix, args.data_path,
-                                        args.bundle_name, extra,
-                                        output_path=args.output)
+                                        args.bundle_name, extra)
         if args.json:
             d = dict(path=out_path, warnings=bundle.warn)
             json.dump(d, sys.stdout, indent=2, sort_keys=True)
         else:
-            if not args.output:
-                print(out_path)
+            print(out_path)
 
 
     if args.extract:
-        if args.data_path or args.extra_meta or args.output:
+        if args.data_path or args.extra_meta:
             sys.exit("""\
-Error: -x/--extract does not allow --data-path, --extra-meta or --output""")
+Error: -x/--extract does not allow --data-path or --extra-meta""")
 
         with TmpDownload(args.extract, verbose=not args.quiet) as path:
             bundle.clone_bundle(path, prefix, args.bundle_name)
