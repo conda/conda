@@ -1,3 +1,8 @@
+2013-XX-XX   2.1.0:
+-------------------
+  * update bundle format (TODO)
+
+
 2013-10-27   2.0.2:
 -------------------
   * add --index-cache option to clean command, see issue #321
