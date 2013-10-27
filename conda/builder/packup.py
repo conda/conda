@@ -12,7 +12,7 @@ from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 import conda.config as config
 import conda.install as install
-from conda.misc import untracked, install_local_packages
+from conda.misc import untracked
 
 
 
