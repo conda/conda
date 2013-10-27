@@ -142,7 +142,7 @@ def mk_relative(f):
 
     path = join(build_prefix, f)
     if sys.platform == 'linux2' and is_obj(path):
-        runpath = '$ORIGIN/' + utils.rel_lib(f)
+        rpath = '$ORIGIN/' + utils.rel_lib(f)
         chrpath = external.find_executable('chrpath')
         if chrpath is None:
             sys.exit("""\
@@ -152,7 +152,7 @@ Error:
     relocatable ELF libraries.  You can install chrpath using apt-get,
     yum or conda.
 """ % (os.pathsep.join(external.dir_paths)))
-        call([chrpath, '-c', '-r', runpath, path])
+        call([chrpath, '-r', rpath, path])
 
     if sys.platform == 'darwin' and is_obj(path):
         mk_relative_osx(path)
