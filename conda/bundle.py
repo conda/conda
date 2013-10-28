@@ -52,6 +52,18 @@ def add_data(t, data_path):
         raise RuntimeError('no such file or directory: %s' % data_path)
 
 
+def add_info_files(t, meta):
+    tmp_dir = tempfile.mkdtemp()
+    with open(join(tmp_dir, 'index.json'), 'w') as fo:
+        json.dump(meta, fo, indent=2, sort_keys=True)
+    with open(join(tmp_dir, 'files'), 'w') as fo:
+        for m in t.getmembers():
+            fo.write(m.path + '\n')
+    for fn in 'index.json', 'files':
+        add_file(t, join(tmp_dir, fn), 'info/' + fn)
+    shutil.rmtree(tmp_dir)
+
+
 def get_version(meta):
     s = '%(creator)s:%(bundle_name)s' % meta
     h = hashlib.new('sha1')
@@ -102,16 +114,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     if extra_meta:
         meta.update(extra_meta)
 
-    tmp_dir = tempfile.mkdtemp()
-    with open(join(tmp_dir, 'index.json'), 'w') as fo:
-        json.dump(meta, fo, indent=2, sort_keys=True)
-    with open(join(tmp_dir, 'files'), 'w') as fo:
-        for m in t.getmembers():
-            fo.write(m.path + '\n')
-    for fn in 'index.json', 'files':
-        add_file(t, join(tmp_dir, fn), 'info/' + fn)
-    shutil.rmtree(tmp_dir)
-
+    add_info_files(t, meta)
     t.close()
     return tar_path
 
