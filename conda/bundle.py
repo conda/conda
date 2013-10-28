@@ -80,13 +80,13 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     """
     meta = dict(
         name = 'bundle',
-        build = '0',
-        build_number = 0,
+        build = '0', build_number = 0,
         bundle_name = bundle_name,
         creator = os.getenv('USER'),
         platform = config.platform,
         arch = config.arch_name,
-        ctime = time.strftime(ISO8601)
+        ctime = time.strftime(ISO8601),
+        depends = [],
     )
     meta['version'] = get_version(meta)
 
@@ -105,8 +105,6 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         meta['bundle_prefix'] = prefix
         meta['depends'] = [' '.join(dist.rsplit('-', 2)) for dist in
                            sorted(install.linked(prefix))]
-    else:
-        meta['depends'] = []
 
     if data_path:
         add_data(t, data_path)
