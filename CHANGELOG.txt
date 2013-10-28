@@ -1,4 +1,4 @@
-2013-XX-XX   2.0.3:
+2013-10-28   2.0.3:
 -------------------
   * update bundle format
   * fix bug when displaying packages to be downloaded (thanks Crystal)
