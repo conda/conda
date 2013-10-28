@@ -108,7 +108,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     with open(join(tmp_dir, 'files'), 'w') as fo:
         for m in t.getmembers():
             fo.write(m.path + '\n')
-    for fn in os.listdir(tmp_dir):
+    for fn in 'index.json', 'files':
         add_file(t, join(tmp_dir, fn), 'info/' + fn)
     shutil.rmtree(tmp_dir)
 
