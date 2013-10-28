@@ -48,7 +48,6 @@ def print_dists(dists_extras):
         print(line)
 
 def split_linkarg(arg):
-    #print('XXX', config.pkgs_dirs)
     "Return tuple(dist, pkgs_dir, linktype)"
     args = arg.split()
     if len(args) == 1:
