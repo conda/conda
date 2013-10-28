@@ -81,6 +81,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     meta = dict(
         name = 'bundle',
         build = '0', build_number = 0,
+        type = 'bundle',
         bundle_name = bundle_name,
         creator = os.getenv('USER'),
         platform = config.platform,
