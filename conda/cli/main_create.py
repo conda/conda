@@ -52,7 +52,7 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         "--use-pypi",
-        action="store_True",
+        action="store_true",
         default=False,
         dest="pypi",
     )
