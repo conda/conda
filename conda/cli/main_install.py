@@ -118,6 +118,7 @@ def execute(args, parser):
     from conda.api import get_index
     from conda.cli import pscheck
 
+
     prefix = common.get_prefix(args)
     config.set_pkgs_dirs(prefix)
 

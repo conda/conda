@@ -12,6 +12,7 @@ from conda.compat import itervalues, iteritems
 
 log = logging.getLogger(__name__)
 
+
 class MatchSpec(object):
 
     def __init__(self, spec):
