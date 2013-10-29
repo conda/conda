@@ -51,9 +51,9 @@ def configure_parser(sub_parsers):
         help = 'ignore create_default_packages in condarc file',
     )
     p.add_argument(
-        "--no-pypi",
-        action="store_false",
-        default=True,
+        "--use-pypi",
+        action="store_True",
+        default=False,
         dest="pypi",
     )
     common.add_parser_channels(p)
