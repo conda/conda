@@ -63,6 +63,12 @@ def configure_parser(sub_parsers):
         dest='notest',
         help="do not test the package"
     )
+    p.add_argument(
+        '--use-pypi',
+        action='store_true',
+        default=False,
+        dest='pypi',
+        help="Try to build conda package from pypi")
     p.set_defaults(func=execute)
 
 
@@ -146,14 +152,14 @@ def execute(args, parser):
                 print(build.bldpkg_path(m))
                 continue
             elif args.test:
-                build.test(m)
+                build.test(m, args.pypi)
             elif args.source:
                 source.provide(m.path, m.get_section('source'))
                 print('Source tree in:', source.get_dir())
             else:
-                build.build(m)
+                build.build(m, args.pypi)
                 if not args.notest:
-                    build.test(m)
+                    build.test(m, args.pypi)
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
