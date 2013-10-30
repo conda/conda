@@ -152,14 +152,14 @@ def execute(args, parser):
                 print(build.bldpkg_path(m))
                 continue
             elif args.test:
-                build.test(m, args.pypi)
+                build.test(m, pypi=args.pypi)
             elif args.source:
                 source.provide(m.path, m.get_section('source'))
                 print('Source tree in:', source.get_dir())
             else:
-                build.build(m, args.pypi)
+                build.build(m, pypi=args.pypi)
                 if not args.notest:
-                    build.test(m, args.pypi)
+                    build.test(m, pypi=args.pypi)
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
