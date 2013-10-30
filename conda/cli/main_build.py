@@ -140,7 +140,16 @@ def execute(args, parser):
                 recipe_dir = os.path.join(config.root_dir,
                                           'conda-recipes', arg)
                 if not isdir(recipe_dir):
-                    sys.exit("Error: no such directory: %s" % abspath(arg))
+                    # if --use-pypi and recipe_dir is a spec
+                    # try to create the skeleton
+                    if args.pypi:
+                        from conda.from_pypi import create_recipe
+                        try:
+                            recipe_dir = create_recipe(arg)
+                        except:
+                            recipe_dir = abspath(arg)
+                    if not isdir(recipe_dir):
+                        sys.exit("Error: no such directory: %s" % recipe_dir)
 
             m = MetaData(recipe_dir)
             if args.check and len(args.recipe) > 1:

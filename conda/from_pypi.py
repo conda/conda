@@ -25,7 +25,7 @@ def configure_and_call_function(args, message):
         print("Unable to %s.  Error: %s" % (message, e))
 
 
-def create_recipe(prefix, spec):
+def create_recipe(spec):
     rootdir = config.root_dir
     direc = os.path.join(rootdir, 'conda-recipes')
     args = ['skeleton','pypi', spec, '--no-prompt','--output-dir', direc]
@@ -34,10 +34,10 @@ def create_recipe(prefix, spec):
     return os.path.join(direc, spec)
 
 def build_package(prefix, recipedir):
-    args = ['build', recipedir, '--no-binstar-upload', '--no-test']
+    args = ['build', recipedir, '--no-binstar-upload', '--no-test', '--use-pypi']
     configure_and_call_function(args, "build recipe")
     pkgname = build.bldpkg_path(metadata.MetaData(recipedir))
-    # conda build recipedir --no-binstar-upload
+    # conda build recipedir --no-binstar-upload --no-test --use-pypi
     return pkgname
 
 def install_package(prefix, pkgname):
@@ -53,7 +53,7 @@ def install_from_pypi(prefix, index, specs):
             r.find_matches(MatchSpec(s)).next()
         except StopIteration:
             print("Conda package not available for %s, attempting to create and install conda package from pypi" % s)
-            recipedir = create_recipe(prefix, s)
+            recipedir = create_recipe(s)
             pkgname = build_package(prefix, recipedir)
             install_package(prefix, pkgname)
         else:
