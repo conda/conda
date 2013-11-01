@@ -43,7 +43,7 @@ def remove(prefix, files):
 
 def create_info(name, version, build_number, requires_py):
     d = dict(
-        name = name,
+        name = name.lower(),
         version = version,
         platform = config.platform,
         arch = config.arch_name,
