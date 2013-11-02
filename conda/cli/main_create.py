@@ -109,6 +109,8 @@ def clone(src_arg, dst_prefix):
 
 
 def execute(args, parser):
+    from os.path import exists, join
+
     import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
@@ -156,5 +158,9 @@ def execute(args, parser):
 
     common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
+
+    if sys.platform == 'win32' and exists(join(config.root_dir, '.nonadmin')):
+        with open(join(prefix, '.nonadmin')) as fo:
+            fo.write('')
 
     print_activate(args.name if args.name else prefix)
