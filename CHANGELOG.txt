@@ -1,3 +1,8 @@
+2013-XX-XX   2.0.4:
+-------------------
+  * ensure lowercase name when generating package info, fixed issue #329
+
+
 2013-10-28   2.0.3:
 -------------------
   * update bundle format
