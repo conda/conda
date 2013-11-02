@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from collections import defaultdict
 from distutils.spawn import find_executable
-from os.path import (abspath, basename, dirname, expanduser,
+from os.path import (abspath, basename, dirname, expanduser, exists,
                      isdir, isfile, islink, join)
 
 from conda import config
@@ -81,6 +81,17 @@ def untracked(prefix, exclude_self_build=False):
 
 def discard_conda(dists):
     return [dist for dist in dists if not install.name_dist(dist) == 'conda']
+
+
+def touch_nonadmin(prefix):
+    """
+    Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
+    """
+    if sys.platform == 'win32' and exists(join(config.root_dir, '.nonadmin')):
+        if isdir(prefix):
+            os.makedirs(prefix)
+        with open(join(prefix, '.nonadmin')) as fo:
+            fo.write('')
 
 
 def clone_env(prefix1, prefix2, verbose=True):
