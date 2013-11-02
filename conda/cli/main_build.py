@@ -7,9 +7,11 @@
 from __future__ import print_function, division, absolute_import
 
 import sys
+import os.path
 
 from conda.cli import common
 import conda.config as config
+
 
 
 help = "Build a package from a (conda) recipe. (ADVANCED)"
@@ -55,6 +57,18 @@ def configure_parser(sub_parsers):
         nargs = '+',
         help = "path to recipe directory",
     )
+    p.add_argument(
+        '--no-test',
+        action='store_true',
+        dest='notest',
+        help="do not test the package"
+    )
+    p.add_argument(
+        '--use-pypi',
+        action='store_true',
+        default=False,
+        dest='pypi',
+        help="Try to build conda package from pypi")
     p.set_defaults(func=execute)
 
 
@@ -121,7 +135,21 @@ def execute(args, parser):
                 need_cleanup = False
 
             if not isdir(recipe_dir):
-                sys.exit("Error: no such directory: %s" % recipe_dir)
+                # See if it's a spec and the directory is in 
+                # conda-recipes
+                recipe_dir = os.path.join(config.root_dir,
+                                          'conda-recipes', arg)
+                if not isdir(recipe_dir):
+                    # if --use-pypi and recipe_dir is a spec
+                    # try to create the skeleton
+                    if args.pypi:
+                        from conda.from_pypi import create_recipe
+                        try:
+                            recipe_dir = create_recipe(arg)
+                        except:
+                            recipe_dir = abspath(arg)
+                    if not isdir(recipe_dir):
+                        sys.exit("Error: no such directory: %s" % recipe_dir)
 
             m = MetaData(recipe_dir)
             if args.check and len(args.recipe) > 1:
@@ -133,13 +161,14 @@ def execute(args, parser):
                 print(build.bldpkg_path(m))
                 continue
             elif args.test:
-                build.test(m)
+                build.test(m, pypi=args.pypi)
             elif args.source:
                 source.provide(m.path, m.get_section('source'))
                 print('Source tree in:', source.get_dir())
             else:
-                build.build(m)
-                build.test(m)
+                build.build(m, pypi=args.pypi)
+                if not args.notest:
+                    build.test(m, pypi=args.pypi)
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
