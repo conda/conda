@@ -109,11 +109,10 @@ def clone(src_arg, dst_prefix):
 
 
 def execute(args, parser):
-    from os.path import exists, join
-
     import conda.config as config
     import conda.plan as plan
     from conda.api import get_index
+    from conda.misc import touch_nonadmin
 
     common.ensure_name_or_prefix(args, 'create')
     prefix = common.get_prefix(args, search=False)
@@ -124,6 +123,7 @@ def execute(args, parser):
         if args.package_specs:
             sys.exit('Error: did not expect any arguments for --clone')
         clone(args.clone, prefix)
+        touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
         return
 
@@ -158,9 +158,5 @@ def execute(args, parser):
 
     common.confirm_yn(args)
     plan.execute_actions(actions, index, verbose=not args.quiet)
-
-    if sys.platform == 'win32' and exists(join(config.root_dir, '.nonadmin')):
-        with open(join(prefix, '.nonadmin')) as fo:
-            fo.write('')
-
+    touch_nonadmin(prefix)
     print_activate(args.name if args.name else prefix)
