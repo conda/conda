@@ -9,7 +9,8 @@ from __future__ import print_function, division, absolute_import
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
-
+from conda.from_pypi import install_from_pypi, install_with_pip
+from conda.api import get_index
 
 help = "Install a list of packages into a specified conda environment."
 descr = help + """
@@ -48,6 +49,27 @@ def configure_parser(sub_parsers):
         "--no-deps",
         action = "store_true",
         help = "do not install dependencies",
+    )
+    p.add_argument(
+        "--no-pip",
+        action = "store_false",
+        default=True,
+        dest="pip",
+        help = "do not use pip to install if conda fails",
+    )   
+    p.add_argument(
+        "--use-pypi",
+        action = "store_true",
+        default=False,
+        dest="pypi",
+        help = "build a package from pypi if conda install fails",
+    )
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        dest='use_local',
+        help = "use locally built packages",
     )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
@@ -144,6 +166,29 @@ Error: environment does not exist: %s
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
         args.override_channels)
+
+    if args.use_local:
+        from conda.fetch import fetch_index
+        from conda.utils import url_path
+        from conda.builder import config as build_config
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = get_index([url_path(build_config.croot)])        
+
+    if args.pip:
+        # Remove from specs packages that are not in conda index
+        #  and install them using pip
+        # Return the updated specs
+        specs = install_with_pip(prefix, index, specs)
+        if not specs: return
+
+    elif args.pypi:
+        # Remove from specs packages that are not in conda index
+        # And install them via pypi method
+        # Return an updated specs
+        specs = install_from_pypi(prefix, index, specs)
+        if not specs: return
 
     actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
