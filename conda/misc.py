@@ -90,7 +90,7 @@ def touch_nonadmin(prefix):
     if sys.platform == 'win32' and exists(join(config.root_dir, '.nonadmin')):
         if not isdir(prefix):
             os.makedirs(prefix)
-        with open(join(prefix, '.nonadmin')) as fo:
+        with open(join(prefix, '.nonadmin'), 'w') as fo:
             fo.write('')
 
 
