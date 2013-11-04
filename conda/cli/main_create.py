@@ -10,7 +10,6 @@ import sys
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
-from conda.from_pypi import install_from_pypi
 
 
 help = "Create a new conda environment from a list of specified packages. "
@@ -49,12 +48,6 @@ def configure_parser(sub_parsers):
         "--no-default-packages",
         action = "store_true",
         help = 'ignore create_default_packages in condarc file',
-    )
-    p.add_argument(
-        "--use-pypi",
-        action="store_true",
-        default=False,
-        dest="pypi",
     )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
@@ -153,16 +146,7 @@ def execute(args, parser):
     common.ensure_override_channels_requires_channel(args)
     index = get_index(channel_urls=channel_urls,
                       prepend=not args.override_channels)
-
-    if args.pypi:
-        # Remove from specs packages that are not in conda index
-        # And install them via pypi method
-        # Return an updated specs
-        specs = install_from_pypi(prefix, index, specs)
-        if not specs: return
-   
-
-    actions = plan.install_actions(prefix, index, specs)    
+    actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
         print('No matching packages could be found, nothing to do')
