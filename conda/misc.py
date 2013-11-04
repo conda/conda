@@ -49,7 +49,8 @@ def walk_prefix(prefix):
     res = set()
     prefix = abspath(prefix)
     ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', '.conda_lock',
-              'users', 'LICENSE.txt', 'info', '.index', '.unionfs'}
+              'users', 'LICENSE.txt', 'info',
+              '.index', '.unionfs', '.nonadmin'}
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
     for fn in os.listdir(prefix):
