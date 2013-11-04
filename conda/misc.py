@@ -88,7 +88,7 @@ def touch_nonadmin(prefix):
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
     if sys.platform == 'win32' and exists(join(config.root_dir, '.nonadmin')):
-        if isdir(prefix):
+        if not isdir(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin')) as fo:
             fo.write('')
