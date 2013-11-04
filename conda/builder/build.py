@@ -106,7 +106,7 @@ def create_info_files(m, files):
                         join(info_dir, 'icon.png'))
 
 
-def create_env(pref, specs, pypi=False):
+def create_env(pref, specs):
     if not isdir(bldpkgs_dir):
         os.makedirs(bldpkgs_dir)
     update_index(bldpkgs_dir)
@@ -116,11 +116,6 @@ def create_env(pref, specs, pypi=False):
     index = get_index([url_path(config.croot)])
 
     cc.pkgs_dirs = cc.pkgs_dirs[:1]
-
-    if pypi:
-        from conda.from_pypi import install_from_pypi
-        specs = install_from_pypi(pref, index, specs)
-
     actions = plan.install_actions(pref, index, specs)
     plan.display_actions(actions, index)
     plan.execute_actions(actions, index, verbose=True)
@@ -138,9 +133,9 @@ def bldpkg_path(m):
     return join(bldpkgs_dir, '%s.tar.bz2' % m.dist())
 
 
-def build(m, get_src=True, pypi=False):
+def build(m, get_src=True):
     rm_rf(prefix)
-    create_env(prefix, [ms.spec for ms in m.ms_depends('build')], pypi)
+    create_env(prefix, [ms.spec for ms in m.ms_depends('build')])
 
     print("BUILD START:", m.dist())
 
@@ -188,7 +183,7 @@ def build(m, get_src=True, pypi=False):
     update_index(bldpkgs_dir)
 
 
-def test(m, pypi=False):
+def test(m):
     # remove from package cache
     rm_pkgs_cache(m.dist())
 
@@ -209,7 +204,7 @@ def test(m, pypi=False):
     for spec in m.get_value('test/requires'):
         specs.append(spec)
 
-    create_env(config.test_prefix, specs, pypi)
+    create_env(config.test_prefix, specs)
 
     env = dict(os.environ)
     # prepend bin/Scripts directory
