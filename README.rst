@@ -42,3 +42,10 @@ Similarly, to deactivate an environment and return your PATH variable to its pre
 .. code-block:: bash
 
     $ source deactivate
+
+=============
+Documentation
+=============
+
+See the `documentation <http://docs.continuum.io/conda/>`_ for more
+information.
