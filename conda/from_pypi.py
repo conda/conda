@@ -41,7 +41,7 @@ def build_package(prefix, recipedir):
     return pkgname
 
 def install_package(prefix, pkgname):
-    args = ['install', pkgname]
+    args = ['install', pkgname, "--no-pip"]
     configure_and_call_function(args, "install package")
     # conda install pkgname
 
@@ -98,6 +98,9 @@ def install_with_pip(prefix, index, specs):
         try:
             r.find_matches(MatchSpec(s)).next()
         except StopIteration:
+            if s=='pip':
+                for_conda.append(s)
+                continue
             print("Conda package not available for %s, attempting to install via pip" % s)
             pip_install(prefix, s)
         else:
