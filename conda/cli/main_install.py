@@ -176,18 +176,18 @@ Error: environment does not exist: %s
         fetch_index.cache = {}
         index = get_index([url_path(build_config.croot)])
 
-    if args.pip:
-        # Remove from specs packages that are not in conda index
-        #  and install them using pip
-        # Return the updated specs
-        specs = install_with_pip(prefix, index, specs)
-        if not specs: return
-
-    elif args.pypi:
+    if args.pypi:
         # Remove from specs packages that are not in conda index
         # And install them via pypi method
         # Return an updated specs
         specs = install_from_pypi(prefix, index, specs)
+        if not specs: return
+
+    elif args.pip:
+        # Remove from specs packages that are not in conda index
+        #  and install them using pip
+        # Return the updated specs
+        specs = install_with_pip(prefix, index, specs)
         if not specs: return
 
     actions = plan.install_actions(prefix, index, specs,
