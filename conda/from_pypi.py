@@ -46,7 +46,7 @@ def configure_and_call_function(args, message):
 def create_recipe(spec):
     rootdir = config.root_dir
     direc = join(rootdir, 'conda-recipes')
-    args = ['skeleton','pypi', spec, '--no-prompt','--output-dir', direc]
+    args = ['skeleton', 'pypi', spec, '--no-prompt', '--output-dir', direc]
     configure_and_call_function(args, "create recipe")
     # conda skeleton pypi spec --no-prompt --output-dir root/conda-recipes/spec
     return join(direc, spec)
@@ -94,7 +94,7 @@ def pip_install(prefix, s):
         ret = 1
     else:
         try:
-            ret = subprocess.call([path_to_pip,'install', s])
+            ret = subprocess.call([path_to_pip, 'install', s])
         except Exception as e:
             print("Error trying to run pip %s" % e)
             ret = 1

@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
-from os.path import isdir, join
+from os.path import isdir
 import subprocess
 
 import conda.install as install
@@ -76,27 +76,26 @@ def _linked(prefix, piplist):
         print("Could not run pip to get pip-installed packages")
         print("Not a problem: no pip-installed packages will be listed")
         return installed
+
     # For every package in pipinst that is not already represented
     # in installed append a fake name to installed with 'pip'
     # as the build string
-    for pkg in pipinst:
-        if not pkg:
+    pat = re.compile('([\w.-]+)\s+\(([\w.]+)')
+    for line in pipinst:
+        if not line:
             continue
-        try:
-            # TODO: use regex to extract name and version
-            name, version = pkg.split()
-        except ValueError:
-            print('Could not extract name and version from: %r' % pkg)
+        m = pat.match(line)
+        if m is None:
+            print('Could not extract name and version from: %r' % line)
             continue
+        name, version = m.groups()
         name = name.lower()
-        # remove '()'
-        version = version[1:-1]
         # This search could be made faster with a sorted
         # list and binary search
         # The matching is not always perfect
         found = False
         for condapkg in installed:
-            cname, cversion = condapkg.rsplit('-',2)[:2]
+            cname, cversion = condapkg.rsplit('-', 2)[:2]
             if name == cname and version == cversion:
                 found = True
                 break
