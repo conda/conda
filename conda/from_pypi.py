@@ -1,10 +1,30 @@
 from __future__ import print_function, division, absolute_import
 
+import sys
+import subprocess
+from os.path import exists, isfile, join
+
 from conda.resolve import MatchSpec, Resolve
-import os.path
 from conda.builder import build, metadata
 from conda import config
-import subprocess
+
+
+
+def pip_args(prefix):
+    """
+    return the arguments required to invoke pip (in prefix), or None if pip
+    in not installed
+    """
+    if sys.platform == 'win32':
+        pip_path = join(prefix, 'Scripts', 'pip-script.py')
+        py_path = join(prefix, 'python.exe')
+    else:
+        pip_path = join(prefix, 'bin', 'pip')
+        py_path = join(prefix, 'bin', 'python')
+    if isfile(pip_path) and isfile(py_path):
+        return [py_path, pip_path]
+    else:
+        return None
 
 
 def configure_and_call_function(args, message):
@@ -25,11 +45,12 @@ def configure_and_call_function(args, message):
 
 def create_recipe(spec):
     rootdir = config.root_dir
-    direc = os.path.join(rootdir, 'conda-recipes')
+    direc = join(rootdir, 'conda-recipes')
     args = ['skeleton','pypi', spec, '--no-prompt','--output-dir', direc]
     configure_and_call_function(args, "create recipe")
     # conda skeleton pypi spec --no-prompt --output-dir root/conda-recipes/spec
-    return os.path.join(direc, spec)
+    return join(direc, spec)
+
 
 def build_package(prefix, recipedir):
     args = ['build', recipedir, '--no-binstar-upload', '--no-test', '--use-pypi']
@@ -38,10 +59,12 @@ def build_package(prefix, recipedir):
     # conda build recipedir --no-binstar-upload --no-test --use-pypi
     return pkgname
 
+
 def install_package(prefix, pkgname):
     args = ['install', pkgname, "--no-pip"]
     configure_and_call_function(args, "install package")
     # conda install pkgname
+
 
 def install_from_pypi(prefix, index, specs):
     r = Resolve(index)
@@ -58,14 +81,15 @@ def install_from_pypi(prefix, index, specs):
             for_conda.append(s)
     return for_conda
 
+
 def pip_install(prefix, s):
     # pip install <s>
     # It would be great if conda list could show pip installed packages too
     #  We may need to update something after install
     # Also conda remove should uninstall pip-installed packages
     # FIXME: we need to make sure we are running in the correct environment
-    path_to_pip = os.path.join(prefix, 'bin', 'pip')
-    if not os.path.exists(path_to_pip):
+    path_to_pip = join(prefix, 'bin', 'pip')
+    if not exists(path_to_pip):
         print("pip is not installed...")
         ret = 1
     else:
@@ -77,6 +101,7 @@ def pip_install(prefix, s):
     if ret != 0:
         print("Could not install %s using pip" % s)
     return
+
 
 def install_with_pip(prefix, index, specs):
     r = Resolve(index)
@@ -104,4 +129,3 @@ def install_with_pip(prefix, index, specs):
         else:
             for_conda.append(s)
     return for_conda
-

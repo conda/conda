@@ -63,9 +63,14 @@ def _linked(prefix, piplist):
     if not piplist:
         return installed
 
-    pip_path = join(prefix,'bin','pip')
+    from conda.from_pypi import pip_args
+
+    args = pip_args(prefix)
+    if args is None:
+        return installed
+    args.append('list')
     try:
-        pipinst = subprocess.check_output([pip_path,'list']).split('\n')
+        pipinst = subprocess.check_output(args).split('\n')
     except Exception as e:
         # Any error should just be ignored
         print("Could not run pip to get pip-installed packages")
