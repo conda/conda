@@ -71,7 +71,7 @@ def install_from_pypi(prefix, index, specs):
     for_conda = []
     for s in specs:
         try:
-            r.find_matches(MatchSpec(s)).next()
+            next(r.find_matches(MatchSpec(s)))
         except StopIteration:
             print("Conda package not available for %s, attempting to create and install conda package from pypi" % s)
             recipedir = create_recipe(s)
@@ -108,7 +108,7 @@ def install_with_pip(prefix, index, specs):
     for_conda = []
 
     try:
-        r.find_matches(MatchSpec('pip')).next()
+        next(r.find_matches(MatchSpec('pip')))
     except StopIteration:
         print("Pip not found, installing pip...")
         try:
@@ -119,7 +119,7 @@ def install_with_pip(prefix, index, specs):
 
     for s in specs:
         try:
-            r.find_matches(MatchSpec(s)).next()
+            next(r.find_matches(MatchSpec(s)))
         except StopIteration:
             if s=='pip':
                 for_conda.append(s)
