@@ -92,7 +92,7 @@ def pip_install(prefix, s):
     # FIXME: we need to make sure we are running in the correct environment
     path_to_pip = join(prefix, 'bin', 'pip')
     if not exists(path_to_pip):
-        print("pip is not installed...")
+        print("pip is not installed (use conda install pip in env: %s)" % prefix)
         ret = 1
     else:
         try:
@@ -112,7 +112,7 @@ def install_with_pip(prefix, index, specs):
     try:
         next(r.find_matches(MatchSpec('pip')))
     except StopIteration:
-        print("Pip not found, installing pip...")
+        print("Pip not found, running `conda install pip` ...")
         try:
             install_package(prefix, 'pip')
         except Exception as e:
