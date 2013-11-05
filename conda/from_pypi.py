@@ -1,15 +1,13 @@
 from __future__ import print_function, division, absolute_import
+
 from conda.resolve import MatchSpec, Resolve
-import argparse
 import os.path
 from conda.builder import build, metadata
 from conda import config
 import subprocess
 
+
 def configure_and_call_function(args, message):
-    from conda.cli import main_skeleton
-    from conda.cli import main_build
-    from conda.cli import main_install
     from conda.cli import conda_argparse
 
     p = conda_argparse.ArgumentParser()
@@ -57,7 +55,7 @@ def install_from_pypi(prefix, index, specs):
             pkgname = build_package(prefix, recipedir)
             install_package(prefix, pkgname)
         else:
-            for_conda.append(s)            
+            for_conda.append(s)
     return for_conda
 
 def pip_install(prefix, s):
@@ -104,6 +102,6 @@ def install_with_pip(prefix, index, specs):
             print("Conda package not available for %s, attempting to install via pip" % s)
             pip_install(prefix, s)
         else:
-            for_conda.append(s)            
+            for_conda.append(s)
     return for_conda
 
