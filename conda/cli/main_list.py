@@ -93,9 +93,6 @@ def _linked(prefix, piplist):
 
     return installed
 
-def _is_linked(prefix, dist, piplist):
-    pass
-
 def list_packages(prefix, regex=None, format='human', piplist=True):
     if not isdir(prefix):
         sys.exit("""\
