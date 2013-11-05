@@ -60,43 +60,46 @@ def print_export_header():
 
 def _linked(prefix, piplist):
     installed = install.linked(prefix)
-    if piplist:
-        pip_path = join(prefix,'bin','pip')
+    if not piplist:
+        return installed
+
+    pip_path = join(prefix,'bin','pip')
+    try:
+        pipinst = subprocess.check_output([pip_path,'list']).split('\n')
+    except Exception as e:
+        # Any error should just be ignored
+        print("Could not run pip to get pip-installed packages")
+        print("Not a problem: no pip-installed packages will be listed")
+        return installed
+    # For every package in pipinst that is not already represented
+    # in installed append a fake name to installed with 'pip'
+    # as the build string
+    for pkg in pipinst:
+        if not pkg:
+            continue
         try:
-            pipinst = subprocess.check_output([pip_path,'list']).split('\n')
-        except Exception as e:
-            # Any error should just be ignored
-            print("Could not run pip to get pip-installed packages")
-            print("Not a problem: no pip-installed packages will be listed")
-            return installed
-        # For every package in pipinst that is not already represented
-        # in installed append a fake name to installed with 'pip'
-        # as the build string
-        for pkg in pipinst:
-            if not pkg:
-                continue
-            try:
-                # TODO: use regex to extract name and version
-                name, version = pkg.split()
-            except ValueError:
-                print('Could not extract name and version from: %r' % pkg)
-                continue
-            name = name.lower()
-            # remove '()'
-            version = version[1:-1]
-            # This search could be made faster with a sorted
-            # list and binary search
-            # The matching is not always perfect
-            found = False
-            for condapkg in installed:
-                cname, cversion = condapkg.rsplit('-',2)[:2]
-                if name == cname and version == cversion:
-                    found = True
-                    break
-            if not found:
-                installed.add('%s-%s-*pip*'%(name, version))
+            # TODO: use regex to extract name and version
+            name, version = pkg.split()
+        except ValueError:
+            print('Could not extract name and version from: %r' % pkg)
+            continue
+        name = name.lower()
+        # remove '()'
+        version = version[1:-1]
+        # This search could be made faster with a sorted
+        # list and binary search
+        # The matching is not always perfect
+        found = False
+        for condapkg in installed:
+            cname, cversion = condapkg.rsplit('-',2)[:2]
+            if name == cname and version == cversion:
+                found = True
+                break
+        if not found:
+            installed.add('%s-%s-*pip*'%(name, version))
 
     return installed
+
 
 def list_packages(prefix, regex=None, format='human', piplist=True):
     if not isdir(prefix):
