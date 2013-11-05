@@ -82,6 +82,7 @@ def _linked(prefix, piplist):
     # as the build string
     pat = re.compile('([\w.-]+)\s+\(([\w.]+)')
     for line in pipinst:
+        line = line.strip()
         if not line:
             continue
         m = pat.match(line)
