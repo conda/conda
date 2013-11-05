@@ -64,7 +64,7 @@ def configure_parser(sub_parsers):
         help="do not test the package"
     )
     p.add_argument(
-        '--use-pypi',
+        '--build-recipe',
         action='store_true',
         default=False,
         dest='pypi',
