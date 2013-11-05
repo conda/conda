@@ -135,7 +135,7 @@ def execute(args, parser):
                 need_cleanup = False
 
             if not isdir(recipe_dir):
-                # See if it's a spec and the directory is in 
+                # See if it's a spec and the directory is in
                 # conda-recipes
                 recipe_dir = os.path.join(config.root_dir,
                                           'conda-recipes', arg)

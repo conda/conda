@@ -160,9 +160,9 @@ def execute(args, parser):
         # Return an updated specs
         specs = install_from_pypi(prefix, index, specs)
         if not specs: return
-   
 
-    actions = plan.install_actions(prefix, index, specs)    
+
+    actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
         print('No matching packages could be found, nothing to do')

@@ -10,7 +10,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.from_pypi import install_from_pypi, install_with_pip
-from conda.api import get_index
+
 
 help = "Install a list of packages into a specified conda environment."
 descr = help + """
@@ -56,7 +56,7 @@ def configure_parser(sub_parsers):
         default=True,
         dest="pip",
         help = "do not use pip to install if conda fails",
-    )   
+    )
     p.add_argument(
         "--use-pypi",
         action = "store_true",
@@ -174,7 +174,7 @@ Error: environment does not exist: %s
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = get_index([url_path(build_config.croot)])        
+        index = get_index([url_path(build_config.croot)])
 
     if args.pip:
         # Remove from specs packages that are not in conda index
