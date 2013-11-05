@@ -58,11 +58,11 @@ def configure_parser(sub_parsers):
         help = "do not use pip to install if conda fails",
     )
     p.add_argument(
-        "--use-pypi",
+        "--build-recipe",
         action = "store_true",
         default=False,
         dest="pypi",
-        help = "build a package from pypi if conda install fails",
+        help = "build a conda recipe from pypi data (and then install) if conda install fails",
     )
     p.add_argument(
         "--use-local",
