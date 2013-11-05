@@ -9,7 +9,6 @@ from conda.builder import build, metadata
 from conda import config
 
 
-
 def pip_args(prefix):
     """
     return the arguments required to invoke pip (in prefix), or None if pip
@@ -29,6 +28,9 @@ def pip_args(prefix):
 
 def configure_and_call_function(args, message):
     from conda.cli import conda_argparse
+    from conda.cli import main_skeleton
+    from conda.cli import main_build
+    from conda.cli import main_install    
 
     p = conda_argparse.ArgumentParser()
     sub_parsers = p.add_subparsers(
