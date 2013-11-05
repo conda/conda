@@ -75,11 +75,16 @@ def _linked(prefix, piplist):
         for pkg in pipinst:
             if not pkg:
                 continue
-            name, version = pkg.split()
+            try:
+                # TODO: use regex to extract name and version
+                name, version = pkg.split()
+            except ValueError:
+                print('Could not extract name and version from: %r' % pkg)
+                continue
             name = name.lower()
             # remove '()'
             version = version[1:-1]
-            # This search could be made faster with a sorted 
+            # This search could be made faster with a sorted
             # list and binary search
             # The matching is not always perfect
             found = False
