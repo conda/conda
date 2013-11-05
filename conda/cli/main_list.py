@@ -80,6 +80,7 @@ def _linked(prefix, piplist):
     # For every package in pipinst that is not already represented
     # in installed append a fake name to installed with 'pip'
     # as the build string
+    conda_names = {d.rsplit('-', 2)[0] for d in installed}
     pat = re.compile('([\w.-]+)\s+\(([\w.]+)')
     for line in pipinst:
         line = line.strip()
@@ -91,17 +92,8 @@ def _linked(prefix, piplist):
             continue
         name, version = m.groups()
         name = name.lower()
-        # This search could be made faster with a sorted
-        # list and binary search
-        # The matching is not always perfect
-        found = False
-        for condapkg in installed:
-            cname, cversion = condapkg.rsplit('-', 2)[:2]
-            if name == cname and version == cversion:
-                found = True
-                break
-        if not found:
-            installed.add('%s-%s-*pip*'%(name, version))
+        if name not in conda_names:
+            installed.add('%s-%s-<pip>' % (name, version))
 
     return installed
 
