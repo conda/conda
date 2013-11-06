@@ -10,7 +10,7 @@ import sys
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
-from conda.from_pypi import install_from_pypi
+from conda.from_pypi import install_from_pypi, install_with_pip
 
 
 help = "Create a new conda environment from a list of specified packages. "
@@ -51,10 +51,18 @@ def configure_parser(sub_parsers):
         help = 'ignore create_default_packages in condarc file',
     )
     p.add_argument(
-        "--use-pypi",
+        "--build-recipe",
         action="store_true",
         default=False,
         dest="pypi",
+        help = "build a conda recipe from pypi data (and then install) if conda install fails"
+    )
+    p.add_argument(
+        "--no-pip",
+        action = "store_false",
+        default=True,
+        dest="pip",
+        help = "do not use pip to install if conda fails",
     )
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
@@ -159,6 +167,13 @@ def execute(args, parser):
         # And install them via pypi method
         # Return an updated specs
         specs = install_from_pypi(prefix, index, specs)
+        if not specs: return
+
+    elif args.pip:
+        # Remove from specs packages that are not in conda index
+        #  and install them using pip
+        # Return the updated specs
+        specs = install_with_pip(prefix, index, specs)
         if not specs: return
 
 
