@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import subprocess
-from os.path import exists, isfile, join
+from os.path import isfile, join
 
 from conda.resolve import MatchSpec, Resolve
 from conda.builder import build, metadata
@@ -37,7 +37,7 @@ def configure_and_call_function(args, message):
         metavar = 'command',
         dest = 'cmd',
     )
-    eval('main_%s'%args[0]).configure_parser(sub_parsers)
+    eval('main_%s' % args[0]).configure_parser(sub_parsers)
     args = p.parse_args(args=args)
     try:
         args.func(args, p)
@@ -77,7 +77,8 @@ def install_from_pypi(prefix, index, specs):
         try:
             next(r.find_matches(MatchSpec(s)))
         except StopIteration:
-            print("Conda package not available for %s, attempting to create and install conda package from pypi" % s)
+            print("Conda package not available for %s, attempting to create "
+                  "and install conda package from pypi" % s)
             recipedir = create_recipe(s)
             pkgname = build_package(prefix, recipedir)
             install_package(prefix, pkgname)
@@ -87,24 +88,18 @@ def install_from_pypi(prefix, index, specs):
 
 
 def pip_install(prefix, s):
-    # pip install <s>
     # It would be great if conda list could show pip installed packages too
-    #  We may need to update something after install
+    # We may need to update something after install
     # Also conda remove should uninstall pip-installed packages
     # FIXME: we need to make sure we are running in the correct environment
-    path_to_pip = join(prefix, 'bin', 'pip')
-    if not exists(path_to_pip):
-        print("pip is not installed (use conda install pip in env: %s)" % prefix)
-        ret = 1
-    else:
-        try:
-            ret = subprocess.call([path_to_pip, 'install', s])
-        except Exception as e:
-            print("Error trying to run pip %s" % e)
-            ret = 1
-    if ret != 0:
-        print("Could not install %s using pip" % s)
-    return
+    args = pip_args(prefix)
+    if args is None:
+        print("pip is not installed (use conda install pip in env: %s)" %
+              prefix)
+        return
+    args.extend(['install', s])
+    if subprocess.call(args) != 0:
+        print("Could not install '%s' using pip" % s)
 
 
 def install_with_pip(prefix, index, specs):
@@ -125,10 +120,11 @@ def install_with_pip(prefix, index, specs):
         try:
             next(r.find_matches(MatchSpec(s)))
         except StopIteration:
-            if s=='pip':
+            if s == 'pip':
                 for_conda.append(s)
                 continue
-            print("Conda package not available for %s, attempting to install via pip" % s)
+            print("Conda package not available for %s, attempting to install "
+                  "via pip" % s)
             pip_install(prefix, s)
         else:
             for_conda.append(s)
