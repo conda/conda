@@ -63,7 +63,7 @@ def add_pip_installed(prefix, installed):
 
     args = pip_args(prefix)
     if args is None:
-        return installed
+        return
     args.append('list')
     try:
         pipinst = subprocess.check_output(args).split('\n')
@@ -71,7 +71,7 @@ def add_pip_installed(prefix, installed):
         # Any error should just be ignored
         print("Could not run pip to get pip-installed packages")
         print("Not a problem: no pip-installed packages will be listed")
-        return installed
+        return
 
     # For every package in pipinst that is not already represented
     # in installed append a fake name to installed with 'pip'
