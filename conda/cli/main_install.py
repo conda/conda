@@ -62,7 +62,7 @@ def configure_parser(sub_parsers):
         action = "store_true",
         default=False,
         dest="pypi",
-        help = "build a conda recipe from pypi data (and then install) if conda install fails. (ADVANCED)",
+        help = "build a conda recipe from pypi data (and then install) if conda install fails. (EXPERIMENTAL)",
     )
     p.add_argument(
         "--use-local",
@@ -165,7 +165,7 @@ Error: environment does not exist: %s
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
-        args.override_channels)
+                      args.override_channels)
 
     if args.use_local:
         from conda.fetch import fetch_index

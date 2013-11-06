@@ -134,8 +134,7 @@ def execute(args, parser):
                 need_cleanup = False
 
             if not isdir(recipe_dir):
-                # See if it's a spec and the directory is in
-                # conda-recipes
+                # See if it's a spec and the directory is in conda-recipes
                 recipe_dir = join(config.root_dir, 'conda-recipes', arg)
                 if not isdir(recipe_dir):
                     # if --use-pypi and recipe_dir is a spec
