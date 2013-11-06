@@ -10,7 +10,6 @@ import sys
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
-from conda.from_pypi import install_from_pypi, install_with_pip
 
 
 help = "Create a new conda environment from a list of specified packages. "
@@ -147,8 +146,6 @@ def execute(args, parser):
     common.ensure_override_channels_requires_channel(args)
     index = get_index(channel_urls=channel_urls,
                       prepend=not args.override_channels)
-
-
     actions = plan.install_actions(prefix, index, specs)
 
     if plan.nothing_to_do(actions):
