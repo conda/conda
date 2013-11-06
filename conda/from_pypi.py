@@ -30,7 +30,7 @@ def configure_and_call_function(args, message):
     from conda.cli import conda_argparse
     from conda.cli import main_skeleton
     from conda.cli import main_build
-    from conda.cli import main_install    
+    from conda.cli import main_install
 
     p = conda_argparse.ArgumentParser()
     sub_parsers = p.add_subparsers(
