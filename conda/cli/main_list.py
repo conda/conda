@@ -58,11 +58,7 @@ def print_export_header():
     print('# platform: %s' % config.subdir)
 
 
-def _linked(prefix, piplist):
-    installed = install.linked(prefix)
-    if not piplist:
-        return installed
-
+def add_pip_installed(prefix, installed):
     from conda.from_pypi import pip_args
 
     args = pip_args(prefix)
@@ -95,8 +91,6 @@ def _linked(prefix, piplist):
         if name not in conda_names:
             installed.add('%s-%s-<pip>' % (name, version))
 
-    return installed
-
 
 def list_packages(prefix, regex=None, format='human', piplist=True):
     if not isdir(prefix):
@@ -113,7 +107,11 @@ Error: environment does not exist: %s
     if format == 'export':
         print_export_header()
 
-    for dist in sorted(_linked(prefix, piplist)):
+    installed = install.linked(prefix)
+    if piplist:
+        add_pip_installed(prefix, installed)
+
+    for dist in sorted(installed):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
