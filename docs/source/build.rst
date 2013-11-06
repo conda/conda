@@ -67,7 +67,7 @@ The meta.yaml file
     # location locally, the easiest way is to not specify the source here, but
     # to just add something like
     #
-    # cp $RECIPE_DIR/../src .
+    # cp -r $RECIPE_DIR/../src .
     # cd src
     # ...
     #
