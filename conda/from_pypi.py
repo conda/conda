@@ -55,12 +55,12 @@ def create_recipe(spec):
 
 
 def build_package(prefix, recipedir):
-    args = ['build', recipedir, '--no-test', '--use-pypi']
+    args = ['build', recipedir, '--no-test', '--build-recipe']
     if config.binstar_upload is None:
         args.append('--no-binstar-upload')
     configure_and_call_function(args, "build recipe")
     pkgname = build.bldpkg_path(metadata.MetaData(recipedir))
-    # conda build recipedir --no-binstar-upload --no-test --use-pypi
+    # conda build recipedir --no-binstar-upload --no-test --build-recipe
     return pkgname
 
 
