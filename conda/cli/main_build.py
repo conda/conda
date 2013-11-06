@@ -7,7 +7,6 @@
 from __future__ import print_function, division, absolute_import
 
 import sys
-import os.path
 
 from conda.cli import common
 import conda.config as config
@@ -110,7 +109,7 @@ def execute(args, parser):
     import shutil
     import tarfile
     import tempfile
-    from os.path import abspath, isdir, isfile
+    from os.path import abspath, isdir, isfile, join
 
     from conda.lock import Locked
     import conda.builder.build as build
@@ -137,8 +136,7 @@ def execute(args, parser):
             if not isdir(recipe_dir):
                 # See if it's a spec and the directory is in
                 # conda-recipes
-                recipe_dir = os.path.join(config.root_dir,
-                                          'conda-recipes', arg)
+                recipe_dir = join(config.root_dir, 'conda-recipes', arg)
                 if not isdir(recipe_dir):
                     # if --use-pypi and recipe_dir is a spec
                     # try to create the skeleton
