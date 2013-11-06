@@ -17,7 +17,7 @@ descr = help + """
 The arguments may be packages specifications (e.g. bitarray=0.8),
 or explicit conda packages filesnames (e.g. lxml-3.2.0-py27_0.tar.bz2) which
 must exist on the local filesystem.  The two types of arguments cannot be
-mixed and the latter implied the --force and --no-deps options.
+mixed and the latter implies the --force and --no-deps options.
 """
 example = """
 examples:
@@ -62,7 +62,7 @@ def configure_parser(sub_parsers):
         action = "store_true",
         default=False,
         dest="pypi",
-        help = "build a conda recipe from pypi data (and then install) if conda install fails",
+        help = "build a conda recipe from pypi data (and then install) if conda install fails. (ADVANCED)",
     )
     p.add_argument(
         "--use-local",
