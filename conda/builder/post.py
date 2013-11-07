@@ -6,7 +6,7 @@ import sys
 import stat
 from glob import glob
 from subprocess import call, check_call
-from os.path import basename, join, splitext
+from os.path import basename, join, splitext, isdir
 
 from conda.install import prefix_placeholder
 
@@ -67,11 +67,12 @@ def rm_egg_dirs():
         except OSError:
             pass
         utils.rm_rf(join(egg_dir, 'EGG-INFO'))
-        for fn in os.listdir(egg_dir):
-            if fn == '__pycache__':
-                utils.rm_rf(join(egg_dir, fn))
-            else:
-                os.rename(join(egg_dir, fn), join(sp_dir, fn))
+        if isdir(egg_dir):
+            for fn in os.listdir(egg_dir):
+                if fn == '__pycache__':
+                    utils.rm_rf(join(egg_dir, fn))
+                else:
+                    os.rename(join(egg_dir, fn), join(sp_dir, fn))
         utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
 def rm_py_along_so():
