@@ -5,7 +5,7 @@
       * conda list now shows pip installed packages
       * conda install will try to install via "pip install" if no
         conda package is available (unless --no-pip is provided)
-      * conda build (conda install) has a --build-recipe option which
+      * conda build has a new --build-recipe option which
         will create a recipe (stored in <root>/conda-recipes) from pypi
         then build a conda package (and install it)
       * pip list and pip install only happen if pip is installed
