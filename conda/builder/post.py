@@ -8,8 +8,6 @@ from glob import glob
 from subprocess import call, check_call
 from os.path import basename, join, splitext, isdir
 
-from conda.install import prefix_placeholder
-
 from conda.builder.config import build_prefix, build_python, PY3K
 from conda.builder import external
 from conda.builder import environ
@@ -44,9 +42,9 @@ def fix_shebang(f, osx_is_app=False):
     if not (m and 'python' in m.group()):
         return
 
-    py_exec = (prefix_placeholder + '/python.app/Contents/MacOS/python'
+    py_exec = (build_prefix + '/python.app/Contents/MacOS/python'
                if sys.platform == 'darwin' and osx_is_app else
-               prefix_placeholder + '/bin/' + basename(build_python))
+               build_prefix + '/bin/' + basename(build_python))
     new_data = shebang_pat.sub('#!' + py_exec, data, count=1)
     if new_data == data:
         return
