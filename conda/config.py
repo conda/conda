@@ -132,15 +132,6 @@ else:
     else:
         default_prefix = join(envs_dirs[0], _default_env)
 
-# ----- misc -----
-
-changeps1 = rc.get('changeps1', True)
-use_pip = rc.get('use_pip', True)
-binstar_upload = rc.get('binstar_upload', None) # None means ask
-disallow = set(rc.get('disallow', []))
-# packages which are added to a newly created environment by default
-create_default_packages = list(rc.get('create_default_packages', []))
-
 # ----- channels -----
 
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
@@ -183,7 +174,12 @@ def get_channel_urls():
 
     return normalize_urls(base_urls)
 
-# ----- proxy -----
+# ----- misc -----
 
-def get_proxy_servers():
-    return rc.get('proxy_servers')
+changeps1 = rc.get('changeps1', True)
+use_pip = rc.get('use_pip', True)
+binstar_upload = rc.get('binstar_upload', None) # None means ask
+disallow = set(rc.get('disallow', []))
+# packages which are added to a newly created environment by default
+create_default_packages = list(rc.get('create_default_packages', []))
+proxy_servers = rc.get('proxy_servers')

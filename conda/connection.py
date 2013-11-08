@@ -10,7 +10,7 @@ from logging import getLogger
 
 from conda.compat import PY3, string_types
 from conda.compat import iteritems, input
-from conda.config import get_proxy_servers
+from conda.config import proxy_servers
 
 if PY3:
     # Python 3.x
@@ -36,7 +36,7 @@ log = getLogger(__name__)
 # from condarc and overrwrite any system proxies
 # the proxies are in a dict {'http':'http://proxy:8080'}
 # protocol:proxyserver
-proxies_dict = get_proxy_servers() or urllib2.getproxies()
+proxies_dict = proxy_servers or urllib2.getproxies()
 
 #2. handle authentication
 
