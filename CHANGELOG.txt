@@ -1,3 +1,8 @@
+2013-XX-XX   2.1.1:
+-------------------
+  * add 'use_pip' to condarc configuration file
+
+
 2013-11-07   2.1.0:
 -------------------
   * fix rm_egg_dirs so that the .egg_info file can be a zip file
