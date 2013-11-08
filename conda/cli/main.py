@@ -41,6 +41,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import argparse
+import os
 
 from conda.cli import conda_argparse
 from conda.cli import main_build
@@ -95,8 +96,11 @@ In short:
         if argv1 in ('activate', 'deactivate'):
             sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
             if sys.platform != 'win32':
-                sys.stderr.write('Did you mean "source %s" ?\n' %
-                                 ' '.join(sys.argv[1:]))
+                sys.stderr.write("Use 'source {name}' to {name} an environment.\n".format(name=argv1))
+                sys.stderr.write('Add\n\n')
+                sys.stderr.write('source {file}\n\n'.format(file=os.path.abspath(os.path.join(__file__, os.path.pardir,
+                    os.path.pardir, 'conda-bash.sh'))))
+                sys.stderr.write("to your bash profile to make 'conda {name}' work.\n".format(name=argv1))
             sys.exit(1)
 
         # for backwards compatibility of conda-api
