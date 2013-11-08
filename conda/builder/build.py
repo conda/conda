@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import json
+import stat
 import shutil
 import tarfile
 from os.path import exists, isdir, islink, join
@@ -61,8 +62,15 @@ def have_prefix_files(files):
                 data = fi.read()
         except UnicodeDecodeError:
             continue
-        if prefix_placeholder in data:
-            yield f
+        if prefix not in data:
+            continue
+        st = os.stat(path)
+        data = data.replace(prefix, prefix_placeholder)
+        with open(path, 'w') as fo:
+            fo.write(data)
+        os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        yield f
+
 
 def create_info_files(m, files):
     recipe_dir = join(info_dir, 'recipe')
