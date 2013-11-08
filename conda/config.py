@@ -135,6 +135,7 @@ else:
 # ----- misc -----
 
 changeps1 = rc.get('changeps1', True)
+use_pip = rc.get('use_pip', True)
 binstar_upload = rc.get('binstar_upload', None) # None means ask
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default

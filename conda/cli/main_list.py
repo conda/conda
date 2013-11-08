@@ -108,7 +108,7 @@ Error: environment does not exist: %s
         print_export_header()
 
     installed = install.linked(prefix)
-    if piplist and format == 'human':
+    if piplist and config.use_pip and format == 'human':
         add_pip_installed(prefix, installed)
 
     for dist in sorted(installed):

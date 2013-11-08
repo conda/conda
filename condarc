@@ -19,11 +19,15 @@ envs_dirs:
   - /home/joe/my-envs
   - /opt/anaconda/envs
 
+# change ps1 when using activate (default True)
 changeps1: False
+
+# use pip when installing and listing packages (default True)
+use_pip: False
 
 # binstar.org upload (not defined here means ask)
 binstar_upload: True
 
 # disallowed specification names
-# disallow:
-#   - anaconda
+disallow:
+  - anaconda
