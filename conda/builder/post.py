@@ -75,6 +75,7 @@ def rm_egg_dirs():
                     os.rename(join(egg_dir, fn), join(sp_dir, fn))
         utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
+
 def rm_py_along_so():
     "remove .py (.pyc) files alongside .so or .pyd files"
     for root, dirs, files in os.walk(build_prefix):
