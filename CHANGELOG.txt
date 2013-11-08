@@ -1,5 +1,6 @@
 2013-XX-XX   2.1.1:
 -------------------
+  * fix prefix being replaced by placeholder after conda build on Unix
   * add 'use_pip' to condarc configuration file
 
 
