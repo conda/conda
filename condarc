@@ -28,6 +28,11 @@ use_pip: False
 # binstar.org upload (not defined here means ask)
 binstar_upload: True
 
+# when creating new environments add these packages by default
+create_default_packages:
+  - python
+  - pip
+
 # disallowed specification names
 disallow:
   - anaconda
