@@ -18,16 +18,16 @@ if exist "%ANACONDA_ENVS%\%1\Python.exe" goto skipmissingenv
 :skipmissingenv
 
 REM Deactivate a previous activation if it is live
-if "%CONDACTIVATED%" == "" goto skipdeactivate
+if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     REM This search/replace removes the previous env from the path
-    echo Deactivating environment "%CONDACTIVATED%"...
-    set CONDACTIVATE_PATH=%ANACONDA_ENVS%\%CONDACTIVATED%;%ANACONDA_ENVS%\%CONDACTIVATED%\Scripts;
+    echo Deactivating environment "%CONDA_DEFAULT_ENV%"...
+    set CONDACTIVATE_PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;
     call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
-    set CONDACTIVATED=
+    set CONDA_DEFAULT_ENV=
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
-set CONDACTIVATED=%1
-echo Activating environment "%CONDACTIVATED%"...
-set PATH=%ANACONDA_ENVS%\%CONDACTIVATED%;%ANACONDA_ENVS%\%CONDACTIVATED%\Scripts;%PATH%
+set CONDA_DEFAULT_ENV=%1
+echo Activating environment "%CONDA_DEFAULT_ENV%"...
+set PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;%PATH%
 set PROMPT=[%1] $P$G
