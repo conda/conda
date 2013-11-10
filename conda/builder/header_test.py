@@ -1,3 +1,4 @@
+import os
 import sys
 import subprocess
 from distutils.spawn import find_executable
@@ -12,7 +13,7 @@ else:
 def call_args(string):
     args = string.split()
     arg0 = args[0]
-    args[0] = find_executable(arg0, path=bin_dir)
+    args[0] = find_executable(arg0, path=os.environ['PATH'])
     if not args[0]:
         sys.exit("Command not found: '%s'" % arg0)
 
