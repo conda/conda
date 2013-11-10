@@ -220,7 +220,7 @@ def test(m, pypi=False):
     create_env(config.test_prefix, specs, pypi)
 
     env = dict(os.environ)
-    # prepend bin/Scripts directory
+    # prepend bin (or Scripts) directory
     env['PATH'] = (join(config.test_prefix, bin_dirname) + os.pathsep +
                    env['PATH'])
 
