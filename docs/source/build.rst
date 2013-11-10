@@ -90,19 +90,24 @@ The meta.yaml file
         - python
 
     test:             # (optional)
+    # files which are copied from the recipe into the (temporary) test
+    # directory which are needed during testing
+      files:
+        - test-data.txt
     # in addition to the run-time requirements, we can specify requirements
     # needed during testing
       requires:
         - nose
-    # commands we want to make sure they work, which are expected to get installed
-    # by the package
+    # commands we want to make sure they work, which are expected to get
+    # installed by the package
       commands:
         - bsdiff4 -h
         - bspatch4 -h
     # Python imports
       imports:
         - bsdiff4
-    # The script run_test.py will be run automatically if it is part of the recipe
+    # The script run_test.py will be run automatically if it is part of the
+    # recipe
 
     about:            # (optional)
       home: https://github.com/ilanschnell/bsdiff4
