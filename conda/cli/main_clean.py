@@ -57,7 +57,7 @@ def rm_lock():
 
     for root, dirs, files in os.walk(sys.prefix):
         for dn in dirs:
-            if dn == LOCKFN:
+            if dn.startswith(LOCKFN):
                 path = join(root, dn)
                 print('removing: %s' % path)
                 os.rmdir(path)
