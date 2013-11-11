@@ -107,7 +107,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 
 
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
-    if args.yes:
+    if args.yes or config.always_yes:
         return True
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),

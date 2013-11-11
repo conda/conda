@@ -3,6 +3,8 @@
   * fix prefix being replaced by placeholder after conda build on Unix
   * add 'use_pip' to condarc configuration file
   * fixed activate on Windows to set CONDA_DEFAULT_ENV
+  * allow setting "always_yes: True" in condarc file, which implies always
+    using the --yes option whenever asked to proceed
 
 
 2013-11-07   2.1.0:
