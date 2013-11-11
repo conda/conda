@@ -184,6 +184,7 @@ def get_proxy_servers():
 
 # ----- misc -----
 
+always_yes = rc.get('always_yes', False)
 changeps1 = rc.get('changeps1', True)
 use_pip = rc.get('use_pip', True)
 binstar_upload = rc.get('binstar_upload', None) # None means ask

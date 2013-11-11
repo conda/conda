@@ -18,6 +18,9 @@ envs_dirs:
   - ~/my-envs
   - /opt/anaconda/envs
 
+# implies always using the --yes option whenever asked to proceed
+always_yes: True
+
 # change ps1 when using activate (default True)
 changeps1: False
 
