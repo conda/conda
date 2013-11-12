@@ -239,7 +239,7 @@ def main(args, parser):
                 uses_distribute = 'setuptools' in sys.modules
 
                 if pkginfo['install_requires'] or uses_distribute:
-                    deps = [remove_version_information(dep) for dep in
+                    deps = [remove_version_information(dep).lower() for dep in
                         pkginfo['install_requires']]
                     if 'setuptools' in deps:
                         deps.remove('setuptools')
