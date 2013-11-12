@@ -51,7 +51,7 @@ def create_recipe(spec):
     args = ['skeleton', 'pypi', spec, '--no-prompt', '--output-dir', direc]
     configure_and_call_function(args, "create recipe")
     # conda skeleton pypi spec --no-prompt --output-dir root/conda-recipes/spec
-    return join(direc, spec)
+    return join(direc, spec.lower())
 
 
 def build_package(prefix, recipedir):
