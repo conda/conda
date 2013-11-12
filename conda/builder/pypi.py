@@ -246,9 +246,6 @@ def main(args, parser):
 
                 uses_distribute = 'setuptools' in sys.modules
 
-                import pdb
-                pdb.set_trace()
-
                 if pkginfo['install_requires'] or uses_distribute:
                     deps = [remove_version_information(dep).lower() for dep in
                         pkginfo['install_requires']]
