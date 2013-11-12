@@ -11,6 +11,8 @@ from os import makedirs, listdir, getcwd, chdir
 from os.path import join, isdir, exists, isfile
 from tempfile import mkdtemp
 from collections import defaultdict
+import keyword
+import re
 
 if sys.version_info < (3,):
     from xmlrpclib import ServerProxy
@@ -60,8 +62,7 @@ requirements:
 
 test:
   # Python imports
-  imports:
-    - {orig_packagename}
+  {import_comment}imports:{import_tests}
 
   {build_comment}commands:
     # You can put test commands to be run here.  Use this to test that the
@@ -111,6 +112,7 @@ def main(args, parser):
     client = ServerProxy(args.pypi_url)
     package_dicts = {}
     [output_dir] = args.output_dir
+    indent = '\n    - '
 
     if len(args.packages) > 1 and args.download:
         # Because if a package's setup.py imports setuptools, it will make all
@@ -123,9 +125,16 @@ def main(args, parser):
         if exists(dir_path):
             raise RuntimeError("directory already exists: %s" % dir_path)
         d = package_dicts.setdefault(package, {'packagename':
-            package.lower(), 'orig_packagename': package.lower(), 'run_depends':'',
+            package.lower(), 'run_depends':'',
             'build_depends':'', 'entry_points':'', 'build_comment':'# ',
             'test_commands':'', 'usemd5':''})
+        d['import_tests'] = valid(package).lower()
+        if d['import_tests'] == '':
+            d['import_comment'] = '# '
+        else:
+            d['import_comment'] = ''
+            d['import_tests'] = indent+d['import_tests']
+
         if args.version:
             [version] = args.version
             versions = client.package_releases(package, True)
@@ -207,7 +216,6 @@ def main(args, parser):
             import yaml
             print("Downloading %s (use --no-download to skip this step)" % package)
             tempdir = mkdtemp('conda_skeleton')
-            indent = '\n    - '
 
             if not isdir(SRC_CACHE):
                 makedirs(SRC_CACHE)
@@ -238,6 +246,9 @@ def main(args, parser):
 
                 uses_distribute = 'setuptools' in sys.modules
 
+                import pdb
+                pdb.set_trace()
+
                 if pkginfo['install_requires'] or uses_distribute:
                     deps = [remove_version_information(dep).lower() for dep in
                         pkginfo['install_requires']]
@@ -266,8 +277,11 @@ def main(args, parser):
                         d['build_comment'] = ''
                         d['test_commands'] = indent.join([''] + make_entry_tests(entry_list))
                 if pkginfo['packages']:
-                    deps = set([d['orig_packagename']]) | set(pkginfo['packages'])
-                    d['orig_packagename'] = indent.join(deps)
+                    deps = set(pkginfo['packages'])
+                    if d['import_tests']:
+                        deps = set([d['import_tests']]) | deps
+                    d['import_tests'] = indent.join([''] + list(deps))
+                    d['import_comment'] = ''
             finally:
                 rm_rf(tempdir)
 
@@ -285,6 +299,13 @@ def main(args, parser):
             f.write(PYPI_BLD_BAT.format(**d))
 
     print("Done")
+
+def valid(name):
+    if (re.match("[_A-Za-z][_a-zA-Z0-9]*$",name)
+            and not keyword.iskeyword(name)):
+        return name
+    else:
+        return ''
 
 def unpack(src_path, tempdir):
     if src_path.endswith(('.tar.gz', '.tar.bz2', '.tgz', '.tar.xz', '.tar')):
