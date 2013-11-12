@@ -123,7 +123,7 @@ def main(args, parser):
         if exists(dir_path):
             raise RuntimeError("directory already exists: %s" % dir_path)
         d = package_dicts.setdefault(package, {'packagename':
-            package.lower(), 'orig_packagename': package, 'run_depends':'',
+            package.lower(), 'orig_packagename': package.lower(), 'run_depends':'',
             'build_depends':'', 'entry_points':'', 'build_comment':'# ',
             'test_commands':'', 'usemd5':''})
         if args.version:
@@ -265,6 +265,9 @@ def main(args, parser):
                         d['entry_points'] = indent.join([''] + entry_list)
                         d['build_comment'] = ''
                         d['test_commands'] = indent.join([''] + make_entry_tests(entry_list))
+                if pkginfo['packages']:
+                    deps = set([d['orig_packagename']]) | set(pkginfo['packages'])
+                    d['orig_packagename'] = indent.join(deps)
             finally:
                 rm_rf(tempdir)
 
@@ -309,6 +312,7 @@ def patch_distutils(tempdir):
         data = {}
         data['install_requires'] = kwargs.get('install_requires', [])
         data['entry_points'] = kwargs.get('entry_points', [])
+        data['packages'] = kwargs.get('packages', [])
         with open(join(tempdir, "pkginfo.yaml"), 'w') as fn:
             fn.write(yaml.dump(data))
 
