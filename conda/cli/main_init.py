@@ -12,7 +12,8 @@ from os.path import isdir, join
 import conda.config as config
 
 
-descr = "Initialize conda in a regular Python environment."
+descr = ("Initialize conda into a regular environment (when conda was "
+         "installed as a Python package, e.g. using pip).")
 
 
 def configure_parser(sub_parsers):
