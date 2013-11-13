@@ -144,7 +144,6 @@ In short:
     )
 
     main_info.configure_parser(sub_parsers)
-    main_init.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
@@ -153,6 +152,7 @@ In short:
     main_update.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
+    main_init.configure_parser(sub_parsers)
     main_clean.configure_parser(sub_parsers)
     main_build.configure_parser(sub_parsers)
     main_skeleton.configure_parser(sub_parsers)
