@@ -41,7 +41,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--clone",
         action = "store",
-        help = 'path to (or name of) existing environment',
+        help = 'path to (or name of) existing local environment',
         metavar = 'ENV',
     )
     p.add_argument(
