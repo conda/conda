@@ -21,7 +21,7 @@ def configure_parser(sub_parsers):
         description = descr,
         help = descr,
     )
-    # TODO: add --force
+    # TODO: add --force ?
     p.set_defaults(func=execute)
 
 
@@ -29,11 +29,27 @@ def is_initialized():
     return isdir(join(config.root_dir, 'conda-meta'))
 
 
+def write_meta(meta_dir, info):
+    import json
+
+    with open(join(meta_dir, '%(name)s-%(version)s-0.json' % info), 'w') as fo:
+        json.dump(info, fo, indent=2, sort_keys=True)
+
+
 def execute(args, parser):
+    import os
+
     if is_initialized():
         sys.exit('Error: conda appears to be already initalized in: %s' %
                  config.root_dir)
 
-    print('Initializing conda into: %s' % config.root_dir)
-    # TODO...
-    raise NotImplemented
+    prefix = config.root_dir
+    print('Initializing conda into: %s' % prefix)
+
+    meta_dir = join(prefix, 'conda-meta')
+    try:
+        os.mkdir(meta_dir)
+    except OSError:
+        sys.exit('Error: could not create: %s' % meta_dir)
+
+    write_meta(meta_dir, dict(name='python', version=sys.version[:5]))
