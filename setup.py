@@ -8,8 +8,10 @@ import sys
 
 try:
     from setuptools import setup
+    using_setuptools = True
 except ImportError:
     from distutils.core import setup
+    using_setuptools = False
 
 import versioneer
 
@@ -23,11 +25,17 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
-scripts = ['bin/conda']
-if sys.platform == 'win32':
-    scripts.extend(['bin/activate.bat'])
+kwds = {'scripts': []}
+if sys.platform == 'win32' and using_setuptools:
+    kwds['entry_points'] = dict(console_scripts =
+                                        ["conda = conda.cli.main:main"])
 else:
-    scripts.extend(['bin/activate', 'bin/deactivate'])
+    kwds['scripts'].append('bin/conda')
+
+if sys.platform == 'win32':
+    kwds['scripts'].extend(['bin/activate.bat'])
+else:
+    kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
 
 setup(
     name = "conda",
@@ -50,5 +58,5 @@ setup(
     long_description = open('README.rst').read(),
     packages = ['conda', 'conda.cli', 'conda.builder', 'conda.progressbar'],
     install_requires = ['pycosat', 'pyyaml'],
-    scripts = scripts,
+    **kwds
 )
