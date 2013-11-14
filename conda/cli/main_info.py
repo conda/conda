@@ -46,7 +46,7 @@ def execute(args, parser):
 
     import conda
     import conda.config as config
-
+    from conda.cli.main_init import is_initialized
 
     options = 'envs', 'system', 'license'
 
@@ -82,6 +82,8 @@ Current conda install:
          channel URLs : %(_channels)s
           config file : %(rc_path)s
 """ % info_dict)
+        if not is_initialized():
+            print("** root directory '%s' not initalized **" % config.root_dir)
 
     if args.envs:
         if not args.json:
