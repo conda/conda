@@ -175,7 +175,8 @@ In short:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    if not main_init.is_initialized() and 'init' not in sys.argv:
+    if (not main_init.is_initialized() and
+        'init' not in sys.argv and 'info' not in sys.argv):
         sys.exit("Error: conda is not initalized yet, try: conda init")
 
     try:
