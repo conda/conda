@@ -37,7 +37,7 @@ def write_meta(meta_dir, info):
         json.dump(info, fo, indent=2, sort_keys=True)
 
 
-def initialize(prefix):
+def initialize(prefix=config.root_dir):
     import os
 
     meta_dir = join(prefix, 'conda-meta')
@@ -53,6 +53,5 @@ def execute(args, parser):
         sys.exit('Error: conda appears to be already initalized in: %s' %
                  config.root_dir)
 
-    prefix = config.root_dir
-    print('Initializing conda into: %s' % prefix)
-    initialize(prefix)
+    print('Initializing conda into: %s' % config.root_dir)
+    initialize()
