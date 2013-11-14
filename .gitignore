@@ -4,4 +4,3 @@
 build/
 dist/
 docs/build
-*-testlog.txt
