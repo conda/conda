@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm -rf build dist docs/build conda.egg-info
+
 VERSION=$(git describe)
 echo "VERSION: '$VERSION'"
 
