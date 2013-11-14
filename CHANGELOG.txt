@@ -1,3 +1,8 @@
+2013-11-XX   2.2.1:
+-------------------
+  * fixed issue #357
+
+
 2013-11-14   2.2.0:
 -------------------
   * add conda init command, to allow installing conda via pip
