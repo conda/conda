@@ -32,6 +32,7 @@ def is_initialized():
 def write_meta(meta_dir, info):
     import json
 
+    info['files'] = []
     with open(join(meta_dir,
                    '%(name)s-%(version)s-0.json' % info), 'w') as fo:
         json.dump(info, fo, indent=2, sort_keys=True)
