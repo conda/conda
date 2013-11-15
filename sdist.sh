@@ -8,16 +8,18 @@ if (( $? )); then
     echo "CLEAN"
 else
     echo "DIRTY"
-    echo "Error: You must commit your changes before creating a tarball." 
+    echo "Error: You must commit your changes before creating a tarball."
     exit 1
 fi
 
 rm -rf build dist docs/build conda.egg-info
-
+rm -f conda/_version.py*
 cat <<EOF >conda/__init__.py
 __version__ = '$VERSION'
 EOF
-
+rm versioneer.py
+touch versioneer.py
 replace 'version=versioneer.get_version(),' "version='$VERSION'," setup.py
+replace 'cmdclass=versioneer.get_cmdclass(),' '' setup.py
 sdist
 git reset --hard
