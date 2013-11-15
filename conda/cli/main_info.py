@@ -83,7 +83,10 @@ Current conda install:
           config file : %(rc_path)s
 """ % info_dict)
         if not is_initialized():
-            print("** root directory '%s' not initalized **" % config.root_dir)
+            print("""\
+# NOTE:
+#     root directory '%s' uninitalized,
+#     use 'conda init' to initialize.""" % config.root_dir)
 
     if args.envs:
         if not args.json:
