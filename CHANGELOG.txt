@@ -1,6 +1,7 @@
 2013-11-XX   2.2.1:
 -------------------
-  * fixed issue #357
+  * minor fixes related to make conda pip installable
+  * generated conda meta-data missing 'files' key, fixed issue #357
 
 
 2013-11-14   2.2.0:
