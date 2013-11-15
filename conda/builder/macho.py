@@ -43,7 +43,7 @@ def install_name_change(path, cb_func):
 
     `cb_func` is a callback function which called for each shared library name.
     It is called with `path` and the current shared library install name,
-    and return the new name (or None if the name shoule be unchanged).
+    and return the new name (or None if the name should be unchanged).
     """
     changes = []
     for link in otool(path):
