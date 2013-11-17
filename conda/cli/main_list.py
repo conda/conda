@@ -69,8 +69,11 @@ def add_pip_installed(prefix, installed):
         pipinst = subprocess.check_output(args).split('\n')
     except Exception as e:
         # Any error should just be ignored
-        print("Could not run pip to get pip-installed packages")
-        print("Not a problem: no pip-installed packages will be listed")
+        print("""\
+# Warning: Your version of pip is older than what conda requires for pip
+# integration, so no pip-installed packages will be displayed.  Please
+# update pip, in environment: %s
+""" % prefix)
         return
 
     # For every package in pipinst that is not already represented
