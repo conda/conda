@@ -76,6 +76,9 @@ def fetch_repodata(url):
         add_http_value_to_dict(u, 'Etag', cache, '_etag')
         add_http_value_to_dict(u, 'Last-Modified', cache, '_mod')
 
+    except ValueError:
+        raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
+
     except urllib2.HTTPError as e:
         msg = "HTTPError: %d  %s  %s\n" % (e.code, e.msg, url)
         log.debug(msg)
