@@ -19,7 +19,7 @@ def create_files(dir_path, m):
         shutil.copy(join(m.path, fn), dir_path)
 
     with open(join(dir_path, 'run_test.py'), 'w') as fo:
-        fo.write("# tests for %s (this is a gernerated file)\n" % m.dist())
+        fo.write("# tests for %s (this is a generated file)\n" % m.dist())
         fo.write("print('===== testing package: %s =====')\n" % m.dist())
         with open(join(dirname(__file__), 'header_test.py')) as fi:
             fo.write(fi.read() + '\n')
