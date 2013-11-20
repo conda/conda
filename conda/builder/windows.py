@@ -64,14 +64,11 @@ def kill_processes():
     for n in psutil.get_pid_list():
         try:
             p = psutil.Process(n)
-        except psutil._error.NoSuchProcess:
-            continue
-        if p.name.lower() == 'msbuild.exe':
-            print('Terminating:', p.name)
-            try:
+            if p.name.lower() == 'msbuild.exe':
+                print('Terminating:', p.name)
                 p.terminate()
-            except psutil._error.NoSuchProcess:
-                print('    no such process, passing')
+        except:
+            continue
 
 
 def build(recipe_dir):
