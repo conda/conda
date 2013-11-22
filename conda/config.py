@@ -28,8 +28,6 @@ _sys_map = {'linux2': 'linux', 'linux': 'linux',
             'darwin': 'osx', 'win32': 'win'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
-if os.getenv('ARCH'):
-    bits = 64 if '64' in os.getenv('ARCH', '') else 32
 
 if platform == 'linux' and machine() == 'armv6l':
     subdir = 'linux-armv6l'

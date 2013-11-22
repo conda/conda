@@ -2,6 +2,7 @@
 -------------------
   * minor fixes related to make conda pip installable
   * generated conda meta-data missing 'files' key, fixed issue #357
+  * remove ARCH environment variable for being able to change architecture
 
 
 2013-11-14   2.2.0:
