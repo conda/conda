@@ -16,7 +16,7 @@ stdlib_dir = join(build_prefix, 'Lib' if sys.platform == 'win32' else
 sp_dir = join(stdlib_dir, 'site-packages')
 
 
-def get_dict():
+def get_dict(m=None):
     d = {'CONDA_BUILD': '1'}
     d['ARCH'] = str(cc.bits)
     d['PREFIX'] = build_prefix
@@ -54,6 +54,11 @@ def get_dict():
 
     elif sys.platform == 'linux2':      # -------- Linux
         d['LD_RUN_PATH'] = build_prefix + '/lib'
+
+    if m:
+        d['PKG_NAME'] = m.name()
+        d['PKG_VERSION'] = m.version()
+        d['RECIPE_DIR'] = m.path
 
     return d
 
