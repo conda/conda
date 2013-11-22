@@ -165,10 +165,9 @@ def build(m, get_src=True, pypi=False):
 
     if sys.platform == 'win32':
         import conda.builder.windows as windows
-        windows.build(m.path)
+        windows.build(m)
     else:
-        env = environ.get_dict()
-        env['RECIPE_DIR'] = m.path
+        env = environ.get_dict(m)
         cmd = ['/bin/bash', '-x', '-e', join(m.path, 'build.sh')]
         _check_call(cmd, env=env, cwd=source.get_dir())
 
