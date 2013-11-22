@@ -97,9 +97,18 @@ def pip_install(prefix, s):
         print("pip is not installed (use conda install pip in env: %s)" %
               prefix)
         return
-    args.extend(['install', s])
+    # At this point, the spec s is either:
+    # (a) just the name of the package
+    # (b) the name of the package and the version separated by 1 or 2 spaces
+    #     (depending on whether the argument to conda specified a single equals
+    #      sign or two)
+    # (c) same as b but with an asterisk at the end
+    # To make this spec compatible with pip, we can just add two equals
+    # signs between the package name and the version and remove the asterisk.
+    pip_compat_s = '=='.join(s.split()).strip('*')
+    args.extend(['install', pip_compat_s])
     if subprocess.call(args) != 0:
-        print("Could not install '%s' using pip" % s)
+        print("Could not install '%s' using pip" % pip_compat_s)
 
 
 def install_with_pip(prefix, index, specs):
