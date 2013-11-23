@@ -1,10 +1,14 @@
+2013-XX-XX   2.2.2:
+-------------------
+  * remove ARCH environment variable for being able to change architecture
+  * add PKG_NAME, PKG_VERSION to environment when running build.sh,
+    .<name>-post-link.sh and .<name>-pre-unlink.sh
+
+
 2013-11-15   2.2.1:
 -------------------
   * minor fixes related to make conda pip installable
   * generated conda meta-data missing 'files' key, fixed issue #357
-  * remove ARCH environment variable for being able to change architecture
-  * add PKG_NAME, PKG_VERSION to environment when running build.sh,
-    .<name>-post-link.sh and .<name>-pre-unlink.sh
 
 
 2013-11-14   2.2.0:
