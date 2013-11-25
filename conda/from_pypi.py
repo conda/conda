@@ -12,7 +12,7 @@ from conda import config
 def pip_args(prefix):
     """
     return the arguments required to invoke pip (in prefix), or None if pip
-    in not installed
+    is not installed
     """
     if sys.platform == 'win32':
         pip_path = join(prefix, 'Scripts', 'pip-script.py')
@@ -77,7 +77,7 @@ def install_from_pypi(prefix, index, specs):
         try:
             next(r.find_matches(MatchSpec(s)))
         except StopIteration:
-            print("Conda package not available for %s, attempting to create "
+            print("Conda package is not available for %s, attempting to create "
                   "and install conda package from pypi" % s)
             recipedir = create_recipe(s)
             pkgname = build_package(prefix, recipedir)
