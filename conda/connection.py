@@ -43,7 +43,7 @@ proxies_dict = get_proxy_servers() or urllib2.getproxies()
 proxypwdmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
 
 
-def get_userandpass(proxytype='',realm=''):
+def get_userandpass(proxytype='', realm=''):
     """a function to get username and password from terminal.
     can be replaced with anything like some gui"""
     import getpass
