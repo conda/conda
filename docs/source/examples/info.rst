@@ -31,7 +31,7 @@ Info
     #
     (root)                *  /Users/test/anaconda
 
-``conda info --license`` displays information about local licenses, including what they are and where they can be located.
+``conda info --license`` displays information about local licenses, including what they are and where they are located.
 
 .. code-block:: bash
 
