@@ -79,7 +79,7 @@ Info
       iopro           : 2014-08-19
       mkl             : 2014-08-19
 
-``conda info --system`` can be used to display the **PATH** and **PYTHONPATH** environment variables, which can be 
+``conda info --system`` can be used to display the **PATH** and **PYTHONPATH** environment variables, which can be
 useful for the purposes of debugging.
 
 .. code-block:: bash
