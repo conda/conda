@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 from os.path import isdir, join
 
+import conda
 import conda.config as config
 
 
@@ -46,6 +47,7 @@ def initialize(prefix=config.root_dir):
         os.mkdir(meta_dir)
     except OSError:
         sys.exit('Error: could not create: %s' % meta_dir)
+    write_meta(meta_dir, dict(name='conda', version=conda.__version__))
     write_meta(meta_dir, dict(name='python', version=sys.version[:5]))
 
 
