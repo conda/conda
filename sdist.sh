@@ -21,5 +21,6 @@ rm versioneer.py
 touch versioneer.py
 replace 'version=versioneer.get_version(),' "version='$VERSION'," setup.py
 replace 'cmdclass=versioneer.get_cmdclass(),' '' setup.py
+replace 'add_activate = True' 'add_activate = False' setup.py
 sdist
 git reset --hard
