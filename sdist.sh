@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Use this bash script to generate the conda source tarball which gets
+# uploaded to PyPI.
+
 VERSION=$(git describe --dirty)
 echo "VERSION: '$VERSION'"
 
