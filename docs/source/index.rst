@@ -22,7 +22,7 @@ Getting Started
 To demonstrate the ease of a typical conda workflow, we will create an Anaconda environment
 with a version of `NumPy <http://www.numpy.org>`_ different from the default version.
 
-First, we will check current version of NumPy in our system
+First, we will check our system's Numpy version
 
 .. code-block:: bash
 
