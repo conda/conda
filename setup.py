@@ -13,6 +13,8 @@ except ImportError:
     from distutils.core import setup
     using_setuptools = False
 
+add_activate = True
+
 import versioneer
 
 
@@ -32,10 +34,11 @@ if sys.platform == 'win32' and using_setuptools:
 else:
     kwds['scripts'].append('bin/conda')
 
-if sys.platform == 'win32':
-    kwds['scripts'].extend(['bin/activate.bat'])
-else:
-    kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
+if add_activate:
+    if sys.platform == 'win32':
+        kwds['scripts'].extend(['bin/activate.bat'])
+    else:
+        kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
 
 setup(
     name = "conda",
