@@ -48,7 +48,9 @@ def initialize(prefix=config.root_dir):
     except OSError:
         sys.exit('Error: could not create: %s' % meta_dir)
     with open(join(meta_dir, 'foreign'), 'w') as fo:
-        fo.write('python zlib sqlite readline tk openssl system\n')
+        fo.write('python\n')
+        if sys.platform != 'win32':
+            fo.write('zlib sqlite readline tk openssl system\n')
     write_meta(meta_dir, dict(name='conda', version=conda.__version__))
     write_meta(meta_dir, dict(name='python', version=sys.version[:5]))
 
