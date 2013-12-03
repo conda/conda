@@ -1,3 +1,11 @@
+2013-12-XX   2.2.3:
+-------------------
+  * add "foreign mode", i.e. disallow install of certain packages when
+    using a "foreign" Python, such as the system Python
+  * remove activate/deactivate from source tarball created by sdist.sh,
+    in order to not overwrite activate script from virtualenvwrapper
+
+
 2013-11-27   2.2.2:
 -------------------
   * remove ARCH environment variable for being able to change architecture
