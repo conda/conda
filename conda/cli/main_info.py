@@ -59,7 +59,7 @@ def execute(args, parser):
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path,
-                     is_foreign=config.is_foreign,
+                     is_foreign=bool(config.foreign),
                      envs=[])
 
     if args.all or args.json:

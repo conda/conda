@@ -245,6 +245,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
             for name in install.win_ignore_root:
                 if name in must_have:
                     del must_have[name]
+        for name in config.foreign:
+            if name in must_have:
+                del must_have[name]
     else:
         # discard conda from other environments
         if 'conda' in must_have:
