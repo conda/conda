@@ -22,7 +22,7 @@ Getting Started
 To demonstrate the ease of a typical conda workflow, we will create an Anaconda environment
 with a version of `NumPy <http://www.numpy.org>`_ different from the default version.
 
-First, we will check our system NumPy version
+First, we will check our system's Numpy version
 
 .. code-block:: bash
 
@@ -46,13 +46,13 @@ Next we will create an Anaconda environment using a different version of NumPy
 
     [      COMPLETE      ] |#################################################| 100%
 
-Now we adjust our **PATH** variable to point to the new environment
+Now we change our **PATH** variable to point to the new environment
 
 .. code-block:: bash
 
     $ export PATH=~/anaconda/envs/test/bin/:$PATH
 
-Finally, we check the version again
+Finally, we check the version of Numpy again
 
 .. code-block:: bash
 
