@@ -186,6 +186,9 @@ def get_proxy_servers():
 always_yes = rc.get('always_yes', False)
 changeps1 = rc.get('changeps1', True)
 use_pip = rc.get('use_pip', True)
+is_foreign = rc.get('is_foreign',
+                    isfile(join(root_dir, 'conda-meta', 'foreign')) or
+                    not isdir(join(root_dir, 'conda-meta')))
 binstar_upload = rc.get('binstar_upload', None) # None means ask
 binstar_personal = rc.get('binstar_personal', True)
 disallow = set(rc.get('disallow', []))

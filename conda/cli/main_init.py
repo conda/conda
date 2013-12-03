@@ -47,6 +47,8 @@ def initialize(prefix=config.root_dir):
         os.mkdir(meta_dir)
     except OSError:
         sys.exit('Error: could not create: %s' % meta_dir)
+    with open(join(meta_dir, 'foreign'), 'w') as fo:
+        fo.write('Yes\n')
     write_meta(meta_dir, dict(name='conda', version=conda.__version__))
     write_meta(meta_dir, dict(name='python', version=sys.version[:5]))
 
