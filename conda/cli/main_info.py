@@ -59,6 +59,7 @@ def execute(args, parser):
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path,
+                     is_foreign=config.is_foreign,
                      envs=[])
 
     if args.all or args.json:
@@ -81,6 +82,7 @@ Current conda install:
         package cache : %(_pkgs_dirs)s
          channel URLs : %(_channels)s
           config file : %(rc_path)s
+    is foreign system : %(is_foreign)s
 """ % info_dict)
         if not is_initialized():
             print("""\
