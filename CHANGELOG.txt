@@ -1,4 +1,4 @@
-2013-12-XX   2.2.3:
+2013-12-03   2.2.3:
 -------------------
   * add "foreign mode", i.e. disallow install of certain packages when
     using a "foreign" Python, such as the system Python
