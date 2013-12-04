@@ -6,7 +6,7 @@ import sys
 import stat
 from glob import glob
 from subprocess import call, check_call
-from os.path import basename, join, splitext, isdir
+from os.path import basename, join, splitext, isdir, isfile
 
 from conda.builder.config import build_prefix, build_python, PY3K
 from conda.builder import external
@@ -57,21 +57,28 @@ def fix_shebang(f, osx_is_app=False):
 def rm_egg_dirs():
     "remove egg directories"
     sp_dir = environ.sp_dir
-    egg_dirs = glob(join(sp_dir, '*-py*.egg'))
-    for egg_dir in egg_dirs:
-        print('moving egg dir:', egg_dir)
-        try:
-            os.rename(join(egg_dir, 'EGG-INFO/PKG-INFO'), egg_dir + '-info')
-        except OSError:
-            pass
-        utils.rm_rf(join(egg_dir, 'EGG-INFO'))
-        if isdir(egg_dir):
-            for fn in os.listdir(egg_dir):
+    for egg_path in glob(join(sp_dir, '*-py*.egg')):
+        if isdir(egg_path):
+            print('found egg dir:', egg_path)
+            try:
+                os.rename(join(egg_path, 'EGG-INFO/PKG-INFO'),
+                          egg_path + '-info')
+            except OSError:
+                pass
+            utils.rm_rf(join(egg_path, 'EGG-INFO'))
+            for fn in os.listdir(egg_path):
                 if fn == '__pycache__':
-                    utils.rm_rf(join(egg_dir, fn))
+                    utils.rm_rf(join(egg_path, fn))
                 else:
-                    os.rename(join(egg_dir, fn), join(sp_dir, fn))
-        utils.rm_rf(join(sp_dir, 'easy-install.pth'))
+                    os.rename(join(egg_path, fn), join(sp_dir, fn))
+
+        elif isfile(egg_path):
+            print('found egg:', egg_path)
+            fn = basename(egg_path)
+            with open(join(sp_dir, '%s.pth' % (fn.split('-')[0])), 'w') as fo:
+                fo.write('./%s\n' % fn)
+
+    utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
 
 def rm_py_along_so():
