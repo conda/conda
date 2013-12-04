@@ -1,3 +1,10 @@
+2013-12-XX   2.2.4:
+-------------------
+  * add support for execution with the -m switch (issue #398), i.e. you
+    can execute conda also as: python -m conda
+  * conda build adds .pth-file when it encounters an egg (TODO)
+
+
 2013-12-03   2.2.3:
 -------------------
   * add "foreign mode", i.e. disallow install of certain packages when
