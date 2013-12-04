@@ -54,8 +54,11 @@ def fix_shebang(f, osx_is_app=False):
     os.chmod(path, int('755', 8))
 
 
-def rm_egg_dirs():
-    "remove egg directories"
+def remove_easy_install_pth():
+    """
+    remove the need for easy-install.pth and finally remove easy-install.pth
+    itself
+    """
     sp_dir = environ.sp_dir
     for egg_path in glob(join(sp_dir, '*-py*.egg')):
         if isdir(egg_path):
@@ -108,7 +111,7 @@ def compile_missing_pyc():
 
 
 def post_process():
-    rm_egg_dirs()
+    remove_easy_install_pth()
     rm_py_along_so()
     if not PY3K:
         compile_missing_pyc()
