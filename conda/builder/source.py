@@ -4,7 +4,7 @@ import os
 import sys
 from subprocess import check_call, Popen, PIPE
 from os.path import join, isdir, isfile
-from shutil import copytree, ignore_patterns
+from shutil import copytree, ignore_patterns, copy2
 
 from conda.utils import hashsum_file
 from conda.fetch import download
@@ -60,8 +60,9 @@ def unpack(meta):
     elif src_path.endswith('.zip'):
         unzip(src_path, WORK_DIR)
     else:
-        raise Exception("not a valid source")
-
+        # In this case, the build script will need to deal with unpacking the source
+        print("Warning: Unrecognized source format. Source file will be copied to the SRC_DIR")
+        copy2(src_path, WORK_DIR)
 
 def git_source(meta):
     if not isdir(GIT_CACHE):
