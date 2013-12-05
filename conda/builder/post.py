@@ -105,9 +105,9 @@ def compile_missing_pyc():
                 need_compile = True
     if need_compile:
         print('compiling .pyc files...')
-        check_call([build_python, '-Wi', join(environ.stdlib_dir,
-                                              'compileall.py'),
-                    '-q', '-x', 'port_v3', sp_dir])
+        utils._check_call([build_python, '-Wi', join(environ.stdlib_dir,
+                                                     'compileall.py'),
+                           '-q', '-x', 'port_v3', sp_dir])
 
 
 def post_process():
