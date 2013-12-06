@@ -25,7 +25,8 @@ def create_files(dir_path, m):
             fo.write(fi.read() + '\n')
 
         for cmd in m.get_value('test/commands'):
-            fo.write('print("command: %r")\n' % cmd)
+            # Use two levels of indirection in case cmd contains quotes
+            fo.write('print(%r)\n'% ("command: %r" % cmd))
             fo.write('call_args(%r)\n\n' % cmd)
             has_tests = True
 
