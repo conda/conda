@@ -57,6 +57,8 @@ def have_prefix_files(files):
             continue
         if is_obj(path):
             continue
+        if os.path.islink(path):
+            continue
         try:
             with open(path) as fi:
                 data = fi.read()
