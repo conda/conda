@@ -29,7 +29,7 @@ from conda.compat import input
 PYPI_META = """\
 package:
   name: {packagename}
-  version: {version}
+  version: !!str {version}
 
 source:
   fn: {filename}
