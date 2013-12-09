@@ -54,6 +54,12 @@ def fix_shebang(f, osx_is_app=False):
     os.chmod(path, int('755', 8))
 
 
+def write_pth(egg_path):
+    fn = basename(egg_path)
+    with open(join(environ.sp_dir,
+                   '%s.pth' % (fn.split('-')[0])), 'w') as fo:
+        fo.write('./%s\n' % fn)
+
 def remove_easy_install_pth(preserve_egg_dir=False):
     """
     remove the need for easy-install.pth and finally remove easy-install.pth
@@ -61,13 +67,9 @@ def remove_easy_install_pth(preserve_egg_dir=False):
     """
     sp_dir = environ.sp_dir
     for egg_path in glob(join(sp_dir, '*-py*.egg')):
-        egg_fn = basename(egg_path)
-        pth_path = join(sp_dir, '%s.pth' % (egg_fn.split('-')[0]))
-
         if isdir(egg_path):
             if preserve_egg_dir:
-                with open(pth_path, 'w') as fo:
-                    fo.write('./%s\n' % egg_fn)
+                write_pth(egg_path)
                 continue
 
             print('found egg dir:', egg_path)
@@ -85,8 +87,7 @@ def remove_easy_install_pth(preserve_egg_dir=False):
 
         elif isfile(egg_path):
             print('found egg:', egg_path)
-            with open(pth_path, 'w') as fo:
-                fo.write('./%s\n' % egg_fn)
+            write_pth(egg_path)
 
     utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
