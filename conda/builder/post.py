@@ -61,12 +61,13 @@ def remove_easy_install_pth(preserve_egg_dir=False):
     """
     sp_dir = environ.sp_dir
     for egg_path in glob(join(sp_dir, '*-py*.egg')):
+        egg_fn = basename(egg_path)
+        pth_path = join(sp_dir, '%s.pth' % (egg_fn.split('-')[0]))
+
         if isdir(egg_path):
             if preserve_egg_dir:
-                fn = basename(egg_path)
-                with open(join(sp_dir,
-                               '%s.pth' % (fn.split('-')[0])), 'w') as fo:
-                    fo.write('./%s\n' % fn)
+                with open(pth_path, 'w') as fo:
+                    fo.write('./%s\n' % egg_fn)
                 continue
 
             print('found egg dir:', egg_path)
@@ -84,9 +85,8 @@ def remove_easy_install_pth(preserve_egg_dir=False):
 
         elif isfile(egg_path):
             print('found egg:', egg_path)
-            fn = basename(egg_path)
-            with open(join(sp_dir, '%s.pth' % (fn.split('-')[0])), 'w') as fo:
-                fo.write('./%s\n' % fn)
+            with open(pth_path, 'w') as fo:
+                fo.write('./%s\n' % egg_fn)
 
     utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
