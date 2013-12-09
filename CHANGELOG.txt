@@ -4,6 +4,8 @@
     can execute conda also as: python -m conda
   * add a deactivate script for windows
   * conda build adds .pth-file when it encounters an egg (TODO)
+  * add ability to preserve egg directory when building using
+        build/preserve_egg_dir: True
   * fixed issues: #393, #402, #405, #409, #413
 
 
