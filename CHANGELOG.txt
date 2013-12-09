@@ -2,7 +2,9 @@
 -------------------
   * add support for execution with the -m switch (issue #398), i.e. you
     can execute conda also as: python -m conda
+  * add a deactivate script for windows
   * conda build adds .pth-file when it encounters an egg (TODO)
+  * fixed issues: #393, #402, #405, #409, #413
 
 
 2013-12-03   2.2.3:
