@@ -164,7 +164,10 @@ class MetaData(object):
     def ms_depends(self, typ='run'):
         res = []
         for spec in self.get_value('requirements/' + typ):
-            ms = MatchSpec(spec)
+            try:
+                ms = MatchSpec(spec)
+            except AssertionError:
+                raise RuntimeError("Invalid package specification: %r" % spec)
             for name, ver in [('python', CONDA_PY), ('numpy', CONDA_NPY)]:
                 if ms.name == name:
                     if ms.strictness != 1:
