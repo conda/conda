@@ -172,7 +172,8 @@ def build(m, get_src=True, pypi=False):
         _check_call(cmd, env=env, cwd=source.get_dir())
 
     create_entry_points(m.get_value('build/entry_points'))
-    post_process()
+    post_process(preserve_egg_dir=bool(
+            m.get_value('build/preserve_egg_dir')))
 
     assert not exists(info_dir)
     files2 = prefix_files()
