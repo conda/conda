@@ -108,7 +108,7 @@ FIELDS = {
                'svn_url', 'svn_rev', 'svn_ignore_externals',
                'patches'],
     'build': ['number', 'entry_points', 'osx_is_app', 'rm_py',
-              'features', 'track_features'],
+              'features', 'track_features', 'preserve_egg_dir'],
     'requirements': ['build', 'run', 'conflicts'],
     'app': ['entry', 'icon', 'summary', 'type', 'cli_opts'],
     'test': ['requires', 'commands', 'files', 'imports'],

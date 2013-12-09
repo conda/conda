@@ -54,7 +54,7 @@ def fix_shebang(f, osx_is_app=False):
     os.chmod(path, int('755', 8))
 
 
-def remove_easy_install_pth():
+def remove_easy_install_pth(preserve_egg_dir=False):
     """
     remove the need for easy-install.pth and finally remove easy-install.pth
     itself
@@ -62,6 +62,13 @@ def remove_easy_install_pth():
     sp_dir = environ.sp_dir
     for egg_path in glob(join(sp_dir, '*-py*.egg')):
         if isdir(egg_path):
+            if preserve_egg_dir:
+                fn = basename(egg_path)
+                with open(join(sp_dir,
+                               '%s.pth' % (fn.split('-')[0])), 'w') as fo:
+                    fo.write('./%s\n' % fn)
+                continue
+
             print('found egg dir:', egg_path)
             try:
                 os.rename(join(egg_path, 'EGG-INFO/PKG-INFO'),
@@ -110,8 +117,8 @@ def compile_missing_pyc():
                            '-q', '-x', 'port_v3', sp_dir])
 
 
-def post_process():
-    remove_easy_install_pth()
+def post_process(preserve_egg_dir=False):
+    remove_easy_install_pth(preserve_egg_dir=preserve_egg_dir)
     rm_py_along_so()
     if not PY3K:
         compile_missing_pyc()
