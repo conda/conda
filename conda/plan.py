@@ -230,7 +230,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
-    for fn in r.solve(specs, [d + '.tar.bz2' for d in linked]):
+    for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
+                      config.track_features):
         dist = fn[:-8]
         name = install.name_dist(dist)
         if only_names and name not in only_names:
