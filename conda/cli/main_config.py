@@ -128,7 +128,16 @@ def execute(args, parser):
 
     # Create the file if it doesn't exist
     if not os.path.exists(rc_path):
-        rc_text = ""
+        if args.add and 'channels' in list(zip(*args.add))[0] and not ['channels', 'defaults'] in args.add:
+            # If someone adds a channel and their .condarc doesn't exist, make
+            # sure it includes the defaults channel, or else they will end up
+            # with a broken conda.
+            rc_text = """\
+channels:
+  - defaults
+"""
+        else:
+            rc_text = ""
     else:
         with open(rc_path, 'r') as rc:
             rc_text = rc.read()
@@ -230,6 +239,11 @@ def execute(args, parser):
             # TODO: Try to guess the correct amount of leading space for the
             # key. Right now it is zero.
             new_rc_text += ['%s:' % key, '  - %s' % item]
+            if key == 'channels' and ['channels', 'defaults'] not in args.add:
+                # If channels key is added for the first time, make sure it
+                # includes 'defaults'
+                new_rc_text += ['  - defaults']
+                new_rc_config['channels'].append('defaults')
 
     for key, item in args.set:
         if key not in config.rc_bool_keys:
