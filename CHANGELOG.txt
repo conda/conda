@@ -1,4 +1,4 @@
-2013-12-XX   2.2.4:
+2013-12-10   2.2.4:
 -------------------
   * add support for execution with the -m switch (issue #398), i.e. you
     can execute conda also as: python -m conda
@@ -7,7 +7,8 @@
   * add ability to preserve egg directory when building using
         build/preserve_egg_dir: True
   * allow track_features in ~/.condarc
-  * fixed issues: #393, #402, #405, #409, #413
+  * Allow arbitrary source, issue #405
+  * fixed minor issues: #393, #402, #409, #413
 
 
 2013-12-03   2.2.3:
