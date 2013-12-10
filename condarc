@@ -42,3 +42,6 @@ create_default_packages:
 # disallowed specification names
 disallow:
   - anaconda
+
+# enable certain features to be tracked by default
+track_features: mkl
