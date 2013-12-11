@@ -1,3 +1,8 @@
+2013-12-XX   2.2.5:
+-------------------
+  * conda config: automatically add the 'defaults' channel
+
+
 2013-12-10   2.2.4:
 -------------------
   * add support for execution with the -m switch (issue #398), i.e. you
