@@ -235,7 +235,7 @@ class Resolve(object):
                 for fn2 in self.find_matches(ms):
                     if fn2 in dists:
                         clause.append(v[fn2])
-                assert len(clause) > 1, fn1
+                assert len(clause) > 1, '%s %r' % (fn1, ms)
                 yield clause
 
                 for feat in features:
