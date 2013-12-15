@@ -1,6 +1,7 @@
 2013-12-XX   2.2.5:
 -------------------
   * conda config: automatically add the 'defaults' channel
+  * conda build: improve error handling for invalid recipe directory
 
 
 2013-12-10   2.2.4:
