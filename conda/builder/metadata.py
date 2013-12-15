@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
-from os.path import isdir, join
+from os.path import isdir, isfile, join
 
 from conda.compat import iteritems
 from conda.utils import memoized, md5_file
@@ -122,6 +122,8 @@ class MetaData(object):
         assert isdir(path)
         self.path = path
         self.meta_path = join(path, 'meta.yaml')
+        if not isfile(self.meta_path):
+            sys.exit("Error: no such file: %s" % self.meta_path)
         self.meta = parse(open(self.meta_path).read())
 
     def get_section(self, section):
