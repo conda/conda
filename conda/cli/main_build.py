@@ -122,8 +122,7 @@ def execute(args, parser):
 
     with Locked(croot):
         for arg in args.recipe:
-            if isfile(arg):
-                if arg.endswith(('.tar', '.tar.gz', '.tgz', '.tar.bz2')):
+            if isfile(arg) and arg.endswith(('.tar', '.tar.gz', '.tgz', '.tar.bz2')):
                     recipe_dir = tempfile.mkdtemp()
                     t = tarfile.open(arg, 'r:*')
                     t.extractall(path=recipe_dir)
