@@ -91,7 +91,7 @@ def parse(data):
         if res[section].get(key, None) is None:
             res[section][key] = []
     # ensure those are strings
-    for field in ('package/version',
+    for field in ('package/version', 'build/string',
                   'source/git_tag', 'source/git_branch', 'source/md5'):
         section, key = field.split('/')
         if res.get(section) is None:
@@ -107,7 +107,7 @@ FIELDS = {
                'hg_url', 'hg_tag',
                'svn_url', 'svn_rev', 'svn_ignore_externals',
                'patches'],
-    'build': ['number', 'entry_points', 'osx_is_app', 'rm_py',
+    'build': ['number', 'string', 'entry_points', 'osx_is_app', 'rm_py',
               'features', 'track_features', 'preserve_egg_dir'],
     'requirements': ['build', 'run', 'conflicts'],
     'app': ['entry', 'icon', 'summary', 'type', 'cli_opts'],
@@ -182,6 +182,9 @@ class MetaData(object):
         return res
 
     def build_id(self):
+        ret = str(self.get_value('build/string'))
+        if ret:
+            return ret
         res = []
         for name, s in (('numpy', 'np'), ('python', 'py')):
             for ms in self.ms_depends():
