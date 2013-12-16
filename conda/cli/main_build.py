@@ -129,9 +129,6 @@ def execute(args, parser):
                     t.extractall(path=recipe_dir)
                     t.close()
                     need_cleanup = True
-                else:
-                    print("Ignoring non-recipe: %s" % arg)
-                    continue
             else:
                 recipe_dir = abspath(arg)
                 need_cleanup = False
