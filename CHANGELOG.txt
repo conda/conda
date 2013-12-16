@@ -2,6 +2,7 @@
 -------------------
   * conda config: automatically add the 'defaults' channel
   * conda build: improve error handling for invalid recipe directory
+  * add ability to set build string, issue #425
 
 
 2013-12-10   2.2.4:
