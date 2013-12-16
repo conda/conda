@@ -115,6 +115,14 @@ FIELDS = {
     'about': ['home', 'license', 'summary'],
 }
 
+def check_bad_chrs(s, field):
+    bad_chrs = '=!@#$%^&*:;"\'\\|<>?/ '
+    if field in ('package/version', 'build/string'):
+        bad_chrs += '-'
+    for c in bad_chrs:
+        if c in s:
+            sys.exit("Error: bad character '%s' in %s: %s" % (c, field, s))
+
 
 class MetaData(object):
 
@@ -149,15 +157,12 @@ class MetaData(object):
         res = str(res)
         if res != res.lower():
             sys.exit('Error: package/name must be lowercase, got: %r' % res)
+        check_bad_chrs(res, 'package/name')
         return res
 
     def version(self):
         res = self.get_value('package/version')
-        for c in '-=!@#$%^&*:;"\'\\|<>?/':
-            res = res.replace(c, '_')
-#            if c in res:
-#                sys.exit("Error: bad character '%s' in package/version: %s" %
-#                         (c, res))
+        check_bad_chrs(res, 'package/version')
         return res
 
     def build_number(self):
@@ -182,8 +187,9 @@ class MetaData(object):
         return res
 
     def build_id(self):
-        ret = str(self.get_value('build/string'))
+        ret = self.get_value('build/string')
         if ret:
+            check_bad_chrs(ret, 'build/string')
             return ret
         res = []
         for name, s in (('numpy', 'np'), ('python', 'py')):
