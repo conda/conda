@@ -4,6 +4,8 @@
   * conda config: automatically add the 'defaults' channel
   * conda build: improve error handling for invalid recipe directory
   * add ability to set build string, issue #425
+  * fix LD_RUN_PATH not being set on Linux under Python 3,
+    see issue #427, thanks peter1000
 
 
 2013-12-10   2.2.4:
