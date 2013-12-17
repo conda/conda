@@ -71,8 +71,8 @@ def add_pip_installed(prefix, installed):
         # Any error should just be ignored
         print("""\
 # Warning: Your version of pip is older than what conda requires for pip
-# integration, so no pip-installed packages will be displayed.  Please
-# update pip, in environment: %s
+# integration, so pip-installed packages will not be displayed.  Please
+# update pip, (conda update pip -p %s)
 """ % prefix)
         return
 
