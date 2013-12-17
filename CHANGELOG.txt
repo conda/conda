@@ -1,6 +1,6 @@
 20XX-XX-XX   2.2.6:
 -------------------
-  * minor Py3k fixes for conda build
+  * minor Py3k fixes for conda build on Linux
 
 
 2013-12-17   2.2.5:
