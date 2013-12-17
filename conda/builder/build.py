@@ -168,7 +168,8 @@ def build(m, get_src=True, pypi=False):
         import conda.builder.windows as windows
         windows.build(m)
     else:
-        env = environ.get_dict(m)
+        env = dict(os.environ)
+        env.update(environ.get_dict(m))
         cmd = ['/bin/bash', '-x', '-e', join(m.path, 'build.sh')]
         _check_call(cmd, env=env, cwd=source.get_dir())
 
@@ -209,7 +210,6 @@ def test(m, pypi=False):
         return
 
     print("TEST START:", m.dist())
-    rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
              # as the tests are run by python, we need to specify it
