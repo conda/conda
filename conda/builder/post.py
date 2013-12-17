@@ -14,7 +14,7 @@ from conda.builder import environ
 from conda.builder import utils
 
 
-if sys.platform == 'linux2':
+if sys.platform.startswith('linux'):
     from conda.builder import elf
 elif sys.platform == 'darwin':
     from conda.builder import macho
@@ -23,7 +23,7 @@ elif sys.platform == 'darwin':
 
 def is_obj(path):
     assert sys.platform != 'win32'
-    return bool((sys.platform == 'linux2' and elf.is_elf(path)) or
+    return bool((sys.platform.startswith('linux') and elf.is_elf(path)) or
                 (sys.platform == 'darwin' and macho.is_macho(path)))
 
 
@@ -159,7 +159,7 @@ def mk_relative(f):
         fix_shebang(f)
 
     path = join(build_prefix, f)
-    if sys.platform == 'linux2' and is_obj(path):
+    if sys.platform.startswith('linux') and is_obj(path):
         rpath = '$ORIGIN/' + utils.rel_lib(f)
         chrpath = external.find_executable('chrpath')
         if chrpath is None:
