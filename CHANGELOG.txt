@@ -1,4 +1,9 @@
-2013-12-XX   2.2.5:
+20XX-XX-XX   2.2.6:
+-------------------
+  * minor Py3k fixes for conda build
+
+
+2013-12-17   2.2.5:
 -------------------
   * conda build: move broken packages to conda-bld/broken
   * conda config: automatically add the 'defaults' channel
