@@ -52,7 +52,7 @@ def get_dict(m=None):
         d['LDFLAGS'] = d['CFLAGS']
         d['MACOSX_DEPLOYMENT_TARGET'] = '10.5'
 
-    elif sys.platform == 'linux':      # -------- Linux
+    elif sys.platform.startswith('linux'):      # -------- Linux
         d['LD_RUN_PATH'] = build_prefix + '/lib'
 
     if m:
