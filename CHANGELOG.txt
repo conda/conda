@@ -2,8 +2,8 @@
 -------------------
   * minor Py3k fixes for conda build on Linux
   * add ability to configure build flags within .condarc: LINUX/Mac OSX
-    CPPFLAGS, CFLAGS, CXXFLAGS, LDFLAGS, FFLAGS, FFLAGS, MAKEOPTS, CHOST, 
-    MACOSX_DEPLOYMENT_TARGET: see issue #435, #423 
+    CPPFLAGS, CFLAGS, CXXFLAGS, LDFLAGS, FFLAGS, FFLAGS, MAKEFLAGS, CHOST, 
+    MACOSX_DEPLOYMENT_TARGET: see issue #435, fix #423 
   * fixed minor issues: #426,  #430 (suggestions: 2,3) 
 
 2013-12-17   2.2.5:

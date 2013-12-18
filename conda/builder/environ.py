@@ -48,15 +48,16 @@ def get_dict(m=None):
     if sys.platform == 'darwin':         # -------- OSX
         d['OSX_ARCH'] = 'i386' if cc.bits == 32 else 'x86_64'
         if cc.build_cppflags:
-            d['CPPFLAGS'] = cc.build_cppflags
+            d['CPPFLAGS'] = cc.build_cppflags       #FIX ME: does that work in OSX???
         d['CFLAGS'] = ('-arch %(OSX_ARCH)s' % d) if not cc.build_cflags else cc.build_cflags  #FIX ME: should this be like linux??? if an exported CFLAGS Variable exists there is no autoguess value in Linux
         d['CXXFLAGS'] = d['CFLAGS'] if not cc.build_cxxflags else cc.build_cxxflags  #FIX ME: should this be like linux???
         d['LDFLAGS'] = ('-arch %(OSX_ARCH)s' % d) if not cc.build_ldflags else cc.build_ldflags  #FIX ME: should this be like linux???
         if cc.build_fflags:
-            d['FFLAGS'] = cc.build_fflags
+            d['FFLAGS'] = cc.build_fflags       #FIX ME: does that work in OSX???
         if cc.build_fcflags:
-            d['FCFLAGS'] = cc.build_fcflags
-        d['MAKEOPTS'] = '-j 1' if not cc.build_makeopts else cc.build_makeopts    #FIX ME: does that work in OSX???
+            d['FCFLAGS'] = cc.build_fcflags      #FIX ME: does that work in OSX???
+        if cc.build_makeflags:
+            d['MAKEFLAGS'] = cc.build_makeflags    #FIX ME: does that work in OSX???
         d['MACOSX_DEPLOYMENT_TARGET'] = '10.5' if not cc.build_macosx_deployment_target else cc.build_macosx_deployment_target    #FIX ME: does that work in OSX???
 
     elif sys.platform.startswith('linux'):      # -------- Linux
@@ -73,7 +74,8 @@ def get_dict(m=None):
             d['FFLAGS'] = cc.build_fflags
         if cc.build_fcflags:
             d['FCFLAGS'] = cc.build_fcflags
-        d['MAKEOPTS'] = '-j 1' if not cc.build_makeopts else cc.build_makeopts
+        if cc.build_makeflags:
+            d['MAKEFLAGS'] = cc.build_makeflags
         if cc.build_chost:
             d['CHOST'] = cc.build_chost
         

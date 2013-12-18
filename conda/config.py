@@ -66,7 +66,7 @@ rc_other = [
     'build_ldflags',
     'build_fflags',
     'build_fcflags',
-    'build_makeopts',
+    'build_makeflags',
     'build_chost',
     'build_macosx_deployment_target',
     ]
@@ -223,7 +223,7 @@ build_cxxflags = rc.get('build_cxxflags', None)
 build_ldflags = rc.get('build_ldflags', None)
 build_fflags = rc.get('build_fflags', None)
 build_fcflags = rc.get('build_fcflags', None)
-build_makeopts = rc.get('build_makeopts', None)
+build_makeflags = rc.get('build_makeflags', None)
 build_chost = rc.get('build_chost', None)
 build_macosx_deployment_target = rc.get('build_macosx_deployment_target', None)
 

@@ -73,19 +73,19 @@ track_features: mkl
 # CPPFLAGS     ***LINUX, MACOSX: C/C++/Objective C preprocessor flags, 
 # e.g. -I<include dir> if
 # you have headers in a nonstandard directory <include dir>
-# In build.sh: usually one does not need to specify anything in 
+# In build.sh: usually one does not need to specify anything 
 # LINUX/MACOSX: Variable is ONLY exported if configured here
 build_cppflags: "-I/MyInclude"
 
 # CFLAGS    ***LINUX, MACOSX: C compiler flags
-# In build.sh: usually one does not need to specify anything in 
+# In build.sh: usually one does not need to specify anything 
 # LINUX: Variable is ONLY exported if configured here
 # MACOSX: if not configured here the variable is exported with default:
 # "-arch %(OSX_ARCH)s" where OSX_ARCH = i386 or x86_64
 build_cflags: "-O2 -pipe"
 
 # CXXFLAGS    ***LINUX, MACOSX: C++ compiler flags
-# In build.sh: usually one does not need to specify anything in 
+# In build.sh: usually one does not need to specify anything 
 # LINUX: Variable is ONLY exported if configured here
 # MACOSX: if not configured here the variable is exported with default:
 # same as: "CFLAGS"
@@ -93,7 +93,7 @@ build_cxxflags: "-O2 -pipe"
 
 # LDFLAGS    ***LINUX, MACOSX: LD flags: linker flags, 
 # e.g. -L<lib dir> if you have libraries in a nonstandard directory <lib dir>
-# In build.sh: usually one does not need to specify anything in 
+# In build.sh: usually one does not need to specify anything 
 # LINUX: Variable is ONLY exported if configured here
 # MACOSX: if not configured here the variable is exported with default:
 # "-arch %(OSX_ARCH)s" where OSX_ARCH = i386 or x86_64
@@ -103,26 +103,25 @@ build_ldflags: "-L/home/MyLib"
 # see http://linuxreviews.org/man/make.conf/
 #   FFLAGS is usually passed to the FORTRAN 77 compiler, 
 # and FCFLAGS to any FORTRAN compiler in more modern build systems.
-# In build.sh: usually one does not need to specify anything in 
+# In build.sh: usually one does not need to specify anything 
 # LINUX/MACOSX: Variable is ONLY exported if configured here
 build_fflags: "-Wall"     
   
-
 # FCFLAGS     ***LINUX, MACOSX: Fortran compiler flags 
 # see http://linuxreviews.org/man/make.conf/
 #   FFLAGS is usually passed to the FORTRAN 77 compiler, 
 # and FCFLAGS to any FORTRAN compiler in more modern build systems.
-# In build.sh: usually one does not need to specify anything in 
+# In build.sh: usually one does not need to specify anything 
 # LINUX/MACOSX: Variable is ONLY exported if configured here
 build_fcflags: "-Wall"      
           
-# MAKEOPTS    ***LINUX, MACOSX: MAKE multi-core option: always exported
+# MAKEFLAGS    ***LINUX, MACOSX: MAKE FLAGS: e.g. multi-core option: always exported
 # gnu make multi-core compile option: -j [N], --jobs[=N]  Allow N jobs at once; 
 # jobs with no arg.
-# LINUX/MACOSX: Variable is ALWAYS ONLY exported. 
-# if not configured here the variable is exported with default: "-j 1"
-# USAGE example: in build.sh: make $MAKEOPTS
-build_makeopts: "-j 1"
+# In build.sh: usually one does not need to specify anything 
+# LINUX/MACOSX: Variable is ONLY exported if configured here
+# https://www.gnu.org/software/make/manual/make.html
+build_makeflags: "-j 1"
 
 # CHOST    ***LINUX: CHOST: can be used for cross-compiling 
 # e.g. passed on to: --host=$CHOST   or  maybe --target=$CHOST  
