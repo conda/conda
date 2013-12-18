@@ -60,6 +60,15 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
+    'build_cppflags',
+    'build_cflags',
+    'build_cxxflags',
+    'build_ldflags',
+    'build_fflags',
+    'build_fcflags',
+    'build_makeopts',
+    'build_chost',
+    'build_macosx_deployment_target',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -205,6 +214,18 @@ try:
         foreign = fi.read().split()
 except IOError:
     foreign = [] if isdir(join(root_dir, 'conda-meta')) else ['python']
+
+
+# ----- build option -----
+build_cppflags = rc.get('build_cppflags', None)
+build_cflags = rc.get('build_cflags', None)
+build_cxxflags = rc.get('build_cxxflags', None)
+build_ldflags = rc.get('build_ldflags', None)
+build_fflags = rc.get('build_fflags', None)
+build_fcflags = rc.get('build_fcflags', None)
+build_makeopts = rc.get('build_makeopts', None)
+build_chost = rc.get('build_chost', None)
+build_macosx_deployment_target = rc.get('build_macosx_deployment_target', None)
 
 # ----- misc -----
 

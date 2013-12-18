@@ -209,7 +209,6 @@ def test(m, pypi=False):
         return
 
     print("TEST START:", m.dist())
-    rm_rf(prefix)
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
              # as the tests are run by python, we need to specify it
