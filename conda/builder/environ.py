@@ -50,11 +50,15 @@ def get_dict(m=None):
         d['CFLAGS'] = '-arch %(OSX_ARCH)s' % d
         d['CXXFLAGS'] = d['CFLAGS']
         d['LDFLAGS'] = d['CFLAGS']
+        d['MAKEOPTS'] = '-j 1'
         d['MACOSX_DEPLOYMENT_TARGET'] = '10.5'
 
     elif sys.platform.startswith('linux'):      # -------- Linux
         d['LD_RUN_PATH'] = build_prefix + '/lib'
-
+        d['CFLAGS'] = '-O0 -pipe'
+        d['CXXFLAGS'] = d['CFLAGS']
+        d['LDFLAGS'] = d['CFLAGS']
+        d['MAKEOPTS'] = '-j 1'
     if m:
         d['PKG_NAME'] = m.name()
         d['PKG_VERSION'] = m.version()

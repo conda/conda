@@ -1,6 +1,8 @@
 20XX-XX-XX   2.2.6:
 -------------------
   * minor Py3k fixes for conda build
+  * added: linux default compile flags to enviroment
+  * added: linux, OSX enviroment: "MAKEOPTS" option to pass on to make for multi-core cpu build
 
 
 2013-12-17   2.2.5: 
