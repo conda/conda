@@ -1,10 +1,10 @@
 import sys
 import subprocess
 from distutils.spawn import find_executable
-
+import shlex
 
 def call_args(string):
-    args = string.split()
+    args = shlex.split(string)
     arg0 = args[0]
     args[0] = find_executable(arg0)
     if not args[0]:
