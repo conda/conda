@@ -170,7 +170,7 @@ def update_prefix(path, new_prefix):
                             new_prefix.encode('utf-8'))
     if new_data == data:
         return
-    st = os.stat(path)
+    st = os.lstat(path)
     os.unlink(path)
     with open(path, 'wb') as fo:
         fo.write(new_data)
