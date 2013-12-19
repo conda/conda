@@ -183,8 +183,8 @@ def fix_permissions(files):
 
     for f in files:
         path = join(build_prefix, f)
-        st = os.stat(path)
-        os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        st = os.lstat(path)
+        os.lchmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
 
 
 def post_build(files):
