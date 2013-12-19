@@ -381,7 +381,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             lt = (LINK_COPY if f in has_prefix_files or
-                  f.startswith('bin/python') or os.path.islink(src)
+                  f.startswith('bin/python') or islink(src)
                   else linktype)
             try:
                 _link(src, dst, lt)
