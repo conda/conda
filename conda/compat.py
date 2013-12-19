@@ -5,7 +5,7 @@ Taken mostly from six.py by Benjamin Peterson.
 
 import sys
 import types
-
+import os
 
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3
@@ -17,6 +17,7 @@ if PY3:
     text_type = str
     binary_type = bytes
     input = input
+    lchmod = lambda path, mode: os.chmod(path, mode, follow_symlinks=False)
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -24,6 +25,7 @@ else:
     text_type = unicode
     binary_type = str
     input = raw_input
+    lchmod = os.lchmod
 
 if PY3:
     _iterkeys = "keys"
