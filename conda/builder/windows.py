@@ -11,9 +11,12 @@ from conda.builder.utils import _check_call
 from conda.builder.scripts import BAT_PROXY
 
 import conda.config as cc
-import psutil  # not conda
-
 from conda.compat import iteritems
+
+try:
+    import psutil  # not conda
+except ImportError:
+    psutil = None
 
 assert sys.platform == 'win32'
 
@@ -61,6 +64,8 @@ def msvc_env_cmd():
 
 
 def kill_processes():
+    if psutil is None:
+        return
     for n in psutil.get_pid_list():
         try:
             p = psutil.Process(n)

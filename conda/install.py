@@ -124,7 +124,11 @@ def _link(src, dst, linktype=LINK_HARD):
         else:
             os.symlink(src, dst)
     elif linktype == LINK_COPY:
-        shutil.copy2(src, dst)
+        # copy relative symlinks as symlinks
+        if not on_win and islink(src) and not os.readlink(src).startswith('/'):
+            os.symlink(os.readlink(src), dst)
+        else:
+            shutil.copy2(src, dst)
     else:
         raise Exception("Did not expect linktype=%r" % linktype)
 
@@ -164,13 +168,14 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # will leave it unchanged
                       'anaconda3')
 def update_prefix(path, new_prefix):
+    path = os.path.realpath(path)
     with open(path, 'rb') as fi:
         data = fi.read()
     new_data = data.replace(prefix_placeholder.encode('utf-8'),
                             new_prefix.encode('utf-8'))
     if new_data == data:
         return
-    st = os.stat(path)
+    st = os.lstat(path)
     os.unlink(path)
     with open(path, 'wb') as fo:
         fo.write(new_data)
@@ -376,7 +381,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             lt = (LINK_COPY if f in has_prefix_files or
-                  f.startswith('bin/python') else linktype)
+                  f.startswith('bin/python') or islink(src)
+                  else linktype)
             try:
                 _link(src, dst, lt)
             except OSError:
