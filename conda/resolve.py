@@ -345,7 +345,8 @@ remaining packages:
             res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
             res.append(fn)
         else:
-            res = [MatchSpec(spec).to_filename() for spec in specs]
+            res = [MatchSpec(spec).to_filename() for spec in specs
+                   if spec != 'conda']
 
         if None in res:
             return None
