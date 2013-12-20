@@ -83,7 +83,7 @@ and re-run:
 ADDONS 
 ======
 
-are documented in the ``ADDONS.rst`` file
+are documented in the `ADDONS file <ADDONS.rst>`_
 
 
 |
