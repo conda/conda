@@ -1,51 +1,103 @@
-==============================
-conda: package management tool
-==============================
+=====================
+conda: addons/changes
+=====================
 
-The ``conda`` command is the primary interface for managing an Anaconda installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and upgrade packages into existing Anaconda environments.
+Here are mainly ``addons/changes`` for the nice ``conda: package management tool``. These are additional features I would like to see in the ``main conda package``. 
+Hopefully one or the other idea makes it back to the original codebase and can be removed from here.
+
+|
+
+====
+Info
+====
+
+I only use  ``Linux x86_64 (at the moment Debian) and Python 3.3 and later`` so the addons/changes are mostly reflecting that. 
+
+``IMPORTANT:`` if you have a problem when using the conda_addons package ``do not`` ask for help at the official ContinuumIO-conda places:
+
+- http://continuum.io/
+- https://github.com/ContinuumIO/conda 
 
 
-========
-Examples
-========
+If you would like to see any features back-ported to the official ContinuumIO-conda you can only suggest such and such to them for consideration.
 
-Create an Anaconda environment called ``myenv`` containing the latest version of scipy and all dependencies.
+|
+
+===========================
+How to install conda_addons
+===========================
+
+You should have already installed an Anaconda/Miniconda Python 3 environment:
+Probably the best way is to do it through the: `Miniconda3 (Python3) installers http://repo.continuum.io/miniconda/`
+
+To use conda_addons there is an easy option to switch to it: check out the master: 
+
+- https://github.com/peter1000/conda_addons.git
+- or download a compressed package https://github.com/peter1000/conda_addons/archive/master.zip
+
+Extact them somewhere: e.g. /home/conda_addons.
+
+|
+
+**In your conda config-file `.condarc`  set**
+
+.. code-block:: 
+
+    # directory in which conda root is located (used by `conda init`)
+    root_dir: /home/conda_addons
+
+
+
+than run from your normal anaconda/miniconda installation:
 
 .. code-block:: bash
 
-    $ conda create -n myenv scipy
+    $ conda init
 
-Install the latest version of pandas into ``myenv``
+outputs something like: 
 
-.. code-block:: bash
+``Initializing conda into: /home/workerm/Downloads/conda_addons``
 
-    $ conda install -n myenv pandas
+And one should be ready to go.
 
-Update all specified packages to latest versions in ``myenv``
+|
 
-.. code-block:: bash
 
-    $ conda update -n myenv anaconda
+**To revert back to the normal: conda** just ``comment out`` the 
 
-Now that you have a custom environment, there are two ways to make it available for use
+.. code-block:: 
 
-**Using Activate**
+    # directory in which conda root is located (used by `conda init`)
+    #root_dir: /home/conda_addons
 
-Activating a conda environment is made simple through the use of the activate command
 
-.. code-block:: bash
-
-    $ source activate myenv
-
-Similarly, to deactivate an environment and return your PATH variable to its previous state, use
+and re-run:
 
 .. code-block:: bash
 
-    $ source deactivate
+    $ conda init
 
-=============
-Documentation
-=============
+
+
+======
+ADDONS 
+======
+
+are documented in the `ADDONS file <ADDONS.rst>`_
+
+
+|
+|
+|
+|
+|
+|
+|
+|
+
+==================================
+Official ContinuumIO Documentation
+==================================
 
 See the `documentation <http://docs.continuum.io/conda/>`_ for more
 information.
