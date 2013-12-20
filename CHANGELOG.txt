@@ -1,6 +1,7 @@
 20XX-XX-XX   2.2.6:
 -------------------
   * minor Py3k fixes for conda build on Linux
+  * copy symlinks as symlinks, issue #437
 
 
 2013-12-17   2.2.5:

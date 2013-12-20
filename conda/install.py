@@ -126,7 +126,6 @@ def _link(src, dst, linktype=LINK_HARD):
     elif linktype == LINK_COPY:
         # copy relative symlinks as symlinks
         if not on_win and islink(src) and not os.readlink(src).startswith('/'):
-            target = os.readlink(src)
             os.symlink(os.readlink(src), dst)
         else:
             shutil.copy2(src, dst)
@@ -382,7 +381,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             lt = (LINK_COPY if f in has_prefix_files or
-                  f.startswith('bin/python') or os.path.islink(src)
+                  f.startswith('bin/python') or islink(src)
                   else linktype)
             try:
                 _link(src, dst, lt)
