@@ -45,3 +45,14 @@ disallow:
 
 # enable certain features to be tracked by default
 track_features: mkl
+
+#======================================================================#
+#====== CONDA_ADDONS:  https://github.com/peter1000/conda_addons ======#
+#======================================================================#
+
+# CONDA_RECIPES_DIR:
+# directory in which conda recipes are located:
+# useful if one wants one common conda_recipes folder for 
+# different conda installation (defaults to: *CONDA ROOT/conda_recipes)
+conda_recipes_dir: /home/0_CONDA_RELATED_0/conda-recipes
+

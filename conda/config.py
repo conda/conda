@@ -60,6 +60,7 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
+    'conda_recipes_dir',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -217,3 +218,10 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 track_features = set(rc.get('track_features', '').split())
+
+#======================================================================#
+#====== CONDA_ADDONS:  https://github.com/peter1000/conda_addons ======#
+#======================================================================#
+
+conda_recipes_dir = rc.get('conda_recipes_dir', join(root_dir, 'conda-recipes'))
+print("conda_recipes_dir: ", conda_recipes_dir)
