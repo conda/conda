@@ -334,7 +334,7 @@ remaining packages:
              return the filenames of those dependencies (as well as the
              explicit specification)
           B. if not one explicit specifications are given ->
-             return the filenames of those (no thier dependencies)
+             return the filenames of those (not thier dependencies)
           C. None in all other cases
         """
         if len(specs) == 1:
