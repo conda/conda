@@ -61,6 +61,7 @@ rc_other = [
     'proxy_servers',
     'root_dir',
     'conda_recipes_dir',
+    'conda_repo_dir',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -224,4 +225,4 @@ track_features = set(rc.get('track_features', '').split())
 #======================================================================#
 
 conda_recipes_dir = rc.get('conda_recipes_dir', join(root_dir, 'conda-recipes'))
-print("conda_recipes_dir: ", conda_recipes_dir)
+conda_repo_dir = rc.get('conda_repo_dir', join(root_dir, 'conda-bld'))

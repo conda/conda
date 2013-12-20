@@ -30,7 +30,7 @@ from conda.builder.create_test import create_files
 
 prefix = config.build_prefix
 info_dir = join(prefix, 'info')
-bldpkgs_dir = join(config.croot, cc.subdir)
+bldpkgs_dir = join(cc.conda_repo_dir, cc.subdir)
 broken_dir = join(config.croot, "broken")
 
 def prefix_files():

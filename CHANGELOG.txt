@@ -4,6 +4,7 @@
   * copy symlinks as symlinks, issue #437
   * CONDA_ADDON: added first draft of README file
   * CONDA_ADDON: conda_recipes_dir in .condar config file
+  * CONDA_ADDON: conda_repo_dir in .condar config file
 
 2013-12-17   2.2.5:
 -------------------
