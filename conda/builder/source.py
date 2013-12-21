@@ -11,12 +11,12 @@ from conda.fetch import download
 from conda.builder.config import croot
 from conda.builder.utils import rm_rf, tar_xf, unzip
 from conda.builder import external
+from conda.config import conda_sources_dir
 
-
-SRC_CACHE = join(croot, 'src_cache')
-GIT_CACHE = join(croot, 'git_cache')
-HG_CACHE = join(croot, 'hg_cache')
-SVN_CACHE = join(croot, 'svn_cache')
+SRC_CACHE = join(conda_sources_dir, 'src_cache')
+GIT_CACHE = join(conda_sources_dir, 'git_cache')
+HG_CACHE = join(conda_sources_dir, 'hg_cache')
+SVN_CACHE = join(conda_sources_dir, 'svn_cache')
 WORK_DIR = join(croot, 'work')
 
 

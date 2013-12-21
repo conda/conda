@@ -62,6 +62,7 @@ rc_other = [
     'root_dir',
     'conda_recipes_dir',
     'conda_repo_dir',
+    'conda_sources_dir',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -226,3 +227,7 @@ track_features = set(rc.get('track_features', '').split())
 
 conda_recipes_dir = rc.get('conda_recipes_dir', join(root_dir, 'conda-recipes'))
 conda_repo_dir = rc.get('conda_repo_dir', join(root_dir, 'conda-bld'))
+if root_writable:
+    conda_sources_dir = rc.get('conda_sources_dir', join(root_dir, 'conda-bld'))
+else:
+    conda_sources_dir = rc.get('conda_sources_dir', abspath(expanduser('~/conda-bld')))
