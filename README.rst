@@ -1,106 +1,71 @@
-=====================
-conda: addons/changes
-=====================
+|
 
 Here are mainly ``addons/changes`` for the nice ``conda: package management tool``. These are additional features I would like to see in the ``main conda package``. 
 Hopefully one or the other idea makes it back to the original codebase and can be removed from here.
 
-|
 
-====
-Info
-====
-
-I only use  ``Linux x86_64 (at the moment Debian) and Python 3.3 and later`` so the addons/changes are mostly reflecting that. 
-
-``IMPORTANT:`` if you have a problem when using the conda_addons package ``do not`` ask for help at the official ContinuumIO-conda places:
-
-- http://continuum.io/
-- https://github.com/ContinuumIO/conda 
+`For Installation see INSTALL.rst <INSTALL.rst>`_
 
 
-If you would like to see any features back-ported to the official ContinuumIO-conda you can only suggest such and such to them for consideration.
-
-|
-
-===========================
-How to install conda_addons
-===========================
-
-You should have already installed an Anaconda/Miniconda Python 3 environment:
-Probably the best way is to do it through the: `Miniconda3 (Python3) installers http://repo.continuum.io/miniconda/`
-
-To use conda_addons there is an easy option to switch to it: check out the master: 
-
-- https://github.com/peter1000/conda_addons.git
-- or download a compressed package https://github.com/peter1000/conda_addons/archive/master.zip
-
-Extact them somewhere: e.g. /home/conda_addons.
-
-|
-
-**In your conda config-file `.condarc`  set**
-
-.. code-block:: 
-
-    # directory in which conda root is located (used by `conda init`)
-    root_dir: /home/conda_addons
-
-
-
-than run from your normal anaconda/miniconda installation:
-
-.. code-block:: bash
-
-    $ conda init
-
-outputs something like: 
-
-``Initializing conda into: /home/workerm/Downloads/conda_addons``
-
-And one should be ready to go.
-
-|
-
-
-**To revert back to the normal: conda** just ``comment out`` the 
-
-.. code-block:: 
-
-    # directory in which conda root is located (used by `conda init`)
-    #root_dir: /home/conda_addons
-
-
-and re-run:
-
-.. code-block:: bash
-
-    $ conda init
-
-
-
-======
 ADDONS 
 ======
 
-are documented in the `ADDONS file <ADDONS.rst>`_
+|
+
+conda_recipes_dir
+=================
+
+USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
+
+.. code-block:: bash
+
+    # CONDA_RECIPES_DIR:
+    # directory in which conda recipes are located:
+    # useful if one wants one common conda_recipes folder for 
+    # different conda installation (defaults to: *CONDA ROOT/conda_recipes)
+    conda_recipes_dir: /home/0_CONDA_RELATED_0/conda-recipes
+
+
+conda_repo_dir
+=================
+
+USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
+
+.. code-block:: bash
+
+    # CONDA_REPO_DIR:
+    # directory in which conda build packages are located: in the 
+    # architecture subfolders
+    # useful if one wants one common conda_repo folder for 
+    # different conda installation (defaults to: *CONDA ROOT/conda-bld)
+    conda_repo_dir: /home/0_CONDA_RELATED_0/conda-repo
+
+
+conda_sources_dir
+=================
+
+USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
+
+.. code-block:: bash
+
+    # CONDA_REPO_DIR:
+    # directory in which conda build packages are located: in the 
+    # architecture subfolders
+    # useful if one wants one common conda_repo folder for 
+    # different conda installation (defaults to: *CONDA ROOT/conda-bld)
+    conda_repo_dir: /home/0_CONDA_RELATED_0/conda-repo
+
+
+append build number to file
+===========================
+
+always append any build number  to the output package archive file
 
 
 |
 |
 |
-|
-|
-|
-|
-|
 
-==================================
-Official ContinuumIO Documentation
-==================================
+`For Installation see INSTALL.rst <INSTALL.rst>`_
 
-See the `documentation <http://docs.continuum.io/conda/>`_ for more
-information.
-
-Conda has it's own mailing list created at: conda@continuum.io -
-https://groups.google.com/a/continuum.io/forum/#!forum/conda
+peter1000: https://github.com/peter1000/
