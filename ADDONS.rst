@@ -48,6 +48,14 @@ USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
     # useful if one wants one common conda_repo folder for 
     # different conda installation (defaults to: *CONDA ROOT/conda-bld)
     conda_repo_dir: /home/0_CONDA_RELATED_0/conda-repo
+
+
+append build number to file
+===========================
+
+always append any build number  to the output package archive file
+
+
 |
 |
 |

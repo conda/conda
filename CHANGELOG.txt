@@ -6,7 +6,8 @@
   * CONDA_ADDON: conda_recipes_dir in .condar config file
   * CONDA_ADDON: conda_repo_dir in .condar config file
   * CONDA_ADDON: conda_sources_dir in .condar config file
-
+  * CONDA_ADDON: always append build number to file
+  
 2013-12-17   2.2.5:
 -------------------
   * conda build: move broken packages to conda-bld/broken

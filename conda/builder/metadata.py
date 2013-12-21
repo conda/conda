@@ -187,20 +187,22 @@ class MetaData(object):
         return res
 
     def build_id(self):
+        res = []
         ret = self.get_value('build/string')
         if ret:
             check_bad_chrs(ret, 'build/string')
-            return ret
-        res = []
-        for name, s in (('numpy', 'np'), ('python', 'py')):
-            for ms in self.ms_depends():
-                if ms.name == name:
-                    v = ms.spec.split()[1]
-                    res.append(s + v[0] + v[2])
-                    break
-        if res:
-            res.append('_')
-        res.append('%d' % self.build_number())
+            res.append(ret)
+            res.append('_%d' % self.build_number())
+        else:
+            for name, s in (('numpy', 'np'), ('python', 'py')):
+                for ms in self.ms_depends():
+                    if ms.name == name:
+                        v = ms.spec.split()[1]
+                        res.append(s + v[0] + v[2])
+                        break
+            if res:
+                res.append('_')
+            res.append('%d' % self.build_number())
         return ''.join(res)
 
     def dist(self):
