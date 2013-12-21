@@ -12,8 +12,8 @@ ADDONS
 
 |
 
-#====== CONDA_ADDONS: COMMON DIRS ======#
------------------------------------------
+#====== CONDA_ADDONS: COMMON DIRS
+---------------------------------
 
 |
 
@@ -62,8 +62,8 @@ USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
 
 |
 
-#====== CONDA_ADDONS: Overwrite meta.yaml settings ======#
-----------------------------------------------------------
+#====== CONDA_ADDONS: Overwrite meta.yaml settings
+--------------------------------------------------
 
 |
 
@@ -98,8 +98,8 @@ USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
 
 |
 
-#====== CONDA_ADDONS: set enviroment build/compile/make flags ======#
----------------------------------------------------------------------
+#====== CONDA_ADDONS: set build/compile/make flags
+--------------------------------------------------
 
 #IMPORTANT: all of them can be overwritten in the build.sh
 #   but this should only be done in special cases as it will nullify
