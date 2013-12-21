@@ -166,8 +166,21 @@ class MetaData(object):
         return res
 
     def build_number(self):
-        return int(self.get_value('build/number', 0))
+        #Check overwrite fom: .condarc
+        if config.overwrite_build_num:
+            return int (config.overwrite_build_num)
+        else:
+            return int(self.get_value('build/number', 0))
 
+    def build_string(self):
+        #Check overwrite fom: .condarc
+        if config.overwrite_build_string:
+            res = config.overwrite_build_string
+        else:
+            res = self.get_value('build/string', '')
+        check_bad_chrs(res, 'build/string')
+        return res
+            
     def ms_depends(self, typ='run'):
         res = []
         for spec in self.get_value('requirements/' + typ):
@@ -188,9 +201,8 @@ class MetaData(object):
 
     def build_id(self):
         res = []
-        ret = self.get_value('build/string')
+        ret = self.build_string()
         if ret:
-            check_bad_chrs(ret, 'build/string')
             res.append(ret)
             res.append('_%d' % self.build_number())
         else:

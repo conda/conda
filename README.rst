@@ -61,6 +61,36 @@ append build number to file
 
 always append any build number  to the output package archive file
 
+|
+
+overwrite_build_num
+=================
+
+USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
+
+.. code-block:: bash
+
+    # OVERWRITE_BUILD_NUM:
+    # if this is configure: any build number will be overwritten
+    # (default 0 or the one specified in the meta.yaml)
+    # useful if one wants to rebuild all packages and init them with the
+    # same build number
+    overwrite_build_num: 1
+
+
+overwrite_build_string
+=================
+
+USAGE: see `condarc_EXAMPLE file <condarc_EXAMPLE>`_
+
+.. code-block:: bash
+
+    # OVERWRITE_BUILD_STRING:
+    # if this is configure: any build string will be overwritten
+    # (default '' (empty string or the one specified in the meta.yaml)
+    # useful if one wants to rebuild all packages and init them with the
+    # same build string: e.g. which lunux distribution it was compiled on
+    overwrite_build_string: build_on_debian_wheezy_py33
 
 |
 |

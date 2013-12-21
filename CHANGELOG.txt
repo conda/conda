@@ -7,6 +7,9 @@
   * CONDA_ADDON: conda_repo_dir in .condar config file
   * CONDA_ADDON: conda_sources_dir in .condar config file
   * CONDA_ADDON: always append build number to file
+  * CONDA_ADDON: overwrite_build_num, overwrite_build_string 
+    in .condar config file
+  * class MetaData: added: def build_string
   
 2013-12-17   2.2.5:
 -------------------
