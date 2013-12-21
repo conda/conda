@@ -63,6 +63,8 @@ rc_other = [
     'conda_recipes_dir',
     'conda_repo_dir',
     'conda_sources_dir',
+    'overwrite_build_num',
+    'overwrite_build_string',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -231,3 +233,6 @@ if root_writable:
     conda_sources_dir = rc.get('conda_sources_dir', join(root_dir, 'conda-bld'))
 else:
     conda_sources_dir = rc.get('conda_sources_dir', abspath(expanduser('~/conda-bld')))
+    
+overwrite_build_num = rc.get('overwrite_build_num', None)
+overwrite_build_string = rc.get('overwrite_build_string', None)

@@ -72,3 +72,19 @@ conda_repo_dir: /home/0_CONDA_RELATED_0/conda-repo
 # IMPORTANT: you must have write permission to the whole path:
 # otherwise: ERROR: Permission denied.
 conda_sources_dir: /home/0_CONDA_RELATED_0/conda_sources
+
+
+# OVERWRITE_BUILD_NUM:
+# if this is configure: any build number will be overwritten
+# (default 0 or the one specified in the meta.yaml)
+# useful if one wants to rebuild all packages and init them with the
+# same build number
+overwrite_build_num: 1
+
+# OVERWRITE_BUILD_STRING:
+# if this is configure: any build string will be overwritten
+# (default '' (empty string or the one specified in the meta.yaml)
+# useful if one wants to rebuild all packages and init them with the
+# same build string: e.g. which lunux distribution it was compiled on
+overwrite_build_string: build_on_debian_wheezy_py33
+

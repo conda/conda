@@ -103,5 +103,5 @@ def execute(args, parser):
                     disp_name, inst,
                     pkg.version,
                     r.index[pkg.fn]['build'],
-                    common.disp_features(r.features(pkg.fn))) )
+                    common.disp_features(r.features(pkg.fn))))
             disp_name = ''
