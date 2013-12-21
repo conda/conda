@@ -10,6 +10,8 @@
   * CONDA_ADDON: overwrite_build_num, overwrite_build_string 
     in .condar config file
   * class MetaData: added: def build_string
+  * CONDA_ADDON: option in .condar config file for many build flags
+  
   
 2013-12-17   2.2.5:
 -------------------
