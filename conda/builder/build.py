@@ -124,7 +124,7 @@ def create_env(pref, specs, pypi=False):
     # remove the cache such that a refetch is made,
     # this is necessary because we add the local build repo URL
     fetch_index.cache = {}
-    index = get_index([url_path(config.croot)])
+    index = get_index([url_path(cc.conda_repo_dir)])
 
     cc.pkgs_dirs = cc.pkgs_dirs[:1]
 
@@ -211,7 +211,7 @@ def test(m, pypi=False):
         return
 
     print("TEST START:", m.dist())
-    rm_rf(prefix)
+#    rm_rf(prefix)      Keep the _build dir: sometimes useful to find problems
     rm_rf(config.test_prefix)
     specs = ['%s %s %s' % (m.name(), m.version(), m.build_id()),
              # as the tests are run by python, we need to specify it
