@@ -169,4 +169,58 @@ def execute(args, parser):
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
 
+            # check install now
+            install_choice = "y"
+            if not config.always_yes:
+                while True:
+                    # raw_input has a bug and prints to stderr, 
+                    # not desirable
+                    sys.stdout.write("\nDo you want to install this "
+                        "package now?\ny=yes,n=no,e=(extract implies "
+                        "no checks) ([y]/n/e)?: ")
+                    sys.stdout.flush()
+                    try:
+                        install_choice = sys.stdin.readline().strip().lower()
+                        if install_choice:
+                            if install_choice not in ('y', 'n', 'e'):
+                                print("Invalid choice: %s. must be one "
+                                    "of: y/n/e=(extract implies "
+                                    "no checks)" % install_choice)
+                            else:
+                                sys.stdout.write("\n")
+                                sys.stdout.flush()
+                                break
+                        else: 
+                            install_choice = "y"
+                            break
+                    except KeyboardInterrupt:
+                        sys.exit("\nOperation aborted.  Exiting.") 
+
+            if install_choice == "y":
+                import subprocess
+                from conda.builder.external import find_executable
+                from conda.utils import url_path
+                
+                temp_conda = find_executable('conda')
+                if temp_conda is None:
+                    sys.exit('''
+                        Error: cannot locate conda (required for install)
+                        # Try:
+                        # $ conda install %s
+                        ''' % m.name())
+
+                temp_args = [temp_conda, 'install',
+                    '--channel', url_path(config.conda_repo_dir), 
+                    '--no-pip',  m.name()]
+                subprocess.call(temp_args)
+                print()
+            elif install_choice == "e":
+                from conda.misc import install_local_packages
+
+                temp_prefix = config.default_prefix
+                install_local_packages(temp_prefix, 
+                    [build.bldpkg_path(m)], verbose=True)
+                print()
+                
+                
             handle_binstar_upload(build.bldpkg_path(m), args)
