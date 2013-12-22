@@ -11,7 +11,10 @@
     in .condar config file
   * class MetaData: added: def build_string
   * CONDA_ADDON: option in .condar config file for many build flags
-  
+  * FIX: conda install --use-local when useing a global repo dir 
+    from .condar config file
+
+
   
 2013-12-17   2.2.5:
 -------------------

@@ -1,5 +1,1 @@
 TODO
-
-
-FIX: conda install --use-local when useing a global repo dir from config file
-
