@@ -274,8 +274,8 @@ append build number to file
 always append any build number  to the output package archive file
 
 
-install package direct from build process
-=========================================
+install package direct within the build process
+===============================================
 
 within the build: user input option: to install the package within
 the build process: 
