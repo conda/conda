@@ -46,7 +46,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author = "Continuum Analytics, Inc.",
     author_email = "ilan@continuum.io",
-    url = "https://github.com/ContinuumIO/conda",
+    url = "https://github.com/pydata/conda",
     license = "BSD",
     classifiers = [
         "Development Status :: 4 - Beta",
