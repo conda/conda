@@ -65,6 +65,14 @@ rc_other = [
     'conda_sources_dir',
     'overwrite_build_num',
     'overwrite_build_string',
+    'build_cppflags',
+    'build_cflags',
+    'build_cxxflags',
+    'build_ldflags',
+    'build_fflags',
+    'build_fcflags',
+    'build_makeflags',
+    'build_chost',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -236,3 +244,12 @@ else:
     
 overwrite_build_num = rc.get('overwrite_build_num', None)
 overwrite_build_string = rc.get('overwrite_build_string', None)
+
+build_cppflags = rc.get('build_cppflags', None)
+build_cflags = rc.get('build_cflags', None)
+build_cxxflags = rc.get('build_cxxflags', None)
+build_ldflags = rc.get('build_ldflags', None)
+build_fflags = rc.get('build_fflags', None)
+build_fcflags = rc.get('build_fcflags', None)
+build_makeflags = rc.get('build_makeflags', None)
+build_chost = rc.get('build_chost', None)

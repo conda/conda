@@ -8,8 +8,12 @@
   * CONDA_ADDON: conda_sources_dir in .condar config file
   * CONDA_ADDON: always append build number to file
   * CONDA_ADDON: overwrite_build_num, overwrite_build_string 
-    in .condar config file
-  * class MetaData: added: def build_string
+                 in .condar config file
+  * CONDA_ADDON: class MetaData: added: def build_string
+  * CONDA_ADDON: option in .condar config file for many build flags
+  * CONDA_ADDON: https://github.com/pydata/conda in INSTALL.rst  issue: #418 
+  * CONDA_ADDON: for build: user option to install the package within
+                 the build process
   
 2013-12-17   2.2.5:
 -------------------

@@ -163,11 +163,11 @@ Error: environment does not exist: %s
     if args.use_local:
         from conda.fetch import fetch_index
         from conda.utils import url_path
-        from conda.builder import config as build_config
+        from conda.config import conda_repo_dir
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = get_index([url_path(build_config.croot)])
+        index = get_index([url_path(conda_repo_dir)])
 
     if args.pip and config.use_pip and not args.dry_run:
         # Remove from specs packages that are not in conda index
