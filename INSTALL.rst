@@ -8,6 +8,7 @@ I only use  ``Linux x86_64 (at the moment Debian) and Python 3.3 and later`` so 
 
 - http://continuum.io/
 - https://github.com/ContinuumIO/conda 
+- https://github.com/pydata/conda
 
 
 If you would like to see any features back-ported to the official ContinuumIO-conda you can only suggest such and such to them for consideration.

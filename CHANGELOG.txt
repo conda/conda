@@ -13,6 +13,7 @@
   * CONDA_ADDON: option in .condar config file for many build flags
   * FIX: conda install --use-local when useing a global repo dir 
     from .condar config file
+  * added: https://github.com/pydata/conda in INSTALL.rst  issue: #418 
 
 
   
