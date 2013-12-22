@@ -276,7 +276,8 @@ def main(args, parser):
                 if pkginfo['packages']:
                     deps = set(pkginfo['packages'])
                     if d['import_tests']:
-                        deps = set([d['import_tests']]) | deps
+                        olddeps = [x for x in d['import_tests'].split() if x != '-']
+                        deps = set(olddeps) | deps
                     d['import_tests'] = indent.join([''] + list(deps))
                     d['import_comment'] = ''
             finally:
