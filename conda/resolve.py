@@ -235,7 +235,7 @@ class Resolve(object):
                 for fn2 in self.find_matches(ms):
                     if fn2 in dists:
                         clause.append(v[fn2])
-                assert len(clause) > 1, fn1
+                assert len(clause) > 1, '%s %r' % (fn1, ms)
                 yield clause
 
                 for feat in features:
@@ -334,7 +334,7 @@ remaining packages:
              return the filenames of those dependencies (as well as the
              explicit specification)
           B. if not one explicit specifications are given ->
-             return the filenames of those (no thier dependencies)
+             return the filenames of those (not thier dependencies)
           C. None in all other cases
         """
         if len(specs) == 1:
@@ -345,7 +345,8 @@ remaining packages:
             res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
             res.append(fn)
         else:
-            res = [MatchSpec(spec).to_filename() for spec in specs]
+            res = [MatchSpec(spec).to_filename() for spec in specs
+                   if spec != 'conda']
 
         if None in res:
             return None

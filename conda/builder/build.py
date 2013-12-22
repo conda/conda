@@ -7,6 +7,7 @@ import stat
 import shutil
 import tarfile
 from os.path import exists, isdir, islink, join
+import subprocess
 
 import conda.config as cc
 import conda.plan as plan
@@ -30,7 +31,7 @@ from conda.builder.create_test import create_files
 prefix = config.build_prefix
 info_dir = join(prefix, 'info')
 bldpkgs_dir = join(config.croot, cc.subdir)
-
+broken_dir = join(config.croot, "broken")
 
 def prefix_files():
     res = set()
@@ -56,6 +57,8 @@ def have_prefix_files(files):
             # skip symbolic links (as we can on Linux)
             continue
         if is_obj(path):
+            continue
+        if os.path.islink(path):
             continue
         try:
             with open(path) as fi:
@@ -172,7 +175,8 @@ def build(m, get_src=True, pypi=False):
         _check_call(cmd, env=env, cwd=source.get_dir())
 
     create_entry_points(m.get_value('build/entry_points'))
-    post_process()
+    post_process(preserve_egg_dir=bool(
+            m.get_value('build/preserve_egg_dir')))
 
     assert not exists(info_dir)
     files2 = prefix_files()
@@ -227,7 +231,13 @@ def test(m, pypi=False):
         env[varname] = str(getattr(config, varname))
     env['PREFIX'] = config.test_prefix
 
-    _check_call([config.test_python, join(tmp_dir, 'run_test.py')],
-                env=env, cwd=tmp_dir)
+    try:
+        subprocess.check_call([config.test_python, join(tmp_dir, 'run_test.py')],
+            env=env, cwd=tmp_dir)
+    except subprocess.CalledProcessError:
+        if not isdir(broken_dir):
+            os.makedirs(broken_dir)
+        shutil.move(bldpkg_path(m), join(broken_dir, "%s.tar.bz2" % m.dist()))
+        sys.exit("TESTS FAILED: " + m.dist())
 
     print("TEST END:", m.dist())

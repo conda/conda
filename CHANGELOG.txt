@@ -1,4 +1,34 @@
-2013-12-XX   2.2.3:
+20XX-XX-XX   2.2.6:
+-------------------
+  * minor Py3k fixes for conda build on Linux
+  * copy symlinks as symlinks, issue #437
+  * fix explicit install (e.g. from output of `conda list -e`) in root env
+
+
+2013-12-17   2.2.5:
+-------------------
+  * conda build: move broken packages to conda-bld/broken
+  * conda config: automatically add the 'defaults' channel
+  * conda build: improve error handling for invalid recipe directory
+  * add ability to set build string, issue #425
+  * fix LD_RUN_PATH not being set on Linux under Python 3,
+    see issue #427, thanks peter1000
+
+
+2013-12-10   2.2.4:
+-------------------
+  * add support for execution with the -m switch (issue #398), i.e. you
+    can execute conda also as: python -m conda
+  * add a deactivate script for windows
+  * conda build adds .pth-file when it encounters an egg (TODO)
+  * add ability to preserve egg directory when building using
+        build/preserve_egg_dir: True
+  * allow track_features in ~/.condarc
+  * Allow arbitrary source, issue #405
+  * fixed minor issues: #393, #402, #409, #413
+
+
+2013-12-03   2.2.3:
 -------------------
   * add "foreign mode", i.e. disallow install of certain packages when
     using a "foreign" Python, such as the system Python

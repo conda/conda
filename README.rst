@@ -49,3 +49,6 @@ Documentation
 
 See the `documentation <http://docs.continuum.io/conda/>`_ for more
 information.
+
+Conda has it's own mailing list created at: conda@continuum.io -
+https://groups.google.com/a/continuum.io/forum/#!forum/conda

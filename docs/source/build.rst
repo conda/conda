@@ -224,7 +224,10 @@ Windows (``bld.bat``) during the build process:
   * - ``CONDA_BUILD=1``
     - always set
   * - ``SRC_DIR``
-    - path to where source is unpacked (or cloned)
+    - path to where source is unpacked (or cloned). If the source file is not
+      a recognized file type (right now, ``.zip``, ``.tar``, ``.tar.bz2``,
+      ``.tar.xz``, and ``.tar``), this is a directory containing a copy of the
+      source file.
   * - ``PREFIX``
     - build prefix where build script should install to
   * - ``RECIPE_DIR``

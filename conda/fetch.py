@@ -118,7 +118,7 @@ def fetch_index(channel_urls):
 
 def fetch_pkg(info, dst_dir=None):
     '''
-    fetch a package `fn` from `url` and store it into `dst_dir`
+    fetch a package given by `info` and store it into `dst_dir`
     '''
     if dst_dir is None:
         dst_dir = config.pkgs_dirs[0]
