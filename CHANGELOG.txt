@@ -14,6 +14,18 @@
   * CONDA_ADDON: https://github.com/pydata/conda in INSTALL.rst  issue: #418 
   * CONDA_ADDON: for build: user option to install the package within
                  the build process
+  * CONDA_ADDON: Recipe dir: can now be organized in subfolders
+    Checks for unique recipe names
+    /Recipes_Root
+        /conda_standard
+            /Recipe1
+            /Recipe2
+        /customary_qt
+            /Recipe_qt
+            /Recipe_pyqt
+        /conda_recipes_examples
+            /Recipe_appdirs
+            /Recipe_binstar_client
   
 2013-12-17   2.2.5:
 -------------------

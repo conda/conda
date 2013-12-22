@@ -282,10 +282,31 @@ the build process:
 
 ::
 
-   normal install: default=y 
-    - (like: conda install --channel path_to_build_package --no-pip package)
-  or file extract install: e
-    - (like: conda install full_path_to_package.tar.bz2)
+    normal install: default=y 
+        - (like: conda install --channel path_to_build_package --no-pip package)
+    or file extract install: e
+        - (like: conda install full_path_to_package.tar.bz2)
+
+
+organize recipes within subfolders
+==================================
+
+Recipe dir: can now be organized in subfolders (checks for unique recipe names)
+
+::
+
+    /Recipes_Root(conda_recipes_dir)
+        /conda_standard
+            /Recipe1
+            /Recipe2
+        /customary_qt
+            /Recipe_qt
+            /Recipe_pyqt
+        /conda_recipes_examples
+            /Recipe_appdirs
+            /Recipe_binstar_client
+
+
 
 |
 |
