@@ -16,7 +16,7 @@ import conda.config as config
 help = "Build a package from a (conda) recipe. (ADVANCED)"
 
 descr = help + """  For examples of recipes, see:
-https://github.com/ContinuumIO/conda-recipes"""
+https://github.com/pydata/conda-recipes"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)

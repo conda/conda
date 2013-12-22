@@ -1,4 +1,4 @@
-Build a package from a (conda) recipe. (ADVANCED) For examples of recipes, see: https://github.com/ContinuumIO/conda-recipes
+Build a package from a (conda) recipe. (ADVANCED) For examples of recipes, see: https://github.com/pydata/conda-recipes
 
 **usage**: ``conda build [-h] [-c] [--no-binstar-upload] [--output] [-s] [-t] PATH [PATH ...]``
 
