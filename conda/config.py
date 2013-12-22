@@ -42,11 +42,24 @@ else:
 # file. Be sure to update it when new keys are added.
 rc_list_keys = [
     'channels',
+    'disallow',
+    'create_default_packages',
+    'track_features',
+    'envs_dirs',
     ]
+
 rc_bool_keys = [
+    'always_yes',
     'changeps1',
+    'use_pip',
     'binstar_upload',
-    'binstar_personal'
+    'binstar_personal',
+    ]
+
+# Not supported by conda config yet
+rc_other = [
+    'proxy_servers',
+    'root_dir',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -71,6 +84,10 @@ def load_condarc(path):
     return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
+
+wrong_keys = set(rc.keys()) - set(rc_list_keys + rc_bool_keys + rc_other)
+if wrong_keys:
+    print("Warning: Unrecognized key(s) in condarc (%s): %s" % (rc_path, wrong_keys))
 
 # ----- local directories -----
 
@@ -199,3 +216,4 @@ binstar_personal = rc.get('binstar_personal', True)
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
+track_features = set(rc.get('track_features', '').split())

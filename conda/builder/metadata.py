@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
-from os.path import isdir, join
+from os.path import isdir, isfile, join
 
 from conda.compat import iteritems
 from conda.utils import memoized, md5_file
@@ -91,7 +91,7 @@ def parse(data):
         if res[section].get(key, None) is None:
             res[section][key] = []
     # ensure those are strings
-    for field in ('package/version',
+    for field in ('package/version', 'build/string',
                   'source/git_tag', 'source/git_branch', 'source/md5'):
         section, key = field.split('/')
         if res.get(section) is None:
@@ -107,13 +107,21 @@ FIELDS = {
                'hg_url', 'hg_tag',
                'svn_url', 'svn_rev', 'svn_ignore_externals',
                'patches'],
-    'build': ['number', 'entry_points', 'osx_is_app', 'rm_py',
-              'features', 'track_features'],
+    'build': ['number', 'string', 'entry_points', 'osx_is_app', 'rm_py',
+              'features', 'track_features', 'preserve_egg_dir'],
     'requirements': ['build', 'run', 'conflicts'],
     'app': ['entry', 'icon', 'summary', 'type', 'cli_opts'],
     'test': ['requires', 'commands', 'files', 'imports'],
     'about': ['home', 'license', 'summary'],
 }
+
+def check_bad_chrs(s, field):
+    bad_chrs = '=!@#$%^&*:;"\'\\|<>?/ '
+    if field in ('package/version', 'build/string'):
+        bad_chrs += '-'
+    for c in bad_chrs:
+        if c in s:
+            sys.exit("Error: bad character '%s' in %s: %s" % (c, field, s))
 
 
 class MetaData(object):
@@ -122,6 +130,8 @@ class MetaData(object):
         assert isdir(path)
         self.path = path
         self.meta_path = join(path, 'meta.yaml')
+        if not isfile(self.meta_path):
+            sys.exit("Error: no such file: %s" % self.meta_path)
         self.meta = parse(open(self.meta_path).read())
 
     def get_section(self, section):
@@ -147,15 +157,12 @@ class MetaData(object):
         res = str(res)
         if res != res.lower():
             sys.exit('Error: package/name must be lowercase, got: %r' % res)
+        check_bad_chrs(res, 'package/name')
         return res
 
     def version(self):
         res = self.get_value('package/version')
-        for c in '-=!@#$%^&*:;"\'\\|<>?/':
-            res = res.replace(c, '_')
-#            if c in res:
-#                sys.exit("Error: bad character '%s' in package/version: %s" %
-#                         (c, res))
+        check_bad_chrs(res, 'package/version')
         return res
 
     def build_number(self):
@@ -164,7 +171,10 @@ class MetaData(object):
     def ms_depends(self, typ='run'):
         res = []
         for spec in self.get_value('requirements/' + typ):
-            ms = MatchSpec(spec)
+            try:
+                ms = MatchSpec(spec)
+            except AssertionError:
+                raise RuntimeError("Invalid package specification: %r" % spec)
             for name, ver in [('python', CONDA_PY), ('numpy', CONDA_NPY)]:
                 if ms.name == name:
                     if ms.strictness != 1:
@@ -177,6 +187,10 @@ class MetaData(object):
         return res
 
     def build_id(self):
+        ret = self.get_value('build/string')
+        if ret:
+            check_bad_chrs(ret, 'build/string')
+            return ret
         res = []
         for name, s in (('numpy', 'np'), ('python', 'py')):
             for ms in self.ms_depends():

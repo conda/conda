@@ -51,14 +51,13 @@ def execute(args, parser):
     from conda.cli import pscheck
 
 
+    prefix = common.get_prefix(args)
     if len(args.pkg_names) == 0:
         sys.exit("""Error: no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
-# $ conda update anaconda
-""")
-
-    prefix = common.get_prefix(args)
+# $ conda update --prefix %s anaconda
+""" % prefix)
     config.set_pkgs_dirs(prefix)
     linked = set(ci.name_dist(d) for d in ci.linked(prefix))
     for name in args.pkg_names:

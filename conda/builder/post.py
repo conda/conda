@@ -6,7 +6,7 @@ import sys
 import stat
 from glob import glob
 from subprocess import call, check_call
-from os.path import basename, join, splitext, isdir
+from os.path import basename, join, splitext, isdir, isfile
 
 from conda.builder.config import build_prefix, build_python, PY3K
 from conda.builder import external
@@ -14,7 +14,7 @@ from conda.builder import environ
 from conda.builder import utils
 
 
-if sys.platform == 'linux2':
+if sys.platform.startswith('linux'):
     from conda.builder import elf
 elif sys.platform == 'darwin':
     from conda.builder import macho
@@ -23,7 +23,7 @@ elif sys.platform == 'darwin':
 
 def is_obj(path):
     assert sys.platform != 'win32'
-    return bool((sys.platform == 'linux2' and elf.is_elf(path)) or
+    return bool((sys.platform.startswith('linux') and elf.is_elf(path)) or
                 (sys.platform == 'darwin' and macho.is_macho(path)))
 
 
@@ -54,24 +54,42 @@ def fix_shebang(f, osx_is_app=False):
     os.chmod(path, int('755', 8))
 
 
-def rm_egg_dirs():
-    "remove egg directories"
+def write_pth(egg_path):
+    fn = basename(egg_path)
+    with open(join(environ.sp_dir,
+                   '%s.pth' % (fn.split('-')[0])), 'w') as fo:
+        fo.write('./%s\n' % fn)
+
+def remove_easy_install_pth(preserve_egg_dir=False):
+    """
+    remove the need for easy-install.pth and finally remove easy-install.pth
+    itself
+    """
     sp_dir = environ.sp_dir
-    egg_dirs = glob(join(sp_dir, '*-py*.egg'))
-    for egg_dir in egg_dirs:
-        print('moving egg dir:', egg_dir)
-        try:
-            os.rename(join(egg_dir, 'EGG-INFO/PKG-INFO'), egg_dir + '-info')
-        except OSError:
-            pass
-        utils.rm_rf(join(egg_dir, 'EGG-INFO'))
-        if isdir(egg_dir):
-            for fn in os.listdir(egg_dir):
+    for egg_path in glob(join(sp_dir, '*-py*.egg')):
+        if isdir(egg_path):
+            if preserve_egg_dir:
+                write_pth(egg_path)
+                continue
+
+            print('found egg dir:', egg_path)
+            try:
+                os.rename(join(egg_path, 'EGG-INFO/PKG-INFO'),
+                          egg_path + '-info')
+            except OSError:
+                pass
+            utils.rm_rf(join(egg_path, 'EGG-INFO'))
+            for fn in os.listdir(egg_path):
                 if fn == '__pycache__':
-                    utils.rm_rf(join(egg_dir, fn))
+                    utils.rm_rf(join(egg_path, fn))
                 else:
-                    os.rename(join(egg_dir, fn), join(sp_dir, fn))
-        utils.rm_rf(join(sp_dir, 'easy-install.pth'))
+                    os.rename(join(egg_path, fn), join(sp_dir, fn))
+
+        elif isfile(egg_path):
+            print('found egg:', egg_path)
+            write_pth(egg_path)
+
+    utils.rm_rf(join(sp_dir, 'easy-install.pth'))
 
 
 def rm_py_along_so():
@@ -95,13 +113,13 @@ def compile_missing_pyc():
                 need_compile = True
     if need_compile:
         print('compiling .pyc files...')
-        check_call([build_python, '-Wi', join(environ.stdlib_dir,
-                                              'compileall.py'),
-                    '-q', '-x', 'port_v3', sp_dir])
+        utils._check_call([build_python, '-Wi', join(environ.stdlib_dir,
+                                                     'compileall.py'),
+                           '-q', '-x', 'port_v3', sp_dir])
 
 
-def post_process():
-    rm_egg_dirs()
+def post_process(preserve_egg_dir=False):
+    remove_easy_install_pth(preserve_egg_dir=preserve_egg_dir)
     rm_py_along_so()
     if not PY3K:
         compile_missing_pyc()
@@ -141,7 +159,7 @@ def mk_relative(f):
         fix_shebang(f)
 
     path = join(build_prefix, f)
-    if sys.platform == 'linux2' and is_obj(path):
+    if sys.platform.startswith('linux') and is_obj(path):
         rpath = '$ORIGIN/' + utils.rel_lib(f)
         chrpath = external.find_executable('chrpath')
         if chrpath is None:
@@ -165,8 +183,8 @@ def fix_permissions(files):
 
     for f in files:
         path = join(build_prefix, f)
-        st = os.stat(path)
-        os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        st = os.lstat(path)
+        os.lchmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
 
 
 def post_build(files):

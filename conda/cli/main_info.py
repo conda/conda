@@ -37,10 +37,41 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "list environment variables",
     )
+    p.add_argument(
+        'pkg_names',
+        metavar = 'package_name',
+        action = "store",
+        nargs = '*',
+        help = "display information about packages",
+    )
     p.set_defaults(func=execute)
 
 
+def show_pkg_info(name):
+    #import conda.install as install
+    from conda.api import get_index
+    from conda.resolve import MatchSpec, Resolve
+
+    index = get_index()
+    r = Resolve(index)
+    print(name)
+    if name in r.groups:
+        for pkg in sorted(r.get_pkgs(MatchSpec(name))):
+            print('    %-15s %15s  %s' % (
+                    pkg.version,
+                    r.index[pkg.fn]['build'],
+                    common.disp_features(r.features(pkg.fn))))
+    else:
+        print('    not available on channels')
+    # TODO
+
+
 def execute(args, parser):
+    if args.pkg_names:
+        for pkg_name in args.pkg_names:
+            show_pkg_info(pkg_name)
+        return
+
     import os
     from os.path import basename, dirname, isdir, join
 

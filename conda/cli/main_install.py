@@ -169,7 +169,7 @@ Error: environment does not exist: %s
         fetch_index.cache = {}
         index = get_index([url_path(build_config.croot)])
 
-    if args.pip and config.use_pip:
+    if args.pip and config.use_pip and not args.dry_run:
         # Remove from specs packages that are not in conda index
         #  and install them using pip
         # Return the updated specs
