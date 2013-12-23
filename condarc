@@ -45,3 +45,8 @@ disallow:
 
 # enable certain features to be tracked by default
 track_features: mkl
+
+# RECIPES_DIR:
+# directory in which conda recipes are located:
+# (defaults to: *CONDA ROOT/conda_recipes)
+recipes_dir: /home/conda-recipes
