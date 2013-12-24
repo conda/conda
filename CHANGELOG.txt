@@ -27,7 +27,7 @@
             /Recipe_appdirs
             /Recipe_binstar_client
   * CONDA_ADDON: auto-detect patch levels
-  * CONDA_ADDON: changed eviron variable 'ARCH' for linux x86_64
+  * CONDA_ADDON: changed environ variable 'ARCH' for linux x86_64
     from 64 to x86_64 issue: #450 
   
   
