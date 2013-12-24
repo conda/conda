@@ -5,7 +5,8 @@
   * minor Py3k fixes for conda build on Linux
   * copy symlinks as symlinks, issue #437
   * fix explicit install (e.g. from output of `conda list -e`) in root env
-
+  * add ability to auto-detect patch levels, issue #447
+  
 
 2013-12-17   2.2.5:
 -------------------
