@@ -160,7 +160,7 @@ def execute(args, parser):
                             recipe_dir = abspath(arg)
                     else:
                         sys.exit("Error: did not find any recipes for: "
-                        "<%s>: Recipes Rooot Dir: "
+                        "<%s>: Recipes Root Dir: "
                         "<%s> " % (arg, config.conda_recipes_dir))
                 else:
                     recipe_dir = abspath(all_recipies[arg])

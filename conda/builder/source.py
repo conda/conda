@@ -169,7 +169,22 @@ Error:
     You can install 'patch' using apt-get, yum (Linux), Xcode (MacOSX),
     or conda, cygwin (Windows),
 """ % (os.pathsep.join(external.dir_paths)))
-    check_call([patch, '-p0', '-i', path], cwd=src_dir)
+    
+    #try to autofind patch levels
+    levelrange = 21
+    for level in range(levelrange):
+        p = Popen([patch, '-p%s' % level,  '--dry-run', '-i', path], stdout=PIPE, cwd=src_dir)
+        stdout = p.communicate()[0].decode() 
+        if not stdout.startswith("can't find file to patch"):
+            print("Found patch-level: ", level)
+            check_call([patch, '-p%s' % level, '-i', path], cwd=src_dir)
+            return
+    
+    sys.exit("""\
+Error:
+    Could not find an appropriate patch level:
+    tested: -p0 to -p%s
+""" % (levelrange - 1))
 
 
 def provide(recipe_dir, meta, patch=True):
