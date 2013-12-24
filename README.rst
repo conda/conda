@@ -307,6 +307,12 @@ Recipe dir: can now be organized in subfolders (checks for unique recipe names)
             /Recipe_binstar_client
 
 
+auto-detect pach levels
+======================
+
+if a patch file is specified in the meta.yaml it now tries to auto-detect
+the correct patch n level
+
 
 |
 |

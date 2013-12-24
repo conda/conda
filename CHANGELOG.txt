@@ -26,6 +26,8 @@
         /conda_recipes_examples
             /Recipe_appdirs
             /Recipe_binstar_client
+  * CONDA_ADDON: auto-detect patch levels
+  
   
 2013-12-17   2.2.5:
 -------------------
