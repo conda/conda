@@ -54,6 +54,8 @@ def get_dict(m=None):
 
     elif sys.platform.startswith('linux'):      # -------- Linux
         d['LD_RUN_PATH'] = build_prefix + '/lib'
+        # set Arch to soemthing better Linux make mrproper  Issue #450 
+        d['ARCH'] = 'i386' if cc.bits == 32 else 'x86_64'
         #optional compile/build flags
         if cc.build_cppflags:
             d['CPPFLAGS'] = cc.build_cppflags

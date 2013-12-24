@@ -312,7 +312,13 @@ auto-detect pach levels
 
 if a patch file is specified in the meta.yaml it now tries to auto-detect
 the correct patch n level
+      
 
+ENVIRON VARIABLE: 'ARCH' adjusted Value
+=======================================
+
+changed environment variable 'ARCH' for linux x86_64
+    from 64 to x86_64 issue: #450 https://github.com/pydata/conda/issues/450_
 
 |
 |
