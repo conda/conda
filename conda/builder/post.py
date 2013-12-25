@@ -19,6 +19,11 @@ if sys.platform.startswith('linux'):
 elif sys.platform == 'darwin':
     from conda.builder import macho
 
+try:
+    # lchmod tends to be a BSD thing; it's not present on Linux/Windows
+    chmod = os.lchmod
+except AttributeError:
+    chmod = os.chmod
 
 
 def is_obj(path):
@@ -184,7 +189,7 @@ def fix_permissions(files):
     for f in files:
         path = join(build_prefix, f)
         st = os.lstat(path)
-        os.lchmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
 
 
 def post_build(files):
