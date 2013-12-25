@@ -199,6 +199,7 @@ class RPackage(object):
         self.imports = [ s.strip() for s in self.imports.split(',') ]
 
         deps = [ ]
+        seen = set()
 
         ignore = R_BASE_PACKAGES | R_RECOMMENDED_PACKAGES
 
@@ -210,6 +211,11 @@ class RPackage(object):
             # packages.
             if name in ignore:
                 continue
+
+            if name in seen:
+                continue
+
+            seen.add(name)
 
             # We can't do anything useful with the version dependency yet as
             # conda doesn't support >=/=<.
