@@ -73,6 +73,8 @@ VERSION_DEPENDENCY_REGEX_PATTERN = (
 )
 VERSION_DEPENDENCY_REGEX = re.compile(VERSION_DEPENDENCY_REGEX_PATTERN)
 
+VIM_YAML_MODELINE = '# vim:set ts=8 sw=2 sts=2 tw=78 et:'
+
 #===============================================================================
 # Helpers
 #===============================================================================
@@ -109,6 +111,9 @@ def parse_version_dependency(s):
 #===============================================================================
 # Classes
 #===============================================================================
+class RVersionDependencyMismatch(BaseException):
+    pass
+
 class RPackage(object):
     KEYS_TO_ATTRS = {
         # CRAN Fields
@@ -124,7 +129,7 @@ class RPackage(object):
         'NeedsCompilation': 'needs_compilation',
         'OS_type': 'os_type',
         'Package': 'package',
-        'Path': 'path',
+        'Path': 'repo_path',
         'Priority': 'priority',
         'Suggests': 'suggests',
         'Version': 'version',
@@ -143,33 +148,52 @@ class RPackage(object):
 
     ]
 
-    CONTEXT_ATTRS = [
+    OTHER_ATTRS = [
         'fn',
         'url',
         'path',
-    ]
-
-    OTHER_ATTRS = [
         'bld_bat',
         'build_sh',
+        'base_url',
+        'is_valid',
         'meta_yaml',
         'meta_path',
-        'context_set',
+        'output_dir',
         'meta_yaml_needs_persisting',
     ]
 
     __slots__ = (
         OTHER_ATTRS +
         CONDA_ATTRS +
-        CONTEXT_ATTRS +
         [ k for k in KEYS_TO_ATTRS.values() ]
     )
 
-    def __init__(self, **kwds):
-        self._load_from_kwds(kwds)
+    def __init__(self, lines, base_url, output_dir):
+        self._load_from_lines(lines)
+
+        # CRAN packages that depend on R versions later than the current one
+        # appear to have a Path->repo_path attribute.  At the time of writing,
+        # the current R version is 3.0.2, and there are two packages at the
+        # end of the CRAN PACKAGES file that have a dependency on R 3.1; these
+        # both have a 'Path: 3.1.0/Other' entry.  If we detect such a path,
+        # raise an exception indicating this package is not applicable.
+        if self.repo_path:
+            raise RVersionDependencyMismatch()
 
         self.conda_name = r_name_to_conda_name(self.package)
         self.conda_version = r_version_to_conda_version(self.version)
+
+        self.base_url = base_url + '/' if base_url[-1] != '/' else base_url
+        self.output_dir = output_dir
+
+        self.fn = '%s_%s.tar.gz' % (self.package, self.version)
+        self.url = self.base_url + self.fn
+        self.path = join(output_dir, self.conda_name)
+
+        self.meta_yaml = None
+        self.meta_path = join(self.path, 'meta.yaml')
+        self.build_sh = join(self.path, 'build.sh')
+        self.bld_bat = join(self.path, 'bld.bat')
 
         self.depends = [ s.strip() for s in self.depends.split(',') ]
         self.imports = [ s.strip() for s in self.imports.split(',') ]
@@ -181,6 +205,7 @@ class RPackage(object):
         for pkg in [ d for d in chain(self.depends, self.imports) if d ]:
             dep = parse_version_dependency(pkg)
             name = dep.name
+            version = dep.version
             # Make sure the dependency isn't one of the base or recommended
             # packages.
             if name in ignore:
@@ -192,7 +217,7 @@ class RPackage(object):
 
         self.conda_depends = deps
 
-        self.clear_context(force=True)
+        self._determine_build_number()
 
     def _load_from_kwds(self, kwds):
         m = self.KEYS_TO_ATTRS
@@ -206,40 +231,14 @@ class RPackage(object):
         for key in missing:
             setattr(self, m[key], '')
 
-    @classmethod
-    def from_lines(cls, lines):
+    def _load_from_lines(self, lines):
         d = {}
         for line in lines:
             (k, v) = line.split(': ')
             d[k] = v
-        return cls(**d)
-
-    def set_context(self, url, output_dir):
-        assert not self.context_set
-        self.url = url
-        self.fn = url[url.rfind('/')+1:]
-        self.path = join(output_dir, self.conda_name)
-        self.meta_path = join(self.path, 'meta.yaml')
-        self.build_sh = join(self.path, 'build.sh')
-        self.bld_bat = join(self.path, 'bld.bat')
-        self.context_set = True
-        self._determine_build_number()
-
-    def clear_context(self, force=False):
-        if not force:
-            assert self.context_set
-        self.fn = None
-        self.url = None
-        self.path = None
-        self.meta_path = None
-        self.meta_yaml = None
-        self.context_set = None
-        self.conda_build_number = None
-        self.meta_yaml_needs_persisting = None
+        self._load_from_kwds(d)
 
     def __generate_meta_yaml(self):
-        assert self.context_set
-
         md5sum = (('  md5: %s' % self.md5sum) if self.md5sum else '')
         deps = [ '    - %s' % d for d in self.conda_depends ]
 
@@ -269,8 +268,9 @@ class RPackage(object):
             l += [
                 'about:',
                 '  license: %s' % self.license,
-                '',
             ]
+
+        l += [ '', VIM_YAML_MODELINE, '' ]
 
         return '\n'.join(l)
 
@@ -279,7 +279,7 @@ class RPackage(object):
             '#!/bin/sh',
             '',
             '$R CMD INSTALL --build .',
-            ''
+            '',
         ]
 
         return '\n'.join(l)
@@ -345,7 +345,6 @@ class RPackage(object):
             self.conda_build_number = int(old_build_number) + 1
 
     def persist(self):
-        assert self.context_set
         if not isdir(self.path):
             makedirs(self.path)
 
