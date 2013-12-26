@@ -109,6 +109,7 @@ Error: cannot locate binstar (required for upload)
 
 def execute(args, parser):
     import sys
+    import os
     import shutil
     import tarfile
     import tempfile
@@ -121,25 +122,36 @@ def execute(args, parser):
     from conda.builder.metadata import MetaData
 
     with Locked(croot):
+        # get once all recipes
+        all_recipies = {}
+        for root, dirs, files in os.walk(config.recipes_dir):
+            for any_dir in dirs:
+                any_dir_path = os.path.join(root, any_dir)
+                if os.path.isfile(os.path.join(any_dir_path, "meta.yaml")):
+                    if any_dir not in all_recipies:
+                        all_recipies[any_dir] = any_dir_path
+                    else:
+                        raise Exception("\nRecipes must have unique names: "
+                        "Same recipe name: <%s> exist at: \n"
+                        "<%s>\n"
+                        "<%s>\n" % (any_dir, any_dir_path, 
+                                    all_recipies[any_dir]))
+                        
         for arg in args.recipe:
-            if isfile(arg):
-                if arg.endswith(('.tar', '.tar.gz', '.tgz', '.tar.bz2')):
-                    recipe_dir = tempfile.mkdtemp()
-                    t = tarfile.open(arg, 'r:*')
-                    t.extractall(path=recipe_dir)
-                    t.close()
-                    need_cleanup = True
-                else:
-                    print("Ignoring non-recipe: %s" % arg)
-                    continue
+            if isfile(arg) and arg.endswith(('.tar', '.tar.gz',
+                                        '.tgz', '.tar.bz2')):
+                recipe_dir = tempfile.mkdtemp()
+                t = tarfile.open(arg, 'r:*')
+                t.extractall(path=recipe_dir)
+                t.close()
+                need_cleanup = True
             else:
                 recipe_dir = abspath(arg)
                 need_cleanup = False
 
             if not isdir(recipe_dir):
                 # See if it's a spec and the directory is in conda-recipes
-                recipe_dir = join(config.root_dir, 'conda-recipes', arg)
-                if not isdir(recipe_dir):
+                if arg not in all_recipies:
                     # if --use-pypi and recipe_dir is a spec
                     # try to create the skeleton
                     if args.pypi:
@@ -148,8 +160,13 @@ def execute(args, parser):
                             recipe_dir = create_recipe(arg)
                         except:
                             recipe_dir = abspath(arg)
-                    if not isdir(recipe_dir):
-                        sys.exit("Error: no such directory: %s" % recipe_dir)
+                    else:
+                        sys.exit("Error: did not find any recipes for: "
+                        "<%s>: Recipes Root Dir: "
+                        "<%s> " % (arg, config.recipes_dir))
+                else:
+                    recipe_dir = abspath(all_recipies[arg])
+                    need_cleanup = False
 
             m = MetaData(recipe_dir)
             if args.check and len(args.recipe) > 1:

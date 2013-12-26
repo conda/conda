@@ -5,6 +5,7 @@
   * minor Py3k fixes for conda build on Linux
   * copy symlinks as symlinks, issue #437
   * fix explicit install (e.g. from output of `conda list -e`) in root env
+  * organize recipes in subfolders, conda-recipes issue #67, #54 
 
 
 2013-12-17   2.2.5:
