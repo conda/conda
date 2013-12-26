@@ -81,8 +81,8 @@ VIM_YAML_MODELINE = '# vim:set ts=8 sw=2 sts=2 tw=78 et:'
 def r_name_to_conda_name(rname):
     if rname == 'R':
         return 'r'
-    else:
-        return 'r-%s' % rname.lower().replace('.', '')
+
+    return 'r-%s' % rname.lower()
 
 def r_version_to_conda_version(rver):
     return rver.replace('-', '.')
@@ -116,7 +116,7 @@ class RVersionDependencyMismatch(BaseException):
 
 class RPackage(object):
     KEYS_TO_ATTRS = {
-        # CRAN Fields
+        'Site': 'site',
         'Archs': 'archs',
         'Depends': 'depends',
         'Enhances': 'enhances',
@@ -134,10 +134,29 @@ class RPackage(object):
         'Suggests': 'suggests',
         'Version': 'version',
 
-        # Other
         'Title': 'title',
         'Author': 'author',
         'Maintainer': 'maintainer',
+    }
+
+    REPODATA_KEYMAP = {
+        'fn': 'conda_build_tarball',
+        'name': 'conda_name',
+        'build': 'conda_build',
+        'depends': 'conda_depends',
+        'version': 'conda_version',
+        'build_number': 'conda_build_number',
+    }
+
+    BUILDDATA_KEYMAP = {
+        'fn': 'conda_build_tarball',
+        'cran': 'cran',
+        'name': 'conda_name',
+        'build': 'conda_build',
+        'depends': 'conda_depends',
+        'version': 'conda_version',
+        'build_number': 'conda_build_number',
+        'reverse_depends': 'conda_reverse_depends',
     }
 
     CONDA_ATTRS = [
@@ -145,13 +164,16 @@ class RPackage(object):
         'conda_version',
         'conda_depends',
         'conda_build_number',
-
+        'conda_build_tarball',
+        'conda_reverse_depends',
+        'conda_unsatisfied_depends',
     ]
 
     OTHER_ATTRS = [
         'fn',
         'url',
         'path',
+        'cran',
         'bld_bat',
         'build_sh',
         'base_url',
@@ -168,8 +190,37 @@ class RPackage(object):
         [ k for k in KEYS_TO_ATTRS.values() ]
     )
 
+    def __init__(self, **kwds):
+        self._load_from_cran_kwds(kwds)
+
+    def _load_from_cran_kwds(self, kwds):
+        self.cran = kwds
+        m = self.KEYS_TO_ATTRS
+        missing = set(m.keys())
+        for (key, value) in kwds.iteritems():
+            attr = m.get(key)
+            if attr:
+                setattr(self, attr, value)
+                missing.remove(key)
+
+        for key in missing:
+            setattr(self, m[key], '')
+
+    def _to_repodata_dict(self):
+        return {
+            l: getattr(self, r)
+                for (l, r) in self.REPODATA_KEYMAP.iteritems()
+        }
+
+    def _to_builddata_dict(self):
+        return {
+            l: getattr(self, r)
+                for (l, r) in self.BUILDDATA_KEYMAP.iteritems()
+        }
+
+class CondaRPackage(RPackage):
     def __init__(self, lines, base_url, output_dir):
-        self._load_from_lines(lines)
+        self._load_from_cran_lines(lines)
 
         # CRAN packages that depend on R versions later than the current one
         # appear to have a Path->repo_path attribute.  At the time of writing,
@@ -198,51 +249,54 @@ class RPackage(object):
         self.depends = [ s.strip() for s in self.depends.split(',') ]
         self.imports = [ s.strip() for s in self.imports.split(',') ]
 
-        deps = [ ]
-        seen = set()
+        # Always make R a dependency.
+        self.conda_depends = [ 'r', ]
 
         ignore = R_BASE_PACKAGES | R_RECOMMENDED_PACKAGES
 
+        seen = set()
+
         for pkg in [ d for d in chain(self.depends, self.imports) if d ]:
+
             dep = parse_version_dependency(pkg)
-            name = dep.name
-            version = dep.version
+            r_name = dep.name
+            conda_name = r_name_to_conda_name(r_name)
+
             # Make sure the dependency isn't one of the base or recommended
             # packages.
-            if name in ignore:
+            if r_name == 'R' or r_name in ignore:
                 continue
 
-            if name in seen:
+            if r_name in seen:
                 continue
 
-            seen.add(name)
+            seen.add(r_name)
 
-            # We can't do anything useful with the version dependency yet as
-            # conda doesn't support >=/=<.
-            deps.append(r_name_to_conda_name(name))
-
-        self.conda_depends = deps
+            self.conda_depends.append(conda_name)
 
         self._determine_build_number()
 
-    def _load_from_kwds(self, kwds):
-        m = self.KEYS_TO_ATTRS
-        missing = set(m.keys())
-        for (key, value) in kwds.iteritems():
-            attr = m.get(key)
-            if attr:
-                setattr(self, attr, value)
-                missing.remove(key)
+        self.conda_build = str(self.conda_build_number)
+        self.conda_build_tarball = (
+            '%s-%s-%d.tar.bz2' % (
+                self.conda_name,
+                self.conda_version,
+                self.conda_build_number,
+            )
+        )
 
-        for key in missing:
-            setattr(self, m[key], '')
+        self.conda_reverse_depends = []
+        self.conda_unsatisfied_depends = []
 
-    def _load_from_lines(self, lines):
+
+    def _load_from_cran_lines(self, lines):
         d = {}
         for line in lines:
+            if not line:
+                continue
             (k, v) = line.split(': ')
             d[k] = v
-        self._load_from_kwds(d)
+        self._load_from_cran_kwds(d)
 
     def __generate_meta_yaml(self):
         md5sum = (('  md5: %s' % self.md5sum) if self.md5sum else '')
@@ -350,7 +404,7 @@ class RPackage(object):
         else:
             self.conda_build_number = int(old_build_number) + 1
 
-    def persist(self):
+    def write_recipe(self):
         if not isdir(self.path):
             makedirs(self.path)
 
