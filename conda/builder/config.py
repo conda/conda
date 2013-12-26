@@ -31,6 +31,19 @@ def _get_python(prefix):
 build_python = _get_python(build_prefix)
 test_python = _get_python(test_prefix)
 
+def _get_r(prefix):
+    libdir = 'lib%d' % cc.bits
+
+    if sys.platform == 'win32':
+        # XXX: this is wrong.
+        res = join(prefix, 'R.exe')
+    else:
+        res = join(prefix, libdir, 'R/bin/R')
+    return res
+
+build_r = _get_r(build_prefix)
+test_r = _get_r(test_prefix)
+
 
 def show():
     import conda.config as cc
