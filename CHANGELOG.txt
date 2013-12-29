@@ -5,6 +5,8 @@
   * minor Py3k fixes for conda build on Linux
   * copy symlinks as symlinks, issue #437
   * fix explicit install (e.g. from output of `conda list -e`) in root env
+  * add pyyaml to the list of packages which can not be removed from root
+    environment
   * fixed minor issues: #365, #453
 
 
