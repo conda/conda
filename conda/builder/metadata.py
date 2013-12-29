@@ -11,11 +11,6 @@ from conda.resolve import MatchSpec
 
 from conda.builder.config import CONDA_PY, CONDA_NPY
 
-try:
-    import yaml
-except ImportError:
-    sys.exit('Error: could not import yaml (required to read meta.yaml '
-             'files of conda recipes)')
 
 
 def ns_cfg():
@@ -69,6 +64,12 @@ Error: Invalid selector in meta.yaml line %d:
 
 @memoized
 def yamlize(data):
+    try:
+        import yaml
+    except ImportError:
+        sys.exit('Error: could not import yaml (required to read meta.yaml '
+                 'files of conda recipes)')
+
     return yaml.load(data)
 
 
