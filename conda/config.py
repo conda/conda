@@ -92,7 +92,7 @@ def load_condarc(path):
         import yaml
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
-                 'config file)')
+                 'config file: %s)' % path)
 
     return yaml.load(open(path)) or {}
 

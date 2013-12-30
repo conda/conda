@@ -1,7 +1,13 @@
 20XX-XX-XX   2.2.6:
 -------------------
+  * fix test section for automatic recipe creation from pypi
+    using --build-recipe
   * minor Py3k fixes for conda build on Linux
   * copy symlinks as symlinks, issue #437
+  * fix explicit install (e.g. from output of `conda list -e`) in root env
+  * add pyyaml to the list of packages which can not be removed from root
+    environment
+  * fixed minor issues: #365, #453
   * CONDA_ADDON: added first draft of README file
   * CONDA_ADDON: conda_recipes_dir in .condar config file
   * CONDA_ADDON: conda_repo_dir in .condar config file
@@ -29,8 +35,8 @@
   * CONDA_ADDON: auto-detect patch levels
   * CONDA_ADDON: changed environ variable 'ARCH' for linux x86_64
     from 64 to x86_64 issue: #450 
-  
-  
+
+    
 2013-12-17   2.2.5:
 -------------------
   * conda build: move broken packages to conda-bld/broken

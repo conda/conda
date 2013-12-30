@@ -16,7 +16,7 @@ import conda.config as config
 help = "Build a package from a (conda) recipe. (ADVANCED)"
 
 descr = help + """  For examples of recipes, see:
-https://github.com/ContinuumIO/conda-recipes"""
+https://github.com/pydata/conda-recipes"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('build', description=descr, help=help)
@@ -167,6 +167,7 @@ def execute(args, parser):
                     need_cleanup = False
                     
             m = MetaData(recipe_dir)
+            binstar_upload = False
             if args.check and len(args.recipe) > 1:
                 print(m.path)
             m.check_fields()
@@ -184,6 +185,7 @@ def execute(args, parser):
                 build.build(m, pypi=args.pypi)
                 if not args.notest:
                     build.test(m, pypi=args.pypi)
+                binstar_upload = True
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
@@ -241,5 +243,5 @@ def execute(args, parser):
                     [build.bldpkg_path(m)], verbose=True)
                 print()
                 
-                
-            handle_binstar_upload(build.bldpkg_path(m), args)
+            if binstar_upload:
+                handle_binstar_upload(build.bldpkg_path(m), args)
