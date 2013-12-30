@@ -186,7 +186,7 @@ def fix_permissions(files):
         st = os.lstat(path)
         try:
             os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
-        except PermissionError:: # e.g. /etc/mtab   (just temporary until it is proper fixed)
+        except PermissionError: # e.g. /etc/mtab   (just temporary until it is proper fixed)
             return
 
 def post_build(files):
