@@ -35,6 +35,8 @@
   * CONDA_ADDON: auto-detect patch levels
   * CONDA_ADDON: changed environ variable 'ARCH' for linux x86_64
     from 64 to x86_64 issue: #450 
+  * CONDA_ADDON: add filesystem to the list of packages which can 
+    not be removed from root
 
     
 2013-12-17   2.2.5:
