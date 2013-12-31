@@ -1,4 +1,4 @@
-20XX-XX-XX   2.2.6:
+2013-12-31   2.2.6:
 -------------------
   * fix test section for automatic recipe creation from pypi
     using --build-recipe
