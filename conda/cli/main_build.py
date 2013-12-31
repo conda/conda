@@ -152,6 +152,7 @@ def execute(args, parser):
                         sys.exit("Error: no such directory: %s" % recipe_dir)
 
             m = MetaData(recipe_dir)
+            binstar_upload = False
             if args.check and len(args.recipe) > 1:
                 print(m.path)
             m.check_fields()
@@ -169,8 +170,10 @@ def execute(args, parser):
                 build.build(m, pypi=args.pypi)
                 if not args.notest:
                     build.test(m, pypi=args.pypi)
+                binstar_upload = True
 
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
 
-            handle_binstar_upload(build.bldpkg_path(m), args)
+            if binstar_upload:
+                handle_binstar_upload(build.bldpkg_path(m), args)
