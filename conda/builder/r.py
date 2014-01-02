@@ -20,6 +20,8 @@ except ImportError:
     sys.exit('Error: could not import yaml (required to read meta.yaml '
              'files of conda recipes)')
 
+from yaml.scanner import ScannerError
+
 #===============================================================================
 # Globals
 #===============================================================================
@@ -363,7 +365,14 @@ class CondaRPackage(RPackage):
         with open(self.meta_path, 'r') as f:
             old = f.read()
 
-        yaml_old = yaml.load(old)
+        try:
+            yaml_old = yaml.load(old)
+        except ScannerError:
+            err = sys.stderr.write
+            err("removing corrupt/malformed recipe %s\n" % self.meta_path)
+            os.remove(self.meta_path)
+            self.conda_build_number = 0
+            return
 
         try:
             old_version = yaml_old['package']['version']
