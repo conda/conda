@@ -312,8 +312,8 @@ class CondaRPackage(RPackage):
             '  url: %s' % self.url,
         ]
 
-        if self.md5sum:
-            l += [ self.md5sum, ]
+        if md5sum:
+            l += [ md5sum, ]
 
         l += [
             '',
