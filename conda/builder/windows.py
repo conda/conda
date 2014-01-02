@@ -14,7 +14,7 @@ import conda.config as cc
 from conda.compat import iteritems
 
 try:
-    import psutil  # not conda
+    import psutil
 except ImportError:
     psutil = None
 
