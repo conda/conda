@@ -37,6 +37,12 @@ def get_dict(m=None):
     d['PY_VER'] = py_ver
     d['SRC_DIR'] = source.get_dir()
 
+    d['TCL_CONFIG'] = join(build_prefix, 'lib/tclConfig.sh')
+    d['TCL_LIBRARY'] = join(build_prefix, 'lib/tcl8.5')
+
+    d['TK_CONFIG'] = join(build_prefix, 'lib/tkConfig.sh')
+    d['TK_LIBRARY'] = join(build_prefix, 'lib/tk8.5')
+
     if sys.platform == 'win32':         # -------- Windows
         d['PATH'] = (join(build_prefix, 'Library', 'bin') + ';' +
                      join(build_prefix) + ';' +
