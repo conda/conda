@@ -176,6 +176,7 @@ class RPackage(object):
         'url',
         'path',
         'cran',
+        'lines',
         'bld_bat',
         'build_sh',
         'base_url',
@@ -222,6 +223,7 @@ class RPackage(object):
 
 class CondaRPackage(RPackage):
     def __init__(self, lines, base_url, output_dir):
+        self.lines = lines
         self._load_from_cran_lines(lines)
 
         # CRAN packages that depend on R versions later than the current one
