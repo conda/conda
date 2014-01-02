@@ -17,7 +17,11 @@ if PY3:
     text_type = str
     binary_type = bytes
     input = input
-    lchmod = lambda path, mode: os.chmod(path, mode, follow_symlinks=False)
+    def lchmod(path, mode):
+        try:
+            os.chmod(path, mode, follow_symlinks=False)
+        except TypeError:
+            os.chmod(path, mode)
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -25,7 +29,10 @@ else:
     text_type = unicode
     binary_type = str
     input = raw_input
-    lchmod = os.lchmod
+    try:
+        lchmod = os.lchmod
+    except AttributeError:
+        lchmod = os.chmod
 
 if PY3:
     _iterkeys = "keys"
