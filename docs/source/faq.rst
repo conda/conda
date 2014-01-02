@@ -67,19 +67,20 @@ Searching & info
 
     $ conda -V
 
-#. How to check if package X (e.g. *scipy*) is available for installation?
+#. How can I check if package X (e.g. *scipy*) is available for installation?
 
 .. code-block:: bash
 
     $ conda search scipy
 
-#. How to check if package X (e.g. *scipy*) is available for installation (but it is required that it cames ONLY from anaconda meta package)?
+#. How can I check if package X (e.g. *scipy*) is available for installation
+   from the Continuum repos (i.e., from Anaconda)?
 
 .. code-block:: bash
 
     $ conda search --override-channels --channel defaults scipy
 
-#. How to check if package X (e.g. *iminuit*) exists in channel Y (e.g. http://conda.binstar.org/mutirri) and is available for installation?
+#. How do I check if package X (e.g. *iminuit*) exists in channel Y (e.g. http://conda.binstar.org/mutirri) and is available for installation?
 
 .. code-block:: bash
 
@@ -455,4 +456,3 @@ Recipes
     $ conda install <path_from_root_environment_variable>/conda-bld/<your_platform>/bottle.tar.bz2
 
 - and newly created recipe You can find in <path_from_root_environment_variable>/conda-recipes/bottle
-
