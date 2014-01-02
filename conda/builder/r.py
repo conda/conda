@@ -313,7 +313,7 @@ class CondaRPackage(RPackage):
         ]
 
         if self.md5sum:
-            l += [ '    - %s' % self.md5sum ]
+            l += [ self.md5sum, ]
 
         l += [
             '',
