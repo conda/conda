@@ -20,7 +20,7 @@ if PY3:
     def lchmod(path, mode):
         try:
             os.chmod(path, mode, follow_symlinks=False)
-        except TypeError:
+        except (TypeError, NotImplementedError):
             # On systems that don't allow permissions on symbolic links, skip
             # this entirely.
             pass
