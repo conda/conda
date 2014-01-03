@@ -12,7 +12,6 @@ from conda.builder.config import build_prefix, build_python, PY3K
 from conda.builder import external
 from conda.builder import environ
 from conda.builder import utils
-from conda.compat import lchmod
 
 if sys.platform.startswith('linux'):
     from conda.builder import elf
@@ -161,15 +160,6 @@ def mk_relative(f):
     path = join(build_prefix, f)
     if sys.platform.startswith('linux') and is_obj(path):
         rpath = '$ORIGIN/' + utils.rel_lib(f)
-        chrpath = external.find_executable('chrpath')
-        if chrpath is None:
-            sys.exit("""\
-Error:
-    Did not find 'chrpath' in: %s
-    'chrpath' is necessary for building conda packages on Linux with
-    relocatable ELF libraries.  You can install chrpath using apt-get,
-    yum or conda.
-""" % (os.pathsep.join(external.dir_paths)))
         call([chrpath, '-r', rpath, path])
 
     if sys.platform == 'darwin' and is_obj(path):
@@ -184,7 +174,16 @@ def fix_permissions(files):
     for f in files:
         path = join(build_prefix, f)
         st = os.lstat(path)
-        lchmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        try:
+            os.lchmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        except AttributeError:
+            try:
+                os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR, follow_symlinks=False)
+            except Exception:                
+                try:
+                    os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+                except PermissionError: # e.g. /etc/mtab
+                    return
 
 
 def post_build(files):

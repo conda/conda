@@ -54,7 +54,26 @@ def get_dict(m=None):
 
     elif sys.platform.startswith('linux'):      # -------- Linux
         d['LD_RUN_PATH'] = build_prefix + '/lib'
-
+        # set Arch to soemthing better Linux make mrproper  Issue #450 
+        d['ARCH'] = 'i386' if cc.bits == 32 else 'x86_64'
+        #optional compile/build flags
+        if cc.build_cppflags:
+            d['CPPFLAGS'] = cc.build_cppflags
+        if cc.build_cflags:
+            d['CFLAGS'] = cc.build_cflags
+        if cc.build_cxxflags:
+            d['CXXFLAGS'] = cc.build_cxxflags
+        if cc.build_ldflags:
+            d['LDFLAGS'] = cc.build_ldflags
+        if cc.build_fflags:
+            d['FFLAGS'] = cc.build_fflags
+        if cc.build_fcflags:
+            d['FCFLAGS'] = cc.build_fcflags
+        if cc.build_makeflags:
+            d['MAKEFLAGS'] = cc.build_makeflags
+        if cc.build_chost:
+            d['CHOST'] = cc.build_chost
+            
     if m:
         d['PKG_NAME'] = m.name()
         d['PKG_VERSION'] = m.version()

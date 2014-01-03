@@ -1,8 +1,11 @@
 2014-01-02   2.2.7:
 -------------------
   * fixed bug in conda build related to lchmod not being available on all
-    platforms
-
+     platforms (see issue #467, peter1000)
+  * minor fixes, improvements: check chrpath for build in the beginning
+     (issue #317 ) as well as for patch
+  * CONDA_ADDON: added use-local when build install
+  
 
 2013-12-31   2.2.6:
 -------------------
@@ -14,8 +17,37 @@
   * add pyyaml to the list of packages which can not be removed from root
     environment
   * fixed minor issues: #365, #453
+  * CONDA_ADDON: added first draft of README file
+  * CONDA_ADDON: conda_recipes_dir in .condar config file
+  * CONDA_ADDON: conda_repo_dir in .condar config file
+  * CONDA_ADDON: conda_sources_dir in .condar config file
+  * CONDA_ADDON: always append build number to file
+  * CONDA_ADDON: overwrite_build_num, overwrite_build_string 
+                 in .condar config file
+  * CONDA_ADDON: class MetaData: added: def build_string
+  * CONDA_ADDON: option in .condar config file for many build flags
+  * CONDA_ADDON: https://github.com/pydata/conda in INSTALL.rst  issue: #418 
+  * CONDA_ADDON: for build: user option to install the package within
+                 the build process
+  * CONDA_ADDON: Recipe dir: can now be organized in subfolders
+    Checks for unique recipe names
+    /Recipes_Root
+        /conda_standard
+            /Recipe1
+            /Recipe2
+        /customary_qt
+            /Recipe_qt
+            /Recipe_pyqt
+        /conda_recipes_examples
+            /Recipe_appdirs
+            /Recipe_binstar_client
+  * CONDA_ADDON: auto-detect patch levels
+  * CONDA_ADDON: changed environ variable 'ARCH' for linux x86_64
+    from 64 to x86_64 issue: #450 
+  * CONDA_ADDON: add filesystem to the list of packages which can 
+    not be removed from root
 
-
+    
 2013-12-17   2.2.5:
 -------------------
   * conda build: move broken packages to conda-bld/broken

@@ -109,6 +109,7 @@ Error: cannot locate binstar (required for upload)
 
 def execute(args, parser):
     import sys
+    import os
     import shutil
     import tarfile
     import tempfile
@@ -119,27 +120,60 @@ def execute(args, parser):
     import conda.builder.source as source
     from conda.builder.config import croot
     from conda.builder.metadata import MetaData
+    from conda.builder.external import find_executable, dir_paths
+
+    #check build 'optional' requirements
+    #patch
+    patch = find_executable('patch')
+    if patch is None:
+        sys.exit("""\
+Error:
+    Did not find 'patch' in: %s
+    You can install 'patch' using apt-get, yum, pacman (Linux), 
+    Xcode (MacOSX), or conda, cygwin (Windows),
+""" % (os.pathsep.join(dir_paths)))
+
+    #chrpath
+    if sys.platform.startswith('linux'):
+        chrpath = find_executable('chrpath')
+        if chrpath is None:
+            sys.exit("""\
+Error:
+    Did not find 'chrpath' in: %s
+    'chrpath' is necessary for building conda packages on Linux with
+    relocatable ELF libraries. You can install chrpath using 
+    apt-get, yum, pacman (Linux) or conda.
+""" % (os.pathsep.join(dir_paths)))
 
     with Locked(croot):
+        # get once all recipes
+        all_recipies = {}
+        for root, dirs, files in os.walk(config.conda_recipes_dir):
+            for any_dir in dirs:
+                any_dir_path = os.path.join(root, any_dir)
+                if os.path.isfile(os.path.join(any_dir_path, "meta.yaml")):
+                    if any_dir not in all_recipies:
+                        all_recipies[any_dir] = any_dir_path
+                    else:
+                        raise Exception("\nRecipes must have unique names: "
+                        "Same recipe name: <%s> exist at: \n"
+                        "<%s>\n"
+                        "<%s>\n" % (any_dir, any_dir_path, all_recipies[any_dir]))
+                        
         for arg in args.recipe:
-            if isfile(arg):
-                if arg.endswith(('.tar', '.tar.gz', '.tgz', '.tar.bz2')):
-                    recipe_dir = tempfile.mkdtemp()
-                    t = tarfile.open(arg, 'r:*')
-                    t.extractall(path=recipe_dir)
-                    t.close()
-                    need_cleanup = True
-                else:
-                    print("Ignoring non-recipe: %s" % arg)
-                    continue
+            if isfile(arg) and arg.endswith(('.tar', '.tar.gz', '.tgz', '.tar.bz2')):
+                recipe_dir = tempfile.mkdtemp()
+                t = tarfile.open(arg, 'r:*')
+                t.extractall(path=recipe_dir)
+                t.close()
+                need_cleanup = True
             else:
                 recipe_dir = abspath(arg)
                 need_cleanup = False
 
             if not isdir(recipe_dir):
                 # See if it's a spec and the directory is in conda-recipes
-                recipe_dir = join(config.root_dir, 'conda-recipes', arg)
-                if not isdir(recipe_dir):
+                if arg not in all_recipies:
                     # if --use-pypi and recipe_dir is a spec
                     # try to create the skeleton
                     if args.pypi:
@@ -148,9 +182,14 @@ def execute(args, parser):
                             recipe_dir = create_recipe(arg)
                         except:
                             recipe_dir = abspath(arg)
-                    if not isdir(recipe_dir):
-                        sys.exit("Error: no such directory: %s" % recipe_dir)
-
+                    else:
+                        sys.exit("Error: did not find any recipes for: "
+                        "<%s>: Recipes Root Dir: "
+                        "<%s> " % (arg, config.conda_recipes_dir))
+                else:
+                    recipe_dir = abspath(all_recipies[arg])
+                    need_cleanup = False
+                    
             m = MetaData(recipe_dir)
             binstar_upload = False
             if args.check and len(args.recipe) > 1:
@@ -175,5 +214,58 @@ def execute(args, parser):
             if need_cleanup:
                 shutil.rmtree(recipe_dir)
 
+            # check install now
+            install_choice = "y"
+            if not config.always_yes:
+                while True:
+                    # raw_input has a bug and prints to stderr, 
+                    # not desirable
+                    sys.stdout.write("\nDo you want to install this "
+                        "package now?\ny=yes,n=no,e=(extract implies "
+                        "no checks) ([y]/n/e)?: ")
+                    sys.stdout.flush()
+                    try:
+                        install_choice = sys.stdin.readline().strip().lower()
+                        if install_choice:
+                            if install_choice not in ('y', 'n', 'e'):
+                                print("Invalid choice: %s. must be one "
+                                    "of: y/n/e=(extract implies "
+                                    "no checks)" % install_choice)
+                            else:
+                                sys.stdout.write("\n")
+                                sys.stdout.flush()
+                                break
+                        else: 
+                            install_choice = "y"
+                            break
+                    except KeyboardInterrupt:
+                        sys.exit("\nOperation aborted.  Exiting.") 
+
+            if install_choice == "y":
+                import subprocess
+                from conda.builder.external import find_executable
+                from conda.utils import url_path
+                
+                temp_conda = find_executable('conda')
+                if temp_conda is None:
+                    sys.exit('''
+                        Error: cannot locate conda (required for install)
+                        # Try:
+                        # $ conda install %s
+                        ''' % m.name())
+
+                temp_args = [temp_conda, 'install',
+                    '--channel', url_path(config.conda_repo_dir), 
+                    '--no-pip', '--use-local', m.name()]
+                subprocess.call(temp_args)
+                print()
+            elif install_choice == "e":
+                from conda.misc import install_local_packages
+
+                temp_prefix = config.default_prefix
+                install_local_packages(temp_prefix, 
+                    [build.bldpkg_path(m)], verbose=True)
+                print()
+                
             if binstar_upload:
                 handle_binstar_upload(build.bldpkg_path(m), args)

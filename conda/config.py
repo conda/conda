@@ -60,6 +60,19 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
+    'conda_recipes_dir',
+    'conda_repo_dir',
+    'conda_sources_dir',
+    'overwrite_build_num',
+    'overwrite_build_string',
+    'build_cppflags',
+    'build_cflags',
+    'build_cxxflags',
+    'build_ldflags',
+    'build_fflags',
+    'build_fcflags',
+    'build_makeflags',
+    'build_chost',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -217,3 +230,26 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 track_features = set(rc.get('track_features', '').split())
+
+#======================================================================#
+#====== CONDA_ADDONS:  https://github.com/peter1000/conda_addons ======#
+#======================================================================#
+
+conda_recipes_dir = rc.get('conda_recipes_dir', join(root_dir, 'conda-recipes'))
+conda_repo_dir = rc.get('conda_repo_dir', join(root_dir, 'conda-bld'))
+if root_writable:
+    conda_sources_dir = rc.get('conda_sources_dir', join(root_dir, 'conda-bld'))
+else:
+    conda_sources_dir = rc.get('conda_sources_dir', abspath(expanduser('~/conda-bld')))
+    
+overwrite_build_num = rc.get('overwrite_build_num', None)
+overwrite_build_string = rc.get('overwrite_build_string', None)
+
+build_cppflags = rc.get('build_cppflags', None)
+build_cflags = rc.get('build_cflags', None)
+build_cxxflags = rc.get('build_cxxflags', None)
+build_ldflags = rc.get('build_ldflags', None)
+build_fflags = rc.get('build_fflags', None)
+build_fcflags = rc.get('build_fcflags', None)
+build_makeflags = rc.get('build_makeflags', None)
+build_chost = rc.get('build_chost', None)

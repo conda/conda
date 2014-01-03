@@ -11,12 +11,12 @@ from conda.fetch import download
 from conda.builder.config import croot
 from conda.builder.utils import rm_rf, tar_xf, unzip
 from conda.builder import external
+from conda.config import conda_sources_dir
 
-
-SRC_CACHE = join(croot, 'src_cache')
-GIT_CACHE = join(croot, 'git_cache')
-HG_CACHE = join(croot, 'hg_cache')
-SVN_CACHE = join(croot, 'svn_cache')
+SRC_CACHE = join(conda_sources_dir, 'src_cache')
+GIT_CACHE = join(conda_sources_dir, 'git_cache')
+HG_CACHE = join(conda_sources_dir, 'hg_cache')
+SVN_CACHE = join(conda_sources_dir, 'svn_cache')
 WORK_DIR = join(croot, 'work')
 
 
@@ -160,16 +160,22 @@ def apply_patch(src_dir, path):
     print('Applying patch: %r' % path)
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
-
-    patch = external.find_executable('patch')
-    if patch is None:
-        sys.exit("""\
+   
+    #try to autofind patch levels
+    levelrange = 21
+    for level in range(levelrange):
+        p = Popen([patch, '-p%s' % level,  '--dry-run', '-i', path], stdout=PIPE, cwd=src_dir)
+        stdout = p.communicate()[0].decode() 
+        if not stdout.startswith("can't find file to patch"):
+            print("Found patch-level: ", level)
+            check_call([patch, '-p%s' % level, '-i', path], cwd=src_dir)
+            return
+    
+    sys.exit("""\
 Error:
-    Did not find 'patch' in: %s
-    You can install 'patch' using apt-get, yum (Linux), Xcode (MacOSX),
-    or conda, cygwin (Windows),
-""" % (os.pathsep.join(external.dir_paths)))
-    check_call([patch, '-p0', '-i', path], cwd=src_dir)
+    Could not find an appropriate patch level:
+    tested: -p0 to -p%s
+""" % (levelrange - 1))
 
 
 def provide(recipe_dir, meta, patch=True):
