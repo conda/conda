@@ -10,7 +10,7 @@ NO_EXT = (
     '.o' # ELF but not what we are looking for
 )
 
-MAGIC = '\x7fELF'
+MAGIC = b'\x7fELF'
 
 
 def is_elf(path):
