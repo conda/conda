@@ -1,4 +1,10 @@
-20XX-XX-XX   2.2.6:
+2014-01-02   2.2.7:
+-------------------
+  * fixed bug in conda build related to lchmod not being available on all
+    platforms
+
+
+2013-12-31   2.2.6:
 -------------------
   * fix test section for automatic recipe creation from pypi
     using --build-recipe
