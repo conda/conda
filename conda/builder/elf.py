@@ -19,3 +19,8 @@ def is_elf(path):
     with open(path, 'rb') as fi:
         head = fi.read(4)
     return bool(head ==  MAGIC)
+
+
+if __name__ == '__main__':
+    for path in '/usr/bin/ls', '/etc/mtab':
+        print(path, is_elf(path))
