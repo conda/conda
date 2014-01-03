@@ -160,15 +160,6 @@ def apply_patch(src_dir, path):
     print('Applying patch: %r' % path)
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
-
-    patch = external.find_executable('patch')
-    if patch is None:
-        sys.exit("""\
-Error:
-    Did not find 'patch' in: %s
-    You can install 'patch' using apt-get, yum (Linux), Xcode (MacOSX),
-    or conda, cygwin (Windows),
-""" % (os.pathsep.join(external.dir_paths)))
     check_call([patch, '-p0', '-i', path], cwd=src_dir)
 
 

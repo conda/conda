@@ -109,6 +109,7 @@ Error: cannot locate binstar (required for upload)
 
 def execute(args, parser):
     import sys
+    import os
     import shutil
     import tarfile
     import tempfile
@@ -119,6 +120,30 @@ def execute(args, parser):
     import conda.builder.source as source
     from conda.builder.config import croot
     from conda.builder.metadata import MetaData
+    from conda.builder.external import find_executable, dir_paths
+
+    #check build 'optional' requirements
+    #patch
+    patch = find_executable('patch')
+    if patch is None:
+        sys.exit("""\
+Error:
+    Did not find 'patch' in: %s
+    You can install 'patch' using apt-get, yum, pacman (Linux), 
+    Xcode (MacOSX), or conda, cygwin (Windows),
+""" % (os.pathsep.join(dir_paths)))
+
+    #chrpath
+    if sys.platform.startswith('linux'):
+        chrpath = find_executable('chrpath')
+        if chrpath is None:
+            sys.exit("""\
+Error:
+    Did not find 'chrpath' in: %s
+    'chrpath' is necessary for building conda packages on Linux with
+    relocatable ELF libraries. You can install chrpath using 
+    apt-get, yum, pacman (Linux) or conda.
+""" % (os.pathsep.join(dir_paths)))
 
     with Locked(croot):
         for arg in args.recipe:

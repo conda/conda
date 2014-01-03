@@ -2,7 +2,8 @@
 -------------------
   * fixed bug in conda build related to lchmod not being available on all
     platforms
-
+  * minor fixes, improvements: check for chrpath for build in the 
+    beginning (issue #317 ) as well as for patch
 
 2013-12-31   2.2.6:
 -------------------
