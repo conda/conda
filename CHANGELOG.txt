@@ -2,7 +2,8 @@
 -------------------
   * fixed bug in conda build related to lchmod not being available on all
     platforms
-
+  * fixed bug in conda build: python 3 elf was not recognised and
+    rpath not set, issue #471
 
 2013-12-31   2.2.6:
 -------------------

@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 from os.path import islink, isfile
-
+from conda.compat import PY3
 
 # extensions which are assumed to belong to non-ELF files
 NO_EXT = (
@@ -11,6 +11,8 @@ NO_EXT = (
 )
 
 MAGIC = '\x7fELF'
+if PY3:
+    MAGIC = b'\x7fELF'
 
 
 def is_elf(path):
