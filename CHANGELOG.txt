@@ -4,7 +4,8 @@
      platforms (see issue #467, peter1000)
   * minor fixes, improvements: check chrpath for build in the beginning
      (issue #317 ) as well as for patch
-
+  * CONDA_ADDON: added use-local when build install
+  
 
 2013-12-31   2.2.6:
 -------------------
