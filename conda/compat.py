@@ -22,7 +22,7 @@ if PY3:
             os.chmod(path, mode, follow_symlinks=False)
         except (TypeError, NotImplementedError):
             # On systems that don't allow permissions on symbolic links, skip
-            # this entirely.
+            # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
 
@@ -38,7 +38,7 @@ else:
     except AttributeError:
         def lchmod(path, mode):
             # On systems that don't allow permissions on symbolic links, skip
-            # this entirely.
+            # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
 
