@@ -256,7 +256,7 @@ Error:
 
                 temp_args = [temp_conda, 'install',
                     '--channel', url_path(config.conda_repo_dir), 
-                    '--no-pip',  m.name()]
+                    '--no-pip', '--use-local', m.name()]
                 subprocess.call(temp_args)
                 print()
             elif install_choice == "e":
