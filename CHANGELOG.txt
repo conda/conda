@@ -1,3 +1,8 @@
+2014-01-XX   2.2.8:
+-------------------
+  * fixed issue #467
+
+
 2014-01-02   2.2.7:
 -------------------
   * fixed bug in conda build related to lchmod not being available on all
