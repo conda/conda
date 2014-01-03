@@ -5,454 +5,464 @@ Conda FAQ
 Table of contents:
 ==================
 
-#. :ref:`sec-general-questions`
-#. :ref:`sec-getting-help`
-#. :ref:`sec-searching_and_info`
-#. :ref:`sec-customization`
-#. :ref:`sec-pkg-installation`
-#. :ref:`sec-pkg-updating`
-#. :ref:`sec-pkg-removing`
-#. :ref:`sec-venv`
+#. :ref:`general-questions`
+#. :ref:`getting-help`
+#. :ref:`searching_and_info`
+#. :ref:`customization`
+#. :ref:`pkg-installation`
+#. :ref:`pkg-updating`
+#. :ref:`pkg-removing`
+#. :ref:`env`
 
-    - :ref:`sec-venv-info`
-    - :ref:`sec-venv-creating`
-    - :ref:`sec-venv-onoff`
-    - :ref:`sec-venv-installation`
-    - :ref:`sec-venv-removing`
+    - :ref:`env-info`
+    - :ref:`env-creating`
+    - :ref:`env-onoff`
+    - :ref:`env-installation`
+    - :ref:`env-removing`
 
-#. :ref:`sec-recipes`
+#. :ref:`recipes`
 
-.. _sec-general-questions:
+.. _general-questions:
 
 General questions
 =================
 
 #. What is anaconda?
 
-*Anaconda* is a meta package for *conda*. This meta package contains all standard
-packages (like *scipy*, *numpy*, *zlib* etc.) provided by developers from ``Continuum Analytics``.
+   *Anaconda* is a meta package for *conda*. This meta package contains all standard
+   packages (like *scipy*, *numpy*, *zlib* etc.) provided by developers from ``Continuum Analytics``.
 
-.. _sec-getting-help:
+.. _getting-help:
 
 Getting help
 ============
 
-#. How can I get help for supported commands?
+#. How can I see what conda commands are supported?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda -h
+      $ conda -h
 
 #. How can I get help for X command (e.g. **create**)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda create -h
+      $ conda create -h
 
-.. _sec-searching_and_info:
+.. _searching_and_info:
 
 Searching & info
 ================
 
 #. How can I find out what version of *conda* I have installed?
 
-- by typing:
-.. code-block:: bash
+   By typing:
 
-    $ conda info
+   .. code-block:: bash
 
-- or by typing:
+      $ conda info
 
-.. code-block:: bash
+   or by typing:
 
-    $ conda -V
+   .. code-block:: bash
+
+      $ conda -V
 
 #. How can I check if package X (e.g. *scipy*) is available for installation?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda search scipy
+      $ conda search scipy
 
 #. How can I check if package X (e.g. *scipy*) is available for installation
    from the Continuum repos (i.e., from Anaconda)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda search --override-channels --channel defaults scipy
+      $ conda search --override-channels --channel defaults scipy
 
 #. How do I check if package X (e.g. *iminuit*) exists in channel Y (e.g. http://conda.binstar.org/mutirri) and is available for installation?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda search --override-channels --channel http://conda.binstar.org/mutirri iminuit
+      $ conda search --override-channels --channel http://conda.binstar.org/mutirri iminuit
 
-.. _sec-customization:
+.. _customization:
 
 Customization (.condarc file)
 =============================
 
-Sometimes to perform below commands there is a necessity to add **-f** option (aka **--force**).
+.. note::
 
-#. How can I get all keys and theirs values from my .condarc file?
+   Sometimes to perform the below commands it is necessary to add the **-f** option
+   (aka **--force**).
 
-.. code-block:: bash
+#. How can I get all keys and their values from my .condarc file?
 
-    $ conda config --get
+   .. code-block:: bash
 
-#. How can I get value of key X (e.g. channels) from my .condarc file?
+      $ conda config --get
 
-.. code-block:: bash
+#. How can I get the value of key X (e.g. channels) from my .condarc file?
 
-    $ conda config --get channels
+   .. code-block:: bash
+
+      $ conda config --get channels
 
 #. How can I add a new value Y (e.g. http://conda.binstar.org/mutirri) to key X (e.g. channels)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda config --add channels http://conda.binstar.org/mutirri
+      $ conda config --add channels http://conda.binstar.org/mutirri
 
 #. How can I remove existing value Y (e.g. http://conda.binstar.org/mutirri) from key X?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda config --remove channels http://conda.binstar.org/mutirri
+      $ conda config --remove channels http://conda.binstar.org/mutirri
 
+#. How can I remove the key X (e.g. channels) and all of its values?
 
-#. How can I remove key X (e.g. channels) and all of its values?
+   .. code-block:: bash
 
-.. code-block:: bash
+      $ conda config --remove-key channels
 
-    $ conda config --remove-key channels
+.. _pkg-installation:
 
-.. _sec-pkg-installation:
-
-Package installation (in root environment)
-==========================================
+Package installation (in the root environment)
+==============================================
 
 #. How can I install package X (e.g. *scipy*)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda install scipy
+      $ conda install scipy
 
 #. How can I install package X (e.g. *scipy*) in specific Z.Z.Z version (0.12.0)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda install scipy=0.12.0
+      $ conda install scipy=0.12.0
 
 #. How can I install many packages at once, like X1 (e.g. *scipy*) and X2 (e.g. *curl*)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda install scipy curl
+      $ conda install scipy curl
 
 #. How can I install many packages at once, like X1 (e.g. *scipy*) in version Z.Z.Z (e.g. 0.12.0) and X2 (e.g. *curl*) in version A.A.A (e.g. 7.26.0)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda install scipy=0.12.0 curl=7.26.0
+      $ conda install scipy=0.12.0 curl=7.26.0
 
-.. _sec-pkg-updating:
+.. _pkg-updating:
 
-Updating packages (in root environment)
-=======================================
+Updating packages (in the root environment)
+===========================================
 
 #. How can I update *conda* itself?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda update conda
+      $ conda update conda
 
-#. What is the appropriate way of updating whole *anaconda* meta package?
+#. How do I update the *anaconda* meta package?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda update conda
-    $ conda update anaconda
+      $ conda update conda
+      $ conda update anaconda
 
 #. How can I update package X (e.g. *scipy*)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda update scipy
+      $ conda update scipy
 
-.. _sec-pkg-removing:
+.. _pkg-removing:
 
-Removing packages (from root environment)
-=========================================
+Removing packages (from the root environment)
+=============================================
 
 #. How can I remove package X (e.g. *scipy*)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda remove scipy
+      $ conda remove scipy
 
 #. How can I remove multiple packages at once, like X1 (e.g. *scipy*) and X2 (e.g. *curl*)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda remove scipy curl
+      $ conda remove scipy curl
 
-.. _sec-venv:
+.. _env:
 
-Virtual environments
-====================
+Environments
+============
 
-.. _sec-venv-info:
+.. _env-info:
 
-Getting info about virtual environments
----------------------------------------
+Getting info about environments
+-------------------------------
 
-#. How can I get a list of all of my virtual environments?
+#. How can I get a list of all of my environments?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda info -e
+      $ conda info -e
 
-#. How can I list all of installed packages (not these which were installed through pip) in existing virtual environment X (e.g. ``myvenv``)?
+#. How can I list all installed packages in environment X (e.g. ``myenv``)?
 
-- if You haven't ``myvenv`` active:
+   If ``myenv`` is not activated:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda list -n myvenv
+        $ conda list -n myenv
 
-- if You have ``myvenv`` active:
+   Id ``myenv`` is activated:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda list
+        $ conda list
 
-#. How can I check if package Y (e.g. *scipy*) is already installed in existing virtual environment X (e.g. ``myvenv``)?
+#. How can I check if package Y (e.g. *scipy*) is already installed in existing environment X (e.g. ``myenv``)?
 
-- the first method:
+   - the first method:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda list -n myvenv scipy
+        $ conda list -n myenv scipy
 
-- the second method:
+   - the second method:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ source activate myvenv
-    $ conda list scipy
+        $ source activate myenv
+        $ conda list scipy
 
-.. _sec-venv-creating:
+.. _env-creating:
 
-Creating new virtual environments
----------------------------------
+Creating new environments
+-------------------------
 
-#. How can I create a new and clean virtual environment X (e.g. ``myvenv``)?
+#. How can I create a new and clean environment X (e.g. ``myenv``)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda create -n myvenv python
+      $ conda create -n myenv python
 
-#. How can I create a new virtual environment X (e.g. ``myvenv``) with *python* Y.Y.Y (e.g. 3.3.2) as default interpreter inside it?
+#. How can I create a new environment X (e.g. ``myenv``) with *python* Y.Y.Y
+   (e.g. 3.3) as the default interpreter inside it?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda create -n myvenv python=3.3.2
+      $ conda create -n myenv python=3.3
 
-#. How can I create a new virtual environment X (e.g. ``myvenv``) with package Y inside it (e.g. *scipy*)?
+#. How can I create a new environment X (e.g. ``myenv``) with package Y inside it (e.g. *scipy*)?
 
-- in a single command:
+   - in a single command:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda create -n myvenv scipy
+        $ conda create -n myenv scipy
 
-- with more typing:
+   - with more typing:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda create -n myvenv python
-    $ conda install -n myvenv scipy
+        $ conda create -n myenv python
+        $ conda install -n myenv scipy
 
-- the longest version (activating newly created virtual environment also):
+   - the longest version (also activates the newly created environment):
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda create -n myvenv python
-    $ source activate myvenv
-    $ conda install scipy
+        $ conda create -n myenv python
+        $ source activate myenv
+        $ conda install scipy
 
-#. How can I create a new virtual environment X (e.g. ``myvenv``) with package Y (e.g. *scipy*) in version Z.Z.Z (e.g. 0.12.0) inside it?
+#. How can I create a new environment X (e.g. ``myenv``) with package Y (e.g. *scipy*) in version Z.Z.Z (e.g. 0.12.0) inside it?
 
-- in a single command:
+   - in a single command:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda create -n myvenv scipy=0.12.0
+        $ conda create -n myenv scipy=0.12.0
 
-- with more typing:
+   - with more typing:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda create -n myvenv python
-    $ conda install -n myvenv scipy=0.12.0
+        $ conda create -n myenv python
+        $ conda install -n myenv scipy=0.12.0
 
-- the longest version (activating newly created virtual environment also):
+   - the longest version (activating newly created environment also):
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda create -n myvenv python
-    $ source activate myvenv
-    $ conda install scipy=0.12.0
+        $ conda create -n myenv python
+        $ source activate myenv
+        $ conda install scipy=0.12.0
 
-.. _sec-venv-onoff:
+.. _env-onoff:
 
 Activating and deactivating
 ---------------------------
 
-#. How can I activate the existing virtual environment X (e.g. ``myvenv``)?
+#. How can I activate the existing environment X (e.g. ``myenv``)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ source activate myvenv
+      $ source activate myenv
 
-#. How can I deactivate active virtual environment X (e.g. ``myvenv``)?
+#. How can I deactivate the active environment X (e.g. ``myenv``)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ source deactivate
+      $ source deactivate
 
-.. _sec-venv-installation:
+.. _env-installation:
 
 Installation
 ------------
 
-#. How can I install package Y (e.g. *scipy*) in existing virtual environment X (e.g. ``myvenv``)?
+#. How can I install package Y (e.g. *scipy*) in existing environment X (e.g. ``myenv``)?
 
-- first possibility:
+   - first possibility:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda install -n myvenv scipy
+        $ conda install -n myenv scipy
 
-- the alternate way:
+   - the alternate way:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ source activate myvenv
-    $ conda install scipy
+        $ source activate myenv
+        $ conda install scipy
 
-#. How can I install Z.Z.Z (e.g. 0.12.0) version of package Y (e.g. *scipy*) in existing virtual environment (e.g. ``myvenv``)?
+#. How can I install Z.Z.Z (e.g. 0.12.0) version of package Y (e.g. *scipy*) in existing environment (e.g. ``myenv``)?
 
-- if You haven't ``myvenv`` active:
+   If ``myenv`` not activated:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda install -n myvenv scipy=0.12.0
+        $ conda install -n myenv scipy=0.12.0
 
-- if You have ``myvenv`` active:
+   If ``myenv`` is activated:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda install scipy=0.12.0
+        $ conda install scipy=0.12.0
 
-#. How can I use pip in my virtual environment X (e.g. ``myvenv``)?
+#. How can I use pip in my environment X (e.g. ``myenv``)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda install -n myvenv pip
-    $ source activate myvenv
-    $ pip <pip_subcommand>
+      $ conda install -n myenv pip
+      $ source activate myenv
+      $ pip <pip_subcommand>
 
-#. How can I automatically install pip during creation of any of new virtual environment?
+#. How can I automatically install pip during creation of any of new environment?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda config --add create_default_packages pip
+      $ conda config --add create_default_packages pip
 
-After performing above command You can create a new virtual environments in standard way (the pip will be installed in all of them).
+   After performing the above command you can create a new environment in the standard way (pip will be installed in all of them).
 
-#. How can I automatically install Y package (e.g. *scipy*) during creation of any of new virtual environment?
+#. How can I automatically install Y package (e.g. *scipy*) during creation of any of new environment?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda config --add create_default_packages scipy
+      $ conda config --add create_default_packages scipy
 
-After performing above command You can create a new virtual environments in standard way (the *scipy* will be installed in all of them).
+   After performing the above command you can create a new environments in the
+   standard way (the *scipy* will be installed in all of them).
 
-#. How can I automatically install version of Z.Z.Z (e.g. 0.12.0) Y package (e.g. *scipy*) during creation of any of new virtual environment?
+#. How can I automatically install version Z.Z.Z (e.g. 0.12.0) of package Y (e.g. *scipy*) during creation of any of new environment?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda config --add create_default_packages scipy=0.12.0
+      $ conda config --add create_default_packages scipy=0.12.0
 
-After performing above command You can create a new virtual environments in standard way (the *scipy* in 0.12.0 version will be installed in all of them).
+   After performing the above command you can create a new environments in the
+   standard way (the *scipy* in 0.12.0 version will be installed in all of
+   them).
 
-#. How can I ignore packages from automatic installation during creation of new and clean virtual environment X (e.g. ``myvenv``)?
+#. How can I ignore packages from automatic installation during creation of new and clean environment X (e.g. ``myenv``)?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda create --no-default-packages -n myvenv python
+      $ conda create --no-default-packages -n myenv python
 
-.. _sec-venv-removing:
+.. _env-removing:
 
 Removing
 --------
 
-#. How can I remove package Y (e.g. *scipy*) in existing virtual environment X (e.g. ``myvenv``)?
+#. How can I remove package Y (e.g. *scipy*) in existing environment X (e.g. ``myenv``)?
 
-- if You haven't ``myvenv`` active:
+   If ``myenv`` is not activated:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda remove -n myvenv scipy
+        $ conda remove -n myenv scipy
 
-- if You have ``myvenv`` active:
+   If ``myenv`` is activated:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda remove scipy
+        $ conda remove scipy
 
-#. How can I remove existing virtual environment X (e.g. ``myvenv``)?
+#. How can I remove existing environment X (e.g. ``myenv``)?
 
-- first You have to get know where ``myvenv`` is placed (by default it will be in ${HOME}/anaconda/envs directory):
+     .. code-block:: bash
 
-.. code-block:: bash
+        $ conda remove -n myenv --all
 
-    $ conda info -e|grep myvenv
 
-- then type:
 
-.. code-block:: bash
-
-    $ rm -rf <path_to_myvenv_directory_get_earlier>
-
-.. _sec-recipes:
+.. _recipes:
 
 Recipes
 =======
 
-#. How can I automatically create conda recipe for currently not existing X
-   package (e.g. *bottle*) if I know that this package resides on PiPY?
+#. How can I create a skeleton conda recipe for package X (e.g. *bottle*) if I
+   know that this package is on PyPI?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda skeleton pypi bottle
+      $ conda skeleton pypi bottle
 
-#. How can I automatically create recipe, build and install not existing currently X package
-   (e.g. *bottle*) if I know that this package resides on PiPY?
+#. How can I automatically create a recipe for, build, and install package X
+   (e.g. *bottle*) if I know that this package is on PyPI?
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda build --build-recipe bottle
+      $ conda build --build-recipe bottle
 
-- to install just created package in root environment, You need to find out first where the recipe was written:
+   It is recommended to upload the package to binstar when you are done. Then
+   if you add your binstar channel to your .condarc (see :ref:`customization`
+   above), you will be able to install the package with
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    $ conda info
+      $ conda install bottle
 
-- get path from ``root environment`` variable and perform the installation:
+   - If you did not upload the package to binstar, to install this package in
+     the root environment, you need to find out where the built package is:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    $ conda install <path_from_root_environment_variable>/conda-bld/<your_platform>/bottle.tar.bz2
+        $ conda info
 
-- and newly created recipe You can find in <path_from_root_environment_variable>/conda-recipes/bottle
+   - get the ``root environment`` path and perform the installation:
+
+     .. code-block:: bash
+
+        $ conda install <path_from_root_environment_variable>/conda-bld/<your_platform>/bottle.tar.bz2
+
+   This information is also shown at the end of the build process.
