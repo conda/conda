@@ -160,7 +160,7 @@ def apply_patch(src_dir, path):
     print('Applying patch: %r' % path)
     if not isfile(path):
         sys.exit('Error: no such patch: %s' % path)
-    check_call([patch, '-p0', '-i', path], cwd=src_dir)
+    check_call([external.find_executable('patch'), '-p0', '-i', path], cwd=src_dir)
 
 
 def provide(recipe_dir, meta, patch=True):
