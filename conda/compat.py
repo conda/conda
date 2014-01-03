@@ -23,7 +23,9 @@ if PY3:
         except (TypeError, NotImplementedError):
             # On systems that don't allow permissions on symbolic links, skip
             # this entirely.
-            pass
+            if not os.path.islink(path):
+                os.chmod(path, mode)
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -34,10 +36,11 @@ else:
     try:
         lchmod = os.lchmod
     except AttributeError:
-        def lchmod(*args):
+        def lchmod(path, mode):
             # On systems that don't allow permissions on symbolic links, skip
             # this entirely.
-            pass
+            if not os.path.islink(path):
+                os.chmod(path, mode)
 
 if PY3:
     _iterkeys = "keys"
