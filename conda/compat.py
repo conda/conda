@@ -17,13 +17,7 @@ if PY3:
     text_type = str
     binary_type = bytes
     input = input
-    def lchmod(path, mode):
-        try:
-            os.chmod(path, mode, follow_symlinks=False)
-        except TypeError:
-            # On systems that don't allow permissions on symbolic links, skip
-            # this entirely.
-            pass
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -31,13 +25,6 @@ else:
     text_type = unicode
     binary_type = str
     input = raw_input
-    try:
-        lchmod = os.lchmod
-    except AttributeError:
-        def lchmod(*args):
-            # On systems that don't allow permissions on symbolic links, skip
-            # this entirely.
-            pass
 
 if PY3:
     _iterkeys = "keys"
