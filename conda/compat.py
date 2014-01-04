@@ -5,7 +5,7 @@ Taken mostly from six.py by Benjamin Peterson.
 
 import sys
 import types
-
+import os
 
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3
@@ -17,6 +17,15 @@ if PY3:
     text_type = str
     binary_type = bytes
     input = input
+    def lchmod(path, mode):
+        try:
+            os.chmod(path, mode, follow_symlinks=False)
+        except (TypeError, NotImplementedError):
+            # On systems that don't allow permissions on symbolic links, skip
+            # links entirely.
+            if not os.path.islink(path):
+                os.chmod(path, mode)
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -24,6 +33,14 @@ else:
     text_type = unicode
     binary_type = str
     input = raw_input
+    try:
+        lchmod = os.lchmod
+    except AttributeError:
+        def lchmod(path, mode):
+            # On systems that don't allow permissions on symbolic links, skip
+            # links entirely.
+            if not os.path.islink(path):
+                os.chmod(path, mode)
 
 if PY3:
     _iterkeys = "keys"

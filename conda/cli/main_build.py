@@ -107,6 +107,22 @@ Error: cannot locate binstar (required for upload)
     subprocess.call(args)
 
 
+def check_external():
+    import os
+    import conda.builder.external as external
+
+    if sys.platform.startswith('linux'):
+        chrpath = external.find_executable('chrpath')
+        if chrpath is None:
+            sys.exit("""\
+Error:
+    Did not find 'chrpath' in: %s
+    'chrpath' is necessary for building conda packages on Linux with
+    relocatable ELF libraries.  You can install chrpath using apt-get,
+    yum or conda.
+""" % (os.pathsep.join(external.dir_paths)))
+
+
 def execute(args, parser):
     import sys
     import shutil
@@ -119,6 +135,8 @@ def execute(args, parser):
     import conda.builder.source as source
     from conda.builder.config import croot
     from conda.builder.metadata import MetaData
+
+    check_external()
 
     with Locked(croot):
         for arg in args.recipe:

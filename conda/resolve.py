@@ -288,7 +288,7 @@ class Resolve(object):
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
-            print('Warning:', len(solutions))
+            print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if lit > 0])
 
