@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import sys
 from os.path import islink, isfile
 
 
@@ -22,5 +23,6 @@ def is_elf(path):
 
 
 if __name__ == '__main__':
-    for path in '/usr/bin/ls', '/etc/mtab':
-        print(path, is_elf(path))
+    if sys.platform.startswith('linux'):
+        for path in '/usr/bin/ls', '/etc/mtab':
+            print(path, is_elf(path))
