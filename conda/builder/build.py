@@ -170,9 +170,13 @@ def build(m, get_src=True, pypi=False):
         import conda.builder.windows as windows
         windows.build(m)
     else:
-        env = environ.get_dict(m)
-        cmd = ['/bin/bash', '-x', '-e', join(m.path, 'build.sh')]
-        _check_call(cmd, env=env, cwd=source.get_dir())
+        build_sh = join(m.path, 'build.sh')
+        if exists(build_sh):
+            env = environ.get_dict(m)
+            cmd = ['/bin/bash', '-x', '-e', build_sh]
+            _check_call(cmd, env=env, cwd=source.get_dir())
+        else:
+            print("no build.sh file")
 
     create_entry_points(m.get_value('build/entry_points'))
     post_process(preserve_egg_dir=bool(

@@ -89,6 +89,13 @@ def r_name_to_conda_name(rname):
 def r_version_to_conda_version(rver):
     return rver.replace('-', '.')
 
+def strip_crlf(line):
+    if line[-2:] == '\r\n':
+        line = line[:-2]
+    elif line[-1:] == '\n':
+        line = line[:-1]
+    return line
+
 class Dict(dict):
     """
     A dict that allows direct attribute access to keys.
@@ -126,7 +133,7 @@ class RPackage(object):
         'License': 'license',
         'License_is_FOSS': 'license_is_foss',
         'License_restricts_use': 'license_restricts_use',
-        'LinkingTo': 'linking_to',
+        'LinkingTo': 'linking',
         'MD5sum': 'md5sum',
         'NeedsCompilation': 'needs_compilation',
         'OS_type': 'os_type',
@@ -178,6 +185,7 @@ class RPackage(object):
         'cran',
         'lines',
         'bld_bat',
+        'is_view',
         'build_sh',
         'base_url',
         'is_valid',
@@ -235,6 +243,7 @@ class CondaRPackage(RPackage):
         if self.repo_path:
             raise RVersionDependencyMismatch()
 
+        self.is_view = False
         self.conda_name = r_name_to_conda_name(self.package)
         self.conda_version = r_version_to_conda_version(self.version)
 
@@ -252,16 +261,24 @@ class CondaRPackage(RPackage):
 
         self.depends = [ s.strip() for s in self.depends.split(',') ]
         self.imports = [ s.strip() for s in self.imports.split(',') ]
+        self.linking = [ s.strip() for s in self.linking.split(',') ]
 
         # Always make R a dependency.
         self.conda_depends = [ 'r', ]
 
-        ignore = R_BASE_PACKAGES | R_RECOMMENDED_PACKAGES
+        ignore = R_BASE_PACKAGES
 
         seen = set()
 
-        for pkg in [ d for d in chain(self.depends, self.imports) if d ]:
+        dependencies = [
+            d for d in chain(
+                self.depends,
+                self.imports,
+                self.linking,
+            ) if d
+        ]
 
+        for pkg in dependencies:
             dep = parse_version_dependency(pkg)
             r_name = dep.name
             conda_name = r_name_to_conda_name(r_name)
@@ -278,6 +295,7 @@ class CondaRPackage(RPackage):
 
             self.conda_depends.append(conda_name)
 
+        self._load_manual_dependencies()
         self._determine_build_number()
 
         self.conda_build = str(self.conda_build_number)
@@ -292,6 +310,23 @@ class CondaRPackage(RPackage):
         self.conda_reverse_depends = []
         self.conda_unsatisfied_depends = []
 
+    def _load_manual_dependencies(self):
+        path = join(self.path, 'depends.txt')
+        if not exists(path):
+            return
+        seen = set(self.conda_depends)
+        with open(path, 'r') as f:
+            for line in f:
+                assert line
+                line = strip_crlf(line)
+                if line.startswith('-'):
+                    name = line[1:]
+                    assert name in seen, (name, seen)
+                    self.conda_depends.remove(name)
+                else:
+                    name = line
+                    assert name not in seen, (name, seen)
+                    self.conda_depends.append(name)
 
     def _load_from_cran_lines(self, lines):
         d = {}
@@ -303,7 +338,13 @@ class CondaRPackage(RPackage):
         self._load_from_cran_kwds(d)
 
     def __generate_meta_yaml(self):
-        md5sum = (('  md5: %s' % self.md5sum) if self.md5sum else '')
+        if self.is_view:
+            assert not self.fn
+            assert not self.url
+            assert not self.md5sum
+        else:
+            md5sum = (('  md5: %s' % self.md5sum) if self.md5sum else '')
+
         deps = [ '    - %s' % d for d in self.conda_depends ]
 
         l = [
@@ -311,13 +352,16 @@ class CondaRPackage(RPackage):
             '  name: %s' % self.conda_name,
             '  version: %s' % self.conda_version,
             '',
-            'source:',
-            '  fn: %s' % self.fn,
-            '  url: %s' % self.url,
         ]
 
-        if md5sum:
-            l += [ md5sum, ]
+        if not self.is_view:
+            l += [
+                'source:',
+                '  fn: %s' % self.fn,
+                '  url: %s' % self.url,
+            ]
+            if md5sum:
+                l += [ md5sum, ]
 
         l += [
             '',
@@ -339,9 +383,20 @@ class CondaRPackage(RPackage):
         return '\n'.join(l)
 
     def _generate_build_sh(self):
+        assert not self.is_view
         l = [
             '#!/bin/sh',
             '',
+        ]
+
+        if self.package in R_RECOMMENDED_PACKAGE:
+            l += [
+                "cp DESCRIPTION DESCRIPTION.old",
+                "cat DESCRIPTION.old | grep -v '^Priority: ' > DESCRIPTION",
+                '',
+            ]
+
+        l += [
             '$R CMD INSTALL --build .',
             '',
         ]
@@ -349,7 +404,18 @@ class CondaRPackage(RPackage):
         return '\n'.join(l)
 
     def _generate_bld_bat(self):
-        l = [
+        assert not self.is_view
+        l = []
+
+        if self.package in R_RECOMMENDED_PACKAGE:
+            l += [
+                'copy DESCRIPTION DESCRIPTION.old',
+               ('type DESCRIPTION.old | find /v "Priority: recommended"'
+                ' > DESCRIPTION'),
+                '',
+            ]
+
+        l += [
             '%R_CMD% INSTALL --build .',
             ''
         ]
@@ -425,6 +491,9 @@ class CondaRPackage(RPackage):
             with open(self.meta_path, 'w') as f:
                 f.write(self.meta_yaml)
             self.meta_yaml_needs_persisting = False
+
+        if self.is_view:
+            return
 
         if not isfile(self.build_sh):
             with open(self.build_sh, 'w') as f:

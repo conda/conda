@@ -60,6 +60,7 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
+    'binstar_user',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -213,6 +214,7 @@ changeps1 = rc.get('changeps1', True)
 use_pip = rc.get('use_pip', True)
 binstar_upload = rc.get('binstar_upload', None) # None means ask
 binstar_personal = rc.get('binstar_personal', True)
+binstar_user = rc.get('binstar_user', None)
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
