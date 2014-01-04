@@ -185,7 +185,22 @@ In short:
     try:
         args.func(args, p)
     except RuntimeError as e:
-        sys.exit("Error: %s" % e)
+        # This is gloriously hacky.  Our recursive build functionality needs
+        # to be able to distinguish between a failed conda build because a
+        # built package couldn't be found for one of the dependencies, or a
+        # completely unrelated failure.  In the case of the former, the idea
+        # is that we'll try `conda build <missing>` and so-on until we fail
+        # for some other reason.
+        from os import linesep
+        err = "Error: %s%s" % (e, linesep)
+        retval = 1
+        if 'No packages found matching:' in err:
+            retval = 2
+            missing = err.split(' ')[-1]
+            with open('conda-missing-package.txt', 'w') as f:
+                f.write(missing)
+        sys.stderr.write(err)
+        sys.exit(retval)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             print("""\
