@@ -1,6 +1,7 @@
 *~
 *.pyc
 *.egg-info
+tags
 build/
 dist/
 docs/build
