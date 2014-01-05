@@ -5,8 +5,8 @@ import os
 import sys
 import stat
 from glob import glob
-from subprocess import call, check_call
-from os.path import basename, join, splitext, isdir, isfile
+from subprocess import call, check_call, check_output
+from os.path import basename, join, splitext, isdir, isfile, normpath
 
 from conda.builder.config import build_prefix, build_python, PY3K
 from conda.builder import external
@@ -152,6 +152,37 @@ def mk_relative_osx(path):
     for name in macho.otool(path):
         assert not name.startswith(build_prefix), path
 
+chrpath = None
+def get_chrpath():
+    assert sys.platform.startswith('linux')
+    global chrpath
+    if not chrpath:
+        chrpath = external.find_executable('chrpath')
+        assert isfile(chrpath)
+    return chrpath
+
+def _get_new_rpath(path, rpath):
+    root_path = utils.get_root_path((path, rpath))
+    rel_path = path.replace(root_path, '')
+    rel_rpath = rpath.replace(root_path, '')
+    new_rpath = '$ORIGIN/%s/%s' % (
+        normpath(rel_path.count('/') * '../'),
+        rel_rpath,
+    )
+    return new_rpath
+
+def get_new_rpath(path):
+    chrpath = get_chrpath()
+    output = check_output([chrpath, '-l', path])
+    if output[-1] == '\n':
+        output = output[:-1]
+    (obj, rpath) = output.split(': ')
+    prefix = 'RPATH='
+    assert obj == path, (obj, path)
+    assert rpath.startswith(prefix), (rpath, prefix)
+    rpath = rpath[len(prefix):]
+    return _get_new_rpath(path, rpath)
+
 def mk_relative(f):
     assert sys.platform != 'win32'
     if f.startswith('bin/'):
@@ -159,8 +190,8 @@ def mk_relative(f):
 
     path = join(build_prefix, f)
     if sys.platform.startswith('linux') and is_obj(path):
-        rpath = '$ORIGIN/' + utils.rel_lib(f)
-        chrpath = external.find_executable('chrpath')
+        chrpath = get_chrpath()
+        rpath = get_new_rpath(path)
         call([chrpath, '-r', rpath, path])
 
     if sys.platform == 'darwin' and is_obj(path):

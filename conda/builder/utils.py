@@ -9,7 +9,7 @@ import subprocess
 from os.path import (dirname, getmtime, getsize, isdir, isfile,
                      islink, join, normpath)
 
-from conda.utils import md5_file
+from conda.utils import md5_file, get_root_path
 
 
 

@@ -69,6 +69,31 @@ def get_dict(m=None):
     elif sys.platform.startswith('linux'):      # -------- Linux
         d['LD_RUN_PATH'] = build_prefix + '/lib'
 
+        # trent: I'm not sure why we weren't setting these.  Is it the
+        # responsibility of the build.sh-authorer?  It's easy to forget,
+        # and it can break things in some *really* bad ways if we pick
+        # up the wrong headers/libs during build versus runtime.
+        cflags = "-I%s/include" % build_prefix
+        ldflags = "-L%s/lib -lgfortran" % build_prefix
+        # Of course the -lgfortran one is highly questionable -- definitely
+        # needed for anything linking against gfortran (like everything in
+        # the R ecosystem).  But if you don't have system as a build dep...
+        # it'll probably bomb out.
+
+        d.update(dict((
+            ('CFLAGS',          cflags),
+            ('FFLAGS',          cflags),
+            ('FCFLAGS',         cflags),
+            ('CPPFLAGS',        cflags),
+            ('CXXFLAGS',        cflags),
+            ('OBJCFLAGS',       cflags),
+            ('PKG_CPPFLAGS',    cflags),
+
+            ('LDFLAGS',         ldflags),
+            ('PKG_LDFLAGS',     ldflags),
+            ('LAPACK_LDFLAGS',  ldflags),
+        )))
+
     if m:
         d['PKG_NAME'] = m.name()
         d['PKG_VERSION'] = m.version()
