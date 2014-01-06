@@ -162,14 +162,6 @@ def mk_relative(f):
     if sys.platform.startswith('linux') and is_obj(path):
         rpath = '$ORIGIN/' + utils.rel_lib(f)
         chrpath = external.find_executable('chrpath')
-        if chrpath is None:
-            sys.exit("""\
-Error:
-    Did not find 'chrpath' in: %s
-    'chrpath' is necessary for building conda packages on Linux with
-    relocatable ELF libraries.  You can install chrpath using apt-get,
-    yum or conda.
-""" % (os.pathsep.join(external.dir_paths)))
         call([chrpath, '-r', rpath, path])
 
     if sys.platform == 'darwin' and is_obj(path):
