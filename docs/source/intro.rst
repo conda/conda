@@ -24,7 +24,7 @@ A conda `package` is a binary tarball containing system-level libraries,
 Python modules, executable programs, or other components.
 conda keeps track of dependencies between packages and platform
 specifics, making it simple to create working environments from different
-sets of packages. 
+sets of packages.
 
 A `conda environment` is a filesystem directory that contains a specific
 collection of conda packages.  As a concrete example, you might want to
@@ -234,12 +234,13 @@ Here is an example:
     # This is a sample .condarc file
 
     # channel locations. These override conda defaults, i.e., conda will
-    # search *only* the channels listed here, in the order given. Use "default" to
+    # search *only* the channels listed here, in the order given. Use "defaults" to
     # automatically include all default channels.
 
     channels:
-      - defaults
       - http://some.custom/channel
+      - defaults
+
 
     # Proxy settings
     #  http://[username]:[password]@[server]:[port]
