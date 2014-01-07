@@ -1,4 +1,4 @@
-2014-01-XX   2.2.8:
+2014-01-06   2.2.8:
 -------------------
   * add check for chrpath (on Linux) before build is started, see issue #469
   * conda build: fixed ELF headers not being recognized on Python 3
