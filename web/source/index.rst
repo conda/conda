@@ -13,7 +13,7 @@ Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations, but it may be
 used for other systems as well.  Conda makes environments first-class
-citizens. `conda` is written entirely in Python, and is BSD licensed open
+citizens. Conda is written entirely in Python, and is BSD licensed open
 source.
 
 
@@ -58,17 +58,17 @@ Conda installs packages into environments efficiently using `hard links
 <http://en.wikipedia.org/wiki/Hard_links>`_ by default when it is possible, so
 environments are space efficient, and take seconds to create.
 
-The default environment, which `conda` itself is installed into is called
-`root`.  To create another environment, use the `conda create` command. For
-instance, to create an environment with the IPython notebook and NumPy 1.6,
-which is older than the version that comes with Anaconda by default, you would
-run
+The default environment, which ``conda`` itself is installed into is called
+``root``.  To create another environment, use the ``conda create``
+command. For instance, to create an environment with the IPython notebook and
+NumPy 1.6, which is older than the version that comes with Anaconda by
+default, you would run
 
 .. code-block:: bash
 
    $ conda create -n numpy16 ipython-notebook numpy=1.6
 
-This creates an environment called `numpy16` with the latest version of
+This creates an environment called ``numpy16`` with the latest version of
 the IPython notebook, NumPy 1.6, and their dependencies.
 
 We can now activate this environment. On Linux and Mac OS X, use
@@ -77,8 +77,8 @@ We can now activate this environment. On Linux and Mac OS X, use
 
    $ source activate numpy16
 
-This puts the bin directory of the `numpy16` environment in the front of the
-`PATH`, and sets it as the default environment for all subsequent conda commands.
+This puts the bin directory of the ``numpy16`` environment in the front of the
+``PATH``, and sets it as the default environment for all subsequent conda commands.
 
 To go back to the root environment, use
 
@@ -113,14 +113,14 @@ Then, after you build your recipe
 
 you will be prompted to upload to binstar.
 
-To add your Binstar channel, or the channel of others to conda so that `conda
-install` will find and install their packages, run
+To add your Binstar channel, or the channel of others to conda so that ``conda
+install`` will find and install their packages, run
 
 .. code-block:: bash
 
    $ conda config --add channels https://conda.binstar.org/username
 
-(replacing `username` with the user name of the person whose channel you want
+(replacing ``username`` with the user name of the person whose channel you want
 to add).
 
 Getting Help
