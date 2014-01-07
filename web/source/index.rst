@@ -93,16 +93,17 @@ To go back to the root environment, use
    $ source deactivate
 
 
-Contents:
+Getting Help
+------------
 
-.. toctree::
-   :maxdepth: 2
+The documentation for conda is at http://docs.continuum.io/conda/. You can
+subscribe to the `conda mailing list
+<https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.  The source
+code and issue tracker for conda is on `GitHub <https://github.com/pydata/conda>`_.
 
+..
+   Uncomment this when there is more than one page
+      Contents:
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+      .. toctree::
+         :maxdepth: 2
