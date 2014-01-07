@@ -1,8 +1,6 @@
-.. Conda documentation master file, created by
-   sphinx-quickstart on Fri Oct 25 16:40:03 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
+.. NOTE: This file serves both as the README on GitHub and the index.html for
+   conda.pydata.org. If you update this file, be sure to cd to the web
+   directory and run ``make html; make live``
 
 =====
 Conda
