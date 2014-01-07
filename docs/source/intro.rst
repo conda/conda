@@ -227,36 +227,15 @@ The condarc file can be used to affect
 
 - Binstar Upload - Whether user-built packages should be uploaded to Binstar.org
 
+- Environment defaults - Default packages or features to include in new environments
+
 Here is an example:
 
-.. code-block:: bash
+.. include:: ../../condarc
+   :code: yaml
 
-    # This is a sample .condarc file
-
-    # channel locations. These override conda defaults, i.e., conda will
-    # search *only* the channels listed here, in the order given. Use "defaults" to
-    # automatically include all default channels.
-
-    channels:
-      - http://some.custom/channel
-      - defaults
-
-
-    # Proxy settings
-    #  http://[username]:[password]@[server]:[port]
-    proxy_servers:
-        http: http://user:pass@corp.com:8080
-        https: https://user:pass@corp.com:8080
-
-    envs_dirs:
-      - /opt/anaconda/envs
-      - /home/joe/my-envs
-
-    changeps1: False
-
-    # binstar.org upload (not defined here means ask)
-    binstar_upload: True
-
+You can use the ``conda config`` command to modify configuration options in
+``.condarc`` from the command line.
 
 ----------------------------------------------
 Creating Python 3.3 or Python 2.6 environments
