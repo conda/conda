@@ -11,7 +11,8 @@ Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations, but it may be
 used for other systems as well.  Conda makes environments first-class
-citizens. Conda is written entirely in Python, and is BSD licensed open
+citizens, making it easy to create independent environments even for C
+libraries. Conda is written entirely in Python, and is BSD licensed open
 source.
 
 
