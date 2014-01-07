@@ -25,9 +25,6 @@ conda is a part of the Anaconda distribution which can be downloaded `here
 minimal installation that only includes conda and its dependencies, called
 Miniconda, `here <http://repo.continuum.io/miniconda/index.html>`_.
 
-It is also possible to ``pip`` install conda, by doing ``pip install conda;
-conda init`` However, there are several disadvantages to pip installing conda,
-and the recommended way to obtain conda is to use Anaconda or Miniconda.
 
 Getting Started
 ---------------
