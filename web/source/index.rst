@@ -9,61 +9,89 @@ Conda
 =====
 
 
-The `conda` command is the primary interface for managing `Anaconda <http://docs.continuum.io/anaconda/index.html>`_ installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
+Conda is a cross-platform, Python-agnostic binary package manager. It is the
+package manager used by `Anaconda
+<http://docs.continuum.io/anaconda/index.html>`_ installations, but it may be
+used for other systems as well.  Conda makes environments first-class
+citizens. `conda` is written entirely in Python, and is BSD licensed open
+source.
 
 
 Installation
 ------------
-conda is a part of the Anaconda distribution which can be downloaded `here <https://store.continuum.io/cshop/anaconda/>`_.
 
+conda is a part of the Anaconda distribution which can be downloaded `here
+<https://store.continuum.io/cshop/anaconda/>`_.  You can also download a
+minimal installation that only includes conda and its dependencies, called
+Miniconda, `here <http://repo.continuum.io/miniconda/index.html>`_.
+
+It is also possible to `pip` install conda, by doing
+
+.. code-block:: bash
+
+   $ pip install conda
+   $ conda init
+
+However, there are several disadvantages to pip installing conda, and the
+recommended way to obtain conda is to use Anaconda or Miniconda.
 
 Getting Started
 ---------------
 
-To demonstrate the ease of a typical conda workflow, we will create an Anaconda environment
-with a version of `NumPy <http://www.numpy.org>`_ different from the default version.
-
-First, we will check our system NumPy version
+If you install Anaconda, you will already have hundreds of packages
+installed.  You can see what packages are installed by running
 
 .. code-block:: bash
 
-    $ python
-    Python 2.7.5 |Anaconda 1.6.1 (x86_64)| (default, Jun 28 2013, 22:20:13)
-    [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
-    Type "help", "copyright", "credits" or "license" for more information.
-    >>> import numpy
-    >>> numpy.__version__
-    '1.7.1'
+   $ conda list
 
-Next we will create an Anaconda environment using a different version of NumPy
+to see all the packages that are available, use
 
 .. code-block:: bash
 
-    $ conda create -p ~/anaconda/envs/test numpy=1.6 anaconda
+   $ conda search
 
-    Package plan for creating environment at /Users/maggie/anaconda/envs/test:
-
-    The following packages will be downloaded:
-
-    [      COMPLETE      ] |#################################################| 100%
-
-Now we adjust our **PATH** variable to point to the new environment
+and to install a package, use
 
 .. code-block:: bash
 
-    $ export PATH=~/anaconda/envs/test/bin/:$PATH
+   $ conda install <package-name>
 
-Finally, we check the version again
+
+The real power of conda comes from its ability to manage environments. In
+conda, an environment can be thought of as a completely separate installation.
+Conda installs packages into environments efficiently using `hard links
+<http://en.wikipedia.org/wiki/Hard_links>`_ by default when it is possible, so
+environments are space efficient, and take seconds to create.
+
+The default environment, which `conda` itself is installed into is called
+`root`.  To create another environment, use the `conda create` command. For
+instance, to create an environment with the IPython notebook and NumPy 1.6,
+which is older than the version that comes with Anaconda by default, you would
+run
 
 .. code-block:: bash
 
-    $ python
-    Python 2.7.5 |Anaconda 1.6.1 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
-    [GCC 4.0.1 (Apple Inc. build 5493)] on darwin
-    Type "help", "copyright", "credits" or "license" for more information.
-    >>> import numpy
-    >>> numpy.__version__
-    '1.6.2'
+   $ conda create -n numpy16 ipython-notebook numpy=1.6
+
+This creates an environment called `numpy16` with the latest version of
+the IPython notebook, NumPy 1.6, and their dependencies.
+
+We can now activate this environment. On Linux and Mac OS X, use
+
+.. code-block:: bash
+
+   $ source activate numpy16
+
+This puts the bin directory of the `numpy16` environment in the front of the
+`PATH`, and sets it as the default environment for all subsequent conda commands.
+
+To go back to the root environment, use
+
+.. code-block:: bash
+
+   $ source deactivate
+
 
 Contents:
 
