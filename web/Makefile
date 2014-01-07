@@ -14,6 +14,18 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
+UNAME := $(shell uname)
+
+# Determine application launcher
+ifeq "$(UNAME)" "Darwin"
+LAUNCH = open
+else ifeq "$(UNAME)" "Linux"
+LAUNCH = xdg-open
+else
+LAUNCH = start
+endif
+
+
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
 help:
@@ -151,3 +163,11 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+test:
+	rsync -rvzchP --delete-after -e ssh build/html/ pydata.org:/www/conda-test/ && \
+	$(LAUNCH) http://conda-test.pydata.org/
+
+live:
+	rsync -rvzchP --delete-after -e ssh build/html/ pydata.org:/www/conda/
+	$(LAUNCH) http://conda.pydata.org
