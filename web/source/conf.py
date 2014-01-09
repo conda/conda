@@ -106,7 +106,22 @@ html_theme_options = {
     'nosidebar': True,
     # This one's fun
     'inner_theme': True,
-    'inner_theme_name': 'bootswatch-spacelab',
+    'inner_theme_name':[
+        "bootswatch-amelia",
+        "bootswatch-cerulean",
+        "bootswatch-cosmo",
+        "bootswatch-cyborg",
+        "bootswatch-journal",
+        "bootswatch-readable",
+        "bootswatch-simplex",
+        "bootswatch-slate",
+        "bootswatch-spacelab",
+        "bootswatch-spruce",
+        "bootswatch-superhero",
+        "bootswatch-united",
+        "bootswatch-flatly",
+        "geo-bootstrap",
+        ][8], # spacelab, 13 is fun too
 
 }
 
