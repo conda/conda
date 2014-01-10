@@ -21,7 +21,7 @@ Installation
 
 Conda is a part of the `Anaconda distribution <https://store.continuum.io/cshop/anaconda/>`_.  You can also download a
 minimal installation that only includes conda and its dependencies, called
-`Miniconda <http://repo.continuum.io/miniconda/index.html>`_.
+:ref:`Miniconda`.
 
 
 Getting Started

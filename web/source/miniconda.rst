@@ -1,5 +1,7 @@
 .. If someone knows how to do this better be my guest
 
+.. _miniconda:
+
 ===========
  Miniconda
 ===========
@@ -27,6 +29,7 @@
    |          |<Windows-py3-32_>`_|                 |<Linux-py3-32_>`_|
    |          |                   |                 |                 |
    +----------+-------------------+-----------------+-----------------+
+
 
 These Miniconda installers contain the Conda package manager and Python. Once
 Miniconda is installed, you can use the conda command to install any other
@@ -56,6 +59,13 @@ explicitly setting ``python=2`` or ``python=3``. It also determines the
 default value of ``CONDA_PY`` when using ``conda build``.
 
 We have 32-bit Mac OS X binaries available, please contact us for more details at sales@continuum.io.
+
+**Note**: If you already have Miniconda or Anaconda installed, and you just
+want to upgrade, you should not use the installer. Just use
+
+.. code-block:: bash
+
+   $ conda update conda
 
 .. |Linux| replace:: :fonticon:`icon-linux icon-4x`
 
