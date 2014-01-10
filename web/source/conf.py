@@ -100,9 +100,14 @@ pygments_style = 'sphinx'
 extensions += ['sphinxjp.themes.basicstrap']
 html_theme = 'basicstrap'
 
+extensions += ['cloud_sptheme.ext.table_styling']
+
+table_styling_embed_css = True
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+
 html_theme_options = {
     'nosidebar': True,
     # This one's fun
@@ -122,7 +127,8 @@ html_theme_options = {
         "bootswatch-united",
         "bootswatch-flatly",
         "geo-bootstrap",
-        ][8], # spacelab, 13 is fun too
+        ][8], # spacelab
+              # 13 is fun too
 
 }
 
