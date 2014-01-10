@@ -127,9 +127,11 @@ subscribe to the `conda mailing list
 <https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.  The source
 code and issue tracker for conda is on `GitHub <https://github.com/pydata/conda>`_.
 
-..
-   Uncomment this when there is more than one page
-      Contents:
+--------
 
-      .. toctree::
-         :maxdepth: 2
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+   miniconda.rst
