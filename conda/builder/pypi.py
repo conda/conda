@@ -9,7 +9,6 @@ from __future__ import division, absolute_import
 import sys
 from os import makedirs, listdir, getcwd, chdir
 from os.path import join, isdir, exists, isfile
-import cStringIO
 from tempfile import mkdtemp
 from collections import defaultdict
 import keyword
