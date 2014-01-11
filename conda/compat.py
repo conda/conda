@@ -25,8 +25,12 @@ if PY3:
             # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
+    import configparser
+    from io import StringIO
 
 else:
+    import ConfigParser as configparser
+    from cStringIO import StringIO
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
