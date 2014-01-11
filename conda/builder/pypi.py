@@ -267,9 +267,9 @@ def main(args, parser):
                             setuptools_run = True
                             for section in config.sections():
                                 if section in ['console_scripts', 'gui_scripts']:
-                                    value = ['%s=%s' % (option, config.get(section, option)) 
+                                    value = ['%s=%s' % (option, config.get(section, option))
                                                  for option in config.options(section) ]
-                                    entry_points[section] = value                                    
+                                    entry_points[section] = value
                     if not isinstance(entry_points, dict):
                         print("WARNING: Could not add entry points. They were:")
                         print(entry_points)
@@ -299,9 +299,9 @@ def main(args, parser):
                         setuptools_run = False
                         d['egg_comment'] = ''
                         d['build_comment'] = ''
-                    d['build_depends'] = indent.join([''] + 
+                    d['build_depends'] = indent.join([''] +
                         ['setuptools']*setuptools_build + deps)
-                    d['run_depends'] = indent.join([''] + 
+                    d['run_depends'] = indent.join([''] +
                         ['setuptools']*setuptools_run + deps)
 
                 if pkginfo['packages']:
