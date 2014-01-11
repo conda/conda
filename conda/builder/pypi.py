@@ -9,6 +9,7 @@ from __future__ import division, absolute_import
 import sys
 from os import makedirs, listdir, getcwd, chdir
 from os.path import join, isdir, exists, isfile
+import cStringIO
 from tempfile import mkdtemp
 from collections import defaultdict
 import keyword
@@ -24,7 +25,7 @@ from conda.utils import human_bytes, hashsum_file
 from conda.install import rm_rf
 from conda.builder.utils import tar_xf, unzip
 from conda.builder.source import SRC_CACHE
-from conda.compat import input
+from conda.compat import input, configparser, StringIO
 
 PYPI_META = """\
 package:
@@ -40,7 +41,8 @@ source:
    # - fix.patch
 
 {build_comment}build:
-  {build_comment}entry_points:
+  {egg_comment}preserve_egg_dir: True
+  {entry_comment}entry_points:
     # Put any entry points (scripts to be generated automatically) here. The
     # syntax is module:function.  For example
     #
@@ -64,7 +66,7 @@ test:
   # Python imports
   {import_comment}imports:{import_tests}
 
-  {build_comment}commands:
+  {entry_comment}commands:
     # You can put test commands to be run here.  Use this to test that the
     # entry points work.
 {test_commands}
@@ -127,7 +129,7 @@ def main(args, parser):
         d = package_dicts.setdefault(package, {'packagename':
             package.lower(), 'run_depends':'',
             'build_depends':'', 'entry_points':'', 'build_comment':'# ',
-            'test_commands':'', 'usemd5':''})
+            'test_commands':'', 'usemd5':'', 'entry_comment':'#', 'egg_comment':'#'})
         d['import_tests'] = valid(package).lower()
         if d['import_tests'] == '':
             d['import_comment'] = '# '
@@ -244,35 +246,65 @@ def main(args, parser):
                 with open(join(tempdir, 'pkginfo.yaml')) as fn:
                     pkginfo = yaml.load(fn)
 
-                uses_distribute = 'setuptools' in sys.modules
+                setuptools_build = 'setuptools' in sys.modules
+                setuptools_run = False
 
-                if pkginfo['install_requires'] or uses_distribute:
+                # Look at the entry_points and construct console_script and
+                #  gui_scripts entry_points for conda and
+                entry_points = pkginfo['entry_points']
+                if entry_points:
+                    if isinstance(entry_points, str):
+                        # makes sure it is left-shifted
+                        newstr = "\n".join(x.strip() for x in entry_points.split('\n'))
+                        config = configparser.ConfigParser()
+                        entry_points = {}
+                        try:
+                            config.readfp(StringIO(newstr))
+                        except Exception as err:
+                            print("WARNING: entry-points not understood: ", err)
+                            print("The string was", newstr)
+                            entry_points = pkginfo['entry_points']
+                        else:
+                            setuptools_run = True
+                            for section in config.sections():
+                                if section in ['console_scripts', 'gui_scripts']:
+                                    value = ['%s=%s' % (option, config.get(section, option)) 
+                                                 for option in config.options(section) ]
+                                    entry_points[section] = value                                    
+                    if not isinstance(entry_points, dict):
+                        print("WARNING: Could not add entry points. They were:")
+                        print(entry_points)
+                    else:
+                        cs = entry_points.get('console_scripts', [])
+                        gs = entry_points.get('gui_scripts',[])
+                        # We have *other* kinds of entry-points so we need setuptools at run-time
+                        if not cs and not gs and len(entry_points) > 1:
+                            setuptools_build = True
+                            setuptools_run = True
+                        entry_list = (
+                            cs
+                            # TODO: Use pythonw for these
+                            + gs)
+                        if len(cs+gs) != 0:
+                            d['entry_points'] = indent.join([''] + entry_list)
+                            d['entry_comment'] = ''
+                            d['build_comment'] = ''
+                            d['test_commands'] = indent.join([''] + make_entry_tests(entry_list))
+
+
+                if pkginfo['install_requires'] or setuptools_build or setuptools_run:
                     deps = [remove_version_information(dep).lower() for dep in
                         pkginfo['install_requires']]
                     if 'setuptools' in deps:
-                        deps.remove('setuptools')
-                        if 'distribute' not in deps:
-                            deps.append('distribute')
-                            uses_distribute = False
-                    d['build_depends'] = indent.join([''] +
-                        ['distribute']*uses_distribute + deps)
-                    ### Could be more discriminatory but enough
-                    ### packages also need distribute at run_time...
-                    d['run_depends'] = indent.join([''] +
-                        ['distribute']*uses_distribute + deps)
-
-                if pkginfo['entry_points']:
-                    if not isinstance(pkginfo['entry_points'], dict):
-                        print("WARNING: Could not add entry points. They were:")
-                        print(pkginfo['entry_points'])
-                    else:
-                        entry_list = (
-                            pkginfo['entry_points'].get('console_scripts', [])
-                            # TODO: Use pythonw for these
-                            + pkginfo['entry_points'].get('gui_scripts', []))
-                        d['entry_points'] = indent.join([''] + entry_list)
+                        setuptools_build = False
+                        setuptools_run = False
+                        d['egg_comment'] = ''
                         d['build_comment'] = ''
-                        d['test_commands'] = indent.join([''] + make_entry_tests(entry_list))
+                    d['build_depends'] = indent.join([''] + 
+                        ['setuptools']*setuptools_build + deps)
+                    d['run_depends'] = indent.join([''] + 
+                        ['setuptools']*setuptools_run + deps)
+
                 if pkginfo['packages']:
                     deps = set(pkginfo['packages'])
                     if d['import_tests']:
