@@ -40,7 +40,23 @@ a dictionary containing the following keys:
 
    ``version``: The package version, which may **not** contain ``-``.
 
-   todo...
+   ``build``: The build string, which also may **not** contain ``-``.
+              The filename of the conda package is composed from these
+              three values, that is ``<name>-<version>-<build>.tar.bz2``.
+              The build string is used to differentiate builds of packages
+              with otherwise the same name and version, e.g. a package
+              build with other dependencies (Python 3.3 instead of Python
+              2.7), a bug fix in the build process, or some different
+              optional dependencies (MKL vs. ATLAS linkage), etc. .
+              Nothing in conda is actually inspecting the build string,
+              strings such as ``np17py33_1`` are only designed for human
+              readability, but are never parsed by conda.
+
+    ``build_number``: A (non-negative) integer representing the build
+                      number of the package.  Unlike the build sting, this
+                      number is inspected by conda.  It is used to sort
+                      package (with otherwise same name and version) to
+                      determine the *latest* one.
 
 
 Repository index
