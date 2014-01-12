@@ -41,6 +41,7 @@ a dictionary containing the following keys:
 
    ``version``:
       The package version, which may **not** contain ``-``.
+      Conda acknowledges `PEP 386<http://www.python.org/dev/peps/pep-0386/>`_.
 
    ``build``:
       The build string, which also may **not** contain ``-``.
@@ -62,8 +63,23 @@ a dictionary containing the following keys:
       package (with otherwise same name and version) to
       determine the *latest* one.
 
+   ``depends``:
+      List of dependencies specifications, where each element is a string
+      as outlined in the paragraph `Specifying versions in requirements`
+      in `build`_.
 
-Repository index
-----------------
+   ``arch``: (optional)
+      The architecture the package is build for, e.g. ``x86_64``.
+      Conda is not doing anything with this key.
+
+   ``platform``: (optional)
+      The platform (OS) the package is build for, e.g. ``osx``.
+      Conda is not doing anything with this key.  Packages for a specific
+      architecture and platform are usually distinguished by the repository
+      sub-directory they are contained in (see below).
+
+
+Repository structure and index
+------------------------------
 
 todo...
