@@ -1,12 +1,13 @@
 # This is a sample .condarc file
 
 # channel locations. These override conda defaults, i.e., conda will
-# search *only* the channels listed here, in the order given. Use "default" to
+# search *only* the channels listed here, in the order given. Use "defaults" to
 # automatically include all default channels.
 channels:
   - http://repo.continuum.io/pkgs/free
   - http://repo.continuum.io/pkgs/pro
   - http://some.custom/channel
+  - defaults
 
 # Proxy settings: http://[username]:[password]@[server]:[port]
 proxy_servers:
