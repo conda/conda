@@ -165,10 +165,19 @@ def _get_new_rpath(path, rpath):
     root_path = utils.get_root_path((path, rpath))
     rel_path = path.replace(root_path, '')
     rel_rpath = rpath.replace(root_path, '')
-    new_rpath = '$ORIGIN/%s/%s' % (
-        normpath(rel_path.count('/') * '../'),
-        rel_rpath,
-    )
+    lib_path = '%s/lib' % build_prefix
+    if rpath == lib_path:
+        new_rpath = '$ORIGIN/%s' % normpath(rel_path.count('/') * '../')
+    else:
+        # .so is linking to somewhere outside of $PREFIX/lib; alter RPATH to
+        # point to that location first, then $PREFIX/lib second.
+        rel_file = path.replace(build_prefix, '')[1:]
+        rel_lib_path = utils.rel_lib(rel_file)
+        new_rpath = '$ORIGIN/%s/%s:$ORIGIN/%s' % (
+            normpath(rel_path.count('/') * '../'),
+            rel_rpath,
+            rel_lib_path,
+        )
     return new_rpath
 
 def get_new_rpath(path):
