@@ -24,7 +24,23 @@ index (``repodata.json.bz``).
 Package metadata
 ----------------
 
-todo...
+All metadata about a package is contained under ``info/``.  Any files
+within this location are not installed under the install prefix, and even
+though a package creator is free to add whatever file, conda will only
+inspect the content of the following ones:
+
+``info/index.json``: This file contains basic information about the
+package, such as name, version, build string, dependencies.
+The content of this file is what gets stored in the repository index file
+``repodata.json`` (hence the name ``index.json``).  The json object is
+a dictionary containing the following keys:
+
+   ``name``: The (lowercase) name of the package.  Note that this string
+             may contain the ``-`` character.
+
+   ``version``: The package version, which may **not** contain ``-``.
+
+   todo...
 
 
 Repository index
