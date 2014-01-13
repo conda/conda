@@ -15,23 +15,26 @@
    |          |                   |                 |                 |
    |          |Windows            |Mac OS X         |Linux            |
    +----------+-------------------+-----------------+-----------------+
-   |**Python  |`64-bit (.exe)     |`64-bit (.sh)    |`64-bit (.sh)    |
-   |2**       |<Windows-py2-64_>`_|<Mac-py2-64_>`_  |<Linux-py2-64_>`_|
+   |**Python  |`64-bit (exe       |`64-bit (bash    |`64-bit (bash    |
+   |2**       |installer)         |installer)       |installer)       |
+   |          |<Windows-py2-64_>`_|<Mac-py2-64_>`_  |<Linux-py2-64_>`_|
    |          |                   |                 |                 |
-   |          |`32-bit (.exe)     |                 |`32-bit (.sh)    |
+   |          |`32-bit (exe       |                 |`32-bit (bash    |
+   |          |installer)         |                 |installer)       |
    |          |<Windows-py2-32_>`_|                 |<Linux-py2-32_>`_|
    |          |                   |                 |                 |
    +----------+-------------------+-----------------+-----------------+
-   |**Python  |`64-bit (.exe)     |`64-bit (.sh)    |`64-bit (.sh)    |
-   |3**       |<Windows-py3-64_>`_|<Mac-py3-64_>`_  |<Linux-py3-64_>`_|
+   |**Python  |`64-bit (exe       |`64-bit (bash    |`64-bit (bash    |
+   |3**       |installer)         |installer)       |installer)       |
+   |          |<Windows-py3-64_>`_|<Mac-py3-64_>`_  |<Linux-py3-64_>`_|
    |          |                   |                 |                 |
-   |          |`32-bit (.exe)     |                 |`32-bit (.sh)    |
+   |          |`32-bit (exe       |                 |`32-bit (bash    |
+   |          |installer)         |                 |installer)       |
    |          |<Windows-py3-32_>`_|                 |<Linux-py3-32_>`_|
    |          |                   |                 |                 |
    +----------+-------------------+-----------------+-----------------+
 
-
-These Miniconda installers contain the Conda package manager and Python. Once
+These Miniconda installers contain the conda package manager and Python. Once
 Miniconda is installed, you can use the conda command to install any other
 packages and create environments, etc. For example:
 
@@ -61,11 +64,14 @@ default value of ``CONDA_PY`` when using ``conda build``.
 We have 32-bit Mac OS X binaries available, please contact us for more details at sales@continuum.io.
 
 **Note**: If you already have Miniconda or Anaconda installed, and you just
-want to upgrade, you should not use the installer. Just use
+want to upgrade, you should not use the installer. Just use ``conda
+update``. For instance
 
 .. code-block:: bash
 
    $ conda update conda
+
+will update conda.
 
 .. |Linux| replace:: :fonticon:`icon-linux icon-4x`
 
