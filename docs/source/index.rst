@@ -82,14 +82,15 @@ Reference Guide
    :maxdepth: 2
 
    commands
+   spec
 
-Presentations & Blog Posts  
+Presentations & Blog Posts
 --------------------------
 
 `Packaging and Deployment with conda - Travis Oliphant <https://speakerdeck.com/teoliphant/packaging-and-deployment-with-conda>`_
 
- 
-`Python 3 support in Anaconda - Ilan Schnell <http://continuum.io/blog/anaconda-python-3>`_  
+
+`Python 3 support in Anaconda - Ilan Schnell <http://continuum.io/blog/anaconda-python-3>`_
 
 `New Advances in conda - Ilan Schnell <http://continuum.io/blog/new-advances-in-conda>`_
 
