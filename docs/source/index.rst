@@ -72,8 +72,8 @@ User Guide
 
    intro
    examples
+   faq
    build
-
 
 Reference Guide
 ---------------
