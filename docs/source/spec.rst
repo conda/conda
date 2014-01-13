@@ -81,11 +81,12 @@ build) may be added to a repository.
 
 ``info/files``: This file lists all files which are part of the package
 itself (one per line), i.e. all files which need to get linked into the
-environment.
+environment.  Any files in the package not listed in this file will not be linked
+when the package is installed.
 
 ``info/has_prefix``: This optional file lists all files that contain a
-placeholder for the install prefix, which upon install need to be replaced
-by the real install prefix.
+placeholder, ``/opt/anaconda1anaconda2anaconda3``, for the install prefix,
+which upon install is replaced by the real install prefix.
 
 
 Repository structure and index
