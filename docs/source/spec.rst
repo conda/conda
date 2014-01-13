@@ -81,11 +81,19 @@ determine the *latest* one.
 This is important, because new builds (bug fixes to the way a package is
 build) may be added to a repository.
 
+``info/files``: This file lists all files which are part of the package
+itself (one per line), i.e. all files which need to get linked into the
+environment.
+
+``info/has_prefix``: This optional file, lists all files which contain a
+placeholder for the install prefix, which upon install need to be replaced
+by the real install prefix.
+
 
 Repository structure and index
 ------------------------------
 
-A conda repository is a directory tree, which may be served over HTTP,
+A conda repository is a directory tree, which is usually served over HTTP,
 which has platform sub-directories, which contain conda packages and a
 repository index.  The index file ``repodata.json`` lists all conda
 packages in the platform sub-directory.  The command ``conda index`` can
