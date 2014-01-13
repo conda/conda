@@ -4,6 +4,8 @@
   * re-work the setuptools dependency and entry_point logic so that
     non console_script entry_points for packages with a dependency on
     setuptools will get correct build script with conda skeleton pypi
+  * add -m, --mkdir option to conda install
+
 
 2014-01-06   2.2.8:
 -------------------
