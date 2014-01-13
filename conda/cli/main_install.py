@@ -153,7 +153,7 @@ def execute(args, parser):
         only_names = None
 
     if not isdir(prefix):
-        if args.mkdir():
+        if args.mkdir:
             os.makedirs(prefix)
         else:
             sys.exit("""\
