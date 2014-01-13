@@ -6,6 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import os
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
@@ -51,6 +52,11 @@ def configure_parser(sub_parsers):
         help = "do not install dependencies",
     )
     p.add_argument(
+        '-m', "--mkdir",
+        action = "store_true",
+        help = "create prefix directory if necessary",
+    )
+    p.add_argument(
         "--no-pip",
         action = "store_false",
         default=True,
@@ -78,7 +84,6 @@ def configure_parser(sub_parsers):
 
 
 def install_tar(prefix, tar_path, verbose=False):
-    import os
     import shutil
     import tarfile
     import tempfile
@@ -148,7 +153,10 @@ def execute(args, parser):
         only_names = None
 
     if not isdir(prefix):
-        sys.exit("""\
+        if args.mkdir():
+            os.makedirs(prefix)
+        else:
+            sys.exit("""\
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before installing packages
