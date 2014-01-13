@@ -93,10 +93,23 @@ by the real install prefix.
 Repository structure and index
 ------------------------------
 
-A conda repository is a directory tree, which is usually served over HTTP,
-which has platform sub-directories, which contain conda packages and a
-repository index.  The index file ``repodata.json`` lists all conda
+A conda repository (or channel) is a directory tree, which is usually served
+over HTTP, which has platform sub-directories, which contain conda packages
+and a repository index.  The index file ``repodata.json`` lists all conda
 packages in the platform sub-directory.  The command ``conda index`` can
 be used to create such an index from the conda packages within a directory.
 It is simple mapping of the full conda package filename to the dictionary
 object in ``info/index.json`` described in the previous section.
+
+In the following example, a repository provides the conda package
+`misc-1.0-np17py27_0.tar.bz2` on 64-bit Linux and 32-bit Windows::
+
+   <some path>/linux-64/repodata.json
+                        repodata.json.bz2
+                        misc-1.0-np17py27_0.tar.bz2
+              /win-32/repodata.json
+                      repodata.json.bz2
+                      misc-1.0-np17py27_0.tar.bz2
+
+Note that both conda packages have identical filenames, and are only
+distinguished by the repository sub-directory they are contained in.
