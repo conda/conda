@@ -47,21 +47,10 @@ a dictionary containing the following keys:
       The build string, which also may **not** contain ``-``.
       The filename of the conda package is composed from these
       three values, that is ``<name>-<version>-<build>.tar.bz2``.
-      The build string is used to differentiate builds of packages
-      with otherwise the same name and version, e.g. a package
-      build with other dependencies (Python 3.3 instead of Python 2.7),
-      a bug fix in the build process, or some different
-      optional dependencies (MKL vs. ATLAS linkage), etc. .
-      Nothing in conda is actually inspecting the build string,
-      strings such as ``np17py33_1`` are only designed for human
-      readability, but are never parsed by conda.
 
    ``build_number``:
       A (non-negative) integer representing the build
-      number of the package.  Unlike the build sting, this
-      number is inspected by conda.  It is used to sort
-      package (with otherwise same name and version) to
-      determine the *latest* one.
+      number of the package.
 
    ``depends``:
       List of dependencies specifications, where each element is a string
@@ -78,8 +67,28 @@ a dictionary containing the following keys:
       architecture and platform are usually distinguished by the repository
       sub-directory they are contained in (see below).
 
+The build string is used to differentiate builds of packages with otherwise
+the same name and version, e.g. a package a build with other
+dependencies (Python 3.3 instead of Python 2.7), a bug fix in the build
+process, or some different optional
+dependencies (MKL vs. ATLAS linkage), etc. .
+Nothing in conda is actually inspecting the build string, strings such
+as ``np17py33_1`` are only designed for human readability, but are never
+parsed by conda.
+Unlike the build sting, this number is inspected by conda.
+It is used to sort packages (with otherwise same name and version) to
+determine the *latest* one.
+This is important, because new builds (bug fixes to the way a package is
+build) may be added to a repository.
+
 
 Repository structure and index
 ------------------------------
 
-todo...
+A conda repository is a directory tree, which may be served over HTTP,
+which has platform sub-directories, which contain conda packages and a
+repository index.  The index file ``repodata.json`` lists all conda
+packages in the platform sub-directory.  The command ``conda index`` can
+be used to create such an index from the conda packages within a directory.
+It is simple mapping of the full conda package filename to the dictionary
+object in ``info/index.json`` described in the previous section.
