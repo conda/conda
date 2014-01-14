@@ -63,34 +63,35 @@ def tar_update(source, dest, file_map, verbose=True, bz2=True):
     else:
         t = tarfile.open(dest, 'w')
 
-    for m in s.getmembers():
-        p = m.path
-        if p in file_map:
-            if file_map[p] is None:
+    try:
+        for m in s.getmembers():
+            p = m.path
+            if p in file_map:
+                if file_map[p] is None:
+                    if verbose:
+                        print('removing %r' % p)
+                else:
+                    if verbose:
+                        print('updating %r with %r' % (p, file_map[p]))
+                    if isinstance(file_map[p], tarfile.TarInfo):
+                        t.addfile(file_map[p])
+                    else:
+                        t.add(file_map[p], p)
+                continue
+            t.addfile(m, s.extractfile(p))
+
+        s_names_set = set(m.path for m in s.getmembers())
+        for p in file_map:
+            if p not in s_names_set:
                 if verbose:
-                    print('removing %r' % p)
-            else:
-                if verbose:
-                    print('updating %r with %r' % (p, file_map[p]))
+                    print('inserting %r with %r' % (p, file_map[p]))
                 if isinstance(file_map[p], tarfile.TarInfo):
                     t.addfile(file_map[p])
                 else:
                     t.add(file_map[p], p)
-            continue
-        t.addfile(m, s.extractfile(p))
-
-    s_names_set = set(m.path for m in s.getmembers())
-    for p in file_map:
-        if p not in s_names_set:
-            if verbose:
-                print('inserting %r with %r' % (p, file_map[p]))
-            if isinstance(file_map[p], tarfile.TarInfo):
-                t.addfile(file_map[p])
-            else:
-                t.add(file_map[p], p)
-
-    t.close()
-    s.close()
+    finally:
+        t.close()
+        s.close()
 
     if bz2:
         bzip2(dest, verbose=False)
