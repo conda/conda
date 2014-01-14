@@ -53,6 +53,15 @@ class BoolKey(object):
         for i in I:
             yield i
 
+class ListKey(object):
+    def __contains__(self, other):
+        # We can't check the elements of the list themselves
+        return True
+
+    def __iter__(self):
+        for i in config.rc_list_keys:
+            yield i
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
@@ -100,6 +109,7 @@ write to the given file. Otherwise writes to the user config file
         help = """add one configuration value to a list key. The default
         behavior is to prepend.""",
         default = [],
+        choices=ListKey(),
         metavar = ('KEY', 'VALUE'),
         )
     action.add_argument(
