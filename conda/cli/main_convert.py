@@ -6,13 +6,12 @@
 
 from __future__ import print_function, division, absolute_import
 
-import os
+import tarfile
+
+from os.path import abspath, expanduser, split, join
 from argparse import RawDescriptionHelpFormatter
 
-from conda.cli import common
-from conda.convert import show_cext, has_cext
-
-import tarfile
+from conda.convert import has_cext, tar_update
 
 help = "Various tools to convert conda packages."
 example = ''
@@ -50,9 +49,21 @@ def configure_parser(sub_parsers):
         )
     p.add_argument(
         '-f', "--force",
-        action = "store_true",
-        help = "force convert, even when a package has compiled C extensions",
+        action="store_true",
+        help="Force convert, even when a package has compiled C extensions",
     )
+    p.add_argument(
+        '-o', '--output-dir',
+        default=None,
+        help="Directory to write the output files (default is the same "
+        "directory as the input file",
+    )
+    p.add_argument(
+        '-v', '--verbose',
+        default=False,
+        action='store_true',
+        help="Print verbose output"
+        )
 
     p.set_defaults(func=execute)
 
@@ -61,15 +72,27 @@ def execute(args, parser):
     files = args.package_file
 
     for file in files:
+        if not file.endswith('.tar.bz2'):
+            raise RuntimeError("%s does not appear to be a conda package" % file)
+
+        file = abspath(expanduser(file))
         t = tarfile.open(file)
-
+        cext = False
         if args.show_imports:
-            show_cext(t)
+            cext = has_cext(t, show=True)
 
-        if not args.force and has_cext(t):
+        if not args.force and (cext or has_cext(t)):
             print("WARNING: Package %s has C extensions, skipping. Use -f to "
             "force conversion." % file)
             continue
 
+        output_dir = args.output_dir or split(file)[0]
+        fn = split(file)[1]
         for platform in args.platforms:
+            members = t.getmembers()
+            file_map = {}
+            for member in members:
+                file_map[member.path] = member
+
             print("Converting %s to %s" % (file, platform))
+            tar_update(t, join(output_dir, fn), file_map, verbose=args.verbose)

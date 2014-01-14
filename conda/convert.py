@@ -10,20 +10,98 @@ Tools for converting conda packages
 """
 from __future__ import print_function, division
 import re
+import tarfile
+import subprocess
+import bz2
+
+from os.path import isfile
 
 libpy_pat = re.compile(
     r'(lib/python\d\.\d|Lib)'
     r'/(site-packages|lib-dynload)/(\S+?)(\.cpython-\d\dm)?\.(so|pyd)')
-def show_cext(t):
+
+def has_cext(t, show=False):
+    matched = False
     for m in t.getmembers():
         match = libpy_pat.match(m.path)
-        if match is None:
-            continue
-        x = match.group(3)
-        print('import', x.replace('/', '.'))
+        if match:
+            if show:
+                x = match.group(3)
+                # XXX: Does this work for windows packages?
+                print("import", x.replace('/', '.'))
+                matched = True
+            else:
+                return True
+    return matched
 
-def has_cext(t):
-    for m in t.getmembers():
-        if libpy_pat.match(m.path):
-            return True
-    return False
+def tar_update(source, dest, file_map, verbose=True, bz2=True):
+    """
+    update a tarball, i.e. repack it and insert/update or remove some
+    archives according file_map, which is a dictionary mapping archive names
+    to either:
+
+      - None:  meaning the archive will not be contained in the new tarball
+
+      - a file path:  meaning the archive in the new tarball will be this
+        file. Should point to an actual file on the filesystem.
+
+      - a TarInfo object:  Useful when mapping from an existing archive. The
+        file path in the archive will be the path in the TarInfo object. To
+        change the path, mutate its .path attribute.
+
+    """
+
+    # s -> t
+    if isinstance(source, tarfile.TarFile):
+        s = source
+    else:
+        if not source.endswith(('.tar', '.tar.bz2')):
+            raise TypeError("path must be a .tar or .tar.bz2 path")
+        s = tarfile.open(source)
+    if isinstance(dest, tarfile.TarFile):
+        t = dest
+    else:
+        t = tarfile.open(dest, 'w')
+
+    for m in s.getmembers():
+        p = m.path
+        if p in file_map:
+            if file_map[p] is None:
+                if verbose:
+                    print('removing %r' % p)
+            else:
+                if verbose:
+                    print('updating %r with %r' % (p, file_map[p]))
+                if isinstance(file_map[p], tarfile.TarInfo):
+                    t.addfile(file_map[p])
+                else:
+                    t.add(file_map[p], p)
+            continue
+        t.addfile(m, s.extractfile(p))
+
+    s_names_set = set(m.path for m in s.getmembers())
+    for p in file_map:
+        if p not in s_names_set:
+            if verbose:
+                print('inserting %r with %r' % (p, file_map[p]))
+            if isinstance(file_map[p], tarfile.TarInfo):
+                t.addfile(file_map[p])
+            else:
+                t.add(file_map[p], p)
+
+    t.close()
+    s.close()
+
+    if bz2:
+        bzip2(dest, verbose=False)
+
+def bzip2(path, verbose=True):
+    if verbose:
+        print("bz2ing:", path)
+    if isinstance(path, tarfile.TarFile):
+        path = path.name
+
+    with open(path, 'br') as f:
+        data = f.read()
+    with open(path, 'bw') as f:
+        f.write(bz2.compress(data))
