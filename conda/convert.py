@@ -11,10 +11,6 @@ Tools for converting conda packages
 from __future__ import print_function, division
 import re
 import tarfile
-import subprocess
-import bz2
-
-from os.path import isfile
 
 libpy_pat = re.compile(
     r'(lib/python\d\.\d|Lib)'
@@ -34,7 +30,7 @@ def has_cext(t, show=False):
                 return True
     return matched
 
-def tar_update(source, dest, file_map, verbose=True, bz2=True):
+def tar_update(source, dest, file_map, verbose=True):
     """
     update a tarball, i.e. repack it and insert/update or remove some
     archives according file_map, which is a dictionary mapping archive names
@@ -61,7 +57,7 @@ def tar_update(source, dest, file_map, verbose=True, bz2=True):
     if isinstance(dest, tarfile.TarFile):
         t = dest
     else:
-        t = tarfile.open(dest, 'w')
+        t = tarfile.open(dest, 'w:bz2')
 
     try:
         for m in s.getmembers():
@@ -86,23 +82,9 @@ def tar_update(source, dest, file_map, verbose=True, bz2=True):
                 if verbose:
                     print('inserting %r with %r' % (p, file_map[p]))
                 if isinstance(file_map[p], tarfile.TarInfo):
-                    t.addfile(file_map[p])
+                    t.addfile(file_map[p], s.extractfile(p))
                 else:
                     t.add(file_map[p], p)
     finally:
         t.close()
         s.close()
-
-    if bz2:
-        bzip2(dest, verbose=False)
-
-def bzip2(path, verbose=True):
-    if verbose:
-        print("bz2ing:", path)
-    if isinstance(path, tarfile.TarFile):
-        path = path.name
-
-    with open(path, 'br') as f:
-        data = f.read()
-    with open(path, 'bw') as f:
-        f.write(bz2.compress(data))
