@@ -53,10 +53,10 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
         d[dict_key] = value
 
 
-def fetch_repodata(url):
+def fetch_repodata(url, cache_dir=None):
     log.debug("fetching repodata: %s ..." % url)
 
-    cache_path = join(create_cache_dir(), cache_fn_url(url))
+    cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
         cache = json.load(open(cache_path))
     except (IOError, ValueError):
