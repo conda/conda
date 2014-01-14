@@ -29,6 +29,20 @@ class CouldntParse(NotImplementedError):
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
+class BoolKey(object):
+    def __contains__(self, other):
+        # Other is either one of the keys or the boolean
+        try:
+            import yaml
+        except ImportError:
+            sys.exit("Error: pyyaml is required to modify configuration")
+
+        return other in config.rc_bool_keys or isinstance(yaml.load(other), bool)
+
+    def __iter__(self):
+        for i in config.rc_bool_keys + ['yes', 'no', 'on', 'off', 'true', 'false']:
+                yield i
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
@@ -83,6 +97,7 @@ write to the given file. Otherwise writes to the user config file
         action = "append",
         help = "set a boolean key. BOOL_VALUE should be 'yes' or 'no'",
         default = [],
+        choices=BoolKey(),
         metavar = ('KEY', 'BOOL_VALUE'),
         )
     action.add_argument(
