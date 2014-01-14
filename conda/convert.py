@@ -45,6 +45,7 @@ def tar_update(source, dest, file_map, verbose=True):
         file path in the archive will be the path in the TarInfo object. To
         change the path, mutate its .path attribute.
 
+    Files in the source that aren't in the map will moved without any changes
     """
 
     # s -> t
@@ -70,10 +71,11 @@ def tar_update(source, dest, file_map, verbose=True):
                     if verbose:
                         print('updating %r with %r' % (p, file_map[p]))
                     if isinstance(file_map[p], tarfile.TarInfo):
-                        t.addfile(file_map[p])
+                        t.addfile(file_map[p], s.extractfile(p))
                     else:
                         t.add(file_map[p], p)
                 continue
+            print("keeping %r" % p)
             t.addfile(m, s.extractfile(p))
 
         s_names_set = set(m.path for m in s.getmembers())
