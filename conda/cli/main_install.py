@@ -154,7 +154,10 @@ def execute(args, parser):
 
     if not isdir(prefix):
         if args.mkdir:
-            os.makedirs(prefix)
+            try:
+                os.makedirs(prefix)
+            except OSError:
+                sys.exit("Error: could not create directory: %s" % prefix)
         else:
             sys.exit("""\
 Error: environment does not exist: %s
