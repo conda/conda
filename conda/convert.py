@@ -21,3 +21,9 @@ def show_cext(t):
             continue
         x = match.group(3)
         print('import', x.replace('/', '.'))
+
+def has_cext(t):
+    for m in t.getmembers():
+        if libpy_pat.match(m.path):
+            return True
+    return False
