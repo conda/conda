@@ -8,3 +8,16 @@
 Tools for converting conda packages
 
 """
+from __future__ import print_function, division
+import re
+
+libpy_pat = re.compile(
+    r'(lib/python\d\.\d|Lib)'
+    r'/(site-packages|lib-dynload)/(\S+?)(\.cpython-\d\dm)?\.(so|pyd)')
+def show_cext(t):
+    for m in t.getmembers():
+        match = libpy_pat.match(m.path)
+        if match is None:
+            continue
+        x = match.group(3)
+        print('import', x.replace('/', '.'))
