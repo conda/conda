@@ -128,8 +128,11 @@ def get_pure_py_file_map(t, platform):
     newinfo['arch'] = dest_arch
 
     pythons = list(filter(None, [pyver_re.match(p) for p in info['depends']]))
-    if len(pythons) != 1:
+    if len(pythons) > 1:
         raise RuntimeError("Found more than one Python dependency in package %s"
+            % t.name)
+    if len(pythons) == 0:
+        raise RuntimeError("Package %s does not appear to be a Python package"
             % t.name)
     pyver = pythons[0].group(1)
 
