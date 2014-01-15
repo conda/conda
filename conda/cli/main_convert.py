@@ -17,8 +17,33 @@ from argparse import RawDescriptionHelpFormatter
 from conda.convert import (has_cext, tar_update, get_pure_py_file_map,
     has_nonpy_entry_points)
 
-help = "Various tools to convert conda packages."
-example = ''
+help = """
+Various tools to convert conda packages.
+
+For now, it is just a tool to convert pure Python packages to other platforms.
+
+The output file name will be the same as the input filename, so the -o option
+is required, and cannot be the same directory as any of the input files.
+
+It is recommended to keep packages organized in subdirectories according to
+platform, e.g.,
+
+osx-64/
+  package-1.0-py33.tar.bz2
+win-32/
+  package-1.0-py33.tar.bz2
+
+"""
+
+example = """
+Examples:
+
+Convert a package built with conda build to Windows 64-bit, and place the
+resulting package in the current directory (supposing a default Anaconda
+install on Mac OS X):
+
+$ conda convert ~/anaconda/conda-bld/osx-64/package-1.0-py33.tar.bz2 -o . -p win-64
+"""
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
