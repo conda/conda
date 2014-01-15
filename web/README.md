@@ -1,7 +1,7 @@
 You will need to
 
     pip install sphinxjp.themes.basicstrap
-    pip install cloud_sptheme.ext.table_styling
+    pip install cloud_sptheme
 
 Unfortunately, there are not a working conda packages for these yet, because
 of https://github.com/pydata/conda/issues/488.
