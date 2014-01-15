@@ -83,9 +83,9 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '-o', '--output-dir',
-        default=None,
-        help="Directory to write the output files (default is the same "
-        "directory as the input file",
+        required=True,
+        help="""Directory to write the output files (this cannot be the same directory as
+    the input file, as they will share the same name)"""
     )
     p.add_argument(
         '-v', '--verbose',
@@ -127,8 +127,10 @@ def execute(args, parser):
             "force conversion." % file)
             continue
 
-        output_dir = args.output_dir or split(file)[0]
-        fn = split(file)[1]
+        output_dir = args.output_dir
+        file_dir, fn = split(file)
+        if abspath(expanduser(output_dir)) == abspath(expanduser(file_dir)):
+            raise RuntimeError("Cannot use the same output directory as the input files.")
 
         info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
         source_type = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
