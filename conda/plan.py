@@ -60,7 +60,7 @@ def split_linkarg(arg):
             raise Exception("did not expect: %s" % arg)
         dist, rest = arg.split(None, 1)
         pkgs_dir, lt = rest.rsplit(None, 1)
-        return dist, pkgs_dir, lt
+        return dist, pkgs_dir, int(lt)
 
 def display_actions(actions, index=None):
     if actions.get(FETCH):
