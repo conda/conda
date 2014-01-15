@@ -11,6 +11,10 @@ Tools for converting conda packages
 from __future__ import print_function, division
 import re
 import tarfile
+import json
+
+from copy import deepcopy
+from io import BytesIO
 
 libpy_pat = re.compile(
     r'(lib/python\d\.\d|Lib)'
@@ -99,3 +103,56 @@ def tar_update(source, dest, file_map, verbose=True):
     finally:
         t.close()
         s.close()
+
+
+path_mapping = [
+    # (unix, windows)
+    ('lib/python{pyver}', 'Lib'),
+    ('bin', 'Scripts'),
+    ]
+
+pyver_re = re.compile(r'python\s+(\d.\d)')
+
+def get_file_map(t, platform):
+    info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
+    source_plat = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
+    dest_plat, dest_arch = platform.split('-')
+    if source_plat == 'unix' and dest_plat == 'win':
+        mapping = path_mapping
+    elif source_plat == 'win' and dest_plat in {'osx', 'linux'}:
+        mapping = [reversed(i) for i in path_mapping]
+    else:
+        mapping = []
+
+    newinfo = info.copy()
+    newinfo['platform'] = dest_plat
+    newinfo['arch'] = dest_arch
+
+    pythons = list(filter(None, [pyver_re.match(p) for p in info['depends']]))
+    if len(pythons) != 1:
+        raise RuntimeError("Found more than one Python dependency in package %s"
+            % t.name)
+    pyver = pythons[0].group(1)
+
+    members = t.getmembers()
+    file_map = {}
+    for member in members:
+        if member.path == 'info/index.json':
+            newmember = tarfile.TarInfo('info/index.json')
+            newbytes = bytes(json.dumps(newinfo), 'utf-8')
+            newmember.size = len(newbytes)
+            file_map['info/index.json'] = (newmember, BytesIO(newbytes))
+            continue
+
+        for old, new in mapping:
+            old, new = old.format(pyver=pyver), new.format(pyver=pyver)
+            if member.path.startswith(old):
+                newmember = deepcopy(member)
+                oldpath = member.path
+                newpath = new + oldpath.partition(old)[2]
+                newmember.path = newpath
+                assert member.path == oldpath
+                file_map[oldpath] = None
+                file_map[newpath] = newmember
+
+    return file_map

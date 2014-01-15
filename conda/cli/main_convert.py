@@ -7,16 +7,14 @@
 from __future__ import print_function, division, absolute_import
 
 import tarfile
-import json
 import re
 import pprint
+import json
 
-from copy import deepcopy
 from os.path import abspath, expanduser, split, join
 from argparse import RawDescriptionHelpFormatter
-from io import BytesIO
 
-from conda.convert import has_cext, tar_update
+from conda.convert import has_cext, tar_update, get_file_map
 from conda.builder.scripts import BAT_PROXY
 
 help = "Various tools to convert conda packages."
@@ -106,55 +104,15 @@ def execute(args, parser):
 
         output_dir = args.output_dir or split(file)[0]
         fn = split(file)[1]
-        info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
-        source_plat = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
-
-        pythons = list(filter(None, [pyver_re.match(p) for p in info['depends']]))
-        if len(pythons) != 1:
-            raise RuntimeError("Found more than one Python dependency in package %s"
-                % file)
-        pyver = pythons[0].group(1)
 
         for platform in args.platforms:
+            info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
             dest_plat, dest_arch = platform.split('-')
-            if source_plat == 'unix' and dest_plat == 'win':
-                mapping = path_mapping
-            elif source_plat == 'win' and dest_plat in {'osx', 'linux'}:
-                mapping = [reversed(i) for i in path_mapping]
-            else:
-                mapping = []
-
-            newinfo = info.copy()
-            newinfo['platform'] = dest_plat
-            newinfo['arch'] = dest_arch
-
-            members = t.getmembers()
-            file_map = {}
-            for member in members:
-                if member.path == 'info/index.json':
-                    newmember = tarfile.TarInfo('info/index.json')
-                    newbytes = bytes(json.dumps(newinfo), 'utf-8')
-                    newmember.size = len(newbytes)
-                    file_map['info/index.json'] = (newmember, BytesIO(newbytes))
-                    continue
-
-                for old, new in mapping:
-                    old, new = old.format(pyver=pyver), new.format(pyver=pyver)
-                    if member.path.startswith(old):
-                        newmember = deepcopy(member)
-                        oldpath = member.path
-                        newpath = new + oldpath.partition(old)[2]
-                        newmember.path = newpath
-                        assert member.path == oldpath
-                        file_map[oldpath] = None
-                        file_map[newpath] = newmember
-
+            file_map = get_file_map(t, platform)
 
             if args.dry_run:
                 print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))
                 if args.verbose:
-                    pprint.pprint(mapping)
-                    print(pyver)
                     pprint.pprint(file_map)
                 continue
             else:
