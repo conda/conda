@@ -1,3 +1,6 @@
+  * automatically append http://conda.binstar.org/ to channels 
+    whenever there is not an http already in the channel (this does not
+    apply to the special channel names "defaults" and "system"  
   * re-work the setuptools dependency and entry_point logic so that 
     non console_script entry_points for packages with a dependency on 
     setuptools will get correct build script with conda skeleton pypi

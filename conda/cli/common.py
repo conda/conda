@@ -71,12 +71,25 @@ def add_parser_channels(p, dashc=True):
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
 
+def fix_channel_arg(args):
+    if not args.channel:
+        return
+    newlist = []
+    for channel in args.channel:
+        if not (channel == 'defaults' or channel == 'system' or 
+            'http://' in channel or 'https://' in channel):
+            newlist.append('https://conda.binstar.org/' + channel)
+        else:
+            newlist.append(channel)
+    args.channel = newlist
+
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not args.channel:
         if dashc:
             sys.exit('Error: --override-channels requires -c/--channel')
         else:
             sys.exit('Error: --override-channels requires --channel')
+    fix_channel_arg(args)
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
