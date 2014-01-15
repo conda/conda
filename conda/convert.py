@@ -58,7 +58,7 @@ def tar_update(source, dest, file_map, verbose=True):
     if isinstance(dest, tarfile.TarFile):
         t = dest
     else:
-        t = tarfile.open(dest, 'w:bz2')
+        t = tarfile.open(dest, 'w:bz2', bufsize=10000 * 512)
 
     try:
         for m in s.getmembers():
@@ -71,7 +71,7 @@ def tar_update(source, dest, file_map, verbose=True):
                     if verbose:
                         print('updating %r with %r' % (p, file_map[p]))
                     if isinstance(file_map[p], tarfile.TarInfo):
-                        t.addfile(file_map[p], s.extractfile(p))
+                        t.addfile(file_map[p], s.extractfile(file_map[p]))
                     else:
                         t.add(file_map[p], p)
                 continue
@@ -79,12 +79,12 @@ def tar_update(source, dest, file_map, verbose=True):
             t.addfile(m, s.extractfile(p))
 
         s_names_set = set(m.path for m in s.getmembers())
-        for p in file_map:
+        for p in sorted(file_map):
             if p not in s_names_set:
                 if verbose:
                     print('inserting %r with %r' % (p, file_map[p]))
                 if isinstance(file_map[p], tarfile.TarInfo):
-                    t.addfile(file_map[p], s.extractfile(p))
+                    t.addfile(file_map[p], s.extractfile(file_map[p]))
                 else:
                     t.add(file_map[p], p)
     finally:

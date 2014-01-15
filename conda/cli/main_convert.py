@@ -7,11 +7,17 @@
 from __future__ import print_function, division, absolute_import
 
 import tarfile
+import json
+import re
+import pprint
 
+from copy import deepcopy
 from os.path import abspath, expanduser, split, join
 from argparse import RawDescriptionHelpFormatter
+from io import StringIO
 
 from conda.convert import has_cext, tar_update
+from conda.builder.scripts import BAT_PROXY
 
 help = "Various tools to convert conda packages."
 example = ''
@@ -64,9 +70,21 @@ def configure_parser(sub_parsers):
         action='store_true',
         help="Print verbose output"
         )
+    p.add_argument(
+        "--dry-run",
+        action = "store_true",
+        help = "only display what would have been done",
+    )
 
     p.set_defaults(func=execute)
 
+path_mapping = [
+    # (unix, windows)
+    ('lib/python{pyver}', 'Lib'),
+    ('bin', 'Scripts'),
+    ]
+
+pyver_re = re.compile(r'python\s+(\d.\d)')
 
 def execute(args, parser):
     files = args.package_file
@@ -88,11 +106,48 @@ def execute(args, parser):
 
         output_dir = args.output_dir or split(file)[0]
         fn = split(file)[1]
-        for platform in args.platforms:
+        info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
+        source_plat = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
+
+        pythons = list(filter(None, [pyver_re.match(p) for p in info['depends']]))
+        if len(pythons) != 1:
+            raise RuntimeError("Found more than one Python dependency in package %s"
+                % file)
+        pyver = pythons[0].group(1)
+
+        for dest_plat in args.platforms:
+            if source_plat == 'unix' and dest_plat.startswith('win'):
+                mapping = path_mapping
+            elif source_plat == 'win' and (dest_plat.startswith('osx') or
+                dest_plat.startswith('linux')):
+                mapping = [reversed(i) for i in path_mapping]
+            else:
+                mapping = []
+
             members = t.getmembers()
             file_map = {}
             for member in members:
-                file_map[member.path] = member
+                for old, new in mapping:
+                    old, new = old.format(pyver=pyver), new.format(pyver=pyver)
+                    if member.path.startswith(old):
+                        newmember = deepcopy(member)
+                        oldpath = member.path
+                        newpath = new + oldpath.partition(old)[2]
+                        newmember.path = newpath
+                        assert member.path == oldpath
+                        file_map[oldpath] = None
+                        file_map[newpath] = newmember
+                if member.path not in file_map:
+                    file_map[member.path] = member
 
-            print("Converting %s to %s" % (file, platform))
+            if args.dry_run:
+                print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))
+                if args.verbose:
+                    pprint.pprint(mapping)
+                    print(pyver)
+                    pprint.pprint(file_map)
+                continue
+            else:
+                print("Converting %s from %s to %s" % (file, info['platform'], dest_plat))
+
             tar_update(t, join(output_dir, fn), file_map, verbose=args.verbose)
