@@ -14,7 +14,9 @@ import tarfile
 import json
 
 from copy import deepcopy
-from io import BytesIO
+from io import BytesIO, StringIO
+
+from conda.builder.scripts import BAT_PROXY
 
 libpy_pat = re.compile(
     r'(lib/python\d\.\d|Lib)'
@@ -139,6 +141,10 @@ def tar_update(source, dest, file_map, verbose=True):
         t.close()
         s.close()
 
+path_mapping_bat_proxy = [
+    (re.compile(r'bin/(.*)(\.py)'), r'Scripts/\1.bat'),
+    (re.compile(r'bin/(.*)'), r'Scripts/\1.bat'),
+    ]
 
 path_mapping_unix_windows = [
     (r'lib/python{pyver}/', r'Lib/'),
@@ -211,4 +217,17 @@ def get_pure_py_file_map(t, platform):
                 file_map[oldpath] = None
                 file_map[newpath] = newmember
 
+        # Make Windows compatible entry-points
+        batseen = set()
+        if source_type == 'unix' and dest_type == 'win':
+            for old, new in path_mapping_bat_proxy:
+                newpath = old.sub(new, oldpath)
+                if oldpath in batseen:
+                    break
+                if newpath != oldpath:
+                    newmember = tarfile.TarInfo(newpath)
+                    data = bytes(BAT_PROXY, 'ascii')
+                    newmember.size = len(data)
+                    file_map[newpath] = newmember, BytesIO(data)
+                    batseen.add(oldpath)
     return file_map
