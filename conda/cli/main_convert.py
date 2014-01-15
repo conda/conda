@@ -137,8 +137,6 @@ def execute(args, parser):
                         assert member.path == oldpath
                         file_map[oldpath] = None
                         file_map[newpath] = newmember
-                if member.path not in file_map:
-                    file_map[member.path] = member
 
             if args.dry_run:
                 print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))
