@@ -2,7 +2,8 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.config import default_python
+from conda.config import default_python, pkgs_dirs
+from conda.install import LINK_HARD
 import conda.plan as plan
 from conda.resolve import Resolve
 
@@ -12,6 +13,16 @@ with open(join(dirname(__file__), 'index.json')) as fi:
 
 def solve(specs):
     return [fn[:-8] for fn in r.solve(specs)]
+
+
+class TestMisc(unittest.TestCase):
+
+    def test_split_linkarg(self):
+        for arg, res in [
+            ('w3-1.2-0', ('w3-1.2-0', pkgs_dirs[0], LINK_HARD)),
+            ('w3-1.2-0 /opt/pkgs 1', ('w3-1.2-0', '/opt/pkgs', 1)),
+            (r'w3-1.2-0 C:\A B\pkgs 2', ('w3-1.2-0', r'C:\A B\pkgs', 2))]:
+            self.assertEqual(plan.split_linkarg(arg), res)
 
 
 class TestAddDeaultsToSpec(unittest.TestCase):
