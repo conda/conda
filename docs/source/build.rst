@@ -76,7 +76,9 @@ The meta.yaml file
 
     # The build number should be incremented for new builds of the same version
     build:            # (optional)
-      number: 1                        # (optional, defaults to 0)
+      number: 1       # (optional, defaults to 0)
+      string: abc     # (optional, defaults to default conda build string plus the build number)
+
     # optional Python entry points
       entry_points:
         - bsdiff4 = bsdiff4.cli:main_bsdiff4
@@ -113,6 +115,7 @@ The meta.yaml file
       home: https://github.com/ilanschnell/bsdiff4
       license: BSD
 
+.. _build-version-spec:
 
 Specifying versions in requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
