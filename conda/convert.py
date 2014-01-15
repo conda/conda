@@ -43,7 +43,11 @@ def tar_update(source, dest, file_map, verbose=True):
 
       - a TarInfo object:  Useful when mapping from an existing archive. The
         file path in the archive will be the path in the TarInfo object. To
-        change the path, mutate its .path attribute.
+        change the path, mutate its .path attribute. The data will be used
+        from the source tar file.
+
+      - a tuple (TarInfo, data): Use this is you want to add new data to the
+        dest tar file.
 
     Files in the source that aren't in the map will moved without any changes
     """
@@ -72,6 +76,8 @@ def tar_update(source, dest, file_map, verbose=True):
                         print('updating %r with %r' % (p, file_map[p]))
                     if isinstance(file_map[p], tarfile.TarInfo):
                         t.addfile(file_map[p], s.extractfile(file_map[p]))
+                    elif isinstance(file_map[p], tuple):
+                        t.addfile(*file_map[p])
                     else:
                         t.add(file_map[p], p)
                 continue
@@ -79,12 +85,15 @@ def tar_update(source, dest, file_map, verbose=True):
             t.addfile(m, s.extractfile(p))
 
         s_names_set = set(m.path for m in s.getmembers())
+        # This sorted is important!
         for p in sorted(file_map):
             if p not in s_names_set:
                 if verbose:
                     print('inserting %r with %r' % (p, file_map[p]))
                 if isinstance(file_map[p], tarfile.TarInfo):
                     t.addfile(file_map[p], s.extractfile(file_map[p]))
+                elif isinstance(file_map[p], tuple):
+                    t.addfile(*file_map[p])
                 else:
                     t.add(file_map[p], p)
     finally:
