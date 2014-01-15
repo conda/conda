@@ -14,7 +14,7 @@ import json
 from os.path import abspath, expanduser, split, join
 from argparse import RawDescriptionHelpFormatter
 
-from conda.convert import has_cext, tar_update, get_file_map
+from conda.convert import has_cext, tar_update, get_pure_py_file_map
 from conda.builder.scripts import BAT_PROXY
 
 help = "Various tools to convert conda packages."
@@ -108,7 +108,7 @@ def execute(args, parser):
         for platform in args.platforms:
             info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
             dest_plat, dest_arch = platform.split('-')
-            file_map = get_file_map(t, platform)
+            file_map = get_pure_py_file_map(t, platform)
 
             if args.dry_run:
                 print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))

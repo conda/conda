@@ -113,7 +113,7 @@ path_mapping = [
 
 pyver_re = re.compile(r'python\s+(\d.\d)')
 
-def get_file_map(t, platform):
+def get_pure_py_file_map(t, platform):
     info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
     source_plat = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
     dest_plat, dest_arch = platform.split('-')
