@@ -142,6 +142,10 @@ def tar_update(source, dest, file_map, verbose=True):
 
 path_mapping_unix_windows = [
     (r'lib/python{pyver}/', r'Lib/'),
+    # Handle entry points already ending in .py. This is OK because these are
+    # parsed in order. Only concern is if there are both script and script.py,
+    # which seems unlikely
+    (r'bin/(.*)(\.py)', r'Scripts/\1-script.py'),
     (r'bin/(.*)', r'Scripts/\1-script.py'),
     ]
 
@@ -197,6 +201,9 @@ def get_pure_py_file_map(t, platform):
         oldpath = member.path
         for old, new in mapping:
             newpath = old.sub(new, oldpath)
+            if oldpath in file_map:
+                # Already been handled
+                break
             if newpath != oldpath:
                 newmember = deepcopy(member)
                 newmember.path = newpath
