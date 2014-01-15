@@ -21,6 +21,7 @@ class TestMisc(unittest.TestCase):
         for arg, res in [
             ('w3-1.2-0', ('w3-1.2-0', pkgs_dirs[0], LINK_HARD)),
             ('w3-1.2-0 /opt/pkgs 1', ('w3-1.2-0', '/opt/pkgs', 1)),
+            (' w3-1.2-0  /opt/pkgs  1  ', ('w3-1.2-0', '/opt/pkgs', 1)),
             (r'w3-1.2-0 C:\A B\pkgs 2', ('w3-1.2-0', r'C:\A B\pkgs', 2))]:
             self.assertEqual(plan.split_linkarg(arg), res)
 
