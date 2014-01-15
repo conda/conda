@@ -62,7 +62,7 @@ def tar_update(source, dest, file_map, verbose=True):
     if isinstance(dest, tarfile.TarFile):
         t = dest
     else:
-        t = tarfile.open(dest, 'w:bz2', bufsize=10000 * 512)
+        t = tarfile.open(dest, 'w:bz2')
 
     try:
         for m in s.getmembers():
