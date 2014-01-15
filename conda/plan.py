@@ -10,6 +10,7 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
+import re
 import sys
 from logging import getLogger
 from collections import defaultdict
@@ -49,18 +50,14 @@ def print_dists(dists_extras):
 
 def split_linkarg(arg):
     "Return tuple(dist, pkgs_dir, linktype)"
-    args = arg.split()
-    if len(args) == 1:
-        return args[0], config.pkgs_dirs[0], install.LINK_HARD
-    elif len(args) == 3:
-        return args[0], args[1], int(args[2])
-    else:
-        # There must be spaces in the path
-        if len(args) < 2:
-            raise Exception("did not expect: %s" % arg)
-        dist, rest = arg.split(None, 1)
-        pkgs_dir, lt = rest.rsplit(None, 1)
-        return dist, pkgs_dir, int(lt)
+    pat = re.compile(r'\s*(\S+)(?:\s+(.+?)\s+(\d+))?\s*$')
+    m = pat.match(arg)
+    dist, pkgs_dir, linktype = m.groups()
+    if pkgs_dir is None:
+        pkgs_dir = config.pkgs_dirs[0]
+    if linktype is None:
+        linktype = install.LINK_HARD
+    return dist, pkgs_dir, int(linktype)
 
 def display_actions(actions, index=None):
     if actions.get(FETCH):
