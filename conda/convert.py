@@ -27,7 +27,6 @@ def has_cext(t, show=False):
         if match:
             if show:
                 x = match.group(3)
-                # XXX: Does this work for windows packages?
                 print("import", x.replace('/', '.'))
                 matched = True
             else:
