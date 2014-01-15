@@ -133,7 +133,6 @@ def execute(args, parser):
             for member in members:
                 if member.path == 'info/index.json':
                     newmember = tarfile.TarInfo('info/index.json')
-                    print(json.dumps(newinfo))
                     newbytes = bytes(json.dumps(newinfo), 'utf-8')
                     newmember.size = len(newbytes)
                     file_map['info/index.json'] = (newmember, BytesIO(newbytes))
