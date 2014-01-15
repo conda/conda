@@ -140,10 +140,14 @@ def tar_update(source, dest, file_map, verbose=True):
         s.close()
 
 
-path_mapping = [
-    # (unix, windows)
-    ('lib/python{pyver}', 'Lib'),
-    ('bin', 'Scripts'),
+path_mapping_unix_windows = [
+    (r'lib/python{pyver}/', r'Lib/'),
+    (r'bin/(.*)', r'Scripts/\1-script.py'),
+    ]
+
+path_mapping_windows_unix = [
+    (r'Lib/', r'lib/python{pyver}/'),
+    (r'Scripts/', r'bin/'), # Not supported right now anyway
     ]
 
 pyver_re = re.compile(r'python\s+(\d.\d)')
@@ -156,9 +160,9 @@ def get_pure_py_file_map(t, platform):
     dest_type = 'unix' if dest_plat in {'osx', 'linux'} else 'win'
 
     if source_type == 'unix' and dest_type == 'win':
-        mapping = path_mapping
+        mapping = path_mapping_unix_windows
     elif source_type == 'win' and dest_type == 'unix':
-        mapping = [reversed(i) for i in path_mapping]
+        mapping = path_mapping_windows_unix
     else:
         mapping = []
 
@@ -175,9 +179,13 @@ def get_pure_py_file_map(t, platform):
             % t.name)
     pyver = pythons[0].group(1)
 
+    mapping = [(re.compile(i[0].format(pyver=pyver)),
+        i[1].format(pyver=pyver)) for i in mapping]
+
     members = t.getmembers()
     file_map = {}
     for member in members:
+        # Update metadata
         if member.path == 'info/index.json':
             newmember = tarfile.TarInfo('info/index.json')
             newbytes = bytes(json.dumps(newinfo), 'utf-8')
@@ -185,12 +193,12 @@ def get_pure_py_file_map(t, platform):
             file_map['info/index.json'] = (newmember, BytesIO(newbytes))
             continue
 
+        # Move paths
+        oldpath = member.path
         for old, new in mapping:
-            old, new = old.format(pyver=pyver), new.format(pyver=pyver)
-            if member.path.startswith(old):
+            newpath = old.sub(new, oldpath)
+            if newpath != oldpath:
                 newmember = deepcopy(member)
-                oldpath = member.path
-                newpath = new + oldpath.partition(old)[2]
                 newmember.path = newpath
                 assert member.path == oldpath
                 file_map[oldpath] = None
