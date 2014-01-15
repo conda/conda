@@ -14,7 +14,7 @@ import pprint
 from copy import deepcopy
 from os.path import abspath, expanduser, split, join
 from argparse import RawDescriptionHelpFormatter
-from io import StringIO
+from io import BytesIO
 
 from conda.convert import has_cext, tar_update
 from conda.builder.scripts import BAT_PROXY
@@ -115,18 +115,30 @@ def execute(args, parser):
                 % file)
         pyver = pythons[0].group(1)
 
-        for dest_plat in args.platforms:
-            if source_plat == 'unix' and dest_plat.startswith('win'):
+        for platform in args.platforms:
+            dest_plat, dest_arch = platform.split('-')
+            if source_plat == 'unix' and dest_plat == 'win':
                 mapping = path_mapping
-            elif source_plat == 'win' and (dest_plat.startswith('osx') or
-                dest_plat.startswith('linux')):
+            elif source_plat == 'win' and dest_plat in {'osx', 'linux'}:
                 mapping = [reversed(i) for i in path_mapping]
             else:
                 mapping = []
 
+            newinfo = info.copy()
+            newinfo['platform'] = dest_plat
+            newinfo['arch'] = dest_arch
+
             members = t.getmembers()
             file_map = {}
             for member in members:
+                if member.path == 'info/index.json':
+                    newmember = tarfile.TarInfo('info/index.json')
+                    print(json.dumps(newinfo))
+                    newbytes = bytes(json.dumps(newinfo), 'utf-8')
+                    newmember.size = len(newbytes)
+                    file_map['info/index.json'] = (newmember, BytesIO(newbytes))
+                    continue
+
                 for old, new in mapping:
                     old, new = old.format(pyver=pyver), new.format(pyver=pyver)
                     if member.path.startswith(old):
@@ -137,6 +149,7 @@ def execute(args, parser):
                         assert member.path == oldpath
                         file_map[oldpath] = None
                         file_map[newpath] = newmember
+
 
             if args.dry_run:
                 print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))
