@@ -33,6 +33,42 @@ def has_cext(t, show=False):
                 return True
     return matched
 
+def has_nonpy_entry_points(t, unix_to_win=True, show=False):
+    """
+    If unix_to_win=True, assumes a Unix type package (i.e., entry points
+    are in the bin directory).
+
+    unix_to_win=False means win to unix, which is not implemented yet, so it
+    will only succeed if there are no entry points.
+    """
+    print("Checking entry points")
+    bindir = 'bin/' if unix_to_win else 'Scripts/'
+    matched = False
+    for m in t.getmembers():
+        if m.path.startswith(bindir):
+            if not unix_to_win:
+                if show:
+                    print("Entry points with Windows to Unix are not yet supported")
+                return True
+            r = t.extractfile(m).read()
+            try:
+                r = r.decode('utf-8')
+            except UnicodeDecodeError:
+                if show:
+                    print("Binary file %s" % m.path)
+                matched = True
+            else:
+                firstline = r.split('\n')[0]
+                if 'python' not in firstline:
+                    if show:
+                        print("Non-Python plaintext file %s" % m.path)
+                    matched = True
+                else:
+                    if show:
+                        print("Python plaintext file %s" % m.path)
+    return matched
+
+
 def tar_update(source, dest, file_map, verbose=True):
     """
     update a tarball, i.e. repack it and insert/update or remove some
@@ -114,11 +150,14 @@ pyver_re = re.compile(r'python\s+(\d.\d)')
 
 def get_pure_py_file_map(t, platform):
     info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
-    source_plat = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
+    source_plat = info['platform']
+    source_type = 'unix' if source_plat in {'osx', 'linux'} else 'win'
     dest_plat, dest_arch = platform.split('-')
-    if source_plat == 'unix' and dest_plat == 'win':
+    dest_type = 'unix' if dest_plat in {'osx', 'linux'} else 'win'
+
+    if source_type == 'unix' and dest_type == 'win':
         mapping = path_mapping
-    elif source_plat == 'win' and dest_plat in {'osx', 'linux'}:
+    elif source_type == 'win' and dest_type == 'unix':
         mapping = [reversed(i) for i in path_mapping]
     else:
         mapping = []
