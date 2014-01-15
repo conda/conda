@@ -14,8 +14,8 @@ import json
 from os.path import abspath, expanduser, split, join
 from argparse import RawDescriptionHelpFormatter
 
-from conda.convert import has_cext, tar_update, get_pure_py_file_map
-from conda.builder.scripts import BAT_PROXY
+from conda.convert import (has_cext, tar_update, get_pure_py_file_map,
+    has_nonpy_entry_points)
 
 help = "Various tools to convert conda packages."
 example = ''
@@ -105,10 +105,37 @@ def execute(args, parser):
         output_dir = args.output_dir or split(file)[0]
         fn = split(file)[1]
 
+        info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
+        source_type = 'unix' if info['platform'] in {'osx', 'linux'} else 'win'
+
+        nonpy_unix = False
+        nonpy_win = False
+
         for platform in args.platforms:
-            info = json.loads(t.extractfile('info/index.json').read().decode('utf-8'))
             dest_plat, dest_arch = platform.split('-')
+            dest_type = 'unix' if dest_plat in {'osx', 'linux'} else 'win'
+
+            if source_type == 'unix' and dest_type == 'win':
+                nonpy_unix = nonpy_unix or has_nonpy_entry_points(t,
+                    unix_to_win=True, show=args.verbose)
+            if source_type == 'win' and dest_type == 'unix':
+                nonpy_win = nonpy_win or has_nonpy_entry_points(t,
+                    unix_to_win=False, show=args.verbose)
+
+            if nonpy_unix and not args.force:
+                print(("WARNING: Package %s has non-Python entry points, "
+                    "skipping %s to %s conversion. Use -f to force.") % (file,
+                        info['platform'], platform))
+                continue
+
+            if nonpy_win and not args.force:
+                print(("WARNING: Package %s has entry points, which are not "
+                    "supported yet. Skipping %s to %s conversion. Use -f to force.") % (file,
+                        info['platform'], platform))
+                continue
+
             file_map = get_pure_py_file_map(t, platform)
+
 
             if args.dry_run:
                 print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))
