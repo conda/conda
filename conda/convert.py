@@ -14,9 +14,15 @@ import tarfile
 import json
 
 from copy import deepcopy
-from io import BytesIO, StringIO
 
 from conda.builder.scripts import BAT_PROXY
+from conda.compat import PY3
+if PY3:
+    from io import StringIO, BytesIO
+else:
+    from cStringIO import StringIO
+    BytesIO = StringIO
+
 
 libpy_pat = re.compile(
     r'(lib/python\d\.\d|Lib)'
@@ -200,8 +206,13 @@ def get_pure_py_file_map(t, platform):
         # Update metadata
         if member.path == 'info/index.json':
             newmember = tarfile.TarInfo('info/index.json')
-            newbytes = bytes(json.dumps(newinfo), 'utf-8')
+            if PY3:
+                newbytes = bytes(json.dumps(newinfo), 'utf-8')
+            else:
+                newbytes = json.dumps(newinfo)
             newmember.size = len(newbytes)
+            import pdb
+            pdb.set_trace()
             file_map['info/index.json'] = (newmember, BytesIO(newbytes))
             continue
         elif member.path == 'info/files':
@@ -237,14 +248,18 @@ def get_pure_py_file_map(t, platform):
                     break
                 if newpath != oldpath:
                     newmember = tarfile.TarInfo(newpath)
-                    data = bytes(BAT_PROXY.replace('\n', '\r\n'), 'ascii')
+                    if PY3:
+                        data = bytes(BAT_PROXY.replace('\n', '\r\n'), 'ascii')
+                    else:
+                        data = BAT_PROXY.replace('\n', '\r\n')
                     newmember.size = len(data)
                     file_map[newpath] = newmember, BytesIO(data)
                     batseen.add(oldpath)
                     files = files + newpath + "\n"
 
     files = '\n'.join(sorted(files.split())) + '\n'
-    files = bytes(files, 'utf-8')
+    if PY3:
+        files = bytes(files, 'utf-8')
     filemember.size = len(files)
     file_map['info/files'] = filemember, BytesIO(files)
 
