@@ -12,16 +12,21 @@ import sys
 
 cmd_names = [
     'info',
+    'help',
     'list',
     'search',
     'create',
     'install',
     'update',
     'remove',
+    'config',
+    'init',
+    'clean',
     'build',
+    'skeleton',
     'package',
-    'index',
     'bundle',
+    'index',
 ]
 
 def scrape_help(cmd_name):
@@ -33,7 +38,7 @@ def scrape_help(cmd_name):
     output = p.stdout.read().decode('utf-8')
 
 
-    if cmd_name in ['remove','package','install']:
+    if cmd_name in ['remove','package','install', 'config']:
 
         # groups:
         usage_pat = re.compile(r'(usage): (conda .*\n\s*.*\n\s*.*)')
