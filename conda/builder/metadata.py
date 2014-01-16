@@ -21,22 +21,22 @@ def ns_cfg():
     for x in py, np:
         assert isinstance(x, int), x
     return dict(
-        linux = plat.startswith('linux-'),
-        linux32 = bool(plat == 'linux-32'),
-        linux64 = bool(plat == 'linux-64'),
-        armv6 = bool(plat == 'linux-armv6l'),
-        osx = plat.startswith('osx-'),
-        unix = plat.startswith(('linux-', 'osx-')),
-        win = plat.startswith('win-'),
-        win32 = bool(plat == 'win-32'),
-        win64 = bool(plat == 'win-64'),
-        py = py,
-        py3k = bool(30 <= py < 40),
-        py2k = bool(20 <= py < 30),
-        py26 = bool(py == 26),
-        py27 = bool(py == 27),
-        py33 = bool(py == 33),
-        np = np,
+        linux=plat.startswith('linux-'),
+        linux32=bool(plat == 'linux-32'),
+        linux64=bool(plat == 'linux-64'),
+        armv6=bool(plat == 'linux-armv6l'),
+        osx=plat.startswith('osx-'),
+        unix=plat.startswith(('linux-', 'osx-')),
+        win=plat.startswith('win-'),
+        win32=bool(plat == 'win-32'),
+        win64=bool(plat == 'win-64'),
+        py=py,
+        py3k=bool(30 <= py < 40),
+        py2k=bool(20 <= py < 30),
+        py26=bool(py == 26),
+        py27=bool(py == 27),
+        py33=bool(py == 33),
+        np=np,
     )
 
 
@@ -109,7 +109,7 @@ FIELDS = {
                'svn_url', 'svn_rev', 'svn_ignore_externals',
                'patches'],
     'build': ['number', 'string', 'entry_points', 'osx_is_app', 'rm_py',
-              'features', 'track_features', 'preserve_egg_dir'],
+              'features', 'track_features', 'preserve_egg_dir', 'script'],
     'requirements': ['build', 'run', 'conflicts'],
     'app': ['entry', 'icon', 'summary', 'type', 'cli_opts'],
     'test': ['requires', 'commands', 'files', 'imports'],
@@ -124,6 +124,24 @@ def check_bad_chrs(s, field):
         if c in s:
             sys.exit("Error: bad character '%s' in %s: %s" % (c, field, s))
 
+def get_contents(path):
+    try:
+        import jinja2
+        from conda.builder.jinja_context import context_processor
+    except ImportError:
+        raise 
+        with open(join(path, 'meta.yaml')) as fd:
+            return fd.read()
+         
+    loaders = [jinja2.PackageLoader('conda.builder'),
+               jinja2.FileSystemLoader(path)
+               ]
+    env = jinja2.Environment(loader=jinja2.ChoiceLoader(loaders))
+    env.globals.update(context_processor())
+    template = env.get_or_select_template('meta.yaml')
+    contents = template.render(environment=env)
+    return contents 
+    
 
 class MetaData(object):
 
@@ -133,7 +151,9 @@ class MetaData(object):
         self.meta_path = join(path, 'meta.yaml')
         if not isfile(self.meta_path):
             sys.exit("Error: no such file: %s" % self.meta_path)
-        self.meta = parse(open(self.meta_path).read())
+            
+        self.contents = get_contents(path)
+        self.meta = parse(self.contents)
 
     def get_section(self, section):
         return self.meta.get(section, {})
@@ -148,7 +168,7 @@ class MetaData(object):
                 sys.exit("Error: unknown section: %s" % section)
             for key in submeta:
                 if key not in FIELDS[section]:
-                    sys.exit("Error: in section %r: unknown key %r" %
+                    sys.exit("Error: in section %r: unknown key %r" % 
                              (section, key))
 
     def name(self):
@@ -227,13 +247,13 @@ class MetaData(object):
 
     def info_index(self):
         d = dict(
-            name = self.name(),
-            version = self.version(),
-            build = self.build_id(),
-            build_number = self.build_number(),
-            platform = config.platform,
-            arch = config.arch_name,
-            depends = sorted(ms.spec for ms in self.ms_depends())
+            name=self.name(),
+            version=self.version(),
+            build=self.build_id(),
+            build_number=self.build_number(),
+            platform=config.platform,
+            arch=config.arch_name,
+            depends=sorted(ms.spec for ms in self.ms_depends())
         )
         if self.is_app():
             d.update(self.app_meta())

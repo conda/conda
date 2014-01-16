@@ -45,6 +45,11 @@ def configure_parser(sub_parsers):
         help = "only obtain the source (but don't build)",
     )
     p.add_argument(
+        '-p', "--process-meta",
+        action = "store_true",
+        help = "Print the processed metadata (but don't build)",
+    )
+    p.add_argument(
         '-t', "--test",
         action = "store_true",
         help = "test package (assumes package is already build)",
@@ -170,6 +175,10 @@ def execute(args, parser):
                         sys.exit("Error: no such directory: %s" % recipe_dir)
 
             m = MetaData(recipe_dir)
+            if args.process_meta:
+                print(m.contents)
+                sys.exit(-1)
+                
             binstar_upload = False
             if args.check and len(args.recipe) > 1:
                 print(m.path)

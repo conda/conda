@@ -1,0 +1,37 @@
+{% set data = load_setuptools(environment)%}
+{% block body -%}
+{% block package -%}
+package:
+  name: {{data.get('name')}}
+  version: {{data.get('version')}}
+{%- endblock %}
+{% block build -%}
+build:
+  number: 1
+  script:
+    - cd $RECIPE_DIR
+    - $PYTHON setup.py install
+{%- endblock %}
+{% block requirements -%}
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+    
+{%- endblock %}
+{% block about -%}
+about:
+  home: {{data.get('url')}}
+  license: {{data.get('license')}}
+{%- endblock %}
+{% block test -%}
+test:
+  imports: {{data.get('packages')}}
+{%- endblock -%}
+{% endblock -%}
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
