@@ -7,7 +7,7 @@ Remove a list of packages from a specified conda environment.
 Normally, only the specified package is removed, and not the packages``
 
 *package_name*
-        package names to remove from environment
+	package names to remove from environment
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -16,11 +16,11 @@ optional arguments:
   --all                 remove all packages, i.e. the entire environment
   --features            remove features (instead of packages)
   -c CHANNEL, --channel CHANNEL
-                        additional channel to search for packages. These are searched in the order they are given, and then the defaults or channels from .condarc (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account.
+                        additional channel to search for packages. These are URLs searched in the order they are given (including file:// for local directories). Then, the defaults or channels from .condarc are searched (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account. You can also use any name and the .condarc channel_alias value will be prepended. The default channel_alias is http://conda.binstar.org/
   --override-channels   Do not search default or .condarc channels. Requires --channel.
-  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -n NAME, --name NAME  name of environment (in ROOT_DIR/envs)
   -p PATH, --prefix PATH
-                        full path to environment prefix (default: /home/ilan/a150)
+                        full path to environment prefix (default: ROOT_DIR)
   -q, --quiet           do not display progress bar
 
 examples:
