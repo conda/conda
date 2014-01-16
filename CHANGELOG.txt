@@ -1,3 +1,6 @@
+  * add conda convert command to convert non-platform-dependent packages from 
+    one platform to another
+
 2014-01-16   2.3.0:
 -------------------
   * automatically prepend http://conda.binstar.org/ (or the value of
