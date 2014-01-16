@@ -169,6 +169,8 @@ def get_pure_py_file_map(t, platform):
     dest_plat, dest_arch = platform.split('-')
     dest_type = 'unix' if dest_plat in {'osx', 'linux'} else 'win'
 
+    files = t.extractfile('info/files').read().decode("utf-8")
+
     if source_type == 'unix' and dest_type == 'win':
         mapping = path_mapping_unix_windows
     elif source_type == 'win' and dest_type == 'unix':
@@ -202,6 +204,14 @@ def get_pure_py_file_map(t, platform):
             newmember.size = len(newbytes)
             file_map['info/index.json'] = (newmember, BytesIO(newbytes))
             continue
+        elif member.path == 'info/files':
+            # We have to do this at the end when we have all the files
+            filemember = deepcopy(member)
+            continue
+        elif member.path == 'info/has_prefix':
+            if source_type == 'unix' and dest_type == 'win':
+                # has_prefix is not needed on Windows
+                file_map['info/has_prefix'] = None
 
         # Move paths
         oldpath = member.path
@@ -216,6 +226,7 @@ def get_pure_py_file_map(t, platform):
                 assert member.path == oldpath
                 file_map[oldpath] = None
                 file_map[newpath] = newmember
+                files = files.replace(oldpath, newpath)
 
         # Make Windows compatible entry-points
         batseen = set()
@@ -230,4 +241,11 @@ def get_pure_py_file_map(t, platform):
                     newmember.size = len(data)
                     file_map[newpath] = newmember, BytesIO(data)
                     batseen.add(oldpath)
+                    files = files + newpath + "\n"
+
+    files = '\n'.join(sorted(files.split())) + '\n'
+    files = bytes(files, 'utf-8')
+    filemember.size = len(files)
+    file_map['info/files'] = filemember, BytesIO(files)
+
     return file_map
