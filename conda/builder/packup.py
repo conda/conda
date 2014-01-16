@@ -13,7 +13,7 @@ from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 import conda.config as config
 import conda.install as install
 from conda.misc import untracked
-
+from conda.compat import PY3
 
 
 def get_installed_version(prefix, name):
@@ -119,7 +119,10 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         h.update(b'\x00')
         if islink(path):
             link = os.readlink(path)
-            h.update(link)
+            if PY3 and isinstance(link, str):
+                h.update(bytes(link, 'utf-8'))
+            else:
+                h.update(link))
             if link.startswith('/'):
                 warnings.append('found symlink to absolute path: %s -> %s' %
                                 (f, link))
