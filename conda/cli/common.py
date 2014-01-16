@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import argparse
+import urlparse
 from os.path import abspath, basename, expanduser, isdir, join
 
 import conda.config as config
@@ -14,7 +15,7 @@ def add_parser_prefix(p):
         '-n', "--name",
         action = "store",
         help = "name of environment (in %s)" %
-                               os.pathsep.join(config.envs_dirs),
+                            os.pathsep.join(config.envs_dirs),
     )
     npgroup.add_argument(
         '-p', "--prefix",
@@ -71,14 +72,20 @@ def add_parser_channels(p, dashc=True):
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
 
+
+def is_url(url):
+    return urlparse.urlparse(url).scheme != ""
+
+
+# Add http://conda.binstar.org/ to any channel that 
+#  does not already have 'default' or 'system' or 'http[s]://' in the name.
 def fix_channel_arg(args):
     if not args.channel:
         return
     newlist = []
     for channel in args.channel:
-        if not (channel == 'defaults' or channel == 'system' or 
-            'http://' in channel or 'https://' in channel):
-            newlist.append('https://conda.binstar.org/' + channel)
+        if not (channel in ['defaults', 'system'] or is_url(channel)):
+            newlist.append('http://conda.binstar.org/' + channel)
         else:
             newlist.append(channel)
     args.channel = newlist
