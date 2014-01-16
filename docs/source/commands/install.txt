@@ -7,7 +7,7 @@ Install a list of packages into a specified conda environment.
 The arguments may be packages specifications (e.g. bitarray=0.8),``
 
 *package_spec*
-	package versions to install into conda environment
+        package versions to install into conda environment
 
 optional arguments:
   -h, --help            show this help message and exit

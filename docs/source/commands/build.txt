@@ -3,7 +3,7 @@ Build a package from a (conda) recipe. (ADVANCED) For examples of recipes, see: 
 **usage**: ``conda build [-h] [-c] [--no-binstar-upload] [--output] [-s] [-t] [--no-test] [--build-recipe] PATH [PATH ...]``
 
 *PATH*
-	path to recipe directory
+        path to recipe directory
 
 optional arguments:
   -h, --help           show this help message and exit
