@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import argparse
-import urlparse
 from os.path import abspath, basename, expanduser, isdir, join
 
 import conda.config as config
@@ -60,11 +59,13 @@ def add_parser_channels(p, dashc=True):
         channel_args = ('-c',) + channel_args
     p.add_argument(*channel_args,
         action = "append",
-        help = """additional channel to search for packages. These are searched in the order
-        they are given, and then the defaults or channels from .condarc
-        (unless --override-channels is given).  You can use 'defaults' to get
-        the default packages for conda, and 'system' to get the system
-        packages, which also takes .condarc into account. """ # we can't put , here; invalid syntax
+        help = """additional channel to search for packages. These are URLs searched in the order
+        they are given (including file:// for local directories).  Then, the defaults 
+        or channels from .condarc are searched (unless --override-channels is given).  You can use 
+        'defaults' to get the default packages for conda, and 'system' to get the system
+        packages, which also takes .condarc into account.  You can also use any name and the 
+        .condarc channel_alias value will be prepended.  The default channel_alias 
+        is http://conda.binstar.org/""" # we can't put , here; invalid syntax
     )
     p.add_argument(
         "--override-channels",
@@ -72,31 +73,12 @@ def add_parser_channels(p, dashc=True):
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
 
-
-def is_url(url):
-    return urlparse.urlparse(url).scheme != ""
-
-
-# Add http://conda.binstar.org/ to any channel that 
-#  does not already have 'default' or 'system' or 'http[s]://' in the name.
-def fix_channel_arg(args):
-    if not args.channel:
-        return
-    newlist = []
-    for channel in args.channel:
-        if not (channel in ['defaults', 'system'] or is_url(channel)):
-            newlist.append('http://conda.binstar.org/' + channel)
-        else:
-            newlist.append(channel)
-    args.channel = newlist
-
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not args.channel:
         if dashc:
             sys.exit('Error: --override-channels requires -c/--channel')
         else:
             sys.exit('Error: --override-channels requires --channel')
-    fix_channel_arg(args)
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
