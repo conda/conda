@@ -9,6 +9,7 @@
     non console_script entry_points for packages with a dependency on
     setuptools will get correct build script with conda skeleton pypi
   * add -m, --mkdir option to conda install
+  * add ability to disable soft-linking
 
 
 2014-01-06   2.2.8:
