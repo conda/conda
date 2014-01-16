@@ -1,4 +1,4 @@
-2014-01-XX   2.3.0:
+2014-01-16   2.3.0:
 -------------------
   * automatically prepend http://conda.binstar.org/ (or the value of
     channel_alias in the .condarc file) to channels whenever the
