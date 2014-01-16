@@ -1,5 +1,6 @@
-  * automatically append http://conda.binstar.org/ to channels 
-    whenever the channel is not a URL or the word 'defaults or 'system'
+  * automatically prepend http://conda.binstar.org/ (or the value of 
+    channel_alias in the .condarc file) to channels whenever the 
+    channel is not a URL or the word 'defaults or 'system'
   * recipes made with the skeleton pypi command will use setuptools instead of
     distribute
   * re-work the setuptools dependency and entry_point logic so that
