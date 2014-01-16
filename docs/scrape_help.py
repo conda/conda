@@ -91,15 +91,17 @@ def scrape_help(cmd_name):
 
 
 if __name__ == '__main__':
-    for name in cmd_names:
-        output = scrape_help(name)
 
+    for name in cmd_names:
         path = "source/commands/"
         if len(sys.argv) > 1:
             path = sys.argv[1]
         outpath = join(path, "%s.txt" % name)
 
         print("Scraping help for '%s' -> %s" % (name, outpath))
+
+        output = scrape_help(name)
+
 
         outfile = open(outpath, "w")
         outfile.write(output)
