@@ -180,7 +180,7 @@ def get_pure_py_file_map(t, platform):
 
     newinfo = info.copy()
     newinfo['platform'] = dest_plat
-    newinfo['arch'] = dest_arch
+    newinfo['arch'] = 'x86_64' if dest_arch == '64' else 'x86'
 
     pythons = list(filter(None, [pyver_re.match(p) for p in info['depends']]))
     if len(pythons) > 1:
