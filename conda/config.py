@@ -49,7 +49,7 @@ rc_list_keys = [
     'envs_dirs'
     ]
 
-DEFAULT_CHANNEL_ALIAS = 'http://conda.binstar.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
 
 rc_bool_keys = [
     'always_yes',
