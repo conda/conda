@@ -73,7 +73,7 @@ def execute(args, parser):
     index = None
     if args.features:
         common.ensure_override_channels_requires_channel(args)
-        channel_urls = args.channel or ()        
+        channel_urls = args.channel or ()
         index = get_index(channel_urls=channel_urls,
                           prepend=not args.override_channels)
         features = set(args.package_names)

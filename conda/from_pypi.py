@@ -113,7 +113,7 @@ def install_with_pip(prefix, index, specs):
     r = Resolve(index)
     for_conda = []
 
-    
+
     pip_path = external.find_executable('pip')
     if not pip_path:
         print("Pip not found, running `conda install pip` ...")
