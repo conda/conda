@@ -226,7 +226,7 @@ def get_pure_py_file_map(t, platform):
                     break
                 if newpath != oldpath:
                     newmember = tarfile.TarInfo(newpath)
-                    data = bytes(BAT_PROXY, 'ascii')
+                    data = bytes(BAT_PROXY.replace('\n', '\r\n'), 'ascii')
                     newmember.size = len(data)
                     file_map[newpath] = newmember, BytesIO(data)
                     batseen.add(oldpath)
