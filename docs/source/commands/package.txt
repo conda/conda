@@ -9,13 +9,13 @@ Low-level conda package utility. (ADVANCED)
 positional arguments:``
 
 *PATH*
-        optional arguments:
+	optional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n NAME, --name NAME  name of environment (in /home/ilan/a150/envs)
+  -n NAME, --name NAME  name of environment (in ROOT_DIR/envs)
   -p PATH, --prefix PATH
-                        full path to environment prefix (default: /home/ilan/a150)
+                        full path to environment prefix (default: ROOT_DIR)
   -c, --check           check (validate) the given conda packages (PATH) and exit
   -w, --which           given some PATH print which conda package the file came from
   -r, --reset           remove all untracked files and exit
