@@ -10,6 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
+import urlparse
 from os.path import abspath, dirname, expanduser, isfile, isdir, join
 
 from conda.compat import PY3
@@ -45,8 +46,10 @@ rc_list_keys = [
     'disallow',
     'create_default_packages',
     'track_features',
-    'envs_dirs',
+    'envs_dirs'
     ]
+
+DEFAULT_CHANNEL_ALIAS = 'http://conda.binstar.org/'
 
 rc_bool_keys = [
     'always_yes',
@@ -60,6 +63,7 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
+    'channel_alias'
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -161,6 +165,9 @@ def get_rc_urls():
         raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
+def is_url(url):
+    return urlparse.urlparse(url).scheme != ""
+
 def normalize_urls(urls):
     newurls = []
     for url in urls:
@@ -171,6 +178,9 @@ def normalize_urls(urls):
                 newurls.extend(normalize_urls(get_default_urls()))
             else:
                 newurls.extend(normalize_urls(get_rc_urls()))
+        elif not is_url(url):
+            moreurls = normalize_urls([rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)+url])
+            newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), subdir))
     return newurls
