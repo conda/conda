@@ -1,10 +1,9 @@
-Build skeleton recipes for packages from popular package hosting sites.
+Build skeleton recipes for packages from popular package hosting sites. (ADVANCED)
 
 **usage**: ``conda skeleton [-h] {pypi} ...``
 
-*positional arguments*:
-        {pypi} -- Create recipes from packages on PyPI
-
+**
+	{pypi}
 
 optional arguments:
-  -h HELP, --help  show this help message and exit
+  -h, --help  show this help message and exit
