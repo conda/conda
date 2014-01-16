@@ -122,7 +122,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
             if PY3 and isinstance(link, str):
                 h.update(bytes(link, 'utf-8'))
             else:
-                h.update(link))
+                h.update(link)
             if link.startswith('/'):
                 warnings.append('found symlink to absolute path: %s -> %s' %
                                 (f, link))
