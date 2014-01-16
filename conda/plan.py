@@ -134,8 +134,9 @@ def ensure_linked_actions(dists, prefix):
             if install.try_hard_link(extracted_in, prefix, dist):
                 lt = install.LINK_HARD
             else:
-                lt = (install.LINK_COPY if sys.platform == 'win32' else
-                      install.LINK_SOFT)
+                lt = (install.LINK_SOFT if (config.allow_softlinks and
+                                            sys.platform != 'win32') else
+                      install.LINK_COPY)
             actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
             continue
 
