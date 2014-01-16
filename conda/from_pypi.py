@@ -5,7 +5,7 @@ import subprocess
 from os.path import isfile, join
 
 from conda.resolve import MatchSpec, Resolve
-from conda.builder import build, metadata
+from conda.builder import build, metadata, external
 from conda import config
 
 
@@ -88,8 +88,6 @@ def install_from_pypi(prefix, index, specs):
 
 
 def pip_install(prefix, s):
-    # It would be great if conda list could show pip installed packages too
-    # We may need to update something after install
     # Also conda remove should uninstall pip-installed packages
     # FIXME: we need to make sure we are running in the correct environment
     args = pip_args(prefix)
@@ -115,9 +113,9 @@ def install_with_pip(prefix, index, specs):
     r = Resolve(index)
     for_conda = []
 
-    try:
-        next(r.find_matches(MatchSpec('pip')))
-    except StopIteration:
+    
+    pip_path = external.find_executable('pip')
+    if not pip_path:
         print("Pip not found, running `conda install pip` ...")
         try:
             install_package(prefix, 'pip')
