@@ -1,0 +1,12 @@
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/package1/__init__.py
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/package1/scripts.py
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/package1/__init__.pyc
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/package1/scripts.pyc
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info/dependency_links.txt
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info/entry_points.txt
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info/PKG-INFO
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info/requires.txt
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info/SOURCES.txt
+/Users/sean/anaconda/envs/_build/lib/python2.7/site-packages/Test_Package-1.1.0-py2.7.egg-info/top_level.txt
+/Users/sean/anaconda/envs/_build/bin/script1
