@@ -125,6 +125,11 @@ def check_bad_chrs(s, field):
             sys.exit("Error: bad character '%s' in %s: %s" % (c, field, s))
 
 def get_contents(path):
+    '''
+    Get the contents of the [meta.yaml|conda.yaml] file.
+    If jinja is installed, then the template.render function is called 
+    before standard conda macro processors 
+    '''
     try:
         import jinja2
         from conda.builder.jinja_context import context_processor
@@ -139,9 +144,10 @@ def get_contents(path):
     env.globals.update(context_processor())
     
     try:
-        template = env.get_or_select_template('meta.yaml')
-    except jinja2.exceptions.TemplateNotFound:
         template = env.get_or_select_template('conda.yaml')
+    except jinja2.exceptions.TemplateNotFound:
+        #Fallback to meta.yaml
+        template = env.get_or_select_template('meta.yaml')
         
     contents = template.render(environment=env)
     return contents 
