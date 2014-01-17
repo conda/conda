@@ -129,7 +129,6 @@ def get_contents(path):
         import jinja2
         from conda.builder.jinja_context import context_processor
     except ImportError:
-        raise 
         with open(join(path, 'meta.yaml')) as fd:
             return fd.read()
          
@@ -138,7 +137,12 @@ def get_contents(path):
                ]
     env = jinja2.Environment(loader=jinja2.ChoiceLoader(loaders))
     env.globals.update(context_processor())
-    template = env.get_or_select_template('meta.yaml')
+    
+    try:
+        template = env.get_or_select_template('meta.yaml')
+    except jinja2.exceptions.TemplateNotFound:
+        template = env.get_or_select_template('conda.yaml')
+        
     contents = template.render(environment=env)
     return contents 
     
@@ -150,7 +154,9 @@ class MetaData(object):
         self.path = path
         self.meta_path = join(path, 'meta.yaml')
         if not isfile(self.meta_path):
-            sys.exit("Error: no such file: %s" % self.meta_path)
+            self.meta_path = join(path, 'conda.yaml')
+            if not isfile(self.meta_path):
+                sys.exit("Error: no such file: %s" % self.meta_path)
             
         self.contents = get_contents(path)
         self.meta = parse(self.contents)

@@ -4,9 +4,11 @@ Created on Jan 16, 2014
 @author: sean
 '''
 import os
+from conda.builder import environ
+import json
 _setuptools_data = None
 
-def load_setuptools(env):
+def load_setuptools():
     global _setuptools_data
     
     if _setuptools_data is None:
@@ -23,6 +25,13 @@ def load_setuptools(env):
     
     return _setuptools_data
      
-    
+def load_npm():
+    with open('package.json') as pkg:
+        return json.load(pkg)
+
 def context_processor():
-    return {'load_setuptools': load_setuptools}
+    ctx = environ.get_dict()
+    ctx.update(load_setuptools=load_setuptools,
+               load_npm=load_npm,
+               environ=os.environ)
+    return ctx

@@ -1,4 +1,5 @@
-{% set data = load_setuptools()%}
+#Automaticly generating npm conda package
+{% set data = load_npm()%}
 {% block body -%}
 {% block package -%}
 package:
@@ -7,20 +8,19 @@ package:
 {%- endblock %}
 {% block build -%}
 build:
-  number: 1
+  number: {% block build_number -%}1{%- endblock %}
   script:
     - cd $RECIPE_DIR
-    - $PYTHON setup.py install
+    - npm install . -g
 {%- endblock %}
 {% block requirements -%}
 requirements:
   build:
-    - python
-    - setuptools
+    - nodejs
 
   run:
-    - python
-    
+    - nodejs
+
 {%- endblock %}
 {% block about -%}
 about:
