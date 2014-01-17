@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
-from conda.cli import common
+from conda.cli import common, install
 
 
 descr = "Update conda packages."
@@ -36,57 +36,23 @@ def configure_parser(sub_parsers):
         nargs = '*',
         help = "names of packages to update",
     )
+    p.add_argument(
+        "--no-pip",
+        action = "store_false",
+        default=True,
+        dest="pip",
+        help = "do not use pip to install if conda fails",
+    )
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        dest='use_local',
+        help = "use locally built packages",
+    )
     common.add_parser_channels(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    import sys
-
-    import conda.install as ci
-    import conda.config as config
-    import conda.plan as plan
-    from conda.api import get_index
-
-    from conda.cli import pscheck
-
-
-    prefix = common.get_prefix(args)
-    if len(args.packages) == 0:
-        sys.exit("""Error: no package names supplied
-# If you want to update to a newer version of Anaconda, type:
-#
-# $ conda update --prefix %s anaconda
-""" % prefix)
-    config.set_pkgs_dirs(prefix)
-    linked = set(ci.name_dist(d) for d in ci.linked(prefix))
-    for name in args.packages:
-        common.arg2spec(name)
-        if '=' in name:
-            sys.exit("Invalid package name: '%s'" % (name))
-        if name not in linked:
-            sys.exit("Error: package '%s' is not installed in %s" %
-                     (name, prefix))
-
-    common.ensure_override_channels_requires_channel(args)
-    channel_urls = args.channel or ()
-    index = get_index(channel_urls=channel_urls,
-                      prepend=not args.override_channels)
-    actions = plan.install_actions(prefix, index, args.packages)
-
-    if plan.nothing_to_do(actions):
-        from conda.cli.main_list import list_packages
-
-        regex = '^(%s)$' %  '|'.join(args.packages)
-        print('# All packages already at latest version, nothing to do.')
-        list_packages(prefix, regex)
-        return
-
-    print("Updating conda environment at %s" % prefix)
-    plan.display_actions(actions, index)
-    common.check_write('update', prefix)
-
-    if not pscheck.main(args):
-        common.confirm_yn(args)
-
-    plan.execute_actions(actions, index, verbose=not args.quiet)
+    install.install(args, parser, 'update')
