@@ -163,7 +163,6 @@ def execute(args, parser):
 
             file_map = get_pure_py_file_map(t, platform)
 
-
             if args.dry_run:
                 print("Would convert %s from %s to %s" % (file, info['platform'], dest_plat))
                 if args.verbose:
