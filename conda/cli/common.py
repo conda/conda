@@ -224,7 +224,8 @@ def check_specs(prefix, specs):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        sys.exit("Error: no package specifications supplied")
+        sys.exit('Error: too few arguments, must supply command line '
+                 'package specs or --file')
 
     if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
         sys.exit("Error: Package 'conda' may only be installed in the "
