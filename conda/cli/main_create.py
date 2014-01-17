@@ -128,7 +128,7 @@ def execute(args, parser):
         return
 
     if not args.no_default_packages:
-        args.package_specs.extend(config.create_default_packages)
+        args.packages.extend(config.create_default_packages)
 
     if len(args.packages) == 0 and not args.file:
         sys.exit('Error: too few arguments, must supply command line '
