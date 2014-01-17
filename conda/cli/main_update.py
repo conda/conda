@@ -26,31 +26,7 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
     )
-    common.add_parser_yes(p)
-    common.add_parser_prefix(p)
-    common.add_parser_quiet(p)
-    p.add_argument(
-        'packages',
-        metavar = 'package_name',
-        action = "store",
-        nargs = '*',
-        help = "names of packages to update",
-    )
-    p.add_argument(
-        "--no-pip",
-        action = "store_false",
-        default=True,
-        dest="pip",
-        help = "do not use pip to install if conda fails",
-    )
-    p.add_argument(
-        "--use-local",
-        action="store_true",
-        default=False,
-        dest='use_local',
-        help = "use locally built packages",
-    )
-    common.add_parser_channels(p)
+    common.add_parser_install(p)
     p.set_defaults(func=execute)
 
 

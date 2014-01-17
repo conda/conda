@@ -113,7 +113,7 @@ def install(args, parser, command='install'):
                          (name, prefix))
 
     if newenv and args.clone:
-        if args.package_specs:
+        if args.packages:
             sys.exit('Error: did not expect any arguments for --clone')
         clone(args.clone, prefix)
         touch_nonadmin(prefix)
@@ -121,7 +121,7 @@ def install(args, parser, command='install'):
         return
 
     if newenv and not args.no_default_packages:
-        args.package_specs.extend(config.create_default_packages)
+        args.packages.extend(config.create_default_packages)
 
     # handle tar file containaing conda packages
     if len(args.packages) == 1:
