@@ -73,6 +73,55 @@ def add_parser_channels(p, dashc=True):
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
 
+def add_parser_install(p):
+    add_parser_yes(p)
+    p.add_argument(
+        '-f', "--force",
+        action = "store_true",
+        help = "force install (even when package already installed), "
+               "implies --no-deps",
+    )
+    p.add_argument(
+        "--file",
+        action = "store",
+        help = "read package versions from FILE",
+    )
+    p.add_argument(
+        "--no-deps",
+        action = "store_true",
+        help = "do not install dependencies",
+    )
+    p.add_argument(
+        '-m', "--mkdir",
+        action = "store_true",
+        help = "create prefix directory if necessary",
+    )
+    p.add_argument(
+        "--no-pip",
+        action = "store_false",
+        default=True,
+        dest="pip",
+        help = "do not use pip to install if conda fails",
+    )
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        dest='use_local',
+        help = "use locally built packages",
+    )
+    add_parser_channels(p)
+    add_parser_prefix(p)
+    add_parser_quiet(p)
+    p.add_argument(
+        'packages',
+        metavar = 'package_spec',
+        action = "store",
+        nargs = '*',
+        help = "package versions to install into conda environment",
+    )
+
+
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not args.channel:
         if dashc:
@@ -224,7 +273,8 @@ def check_specs(prefix, specs):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        sys.exit("Error: no package specifications supplied")
+        sys.exit('Error: too few arguments, must supply command line '
+                 'package specs or --file')
 
     if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
         sys.exit("Error: Package 'conda' may only be installed in the "
