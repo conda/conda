@@ -32,12 +32,7 @@ def configure_parser(sub_parsers):
         help = help,
         epilog  = example,
     )
-    common.add_parser_yes(p)
-    p.add_argument(
-        '-f', "--file",
-        action = "store",
-        help = "filename to read package specs from",
-    )
+    common.add_parser_install(p)
     p.add_argument(
         "--clone",
         action = "store",
@@ -49,36 +44,6 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = 'ignore create_default_packages in condarc file',
     )
-    common.add_parser_channels(p)
-    common.add_parser_prefix(p)
-    common.add_parser_quiet(p)
-    p.add_argument(
-        'packages',
-        metavar = 'package_spec',
-        action = "store",
-        nargs = '*',
-        help = "specification of package to install into new environment",
-    )
-    p.add_argument(
-        "--no-deps",
-        action = "store_true",
-        help = "do not install dependencies",
-    )
-    p.add_argument(
-        "--no-pip",
-        action = "store_false",
-        default=True,
-        dest="pip",
-        help = "do not use pip to install if conda fails",
-    )
-    p.add_argument(
-        "--use-local",
-        action="store_true",
-        default=False,
-        dest='use_local',
-        help = "use locally built packages",
-    )
-
     p.set_defaults(func=execute)
 
 
