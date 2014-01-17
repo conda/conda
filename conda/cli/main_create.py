@@ -53,7 +53,7 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
-        'package_specs',
+        'packages',
         metavar = 'package_spec',
         action = "store",
         nargs = '*',
@@ -120,7 +120,7 @@ def execute(args, parser):
     config.set_pkgs_dirs(prefix)
 
     if args.clone:
-        if args.package_specs:
+        if args.packages:
             sys.exit('Error: did not expect any arguments for --clone')
         clone(args.clone, prefix)
         touch_nonadmin(prefix)
@@ -130,14 +130,14 @@ def execute(args, parser):
     if not args.no_default_packages:
         args.package_specs.extend(config.create_default_packages)
 
-    if len(args.package_specs) == 0 and not args.file:
+    if len(args.packages) == 0 and not args.file:
         sys.exit('Error: too few arguments, must supply command line '
                  'package specs or --file')
 
     if args.file:
         specs = common.specs_from_url(args.file)
     else:
-        specs = common.specs_from_args(args.package_specs)
+        specs = common.specs_from_args(args.packages)
 
     common.check_specs(prefix, specs)
 
