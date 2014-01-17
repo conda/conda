@@ -3,7 +3,7 @@
 {% block body -%}
 {% block package -%}
 package:
-  name: {{data.get('name')}}
+  name: {{data.get('name').lower()}}
   version: {{data.get('version')}}
 {%- endblock %}
 {% block build -%}
@@ -11,7 +11,7 @@ build:
   number: {% block build_number -%}1{%- endblock %}
   script:
     - cd $RECIPE_DIR
-    - npm install . -g
+    - npm --prefix $PREFIX install . -g --production 
 {%- endblock %}
 {% block requirements -%}
 requirements:
@@ -27,11 +27,8 @@ about:
   home: {{data.get('url')}}
   license: {{data.get('license')}}
 {%- endblock %}
-{% block test -%}
-test:
-  imports: {{data.get('packages')}}
-{%- endblock -%}
-{% endblock -%}
+{%- endblock %}
+
 # See
 # http://docs.continuum.io/conda/build.html for
 # more information about meta.yaml

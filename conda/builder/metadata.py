@@ -149,7 +149,7 @@ def get_contents(path):
 
 class MetaData(object):
 
-    def __init__(self, path):
+    def __init__(self, path, process_only=False):
         assert isdir(path)
         self.path = path
         self.meta_path = join(path, 'meta.yaml')
@@ -159,6 +159,9 @@ class MetaData(object):
                 sys.exit("Error: no such file: %s" % self.meta_path)
             
         self.contents = get_contents(path)
+        if process_only:
+            return
+        
         self.meta = parse(self.contents)
 
     def get_section(self, section):

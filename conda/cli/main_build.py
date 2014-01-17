@@ -174,7 +174,7 @@ def execute(args, parser):
                     if not isdir(recipe_dir):
                         sys.exit("Error: no such directory: %s" % recipe_dir)
 
-            m = MetaData(recipe_dir)
+            m = MetaData(recipe_dir, process_only=args.process_meta)
             if args.process_meta:
                 print(m.contents)
                 sys.exit(-1)
