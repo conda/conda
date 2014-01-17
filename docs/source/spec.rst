@@ -88,6 +88,9 @@ when the package is installed.
 placeholder, ``/opt/anaconda1anaconda2anaconda3``, for the install prefix,
 which upon install is replaced by the real install prefix.
 
+``info/no_softlink``: This optional file lists all files which cannot
+be soft-linked into environments (and are copied instead).
+
 
 Repository structure and index
 ------------------------------
