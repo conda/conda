@@ -380,14 +380,14 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
-            lt = (LINK_COPY if (f in has_prefix_files or
-                                f.startswith('bin/python') or islink(src))
-                  else linktype)
+            if (f in has_prefix_files or
+                    f.startswith('bin/python') or islink(src)):
+                linktype = LINK_COPY
             try:
-                _link(src, dst, lt)
+                _link(src, dst, linktype)
             except OSError:
                 log.error('failed to link (src=%r, dst=%r, type=%r)' %
-                          (src, dst, lt))
+                          (src, dst, linktype))
 
         if name_dist(dist) == '_cache':
             return
