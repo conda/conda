@@ -6,7 +6,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-import sys
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common, install
@@ -45,7 +44,6 @@ def configure_parser(sub_parsers):
         help = 'ignore create_default_packages in condarc file',
     )
     p.set_defaults(func=execute)
-
 
 def execute(args, parser):
     install.install(args, parser, 'create')
