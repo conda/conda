@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import re
 import os
 import sys
 import json
@@ -106,6 +107,14 @@ def create_info_files(m, files):
         if prefix_files:
             with open(join(info_dir, 'has_prefix'), 'w') as fo:
                 for f in prefix_files:
+                    fo.write(f + '\n')
+
+    no_soft_rx = m.get_value('build/no_softlink')
+    if no_soft_rx:
+        pat = re.compile(no_soft_rx)
+        with open(join(info_dir, 'no_softlink'), 'w') as fo:
+            for f in files:
+                if pat.match(f):
                     fo.write(f + '\n')
 
     if m.get_value('source/git_url'):
