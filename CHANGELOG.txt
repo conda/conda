@@ -1,9 +1,12 @@
 2014-XX-XX   2.3.1:
 -------------------
   * add ability create info/no_softlink
-  * add conda convert command to convert non-platform-dependent packages from 
+  * add conda convert command to convert non-platform-dependent packages from
     one platform to another
-
+  * unify create, install, and update code. This adds many features to create
+    and update that were previously only available to install. A backwards
+    incompatible change is that conda create -f now means --force, not
+    --file.
 
 2014-01-16   2.3.0:
 -------------------
