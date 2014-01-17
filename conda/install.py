@@ -367,6 +367,12 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     except IOError:
         has_prefix_files = set()
 
+    if linktype == LINK_SOFT:
+        try:
+            no_softlink = set(yield_lines(join(info_dir, 'no_softlink')))
+        except IOError:
+            no_softlink = set()
+
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
             src = join(source_dir, f)
@@ -380,14 +386,16 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
+            lt = linktype
             if (f in has_prefix_files or
-                    f.startswith('bin/python') or islink(src)):
-                linktype = LINK_COPY
+                    (linktype == LINK_SOFT and f in no_softlink) or
+                    islink(src)):
+                lt = LINK_COPY
             try:
-                _link(src, dst, linktype)
+                _link(src, dst, lt)
             except OSError:
                 log.error('failed to link (src=%r, dst=%r, type=%r)' %
-                          (src, dst, linktype))
+                          (src, dst, lt))
 
         if name_dist(dist) == '_cache':
             return
