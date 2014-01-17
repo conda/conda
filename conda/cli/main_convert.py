@@ -18,7 +18,10 @@ from conda.convert import (has_cext, tar_update, get_pure_py_file_map,
     has_nonpy_entry_points)
 
 help = """
-Various tools to convert conda packages.
+Various tools to convert conda packages. (EXPERIMENTAL)
+"""
+
+epilog = """
 
 For now, it is just a tool to convert pure Python packages to other platforms.
 
@@ -33,9 +36,6 @@ osx-64/
 win-32/
   package-1.0-py33.tar.bz2
 
-"""
-
-example = """
 Examples:
 
 Convert a package built with conda build to Windows 64-bit, and place the
@@ -51,7 +51,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = help,
         help = help,
-        epilog = example,
+        epilog = epilog,
     )
 
     # TODO: Factor this into a subcommand, since it's python package specific
