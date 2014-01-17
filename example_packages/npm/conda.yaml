@@ -1,0 +1,15 @@
+{% extends "npm.yaml" %}
+
+{% block requirements %}
+
+requirements:
+  build:
+    - nodejs
+    - coffee-script
+    - cakehelper
+    - grunt-cli
+
+  run:
+    - nodejs
+
+{% endblock %}
