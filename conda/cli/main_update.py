@@ -30,7 +30,7 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
-        'pkg_names',
+        'packages',
         metavar = 'package_name',
         action = "store",
         nargs = '*',
@@ -52,7 +52,7 @@ def execute(args, parser):
 
 
     prefix = common.get_prefix(args)
-    if len(args.pkg_names) == 0:
+    if len(args.packages) == 0:
         sys.exit("""Error: no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
@@ -60,7 +60,7 @@ def execute(args, parser):
 """ % prefix)
     config.set_pkgs_dirs(prefix)
     linked = set(ci.name_dist(d) for d in ci.linked(prefix))
-    for name in args.pkg_names:
+    for name in args.packages:
         common.arg2spec(name)
         if '=' in name:
             sys.exit("Invalid package name: '%s'" % (name))
@@ -72,12 +72,12 @@ def execute(args, parser):
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls,
                       prepend=not args.override_channels)
-    actions = plan.install_actions(prefix, index, args.pkg_names)
+    actions = plan.install_actions(prefix, index, args.packages)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
 
-        regex = '^(%s)$' %  '|'.join(args.pkg_names)
+        regex = '^(%s)$' %  '|'.join(args.packages)
         print('# All packages already at latest version, nothing to do.')
         list_packages(prefix, regex)
         return
