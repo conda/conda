@@ -56,7 +56,7 @@ def filter_descr(cmd):
         print('failed: %s' % (' '.join(args)))
         return
     try:
-        descr = output.split('\n\n')[1]
+        descr = output.decode('utf-8').split('\n\n')[1]
     except IndexError:
         descr = '<could not extract description>'
     print('%-20s %s' % (cmd, descr))
