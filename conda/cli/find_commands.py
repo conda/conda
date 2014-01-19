@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import re
 import os
 import sys
-from subprocess import check_output
+import subprocess
 from os.path import isdir, isfile, join
 
 
@@ -49,8 +49,16 @@ def find_commands():
 
 
 def filter_descr(cmd):
-    output = check_output([find_executable(cmd), '--help'])
-    descr = output.split('\n\n')[1]
+    args = [find_executable(cmd), '--help']
+    try:
+        output = subprocess.check_output(args)
+    except subprocess.CalledProcessError:
+        print('failed: %s' % (' '.join(args)))
+        return
+    try:
+        descr = output.split('\n\n')[1]
+    except IndexError:
+        descr = '<could not extract description>'
     print('%-20s %s' % (cmd, descr))
 
 
