@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import re
 import os
 import sys
+from subprocess import check_output
 from os.path import isdir, isfile, join
 
 
@@ -44,9 +45,19 @@ def find_commands():
             m = pat.match(fn)
             if m:
                 res.add(m.group(1))
-    return res
+    return sorted(res)
+
+
+def filter_descr(cmd):
+    output = check_output([find_executable(cmd), '--help'])
+    descr = output.split('\n\n')[1]
+    print('%-20s %s' % (cmd, descr))
+
+
+def help():
+    for cmd in find_commands():
+        filter_descr(cmd)
 
 
 if __name__ == '__main__':
-    print(find_executable('build'))
-    print(find_commands())
+    help()
