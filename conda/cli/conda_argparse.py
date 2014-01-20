@@ -52,3 +52,10 @@ class ArgumentParser(argparse.ArgumentParser):
                         message += "\n"
 
         super(ArgumentParser, self).error(message)
+
+    def print_help(self):
+        from conda.cli.find_commands import help
+
+        super(ArgumentParser, self).print_help()
+
+        help()
