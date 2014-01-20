@@ -1,0 +1,34 @@
+#Automaticly generating npm conda package
+{% set data = load_npm()%}
+{% block body -%}
+{% block package -%}
+package:
+  name: {{data.get('name').lower()}}
+  version: {{data.get('version')}}
+{%- endblock %}
+{% block build -%}
+build:
+  number: {% block build_number -%}1{%- endblock %}
+  script:
+    - cd $RECIPE_DIR
+    - npm --prefix $PREFIX install . -g --production 
+{%- endblock %}
+{% block requirements -%}
+requirements:
+  build:
+    - nodejs
+
+  run:
+    - nodejs
+
+{%- endblock %}
+{% block about -%}
+about:
+  home: {{data.get('url')}}
+  license: {{data.get('license')}}
+{%- endblock %}
+{%- endblock %}
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml

@@ -1,0 +1,46 @@
+{% set data = load_setuptools()%}
+{% block body -%}
+{% block package -%}
+package:
+  name: {{data.get('name').lower().replace(' ', '_')}}
+  version: {{data.get('version')}}
+{%- endblock %}
+{% block build -%}
+build:
+  number: {% block build_number -%}1{%- endblock %}
+  script:
+    - cd $RECIPE_DIR
+    - $PYTHON setup.py install --single-version-externally-managed --record=record.txt
+    
+  {% block entry_points -%}
+  entry_points: {{data.get('entry_points', {}).get('console_scripts', [])}}
+  {%- endblock %}
+    
+{%- endblock %}
+
+{% block requirements -%}
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    {% for req in data.get('install_requires') -%}
+    - {{req}}
+    {% endfor %}
+    
+{%- endblock %}
+{% block about -%}
+about:
+  home: {{data.get('url')}}
+  license: {{data.get('license')}}
+{%- endblock %}
+{% block test -%}
+test:
+  imports: {{data.get('packages')}}
+{%- endblock -%}
+{%- endblock %}
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml

@@ -1,0 +1,17 @@
+{
+  "name": "Node-Test-Package",
+  "version": "1.1.1",
+  "description": "Testing conda build of node package",
+  "main": "lib/index.js",
+  "author": "Continuum Analytics",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "bin": {
+    "script": "./bin/script"
+  },
+  "dependencies": {
+    "optimist": "~0",
+    "mkdirp": "~0"
+  }
+  
+}

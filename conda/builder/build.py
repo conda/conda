@@ -72,7 +72,7 @@ def have_prefix_files(files):
         data = data.replace(prefix, prefix_placeholder)
         with open(path, 'w') as fo:
             fo.write(data)
-        os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR) # chmod u+w
+        os.chmod(path, stat.S_IMODE(st.st_mode) | stat.S_IWUSR)  # chmod u+w
         yield f
 
 
@@ -180,7 +180,15 @@ def build(m, get_src=True, pypi=False):
         windows.build(m)
     else:
         env = environ.get_dict(m)
-        cmd = ['/bin/bash', '-x', '-e', join(m.path, 'build.sh')]
+        
+        build_file = join(m.path, 'build.sh')
+        script = m.get_value('build/script', None)
+        if script:
+            if isinstance(script, list): script = '\n'.join(script)
+            with open(build_file, 'w') as bf:
+                bf.write(script)
+            os.chmod(build_file, 0766)
+        cmd = ['/bin/bash', '-x', '-e', build_file]
         _check_call(cmd, env=env, cwd=source.get_dir())
 
     create_entry_points(m.get_value('build/entry_points'))
@@ -233,7 +241,7 @@ def test(m, pypi=False):
 
     env = dict(os.environ)
     # prepend bin (or Scripts) directory
-    env['PATH'] = (join(config.test_prefix, bin_dirname) + os.pathsep +
+    env['PATH'] = (join(config.test_prefix, bin_dirname) + os.pathsep + 
                    env['PATH'])
 
     for varname in 'CONDA_PY', 'CONDA_NPY':
