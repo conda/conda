@@ -1,6 +1,9 @@
 Display information about current conda install.
 
-**usage**: ``conda info [-h] [-a] [-e] [-l] [-s]``
+**usage**: ``conda info [-h] [-a] [-e] [-l] [-s] [package_name [package_name ...]]``
+
+*package_name*
+        display information about packages
 
 optional arguments:
   -h, --help     show this help message and exit

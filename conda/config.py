@@ -12,7 +12,7 @@ import logging
 from platform import machine
 from os.path import abspath, dirname, expanduser, isfile, isdir, join
 
-from conda.compat import PY3
+from conda.compat import PY3, urlparse
 from conda.install import try_write
 
 
@@ -45,11 +45,14 @@ rc_list_keys = [
     'disallow',
     'create_default_packages',
     'track_features',
-    'envs_dirs',
+    'envs_dirs'
     ]
+
+DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
 
 rc_bool_keys = [
     'always_yes',
+    'allow_softlinks',
     'changeps1',
     'use_pip',
     'binstar_upload',
@@ -60,6 +63,7 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
+    'channel_alias'
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -161,6 +165,9 @@ def get_rc_urls():
         raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
+def is_url(url):
+    return urlparse.urlparse(url).scheme != ""
+
 def normalize_urls(urls):
     newurls = []
     for url in urls:
@@ -171,6 +178,9 @@ def normalize_urls(urls):
                 newurls.extend(normalize_urls(get_default_urls()))
             else:
                 newurls.extend(normalize_urls(get_rc_urls()))
+        elif not is_url(url):
+            moreurls = normalize_urls([rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)+url])
+            newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), subdir))
     return newurls
@@ -208,11 +218,13 @@ except IOError:
 
 # ----- misc -----
 
-always_yes = rc.get('always_yes', False)
-changeps1 = rc.get('changeps1', True)
-use_pip = rc.get('use_pip', True)
+always_yes = bool(rc.get('always_yes', False))
+changeps1 = bool(rc.get('changeps1', True))
+use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('binstar_upload', None) # None means ask
-binstar_personal = rc.get('binstar_personal', True)
+binstar_personal = bool(rc.get('binstar_personal', True))
+allow_softlinks = bool(rc.get('allow_softlinks', True))
+# set packages disallowed to be installed
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))

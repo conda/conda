@@ -59,7 +59,7 @@ from conda.cli import main_update
 from conda.cli import main_skeleton
 from conda.cli import main_config
 from conda.cli import main_clean
-
+from conda.cli import main_convert
 
 def main():
     if len(sys.argv) > 1:
@@ -159,6 +159,7 @@ In short:
     main_package.configure_parser(sub_parsers)
     main_bundle.configure_parser(sub_parsers)
     main_index.configure_parser(sub_parsers)
+    main_convert.configure_parser(sub_parsers)
 
     try:
         import argcomplete
