@@ -59,7 +59,7 @@ def filter_descr(cmd):
         descr = output.decode('utf-8').split('\n\n')[1]
     except IndexError:
         descr = '<could not extract description>'
-    print('%-20s %s' % (cmd, descr))
+    print('    %-12s %s' % (cmd, descr))
 
 
 def help():
