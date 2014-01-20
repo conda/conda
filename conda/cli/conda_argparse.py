@@ -27,7 +27,10 @@ class ArgumentParser(argparse.ArgumentParser):
                 return action
 
     def error(self, message):
+        import re
         import sys
+        from difflib import get_close_matches
+
         exc = sys.exc_info()[1]
         if exc:
             # this is incredibly lame, but argparse stupidly does not expose
@@ -37,12 +40,10 @@ class ArgumentParser(argparse.ArgumentParser):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                import re
                 m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
                 if m:
                     cmd = m.group(1)
                     message = "%r is not a conda command, see 'conda -h'" % cmd
-                    from difflib import get_close_matches
                     close = get_close_matches(cmd, argument.choices.keys())
                     if close:
                         message += '\n\nDid you mean one of these?\n'
