@@ -14,7 +14,7 @@ def add_parser_prefix(p):
         '-n', "--name",
         action = "store",
         help = "name of environment (in %s)" %
-                               os.pathsep.join(config.envs_dirs),
+                            os.pathsep.join(config.envs_dirs),
     )
     npgroup.add_argument(
         '-p', "--prefix",
@@ -59,17 +59,68 @@ def add_parser_channels(p, dashc=True):
         channel_args = ('-c',) + channel_args
     p.add_argument(*channel_args,
         action = "append",
-        help = """additional channel to search for packages. These are searched in the order
-        they are given, and then the defaults or channels from .condarc
-        (unless --override-channels is given).  You can use 'defaults' to get
-        the default packages for conda, and 'system' to get the system
-        packages, which also takes .condarc into account. """ # we can't put , here; invalid syntax
+        help = """additional channel to search for packages. These are URLs searched in the order
+        they are given (including file:// for local directories).  Then, the defaults
+        or channels from .condarc are searched (unless --override-channels is given).  You can use
+        'defaults' to get the default packages for conda, and 'system' to get the system
+        packages, which also takes .condarc into account.  You can also use any name and the
+        .condarc channel_alias value will be prepended.  The default channel_alias
+        is http://conda.binstar.org/""" # we can't put , here; invalid syntax
     )
     p.add_argument(
         "--override-channels",
         action = "store_true",
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
+
+def add_parser_install(p):
+    add_parser_yes(p)
+    p.add_argument(
+        '-f', "--force",
+        action = "store_true",
+        help = "force install (even when package already installed), "
+               "implies --no-deps",
+    )
+    p.add_argument(
+        "--file",
+        action = "store",
+        help = "read package versions from FILE",
+    )
+    p.add_argument(
+        "--no-deps",
+        action = "store_true",
+        help = "do not install dependencies",
+    )
+    p.add_argument(
+        '-m', "--mkdir",
+        action = "store_true",
+        help = "create prefix directory if necessary",
+    )
+    p.add_argument(
+        "--no-pip",
+        action = "store_false",
+        default=True,
+        dest="pip",
+        help = "do not use pip to install if conda fails",
+    )
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        dest='use_local',
+        help = "use locally built packages",
+    )
+    add_parser_channels(p)
+    add_parser_prefix(p)
+    add_parser_quiet(p)
+    p.add_argument(
+        'packages',
+        metavar = 'package_spec',
+        action = "store",
+        nargs = '*',
+        help = "package versions to install into conda environment",
+    )
+
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not args.channel:
@@ -222,7 +273,8 @@ def check_specs(prefix, specs):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        sys.exit("Error: no package specifications supplied")
+        sys.exit('Error: too few arguments, must supply command line '
+                 'package specs or --file')
 
     if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
         sys.exit("Error: Package 'conda' may only be installed in the "

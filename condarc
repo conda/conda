@@ -25,6 +25,10 @@ envs_dirs:
 # implies always using the --yes option whenever asked to proceed
 always_yes: True
 
+# disallow soft-linking (default is allow_softlinks: True,
+#                        i.e. soft-link when possible)
+allow_softlinks: False
+
 # change ps1 when using activate (default True)
 changeps1: False
 

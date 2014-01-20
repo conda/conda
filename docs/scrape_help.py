@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
@@ -11,16 +12,21 @@ import sys
 
 cmd_names = [
     'info',
+    'help',
     'list',
     'search',
     'create',
     'install',
     'update',
     'remove',
+    'config',
+    'init',
+    'clean',
     'build',
+    'skeleton',
     'package',
-    'index',
     'bundle',
+    'index',
 ]
 
 def scrape_help(cmd_name):
@@ -32,7 +38,7 @@ def scrape_help(cmd_name):
     output = p.stdout.read().decode('utf-8')
 
 
-    if cmd_name in ['remove','package','install']:
+    if cmd_name in ['remove','package','install', 'config']:
 
         # groups:
         usage_pat = re.compile(r'(usage): (conda .*\n\s*.*\n\s*.*)')
@@ -90,15 +96,17 @@ def scrape_help(cmd_name):
 
 
 if __name__ == '__main__':
-    for name in cmd_names:
-        output = scrape_help(name)
 
+    for name in cmd_names:
         path = "source/commands/"
         if len(sys.argv) > 1:
             path = sys.argv[1]
         outpath = join(path, "%s.txt" % name)
 
         print("Scraping help for '%s' -> %s" % (name, outpath))
+
+        output = scrape_help(name)
+
 
         outfile = open(outpath, "w")
         outfile.write(output)

@@ -29,6 +29,39 @@ class CouldntParse(NotImplementedError):
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
+class BoolKey(object):
+    def __init__(self, bools=True):
+        self.bools = bools
+
+    def __contains__(self, other):
+        # Other is either one of the keys or the boolean
+        try:
+            import yaml
+        except ImportError:
+            yaml = False
+
+        ret = other in config.rc_bool_keys
+        if yaml and self.bools:
+            ret = ret or isinstance(yaml.load(other), bool)
+
+        return ret
+
+    def __iter__(self):
+        I = config.rc_bool_keys
+        if self.bools:
+            I += ['yes', 'no', 'on', 'off', 'true', 'false']
+        for i in I:
+            yield i
+
+class ListKey(object):
+    def __contains__(self, other):
+        # We can't check the elements of the list themselves
+        return True
+
+    def __iter__(self):
+        for i in config.rc_list_keys:
+            yield i
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
@@ -67,6 +100,7 @@ write to the given file. Otherwise writes to the user config file
         help = "get the configuration value",
         default = None,
         metavar = ('KEY'),
+        choices=BoolKey(bools=False)
         )
     action.add_argument(
         "--add",
@@ -75,6 +109,7 @@ write to the given file. Otherwise writes to the user config file
         help = """add one configuration value to a list key. The default
         behavior is to prepend.""",
         default = [],
+        choices=ListKey(),
         metavar = ('KEY', 'VALUE'),
         )
     action.add_argument(
@@ -83,6 +118,7 @@ write to the given file. Otherwise writes to the user config file
         action = "append",
         help = "set a boolean key. BOOL_VALUE should be 'yes' or 'no'",
         default = [],
+        choices=BoolKey(),
         metavar = ('KEY', 'BOOL_VALUE'),
         )
     action.add_argument(

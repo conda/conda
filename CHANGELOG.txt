@@ -1,9 +1,26 @@
+2014-01-17   2.3.1:
+-------------------
+  * add ability create info/no_softlink
+  * add conda convert command to convert non-platform-dependent packages from
+    one platform to another (experimental)
+  * unify create, install, and update code. This adds many features to create
+    and update that were previously only available to install. A backwards
+    incompatible change is that conda create -f now means --force, not
+    --file.
 
+2014-01-16   2.3.0:
+-------------------
+  * automatically prepend http://conda.binstar.org/ (or the value of
+    channel_alias in the .condarc file) to channels whenever the
+    channel is not a URL or the word 'defaults or 'system'
   * recipes made with the skeleton pypi command will use setuptools instead of
     distribute
   * re-work the setuptools dependency and entry_point logic so that
     non console_script entry_points for packages with a dependency on
     setuptools will get correct build script with conda skeleton pypi
+  * add -m, --mkdir option to conda install
+  * add ability to disable soft-linking
+
 
 2014-01-06   2.2.8:
 -------------------
