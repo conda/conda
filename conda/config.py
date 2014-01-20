@@ -40,6 +40,11 @@ else:
 
 # This is used by conda config to check which keys are allowed in the config
 # file. Be sure to update it when new keys are added.
+
+#################################################################
+# Also update the example condarc file when you add a key here! #
+#################################################################
+
 rc_list_keys = [
     'channels',
     'disallow',
