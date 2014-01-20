@@ -73,6 +73,7 @@ User Guide
    intro
    examples
    faq
+   config
    build
 
 Reference Guide
