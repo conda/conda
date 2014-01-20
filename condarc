@@ -2,12 +2,19 @@
 
 # channel locations. These override conda defaults, i.e., conda will
 # search *only* the channels listed here, in the order given. Use "defaults" to
-# automatically include all default channels.
+# automatically include all default channels. Non-url channels will be
+# interpreted as binstar usernames (this can be changed by modifying the
+# channel_alias key; see below).
 channels:
+  - binstar_username
   - http://repo.continuum.io/pkgs/free
   - http://repo.continuum.io/pkgs/pro
   - http://some.custom/channel
   - defaults
+
+# Alias to use for non-url channels used with the -c flag. Default is https://conda.binstar.org/
+
+channel_alias: https://your.repo/
 
 # Proxy settings: http://[username]:[password]@[server]:[port]
 proxy_servers:
@@ -37,6 +44,7 @@ use_pip: False
 
 # binstar.org upload (not defined here means ask)
 binstar_upload: True
+# do not upload binstar packages to the public channel (default True)
 binstar_personal: True
 
 # when creating new environments add these packages by default
@@ -49,4 +57,5 @@ disallow:
   - anaconda
 
 # enable certain features to be tracked by default
-track_features: mkl
+track_features:
+  - mkl
