@@ -100,7 +100,7 @@ In short:
         if sys.argv[1:4] == ['share', '--json', '--prefix']:
             import json
             from os.path import abspath
-            from conda.builder.share import old_create_bundle
+            from conda.share import old_create_bundle
             prefix = sys.argv[4]
             path, warnings = old_create_bundle(abspath(prefix))
             json.dump(dict(path=path, warnings=warnings),
@@ -109,7 +109,7 @@ In short:
         if sys.argv[1:4] == ['clone', '--json', '--prefix']:
             import json
             from os.path import abspath
-            from conda.builder.share import old_clone_bundle
+            from conda.share import old_clone_bundle
             prefix, path = sys.argv[4:6]
             old_clone_bundle(path, abspath(prefix))
             json.dump(dict(warnings=[]), sys.stdout, indent=2)
