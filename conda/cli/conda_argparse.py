@@ -56,6 +56,6 @@ class ArgumentParser(argparse.ArgumentParser):
     def print_help(self):
         super(ArgumentParser, self).print_help()
 
-        if sys.argv[1:] in ([], ['-h'], ['--help']):
+        if sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             from conda.cli.find_commands import help
             help()
