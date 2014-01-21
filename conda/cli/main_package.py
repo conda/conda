@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -16,11 +16,6 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('package', description=descr, help=descr)
 
     common.add_parser_prefix(p)
-    p.add_argument(
-        '-c', "--check",
-        action  = "store_true",
-        help    = "check (validate) the given conda packages (PATH) and exit",
-    )
     p.add_argument(
         '-w', "--which",
         action = "store_true",
@@ -65,28 +60,15 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import sys
-    from os.path import basename
 
     from conda.misc import untracked
-    from conda.builder.packup import make_tarbz2, remove
+    from conda.packup import make_tarbz2, remove
 
 
     prefix = common.get_prefix(args)
 
-    if args.check:
-        from conda.builder.tarcheck import check_all
-
-        for path in args.path:
-            try:
-                check_all(path)
-                print('%s OK' % basename(path))
-            except Exception as e:
-                print(e)
-                print('%s FAILED' % basename(path))
-        return
-
     if args.which:
-        from conda.builder.packup import which_package
+        from conda.packup import which_package
 
         for path in args.path:
             for dist in  which_package(path):

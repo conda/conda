@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -15,7 +15,6 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
-from conda.from_pypi import install_with_pip
 from conda.misc import touch_nonadmin
 import conda.install as ci
 
@@ -173,23 +172,18 @@ Error: environment does not exist: %s
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
                       args.override_channels)
-
     if args.use_local:
         from conda.fetch import fetch_index
         from conda.utils import url_path
-        from conda.builder import config as build_config
-        # remove the cache such that a refetch is made,
-        # this is necessary because we add the local build repo URL
-        fetch_index.cache = {}
-        index = get_index([url_path(build_config.croot)])
-
-    if args.pip and config.use_pip and not args.dry_run:
-        # Remove from specs packages that are not in conda index
-        #  and install them using pip
-        # Return the updated specs
-        specs = install_with_pip(prefix, index, specs)
-        if not specs:
-            return
+        try:
+            from conda_build import config as build_config
+        except ImportError:
+            build_config = None
+        if build_config:
+            # remove the cache such that a refetch is made,
+            # this is necessary because we add the local build repo URL
+            fetch_index.cache = {}
+            index = get_index([url_path(build_config.croot)])
 
     actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)

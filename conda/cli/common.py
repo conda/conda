@@ -97,13 +97,6 @@ def add_parser_install(p):
         help = "create prefix directory if necessary",
     )
     p.add_argument(
-        "--no-pip",
-        action = "store_false",
-        default=True,
-        dest="pip",
-        help = "do not use pip to install if conda fails",
-    )
-    p.add_argument(
         "--use-local",
         action="store_true",
         default=False,
