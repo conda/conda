@@ -46,11 +46,11 @@ class ArgumentParser(argparse.ArgumentParser):
                     cmd = m.group(1)
                     executable = find_executable(cmd)
                     if not executable:
-                        if cmd == 'build':
+                        if cmd in ('build', 'skeleton', 'package'):
                             sys.exit("""\
-Error: You need to install conda-build in order to use the 'conda build'
+Error: You need to install conda-build in order to use the 'conda %s'
        command.
-""")
+""" % cmd)
                         sys.exit("Error: Could not locate 'conda-%s'" % cmd)
                     args = [find_executable(cmd)]
                     args.extend(sys.argv[2:])
