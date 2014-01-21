@@ -3,6 +3,8 @@
   * removed build, convert, index, and skeleton commands, which are now
     part of the conda-build project: https://github.com/conda/conda-build
   * add ability to call sub-commands named 'conda-x'
+  * The -c flag to conda search is now shorthand for --channel, not
+    --canonical (this is to be consistent with other conda commands).
 
 
 2014-01-17   2.3.1:

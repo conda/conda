@@ -27,7 +27,7 @@ def configure_parser(sub_parsers):
     )
     common.add_parser_prefix(p)
     p.add_argument(
-        '-c', "--canonical",
+        "--canonical",
         action  = "store_true",
         help    = "output canonical names of packages only",
     )
@@ -48,7 +48,7 @@ def configure_parser(sub_parsers):
         help    = "package specification or regular expression to search for "
                   "(default: display all packages)",
     )
-    common.add_parser_channels(p, dashc=False)
+    common.add_parser_channels(p)
     p.set_defaults(func=execute)
 
 
