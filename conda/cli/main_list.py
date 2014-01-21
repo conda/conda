@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -8,8 +8,8 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
-from os.path import isdir
 import subprocess
+from os.path import isdir, isfile, join
 
 import conda.install as install
 import conda.config as config
@@ -58,9 +58,24 @@ def print_export_header():
     print('# platform: %s' % config.subdir)
 
 
-def add_pip_installed(prefix, installed):
-    from conda.from_pypi import pip_args
+def pip_args(prefix):
+    """
+    return the arguments required to invoke pip (in prefix), or None if pip
+    is not installed
+    """
+    if sys.platform == 'win32':
+        pip_path = join(prefix, 'Scripts', 'pip-script.py')
+        py_path = join(prefix, 'python.exe')
+    else:
+        pip_path = join(prefix, 'bin', 'pip')
+        py_path = join(prefix, 'bin', 'python')
+    if isfile(pip_path) and isfile(py_path):
+        return [py_path, pip_path]
+    else:
+        return None
 
+
+def add_pip_installed(prefix, installed):
     args = pip_args(prefix)
     if args is None:
         return
