@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
-from os.path import isdir, join
+from os.path import isdir, join, abspath
 
 from conda.cli.common import find_prefix_name
 
@@ -22,7 +22,7 @@ activate' from PATH. """)
 
 def prefix_from_arg(arg):
     if os.sep in arg:
-        return arg
+        return abspath(arg)
     prefix = find_prefix_name(arg)
     if prefix is None:
         sys.exit('Error: could not find environment: %s' % arg)
@@ -34,7 +34,6 @@ def binpath_from_arg(arg):
     if not isdir(path):
         sys.exit("Error: no such directory: %s" % path)
     return path
-
 
 def main():
     if '-h' in sys.argv or '--help' in sys.argv:
