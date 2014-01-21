@@ -44,6 +44,14 @@ class ArgumentParser(argparse.ArgumentParser):
                 m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
                 if m:
                     cmd = m.group(1)
+                    executable = find_executable(cmd)
+                    if not executable:
+                        if cmd == 'build':
+                            sys.exit("""\
+Error: You need to install conda-build in order to use the 'conda build'
+       command.
+""")
+                        sys.exit("Error: Could not locate 'conda-%s'" % cmd)
                     args = [find_executable(cmd)]
                     args.extend(sys.argv[2:])
                     sys.exit(subprocess.call(args))
