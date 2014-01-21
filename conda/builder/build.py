@@ -187,7 +187,7 @@ def build(m, get_src=True, pypi=False):
             if isinstance(script, list): script = '\n'.join(script)
             with open(build_file, 'w') as bf:
                 bf.write(script)
-            os.chmod(build_file, 0766)
+            os.chmod(build_file, 0o766)
         cmd = ['/bin/bash', '-x', '-e', build_file]
         _check_call(cmd, env=env, cwd=source.get_dir())
 

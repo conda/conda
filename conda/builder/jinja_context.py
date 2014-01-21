@@ -3,6 +3,8 @@ Created on Jan 16, 2014
 
 @author: sean
 '''
+from __future__ import print_function
+
 import os
 from conda.builder import environ
 import json
@@ -20,7 +22,7 @@ def load_setuptools():
         #Patch setuptools
         setuptools_setup = setuptools.setup
         setuptools.setup = setup
-        execfile('setup.py')
+        exec(open('setup.py').read())
         setuptools.setup = setuptools_setup
     
     return _setuptools_data
