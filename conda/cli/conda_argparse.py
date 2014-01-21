@@ -29,7 +29,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def error(self, message):
         import re
-        from difflib import get_close_matches
+        import subprocess
+        from conda.cli.find_commands import find_executable
 
         exc = sys.exc_info()[1]
         if exc:
@@ -43,13 +44,9 @@ class ArgumentParser(argparse.ArgumentParser):
                 m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
                 if m:
                     cmd = m.group(1)
-                    message = "%r is not a conda command, see 'conda -h'" % cmd
-                    close = get_close_matches(cmd, argument.choices.keys())
-                    if close:
-                        message += '\n\nDid you mean one of these?\n'
-                        for s in close:
-                            message += '    %s' % s
-                        message += "\n"
+                    args = [find_executable(cmd)]
+                    args.extend(sys.argv[2:])
+                    sys.exit(subprocess.call(args))
 
         super(ArgumentParser, self).error(message)
 
