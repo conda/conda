@@ -43,7 +43,7 @@ import sys
 import argparse
 
 from conda.cli import conda_argparse
-from conda.cli import main_build
+#from conda.cli import main_build
 from conda.cli import main_bundle
 from conda.cli import main_create
 from conda.cli import main_help
@@ -154,7 +154,7 @@ In short:
     main_config.configure_parser(sub_parsers)
     main_init.configure_parser(sub_parsers)
     main_clean.configure_parser(sub_parsers)
-    main_build.configure_parser(sub_parsers)
+    #main_build.configure_parser(sub_parsers)
     main_skeleton.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_bundle.configure_parser(sub_parsers)
