@@ -25,7 +25,6 @@ from conda.builder.scripts import create_entry_points, bin_dirname
 from conda.builder.post import (post_process, post_build, is_obj,
                                 fix_permissions)
 from conda.builder.utils import rm_rf, _check_call
-from conda.builder.index import update_index
 from conda.builder.create_test import create_files
 
 
