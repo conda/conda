@@ -178,12 +178,12 @@ Error: environment does not exist: %s
         try:
             from conda_build import config as build_config
         except ImportError:
-            build_config = None
-        if build_config:
-            # remove the cache such that a refetch is made,
-            # this is necessary because we add the local build repo URL
-            fetch_index.cache = {}
-            index = get_index([url_path(build_config.croot)])
+            sys.exit("Error: you need to have 'conda-build' installed"
+                     " to use the --use-local option")
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = get_index([url_path(build_config.croot)])
 
     actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
