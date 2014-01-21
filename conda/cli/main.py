@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -47,7 +47,6 @@ from conda.cli import conda_argparse
 from conda.cli import main_bundle
 from conda.cli import main_create
 from conda.cli import main_help
-from conda.cli import main_index
 from conda.cli import main_init
 from conda.cli import main_info
 from conda.cli import main_install
@@ -158,7 +157,6 @@ In short:
     #main_skeleton.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_bundle.configure_parser(sub_parsers)
-    main_index.configure_parser(sub_parsers)
     #main_convert.configure_parser(sub_parsers)
 
     try:
