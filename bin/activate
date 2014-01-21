@@ -18,6 +18,11 @@ else
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
 
+# http://stackoverflow.com/a/21188136/161801
+get_abs_filename() {
+    echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
+
 if [[ -n $CONDA_DEFAULT_ENV ]]; then
     if $_THIS_DIR/conda ..checkenv "$@"; then
         _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
@@ -34,7 +39,7 @@ fi
 _NEW_PATH=$($_THIS_DIR/conda ..activate "$@")
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
-    export CONDA_DEFAULT_ENV="$@"
+    export CONDA_DEFAULT_ENV=$(get_abs_filename "$@")
     if (( $($_THIS_DIR/conda ..changeps1) ));  then
         CONDA_OLD_PS1="$PS1"
         PS1="($CONDA_DEFAULT_ENV)$PS1"
