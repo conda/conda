@@ -53,11 +53,8 @@ def add_parser_quiet(p):
         help = "do not display progress bar",
     )
 
-def add_parser_channels(p, dashc=True):
-    channel_args = ("--channel",)
-    if dashc:
-        channel_args = ('-c',) + channel_args
-    p.add_argument(*channel_args,
+def add_parser_channels(p):
+    p.add_argument('-c', '--channel',
         action = "append",
         help = """additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
