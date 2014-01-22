@@ -59,11 +59,12 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '--platform',
-        action='append',
-        dest='platforms',
-        help="""Include additional platforms. Platforms should be formatted
-    like 'osx-64', 'linux-32', 'win-64', and so on.""",
+        action='store',
+        dest='platform',
+        help="""Search the given platform. Should be formatted like 'osx-64', 'linux-32',
+        'win-64', and so on. The default is to search the current platform.""",
         choices=Platforms(),
+        default=None,
         )
     p.add_argument(
         'regex',
@@ -106,11 +107,11 @@ def execute(args, parser):
         linked = install.linked(prefix)
 
     # XXX: Make this work with more than one platform
-    platform = None if not args.platforms else args.platforms[0]
+    platform = args.platform or ''
     common.ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
-        args.override_channels, platform=platform)
+        args.override_channels, platform=args.platform)
 
     r = Resolve(index)
     for name in sorted(r.groups):
@@ -137,11 +138,11 @@ def execute(args, parser):
                 print(dist)
                 continue
             inst = '*' if dist in linked else ' '
-            print('%-25s %s  %-15s %15s  %s %s' % (
+            print('%-25s %s  %-15s %15s  %-15s %s %s' % (
                 disp_name, inst,
                 pkg.version,
                 r.index[pkg.fn]['build'],
                 canonical_channel_name(pkg.channel),
-                common.disp_features(r.features(pkg.fn)),
+                common.disp_features(r.features(pkg.fn)), platform,
                 ))
             disp_name = ''
