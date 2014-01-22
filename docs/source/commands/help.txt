@@ -1,9 +1,0 @@
-Displays a list of available conda commands and their help strings.
-
-**usage**: ``conda help [-h] [COMMAND]``
-
-*COMMAND*
-        print help information for COMMAND (same as: conda COMMAND -h)
-
-optional arguments:
-  -h, --help  show this help message and exit
