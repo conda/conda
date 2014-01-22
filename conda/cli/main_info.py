@@ -6,6 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+from os.path import isfile
+
 from conda.cli import common
 
 
@@ -38,11 +40,11 @@ def configure_parser(sub_parsers):
         help = "list environment variables",
     )
     p.add_argument(
-        'pkg_names',
-        metavar = 'package_name',
+        'args',
+        metavar = 'args',
         action = "store",
         nargs = '*',
-        help = "display information about packages",
+        help = "display information about packages or files",
     )
     p.set_defaults(func=execute)
 
@@ -67,9 +69,15 @@ def show_pkg_info(name):
 
 
 def execute(args, parser):
-    if args.pkg_names:
-        for pkg_name in args.pkg_names:
-            show_pkg_info(pkg_name)
+    if args.args:
+        for arg in args.args:
+            if isfile(arg):
+                from conda.packup import which_package
+                path = arg
+                for dist in which_package(path):
+                    print('%-50s  %s' % (path, dist))
+            else:
+                show_pkg_info(arg)
         return
 
     import os
