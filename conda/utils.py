@@ -63,6 +63,7 @@ class memoized(object):
             return value
 
 
+# For instance methods only
 class memoize(object): # 577452
     def __init__(self, func):
         self.func = func
