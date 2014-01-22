@@ -52,6 +52,16 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+# XXX: Should this go in the library code somewhere:
+def canonical_channel_name(channel):
+    if channel.startswith('https://conda.binstar.org/'):
+        return channel.split('https://conda.binstar.org/', 1)[1].split('/')[0]
+    elif (channel.startswith('http://repo.continuum.io/') or
+        channel.startswith('https://repo.continuum.io/')):
+        return 'defaults'
+    else:
+        return channel
+
 def execute(args, parser):
     import re
 
@@ -99,9 +109,11 @@ def execute(args, parser):
                 print(dist)
                 continue
             inst = '*' if dist in linked else ' '
-            print('%-25s %s  %-15s %15s  %s' % (
-                    disp_name, inst,
-                    pkg.version,
-                    r.index[pkg.fn]['build'],
-                    common.disp_features(r.features(pkg.fn))))
+            print('%-25s %s  %-15s %15s  %s %s' % (
+                disp_name, inst,
+                pkg.version,
+                r.index[pkg.fn]['build'],
+                canonical_channel_name(pkg.channel),
+                common.disp_features(r.features(pkg.fn)),
+                ))
             disp_name = ''
