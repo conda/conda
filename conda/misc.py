@@ -81,6 +81,38 @@ def untracked(prefix, exclude_self_build=False):
                      (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
+def which_prefix(path):
+    """
+    given the path (to a (presumably) conda installed file) return the
+    environment prefix in which the file in located
+    """
+    prefix = abspath(path)
+    while True:
+        if isdir(join(prefix, 'conda-meta')):
+            # we found the it, so let's return it
+            return prefix
+        if prefix == dirname(prefix):
+            # we cannot chop off any more directories, so we didn't find it
+            return None
+        prefix = dirname(prefix)
+
+
+def which_package(path):
+    """
+    given the path (of a (presumably) conda installed file) iterate over
+    the conda packages the file came from.  Usually the iteration yields
+    only one package.
+    """
+    path = abspath(path)
+    prefix = which_prefix(path)
+    if prefix is None:
+        raise RuntimeError("could not determine conda prefix from: %s" % path)
+    for dist in install.linked(prefix):
+        meta = install.is_linked(prefix, dist)
+        if any(abspath(join(prefix, f)) == path for f in meta['files']):
+            yield dist
+
+
 def discard_conda(dists):
     return [dist for dist in dists if not install.name_dist(dist) == 'conda']
 
