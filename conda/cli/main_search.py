@@ -19,6 +19,20 @@ examples:
 
 '''
 
+class Platforms(object):
+    """
+    Tab completion for platforms
+
+    There is no limitation on the platform string, except by what is in the
+    repo, but we want to tab complete the most common ones.
+    """
+    def __contains__(self, other):
+        return True
+
+    def __iter__(self):
+        for i in ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']:
+            yield i
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'search',
@@ -43,6 +57,14 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         help    = "Show available packages as blocks of data",
     )
+    p.add_argument(
+        '--platform',
+        action='append',
+        dest='platforms',
+        help="""Include additional platforms. Platforms should be formatted
+    like 'osx-64', 'linux-32', 'win-64', and so on.""",
+        choices=Platforms(),
+        )
     p.add_argument(
         'regex',
         action  = "store",
@@ -83,10 +105,12 @@ def execute(args, parser):
     if not args.canonical:
         linked = install.linked(prefix)
 
+    # XXX: Make this work with more than one platform
+    platform = None if not args.platforms else args.platforms[0]
     common.ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
-        args.override_channels)
+        args.override_channels, platform=platform)
 
     r = Resolve(index)
     for name in sorted(r.groups):

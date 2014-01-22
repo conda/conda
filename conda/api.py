@@ -21,13 +21,15 @@ def _fn2spec(fn):
     return ' '.join(fn[:-8].rsplit('-', 2))
 
 
-def get_index(channel_urls=(), prepend=True):
+def get_index(channel_urls=(), prepend=True, platform=None):
     """
     Return the index of packages available on the channels
 
     If prepend=False, only the channels passed in as arguments are used.
+
+    If platform=None, then the current platform is used.
     """
-    channel_urls = config.normalize_urls(channel_urls)
+    channel_urls = config.normalize_urls(channel_urls, platform=platform)
     if prepend:
         channel_urls += config.get_channel_urls()
     return fetch_index(tuple(channel_urls))
