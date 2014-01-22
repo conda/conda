@@ -55,10 +55,9 @@ def filter_descr(cmd):
     except subprocess.CalledProcessError:
         print('failed: %s' % (' '.join(args)))
         return
-    try:
-        descr = output.decode('utf-8').split('\n\n')[1]
-    except IndexError:
-        descr = '<could not extract description>'
+    pat = re.compile(r'(\r?\n){2}(.*?)(\r?\n){2}')
+    m = pat.search(output.decode('utf-8'))
+    descr = '<could not extract description>' if m is None else m.group(2)
     print('    %-12s %s' % (cmd, descr))
 
 
