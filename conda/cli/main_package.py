@@ -71,7 +71,7 @@ def execute(args, parser):
         from conda.misc import which_package
 
         for path in args.path:
-            for dist in  which_package(path):
+            for dist in which_package(path):
                 print('%-50s  %s' % (path, dist))
         return
 
