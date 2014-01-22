@@ -1,5 +1,0 @@
------
-index
------
-
-.. include:: index.txt
