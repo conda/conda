@@ -11,7 +11,7 @@ import shutil
 import hashlib
 import tarfile
 import tempfile
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join
+from os.path import basename, dirname, isfile, islink, join
 
 import conda.config as config
 import conda.install as install
@@ -165,38 +165,6 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
     print('# success')
     print(tarbz2_fn)
     return tarbz2_fn
-
-
-def which_prefix(path):
-    """
-    given the path (to a (presumably) conda installed file) return the
-    environment prefix in which the file in located
-    """
-    prefix = abspath(path)
-    while True:
-        if isdir(join(prefix, 'conda-meta')):
-            # we found the it, so let's return it
-            return prefix
-        if prefix == dirname(prefix):
-            # we cannot chop off any more directories, so we didn't find it
-            return None
-        prefix = dirname(prefix)
-
-
-def which_package(path):
-    """
-    given the path (of a (presumably) conda installed file) iterate over
-    the conda packages the file came from.  Usually the iteration yields
-    only one package.
-    """
-    path = abspath(path)
-    prefix = which_prefix(path)
-    if prefix is None:
-        raise RuntimeError("could not determine conda prefix from: %s" % path)
-    for dist in install.linked(prefix):
-        meta = install.is_linked(prefix, dist)
-        if any(abspath(join(prefix, f)) == path for f in meta['files']):
-            yield dist
 
 
 if __name__ == '__main__':

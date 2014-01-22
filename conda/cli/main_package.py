@@ -68,7 +68,7 @@ def execute(args, parser):
     prefix = common.get_prefix(args)
 
     if args.which:
-        from conda.packup import which_package
+        from conda.misc import which_package
 
         for path in args.path:
             for dist in  which_package(path):

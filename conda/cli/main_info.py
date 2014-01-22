@@ -72,7 +72,7 @@ def execute(args, parser):
     if args.args:
         for arg in args.args:
             if isfile(arg):
-                from conda.packup import which_package
+                from conda.misc import which_package
                 path = arg
                 for dist in which_package(path):
                     print('%-50s  %s' % (path, dist))
