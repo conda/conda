@@ -8,7 +8,7 @@
   * allow changing location of .condarc file using the CONDARC environment
     variable
   * limited pip integration to `conda list`
-
+  * conda search now shows the channel that the package comes from
 
 2014-01-17   2.3.1:
 -------------------
