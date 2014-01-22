@@ -59,6 +59,8 @@ def canonical_channel_name(channel):
         return channel.split(channel_alias, 1)[1].split('/')[0]
     elif any(channel.startswith(i) for i in config.get_default_urls()):
         return 'defaults'
+    elif channel.startswith('http://filer/'):
+        return 'filer'
     else:
         return channel
 
