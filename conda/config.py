@@ -176,7 +176,8 @@ def get_rc_urls():
 def is_url(url):
     return urlparse.urlparse(url).scheme != ""
 
-def normalize_urls(urls):
+def normalize_urls(urls, platform=None):
+    platform = platform or subdir
     newurls = []
     for url in urls:
         if url == "defaults":
@@ -187,10 +188,11 @@ def normalize_urls(urls):
             else:
                 newurls.extend(normalize_urls(get_rc_urls()))
         elif not is_url(url):
-            moreurls = normalize_urls([rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)+url])
+            moreurls = normalize_urls([rc.get('channel_alias',
+                DEFAULT_CHANNEL_ALIAS)+url], platform=platform)
             newurls.extend(moreurls)
         else:
-            newurls.append('%s/%s/' % (url.rstrip('/'), subdir))
+            newurls.append('%s/%s/' % (url.rstrip('/'), platform))
     return newurls
 
 def get_channel_urls():
