@@ -9,7 +9,7 @@ from __future__ import print_function, division, absolute_import
 from conda.cli import common
 
 
-descr = "Low-level conda package utility. (ADVANCED)"
+descr = "Low-level conda package utility. (EXPERIMENTAL)"
 
 
 def configure_parser(sub_parsers):
