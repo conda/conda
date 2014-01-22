@@ -10,7 +10,9 @@ from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 from conda import config
 
-descr = "Search for packages and display their information."
+descr = """Search for packages and display their information. The input is a
+regular expression.  To perform a search with a search string that starts with
+a -, separate the search from the options with --, like 'conda search -- -h'."""
 example = '''
 examples:
     conda search -p ~/anaconda/envs/myenv/ scipy
