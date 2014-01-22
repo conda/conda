@@ -255,7 +255,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     else:
         # discard conda from other environments
         if 'conda' in must_have:
-            del must_have['conda']
+            sys.exit("Error: 'conda' can only be installed into "
+                     "root environment")
 
     smh = sorted(must_have.values())
     if force:
