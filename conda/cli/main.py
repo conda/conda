@@ -185,7 +185,7 @@ In short:
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 
-    https://github.com/pydata/conda/issues
+    https://github.com/conda/conda/issues
 
 Include the output of the command 'conda info' in your report.
 
