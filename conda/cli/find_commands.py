@@ -6,7 +6,7 @@ import sys
 import subprocess
 from os.path import isdir, isfile, join
 
-
+from conda.utils import memoized
 
 if sys.platform == 'win32':
     dir_paths = [join(sys.prefix, 'Scripts')]
@@ -30,7 +30,7 @@ def find_executable(cmd):
                 return path
     return None
 
-
+@memoized
 def find_commands():
     if sys.platform == 'win32':
         pat = re.compile(r'conda-(\w+)\.(exe|bat)$')
