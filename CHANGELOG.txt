@@ -5,7 +5,8 @@
   * add ability to call sub-commands named 'conda-x'
   * The -c flag to conda search is now shorthand for --channel, not
     --canonical (this is to be consistent with other conda commands)
-  * allow changing location of .condarc file using CONDARC environment variable
+  * allow changing location of .condarc file using the CONDARC environment
+    variable
 
 
 2014-01-17   2.3.1:
