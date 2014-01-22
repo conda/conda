@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
-
+from conda import config
 
 descr = "Search for packages and display their information."
 example = '''
@@ -54,10 +54,10 @@ def configure_parser(sub_parsers):
 
 # XXX: Should this go in the library code somewhere:
 def canonical_channel_name(channel):
-    if channel.startswith('https://conda.binstar.org/'):
-        return channel.split('https://conda.binstar.org/', 1)[1].split('/')[0]
-    elif (channel.startswith('http://repo.continuum.io/') or
-        channel.startswith('https://repo.continuum.io/')):
+    channel_alias = config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS)
+    if channel.startswith(channel_alias):
+        return channel.split(channel_alias, 1)[1].split('/')[0]
+    elif any(channel.startswith(i) for i in config.get_default_urls()):
         return 'defaults'
     else:
         return channel
