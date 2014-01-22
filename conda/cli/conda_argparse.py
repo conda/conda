@@ -9,6 +9,9 @@ from __future__ import print_function, division, absolute_import
 import sys
 import argparse
 
+from difflib import get_close_matches
+
+build_commands = ['build', 'index', 'skeleton', 'package']
 
 class ArgumentParser(argparse.ArgumentParser):
     def _get_action_from_name(self, name):
@@ -46,12 +49,19 @@ class ArgumentParser(argparse.ArgumentParser):
                     cmd = m.group(1)
                     executable = find_executable(cmd)
                     if not executable:
-                        if cmd in ('build', 'index', 'skeleton', 'package'):
+                        if cmd in build_commands:
                             sys.exit("""\
 Error: You need to install conda-build in order to use the 'conda %s'
        command.
 """ % cmd)
-                        sys.exit("Error: Could not locate 'conda-%s'" % cmd)
+                    message = "Error: Could not locate 'conda-%s'" % cmd
+                    # TODO: Include conda-command
+                    close = get_close_matches(cmd, list(argument.choices.keys()) + build_commands)
+                    if close:
+                        message += '\n\nDid you mean one of these?\n'
+                        for s in close:
+                            message += '    %s' % s
+                    sys.exit(message)
                     args = [find_executable(cmd)]
                     args.extend(sys.argv[2:])
                     sys.exit(subprocess.call(args))
