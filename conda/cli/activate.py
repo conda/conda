@@ -7,7 +7,9 @@ from os.path import isdir, join, abspath
 from conda.cli.common import find_prefix_name
 
 def help():
-    if sys.argv[1] == '..activate':
+    # sys.argv[1] will be ..checkenv in activate if an environment is already
+    # activated
+    if sys.argv[1] in ('..activate', '..checkenv'):
         sys.exit("""Usage: source activate ENV
 
 adds the 'bin' directory of the environment ENV to the front of PATH.
