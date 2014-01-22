@@ -74,6 +74,7 @@ class Package(object):
         self.version = info['version']
         self.build_number = info['build_number']
         self.build = info['build']
+        self.channel = info['channel']
 
         v = self.version
         v = v.replace('rc', '.dev99999')
