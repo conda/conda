@@ -7,6 +7,7 @@
     --canonical (this is to be consistent with other conda commands)
   * allow changing location of .condarc file using the CONDARC environment
     variable
+  * limited pip integration to `conda list`
 
 
 2014-01-17   2.3.1:
