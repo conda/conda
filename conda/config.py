@@ -62,6 +62,7 @@ rc_bool_keys = [
     'use_pip',
     'binstar_upload',
     'binstar_personal',
+    'build_remove_la_files'
     ]
 
 # Not supported by conda config yet
@@ -69,7 +70,6 @@ rc_other = [
     'proxy_servers',
     'root_dir',
     'channel_alias',
-    'build_remove_la_files'
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
