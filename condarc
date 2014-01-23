@@ -59,3 +59,10 @@ disallow:
 # enable certain features to be tracked by default
 track_features:
   - mkl
+
+
+# --- only conda-build related
+
+# MAKEFLAGS: e.g. multi-core enviroment option for build.sh
+#     gnu make multi-core compile option: -j [N], --jobs[=N]  
+build_makeflags: "-j 4"

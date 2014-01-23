@@ -68,7 +68,8 @@ rc_bool_keys = [
 rc_other = [
     'proxy_servers',
     'root_dir',
-    'channel_alias'
+    'channel_alias',
+    'build_makeflags'
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -239,3 +240,5 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 track_features = set(rc.get('track_features', '').split())
+# --- only conda-build related
+build_makeflags = rc.get('build_makeflags', None)
