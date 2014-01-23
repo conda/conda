@@ -62,6 +62,7 @@ rc_bool_keys = [
     'use_pip',
     'binstar_upload',
     'binstar_personal',
+    'build_no_rpath', 
     ]
 
 # Not supported by conda config yet
@@ -239,3 +240,5 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 track_features = set(rc.get('track_features', '').split())
+# --- only conda-build related
+build_no_rpath = bool(rc.get('build_no_rpath', False))
