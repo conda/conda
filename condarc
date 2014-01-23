@@ -63,6 +63,6 @@ track_features:
 
 # --- only conda-build related
 
-# this chould be set to False and only in special cases set to if True
+# this chould be set to False and only in special cases set to True
 #   if True: the automatic post: mk_relative: rpath is skipped  
 build_no_rpath: False
