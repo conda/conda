@@ -138,11 +138,11 @@ def execute(args, parser):
                 print(dist)
                 continue
             inst = '*' if dist in linked else ' '
-            print('%-25s %s  %-15s %15s  %-15s %s %s' % (
+            print('%-25s %s  %-15s %15s  %-15s %s' % (
                 disp_name, inst,
                 pkg.version,
                 r.index[pkg.fn]['build'],
                 canonical_channel_name(pkg.channel),
-                common.disp_features(r.features(pkg.fn)), platform,
+                common.disp_features(r.features(pkg.fn)),
                 ))
             disp_name = ''
