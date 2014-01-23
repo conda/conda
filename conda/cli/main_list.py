@@ -84,11 +84,7 @@ def add_pip_installed(prefix, installed):
         pipinst = subprocess.check_output(args).split('\n')
     except Exception as e:
         # Any error should just be ignored
-        print("""\
-# Warning: Your version of pip is older than what conda requires for pip
-# integration, so pip-installed packages will not be displayed.  Please
-# update pip, (conda update pip -p %s)
-""" % prefix)
+        print("# Warning: subprocess call to pip failed")
         return
 
     # For every package in pipinst that is not already represented
