@@ -1,7 +1,7 @@
 @echo off
 
 for /f %%i in ("%~dp0..\envs") do (
-    set ANACONDA_ENVS=%%~fi
+    set ANACONDA_ENVS="%%~fi"
 )
 
 if not "%1" == "" goto skipmissingarg
