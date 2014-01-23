@@ -181,12 +181,12 @@ def normalize_urls(urls, platform=None):
     newurls = []
     for url in urls:
         if url == "defaults":
-            newurls.extend(normalize_urls(get_default_urls()))
+            newurls.extend(normalize_urls(get_default_urls(), platform=platform))
         elif url == "system":
             if not rc_path:
-                newurls.extend(normalize_urls(get_default_urls()))
+                newurls.extend(normalize_urls(get_default_urls(), platform=platform))
             else:
-                newurls.extend(normalize_urls(get_rc_urls()))
+                newurls.extend(normalize_urls(get_rc_urls(), platform=platform))
         elif not is_url(url):
             moreurls = normalize_urls([rc.get('channel_alias',
                 DEFAULT_CHANNEL_ALIAS)+url], platform=platform)
@@ -195,7 +195,7 @@ def normalize_urls(urls, platform=None):
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
     return newurls
 
-def get_channel_urls():
+def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
@@ -208,7 +208,7 @@ def get_channel_urls():
     else:
         base_urls = get_rc_urls()
 
-    return normalize_urls(base_urls)
+    return normalize_urls(base_urls, platform=platform)
 
 # ----- proxy -----
 
