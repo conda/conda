@@ -26,7 +26,6 @@ def get_index(channel_urls=(), prepend=True, platform=None):
     Return the index of packages available on the channels
 
     If prepend=False, only the channels passed in as arguments are used.
-
     If platform=None, then the current platform is used.
     """
     channel_urls = config.normalize_urls(channel_urls, platform=platform)
