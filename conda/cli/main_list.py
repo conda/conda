@@ -110,7 +110,7 @@ def add_pip_installed(prefix, installed):
             installed.add('%s-%s-<pip>' % (name, version))
 
 
-def list_packages(prefix, regex=None, format='human', piplist=True):
+def list_packages(prefix, regex=None, format='human', piplist=False):
     if not isdir(prefix):
         sys.exit("""\
 Error: environment does not exist: %s
