@@ -4,6 +4,8 @@ for /f %%i in ("%~dp0..\envs") do (
     set ANACONDA_ENVS="%%~fi"
 )
 
+echo test
+
 if not "%1" == "" goto skipmissingarg
     echo Usage: activate envname
     echo.
