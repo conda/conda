@@ -56,15 +56,16 @@ class ArgumentParser(argparse.ArgumentParser):
 Error: You need to install conda-build in order to use the 'conda %s'
        command.
 """ % cmd)
-                    message = "Error: Could not locate 'conda-%s'" % cmd
-                    conda_commands = set(find_commands())
-                    close = get_close_matches(cmd,
-                        set(argument.choices.keys()) | build_commands | conda_commands)
-                    if close:
-                        message += '\n\nDid you mean one of these?\n'
-                        for s in close:
-                            message += '    %s' % s
-                    sys.exit(message)
+                        else:
+                            message = "Error: Could not locate 'conda-%s'" % cmd
+                            conda_commands = set(find_commands())
+                            close = get_close_matches(cmd,
+                                set(argument.choices.keys()) | build_commands | conda_commands)
+                            if close:
+                                message += '\n\nDid you mean one of these?\n'
+                                for s in close:
+                                    message += '    %s' % s
+                            sys.exit(message)
                     args = [find_executable(cmd)]
                     args.extend(sys.argv[2:])
                     sys.exit(subprocess.call(args))
