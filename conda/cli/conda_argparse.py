@@ -13,7 +13,7 @@ from difflib import get_close_matches
 
 from conda.cli.find_commands import find_commands
 
-build_commands = ['build', 'index', 'skeleton', 'package']
+build_commands = {'build', 'index', 'skeleton', 'package'}
 
 class ArgumentParser(argparse.ArgumentParser):
     def _get_action_from_name(self, name):
@@ -57,9 +57,9 @@ Error: You need to install conda-build in order to use the 'conda %s'
        command.
 """ % cmd)
                     message = "Error: Could not locate 'conda-%s'" % cmd
-                    conda_commands = find_commands()
+                    conda_commands = set(find_commands())
                     close = get_close_matches(cmd,
-                        list(argument.choices.keys()) + build_commands + conda_commands)
+                        set(argument.choices.keys()) | build_commands | conda_commands)
                     if close:
                         message += '\n\nDid you mean one of these?\n'
                         for s in close:
