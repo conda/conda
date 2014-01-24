@@ -1,0 +1,14 @@
+Remove unused packages and caches
+
+**usage**: ``conda clean [-h] [--yes] [--dry-run] [-i] [-l] [-t]``
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --yes              do not ask for confirmation
+  --dry-run          only display what would have been done
+  -i, --index-cache  remove index cache
+  -l, --lock         remove all conda lock files
+  -t, --tarballs     remove cached package tarballs
+
+examples:
+    conda clean --tarballs

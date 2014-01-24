@@ -1,0 +1,20 @@
+Search for packages and display their information.
+
+**usage**: ``conda search [-h] [-n NAME | -p PATH] [-c] [-o] [-v] [--channel CHANNEL] [--override-channels] [regex]``
+
+*regex*
+        package specification or regular expression to search for (default: display all packages)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  name of environment (in ROOT_DIR/envs)
+  -p PATH, --prefix PATH
+                        full path to environment prefix (default: ROOT_DIR)
+  -c, --canonical       output canonical names of packages only
+  -o, --outdated        only display installed but outdated packages
+  -v, --verbose         Show available packages as blocks of data
+  --channel CHANNEL     additional channel to search for packages. These are URLs searched in the order they are given (including file:// for local directories). Then, the defaults or channels from .condarc are searched (unless --override-channels is given). You can use 'defaults' to get the default packages for conda, and 'system' to get the system packages, which also takes .condarc into account. You can also use any name and the .condarc channel_alias value will be prepended. The default channel_alias is http://conda.binstar.org/
+  --override-channels   Do not search default or .condarc channels. Requires --channel.
+
+examples:
+    conda search -p ~/anaconda/envs/myenv/ scipy

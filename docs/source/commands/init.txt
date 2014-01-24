@@ -1,0 +1,6 @@
+Initialize conda into a regular environment (when conda was installed as a Python package, e.g. using pip).
+
+**usage**: ``conda init [-h]``
+
+optional arguments:
+  -h, --help  show this help message and exit
