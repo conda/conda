@@ -10,21 +10,14 @@ Contents:
    :maxdepth: 2
 
    commands/build
-   commands/clone
    commands/config
    commands/create
-   commands/depends
-   commands/env
-   commands/help
    commands/index
    commands/info
    commands/install
-   commands/launch
    commands/list
-   commands/local
    commands/package
    commands/remove
    commands/search_
-   commands/share
    commands/skeleton
    commands/update

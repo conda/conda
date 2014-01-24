@@ -12,4 +12,4 @@ Contents:
    examples/information
    examples/basic
    examples/advanced
-   .. examples/packaging
+   examples/packaging

@@ -5,5 +5,6 @@ skeleton
 --------
 
 .. include:: skeleton.txt
+   :code:
 
 .. Look here for more :ref:`examples <skeleton_example>`

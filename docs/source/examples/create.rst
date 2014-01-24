@@ -64,7 +64,8 @@ We'll start with an environment created in a specific path (`~/anaconda/envs/tes
 
 
 In this next example, rather than selecting an environment directory with a prefix, we will use the name option (``-n/--name``).
-This will create an environment in the default `Anaconda/envs` **ROOT_DIR** (which can be displayed by using conda's :ref:`info --locations <locations_example>` option),
+This will create an environment in the default `Anaconda/envs` **ROOT_DIR**
+(which can be displayed by using ``conda info``),
 where it will be discoverable by using conda's
 :ref:`info --envs <envs_example>` option.
 

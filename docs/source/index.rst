@@ -12,7 +12,8 @@ The `conda` command is the primary interface for managing `Anaconda <http://docs
 
 
 Installation
------------
+------------
+
 conda is a part of the Anaconda distribution which can be downloaded `here <https://store.continuum.io/cshop/anaconda/>`_.
 
 

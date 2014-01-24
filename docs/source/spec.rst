@@ -42,7 +42,7 @@ following keys:
 
    ``version``: string
       The package version, which may not contain ``-``.
-      Conda acknowledges `PEP 386<http://www.python.org/dev/peps/pep-0386/>`_.
+      Conda acknowledges `PEP 386 <http://www.python.org/dev/peps/pep-0386/>`_.
 
    ``build``: string
       The build string, which also may not contain ``-``.
