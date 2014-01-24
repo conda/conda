@@ -171,7 +171,7 @@ def fetch_pkg(info, dst_dir=None):
             fi.close()
             getLogger('fetch.stop').info(None)
             if h.hexdigest() != info['md5']:
-                raise RuntimeError("MD5 sums mismatch for download: %s" % fn)
+                raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
             try:
                 os.rename(pp, path)
             except OSError:
