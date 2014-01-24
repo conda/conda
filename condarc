@@ -59,3 +59,9 @@ disallow:
 # enable certain features to be tracked by default
 track_features:
   - mkl
+
+
+# --- only conda-build related
+
+#   if True: new .la files will be removed  before the conda package is done
+build_remove_la_files: True

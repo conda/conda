@@ -62,13 +62,14 @@ rc_bool_keys = [
     'use_pip',
     'binstar_upload',
     'binstar_personal',
+    'build_remove_la_files'
     ]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
     'root_dir',
-    'channel_alias'
+    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -239,3 +240,5 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 track_features = set(rc.get('track_features', '').split())
+# --- only conda-build related
+build_remove_la_files = bool(rc.get('build_remove_la_files', False))
