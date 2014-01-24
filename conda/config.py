@@ -97,10 +97,6 @@ def load_condarc(path):
 
 rc = load_condarc(rc_path)
 
-wrong_keys = set(rc.keys()) - set(rc_list_keys + rc_bool_keys + rc_other)
-if wrong_keys:
-    print("Warning: Unrecognized key(s) in condarc (%s): %s" % (rc_path, wrong_keys))
-
 # ----- local directories -----
 
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
