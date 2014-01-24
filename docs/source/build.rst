@@ -124,18 +124,19 @@ Each element in the list of build and run-time requirements is a
 match specification, i.e. a string, which (when split by spaces)
 has 1, 2 or 3 parts:
 
-  * the first part is always the (exact) name
-  * the second part refers to the version, and may contain special characters
-      ``|`` means "or", e.g. ``1.0|1.`` matches either version 1.0 or 1.2
+* the first part is always the (exact) name
+* the second part refers to the version, and may contain special characters
 
-      ``*`` means (in terms of regex) ``r'.*'``
+  ``|`` means "or", e.g. ``1.0|1.`` matches either version 1.0 or 1.2
 
-    Example:
+  ``*`` means (in terms of regex) ``r'.*'``
 
-      ``1.0|1.4*``  matches 1.0, 1.4, 1.4.1b2, but not 1.2 (when there are 3
-      parts, the second part has to be the exact version)
+  Example:
 
-  * the third part is always the (exact) build string
+  ``1.0|1.4*``  matches 1.0, 1.4, 1.4.1b2, but not 1.2 (when there are 3
+  parts, the second part has to be the exact version)
+
+* the third part is always the (exact) build string
 
 
 Preprocessing selectors
