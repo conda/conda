@@ -105,7 +105,6 @@ def old_clone_bundle(path, prefix):
 
     actions = plan.ensure_linked_actions(dists, prefix)
     index = get_index()
-    plan.display_actions(actions, index)
-    plan.execute_actions(actions, index, verbose=True)
+    plan.execute_actions(actions, index, verbose=False)
 
     os.unlink(join(prefix, 'conda-meta', dist + '.json'))
