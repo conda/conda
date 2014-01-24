@@ -237,7 +237,7 @@ def post_link(prefix, dist, unlink=False):
         args = ['/bin/bash', path]
     env = os.environ
     env['PREFIX'] = prefix
-    env['PKG_NAME'], env['PKG_VERSION'], unused_build = dist.encode('utf8').rsplit('-', 2)
+    env['PKG_NAME'], env['PKG_VERSION'], unused_build = dist.rsplit('-', 2)
     subprocess.call(args, env=env)
 
 
