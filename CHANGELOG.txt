@@ -1,4 +1,4 @@
-2014-XX-XX   3.0.0:
+2014-01-24   3.0.0:
 -------------------
   * removed build, convert, index, and skeleton commands, which are now
     part of the conda-build project: https://github.com/conda/conda-build
