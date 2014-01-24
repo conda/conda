@@ -152,5 +152,13 @@ doctest:
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
+test:
+	rsync -rvzchP --delete-after -e ssh build/html/ pydata.org:/www/conda-test/docs/ && \
+	$(LAUNCH) http://conda-test.pydata.org/
+
+live:
+	rsync -rvzchP --delete-after -e ssh build/html/ pydata.org:/www/conda/docs/
+	$(LAUNCH) http://conda.pydata.org
+
 livehtml:
 	livereload -b build/html
