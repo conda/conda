@@ -234,4 +234,4 @@ allow_softlinks = bool(rc.get('allow_softlinks', True))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
-track_features = set(rc.get('track_features', '').split())
+track_features = set(rc.get('track_features', '').split()) or None
