@@ -12,6 +12,7 @@ install:
     fi
   - bash miniconda.sh -b
   - export PATH="$HOME/anaconda/bin:$PATH"
+  - hash -r
   - python setup.py install
   - conda install nose
 
