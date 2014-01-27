@@ -55,6 +55,30 @@ class TestConfig(unittest.TestCase):
                          {'http': 'http://user:pass@corp.com:8080',
                           'https': 'https://user:pass@corp.com:8080'})
 
+    def test_normalize_urls(self):
+        current_platform = config.subdir
+        assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.binstar.org/'
+        assert config.rc.get('channel_alias') == 'https://your.repo/'
+
+        for channel in config.normalize_urls(['defaults', 'system',
+            'https://binstar.org/username', 'file:///Users/username/repo',
+            'username']):
+            assert channel.endswith('/%s/' % current_platform)
+        self.assertEqual(config.normalize_urls([
+            'defaults', 'system', 'https://conda.binstar.org/username',
+            'file:///Users/username/repo', 'username'
+            ], 'osx-64'),
+            [
+                'http://repo.continuum.io/pkgs/free/osx-64/',
+                'http://repo.continuum.io/pkgs/pro/osx-64/',
+                'https://your.repo/binstar_username/osx-64/',
+                'http://some.custom/channel/osx-64/',
+                'http://repo.continuum.io/pkgs/free/osx-64/',
+                'http://repo.continuum.io/pkgs/pro/osx-64/',
+                'https://conda.binstar.org/username/osx-64/',
+                'file:///Users/username/repo/osx-64/',
+                'https://your.repo/username/osx-64/',
+                ])
 
 if __name__ == '__main__':
     unittest.main()
