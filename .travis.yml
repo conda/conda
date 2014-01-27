@@ -11,7 +11,7 @@ install:
       wget http://repo.continuum.io/miniconda/Miniconda3-3.0.0-Linux-x86_64.sh -O miniconda.sh;
     fi
   - bash miniconda.sh -b
-  - export PATH="$HOME/anaconda/bin:$PATH"
+  - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - python setup.py install
   - conda install nose
