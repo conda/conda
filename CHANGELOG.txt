@@ -1,3 +1,8 @@
+2014-XX-XX   3.0.1:
+-------------------
+  * bug: not having track_features in condarc now uses default again
+
+
 2014-01-24   3.0.0:
 -------------------
   * removed build, convert, index, and skeleton commands, which are now
