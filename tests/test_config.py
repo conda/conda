@@ -12,7 +12,7 @@ import conda.config as config
 
 
 # use condarc from source tree to run these tests against
-config.rc_path = join(dirname(dirname(__file__)), 'condarc')
+config.rc_path = join(dirname(__file__), 'condarc')
 
 # unset CIO_TEST
 
