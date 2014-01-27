@@ -26,6 +26,10 @@ class TestConfig(unittest.TestCase):
 
     # These tests are mostly to ensure API stability
 
+    def __init__(self, *args, **kwargs):
+        config.rc = config.load_condarc(config.rc_path)
+        super(TestConfig, self).__init__(*args, **kwargs)
+
     def test_globals(self):
         self.assertTrue(config.root_dir)
         self.assertTrue(config.pkgs_dirs)
@@ -47,8 +51,6 @@ class TestConfig(unittest.TestCase):
             self.assertEqual(config.pkgs_dir_prefix(pi), po)
 
     def test_proxy_settings(self):
-        # reload the config file
-        config.rc = config.load_condarc(config.rc_path)
         self.assertEqual(config.get_proxy_servers(),
                          {'http': 'http://user:pass@corp.com:8080',
                           'https': 'https://user:pass@corp.com:8080'})
