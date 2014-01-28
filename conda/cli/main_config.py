@@ -212,6 +212,10 @@ channels:
 
     # Add
     for key, item in args.add:
+        if item in rc_config[key]:
+            # Right now, all list keys should not contain duplicates
+            print("Skipping %s: %s, item already exists" % (key, item))
+            continue
         new_rc_config.setdefault(key, []).insert(0, item)
 
     # Set
@@ -255,10 +259,15 @@ channels:
         }
 
     new_rc_text = rc_text[:].split("\n")
+
     for key, item in args.add:
         if key not in config.rc_list_keys:
             sys.exit("Error: key must be one of %s, not %s" %
                      (config.rc_list_keys, key))
+
+        if item in rc_config[key]:
+            # Skip duplicates. See above
+            continue
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = listkeyregexes[key].match(line)
