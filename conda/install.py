@@ -225,6 +225,10 @@ def mk_menus(prefix, files, remove=False):
 
 
 def post_link(prefix, dist, unlink=False):
+    """
+    call the post-link (or pre-unlink) script, and return True on success,
+    False on failure
+    """
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
             name_dist(dist),
             'pre-unlink' if unlink else 'post-link',
@@ -237,8 +241,12 @@ def post_link(prefix, dist, unlink=False):
         args = ['/bin/bash', path]
     env = os.environ
     env['PREFIX'] = prefix
-    env['PKG_NAME'], env['PKG_VERSION'], unused_build = dist.rsplit('-', 2)
-    subprocess.call(args, env=env)
+    env['PKG_NAME'], env['PKG_VERSION'], unused_build = str(dist).rsplit('-', 2)
+    try:
+        subprocess.check_call(args, env=env)
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
 
 # ========================== begin API functions =========================
@@ -403,13 +411,19 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         for f in sorted(has_prefix_files):
             update_prefix(join(prefix, f), prefix)
 
+        mk_menus(prefix, files, remove=False)
+
+        if not post_link(prefix, dist):
+            # when the post-link step fails, we don't write any package
+            # metadata and return here.  This way the package is not
+            # considered installed.
+            return
+
         create_meta(prefix, dist, info_dir, {
                 'files': files,
                 'link': {'source': source_dir,
                          'type': link_name_map.get(linktype)},
                 })
-        mk_menus(prefix, files, remove=False)
-        post_link(prefix, dist)
 
 
 def unlink(prefix, dist):
