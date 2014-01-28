@@ -237,8 +237,12 @@ def post_link(prefix, dist, unlink=False):
         args = ['/bin/bash', path]
     env = os.environ
     env['PREFIX'] = prefix
-    env['PKG_NAME'], env['PKG_VERSION'], unused_build = dist.rsplit('-', 2)
-    subprocess.call(args, env=env)
+    env['PKG_NAME'], env['PKG_VERSION'], unused_build = str(dist).rsplit('-', 2)
+    try:
+        subprocess.check_call(args, env=env)
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
 
 # ========================== begin API functions =========================
@@ -403,13 +407,16 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         for f in sorted(has_prefix_files):
             update_prefix(join(prefix, f), prefix)
 
+        mk_menus(prefix, files, remove=False)
+
+        if not post_link(prefix, dist):
+            return
+
         create_meta(prefix, dist, info_dir, {
                 'files': files,
                 'link': {'source': source_dir,
                          'type': link_name_map.get(linktype)},
                 })
-        mk_menus(prefix, files, remove=False)
-        post_link(prefix, dist)
 
 
 def unlink(prefix, dist):
