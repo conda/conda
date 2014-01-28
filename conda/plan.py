@@ -67,6 +67,10 @@ def display_actions(actions, index=None):
                  ('%15s' % human_bytes(index[dist + '.tar.bz2']['size']))
                  if index else None)
                 for dist in actions[FETCH]])
+        if index:
+            print(' '*4 + '-'*60)
+            print(" "*43 + "Total: %14s" % human_bytes(sum(index[dist + '.tar.bz2']['size']
+                for dist in actions[FETCH])))
     if actions.get(UNLINK):
         print("\nThe following packages will be UN-linked:\n")
         print_dists([
