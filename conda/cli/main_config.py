@@ -213,7 +213,7 @@ channels:
 
     # Add
     for key, item in args.add:
-        if item in rc_config[key]:
+        if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
             print("Skipping %s: %s, item already exists" % (key, item))
             continue
@@ -266,7 +266,7 @@ channels:
             sys.exit("Error: key must be one of %s, not %s" %
                      (config.rc_list_keys, key))
 
-        if item in rc_config[key]:
+        if item in rc_config.get(key, []):
             # Skip duplicates. See above
             continue
         added = False
