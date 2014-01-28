@@ -27,6 +27,7 @@ def prefix_from_arg(arg):
         return abspath(arg)
     prefix = find_prefix_name(arg)
     if prefix is None:
+        print(os.getenv('PATH'))
         sys.exit('Error: could not find environment: %s' % arg)
     return prefix
 
