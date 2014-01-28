@@ -1,4 +1,6 @@
 import unittest
+import os
+import subprocess
 
 from conda.cli.common import arg2spec
 
@@ -18,6 +20,14 @@ class TestArg2Spec(unittest.TestCase):
 
     def test_too_long(self):
         self.assertRaises(SystemExit, arg2spec, 'foo=1.3=2=4')
+
+class CondaCLITest(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        self.conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
+        super(CondaCLITest, self).__init__(*args, **kwargs)
+
+    def run_conda_command(self, *args):
+        return subprocess.check_output((self.conda,) + args).decode('utf-8')
 
 
 if __name__ == '__main__':
