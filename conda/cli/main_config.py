@@ -9,6 +9,7 @@ import re
 import os
 import sys
 from argparse import RawDescriptionHelpFormatter
+from copy import deepcopy
 
 import conda.config as config
 
@@ -208,7 +209,7 @@ channels:
     # the end to see if we did it right.
 
     # First, do it the pyyaml way
-    new_rc_config = rc_config.copy()
+    new_rc_config = deepcopy(rc_config)
 
     # Add
     for key, item in args.add:
