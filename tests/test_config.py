@@ -10,6 +10,7 @@ from os.path import dirname, join
 
 import conda.config as config
 
+from tests.test_cli import run_conda_command
 
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
@@ -80,5 +81,50 @@ class TestConfig(unittest.TestCase):
                 'https://your.repo/username/osx-64/',
                 ])
 
-if __name__ == '__main__':
-    unittest.main()
+def read_test_condarc():
+    test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
+    with open(test_condarc) as f:
+        return f.read()
+
+# Tests for the conda config command
+def test_config_command():
+    test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
+    try:
+        # Test that creating the file adds the defaults channel
+        assert not os.path.exists('test_condarc')
+        run_conda_command('config', '--file', test_condarc, '--add',
+            'channels', 'test')
+        assert read_test_condarc() == """\
+channels:
+  - test
+  - defaults
+"""
+        os.unlink(test_condarc)
+
+        # When defaults is explicitly given, it should not be added
+        run_conda_command('config', '--file', test_condarc, '--add',
+    'channels', 'test', '--add', 'channels', 'defaults')
+        assert read_test_condarc() == """\
+channels:
+  - defaults
+  - test
+"""
+        os.unlink(test_condarc)
+
+        # Duplicate keys should not be added twice
+        run_conda_command('config', '--file', test_condarc, '--add',
+        'channels', 'test')
+        run_conda_command('config', '--file', test_condarc, '--add',
+        'channels', 'test')
+        assert read_test_condarc() == """\
+channels:
+  - test
+  - defaults
+"""
+        os.unlink(test_condarc)
+
+    finally:
+        try:
+            os.unlink(test_condarc)
+        except OSError:
+            pass
