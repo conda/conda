@@ -10,7 +10,7 @@ from os.path import dirname, join
 
 import conda.config as config
 
-from tests.test_cli import run_conda_command
+from test_cli import run_conda_command
 
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
