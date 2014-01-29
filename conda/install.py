@@ -37,6 +37,7 @@ import subprocess
 import tarfile
 import traceback
 import logging
+import tempfile
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -252,17 +253,13 @@ def post_link(prefix, dist, unlink=False):
 # ========================== begin API functions =========================
 
 def try_write(dir_path):
-    path = join(dir_path, '.conda-try-write')
     assert isdir(dir_path)
-    assert not isfile(path)
     try:
-        with open(path, 'wb') as fo:
+        with tempfile.TemporaryFile(prefix='.conda-try-write', dir=dir_path, mode='wb') as fo:
             fo.write(b'This is a test file.\n')
         return True
     except IOError:
         return False
-    finally:
-        rm_rf(path)
 
 def try_hard_link(pkgs_dir, prefix, dist):
     src = join(pkgs_dir, dist, 'info', 'index.json')
