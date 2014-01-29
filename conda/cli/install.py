@@ -170,8 +170,7 @@ Error: environment does not exist: %s
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
-    index = get_index(channel_urls=channel_urls, prepend=not
-                      args.override_channels)
+
     if args.use_local:
         from conda.fetch import fetch_index
         from conda.utils import url_path
@@ -184,6 +183,10 @@ Error: environment does not exist: %s
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
         index = get_index([url_path(build_config.croot)])
+    else:
+        index = get_index(channel_urls=channel_urls, prepend=not
+            args.override_channels)
+
 
     actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
