@@ -1,5 +1,7 @@
 from __future__ import print_function, absolute_import, division
 
+from conda import config
+
 from test_cli import run_conda_command
 
 def test_info():
@@ -14,9 +16,12 @@ def test_info():
 
     conda_info_s = run_conda_command('info', '-s')
     for name in ['sys.version', 'sys.prefix', 'sys.executable', 'conda location',
-        'conda-build', 'CIO_TEST', 'CONDA_DEFAULT_ENV', 'LD_LIBRARY_PATH',
-        'PATH', 'PYTHONPATH']:
+        'conda-build', 'CIO_TEST', 'CONDA_DEFAULT_ENV', 'PATH', 'PYTHONPATH']:
         assert name in conda_info_s
+    if config.platform == 'linux':
+        assert 'LD_LIBRARY_PATH' in conda_info_s
+    if config.platform == 'osx':
+        assert 'DYLD_LIBRARY_PATH' in conda_info_s
 
     conda_info_all = run_conda_command('info', '--all')
     assert conda_info in conda_info_all
