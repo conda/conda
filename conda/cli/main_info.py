@@ -157,13 +157,14 @@ Current conda install:
 
     if args.system and not args.json:
         import sys
-        from conda.cli.find_commands import find_executable
+        from conda.cli.find_commands import find_commands, find_executable
 
         print("sys.version: %s..." % (sys.version[:40]))
         print("sys.prefix: %s" % sys.prefix)
         print("sys.executable: %s" % sys.executable)
         print("conda location: %s" % dirname(conda.__file__))
-        print("conda-build: %s" % find_executable('build'))
+        for cmd in sorted(set(find_commands() + ['build'])):
+            print("conda-%s: %s" % (cmd, find_executable(cmd)))
         print()
 
         evars = ['PATH', 'PYTHONPATH', 'CONDA_DEFAULT_ENV', 'CIO_TEST',
