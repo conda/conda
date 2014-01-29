@@ -47,9 +47,13 @@ class TestConfig(unittest.TestCase):
         for pi, po in [
             (root_dir, root_pkgs),
             (join(root_dir, 'envs', 'foo'), root_pkgs),
-            ('/usr/local/foo', '/usr/local/.pkgs'),
             ]:
             self.assertEqual(config.pkgs_dir_prefix(pi), po)
+
+        if config.platform == 'win':
+            self.assertEqual(config.pkgs_dir_prefix(r'C:\usr\local\foo'), r'C:\usr\local\.pkgs')
+        else:
+            self.assertEqual(config.pkgs_dir_prefix('/usr/local/foo'), '/usr/local/.pkgs')
 
     def test_proxy_settings(self):
         self.assertEqual(config.get_proxy_servers(),
