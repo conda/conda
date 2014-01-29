@@ -1,6 +1,9 @@
 2014-XX-XX   3.0.1:
 -------------------
   * bug: not having track_features in condarc now uses default again
+  * improved test suite
+  * if the post-link.(bat|sh) fails, don't treat it as though it installed,
+    i.e. it is not added to conda-meta
 
 
 2014-01-24   3.0.0:
