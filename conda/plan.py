@@ -68,8 +68,8 @@ def display_actions(actions, index=None):
                  if index else None)
                 for dist in actions[FETCH]])
         if index and len(actions[FETCH]) > 1:
-            print(' '*4 + '-'*60)
-            print(" "*43 + "Total: %14s" %
+            print(' ' * 4 + '-' * 60)
+            print(" " * 43 + "Total: %14s" %
                   human_bytes(sum(index[dist + '.tar.bz2']['size']
                                   for dist in actions[FETCH])))
     if actions.get(UNLINK):
