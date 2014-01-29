@@ -31,9 +31,6 @@ yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
 class BoolKey(object):
-    def __init__(self, bools=True):
-        self.bools = bools
-
     def __contains__(self, other):
         # Other is either one of the keys or the boolean
         try:
@@ -42,16 +39,13 @@ class BoolKey(object):
             yaml = False
 
         ret = other in config.rc_bool_keys
-        if yaml and self.bools:
+        if yaml:
             ret = ret or isinstance(yaml.load(other), bool)
 
         return ret
 
     def __iter__(self):
-        I = config.rc_bool_keys
-        if self.bools:
-            I += ['yes', 'no', 'on', 'off', 'true', 'false']
-        for i in I:
+        for i in config.rc_bool_keys + ['yes', 'no', 'on', 'off', 'true', 'false']:
             yield i
 
 class ListKey(object):
@@ -61,6 +55,16 @@ class ListKey(object):
 
     def __iter__(self):
         for i in config.rc_list_keys:
+            yield i
+
+class BoolOrListKey(object):
+    def __contains__(self, other):
+        return other in config.rc_bool_keys or other in config.rc_list_keys
+
+    def __iter__(self):
+        for i in config.rc_list_keys:
+            yield i
+        for i in config.rc_bool_keys:
             yield i
 
 def configure_parser(sub_parsers):
@@ -101,7 +105,7 @@ write to the given file. Otherwise writes to the user config file
         help = "get the configuration value",
         default = None,
         metavar = ('KEY'),
-        choices=BoolKey(bools=False)
+        choices=BoolOrListKey()
         )
     action.add_argument(
         "--add",
