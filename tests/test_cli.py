@@ -1,3 +1,4 @@
+import sys
 import unittest
 import os
 import subprocess
@@ -21,10 +22,11 @@ class TestArg2Spec(unittest.TestCase):
     def test_too_long(self):
         self.assertRaises(SystemExit, arg2spec, 'foo=1.3=2=4')
 
+python = sys.executable
 conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
 
 def run_conda_command(*args):
-    return subprocess.check_output((conda,) + args).decode('utf-8')
+    return subprocess.check_output((python, conda,) + args).decode('utf-8')
 
 if __name__ == '__main__':
     unittest.main()
