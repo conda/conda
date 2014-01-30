@@ -27,7 +27,6 @@ def prefix_from_arg(arg):
         return abspath(arg)
     prefix = find_prefix_name(arg)
     if prefix is None:
-        print(os.getenv('PATH'))
         sys.exit('Error: could not find environment: %s' % arg)
     return prefix
 
@@ -59,7 +58,11 @@ def main():
 
         if 'CONDA_DEFAULT_ENV' not in os.environ:
             sys.exit("Error: No environment to deactivate")
-        binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
+        try:
+            binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
+        except SystemExit:
+            print(os.environ['PATH'])
+            raise
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
