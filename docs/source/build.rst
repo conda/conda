@@ -332,3 +332,31 @@ Environment variables that affect the build process
    * - ``CONDA_NPY``
      - Should be either ``16`` or ``17``.  This is the NumPy version used to
        build the package.
+
+Features
+--------
+
+Features are a way to track differences in two packages that have the same
+name and version.  For example, a feature might indicate a specialized
+compiler or runtime, or a fork of a package. The canonical example of a
+feature is the ``mkl`` feature in Anaconda Accelerate. Packages that are
+compiled against MKL, such as NumPy, have the ``mkl`` feature set.  The
+``mkl`` package has the ``mkl`` feature set in ``track_features``, so that
+installing it installs the ``mkl`` feature.
+
+Features should be thought of as features of the environment the package is
+installed into, not the package itself. The reason is that when a feature is
+installed, conda will automatically change to a package with that feature if
+it exists, for instance, when the ``mkl`` feature is installed, regular
+``numpy`` is removed and the ``numpy`` package with the ``mkl`` feature is
+installed.  Enabling a feature does not install any packages that are not
+already installed, but it all future packages with that feature that are
+installed into that environment will be preferred.
+
+Feature names are independent of package names---it is a coincidence that
+``mkl`` is both the name of a package and the feature that it tracks.
+
+To install a feature, install a package that tracks it. To remove a feature,
+use ``conda remove --features``
+
+.. or use conda install --features, blocking on https://github.com/conda/conda/issues/543
