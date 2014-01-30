@@ -225,28 +225,34 @@ Windows (``bld.bat``) during the build process:
 .. list-table::
 
   * - ``ARCH``
-    - either ``32`` or ``64``, to specify whether the build is 32-bit or
+    - Either ``32`` or ``64``, to specify whether the build is 32-bit or
       64-bit.  The value depends on the ``ARCH`` environment variable, and
       defaults to the architecture the interpreter running conda was
-      compiled with
+      compiled with.
   * - ``CONDA_BUILD=1``
-    - always set
+    - Always set.
   * - ``SRC_DIR``
-    - path to where source is unpacked (or cloned). If the source file is not
+    - Path to where source is unpacked (or cloned). If the source file is not
       a recognized file type (right now, ``.zip``, ``.tar``, ``.tar.bz2``,
       ``.tar.xz``, and ``.tar``), this is a directory containing a copy of the
       source file.
   * - ``PREFIX``
-    - build prefix where build script should install to
+    - Build prefix where build script should install to.
   * - ``RECIPE_DIR``
-    - directory of recipe
+    - Directory of recipe.
+  * - ``PKG_NAME``
+    - Name of the package being built.
+  * - ``PKG_VERSION``
+    - Version of the package being built.
+  * - ``PKG_BUILDNUM``
+    - Build number of the package being built.
   * - ``PATH``
-    - prepended by the build prefix bin directory
+    - Prepended by the build prefix bin directory.
   * - ``PYTHON``
-    - path to python executable in build prefix (note that python is only
-      installed in the build prefix when it is listed as a build requirement)
+    - Path to python executable in build prefix (note that python is only
+      installed in the build prefix when it is listed as a build requirement).
   * - ``PY3K``
-    - ``1`` when Python 3 is installed in build prefix, else ``0``
+    - ``1`` when Python 3 is installed in build prefix, else ``0``.
   * - ``STDLIB_DIR``
     - Python standard library location
   * - ``SP_DIR``
@@ -256,7 +262,7 @@ Windows (``bld.bat``) during the build process:
   * - ``SYS_PYTHON``
     - Python of process which is building
   * - ``SYS_PREFIX``
-    - prefix of process which is building, usually root env
+    - Prefix of process which is building, usually root env.
 
 When building "unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
@@ -276,24 +282,42 @@ defined in Windows:
   * - ``SCRIPTS``
     - ``<build prefix>\Scripts``
 
+On non-Windows (Linux and Mac OS X), we have:
+
+.. list-table::
+
+  * - ``PKG_CONFIG_PATH``
+    - Path to ``pkgconfig`` directory.
+  * - ``HOME``
+    - Standard ``$HOME`` environment variable.
+
 On Mac OS X, we have:
 
 .. list-table::
 
   * - ``OSX_ARCH``
     - ``i386`` or ``x86_64``, depending on Python build
-    - ``PKG_CONFIG_PATH``
+  * - ``CFLAGS``
+    - ``-arch`` flag.
+  * - ``CXXFLAGS``
+    - Same as ``CFLAGS``.
+  * - ``LDFLAGS``
+    - Same as ``CFLAGS``.
+  * - ``MACOSX_DEPLOYMENT_TARGET``
+    - Same as the Anaconda Python. Currently ``10.5``.
 
 On Linux, we have:
 
 .. list-table::
 
-  * - ``PKG_CONFIG_PATH``
+  * - ``LD_RUN_PATH``
+    - ``<build prefix>/lib``
+
 
 Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echos each
 command that is run, and the ``-e`` makes it exit whenever a command in the
 script returns nonzero exit status).  You can revert this in the script if you
-need to by using the set command.
+need to by using the ``set`` command.
 
 .. _build-envs:
 
