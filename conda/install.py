@@ -235,7 +235,7 @@ def post_link(prefix, dist, unlink=False):
             'pre-unlink' if unlink else 'post-link',
             'bat' if on_win else 'sh'))
     if not isfile(path):
-        return
+        return True
     if on_win:
         args = [os.environ['COMSPEC'], '/c', path]
     else:
