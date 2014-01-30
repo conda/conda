@@ -10,12 +10,13 @@
 -------------------
   * removed build, convert, index, and skeleton commands, which are now
     part of the conda-build project: https://github.com/conda/conda-build
+  * limited pip integration to `conda list`, that means
+    `conda install` no longer calls `pip install` # !!!
   * add ability to call sub-commands named 'conda-x'
   * The -c flag to conda search is now shorthand for --channel, not
     --canonical (this is to be consistent with other conda commands)
   * allow changing location of .condarc file using the CONDARC environment
     variable
-  * limited pip integration to `conda list`
   * conda search now shows the channel that the package comes from
   * conda search has a new --platform flag for searching for packages in other
     platforms.
