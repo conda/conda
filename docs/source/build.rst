@@ -145,15 +145,15 @@ Preprocessing selectors
 In addition, you can add selectors to each line, which are used as part of a
 preprocessing stage. Before the yaml file is read, each selector is evaluated,
 and if it is False, the line that it is on is removed.  A selector is of the
-form ``[<selector>]`` at the end of a line.
+form ``# [<selector>]`` at the end of a line.
 
 For example
 
 .. code-block:: yaml
 
    source:
-     url: http://path/to/unix/source    [not win]
-     url: http://path/to/windows/source [win]
+     url: http://path/to/unix/source    # [not win]
+     url: http://path/to/windows/source # [win]
 
 A selector is just a valid Python statement, that is executed.  The following
 variables are defined. Unless otherwise stated, the variables are booleans.
@@ -201,9 +201,9 @@ possible.
 .. code-block:: yaml
 
    source:
-     url: http://path/to/windows/source      [win]
-     url: http://path/to/python2/unix/source [unix and py2k]
-     url: http://path/to/python3/unix/source [unix and py3k]
+     url: http://path/to/windows/source      # [win]
+     url: http://path/to/python2/unix/source # [unix and py2k]
+     url: http://path/to/python3/unix/source # [unix and py3k]
 
 Note that the selectors delete only they line that they are on, so you may
 need to put the same selector on multiple lines.
@@ -211,10 +211,10 @@ need to put the same selector on multiple lines.
 .. code-block:: yaml
 
    source:
-     url: http://path/to/windows/source     [win]
-     md5: 30fbf531409a18a48b1be249052e242a  [win]
-     url: http://path/to/unix/source        [unix]
-     md5: 88510902197cba0d1ab4791e0f41a66e  [unix]
+     url: http://path/to/windows/source     # [win]
+     md5: 30fbf531409a18a48b1be249052e242a  # [win]
+     url: http://path/to/unix/source        # [unix]
+     md5: 88510902197cba0d1ab4791e0f41a66e  # [unix]
 
 Environment variables set during the build process
 --------------------------------------------------
