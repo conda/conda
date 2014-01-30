@@ -41,25 +41,40 @@ repositories, such as `PyPI <https://pypi.python.org/pypi>`_.
 The meta.yaml file
 ------------------
 
-.. TODO: Document things like [osx]
+
+All the metadata in the recipe is specified in the ``meta.yaml`` file. All sections are optional except for package/name and package/version.
 
 .. code-block:: yaml
 
 
     package:
-      name: bsdiff4     # lower case name of package, may contain '-' but no spaces
-      version: 1.1.4    # version of package. Should use the PEP-386 verlib conventions.
+      name: bsdiff4       # lower case name of package, may contain '-' but no spaces
+      version: "1.1.4"    # version of package. Should use the PEP-386 verlib
+                          # conventions. Note that YAML will interpret
+                          # versions like 1.0 as floats, meaning that 1.0 will
+                          # be the same as 1. To avoid this, always put the
+                          # version in quotes, so that it will be interpreted
+                          # as a string.
 
     source:
-    # The source section specifies where the source code of the package is coming
-    # from, it may be coming from a source tarball like:
-      fn: qt-everywhere-opensource-src-4.8.4.tar.gz
-      url: http://filer/src/qt-everywhere-opensource-src-4.8.4.tar.gz
-      md5: 89c5ecba180cae74c66260ac732dc5cb              # (optional)
-    # or from git:
+      # The source section specifies where the source code of the package is coming
+      # from, it may be coming from a source tarball like:
+      fn: bsdiff-1.1.14.tar.gz
+      url: https://pypi.python.org/packages/source/b/bsdiff4/bsdiff4-1.1.4.tar.gz
+      md5: 29f6089290505fc1a852e176bd276c43
+      sha1: f0a2c9a30073449cfb7d171c57552f3109d93894
+      # or from git:
       git_url: git@github.com:ilanschnell/bsdiff4.git
-      git_tag: 1.1.4                                     # (optional)
-    # also optionally patches may be applied to the source
+      git_tag: 1.1.4
+      # or from hg:
+      hg_url: ssh://hg@bitbucket.org/ilanschnell/bsdiff4
+      hg_tag: 1.1.4
+      # or from svn:
+      svn_url: https://github.com/ilanschnell/bsdiff
+      svn_rev: 1.1.4
+      svn_ignore_externals: yes # (defaults to no)
+
+      # Patches may optionally be applied to the source
       patches:
         - my.patch    # the patch file is expected to be found in the recipe
 
@@ -74,46 +89,86 @@ The meta.yaml file
     # in build.sh (and similarly in bld.bat). This assumes the source is
     # shipped alongside the recipe in src.
 
-    # The build number should be incremented for new builds of the same version
-    build:            # (optional)
-      number: 1       # (optional, defaults to 0)
-      string: abc     # (optional, defaults to default conda build string plus the build number)
+    build:
+      # The build number should be incremented for new builds of the same version
+      number: 1       # (defaults to 0)
+      string: abc     # (defaults to default conda build string plus the build number)
 
-    # optional Python entry points
+      # Optional Python entry points
       entry_points:
+        # This creates an entry point named bsdiff4 that calls bsdiff4.main_bsdiff4()
         - bsdiff4 = bsdiff4.cli:main_bsdiff4
         - bspatch4 = bsdiff4.cli:main_bspatch4
 
-    # the build and runtime requirements:
-    requirements:     # (optional)
+      # If osx_is_app is set, entry points will use python.app instead of python in Mac OS X
+      osx_is_app: yes # (defaults to no)
+
+      # See the features section below for more information on features
+
+      # Defines what features a package has
+      features:
+        - feature1
+
+      # Indicates that installing this package should enable (track) the given
+      # features. A package does not need to have a feature to track it.
+      track_features:
+        - feature2
+
+      # Preserve the Python egg directory. This is needed for some packages
+      # that use setuptools specific features.
+      preserve_egg_dir: yes # (default no)
+
+      # Don't install a package with softlinks. If hard links are not possible
+      # and this is set, the package will be installed via copying.
+      no_softlink: yes # (default no)
+
+      # Used instead of build.sh or bld.bat. For short build scripts, this can
+      # be more convenient. You may need to use selectors (see below) to use
+      # different scripts for different platforms.
+      script: python setup.py install
+
+    # the build and runtime requirements. Dependencies of these requirements
+    # are included automatically.
+    requirements:
+      # Packages required to build the package. python and numpy must be
+      # listed explicitly if they are required.
       build:
         - python
+      # Packages required to run the package. They will be installed
+      # automatically whenever the package is installed.
       run:
         - python
+      # Packages that conflict with the given package. Conda will not allow
+      # installing them both at the same time.
+      conflicts:
+        - package
 
-    test:             # (optional)
-    # files which are copied from the recipe into the (temporary) test
-    # directory which are needed during testing
+    test:
+      # files which are copied from the recipe into the (temporary) test
+      # directory which are needed during testing
       files:
         - test-data.txt
-    # in addition to the run-time requirements, we can specify requirements
-    # needed during testing
+      # in addition to the run-time requirements, you can specify requirements
+      # needed during testing. The run time requirements specified above are
+      # included automatically.
       requires:
         - nose
-    # commands we want to make sure they work, which are expected to get
-    # installed by the package
+      # commands we want to make sure they work, which are expected to get
+      # installed by the package
       commands:
         - bsdiff4 -h
         - bspatch4 -h
-    # Python imports
+      # Python imports
       imports:
         - bsdiff4
-    # The script run_test.py will be run automatically if it is part of the
-    # recipe
 
-    about:            # (optional)
+      # The script run_test.py will be run automatically if it is part of the
+      # recipe
+
+    about:
       home: https://github.com/ilanschnell/bsdiff4
       license: BSD
+      description: binary diff and patch using the BSDIFF4-format
 
 .. _build-version-spec:
 
