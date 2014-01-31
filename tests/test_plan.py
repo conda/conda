@@ -39,7 +39,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         for specs, added in [
             (['python 3*'],  []),
             (['python'],     ['python 2.7*']),
-            (['scipy'],      ['python 2.7*', 'numpy 1.7*']),
+            (['scipy'],      ['python 2.7*']),
             ]:
             self.check(specs, added)
 
@@ -47,10 +47,10 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         self.linked = solve(['anaconda 1.5.0', 'python 2.6*', 'numpy 1.6*'])
         for specs, added in [
             (['python'],     ['python 2.6*']),
-            (['numpy'],      ['python 2.6*', 'numpy 1.6*']),
-            (['pandas'],     ['python 2.6*', 'numpy 1.6*']),
+            (['numpy'],      ['python 2.6*']),
+            (['pandas'],     ['python 2.6*']),
             # however, this would then be unsatisfiable
-            (['python 3*', 'numpy'], ['numpy 1.6*']),
+            (['python 3*', 'numpy'], []),
             ]:
             self.check(specs, added)
 
@@ -58,8 +58,8 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
         for specs, added in [
             (['python'],     ['python 3.3*']),
-            (['numpy'],      ['python 3.3*', 'numpy 1.7*']),
-            (['scipy'],      ['python 3.3*', 'numpy 1.7*']),
+            (['numpy'],      ['python 3.3*']),
+            (['scipy'],      ['python 3.3*']),
             ]:
             self.check(specs, added)
 
@@ -68,13 +68,13 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         ps = 'python %s*' % default_python
         for specs, added in [
             (['python'],     [ps]),
-            (['numpy'],      [ps, 'numpy 1.7*']),
-            (['scipy'],      [ps, 'numpy 1.7*']),
-            (['anaconda'],   [ps, 'numpy 1.7*']),
+            (['numpy'],      [ps]),
+            (['scipy'],      [ps]),
+            (['anaconda'],   [ps]),
             (['anaconda 1.5.0 np17py27_0'], []),
             (['sympy 0.7.2 py27_0'], []),
             (['scipy 0.12.0 np16py27_0'], []),
-            (['anaconda', 'python 3*'],     ['numpy 1.7*']),
+            (['anaconda', 'python 3*'], []),
             ]:
             self.check(specs, added)
 
