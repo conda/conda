@@ -118,9 +118,11 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # that use setuptools specific features.
       preserve_egg_dir: yes # (default no)
 
-      # Don't install a package with softlinks. If hard links are not possible
-      # and this is set, the package will be installed via copying.
-      no_softlink: yes # (default no)
+      # A regular expression describing files to not install using soft
+      # links. If hard links are not possible and this is set, the package
+      # will be installed via copying. By default all files are considered
+      # safe for soft linking.
+      no_softlink: (bin/path1\.py|bin/path2) # Don't softlink bin/path1.py or bin/path2
 
       # Used instead of build.sh or bld.bat. For short build scripts, this can
       # be more convenient. You may need to use selectors (see below) to use
