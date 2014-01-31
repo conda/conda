@@ -264,7 +264,7 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
-    def solve2(self, specs, features, guess=True):
+    def solve2(self, specs, features, guess=True, return_all=False):
         dists = set()
         for spec in specs:
             for fn in self.get_max_dists(MatchSpec(spec)):
@@ -289,6 +289,9 @@ class Resolve(object):
             raise RuntimeError("Unsatisfiable package specifications")
 
         if len(solutions) > 1:
+            if return_all:
+                return [[w[lit] for lit in sol if lit > 0] for sol in solutions]
+
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if lit > 0])
