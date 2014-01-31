@@ -219,8 +219,8 @@ def add_defaults_to_specs(r, linked, specs):
             continue
 
         if name in names_linked:
-            # if Python/Numpy is already linked, we also don't need to add
-            # the default
+            # if Python/Numpy is already linked, we add that instead of the
+            # default
             log.debug('H3 %s' % name)
             specs.append(dist2spec3v(names_linked[name]))
             continue
