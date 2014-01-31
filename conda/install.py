@@ -237,7 +237,10 @@ def post_link(prefix, dist, unlink=False):
     if not isfile(path):
         return True
     if on_win:
-        args = [os.environ['COMSPEC'], '/c', path]
+        try:
+            args = [os.environ['COMSPEC'], '/c', path]
+        except KeyError:
+            return False
     else:
         args = ['/bin/bash', path]
     env = os.environ
