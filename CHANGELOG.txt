@@ -1,7 +1,8 @@
-2014-XX-XX   3.0.1:
+2014-01-31   3.0.1:
 -------------------
   * bug: not having track_features in condarc now uses default again
   * improved test suite
+  * remove numpy version being treated special in plan module
   * if the post-link.(bat|sh) fails, don't treat it as though it installed,
     i.e. it is not added to conda-meta
   * fix activate if CONDA_DEFAULT_ENV is invalid
