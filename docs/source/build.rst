@@ -170,7 +170,7 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
     about:
       home: https://github.com/ilanschnell/bsdiff4
       license: BSD
-      description: binary diff and patch using the BSDIFF4-format
+      summary: binary diff and patch using the BSDIFF4-format
 
 .. _build-version-spec:
 
