@@ -9,6 +9,7 @@
   * fix conda config --get to work with list keys again
   * print the total download size
   * fix a bug that was preventing conda from working in Python 3
+  * add ability to run pre-link script, issue #548
 
 
 2014-01-24   3.0.0:
@@ -37,6 +38,7 @@
     and update that were previously only available to install. A backwards
     incompatible change is that conda create -f now means --force, not
     --file.
+
 
 2014-01-16   2.3.0:
 -------------------
