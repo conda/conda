@@ -197,6 +197,44 @@ class TestFindSubstitute(unittest.TestCase):
             self.assertTrue(old in installed)
             self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
+def _raises(exception, func):
+    try:
+        func()
+    except exception:
+        return True
+    raise Exception("did not raise")
 
-if __name__ == '__main__':
-    unittest.main()
+def test_package_ordering():
+    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
+    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
+    python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
+
+    assert sympy_071 < sympy_072
+    assert not sympy_071 < sympy_071
+    assert not sympy_072 < sympy_071
+    _raises(TypeError, lambda: sympy_071 < python_275)
+
+    assert sympy_071 <= sympy_072
+    assert sympy_071 <= sympy_071
+    assert not sympy_072 <= sympy_071
+    assert _raises(TypeError, lambda: sympy_071 <= python_275)
+
+    assert sympy_071 == sympy_071
+    assert not sympy_071 == sympy_072
+    # This is wrong. It should just be False
+    assert _raises(TypeError, lambda: sympy_071 == python_275)
+
+    assert not sympy_071 != sympy_071
+    assert sympy_071 != sympy_072
+    assert _raises(TypeError, lambda: sympy_071 != python_275)
+
+    assert not sympy_071 > sympy_072
+    assert not sympy_071 > sympy_071
+    assert sympy_072 > sympy_071
+    _raises(TypeError, lambda: sympy_071 > python_275)
+
+    assert not sympy_071 >= sympy_072
+    assert sympy_071 >= sympy_071
+    assert sympy_072 >= sympy_071
+    assert _raises(TypeError, lambda: sympy_071 >= python_275)
+
