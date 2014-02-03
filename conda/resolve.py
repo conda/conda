@@ -443,7 +443,7 @@ remaining packages:
             for fn in self.get_max_dists(MatchSpec(spec)):
                 self.update_with_features(fn, features)
 
-        return self.explicit(specs) or self.solve2(specs, features)
+        return self.explicit(specs) or list(self.solve2(specs, features))
 
     def maximal_sols(self, sols):
         """
