@@ -441,6 +441,19 @@ remaining packages:
 
         return self.explicit(specs) or self.solve2(specs, features)
 
+def max_sols(solutions):
+    """
+    Return the set of maximal solutions.
+
+    A solution is maximal if there are no solutions > it.
+    """
+    maxset = set()
+    G = build_graph(solutions)
+    for sol in reversed(topological_sort(solutions, G)):
+        if any(comparable(sol, i) for i in maxset):
+            break
+        maxset.add(sol)
+    return maxset
 
 def partial_lt(a, b):
     """
@@ -459,6 +472,16 @@ def partial_lt(a, b):
     if all(i >= j for i, j in zip(a, b)):
         return False
     raise TypeError("%s and %s are not comparable" % (a, b))
+
+def comparable(a, b):
+    """
+    Are a and b comparable?
+    """
+    try:
+        partial_lt(a, b)
+    except TypeError:
+        return False
+    return True
 
 # This is taken from SymPy (sympy.utilities.iterables), which is BSD
 # licensed.
