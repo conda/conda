@@ -110,7 +110,7 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
                      set()),
-            ['iopro-1.4.3-np17py27_p0.tar.bz2',
+            ('iopro-1.4.3-np17py27_p0.tar.bz2',
              'numpy-1.7.1-py27_0.tar.bz2',
              'openssl-1.0.1c-0.tar.bz2',
              'python-2.7.5-0.tar.bz2',
@@ -119,13 +119,13 @@ class TestSolve(unittest.TestCase):
              'system-5.8-1.tar.bz2',
              'tk-8.5.13-0.tar.bz2',
              'unixodbc-2.3.1-0.tar.bz2',
-             'zlib-1.2.7-0.tar.bz2'])
+             'zlib-1.2.7-0.tar.bz2'))
 
     def test_iopro_mkl(self):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
                     f_mkl),
-            ['iopro-1.4.3-np17py27_p0.tar.bz2',
+            ('iopro-1.4.3-np17py27_p0.tar.bz2',
              'mkl-rt-11.0-p0.tar.bz2',
              'numpy-1.7.1-py27_p0.tar.bz2',
              'openssl-1.0.1c-0.tar.bz2',
@@ -135,7 +135,7 @@ class TestSolve(unittest.TestCase):
              'system-5.8-1.tar.bz2',
              'tk-8.5.13-0.tar.bz2',
              'unixodbc-2.3.1-0.tar.bz2',
-             'zlib-1.2.7-0.tar.bz2'])
+             'zlib-1.2.7-0.tar.bz2'))
 
     def test_mkl(self):
         self.assertEqual(r.solve(['mkl'], set()),
