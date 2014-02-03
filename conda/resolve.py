@@ -462,19 +462,27 @@ remaining packages:
 
 def partial_lt(a, b):
     """
-    Partial ordering on tuples a and b
+    Partial ordering on tuples of packages a and b
 
     Returns true if each element of a is < each corresponding element of b,
     False if each element of a is > each element of b, and raises TypeError
     otherwise.
+
+    If either has an element that is not in the other, that is ignored for the
+    purpose of the comparison.
     """
-    if not len(a) == len(b):
-        raise TypeError("%s and %s are not the same length" % (a, b))
+    a, b = {pkg.name: pkg for pkg in a}, {pkg.name: pkg for pkg in b}
     if a == b:
         return False
-    if all(i <= j for i, j in zip(a, b)):
+    if all(a[i] <= b[i] for i in a if i in b):
+        if not any(a[i] < b[i] for i in set(a).intersection(set(b))):
+            # a and b are different but all common packages are the same
+            raise TypeError("%s and %s are not comparable" % (a, b))
         return True
-    if all(i >= j for i, j in zip(a, b)):
+    if all(a[i] >= b[i] for i in a if i in b):
+        if not any(a[i] > b[i] for i in set(a).intersection(set(b))):
+            # a and b are different but all common packages are the same
+            raise TypeError("%s and %s are not comparable" % (a, b))
         return False
     raise TypeError("%s and %s are not comparable" % (a, b))
 
