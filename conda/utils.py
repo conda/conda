@@ -2,10 +2,21 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import hashlib
+import tempfile
 import collections
 from functools import partial
-from os.path import abspath
+from os.path import abspath, isdir
 
+
+def try_write(dir_path):
+    assert isdir(dir_path)
+    try:
+        with tempfile.TemporaryFile(prefix='.conda-try-write',
+                                    dir=dir_path, mode='wb') as fo:
+            fo.write(b'This is a test file.\n')
+        return True
+    except IOError:
+        return False
 
 
 def hashsum_file(path, mode='md5'):
