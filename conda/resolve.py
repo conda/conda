@@ -596,6 +596,8 @@ def build_graph(solutions):
         for j in range(i):
             I, J = solutions[i], solutions[j]
             try:
+                if I == J:
+                    continue
                 G.add((I, J)) if partial_lt(I, J) else G.add((J, I))
             except TypeError:
                 pass
