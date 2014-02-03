@@ -1,3 +1,8 @@
+2014-02-03   3.0.2:
+-------------------
+  * fix detection of prefix being writable
+
+
 2014-01-31   3.0.1:
 -------------------
   * bug: not having track_features in condarc now uses default again
