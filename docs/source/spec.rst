@@ -63,26 +63,27 @@ following keys:
 
    ``platform``: string (optional)
       The platform (OS) the package is built for, e.g. ``osx``.
-      Conda currently does not do anything with this key.  Packages for a specific
-      architecture and platform are usually distinguished by the repository
-      sub-directory they are contained in (see below).
+      Conda currently does not do anything with this key.  Packages for a
+      specific architecture and platform are usually distinguished by the
+      repository sub-directory they are contained in (see below).
 
 The build string is used to differentiate builds of packages with otherwise
-the same name and version, e.g. a build with other dependencies (like Python 3.3
-instead of Python 2.7), a bug fix in the build process, or some different
+the same name and version, e.g. a build with other dependencies (like Python
+3.3 instead of Python 2.7), a bug fix in the build process, or some different
 optional dependencies (MKL vs. ATLAS linkage), etc.  Nothing in conda actually
 inspects the build string---strings such as ``np17py33_1`` are only
 designed for human readability, but are never parsed by conda.
 
-Unlike the build sting, the build number is inspected by conda.  It is used to sort
-packages (with otherwise same name and version) to determine the latest one.
+Unlike the build sting, the build number is inspected by conda.
+It is used to sort packages (with otherwise same name and version) to
+determine the latest one.
 This is important, because new builds (bug fixes to the way a package is
 build) may be added to a repository.
 
 ``info/files``: This file lists all files which are part of the package
 itself (one per line), i.e. all files which need to get linked into the
-environment.  Any files in the package not listed in this file will not be linked
-when the package is installed.
+environment.  Any files in the package not listed in this file will not be
+linked when the package is installed.
 
 ``info/has_prefix``: This optional file lists all files that contain a
 placeholder, ``/opt/anaconda1anaconda2anaconda3``, for the install prefix,
@@ -90,6 +91,31 @@ which upon install is replaced by the real install prefix.
 
 ``info/no_softlink``: This optional file lists all files which cannot
 be soft-linked into environments (and are copied instead).
+
+
+Link and unlink scripts:
+------------------------
+
+A couple of scripts may optionally be executed before and after the link
+and unlink step.  These scripts are executed in a subprocess by conda,
+using ``/bin/bash <script>`` on Unix and ``%COMSPEC% /c <script>`` on
+Windows.  For this to work, there needs to be a convention for the path and
+filenames of these scripts.  On Unix we have ``bin/.<name>-<action>.sh``,
+and on Windows ``Scripts/.<name>-<action>.bat``, where ``<name>`` is the
+package name, and ``<action>`` is one of the following:
+
+``pre-link``: executed prior to linking, an error causes conda to stop.
+
+``post-link``: executed after linking, when the post-link step fails,
+we don't write any package metadata and return here.  This way the package
+is not considered installed.
+
+``pre-unlink``: executed prior to unlinking, errors are ignored.
+
+For example, when where is a script named ``/bin/.foo-post-link.sh`` in the
+package ``foo-1.0-0.tar.bz2``, it is executed after the linking is completed.
+Moreover, the following environment variables are set while the script is
+being executed: ``PREFIX``, ``PKG_NAME``, ``PKG_VERSION``
 
 
 Repository structure and index
