@@ -279,11 +279,11 @@ class Resolve(object):
     def solve2(self, specs, features, guess=True, return_all=False):
         dists = set()
         for spec in specs:
-            for fn in self.get_max_dists(MatchSpec(spec)):
-                if fn in dists:
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                if pkg.fn in dists:
                     continue
-                dists.update(self.all_deps(fn))
-                dists.add(fn)
+                dists.update(self.all_deps(pkg.fn))
+                dists.add(pkg.fn)
 
         v = {} # map fn to variable number
         w = {} # map variable number to fn
@@ -294,21 +294,25 @@ class Resolve(object):
         clauses = self.gen_clauses(v, dists, specs, features)
         solutions = min_sat(clauses)
 
-        if len(solutions) == 0:
+        sols = [[w[lit] for lit in sol if lit > 0] for sol in solutions]
+
+        maximal_solutions = self.maximal_sols(sols)
+
+        if len(maximal_solutions) == 0:
             if guess:
                 raise RuntimeError("Unsatisfiable package specifications\n" +
                                    self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
-        if len(solutions) > 1:
+        if len(maximal_solutions) > 1:
             if return_all:
-                return [[w[lit] for lit in sol if lit > 0] for sol in solutions]
+                return sols
 
             print('Warning:', len(solutions), "possible package resolutions:")
-            for sol in solutions:
-                print('\t', [w[lit] for lit in sol if lit > 0])
+            for sol in maximal_solutions:
+                print('\t', sol)
 
-        return [w[lit] for lit in solutions.pop() if lit > 0]
+        return maximal_solutions.pop()
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
