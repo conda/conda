@@ -442,6 +442,24 @@ remaining packages:
         return self.explicit(specs) or self.solve2(specs, features)
 
 
+def partial_lt(a, b):
+    """
+    Partial ordering on tuples a and b
+
+    Returns true if each element of a is < each corresponding element of b,
+    False if each element of a is > each element of b, and raises TypeError
+    otherwise.
+    """
+    if not len(a) == len(b):
+        raise TypeError("%s and %s are not the same length" % (a, b))
+    if a == b:
+        return False
+    if all(i <= j for i, j in zip(a, b)):
+        return True
+    if all(i >= j for i, j in zip(a, b)):
+        return False
+    raise TypeError("%s and %s are not comparable" % (a, b))
+
 # This is taken from SymPy (sympy.utilities.iterables), which is BSD
 # licensed.
 def topological_sort(V, E, key=None):
@@ -550,11 +568,8 @@ def build_graph(solutions):
         for j in range(i):
             I, J = solutions[i], solutions[j]
             try:
-                if len(I) == len(J) and all(i <= j for i, j in zip(I, J)):
-                    G.add((I, J))
-                elif len(I) == len(J) and all(j <= i for i, j in zip(I, J)):
-                    G.add((J, I))
-            except ValueError:
+                G.add((I, J)) if partial_lt(I, J) else G.add((J, I))
+            except TypeError:
                 pass
 
     return G
