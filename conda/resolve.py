@@ -99,7 +99,7 @@ class Package(object):
 
     def __lt__(self, other):
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
+            raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number, self.build) <
@@ -110,7 +110,7 @@ class Package(object):
 
     def __eq__(self, other):
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
+            raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number) ==
