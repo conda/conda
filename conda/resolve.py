@@ -122,6 +122,18 @@ class Package(object):
     def __gt__(self, other):
         return not (self.__lt__(other) or self.__eq__(other))
 
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
+
+    def __hash__(self):
+        try:
+            return hash((self.name, self.norm_version, self.build_number))
+        except TypeError:
+            return hash((self.name, self.version, self.build_number))
+
     def __repr__(self):
         return '<Package %s>' % self.fn
 
