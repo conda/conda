@@ -62,7 +62,7 @@ class TestPackage(unittest.TestCase):
     def test_different_names(self):
         pkgs = [Package(fn, r.index[fn]) for fn in [
                 'llvm-3.1-1.tar.bz2', 'python-2.7.5-0.tar.bz2']]
-        self.assertRaises(ValueError, pkgs.sort)
+        self.assertRaises(TypeError, pkgs.sort)
 
 
 class TestSolve(unittest.TestCase):
