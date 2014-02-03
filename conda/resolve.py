@@ -441,19 +441,20 @@ remaining packages:
 
         return self.explicit(specs) or self.solve2(specs, features)
 
-def max_sols(solutions):
-    """
-    Return the set of maximal solutions.
+    def maximal_sols(self, sols):
+        """
+        Return the set of maximal solutions.
 
-    A solution is maximal if there are no solutions > it.
-    """
-    maxset = set()
-    G = build_graph(solutions)
-    for sol in reversed(topological_sort(solutions, G)):
-        if any(comparable(sol, i) for i in maxset):
-            break
-        maxset.add(sol)
-    return maxset
+        A solution is maximal if there are no solutions > it.
+        """
+        maxset = set()
+        p = [tuple([Package(fn, self.index[fn]) for fn in sol]) for sol in sols]
+        G = build_graph(p)
+        for sol in reversed(topological_sort(p, G)):
+            if any(comparable(sol, i) for i in maxset):
+                break
+            maxset.add(sol)
+        return {tuple([pkg.fn for pkg in sol]) for sol in maxset}
 
 def partial_lt(a, b):
     """
