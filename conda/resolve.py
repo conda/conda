@@ -442,6 +442,25 @@ remaining packages:
         return self.explicit(specs) or self.solve2(specs, features)
 
 
+def build_graph(solutions):
+    """
+    Build a directed graph based on the solution ordering
+    """
+    G = set()
+    n = len(solutions)
+    for i in range(n):
+        for j in range(i):
+            I, J = solutions[i], solutions[j]
+            try:
+                if len(I) == len(J) and all(i <= j for i, j in zip(I, J)):
+                    G.add((I, J))
+                elif len(I) == len(J) and all(j <= i for i, j in zip(I, J)):
+                    G.add((J, I))
+            except ValueError:
+                pass
+
+    return G
+
 if __name__ == '__main__':
     import json
     from pprint import pprint
