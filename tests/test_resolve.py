@@ -2,7 +2,7 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import MatchSpec, Package, Resolve, partial_lt
 
 
 
@@ -199,10 +199,10 @@ class TestFindSubstitute(unittest.TestCase):
 
 def _raises(exception, func):
     try:
-        func()
+        a = func()
     except exception:
         return True
-    raise Exception("did not raise")
+    raise Exception("did not raise, gave %s" % a)
 
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
@@ -238,3 +238,32 @@ def test_package_ordering():
     assert sympy_072 >= sympy_071
     assert _raises(TypeError, lambda: sympy_071 >= python_275)
 
+
+def test_partial_lt():
+    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
+    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
+    python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
+    python_274 = Package('python-2.7.4-0.tar.bz2', r.index['python-2.7.4-0.tar.bz2'])
+    matplotlib_121 = Package('matplotlib-1.2.1-np17py27_1.tar.bz2', r.index['matplotlib-1.2.1-np17py27_1.tar.bz2'])
+
+    assert partial_lt((sympy_071, python_274), (sympy_071, python_275)) is True
+    assert partial_lt((sympy_071, python_275), (sympy_071, python_274)) is False
+    assert partial_lt((sympy_071, python_274), (sympy_072, python_275)) is True
+    assert partial_lt((sympy_072, python_275), (sympy_071, python_274)) is False
+    assert partial_lt((sympy_071, python_274), (sympy_071, python_274)) is False
+
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, python_274), (sympy_071, python_274,
+    matplotlib_121)))
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, python_274, matplotlib_121), (sympy_071,
+    python_274)))
+
+    assert partial_lt((sympy_071, python_274), (sympy_072, python_274,
+    matplotlib_121)) is True
+    assert partial_lt((sympy_072, python_274, matplotlib_121), (sympy_071,
+    python_274)) is False
+
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, python_275), (sympy_071, matplotlib_121)))
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, matplotlib_121), (sympy_071, python_275)))
+
+    assert partial_lt((sympy_071, python_275), (sympy_072, matplotlib_121)) is True
+    assert partial_lt((sympy_072, matplotlib_121), (sympy_071, python_275)) is False
