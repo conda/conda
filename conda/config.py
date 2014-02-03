@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -13,7 +13,7 @@ from platform import machine
 from os.path import abspath, dirname, expanduser, isfile, isdir, join
 
 from conda.compat import PY3, urlparse
-from conda.install import try_write
+from conda.utils import try_write
 
 
 log = logging.getLogger(__name__)
