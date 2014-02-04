@@ -208,8 +208,8 @@ def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
     sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
     python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
-    numpy = Package('numpy-1.7.1-py27_0', r.index['numpy-1.7.1-py27_0'])
-    numpy_mkl = Package('numpy-1.7.1-py27_p0', r.index['numpy-1.7.1-py27_p0'])
+    numpy = Package('numpy-1.7.1-py27_0.tar.bz2', r.index['numpy-1.7.1-py27_0.tar.bz2'])
+    numpy_mkl = Package('numpy-1.7.1-py27_p0.tar.bz2', r.index['numpy-1.7.1-py27_p0.tar.bz2'])
 
     assert sympy_071 < sympy_072
     assert not sympy_071 < sympy_071
@@ -262,9 +262,9 @@ def test_partial_lt():
     assert partial_lt((sympy_071, python_274), (sympy_071, python_274)) is False
 
     assert partial_lt((sympy_071, python_274), (sympy_071, python_274,
-    matplotlib_121)) is True
+    matplotlib_121)) is False
     assert partial_lt((sympy_071, python_274, matplotlib_121), (sympy_071,
-    python_274)) is False
+    python_274)) is True
 
     assert partial_lt((sympy_071, python_274), (sympy_072, python_274,
     matplotlib_121)) is True
