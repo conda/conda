@@ -208,6 +208,8 @@ def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
     sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
     python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
+    numpy = Package('numpy-1.7.1-py27_0', r.index['numpy-1.7.1-py27_0'])
+    numpy_mkl = Package('numpy-1.7.1-py27_p0', r.index['numpy-1.7.1-py27_p0'])
 
     assert sympy_071 < sympy_072
     assert not sympy_071 < sympy_071
@@ -237,6 +239,13 @@ def test_package_ordering():
     assert sympy_071 >= sympy_071
     assert sympy_072 >= sympy_071
     assert _raises(TypeError, lambda: sympy_071 >= python_275)
+
+    assert _raises(TypeError, lambda: numpy < numpy_mkl)
+    assert _raises(TypeError, lambda: numpy <= numpy_mkl)
+    assert _raises(TypeError, lambda: numpy > numpy_mkl)
+    assert _raises(TypeError, lambda: numpy >= numpy_mkl)
+    assert _raises(TypeError, lambda: numpy == numpy_mkl)
+    assert _raises(TypeError, lambda: numpy != numpy_mkl)
 
 
 def test_partial_lt():
