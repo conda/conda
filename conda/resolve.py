@@ -311,7 +311,7 @@ class Resolve(object):
 
         if len(maximal_solutions) > 1:
             if return_all:
-                return sols
+                return maximal_solutions
 
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in maximal_solutions:
