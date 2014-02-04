@@ -457,12 +457,22 @@ remaining packages:
         A solution is maximal if there are no solutions > it.
         """
         maxset = set()
-        p = [tuple([Package(fn, self.index[fn]) for fn in sol]) for sol in sols]
-        G = build_graph(p)
-        for sol in reversed(topological_sort(p, G)):
-            if any(comparable(sol, i) for i in maxset):
-                break
-            maxset.add(sol)
+        solutions = [tuple([Package(fn, self.index[fn]) for fn in sol]) for sol in sols]
+        for sol in solutions:
+            newmax = True
+            remove = set()
+            for e in maxset:
+                try:
+                    lt = partial_lt(e, sol)
+                    if lt:
+                        remove.add(e)
+                    if not lt:
+                        newmax = False
+                except TypeError:
+                    pass
+            maxset -= remove
+            if newmax:
+                maxset.add(sol)
         return {tuple([pkg.fn for pkg in sol]) for sol in maxset}
 
 def partial_lt(a, b):
@@ -494,132 +504,6 @@ def partial_lt(a, b):
         # same is already handled above
         return False
     raise TypeError("%s and %s are not comparable" % (a, b))
-
-def comparable(a, b):
-    """
-    Are a and b comparable?
-    """
-    try:
-        partial_lt(a, b)
-    except TypeError:
-        return False
-    return True
-
-# This is taken from SymPy (sympy.utilities.iterables), which is BSD
-# licensed.
-def topological_sort(V, E, key=None):
-    r"""
-    Topological sort of graph's vertices.
-
-    Examples
-    ========
-
-    Consider a graph::
-
-        +---+     +---+     +---+
-        | 7 |\    | 5 |     | 3 |
-        +---+ \   +---+     +---+
-          |   _\___/ ____   _/ |
-          |  /  \___/    \ /   |
-          V  V           V V   |
-         +----+         +---+  |
-         | 11 |         | 8 |  |
-         +----+         +---+  |
-          | | \____   ___/ _   |
-          | \      \ /    / \  |
-          V  \     V V   /  V  V
-        +---+ \   +---+ |  +----+
-        | 2 |  |  | 9 | |  | 10 |
-        +---+  |  +---+ |  +----+
-               \________/
-
-    where the vertices are integers. This graph can be encoded using the
-    elementary Python data structures as follows::
-
-        >>> V = [2, 3, 5, 7, 8, 9, 10, 11]
-        >>> E = [(7, 11), (7, 8), (5, 11), (3, 8), (3, 10),
-        ...      (11, 2), (11, 9), (11, 10), (8, 9)]
-
-    We compute a topological sort for the graph ``(V, E)``::
-
-        >>> from conda.resolve import topological_sort
-
-        >>> topological_sort(V, E)
-        [3, 5, 7, 8, 11, 2, 9, 10]
-
-    If a specific tie breaking approach is needed, use the ``key`` parameter::
-
-        >>> topological_sort(V, E, key=lambda v: -v)
-        [7, 5, 11, 3, 10, 8, 9, 2]
-
-    Only acyclic graphs can be sorted. If the input graph has a cycle,
-    then :py:exc:`ValueError` will be raised::
-
-        >>> topological_sort(V, E + [(10, 7)])
-        Traceback (most recent call last):
-        ...
-        ValueError: cycle detected
-
-    .. seealso:: http://en.wikipedia.org/wiki/Topological_sorting
-
-    """
-    L = []
-    S = set(V)
-    E = list(E)
-
-    for v, u in E:
-        S.discard(u)
-
-    if key is None:
-        key = lambda value: value
-
-    S = sorted(S, key=key, reverse=True)
-
-    while S:
-        node = S.pop()
-        L.append(node)
-
-        for u, v in list(E):
-            if u == node:
-                E.remove((u, v))
-
-                for _u, _v in E:
-                    if v == _v:
-                        break
-                else:
-                    kv = key(v)
-
-                    for i, s in enumerate(S):
-                        ks = key(s)
-
-                        if kv > ks:
-                            S.insert(i, v)
-                            break
-                    else:
-                        S.append(v)
-
-    if E:
-        raise ValueError("cycle detected")
-    else:
-        return L
-
-def build_graph(solutions):
-    """
-    Build a directed graph based on the solution ordering
-    """
-    G = set()
-    n = len(solutions)
-    for i in range(n):
-        for j in range(i):
-            I, J = solutions[i], solutions[j]
-            try:
-                if I == J:
-                    continue
-                G.add((I, J)) if partial_lt(I, J) else G.add((J, I))
-            except TypeError:
-                pass
-
-    return G
 
 if __name__ == '__main__':
     import json
