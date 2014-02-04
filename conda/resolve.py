@@ -493,9 +493,9 @@ def partial_lt(a, b):
         if not any(a[i] < b[i] for i in set(a).intersection(set(b))):
             # a and b are different but all common packages are the same
             # Break the tie by finding smaller packages
-            if len(a) < len(b):
+            if len(a) > len(b):
                 return True
-            elif len(a) > len(b):
+            elif len(a) < len(b):
                 return False
             raise TypeError("%s and %s are not comparable" % (a, b))
         return True
