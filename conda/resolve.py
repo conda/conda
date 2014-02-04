@@ -156,12 +156,17 @@ def min_sat(clauses, max_n=1000):
                  'resolving)')
 
     min_tl, solutions = sys.maxsize, []
-    for sol in islice(pycosat.itersolve(clauses), max_n):
+    count = 0
+    for sol in pycosat.itersolve(clauses):
         tl = sum(lit > 0 for lit in sol) # number of true literals
         if tl < min_tl:
             min_tl, solutions = tl, [sol]
         elif tl == min_tl:
             solutions.append(sol)
+        count += 1
+        if count >= max_n:
+            print("Warning, stopping at %s solutions" % count)
+            break
 
     return solutions
 
@@ -263,7 +268,7 @@ class Resolve(object):
 
         for spec in specs:
             ms = MatchSpec(spec)
-            # ensure that a matching package which the feature is installed
+            # ensure that a matching package with the feature is installed
             for feat in features:
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
