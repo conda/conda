@@ -158,11 +158,7 @@ def min_sat(clauses, max_n=1000):
     min_tl, solutions = sys.maxsize, []
     count = 0
     for sol in pycosat.itersolve(clauses):
-        tl = sum(lit > 0 for lit in sol) # number of true literals
-        if tl < min_tl:
-            min_tl, solutions = tl, [sol]
-        elif tl == min_tl:
-            solutions.append(sol)
+        solutions.append(sol)
         count += 1
         if count >= max_n:
             print("Warning, stopping at %s solutions" % count)
