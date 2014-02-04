@@ -265,5 +265,9 @@ def test_partial_lt():
     assert _raises(TypeError, lambda: partial_lt((sympy_071, python_275), (sympy_071, matplotlib_121)))
     assert _raises(TypeError, lambda: partial_lt((sympy_071, matplotlib_121), (sympy_071, python_275)))
 
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, python_275),
+    (sympy_072, python_274, matplotlib_121)))
+    assert _raises(TypeError, lambda: partial_lt((sympy_072, python_274, matplotlib_121), (sympy_071, python_275)))
+
     assert partial_lt((sympy_071, python_275), (sympy_072, matplotlib_121)) is True
     assert partial_lt((sympy_072, matplotlib_121), (sympy_071, python_275)) is False
