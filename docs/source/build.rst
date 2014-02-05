@@ -371,10 +371,14 @@ On Linux, we have:
     - ``<build prefix>/lib``
 
 
+All of the above environment variables are also set during the test process,
+except with the test prefix instead of the build prefix everywhere.
+
 Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echos each
 command that is run, and the ``-e`` makes it exit whenever a command in the
 script returns nonzero exit status).  You can revert this in the script if you
 need to by using the ``set`` command.
+
 
 .. _build-envs:
 
