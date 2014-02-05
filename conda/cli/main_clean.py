@@ -55,10 +55,23 @@ def rm_lock():
 
     from conda.lock import LOCKFN
 
-    for root, dirs, files in os.walk(sys.prefix):
-        for dn in dirs:
-            if dn.startswith(LOCKFN):
-                path = join(root, dn)
+    lock_dirs = config.pkgs_dirs
+    lock_dirs += [config.root_dir]
+    for envs_dir in config.envs_dirs:
+        for fn in os.listdir(envs_dir):
+            if os.path.isdir(join(envs_dir, fn)):
+                lock_dirs.append(join(envs_dir, fn))
+
+    try:
+        from conda_build.config import croot
+        lock_dirs.append(croot)
+    except ImportError:
+        pass
+
+    for dir in lock_dirs:
+        for dn in os.listdir(dir):
+            if os.path.isdir(join(dir, dn)) and dn.startswith(LOCKFN):
+                path = join(dir, dn)
                 print('removing: %s' % path)
                 os.rmdir(path)
 
