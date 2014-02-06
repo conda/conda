@@ -192,7 +192,7 @@ channels:
             args.get = sorted(rc_config.keys())
         for key in args.get:
             if key not in config.rc_list_keys + config.rc_bool_keys:
-                print("%s is not a valid key" % key)
+                print("%s is not a valid key" % key, file=sys.stderr)
                 continue
             if key not in rc_config:
                 continue
