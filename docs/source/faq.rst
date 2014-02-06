@@ -437,12 +437,11 @@ Recipes
 
       $ conda skeleton pypi bottle
 
-#. How can I automatically create a recipe for, build, and install package X
-   (e.g. *bottle*) if I know that this package is on PyPI?
+   You can then build it with
 
    .. code-block:: bash
 
-      $ conda build --build-recipe bottle
+      $ conda build bottle
 
    It is recommended to upload the package to binstar when you are done. Then
    if you add your binstar channel to your .condarc (see :ref:`customization`

@@ -13,4 +13,3 @@ optional arguments:
   -s, --source         only obtain the source (but don't build)
   -t, --test           test package (assumes package is already build)
   --no-test            do not test the package
-  --build-recipe       Try to build conda package from pypi
