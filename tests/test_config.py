@@ -217,7 +217,7 @@ invalid_key: yes
 
         # Now test the YAML "parser"
         condarc = """\
- channels :
+ channels : \n\
    -  test
    -  defaults \n\
 
@@ -263,7 +263,7 @@ yaml parser (this will remove any structure or comments from the existing
         assert _read_test_condarc() == condarc
 
 #         assert _read_test_condarc() == """\
-#  channels :
+#  channels : \n\
 #    -  test
 #    -  defaults \n\
 #
@@ -283,7 +283,7 @@ yaml parser (this will remove any structure or comments from the existing
         assert stdout == stderr == ''
 
         assert _read_test_condarc() == """\
- channels :
+ channels : \n\
    - mychannel
    -  test
    -  defaults \n\
