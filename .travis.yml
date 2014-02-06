@@ -15,9 +15,9 @@ install:
   - hash -r
   - python setup.py install
   - conda config --set always_yes yes
-  - conda install nose
+  - conda install pytest
 
-script: nosetests
+script: py.test
 
 notifications:
     flowdock: ef3821a08a791106512ccfc04c92eccb
