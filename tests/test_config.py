@@ -127,6 +127,35 @@ channels:
 """
         os.unlink(test_condarc)
 
+        with open(test_condarc, 'w') as f:
+            f.write("""\
+channels:
+  - test
+  - defaults
+
+create_default_packages:
+  - ipython
+  - numpy
+
+changeps1: no
+
+always_yes: yes
+
+invalid_key: yes
+""")
+
+        output = run_conda_command('config', '--file', test_condarc, '--get')
+        assert output == """\
+--set always_yes True
+--set changeps1 False
+--add channels 'defaults'
+--add channels 'test'
+--add create_default_packages 'numpy'
+--add create_default_packages 'ipython'
+invalid_key is not a valid key
+"""
+
+        os.unlink(test_condarc)
     finally:
         try:
             os.unlink(test_condarc)
