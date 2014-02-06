@@ -155,8 +155,59 @@ invalid_key: yes
 """
         assert stderr == "invalid_key is not a valid key\n"
 
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--get', 'channels')
+
+        assert stdout == """\
+--add channels 'defaults'
+--add channels 'test'
+"""
+        assert stderr == ""
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--get', 'changeps1')
+
+        assert stdout == """\
+--set changeps1 False
+"""
+        assert stderr == ""
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--get', 'changeps1', 'channels')
+
+        assert stdout == """\
+--set changeps1 False
+--add channels 'defaults'
+--add channels 'test'
+"""
+        assert stderr == ""
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--get', 'allow_softlinks')
+
+        assert stdout == ""
+        assert stderr == ""
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--get', 'track_features')
+
+        assert stdout == ""
+        assert stderr == ""
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--get', 'invalid_key')
+
+        assert stdout == ""
+        assert "invalid choice: 'invalid_key'" in stderr
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--get', 'not_valid_key')
+
+        assert stdout == ""
+        assert "invalid choice: 'not_valid_key'" in stderr
 
         os.unlink(test_condarc)
+
     finally:
         try:
             os.unlink(test_condarc)
