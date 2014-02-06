@@ -220,7 +220,7 @@ channels:
     for key, item in args.add:
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
-            print("Skipping %s: %s, item already exists" % (key, item))
+            print("Skipping %s: %s, item already exists" % (key, item), file=sys.stderr)
             continue
         new_rc_config.setdefault(key, []).insert(0, item)
 
