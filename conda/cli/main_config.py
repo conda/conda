@@ -327,7 +327,7 @@ channels:
         # Verify that the new rc text parses to the same thing as if we had
         # used yaml.
         try:
-            parsed_new_rc_text = yaml.load('\n'.join(new_rc_text).strip())
+            parsed_new_rc_text = yaml.load('\n'.join(new_rc_text).strip('\n'))
         except yaml.parser.ParserError:
             raise CouldntParse("couldn't parse modified yaml")
         else:
@@ -337,5 +337,5 @@ channels:
 
     if args.add or args.set:
         with open(rc_path, 'w') as rc:
-            rc.write('\n'.join(new_rc_text).strip())
+            rc.write('\n'.join(new_rc_text).strip('\n'))
             rc.write('\n')
