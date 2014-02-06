@@ -189,7 +189,7 @@ channels:
     # Get
     if args.get is not None:
         if args.get == []:
-            args.get = config.rc_list_keys + config.rc_bool_keys
+            args.get = sorted(rc_config.keys())
         for key in args.get:
             if key not in config.rc_list_keys + config.rc_bool_keys:
                 print("%s is not a valid key" % key)
