@@ -293,7 +293,7 @@ class Resolve(object):
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if lit > 0])
 
-        return [w[lit] for lit in solutions.pop() if lit > 0]
+        return [w[lit] for lit in solutions.pop(0) if lit > 0]
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
