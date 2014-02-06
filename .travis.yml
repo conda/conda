@@ -13,8 +13,9 @@ install:
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
-  - python setup.py install
   - conda config --set always_yes yes
+  - conda install setuptools
+  - python setup.py develop
   - conda install pytest
   - conda info -a
 
