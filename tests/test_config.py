@@ -144,16 +144,17 @@ always_yes: yes
 invalid_key: yes
 """)
 
-        output = run_conda_command('config', '--file', test_condarc, '--get')
-        assert output == """\
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
+        assert stdout == """\
 --set always_yes True
 --set changeps1 False
 --add channels 'defaults'
 --add channels 'test'
 --add create_default_packages 'numpy'
 --add create_default_packages 'ipython'
-invalid_key is not a valid key
 """
+        assert stderr == "invalid_key is not a valid key\n"
+
 
         os.unlink(test_condarc)
     finally:
