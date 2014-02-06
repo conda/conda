@@ -28,7 +28,8 @@ conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
 def run_conda_command(*args):
     p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    return stdout.decode('utf-8'), stderr.decode('utf-8')
+    return (stdout.decode('utf-8').replace('\r\n', '\n'),
+        stderr.decode('utf-8').replace('\r\n', '\n'))
 
 if __name__ == '__main__':
     unittest.main()
