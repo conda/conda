@@ -1,3 +1,12 @@
+??? 3.0.3
+-------------------
+
+  * Improve the spead of clean --lock
+  * Some fixes to conda config
+  * More tests added
+  * Choose the first solution rather than the last when there are more than
+    one, since this is more likely to be the one you want.
+
 2014-02-03   3.0.2:
 -------------------
   * fix detection of prefix being writable
