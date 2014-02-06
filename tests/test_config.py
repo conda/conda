@@ -7,6 +7,7 @@
 import os
 import unittest
 from os.path import dirname, join
+import yaml
 
 import conda.config as config
 
@@ -96,8 +97,9 @@ def test_config_command():
     try:
         # Test that creating the file adds the defaults channel
         assert not os.path.exists('test_condarc')
-        run_conda_command('config', '--file', test_condarc, '--add',
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
             'channels', 'test')
+        assert stdout == stderr == ''
         assert _read_test_condarc() == """\
 channels:
   - test
@@ -106,8 +108,9 @@ channels:
         os.unlink(test_condarc)
 
         # When defaults is explicitly given, it should not be added
-        run_conda_command('config', '--file', test_condarc, '--add',
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
     'channels', 'test', '--add', 'channels', 'defaults')
+        assert stdout == stderr == ''
         assert _read_test_condarc() == """\
 channels:
   - defaults
@@ -116,10 +119,13 @@ channels:
         os.unlink(test_condarc)
 
         # Duplicate keys should not be added twice
-        run_conda_command('config', '--file', test_condarc, '--add',
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
         'channels', 'test')
-        run_conda_command('config', '--file', test_condarc, '--add',
+        assert stdout == stderr == ''
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
         'channels', 'test')
+        assert stdout == ''
+        assert stderr == "Skipping channels: test, item already exists\n"
         assert _read_test_condarc() == """\
 channels:
   - test
@@ -127,6 +133,7 @@ channels:
 """
         os.unlink(test_condarc)
 
+        # Test --get
         with open(test_condarc, 'w') as f:
             f.write("""\
 channels:
@@ -208,8 +215,95 @@ invalid_key: yes
 
         os.unlink(test_condarc)
 
+        # Now test the YAML "parser"
+        condarc = """\
+ channels :
+   -  test
+   -  defaults \n\
+
+ create_default_packages:
+    - ipython
+    - numpy
+
+ changeps1 :  no
+
+# Here is a comment
+ always_yes: yes \n\
+"""
+        # First verify that this itself is valid YAML
+        assert yaml.load(condarc) == {'channels': ['test', 'defaults'],
+            'create_default_packages': ['ipython', 'numpy'], 'changeps1':
+            False, 'always_yes': True}
+
+        with open(test_condarc, 'w') as f:
+            f.write(condarc)
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
+
+        assert stdout == """\
+--set always_yes True
+--set changeps1 False
+--add channels 'defaults'
+--add channels 'test'
+--add create_default_packages 'numpy'
+--add create_default_packages 'ipython'
+"""
+        assert stderr == ''
+
+        # List keys with nonstandard whitespace are not yet supported. For
+        # now, just test that it doesn't muck up the file.
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+            'create_default_packages', 'sympy')
+        assert stdout == ''
+        assert stderr == """\
+Error: Could not parse the yaml file. Use -f to use the
+yaml parser (this will remove any structure or comments from the existing
+.condarc file). Reason: modified yaml doesn't match what it should be
+"""
+        assert _read_test_condarc() == condarc
+
+#         assert _read_test_condarc() == """\
+#  channels :
+#    -  test
+#    -  defaults \n\
+#
+#  create_default_packages:
+#     - sympy
+#     - ipython
+#     - numpy
+#
+#  changeps1 :  no
+#
+# # Here is a comment
+#  always_yes: yes \n\
+# """
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+            'channels', 'mychannel')
+        assert stdout == stderr == ''
+
+        assert _read_test_condarc() == """\
+ channels :
+   - mychannel
+   -  test
+   -  defaults \n\
+
+ create_default_packages:
+    - ipython
+    - numpy
+
+ changeps1 :  no
+
+# Here is a comment
+ always_yes: yes \n\
+"""
+
+        os.unlink(test_condarc)
+
+
     finally:
         try:
+            pass
             os.unlink(test_condarc)
         except OSError:
             pass
