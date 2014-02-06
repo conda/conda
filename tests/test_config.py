@@ -278,6 +278,35 @@ yaml parser (this will remove any structure or comments from the existing
 #  always_yes: yes \n\
 # """
 
+        # New keys when the keys are indented are not yet supported either.
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+            'disallow', 'perl')
+        assert stdout == ''
+        assert stderr == """\
+Error: Could not parse the yaml file. Use -f to use the
+yaml parser (this will remove any structure or comments from the existing
+.condarc file). Reason: couldn't parse modified yaml
+"""
+        assert _read_test_condarc() == condarc
+
+#         assert _read_test_condarc() == """\
+#  channels : \n\
+#    -  test
+#    -  defaults \n\
+#
+#  create_default_packages:
+#     - sympy
+#     - ipython
+#     - numpy
+#
+#  changeps1 :  no
+#
+# # Here is a comment
+#  always_yes: yes \n\
+#  disallow:
+#    - perl
+# """
+
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
             'channels', 'mychannel')
         assert stdout == stderr == ''
