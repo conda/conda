@@ -16,6 +16,7 @@ install:
   - python setup.py install
   - conda config --set always_yes yes
   - conda install pytest
+  - conda info -a
 
 script: py.test
 
