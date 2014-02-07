@@ -244,7 +244,7 @@ channels:
     # Remove Key
     for key, in args.remove_key:
         if key not in new_rc_config:
-            sys.exit("Error: key %s is not in the config file" % key)
+            sys.exit("Error: key %r is not in the config file" % key)
         del new_rc_config[key]
 
     if args.force:
