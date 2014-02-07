@@ -133,6 +133,15 @@ channels:
 """
         os.unlink(test_condarc)
 
+        # Test creating a new file with --set
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        '--set', 'always_yes', 'yes')
+        assert stdout == stderr == ''
+        assert _read_test_condarc() == """\
+always_yes: yes
+"""
+        os.unlink(test_condarc)
+
         # Test --get
         with open(test_condarc, 'w') as f:
             f.write("""\
@@ -327,8 +336,86 @@ yaml parser (this will remove any structure or comments from the existing
  always_yes: yes \n\
 """
 
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--set', 'changeps1', 'yes')
+
+        assert stdout == stderr == ''
+
+        assert _read_test_condarc() == """\
+ channels : \n\
+   - mychannel
+   -  test
+   -  defaults \n\
+
+ create_default_packages:
+    - ipython
+    - numpy
+
+ changeps1 :  yes
+
+# Here is a comment
+ always_yes: yes \n\
+"""
+
         os.unlink(test_condarc)
 
+
+        # Test adding a new list key. We couldn't test this above because it
+        # doesn't work yet with odd whitespace
+        condarc = """\
+channels:
+  - test
+  - defaults
+
+always_yes: yes
+"""
+
+        with open(test_condarc, 'w') as f:
+            f.write(condarc)
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+            'disallow', 'perl')
+        assert stdout == stderr == ''
+        assert _read_test_condarc() == condarc + """\
+
+disallow:
+  - perl
+"""
+        os.unlink(test_condarc)
+
+        # Finally, test --remove, --remove-key, and --force (right now
+        # --remove and --remove-key require --force)
+        run_conda_command('config', '--file', test_condarc, '--add',
+            'channels', 'test')
+        run_conda_command('config', '--file', test_condarc, '--set',
+            'always_yes', 'yes')
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--remove', 'channels', 'test', '--force')
+        assert stdout == stderr == ''
+        assert yaml.load(_read_test_condarc()) == {'channels': ['defaults'],
+            'always_yes': True}
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--remove', 'channels', 'test', '--force')
+        assert stdout == ''
+        assert stderr == "Error: 'test' is not in the 'channels' key of the config file\n"
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--remove', 'disallow', 'python', '--force')
+        assert stdout == ''
+        assert stderr == "Error: key 'disallow' is not in the config file\n"
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--remove-key', 'always_yes', '--force')
+        assert stdout == stderr == ''
+        assert yaml.load(_read_test_condarc()) == {'channels': ['defaults']}
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--remove-key', 'always_yes', '--force')
+
+        assert stdout == ''
+        assert stderr == "Error: key 'always_yes' is not in the config file\n"
+        os.unlink(test_condarc)
 
     finally:
         try:
