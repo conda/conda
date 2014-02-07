@@ -393,9 +393,9 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 lt = LINK_COPY
             try:
                 _link(src, dst, lt)
-            except OSError:
-                log.error('failed to link (src=%r, dst=%r, type=%r)' %
-                          (src, dst, lt))
+            except OSError as e:
+                log.error('failed to link (src=%r, dst=%r, type=%r, error=%4)' %
+                          (src, dst, lt, e))
 
         if name_dist(dist) == '_cache':
             return
