@@ -14,8 +14,7 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - conda install setuptools
-  - python setup.py develop
+  - python setup.py install
   - conda install pytest
   - conda info -a
 
