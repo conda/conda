@@ -86,14 +86,14 @@ class TestConfig(unittest.TestCase):
                 'https://your.repo/username/osx-64/',
                 ])
 
+test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
 def _read_test_condarc():
-    test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
     with open(test_condarc) as f:
         return f.read()
 
 # Tests for the conda config command
-def test_config_command():
-    test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
+def test_config_command_basics():
+
     try:
         # Test that creating the file adds the defaults channel
         assert not os.path.exists('test_condarc')
@@ -142,6 +142,16 @@ always_yes: yes
 """
         os.unlink(test_condarc)
 
+
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_command_get():
+    try:
         # Test --get
         with open(test_condarc, 'w') as f:
             f.write("""\
@@ -224,6 +234,16 @@ invalid_key: yes
 
         os.unlink(test_condarc)
 
+
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_command_parser():
+    try:
         # Now test the YAML "parser"
         condarc = """\
  channels : \n\
@@ -383,6 +403,16 @@ disallow:
 """
         os.unlink(test_condarc)
 
+
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_command_remove_force():
+    try:
         # Finally, test --remove, --remove-key, and --force (right now
         # --remove and --remove-key require --force)
         run_conda_command('config', '--file', test_condarc, '--add',
