@@ -81,7 +81,8 @@ def add_pip_installed(prefix, installed):
         return
     args.append('list')
     try:
-        pipinst = subprocess.check_output(args).split('\n')
+        pipinst = subprocess.check_output(
+                                args, universal_newlines=True).split('\n')
     except Exception as e:
         # Any error should just be ignored
         print("# Warning: subprocess call to pip failed")
