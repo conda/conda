@@ -189,10 +189,11 @@ channels:
     # Get
     if args.get is not None:
         if args.get == []:
-            args.get = config.rc_list_keys + config.rc_bool_keys
+            args.get = sorted(rc_config.keys())
         for key in args.get:
             if key not in config.rc_list_keys + config.rc_bool_keys:
-                print("%s is not a valid key" % key)
+                print("%s is not a valid key" % key, file=sys.stderr)
+                continue
             if key not in rc_config:
                 continue
             if isinstance(rc_config[key], bool):
@@ -219,7 +220,7 @@ channels:
     for key, item in args.add:
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
-            print("Skipping %s: %s, item already exists" % (key, item))
+            print("Skipping %s: %s, item already exists" % (key, item), file=sys.stderr)
             continue
         new_rc_config.setdefault(key, []).insert(0, item)
 
@@ -243,7 +244,7 @@ channels:
     # Remove Key
     for key, in args.remove_key:
         if key not in new_rc_config:
-            sys.exit("Error: key %s is not in the config file" % key)
+            sys.exit("Error: key %r is not in the config file" % key)
         del new_rc_config[key]
 
     if args.force:
@@ -326,7 +327,7 @@ channels:
         # Verify that the new rc text parses to the same thing as if we had
         # used yaml.
         try:
-            parsed_new_rc_text = yaml.load('\n'.join(new_rc_text).strip())
+            parsed_new_rc_text = yaml.load('\n'.join(new_rc_text).strip('\n'))
         except yaml.parser.ParserError:
             raise CouldntParse("couldn't parse modified yaml")
         else:
@@ -336,5 +337,5 @@ channels:
 
     if args.add or args.set:
         with open(rc_path, 'w') as rc:
-            rc.write('\n'.join(new_rc_text).strip())
+            rc.write('\n'.join(new_rc_text).strip('\n'))
             rc.write('\n')

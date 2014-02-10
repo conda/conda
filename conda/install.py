@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -37,7 +37,6 @@ import subprocess
 import tarfile
 import traceback
 import logging
-import tempfile
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -225,14 +224,14 @@ def mk_menus(prefix, files, remove=False):
             traceback.print_exc(file=sys.stdout)
 
 
-def post_link(prefix, dist, unlink=False):
+def run_script(prefix, dist, action='post-link', env_prefix=None):
     """
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
             name_dist(dist),
-            'pre-unlink' if unlink else 'post-link',
+            action,
             'bat' if on_win else 'sh'))
     if not isfile(path):
         return True
@@ -244,7 +243,7 @@ def post_link(prefix, dist, unlink=False):
     else:
         args = ['/bin/bash', path]
     env = os.environ
-    env['PREFIX'] = prefix
+    env['PREFIX'] = env_prefix or prefix
     env['PKG_NAME'], env['PKG_VERSION'], unused_build = str(dist).rsplit('-', 2)
     try:
         subprocess.check_call(args, env=env)
@@ -252,17 +251,7 @@ def post_link(prefix, dist, unlink=False):
         return False
     return True
 
-
 # ========================== begin API functions =========================
-
-def try_write(dir_path):
-    assert isdir(dir_path)
-    try:
-        with tempfile.TemporaryFile(prefix='.conda-try-write', dir=dir_path, mode='wb') as fo:
-            fo.write(b'This is a test file.\n')
-        return True
-    except IOError:
-        return False
 
 def try_hard_link(pkgs_dir, prefix, dist):
     src = join(pkgs_dir, dist, 'info', 'index.json')
@@ -367,6 +356,9 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         return
 
     source_dir = join(pkgs_dir, dist)
+    if not run_script(source_dir, dist, 'pre-link', prefix):
+        sys.exit('Error: pre-link failed: %s' % dist)
+
     info_dir = join(source_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
 
@@ -401,9 +393,9 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 lt = LINK_COPY
             try:
                 _link(src, dst, lt)
-            except OSError:
-                log.error('failed to link (src=%r, dst=%r, type=%r)' %
-                          (src, dst, lt))
+            except OSError as e:
+                log.error('failed to link (src=%r, dst=%r, type=%r, error=%4)' %
+                          (src, dst, lt, e))
 
         if name_dist(dist) == '_cache':
             return
@@ -413,7 +405,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
         mk_menus(prefix, files, remove=False)
 
-        if not post_link(prefix, dist):
+        if not run_script(prefix, dist, 'post-link'):
             # when the post-link step fails, we don't write any package
             # metadata and return here.  This way the package is not
             # considered installed.
@@ -439,7 +431,7 @@ def unlink(prefix, dist):
         return
 
     with Locked(prefix):
-        post_link(prefix, dist, unlink=True)
+        run_script(prefix, dist, 'pre-unlink')
 
         meta_path = join(prefix, 'conda-meta', dist + '.json')
         with open(meta_path) as fi:

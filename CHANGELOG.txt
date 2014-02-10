@@ -1,3 +1,17 @@
+2014-02-06   3.0.3:
+-------------------
+  * improve the spead of clean --lock
+  * some fixes to conda config
+  * more tests added
+  * choose the first solution rather than the last when there are more than
+    one, since this is more likely to be the one you want.
+
+
+2014-02-03   3.0.2:
+-------------------
+  * fix detection of prefix being writable
+
+
 2014-01-31   3.0.1:
 -------------------
   * bug: not having track_features in condarc now uses default again
@@ -9,6 +23,7 @@
   * fix conda config --get to work with list keys again
   * print the total download size
   * fix a bug that was preventing conda from working in Python 3
+  * add ability to run pre-link script, issue #548
 
 
 2014-01-24   3.0.0:
@@ -37,6 +52,7 @@
     and update that were previously only available to install. A backwards
     incompatible change is that conda create -f now means --force, not
     --file.
+
 
 2014-01-16   2.3.0:
 -------------------

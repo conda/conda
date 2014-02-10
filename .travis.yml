@@ -13,8 +13,12 @@ install:
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
-  - python setup.py install
   - conda config --set always_yes yes
-  - conda install nose
+  - python setup.py install
+  - conda install pytest
+  - conda info -a
 
-script: nosetests
+script: py.test
+
+notifications:
+    flowdock: ef3821a08a791106512ccfc04c92eccb
