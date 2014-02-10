@@ -16,6 +16,7 @@ from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
 from conda.misc import touch_nonadmin
+from conda.resolve import Resolve, MatchSpec
 import conda.install as ci
 
 def install_tar(prefix, tar_path, verbose=False):
@@ -102,12 +103,12 @@ def install(args, parser, command='install'):
 """ % prefix)
 
     if command == 'update':
-        linked = set(ci.name_dist(d) for d in ci.linked(prefix))
+        linked = ci.linked(prefix)
         for name in args.packages:
             common.arg2spec(name)
             if '=' in name:
                 sys.exit("Invalid package name: '%s'" % (name))
-            if name not in linked:
+            if name not in set(ci.name_dist(d) for d in linked):
                 sys.exit("Error: package '%s' is not installed in %s" %
                          (name, prefix))
 
@@ -122,14 +123,56 @@ def install(args, parser, command='install'):
     if newenv and not args.no_default_packages:
         args.packages.extend(config.create_default_packages)
 
-    # handle tar file containaing conda packages
+    common.ensure_override_channels_requires_channel(args)
+    channel_urls = args.channel or ()
+
+    if args.use_local:
+        from conda.fetch import fetch_index
+        from conda.utils import url_path
+        try:
+            from conda_build import config as build_config
+        except ImportError:
+            sys.exit("Error: you need to have 'conda-build' installed"
+                     " to use the --use-local option")
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = get_index([url_path(build_config.croot)])
+    else:
+        index = get_index(channel_urls=channel_urls, prepend=not
+            args.override_channels)
+
+    # Don't update packages that are already up-to-date
+    if command == 'update':
+        r = Resolve(index)
+        orig_packages = args.packages[:]
+        for name in orig_packages:
+            vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
+                if dist.rsplit('-', 2)[0] == name]
+            assert len(vers_inst) == 1, name
+            pkgs = sorted(r.get_pkgs(MatchSpec(name)))
+            if not pkgs:
+                # Shouldn't happen?
+                continue
+            latest = pkgs[-1]
+            if latest.version == vers_inst[0]:
+                args.packages.remove(name)
+        if not args.packages:
+            from conda.cli.main_list import list_packages
+
+            regex = '^(%s)$' % '|'.join(orig_packages)
+            print('# All requested packages already installed.')
+            list_packages(prefix, regex)
+            return
+
+    # handle tar file containing conda packages
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
             install_tar(prefix, tar_path, verbose=not args.quiet)
             return
 
-    # handle explict installs of conda packages
+    # handle explicit installs of conda packages
     if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
         from conda.misc import install_local_packages
         install_local_packages(prefix, args.packages, verbose=not args.quiet)
@@ -167,26 +210,6 @@ Error: environment does not exist: %s
 # Use 'conda create' to create an environment before installing packages
 # into it.
 #""" % prefix)
-
-    common.ensure_override_channels_requires_channel(args)
-    channel_urls = args.channel or ()
-
-    if args.use_local:
-        from conda.fetch import fetch_index
-        from conda.utils import url_path
-        try:
-            from conda_build import config as build_config
-        except ImportError:
-            sys.exit("Error: you need to have 'conda-build' installed"
-                     " to use the --use-local option")
-        # remove the cache such that a refetch is made,
-        # this is necessary because we add the local build repo URL
-        fetch_index.cache = {}
-        index = get_index([url_path(build_config.croot)])
-    else:
-        index = get_index(channel_urls=channel_urls, prepend=not
-            args.override_channels)
-
 
     actions = plan.install_actions(prefix, index, specs,
                                    force=args.force, only_names=only_names)
