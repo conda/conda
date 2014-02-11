@@ -1,3 +1,8 @@
+2014-XX-XX   3.0.4:
+-------------------
+  * conda update: don't try to update packages that are already up-to-date
+
+
 2014-02-06   3.0.3:
 -------------------
   * improve the spead of clean --lock
