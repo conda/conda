@@ -394,6 +394,29 @@ Environment variables that affect the build process
      - Should be either ``16`` or ``17``.  This is the NumPy version used to
        build the package.
 
+Pre/Post link/unlink scripts
+----------------------------
+.. TODO: Add post-unlink
+
+You can add scripts `pre-link.sh`, `post-link.sh`, or `pre-unlink.sh` (or
+`.bat` for Windows), which will be run before the package is installed, after
+it is installed, and before it is removed, respectively. If these scripts exit
+nonzero the installation/removal will fail.
+
+Environment variables are set in these scripts:
+
+.. list-table::
+
+   * - ``PREFIX``
+     - The install prefix.
+   * - ``PKG_NAME``
+     - The name of the package.
+   * - ``PKG_VERSION``
+     - The version of the package.
+   * - ``PKG_BUILDNUM``
+     - The build number of the package.
+
+
 Features
 --------
 
