@@ -416,6 +416,8 @@ Environment variables are set in these scripts:
    * - ``PKG_BUILDNUM``
      - The build number of the package.
 
+No output is shown from the build script, but it may write to
+``$PREFIX/.messages.txt``, which is shown after conda completes all actions.
 
 Features
 --------
