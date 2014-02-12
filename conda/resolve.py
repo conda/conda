@@ -310,7 +310,7 @@ class Resolve(object):
             if return_all:
                 return maximal_solutions
 
-            print('Warning:', len(solutions), "possible package resolutions:")
+            print('Warning:', len(maximal_solutions), "possible package resolutions:")
             for sol in maximal_solutions:
                 print('\t', sol)
 
