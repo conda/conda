@@ -218,7 +218,8 @@ class Resolve(object):
 
         def add_dependents(fn1):
             for ms in self.ms_depends(fn1):
-                for fn2 in self.get_max_dists(ms):
+                for pkg2 in self.get_pkgs(ms):
+                    fn2 = pkg2.fn
                     if fn2 in res:
                         continue
                     res.add(fn2)
