@@ -399,9 +399,9 @@ Pre/Post link/unlink scripts
 .. TODO: Add post-unlink
 
 You can add scripts `pre-link.sh`, `post-link.sh`, or `pre-unlink.sh` (or
-`.bat` for Windows), which will be run before the package is installed, after
-it is installed, and before it is removed, respectively. If these scripts exit
-nonzero the installation/removal will fail.
+`.bat` for Windows) to the recipe, which will be run before the package is
+installed, after it is installed, and before it is removed, respectively. If
+these scripts exit nonzero the installation/removal will fail.
 
 Environment variables are set in these scripts:
 
