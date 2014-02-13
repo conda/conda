@@ -6,6 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import sys
 from os.path import isfile
 
 from conda.cli import common
@@ -99,7 +100,9 @@ def execute(args, parser):
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path,
                      is_foreign=bool(config.foreign),
-                     envs=[])
+                     envs=[],
+                     python_version='.'.join(map(str, sys.version_info)),
+    )
 
     if args.all or args.json:
         for option in options:
@@ -115,6 +118,7 @@ Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
+       python version : %(python_version)s
      root environment : %(root_prefix)s  (%(_rtwro)s)
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
@@ -156,7 +160,6 @@ Current conda install:
         print()
 
     if args.system and not args.json:
-        import sys
         from conda.cli.find_commands import find_commands, find_executable
 
         print("sys.version: %s..." % (sys.version[:40]))
