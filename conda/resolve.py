@@ -257,13 +257,15 @@ class Resolve(object):
             ms = MatchSpec(spec)
             # ensure that a matching package with the feature is installed
             for feat in features:
+                # numpy-1.7[mkl] OR numpy-1.8[mkl]
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
                     yield clause
 
             # finally, ensure a matching package itself is installed
-            # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33
+            # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
+            # numpy-1.7-py27[mkl] OR ...
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1
