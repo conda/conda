@@ -227,11 +227,14 @@ class Resolve(object):
                 for fn2 in filenames:
                     v2 = v[fn2]
                     if v1 < v2:
+                        # NOT (fn1 AND fn2)
+                        # e.g. NOT (numpy-1.6 AND numpy-1.7)
                         yield [-v1, -v2]
 
         for fn1 in dists:
             for ms in self.ms_depends(fn1):
                 # ensure dependencies are installed
+                # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
                 clause = [-v[fn1]]
                 for fn2 in self.find_matches(ms):
                     if fn2 in dists:
@@ -242,6 +245,7 @@ class Resolve(object):
                 for feat in features:
                     # ensure that a package (with required name) which has
                     # the feature is installed
+                    # e.g. numpy-1.7 IMPLIES (numpy-1.8[mkl] OR numpy-1.7[mkl])
                     clause = [-v[fn1]]
                     for fn2 in groups[ms.name]:
                          if feat in self.features(fn2):
@@ -251,7 +255,7 @@ class Resolve(object):
 
         for spec in specs:
             ms = MatchSpec(spec)
-            # ensure that a matching package which the feature is installed
+            # ensure that a matching package with the feature is installed
             for feat in features:
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
@@ -259,6 +263,7 @@ class Resolve(object):
                     yield clause
 
             # finally, ensure a matching package itself is installed
+            # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1
