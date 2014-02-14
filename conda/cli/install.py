@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 from os.path import isdir, basename, exists, abspath
+import tempfile
 
 import conda.config as config
 import conda.plan as plan
@@ -235,3 +236,12 @@ Error: environment does not exist: %s
     if newenv:
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
+
+def check_install(packages, platform=None, channel_urls=(), prepend=True):
+    try:
+        prefix = tempfile.mkdtemp('conda')
+        specs = common.specs_from_args(packages)
+        index = get_index(channel_urls=channel_urls, prepend=prepend, platform=platform)
+        plan.install_actions(prefix, index, specs)
+    finally:
+        ci.rm_rf(prefix)
