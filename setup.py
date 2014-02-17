@@ -6,6 +6,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 import sys
+import os
 
 try:
     from setuptools import setup
@@ -22,6 +23,15 @@ import versioneer
 if sys.version_info[:2] < (2, 7):
     sys.exit("conda is only meant for Python 2.7, with experimental support "
              "for python 3.  current version: %d.%d" % sys.version_info[:2])
+
+try:
+    if os.environ['CONDA_DEFAULT_ENV']:
+        # Try to prevent accidentally installing conda into a non-root conda environment
+        sys.exit("You appear to be in a non-root conda environment. Conda is only "
+            "supported in a non-root environment. Deactivate and try again. If believe "
+            "this message is in error, run CONDA_DEFAULT_ENV='' python setup.py.")
+except KeyError:
+    pass
 
 versioneer.versionfile_source = 'conda/_version.py'
 versioneer.versionfile_build = 'conda/_version.py'
