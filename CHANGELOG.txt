@@ -1,3 +1,8 @@
+????-??-??   3.0.5:
+-------------------
+  * allow packages from create_default_packages to be overridden from the
+    command line.
+
 2014-02-14   3.0.4:
 -------------------
   * conda update: don't try to update packages that are already up-to-date
