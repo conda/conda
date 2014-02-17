@@ -122,7 +122,12 @@ def install(args, parser, command='install'):
         return
 
     if newenv and not args.no_default_packages:
-        args.packages.extend(config.create_default_packages)
+        default_packages = config.create_default_packages[:]
+        # Override defaults if they are specified at the command line
+        for default_pkg in config.create_default_packages:
+            if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
+                default_packages.remove(default_pkg)
+        args.packages.extend(default_packages)
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
