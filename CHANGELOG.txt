@@ -2,7 +2,8 @@
 -------------------
   * allow packages from create_default_packages to be overridden from the
     command line
-  * fixed typo in stall.py, issue #566
+  * fixed typo install.py, issue #566
+  * try to prevent accidentally installing into a non-root conda environment
 
 
 2014-02-14   3.0.4:
