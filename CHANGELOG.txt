@@ -1,7 +1,9 @@
-????-??-??   3.0.5:
+2014-02-??   3.0.5:
 -------------------
   * allow packages from create_default_packages to be overridden from the
-    command line.
+    command line
+  * fixed typo in stall.py, issue #566
+
 
 2014-02-14   3.0.4:
 -------------------
