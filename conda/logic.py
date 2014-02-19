@@ -33,10 +33,29 @@ def set_max_var(m):
 # TODO: Take advantage of polarity, meaning that we can add only one direction
 # of the implication, expr -> x or expr <- x, depending on how expr appears.
 
-def ITE_clauses(c, t, f):
+def ITE(c, t, f):
     """
     if c then t else f
+
+    In this function, if any of c, t, or f are True and False the resulting
+    expression is resolved.
     """
+    if isinstance(c, bool):
+        if c:
+            return (t, [])
+        else:
+            return (f, [])
+    if isinstance(t, bool):
+        if t:
+            return Or(c, f)
+        else:
+            return And(-c, f)
+    if isinstance(f, bool):
+        if f:
+            return Or(t, -c)
+        else:
+            return And(c, t)
+
     # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
 
     x = get_new_var()
@@ -54,6 +73,12 @@ def ITE_clauses(c, t, f):
     ]
 
     return (x, new_clauses)
+
+def And(a, b):
+    raise NotImplementedError
+
+def Or(a, b):
+    raise NotImplementedError
 
 def build_BDD(linear, material_left, max_cost):
     pass
