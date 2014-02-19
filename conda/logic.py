@@ -33,7 +33,7 @@ def set_max_var(m):
 # TODO: Take advantage of polarity, meaning that we can add only one direction
 # of the implication, expr -> x or expr <- x, depending on how expr appears.
 
-def ITE(c, t, f):
+def ITE_clauses(c, t, f):
     """
     if c then t else f
     """

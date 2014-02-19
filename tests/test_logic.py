@@ -1,10 +1,10 @@
 import pycosat
 
-from logic import ITE, set_max_var, Linear
+from logic import ITE_clauses, set_max_var, Linear
 
-def test_ITE():
+def test_ITE_clauses():
     set_max_var(3)
-    x, clauses = ITE(1, 2, 3)
+    x, clauses = ITE_clauses(1, 2, 3)
     for sol in pycosat.itersolve([[x]] + clauses):
         c = 1 in sol
         t = 2 in sol
