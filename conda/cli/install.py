@@ -155,13 +155,17 @@ def install(args, parser, command='install'):
         for name in orig_packages:
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
                 if dist.rsplit('-', 2)[0] == name]
+            build_inst = [dist.rsplit('-', 2)[2].rsplit('.tar.bz2', 1)[0] for dist in linked
+                if dist.rsplit('-', 2)[0] == name]
             assert len(vers_inst) == 1, name
+            assert len(build_inst) == 1, name
             pkgs = sorted(r.get_pkgs(MatchSpec(name)))
             if not pkgs:
                 # Shouldn't happen?
                 continue
+            # This won't do the right thing for python 2
             latest = pkgs[-1]
-            if latest.version == vers_inst[0]:
+            if latest.version == vers_inst[0] and latest.build == build_inst[0]:
                 args.packages.remove(name)
         if not args.packages:
             from conda.cli.main_list import list_packages
