@@ -54,3 +54,51 @@ def ITE(c, t, f):
     ]
 
     return (x, new_clauses)
+
+def build_BDD(linear, material_left, max_cost):
+    pass
+
+class Linear(object):
+    """
+    A (canonicalized) linear constraint
+
+    Canonicalized means all coefficients are positive and the constraint is <=.
+    """
+    def __init__(self, equation, rhs):
+        """
+        Equation should be a list of tuples of the form (coeff, atom). rhs is
+    the number on the right-hand side, or a list [lo, hi].
+        """
+        self.equation = sorted(equation)
+        self.rhs = rhs
+        if isinstance(rhs, int):
+            self.lo = self.hi = rhs
+        else:
+            self.lo, self.hi = rhs
+        self.coeffs = []
+        self.atoms = []
+        for coeff, atom in self.equation:
+            self.coeffs.append(coeff)
+            self.atoms.append(atom)
+        self.total = sum([i for i, _ in equation])
+        self.lower_limit = self.lo - self.total
+        self.upper_limit = self.hi - self.total
+
+    def __len__(self):
+        return len(self.equation)
+
+    def __getitem__(self, key):
+        if not isinstance(key, slice):
+            raise NotImplementedError("Non-slice indices are not supported")
+        return self.__class__(self.equation.__getitem__(key), self.rhs)
+
+    def __eq__(self, other):
+        if not isinstance(other, Linear):
+            return False
+        return (self.equation == other.equation and self.lo == other.lo and
+        self.hi == other.hi)
+
+    def __str__(self):
+        return "Linear(%r, %r)" % (self.equation, self.rhs)
+
+    __repr__ = __str__
