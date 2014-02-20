@@ -19,7 +19,7 @@ def boolize(x):
         return False
     return NoBool()
 
-def test_ITE_bool():
+def test_ITE():
     # Note, pycosat will automatically include all smaller numbers in models,
     # e.g., itersolve([[2]]) gives [[1, 2], [-1, 2]]. This should not be an
     # issue here.
