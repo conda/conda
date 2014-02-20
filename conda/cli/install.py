@@ -8,8 +8,10 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
-from os.path import isdir, basename, exists, abspath
+import shutil
+import tarfile
 import tempfile
+from os.path import isdir, join, basename, exists, abspath
 
 import conda.config as config
 import conda.plan as plan
@@ -20,12 +22,8 @@ from conda.misc import touch_nonadmin
 from conda.resolve import Resolve, MatchSpec
 import conda.install as ci
 
-def install_tar(prefix, tar_path, verbose=False):
-    import shutil
-    import tarfile
-    import tempfile
-    from os.path import join
 
+def install_tar(prefix, tar_path, verbose=False):
     from conda.misc import install_local_packages
 
     tmp_dir = tempfile.mkdtemp()
@@ -43,6 +41,7 @@ def install_tar(prefix, tar_path, verbose=False):
 
     shutil.rmtree(tmp_dir)
 
+
 def check_prefix(prefix):
     from conda.config import root_env_name
 
@@ -53,6 +52,7 @@ def check_prefix(prefix):
         sys.exit("Error: '%s' is a reserved environment name" % name)
     if exists(prefix):
         sys.exit("Error: prefix already exists: %s" % prefix)
+
 
 def clone(src_arg, dst_prefix):
     from conda.misc import clone_env
@@ -70,6 +70,7 @@ def clone(src_arg, dst_prefix):
     print("dst_prefix: %r" % dst_prefix)
     clone_env(src_prefix, dst_prefix)
 
+
 def print_activate(arg):
     print("#")
     print("# To activate this environment, use:")
@@ -81,6 +82,7 @@ def print_activate(arg):
         print("# To deactivate this environment, use:")
         print("# $ source deactivate")
     print("#")
+
 
 def install(args, parser, command='install'):
     """
@@ -155,8 +157,9 @@ def install(args, parser, command='install'):
         for name in orig_packages:
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
                 if dist.rsplit('-', 2)[0] == name]
-            build_inst = [dist.rsplit('-', 2)[2].rsplit('.tar.bz2', 1)[0] for dist in linked
-                if dist.rsplit('-', 2)[0] == name]
+            build_inst = [dist.rsplit('-', 2)[2].rsplit('.tar.bz2', 1)[0]
+                          for dist in linked
+                          if dist.rsplit('-', 2)[0] == name]
             assert len(vers_inst) == 1, name
             assert len(build_inst) == 1, name
             pkgs = sorted(r.get_pkgs(MatchSpec(name)))
@@ -245,6 +248,7 @@ Error: environment does not exist: %s
     if newenv:
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
+
 
 def check_install(packages, platform=None, channel_urls=(), prepend=True):
     try:
