@@ -1,7 +1,6 @@
 import pycosat
 
-from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false, Not
-
+from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false
 
 # TODO: We test that all the models of the transformed system are models of
 # the original, but not that all models of the original are models of the
@@ -147,12 +146,13 @@ def test_Or_bools():
                 a = 1 in sol
                 assert (fb or a)
 
-def test_Not():
-    set_max_var(1)
-    assert Not(true) == (false, [])
-    assert Not(false) == (true, [])
-    assert Not(1) == (-1, [])
-    assert Not(-1) == (1, [])
+def test_true_false():
+    assert true == true
+    assert false == false
+    assert true != false
+    assert false != true
+    assert -true == false
+    assert -false == true
 
 def test_Linear():
     l = Linear([(3, 1), (2, -4), (4, 5)], 12)
