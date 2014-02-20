@@ -127,8 +127,19 @@ def And(f, g):
         ]
     return (x, clauses)
 
-def Or(a, b):
-    raise NotImplementedError
+def Not(f):
+    if f == true:
+        return (false, [])
+    if f == false:
+        return (true, [])
+    return (-f, [])
+
+def Or(f, g):
+    nf, clauses1 = Not(f)
+    ng, clauses2 = Not(g)
+    x, clauses3 = And(nf, ng)
+    y, clauses4 = Not(x)
+    return (y, clauses1 + clauses2 + clauses3 + clauses4)
 
 def Xor(a, b):
     raise NotImplementedError
