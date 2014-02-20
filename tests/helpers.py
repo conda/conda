@@ -2,7 +2,7 @@
 Helpers for the tests
 """
 
-def _raises(exception, func):
+def raises(exception, func):
     try:
         a = func()
     except exception:
