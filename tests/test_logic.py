@@ -19,20 +19,35 @@ def boolize(x):
         return False
     return NoBool()
 
-def test_ITE_clauses():
-    set_max_var(3)
-    x, clauses = ITE(1, 2, 3)
-    for sol in pycosat.itersolve([[x]] + clauses):
-        c = 1 in sol
-        t = 2 in sol
-        f = 3 in sol
-        assert t if c else f
+def test_ITE_bool():
+    # Note, pycosat will automatically include all smaller numbers in models,
+    # e.g., itersolve([[2]]) gives [[1, 2], [-1, 2]]. This should not be an
+    # issue here.
 
-    for sol in pycosat.itersolve([[-x]] + clauses):
-        c = 1 in sol
-        t = 2 in sol
-        f = 3 in sol
-        assert not (t if c else f)
+    for c in [true, false, 1]:
+        for t in [true, false, 2]:
+            for f in [true, false, 3]:
+                set_max_var(3)
+                x, clauses = ITE(c, t, f)
+                if x in [true, false]:
+                    if t == f:
+                        # In this case, even if c is not boolizable, it is true
+                        assert boolize(x) == boolize(t)
+                    else:
+                        assert boolize(x) == (boolize(t) if boolize(c) else
+                            boolize(f)), (c, t, f)
+                else:
+                    for sol in pycosat.itersolve([[x]] + clauses):
+                        C = boolize(c) if c in [true, false] else (1 in sol)
+                        T = boolize(t) if t in [true, false] else (2 in sol)
+                        F = boolize(f) if f in [true, false] else (3 in sol)
+                        assert T if C else F, (T, C, F, sol, t, c, f)
+
+                    for sol in pycosat.itersolve([[-x]] + clauses):
+                        C = boolize(c) if c in [true, false] else (1 in sol)
+                        T = boolize(t) if t in [true, false] else (2 in sol)
+                        F = boolize(f) if f in [true, false] else (3 in sol)
+                        assert not (T if C else F)
 
 def test_And_clauses():
     # XXX: Is this i, j stuff necessary?
