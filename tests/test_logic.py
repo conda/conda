@@ -146,6 +146,60 @@ def test_Or_bools():
                 a = 1 in sol
                 assert (fb or a)
 
+# Note xor is the same as not ==
+def test_Xor_clauses():
+    # XXX: Is this i, j stuff necessary?
+    for i in range(-1, 2, 2): # [-1, 1]
+        for j in range(-1, 2, 2):
+            set_max_var(2)
+            x, clauses = Xor(i*1, j*2)
+            for sol in pycosat.itersolve([[x]] + clauses):
+                f = i*1 in sol
+                g = j*2 in sol
+                assert not (f == g)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                f = i*1 in sol
+                g = j*2 in sol
+                assert (f == g)
+
+    set_max_var(1)
+    x, clauses = Xor(1, 1)
+    assert x == false # x xor x
+    assert clauses == []
+
+    set_max_var(1)
+    x, clauses = Xor(1, -1)
+    assert x == true # x xor -x
+    assert clauses == []
+
+def test_Xor_bools():
+    for f in [true, false]:
+        for g in [true, false]:
+            set_max_var(2)
+            x, clauses = Xor(f, g)
+            assert x == true if not ((f == true) == (g == true)) else false
+            assert clauses == []
+
+        set_max_var(1)
+        x, clauses = Xor(f, 1)
+        fb = (f == true)
+        if x in [true, false]:
+            assert False
+        else:
+            for sol in pycosat.itersolve([[x]] + clauses):
+                a = 1 in sol
+                assert not (fb == a)
+
+        set_max_var(1)
+        x, clauses = Xor(1, f)
+        fb = (f == true)
+        if x in [true, false]:
+            assert False
+        else:
+            for sol in pycosat.itersolve([[x]] + clauses):
+                a = 1 in sol
+                assert not (fb == a)
+
 def test_true_false():
     assert true == true
     assert false == false

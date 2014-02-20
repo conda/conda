@@ -143,7 +143,29 @@ def Xor(f, g):
     if f == false:
         return (g, [])
     if f == true:
-        return
+        return (-g, [])
+    if g == false:
+        return (f, [])
+    if g == true:
+        return (-f, [])
+    if f == g:
+        return (false, [])
+    if f == -g:
+        return (true, [])
+
+    # if g < f:
+    #     swap(f, g)
+
+    x = get_new_var()
+    clauses = [
+        # Positive
+        [-x, f, g],
+        [-x, -f, -g],
+        # Negative
+        [x, -f, g],
+        [x, f, -g],
+        ]
+    return (x, clauses)
 
 def build_BDD(linear, material_left, max_cost):
     pass
