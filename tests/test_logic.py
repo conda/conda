@@ -1,6 +1,13 @@
 import pycosat
 
-from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false
+from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false, Not
+
+
+class NoBool(object):
+    # Will only be called if tests are wrong and don't short-circuit correctly
+    def __bool__(self):
+        raise TypeError
+    __nonzero__ = __bool__
 
 def test_ITE_clauses():
     set_max_var(3)
@@ -44,12 +51,6 @@ def test_And_clauses():
         assert (f and f)
 
 
-class NoBool(object):
-    # Will only be called if tests are wrong and don't short-circuit correctly
-    def __bool__(self):
-        raise TypeError
-    __nonzero__ = __bool__
-
 def test_And_bools():
     for f in [true, false]:
         for g in [true, false]:
@@ -82,6 +83,72 @@ def test_And_bools():
                 a = 1 in sol
                 assert (fb and a)
 
+
+def test_Or_clauses():
+    # XXX: Is this i, j stuff necessary?
+    for i in range(-1, 2, 2): # [-1, 1]
+        for j in range(-1, 2, 2):
+            set_max_var(2)
+            x, clauses = Or(i*1, j*2)
+            for sol in pycosat.itersolve([[x]] + clauses):
+                f = i*1 in sol
+                g = j*2 in sol
+                assert f or g
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                f = i*1 in sol
+                g = j*2 in sol
+                assert not (f or g)
+
+    set_max_var(1)
+    x, clauses = Or(1, -1)
+    assert x == true # x or ~x
+    assert clauses == []
+
+    set_max_var(1)
+    x, clauses = Or(1, 1)
+    for sol in pycosat.itersolve([[x]] + clauses):
+        f = 1 in sol
+        assert (f or f)
+
+
+def test_Or_bools():
+    for f in [true, false]:
+        for g in [true, false]:
+            set_max_var(2)
+            x, clauses = Or(f, g)
+            assert x == true if (f == true or g == true) else false
+            assert clauses == []
+
+        set_max_var(1)
+        x, clauses = Or(f, 1)
+        fb = (f == true)
+        if x in [true, false]:
+            assert clauses == []
+            xb = (x == true)
+            assert xb == (fb or NoBool())
+        else:
+            for sol in pycosat.itersolve([[x]] + clauses):
+                a = 1 in sol
+                assert (fb or a)
+
+        set_max_var(1)
+        x, clauses = Or(1, f)
+        fb = (f == true)
+        if x in [true, false]:
+            assert clauses == []
+            xb = (x == true)
+            assert xb == (fb or NoBool())
+        else:
+            for sol in pycosat.itersolve([[x]] + clauses):
+                a = 1 in sol
+                assert (fb or a)
+
+def test_Not():
+    set_max_var(1)
+    assert Not(true) == (false, [])
+    assert Not(false) == (true, [])
+    assert Not(1) == (-1, [])
+    assert Not(-1) == (1, [])
 
 def test_Linear():
     l = Linear([(3, 1), (2, -4), (4, 5)], 12)
