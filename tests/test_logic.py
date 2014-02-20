@@ -12,6 +12,13 @@ class NoBool(object):
         raise TypeError
     __nonzero__ = __bool__
 
+def boolize(x):
+    if x == true:
+        return True
+    if x == false:
+        return False
+    return NoBool()
+
 def test_ITE_clauses():
     set_max_var(3)
     x, clauses = ITE(1, 2, 3)
@@ -61,15 +68,15 @@ def test_And_bools():
         for g in [true, false]:
             set_max_var(2)
             x, clauses = And(f, g)
-            assert x == true if (f == true and g == true) else false
+            assert x == (true if (boolize(f) and boolize(g)) else false)
             assert clauses == []
 
         set_max_var(1)
         x, clauses = And(f, 1)
-        fb = (f == true)
+        fb = boolize(f)
         if x in [true, false]:
             assert clauses == []
-            xb = (x == true)
+            xb = boolize(x)
             assert xb == (fb and NoBool())
         else:
             for sol in pycosat.itersolve([[x]] + clauses):
@@ -81,10 +88,9 @@ def test_And_bools():
 
         set_max_var(1)
         x, clauses = And(1, f)
-        fb = (f == true)
         if x in [true, false]:
             assert clauses == []
-            xb = (x == true)
+            xb = boolize(x)
             assert xb == (fb and NoBool())
         else:
             for sol in pycosat.itersolve([[x]] + clauses):
@@ -130,15 +136,15 @@ def test_Or_bools():
         for g in [true, false]:
             set_max_var(2)
             x, clauses = Or(f, g)
-            assert x == true if (f == true or g == true) else false
+            assert x == (true if (boolize(f) or boolize(g)) else false)
             assert clauses == []
 
         set_max_var(1)
         x, clauses = Or(f, 1)
-        fb = (f == true)
+        fb = boolize(f)
         if x in [true, false]:
             assert clauses == []
-            xb = (x == true)
+            xb = boolize(x)
             assert xb == (fb or NoBool())
         else:
             for sol in pycosat.itersolve([[x]] + clauses):
@@ -150,10 +156,9 @@ def test_Or_bools():
 
         set_max_var(1)
         x, clauses = Or(1, f)
-        fb = (f == true)
         if x in [true, false]:
             assert clauses == []
-            xb = (x == true)
+            xb = boolize(x)
             assert xb == (fb or NoBool())
         else:
             for sol in pycosat.itersolve([[x]] + clauses):
@@ -163,7 +168,7 @@ def test_Or_bools():
                 a = 1 in sol
                 assert not (fb or a)
 
-# Note xor is the same as not ==
+# Note xor is the same as !=
 def test_Xor_clauses():
     # XXX: Is this i, j stuff necessary?
     for i in range(-1, 2, 2): # [-1, 1]
@@ -173,11 +178,11 @@ def test_Xor_clauses():
             for sol in pycosat.itersolve([[x]] + clauses):
                 f = i*1 in sol
                 g = j*2 in sol
-                assert not (f == g)
+                assert (f != g)
             for sol in pycosat.itersolve([[-x]] + clauses):
                 f = i*1 in sol
                 g = j*2 in sol
-                assert (f == g)
+                assert not (f != g)
 
     set_max_var(1)
     x, clauses = Xor(1, 1)
@@ -194,25 +199,24 @@ def test_Xor_bools():
         for g in [true, false]:
             set_max_var(2)
             x, clauses = Xor(f, g)
-            assert x == true if not ((f == true) == (g == true)) else false
+            assert x == (true if (boolize(f) != boolize(g)) else false)
             assert clauses == []
 
         set_max_var(1)
         x, clauses = Xor(f, 1)
-        fb = (f == true)
+        fb = boolize(f)
         if x in [true, false]:
             assert False
         else:
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
-                assert not (fb == a)
+                assert (fb != a)
             for sol in pycosat.itersolve([[-x]] + clauses):
                 a = 1 in sol
-                assert not not (fb == a)
+                assert not (fb != a)
 
         set_max_var(1)
         x, clauses = Xor(1, f)
-        fb = (f == true)
         if x in [true, false]:
             assert False
         else:
