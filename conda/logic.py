@@ -4,10 +4,22 @@ things via distribution, we add new variables. So if we have some logical
 expression expr, we replace it with x and add expr <-> x to the clauses,
 where x is a new variable, and expr <-> x is recursively evaluated in the
 same way, so that the final clauses are ORs of atoms.
+
+All functions return the tuple (new_var, new_clauses). new_var is a literal
+that should be used in place of the expression, or true or false, which are
+custom objects defined in this module, which means that the expression is
+identically true or false. new_clauses should be added to the clauses of the
+SAT solver.
+
+All functions take atoms as arguments (an atom is an integer, representing a
+literal or a negated literal, or the true or false objects defined in this
+module), that is, it is the callers' responsibility to do the conversion of
+expressions recursively. This is done because we do not have data structures
+representing the various logical classes, only atoms.
+
 """
 
 # Global state? Really?
-
 global MAX_N
 MAX_N = 0
 
@@ -20,15 +32,19 @@ def set_max_var(m):
     global MAX_N
     MAX_N = m
 
-# All functions return the tuple (new_var, new_clauses). new_var is a literal
-# that should be used in place of the expression. new_clauses should be added
-# to the clauses of the SAT solver.
 
-# All functions take atoms as arguments, that is, it is the callers'
-# responsibility to do the conversion of expressions recursively. This is done
-# because we do not have data structures representing the various logical
-# classes, only atoms.
+# Custom classes for true and false. Using True and False is too risky, since
+# True == 1, so it might be confused for the literal 1.
+class TrueClass(object):
+    def __eq__(self, other):
+        return isinstance(other, TrueClass)
 
+class FalseClass(object):
+    def __eq__(self, other):
+        return isinstance(other, FalseClass)
+
+true = TrueClass()
+false = FalseClass()
 
 # TODO: Take advantage of polarity, meaning that we can add only one direction
 # of the implication, expr -> x or expr <- x, depending on how expr appears.
@@ -41,24 +57,21 @@ def ITE(c, t, f):
     expression is resolved.
     """
     # Translated from ATDS/FEnv.h in minisatp
-
-    # Note: It's important to use "is True", not "== True", because True == 1
-    if c is True:
+    if c == true:
         return (t, [])
-    if c is False:
+    if c == false:
         return (f, [])
-    # Be careful with the atom "1"
-    if t == f and not isinstance(f, bool) and not isinstance(t, bool):
+    if t == f:
         return (t, [])
-    if t == -f and not isinstance(f, bool) and not isinstance(t, bool):
+    if t == -f:
         return Xor(c, f)
-    if t is False or t == -c:
+    if t == false or t == -c:
         return And(-c, f)
-    if t is True or t == c:
+    if t == true or t == c:
         return Or(c, f)
-    if f is False or f == c:
-            return And(c, t)
-    if f is True or f == -c:
+    if f == false or f == c:
+        return And(c, t)
+    if f == true or f == -c:
         return Or(t, -c)
 
     # TODO: At this point, minisatp has
@@ -83,8 +96,32 @@ def ITE(c, t, f):
 
     return (x, new_clauses)
 
-def And(a, b):
-    raise NotImplementedError
+def And(f, g):
+    if f == false or g == false:
+        return (false, [])
+    if f == true:
+        return (g, [])
+    if g == true:
+        return (f, [])
+    if f == g:
+        return (f, [])
+    if f == -g:
+        return (false, [])
+
+    # if g < f:
+    #     swap(f, g)
+
+    x = get_new_var()
+    clauses = [
+        # positive
+        # ~f -> ~x, ~g -> ~x
+        [-x, f],
+        [-x, g],
+        # negative
+        # (f AND g) -> x
+        [x, -f, -g],
+        ]
+    return (x, clauses)
 
 def Or(a, b):
     raise NotImplementedError
