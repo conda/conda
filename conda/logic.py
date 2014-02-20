@@ -49,6 +49,11 @@ false = FalseClass()
 # TODO: Take advantage of polarity, meaning that we can add only one direction
 # of the implication, expr -> x or expr <- x, depending on how expr appears.
 
+# Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
+# minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
+# also described in the paper, "Translating Pseudo-Boolean Constraints into
+# SAT," Eén and Sörensson).
+
 def ITE(c, t, f):
     """
     if c then t else f
@@ -56,7 +61,6 @@ def ITE(c, t, f):
     In this function, if any of c, t, or f are True and False the resulting
     expression is resolved.
     """
-    # Translated from ATDS/FEnv.h in minisatp
     if c == true:
         return (t, [])
     if c == false:
