@@ -3,6 +3,10 @@ import pycosat
 from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false, Not
 
 
+# TODO: We test that all the models of the transformed system are models of
+# the original, but not that all models of the original are models of the
+# transformed system.
+
 class NoBool(object):
     # Will only be called if tests are wrong and don't short-circuit correctly
     def __bool__(self):
