@@ -4,7 +4,7 @@ from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false
 
 # TODO: We test that all the models of the transformed system are models of
 # the original, but not that all models of the original are models of the
-# transformed system.
+# transformed system.  Or does testing -x do this?
 
 class NoBool(object):
     # Will only be called if tests are wrong and don't short-circuit correctly
@@ -52,7 +52,9 @@ def test_And_clauses():
     for sol in pycosat.itersolve([[x]] + clauses):
         f = 1 in sol
         assert (f and f)
-
+    for sol in pycosat.itersolve([[-x]] + clauses):
+        f = 1 in sol
+        assert not (f and f)
 
 def test_And_bools():
     for f in [true, false]:
@@ -73,6 +75,9 @@ def test_And_bools():
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
                 assert (fb and a)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                a = 1 in sol
+                assert not (fb and a)
 
         set_max_var(1)
         x, clauses = And(1, f)
@@ -85,6 +90,9 @@ def test_And_bools():
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
                 assert (fb and a)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                a = 1 in sol
+                assert not (fb and a)
 
 
 def test_Or_clauses():
@@ -112,6 +120,9 @@ def test_Or_clauses():
     for sol in pycosat.itersolve([[x]] + clauses):
         f = 1 in sol
         assert (f or f)
+    for sol in pycosat.itersolve([[-x]] + clauses):
+        f = 1 in sol
+        assert not (f or f)
 
 
 def test_Or_bools():
@@ -133,6 +144,9 @@ def test_Or_bools():
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
                 assert (fb or a)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                a = 1 in sol
+                assert not (fb or a)
 
         set_max_var(1)
         x, clauses = Or(1, f)
@@ -145,6 +159,9 @@ def test_Or_bools():
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
                 assert (fb or a)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                a = 1 in sol
+                assert not (fb or a)
 
 # Note xor is the same as not ==
 def test_Xor_clauses():
@@ -189,6 +206,9 @@ def test_Xor_bools():
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
                 assert not (fb == a)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                a = 1 in sol
+                assert not not (fb == a)
 
         set_max_var(1)
         x, clauses = Xor(1, f)
@@ -199,6 +219,9 @@ def test_Xor_bools():
             for sol in pycosat.itersolve([[x]] + clauses):
                 a = 1 in sol
                 assert not (fb == a)
+            for sol in pycosat.itersolve([[-x]] + clauses):
+                a = 1 in sol
+                assert not not (fb == a)
 
 def test_true_false():
     assert true == true
