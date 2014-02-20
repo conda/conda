@@ -40,24 +40,33 @@ def ITE(c, t, f):
     In this function, if any of c, t, or f are True and False the resulting
     expression is resolved.
     """
-    if isinstance(c, bool):
-        if c:
-            return (t, [])
-        else:
-            return (f, [])
-    if isinstance(t, bool):
-        if t:
-            return Or(c, f)
-        else:
-            return And(-c, f)
-    if isinstance(f, bool):
-        if f:
-            return Or(t, -c)
-        else:
+    # Translated from ATDS/FEnv.h in minisatp
+
+    # Note: It's important to use "is True", not "== True", because True == 1
+    if c is True:
+        return (t, [])
+    if c is False:
+        return (f, [])
+    # Be careful with the atom "1"
+    if t == f and not isinstance(f, bool) and not isinstance(t, bool):
+        return (t, [])
+    if t == -f and not isinstance(f, bool) and not isinstance(t, bool):
+        return Xor(c, f)
+    if t is False or t == -c:
+        return And(-c, f)
+    if t is True or t == c:
+        return Or(c, f)
+    if f is False or f == c:
             return And(c, t)
+    if f is True or f == -c:
+        return Or(t, -c)
+
+    # TODO: At this point, minisatp has
+    # if t < f:
+    #     swap(t, f)
+    #     c = -c
 
     # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
-
     x = get_new_var()
     # "Red" clauses are redundant, but they assist the unit propagation in the
     # SAT solver
@@ -78,6 +87,9 @@ def And(a, b):
     raise NotImplementedError
 
 def Or(a, b):
+    raise NotImplementedError
+
+def Xor(a, b):
     raise NotImplementedError
 
 def build_BDD(linear, material_left, max_cost):
