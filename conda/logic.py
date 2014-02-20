@@ -39,9 +39,15 @@ class TrueClass(object):
     def __eq__(self, other):
         return isinstance(other, TrueClass)
 
+    def __neg__(self):
+        return false
+
 class FalseClass(object):
     def __eq__(self, other):
         return isinstance(other, FalseClass)
+
+    def __neg__(self):
+        return true
 
 true = TrueClass()
 false = FalseClass()
@@ -127,22 +133,17 @@ def And(f, g):
         ]
     return (x, clauses)
 
-def Not(f):
-    if f == true:
-        return (false, [])
-    if f == false:
-        return (true, [])
-    return (-f, [])
 
 def Or(f, g):
-    nf, clauses1 = Not(f)
-    ng, clauses2 = Not(g)
-    x, clauses3 = And(nf, ng)
-    y, clauses4 = Not(x)
-    return (y, clauses1 + clauses2 + clauses3 + clauses4)
+    x, clauses = And(-f, -g)
+    return (-x, clauses)
 
-def Xor(a, b):
-    raise NotImplementedError
+def Xor(f, g):
+    # Minisatp treats XOR as NOT EQUIV
+    if f == false:
+        return (g, [])
+    if f == true:
+        return
 
 def build_BDD(linear, material_left, max_cost):
     pass
