@@ -1,6 +1,6 @@
 import pycosat
 
-from logic import ITE, set_max_var, Linear
+from conda.logic import ITE, set_max_var, Linear
 
 def test_ITE_clauses():
     set_max_var(3)
