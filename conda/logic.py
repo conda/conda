@@ -200,7 +200,7 @@ def build_BDD(linear, sum=0, material_left=None):
     ret, new_clauses = ITE(LA, hi, lo)
     clauses += new_clauses
 
-    return ret, new_clauses
+    return ret, clauses
 
 class Linear(object):
     """
