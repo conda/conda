@@ -185,26 +185,23 @@ class Clauses(object):
         return x
 
     @memoize
-    def build_BDD(self, linear, sum=0, material_left=None):
-        if not material_left:
-            material_left = linear.total
+    def build_BDD(self, linear, sum=0):
         lower_limit = linear.lo - sum
         upper_limit = linear.hi - sum
-        if lower_limit <= 0 and upper_limit >= material_left:
+        if lower_limit <= 0 and upper_limit >= linear.total:
             return true
-        if lower_limit > material_left or upper_limit < 0:
+        if lower_limit > linear.total or upper_limit < 0:
             return false
 
         new_linear = linear[:-1]
         LC = linear.coeffs[-1]
         LA = linear.atoms[-1]
-        material_left -= linear.coeffs[-1]
         # This is handled by the abs() call below. I think it's done this way to
         # aid caching.
         hi_sum = sum if LA < 0 else sum + LC
         lo_sum = sum + LC if LA < 0 else sum
-        hi = self.build_BDD(new_linear, hi_sum, material_left)
-        lo = self.build_BDD(new_linear, lo_sum, material_left)
+        hi = self.build_BDD(new_linear, hi_sum)
+        lo = self.build_BDD(new_linear, lo_sum)
         ret = self.ITE(abs(LA), hi, lo)
 
         return ret
