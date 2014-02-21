@@ -31,7 +31,7 @@ def test_ITE():
                 x, clauses = ITE(c, t, f)
                 if x in [true, false]:
                     if t == f:
-                        # In this case, even if c is not boolizable, it is true
+                        # In this case, it doesn't matter if c is not boolizable
                         assert boolize(x) == boolize(t)
                     else:
                         assert boolize(x) == (boolize(t) if boolize(c) else
