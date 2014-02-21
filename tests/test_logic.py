@@ -1,6 +1,13 @@
 import pycosat
 
-from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false, build_BDD
+from conda.logic import Linear, Clauses, true, false
+
+def my_itersolve(iterable):
+    """
+    Work around https://github.com/ContinuumIO/pycosat/issues/13
+    """
+    iterable = [[i for i in j] for j in iterable]
+    return pycosat.itersolve(iterable)
 
 # TODO: We test that all the models of the transformed system are models of
 # the original, but not that all models of the original are models of the
@@ -27,8 +34,8 @@ def test_ITE():
     for c in [true, false, 1]:
         for t in [true, false, 2]:
             for f in [true, false, 3]:
-                set_max_var(3)
-                x, clauses = ITE(c, t, f)
+                Cl = Clauses(3)
+                x = Cl.ITE(c, t, f)
                 if x in [true, false]:
                     if t == f:
                         # In this case, it doesn't matter if c is not boolizable
@@ -37,13 +44,14 @@ def test_ITE():
                         assert boolize(x) == (boolize(t) if boolize(c) else
                             boolize(f)), (c, t, f)
                 else:
-                    for sol in pycosat.itersolve([[x]] + clauses):
+
+                    for sol in my_itersolve({(x,)} | Cl.clauses):
                         C = boolize(c) if c in [true, false] else (1 in sol)
                         T = boolize(t) if t in [true, false] else (2 in sol)
                         F = boolize(f) if f in [true, false] else (3 in sol)
                         assert T if C else F, (T, C, F, sol, t, c, f)
 
-                    for sol in pycosat.itersolve([[-x]] + clauses):
+                    for sol in my_itersolve({(-x,)} | Cl.clauses):
                         C = boolize(c) if c in [true, false] else (1 in sol)
                         T = boolize(t) if t in [true, false] else (2 in sol)
                         F = boolize(f) if f in [true, false] else (3 in sol)
@@ -53,65 +61,65 @@ def test_And_clauses():
     # XXX: Is this i, j stuff necessary?
     for i in range(-1, 2, 2): # [-1, 1]
         for j in range(-1, 2, 2):
-            set_max_var(2)
-            x, clauses = And(i*1, j*2)
-            for sol in pycosat.itersolve([[x]] + clauses):
+            C = Clauses(2)
+            x = C.And(i*1, j*2)
+            for sol in my_itersolve({(x,)} | C.clauses):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert f and g
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert not (f and g)
 
-    set_max_var(1)
-    x, clauses = And(1, -1)
+    C = Clauses(1)
+    x = C.And(1, -1)
     assert x == false # x and ~x
-    assert clauses == []
+    assert C.clauses == set([])
 
-    set_max_var(1)
-    x, clauses = And(1, 1)
-    for sol in pycosat.itersolve([[x]] + clauses):
+    C = Clauses(1)
+    x = C.And(1, 1)
+    for sol in my_itersolve({(x,)} | C.clauses):
         f = 1 in sol
         assert (f and f)
-    for sol in pycosat.itersolve([[-x]] + clauses):
+    for sol in my_itersolve({(-x,)} | C.clauses):
         f = 1 in sol
         assert not (f and f)
 
 def test_And_bools():
     for f in [true, false]:
         for g in [true, false]:
-            set_max_var(2)
-            x, clauses = And(f, g)
+            C = Clauses(2)
+            x = C.And(f, g)
             assert x == (true if (boolize(f) and boolize(g)) else false)
-            assert clauses == []
+            assert C.clauses == set([])
 
-        set_max_var(1)
-        x, clauses = And(f, 1)
+        C = Clauses(1)
+        x = C.And(f, 1)
         fb = boolize(f)
         if x in [true, false]:
-            assert clauses == []
+            assert C.clauses == set([])
             xb = boolize(x)
             assert xb == (fb and NoBool())
         else:
-            for sol in pycosat.itersolve([[x]] + clauses):
+            for sol in my_itersolve({(x,)} | C.clauses):
                 a = 1 in sol
                 assert (fb and a)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 a = 1 in sol
                 assert not (fb and a)
 
-        set_max_var(1)
-        x, clauses = And(1, f)
+        C = Clauses(1)
+        x = C.And(1, f)
         if x in [true, false]:
-            assert clauses == []
+            assert C.clauses == set([])
             xb = boolize(x)
             assert xb == (fb and NoBool())
         else:
-            for sol in pycosat.itersolve([[x]] + clauses):
+            for sol in my_itersolve({(x,)} | C.clauses):
                 a = 1 in sol
                 assert (fb and a)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 a = 1 in sol
                 assert not (fb and a)
 
@@ -120,28 +128,28 @@ def test_Or_clauses():
     # XXX: Is this i, j stuff necessary?
     for i in range(-1, 2, 2): # [-1, 1]
         for j in range(-1, 2, 2):
-            set_max_var(2)
-            x, clauses = Or(i*1, j*2)
-            for sol in pycosat.itersolve([[x]] + clauses):
+            C = Clauses(2)
+            x = C.Or(i*1, j*2)
+            for sol in my_itersolve({(x,)} | C.clauses):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert f or g
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert not (f or g)
 
-    set_max_var(1)
-    x, clauses = Or(1, -1)
+    C = Clauses(1)
+    x = C.Or(1, -1)
     assert x == true # x or ~x
-    assert clauses == []
+    assert C.clauses == set([])
 
-    set_max_var(1)
-    x, clauses = Or(1, 1)
-    for sol in pycosat.itersolve([[x]] + clauses):
+    C = Clauses(1)
+    x = C.Or(1, 1)
+    for sol in my_itersolve({(x,)} | C.clauses):
         f = 1 in sol
         assert (f or f)
-    for sol in pycosat.itersolve([[-x]] + clauses):
+    for sol in my_itersolve({(-x,)} | C.clauses):
         f = 1 in sol
         assert not (f or f)
 
@@ -149,37 +157,37 @@ def test_Or_clauses():
 def test_Or_bools():
     for f in [true, false]:
         for g in [true, false]:
-            set_max_var(2)
-            x, clauses = Or(f, g)
+            C = Clauses(2)
+            x = C.Or(f, g)
             assert x == (true if (boolize(f) or boolize(g)) else false)
-            assert clauses == []
+            assert C.clauses == set([])
 
-        set_max_var(1)
-        x, clauses = Or(f, 1)
+        C = Clauses(1)
+        x = C.Or(f, 1)
         fb = boolize(f)
         if x in [true, false]:
-            assert clauses == []
+            assert C.clauses == set([])
             xb = boolize(x)
             assert xb == (fb or NoBool())
         else:
-            for sol in pycosat.itersolve([[x]] + clauses):
+            for sol in my_itersolve({(x,)} | C.clauses):
                 a = 1 in sol
                 assert (fb or a)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 a = 1 in sol
                 assert not (fb or a)
 
-        set_max_var(1)
-        x, clauses = Or(1, f)
+        C = Clauses(1)
+        x = C.Or(1, f)
         if x in [true, false]:
-            assert clauses == []
+            assert C.clauses == set([])
             xb = boolize(x)
             assert xb == (fb or NoBool())
         else:
-            for sol in pycosat.itersolve([[x]] + clauses):
+            for sol in my_itersolve({(x,)} | C.clauses):
                 a = 1 in sol
                 assert (fb or a)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 a = 1 in sol
                 assert not (fb or a)
 
@@ -188,57 +196,57 @@ def test_Xor_clauses():
     # XXX: Is this i, j stuff necessary?
     for i in range(-1, 2, 2): # [-1, 1]
         for j in range(-1, 2, 2):
-            set_max_var(2)
-            x, clauses = Xor(i*1, j*2)
-            for sol in pycosat.itersolve([[x]] + clauses):
+            C = Clauses(2)
+            x = C.Xor(i*1, j*2)
+            for sol in my_itersolve({(x,)} | C.clauses):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert (f != g)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert not (f != g)
 
-    set_max_var(1)
-    x, clauses = Xor(1, 1)
+    C = Clauses(1)
+    x = C.Xor(1, 1)
     assert x == false # x xor x
-    assert clauses == []
+    assert C.clauses == set([])
 
-    set_max_var(1)
-    x, clauses = Xor(1, -1)
+    C = Clauses(1)
+    x = C.Xor(1, -1)
     assert x == true # x xor -x
-    assert clauses == []
+    assert C.clauses == set([])
 
 def test_Xor_bools():
     for f in [true, false]:
         for g in [true, false]:
-            set_max_var(2)
-            x, clauses = Xor(f, g)
+            C = Clauses(2)
+            x = C.Xor(f, g)
             assert x == (true if (boolize(f) != boolize(g)) else false)
-            assert clauses == []
+            assert C.clauses == set([])
 
-        set_max_var(1)
-        x, clauses = Xor(f, 1)
+        C = Clauses(1)
+        x = C.Xor(f, 1)
         fb = boolize(f)
         if x in [true, false]:
             assert False
         else:
-            for sol in pycosat.itersolve([[x]] + clauses):
+            for sol in my_itersolve({(x,)} | C.clauses):
                 a = 1 in sol
                 assert (fb != a)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 a = 1 in sol
                 assert not (fb != a)
 
-        set_max_var(1)
-        x, clauses = Xor(1, f)
+        C = Clauses(1)
+        x = C.Xor(1, f)
         if x in [true, false]:
             assert False
         else:
-            for sol in pycosat.itersolve([[x]] + clauses):
+            for sol in my_itersolve({(x,)} | C.clauses):
                 a = 1 in sol
                 assert not (fb == a)
-            for sol in pycosat.itersolve([[-x]] + clauses):
+            for sol in my_itersolve({(-x,)} | C.clauses):
                 a = 1 in sol
                 assert not not (fb == a)
 
@@ -314,9 +322,9 @@ def test_BDD():
         Linear([(1, 1), (2, 2), (3, 3)], [3, 3])
         ]
     for l in L:
-        set_max_var(max(l.atoms))
-        x, clauses = build_BDD(l)
-        for sol in pycosat.itersolve([[x]] + clauses):
+        C = Clauses(max(l.atoms))
+        x = C.build_BDD(l)
+        for sol in my_itersolve({(x,)} | C.clauses):
             assert l(sol)
-        for sol in pycosat.itersolve([[-x]] + clauses):
+        for sol in my_itersolve({(-x,)} | C.clauses):
             assert not l(sol)
