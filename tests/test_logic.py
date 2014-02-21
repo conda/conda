@@ -328,3 +328,21 @@ def test_BDD():
             assert l(sol)
         for sol in my_itersolve({(-x,)} | C.clauses):
             assert not l(sol)
+
+    # Real life example. There are too many solutions to check them all, just
+    # check that building the BDD doesn't take forever
+    l = Linear([(1, 15), (2, 16), (3, 17), (4, 18), (5, 6), (5, 19), (6, 7),
+    (6, 20), (7, 8), (7, 21), (7, 28), (8, 9), (8, 22), (8, 29), (8, 41), (9,
+    10), (9, 23), (9, 30), (9, 42), (10, 1), (10, 11), (10, 24), (10, 31),
+    (10, 34), (10, 37), (10, 43), (10, 46), (10, 50), (11, 2), (11, 12), (11,
+    25), (11, 32), (11, 35), (11, 38), (11, 44), (11, 47), (11, 51), (12, 3),
+    (12, 4), (12, 5), (12, 13), (12, 14), (12, 26), (12, 27), (12, 33), (12,
+    36), (12, 39), (12, 40), (12, 45), (12, 48), (12, 49), (12, 52), (12, 53),
+    (12, 54)], [192, 204])
+
+    C = Clauses(max(l.atoms))
+    x = C.build_BDD(l)
+    for _, sol in zip(range(20), my_itersolve({(x,)} | C.clauses)):
+        assert l(sol)
+    for _, sol in zip(range(20), my_itersolve({(-x,)} | C.clauses)):
+        assert not l(sol)
