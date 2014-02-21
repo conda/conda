@@ -43,12 +43,20 @@ class TrueClass(object):
     def __neg__(self):
         return false
 
+    def __str__(self):
+        return "true"
+    __repr__ = __str__
+
 class FalseClass(object):
     def __eq__(self, other):
         return isinstance(other, FalseClass)
 
     def __neg__(self):
         return true
+
+    def __str__(self):
+        return "false"
+    __repr__ = __str__
 
 true = TrueClass()
 false = FalseClass()
