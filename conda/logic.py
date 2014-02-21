@@ -18,6 +18,7 @@ expressions recursively. This is done because we do not have data structures
 representing the various logical classes, only atoms.
 
 """
+from collections import defaultdict
 
 # Global state? Really?
 global MAX_N
@@ -174,7 +175,7 @@ class Linear(object):
     """
     A (canonicalized) linear constraint
 
-    Canonicalized means all coefficients are positive and the constraint is <=.
+    Canonicalized means all coefficients are positive.
     """
     def __init__(self, equation, rhs):
         """
@@ -193,8 +194,18 @@ class Linear(object):
             self.coeffs.append(coeff)
             self.atoms.append(atom)
         self.total = sum([i for i, _ in equation])
-        self.lower_limit = self.lo - self.total
-        self.upper_limit = self.hi - self.total
+        self.atom2coeff = defaultdict(int, {atom: coeff for coeff, atom in self.equation})
+        # self.lower_limit = self.lo - self.total
+        # self.upper_limit = self.hi - self.total
+
+    def __call__(self, sol):
+        """
+        Call a solution to see if it is satisfied
+        """
+        t = 0
+        for s in sol:
+            t += self.atom2coeff[s]
+        return self.lo <= t <= self.hi
 
     def __len__(self):
         return len(self.equation)
