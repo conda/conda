@@ -191,13 +191,15 @@ def build_BDD(linear, sum=0, material_left=None):
     LC = linear.coeffs[-1]
     LA = linear.atoms[-1]
     material_left -= linear.coeffs[-1]
+    # This is handled by the abs() call below. I think it's done this way to
+    # aid caching.
     hi_sum = sum if LA < 0 else sum + LC
     lo_sum = sum + LC if LA < 0 else sum
     hi, new_clauses = build_BDD(new_linear, hi_sum, material_left)
     clauses += new_clauses
     lo, new_clauses = build_BDD(new_linear, lo_sum, material_left)
     clauses += new_clauses
-    ret, new_clauses = ITE(LA, hi, lo)
+    ret, new_clauses = ITE(abs(LA), hi, lo)
     clauses += new_clauses
 
     return ret, clauses
