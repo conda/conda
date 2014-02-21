@@ -1,6 +1,6 @@
 import pycosat
 
-from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false
+from conda.logic import ITE, set_max_var, Linear, And, Or, Xor, true, false, build_BDD
 
 # TODO: We test that all the models of the transformed system are models of
 # the original, but not that all models of the original are models of the
@@ -306,3 +306,16 @@ def test_Linear():
     assert l.atoms == []
     assert l.total == 0
     assert l([1, 2, 3]) == False
+
+def test_BDD():
+    L = [
+        Linear([(1, 1), (2, 2)], [0, 2]),
+        Linear([(1, 1), (2, -2)], [0, 2]),
+        ]
+    for l in L:
+        set_max_var(max(l.atoms))
+        x, clauses = build_BDD(l)
+        for sol in pycosat.itersolve([[x]] + clauses):
+            assert l(sol)
+        for sol in pycosat.itersolve([[-x]] + clauses):
+            assert not l(sol)
