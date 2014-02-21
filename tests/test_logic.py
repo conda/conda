@@ -311,6 +311,7 @@ def test_BDD():
     L = [
         Linear([(1, 1), (2, 2)], [0, 2]),
         Linear([(1, 1), (2, -2)], [0, 2]),
+        Linear([(1, 1), (2, 2), (3, 3)], [3, 3])
         ]
     for l in L:
         set_max_var(max(l.atoms))
