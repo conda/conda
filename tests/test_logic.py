@@ -265,8 +265,6 @@ def test_Linear():
     assert l.coeffs == [2, 3, 4]
     assert l.atoms == [-4, 1, 5]
     assert l.total == 9
-    assert l.lower_limit == 3
-    assert l.upper_limit == 3
 
     assert len(l) == 3
 
@@ -287,12 +285,24 @@ def test_Linear():
     assert l.coeffs == [2, 3, 4]
     assert l.atoms == [-4, 1, 5]
     assert l.total == 9
-    assert l.lower_limit == -6
-    assert l.upper_limit == -4
 
     assert len(l) == 3
+
+    assert l([1, 2, 3, 4, 5]) == False
+    assert l([1, 2, 3, 4, -5]) == True
+    assert l([1, 2, 3, -4, -5]) == True
+    assert l([-1, -2, -3, -4, -5]) == False
+    assert l([-1, 2, 3, 4, -5]) == False
 
     # Remember that the equation is sorted
     assert l[1:] == Linear([(3, 1), (4, 5)], [3, 5])
 
     assert str(l) == repr(l) == "Linear([(2, -4), (3, 1), (4, 5)], [3, 5])"
+    l = Linear([], [1, 3])
+    assert l.equation == []
+    assert l.lo == 1
+    assert l.hi == 3
+    assert l.coeffs == []
+    assert l.atoms == []
+    assert l.total == 0
+    assert l([1, 2, 3]) == False
