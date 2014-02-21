@@ -21,6 +21,8 @@ representing the various logical classes, only atoms.
 """
 from collections import defaultdict
 
+from conda.utils import memoize
+
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
 class TrueClass(object):
@@ -34,6 +36,9 @@ class TrueClass(object):
         return "true"
     __repr__ = __str__
 
+    def __hash__(self):
+        return 1
+
 class FalseClass(object):
     def __eq__(self, other):
         return isinstance(other, FalseClass)
@@ -44,6 +49,9 @@ class FalseClass(object):
     def __str__(self):
         return "false"
     __repr__ = __str__
+
+    def __hash__(self):
+        return 0
 
 true = TrueClass()
 false = FalseClass()
@@ -65,6 +73,7 @@ class Clauses(object):
         self.MAX_N += 1
         return self.MAX_N
 
+    @memoize
     def ITE(self, c, t, f):
         """
         if c then t else f
@@ -111,6 +120,7 @@ class Clauses(object):
 
         return x
 
+    @memoize
     def And(self, f, g):
         if f == false or g == false:
             return false
@@ -140,9 +150,11 @@ class Clauses(object):
         return x
 
 
+    @memoize
     def Or(self, f, g):
         return -self.And(-f, -g)
 
+    @memoize
     def Xor(self, f, g):
         # Minisatp treats XOR as NOT EQUIV
         if f == false:
@@ -172,6 +184,7 @@ class Clauses(object):
             }
         return x
 
+    @memoize
     def build_BDD(self, linear, sum=0, material_left=None):
         if not material_left:
             material_left = linear.total
@@ -245,6 +258,11 @@ class Linear(object):
             return False
         return (self.equation == other.equation and self.lo == other.lo and
         self.hi == other.hi)
+
+    def __hash__(self):
+        hashable_equation = tuple([tuple([i for i in term]) for term in
+            self.equation])
+        return hash((hashable_equation, self.lo, self.hi))
 
     def __str__(self):
         return "Linear(%r, %r)" % (self.equation, self.rhs)
