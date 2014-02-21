@@ -176,8 +176,31 @@ def Xor(f, g):
         ]
     return (x, clauses)
 
-def build_BDD(linear, material_left, max_cost):
-    pass
+def build_BDD(linear, sum=0, material_left=None):
+    if not material_left:
+        material_left = linear.total
+    clauses = []
+    lower_limit = linear.lo - sum
+    upper_limit = linear.hi - sum
+    if lower_limit <= 0 and upper_limit >= material_left:
+        return (true, clauses)
+    if lower_limit > material_left or upper_limit < 0:
+        return (false, clauses)
+
+    new_linear = linear[:-1]
+    LC = linear.coeffs[-1]
+    LA = linear.atoms[-1]
+    material_left -= linear.coeffs[-1]
+    hi_sum = sum if LA < 0 else sum + LC
+    lo_sum = sum + LC if LA < 0 else sum
+    hi, new_clauses = build_BDD(new_linear, hi_sum, material_left)
+    clauses += new_clauses
+    lo, new_clauses = build_BDD(new_linear, lo_sum, material_left)
+    clauses += new_clauses
+    ret, new_clauses = ITE(LA, hi, lo)
+    clauses += new_clauses
+
+    return ret, new_clauses
 
 class Linear(object):
     """
