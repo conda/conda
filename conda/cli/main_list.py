@@ -81,12 +81,17 @@ def add_pip_installed(prefix, installed):
         return
     args.append('list')
     try:
-        pipinst = subprocess.check_output(
-                                args, universal_newlines=True).split('\n')
+        pipinst = subprocess.check_output(args, universal_newlines=True)
     except Exception as e:
         # Any error should just be ignored
         print("# Warning: subprocess call to pip failed")
         return
+    try:
+        # subprocess.check_output returns byte string
+        pipinst = str(pipinst, 'cp1252')
+    except TypeError:
+        pass
+    pipinst = pipinst.split('\n')
 
     # For every package in pipinst that is not already represented
     # in installed append a fake name to installed with 'pip'
