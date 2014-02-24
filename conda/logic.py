@@ -184,8 +184,48 @@ class Clauses(object):
             }
         return x
 
-    @memoize
+    # Memoization is done in the function itself
     def build_BDD(self, linear, sum=0):
+        import pudb;pudb.set_trace()
+        call_stack = [(linear, sum)]
+        first_stack = call_stack[0]
+        ret = {}
+        while call_stack:
+            linear, sum = call_stack[-1]
+            lower_limit = linear.lo - sum
+            upper_limit = linear.hi - sum
+            if lower_limit <= 0 and upper_limit >= linear.total:
+                ret[call_stack.pop()] = true
+                continue
+            if lower_limit > linear.total or upper_limit < 0:
+                ret[call_stack.pop()] = false
+                continue
+
+            new_linear = linear[:-1]
+            LC = linear.coeffs[-1]
+            LA = linear.atoms[-1]
+            # This is handled by the abs() call below. I think it's done this way to
+            # aid caching.
+            hi_sum = sum if LA < 0 else sum + LC
+            lo_sum = sum + LC if LA < 0 else sum
+            if (new_linear, hi_sum) not in ret:
+                call_stack.append((new_linear, hi_sum))
+                continue
+            else:
+                hi = ret[(new_linear, hi_sum)]
+            if (new_linear, lo_sum) not in ret:
+                call_stack.append((new_linear, lo_sum))
+                continue
+            else:
+                lo = ret[(new_linear, lo_sum)]
+            ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo)
+
+        return ret[first_stack]
+
+    # Reference implementation for testing. The recursion depth gets exceeded
+        # for too long formulas, so we use the non-recursive version above.
+    @memoize
+    def build_BDD_recursive(self, linear, sum=0):
         lower_limit = linear.lo - sum
         upper_limit = linear.hi - sum
         if lower_limit <= 0 and upper_limit >= linear.total:
@@ -200,8 +240,8 @@ class Clauses(object):
         # aid caching.
         hi_sum = sum if LA < 0 else sum + LC
         lo_sum = sum + LC if LA < 0 else sum
-        hi = self.build_BDD(new_linear, hi_sum)
-        lo = self.build_BDD(new_linear, lo_sum)
+        hi = self.build_BDD_recursive(new_linear, hi_sum)
+        lo = self.build_BDD_recursive(new_linear, lo_sum)
         ret = self.ITE(abs(LA), hi, lo)
 
         return ret
