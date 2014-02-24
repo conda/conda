@@ -207,16 +207,18 @@ class Clauses(object):
             # aid caching.
             hi_sum = sum if LA < 0 else sum + LC
             lo_sum = sum + LC if LA < 0 else sum
-            if (new_linear, hi_sum) not in ret:
+            try:
+                hi = ret[(new_linear, hi_sum)]
+            except KeyError:
                 call_stack.append((new_linear, hi_sum))
                 continue
-            else:
-                hi = ret[(new_linear, hi_sum)]
-            if (new_linear, lo_sum) not in ret:
+
+            try:
+                lo = ret[(new_linear, lo_sum)]
+            except KeyError:
                 call_stack.append((new_linear, lo_sum))
                 continue
-            else:
-                lo = ret[(new_linear, lo_sum)]
+
             ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo)
 
         return ret[first_stack]
