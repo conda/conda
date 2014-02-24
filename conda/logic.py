@@ -186,7 +186,6 @@ class Clauses(object):
 
     # Memoization is done in the function itself
     def build_BDD(self, linear, sum=0):
-        import pudb;pudb.set_trace()
         call_stack = [(linear, sum)]
         first_stack = call_stack[0]
         ret = {}
