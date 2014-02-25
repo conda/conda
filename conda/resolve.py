@@ -9,6 +9,7 @@ from collections import defaultdict
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
+from conda.logic import Clauses, Linear
 
 log = logging.getLogger(__name__)
 
@@ -201,16 +202,16 @@ class Resolve(object):
                 yield pkg.fn
 
     def all_deps(self, root_fn):
-        res = set()
+        res = {}
 
         def add_dependents(fn1):
             for ms in self.ms_depends(fn1):
-                for fn2 in self.get_max_dists(ms):
-                    if fn2 in res:
+                for pkg2 in self.get_pkgs(ms):
+                    if pkg2.fn in res:
                         continue
-                    res.add(fn2)
+                    res[pkg2.fn] = pkg2
                     if ms.strictness < 3:
-                        add_dependents(fn2)
+                        add_dependents(pkg2.fn)
 
         add_dependents(root_fn)
         return res
@@ -271,20 +272,37 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
+        # yield from anyone?
+        for clause in self.generate_version_constraints(v, groups, dists):
+            yield clause
+
+    def generate_version_constraints(self, v, groups, dists):
+        eq = []
+        for filenames in itervalues(groups):
+            pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
+            eq += [(i, v[fn]) for i, fn in enumerate(pkgs)]
+        l = Linear(eq, [0, 0])
+        m = max(v.values())
+        C = Clauses(m)
+        yield [C.build_BDD(l)]
+        for clause in C.clauses:
+            yield list(clause)
+
     def solve2(self, specs, features, guess=True):
-        dists = set()
+        dists = {}
         for spec in specs:
-            for fn in self.get_max_dists(MatchSpec(spec)):
-                if fn in dists:
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                if pkg.fn in dists:
                     continue
-                dists.update(self.all_deps(fn))
-                dists.add(fn)
+                dists.update(self.all_deps(pkg.fn))
+                dists[pkg.fn] = pkg
 
         v = {} # map fn to variable number
         w = {} # map variable number to fn
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
+        m = i + 1
 
         clauses = self.gen_clauses(v, dists, specs, features)
         solutions = min_sat(clauses)
@@ -298,9 +316,10 @@ class Resolve(object):
         if len(solutions) > 1:
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
-                print('\t', [w[lit] for lit in sol if lit > 0])
+                print('\t', [w[lit] for lit in sol if 0 < lit <= m])
 
-        return [w[lit] for lit in solutions.pop(0) if lit > 0]
+        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
@@ -432,7 +451,6 @@ remaining packages:
                 self.update_with_features(fn, features)
 
         return self.explicit(specs) or self.solve2(specs, features)
-
 
 if __name__ == '__main__':
     import json
