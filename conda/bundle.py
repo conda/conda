@@ -90,19 +90,18 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         depends = [],
     )
     meta['version'] = get_version(meta)
-
-    tar_path = join('bundle-%(version)s-0.tar.bz2' % meta)
+    tar_path = 'analysis-package-%s.tar.bz2' % bundle_name
+    #tar_path = join('bundle-%(version)s-0.tar.bz2' % meta)
     t = tarfile.open(tar_path, 'w:bz2')
     if prefix:
         prefix = abspath(prefix)
-        if not prefix.startswith('/opt/anaconda'):
-            for f in sorted(untracked(prefix, exclude_self_build=True)):
-                if f.startswith(BDP):
-                    raise RuntimeError('bad untracked file: %s' % f)
-                if f.startswith('info/'):
-                    continue
-                path = join(prefix, f)
-                add_file(t, path, f)
+        for f in sorted(untracked(prefix, exclude_self_build=True)):
+            if f.startswith(BDP):
+                raise RuntimeError('bad untracked file: %s' % f)
+            if f.startswith('info/'):
+                continue
+            path = join(prefix, f)
+            add_file(t, path, f)
         meta['bundle_prefix'] = prefix
         meta['depends'] = [' '.join(dist.rsplit('-', 2)) for dist in
                            sorted(install.linked(prefix))]
