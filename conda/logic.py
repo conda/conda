@@ -185,6 +185,8 @@ class Clauses(object):
         return x
 
     # Memoization is done in the function itself
+    # TODO: This is a bit slower than the recursive version because it doesn't
+    # "jump back" to the call site.
     def build_BDD(self, linear, sum=0):
         call_stack = [(linear, sum)]
         first_stack = call_stack[0]
