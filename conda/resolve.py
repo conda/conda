@@ -103,8 +103,8 @@ class Package(object):
             raise ValueError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
-            return ((self.norm_version, self.build_number, self.build) <
-                    (other.norm_version, other.build_number, other.build))
+            return ((self.norm_version, self.build_number, other.build) <
+                    (other.norm_version, other.build_number, self.build))
         except TypeError:
             return ((self.version, self.build_number) <
                     (other.version, other.build_number))
