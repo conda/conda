@@ -9,7 +9,7 @@ from collections import defaultdict
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
-from conda.logic import Clauses, Linear
+from conda.logic import Clauses, Linear, false
 
 log = logging.getLogger(__name__)
 
@@ -272,16 +272,20 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
-        # yield from anyone?
-        for clause in self.generate_version_constraints(v, groups, dists):
-            yield clause
+    def generate_version_constraints(self, v,  dists, rhs):
+        groups = defaultdict(list) # map name to list of filenames
+        for fn in dists:
+            groups[self.index[fn]['name']].append(fn)
 
-    def generate_version_constraints(self, v, groups, dists):
         eq = []
         for filenames in itervalues(groups):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
             eq += [(i, v[fn]) for i, fn in enumerate(pkgs)]
-        l = Linear(eq, [0, 0])
+        # You would think that bisecting would be better here, but it seems it
+        # is not. The reason is that a rhs like [0, 20] generates far more
+        # clauses than [0, 0]. The npSolver paper also indicates that a binary
+        # search is not more effective than a top-down search.
+        l = Linear(eq, [rhs, rhs])
         m = max(v.values())
         C = Clauses(m)
         yield [C.build_BDD(l)]
@@ -304,8 +308,19 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = self.gen_clauses(v, dists, specs, features)
-        solutions = min_sat(clauses)
+        clauses = list(self.gen_clauses(v, dists, specs, features))
+        rhs = 0
+        constraints = list(self.generate_version_constraints(v, dists, rhs))
+        while constraints[0] != false: # build_BDD returns false if the rhs is
+            # too big to be satisfied. TODO: We can return false much sooner.
+            log.debug("Checking for solution with constraint rhs: %d" % rhs)
+            solutions = min_sat(clauses + constraints)
+            if solutions:
+                break
+            rhs += 1
+            constraints = list(self.generate_version_constraints(v, dists, rhs))
+        else:
+            solutions = []
 
         if len(solutions) == 0:
             if guess:
