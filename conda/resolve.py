@@ -280,7 +280,13 @@ class Resolve(object):
         eq = []
         for filenames in itervalues(groups):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
-            eq += [(i, v[fn]) for i, fn in enumerate(pkgs)]
+            i = 0
+            prev = pkgs[0]
+            for pkg in pkgs:
+                # > compares build strings but == does not
+                if dists[pkg] != dists[prev]:
+                    i += 1
+                eq += [(i, v[pkg])]
         # You would think that bisecting would be better here, but it seems it
         # is not. The reason is that a rhs like [0, 20] generates far more
         # clauses than [0, 0]. The npSolver paper also indicates that a binary
