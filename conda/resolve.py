@@ -9,7 +9,7 @@ from collections import defaultdict
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
-from conda.logic import Clauses, Linear, false
+from conda.logic import Clauses, Linear, false, true
 
 log = logging.getLogger(__name__)
 
@@ -291,8 +291,9 @@ class Resolve(object):
         # is not. The reason is that a rhs like [0, 20] generates far more
         # clauses than [0, 0]. The npSolver paper also indicates that a binary
         # search is not more effective than a top-down search.
+        # OTOH, maybe bisecting would exit sooner on unsatisfiable specs
         l = Linear(eq, [rhs, rhs])
-        m = max(v.values())
+        m = max(v.values()) if v else 0
         C = Clauses(m)
         yield [C.build_BDD(l)]
         for clause in C.clauses:
@@ -317,17 +318,18 @@ class Resolve(object):
 
         clauses = list(self.gen_clauses(v, dists, specs, features))
         rhs = 0
-        constraints = list(self.generate_version_constraints(v, dists, rhs))
-        while constraints[0] != false: # build_BDD returns false if the rhs is
-            # too big to be satisfied. TODO: We can return false much sooner.
+        while True:
+            constraints = list(self.generate_version_constraints(v, dists, rhs))
+            if constraints[0] == [false]: # build_BDD returns false if the rhs is
+                solutions = []          # too big to be satisfied. TODO: We
+                break                   # can return false much sooner.
+            if constraints[0] == [true]:
+                constraints = []
             log.debug("Checking for solution with constraint rhs: %d" % rhs)
             solutions = min_sat(clauses + constraints)
             if solutions:
                 break
             rhs += 1
-            constraints = list(self.generate_version_constraints(v, dists, rhs))
-        else:
-            solutions = []
 
         if len(solutions) == 0:
             if guess:
