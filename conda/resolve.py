@@ -272,14 +272,13 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
-    def generate_version_constraints(self, v,  dists, rhs):
-        eq, max_rhs = self.generate_eq(v, dists)
+    def generate_version_constraints(self, eq, v, rhs):
         # You would think that bisecting would be better here, but it seems it
         # is not. The reason is that a rhs like [0, 20] generates far more
         # clauses than [0, 0]. The npSolver paper also indicates that a binary
         # search is not more effective than a top-down search.
         # OTOH, maybe bisecting would exit sooner on unsatisfiable specs.
-        l = Linear(eq, [rhs, rhs])
+        l = Linear(eq, rhs)
         m = max(v.values()) if v else 0
         C = Clauses(m)
         yield [C.build_BDD(l)]
@@ -331,20 +330,42 @@ class Resolve(object):
         m = i + 1
 
         clauses = list(self.gen_clauses(v, dists, specs, features))
-        rhs = 0
-        while True:
-            log.debug("Building the constraint with rhs: %d" % rhs)
-            constraints = list(self.generate_version_constraints(v, dists, rhs))
-            if constraints[0] == [false]: # build_BDD returns false if the rhs is
-                solutions = []          # too big to be satisfied. TODO: We
-                break                   # can return false much sooner.
-            if constraints[0] == [true]:
-                constraints = []
-            log.debug("Checking for solutions with rhs:  %d" % rhs)
+        eq, max_rhs = self.generate_eq(v, dists)
+
+        # Check the common case first
+        constraints = list(self.generate_version_constraints(eq, v, [0, 0]))
+        if constraints[0] == [false]:
+            pass
+        elif constraints[0] == [true]:
+            constraints = []
+        else:
             solutions = min_sat(clauses + constraints)
-            if solutions:
-                break
-            rhs += 1
+
+        if not solutions:
+            lo, hi = [0, max_rhs*2]
+            while True:
+                mid = (lo + hi)//2
+                rhs = [lo, mid]
+                log.debug("Building the constraint with rhs: %s" % rhs)
+                constraints = list(self.generate_version_constraints(eq, v, rhs))
+                if constraints[0] == [false]: # build_BDD returns false if the rhs is
+                    solutions = []            # too big to be satisfied. XXX: This
+                    break                     # probably indicates a bug.
+                if constraints[0] == [true]:
+                    constraints = []
+                log.debug("Checking for solutions with rhs:  %s" % rhs)
+                solutions = min_sat(clauses + constraints)
+                if lo >= hi:
+                    break
+                if solutions:
+                    # bisect good
+                    hi = mid
+                else:
+                    # bisect bad
+                    if hi == max_rhs*2:
+                        # No solutions on the first pass
+                        break
+                    lo = mid+1
 
         if len(solutions) == 0:
             if guess:
