@@ -358,6 +358,8 @@ class Resolve(object):
                 if lo >= hi:
                     break
                 if solutions:
+                    if lo == mid:
+                        break
                     # bisect good
                     hi = mid
                 else:
