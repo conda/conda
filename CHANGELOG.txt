@@ -1,3 +1,8 @@
+2014-XX-XX   3.1.0:
+-------------------
+  * add --use-cache option to enable using cache of channel index files
+
+
 2014-02-20   3.0.6:
 -------------------
   * fix 'conda update' taking build number into account
@@ -18,7 +23,7 @@
 
 2014-02-06   3.0.3:
 -------------------
-  * improve the spead of clean --lock
+  * improve the speed of clean --lock
   * some fixes to conda config
   * more tests added
   * choose the first solution rather than the last when there are more than
