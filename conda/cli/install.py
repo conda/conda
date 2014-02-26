@@ -148,7 +148,7 @@ def install(args, parser, command='install'):
         index = get_index([url_path(build_config.croot)])
     else:
         index = get_index(channel_urls=channel_urls, prepend=not
-            args.override_channels)
+                          args.override_channels)
 
     # Don't update packages that are already up-to-date
     if command == 'update':
