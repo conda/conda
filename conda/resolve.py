@@ -286,7 +286,9 @@ class Resolve(object):
                 # > compares build strings but == does not
                 if dists[pkg] != dists[prev]:
                     i += 1
-                eq += [(i, v[pkg])]
+                if i:
+                    eq += [(i, v[pkg])]
+                prev = pkg
         # You would think that bisecting would be better here, but it seems it
         # is not. The reason is that a rhs like [0, 20] generates far more
         # clauses than [0, 0]. The npSolver paper also indicates that a binary
