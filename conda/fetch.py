@@ -53,7 +53,7 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
         d[dict_key] = value
 
 
-def fetch_repodata(url, cache_dir=None):
+def fetch_repodata(url, cache_dir=None, use_cache=False):
     log.debug("fetching repodata: %s ..." % url)
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
@@ -61,6 +61,9 @@ def fetch_repodata(url, cache_dir=None):
         cache = json.load(open(cache_path))
     except (IOError, ValueError):
         cache = {'packages': {}}
+
+    if use_cache:
+        return cache
 
     request = urllib2.Request(url + 'repodata.json.bz2')
     if '_etag' in cache:
@@ -101,11 +104,11 @@ def fetch_repodata(url, cache_dir=None):
 
 
 @memoized
-def fetch_index(channel_urls):
+def fetch_index(channel_urls, use_cache=False):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     for url in reversed(channel_urls):
-        repodata = fetch_repodata(url)
+        repodata = fetch_repodata(url, use_cache=use_cache)
         if repodata is None:
             continue
         new_index = repodata['packages']
