@@ -273,7 +273,7 @@ class Resolve(object):
             yield clause
 
     def generate_version_constraints(self, v,  dists, rhs):
-        eq = self.generate_eq(v, dists)
+        eq, max_rhs = self.generate_eq(v, dists)
         # You would think that bisecting would be better here, but it seems it
         # is not. The reason is that a rhs like [0, 20] generates far more
         # clauses than [0, 0]. The npSolver paper also indicates that a binary
@@ -292,6 +292,7 @@ class Resolve(object):
             groups[self.index[fn]['name']].append(fn)
 
         eq = []
+        max_rhs = 0
         for filenames in itervalues(groups):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
             i = 0
@@ -303,8 +304,9 @@ class Resolve(object):
                 if i:
                     eq += [(i, v[pkg])]
                 prev = pkg
+            max_rhs += i
 
-        return eq
+        return eq, max_rhs
 
     def get_dists(self, specs):
         dists = {}
