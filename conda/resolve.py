@@ -338,8 +338,8 @@ class Resolve(object):
             pass
         elif constraints[0] == [true]:
             constraints = []
-        else:
-            solutions = min_sat(clauses + constraints)
+
+        solutions = min_sat(clauses + constraints)
 
         if not solutions:
             lo, hi = [0, max_rhs]
