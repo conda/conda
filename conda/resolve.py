@@ -273,6 +273,20 @@ class Resolve(object):
             yield clause
 
     def generate_version_constraints(self, v,  dists, rhs):
+        eq = self.generate_eq(v, dists)
+        # You would think that bisecting would be better here, but it seems it
+        # is not. The reason is that a rhs like [0, 20] generates far more
+        # clauses than [0, 0]. The npSolver paper also indicates that a binary
+        # search is not more effective than a top-down search.
+        # OTOH, maybe bisecting would exit sooner on unsatisfiable specs.
+        l = Linear(eq, [rhs, rhs])
+        m = max(v.values()) if v else 0
+        C = Clauses(m)
+        yield [C.build_BDD(l)]
+        for clause in C.clauses:
+            yield list(clause)
+
+    def generate_eq(self, v, dists):
         groups = defaultdict(list) # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
@@ -289,19 +303,10 @@ class Resolve(object):
                 if i:
                     eq += [(i, v[pkg])]
                 prev = pkg
-        # You would think that bisecting would be better here, but it seems it
-        # is not. The reason is that a rhs like [0, 20] generates far more
-        # clauses than [0, 0]. The npSolver paper also indicates that a binary
-        # search is not more effective than a top-down search.
-        # OTOH, maybe bisecting would exit sooner on unsatisfiable specs
-        l = Linear(eq, [rhs, rhs])
-        m = max(v.values()) if v else 0
-        C = Clauses(m)
-        yield [C.build_BDD(l)]
-        for clause in C.clauses:
-            yield list(clause)
 
-    def solve2(self, specs, features, guess=True):
+        return eq
+
+    def get_dists(self, specs):
         dists = {}
         for spec in specs:
             for pkg in self.get_pkgs(MatchSpec(spec)):
@@ -309,6 +314,11 @@ class Resolve(object):
                     continue
                 dists.update(self.all_deps(pkg.fn))
                 dists[pkg.fn] = pkg
+
+        return dists
+
+    def solve2(self, specs, features, guess=True):
+        dists = self.get_dists(specs)
 
         v = {} # map fn to variable number
         w = {} # map variable number to fn

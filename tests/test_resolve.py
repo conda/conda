@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import
 import json
 import unittest
 from os.path import dirname, join
@@ -198,5 +199,78 @@ class TestFindSubstitute(unittest.TestCase):
             self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_get_dists():
+    dists = r.get_dists(["anaconda 1.5.0"])
+    assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
+    assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
+    for d in dists:
+        assert dists[d].fn == d
+
+def test_generate_eq():
+    dists = r.get_dists(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
+    v = {}
+    w = {}
+    for i, fn in enumerate(sorted(dists)):
+        v[fn] = i + 1
+        w[i + 1] = fn
+
+    eq = r.generate_eq(v, dists)
+    assert all(i > 0 for i, _ in eq)
+    e = [(i, w[j]) for i, j in eq]
+    # Should satisfy the following criteria:
+    # - lower versions of the same package should should have higher
+    #   coefficients.
+    # - the same versions of the same package (e.g., different build strings)
+    #   should have the same coefficients.
+    # - a package that only has one version should not appear, as it will have
+    #   a 0 coefficient. The same is true of the latest version of a package.
+    # The actual order may be arbitrary, so we compare sets
+    assert set(e) == set([
+        (1, 'python-3.3.1-0.tar.bz2'),
+        (2, 'python-3.3.0-4.tar.bz2'),
+        (3, 'python-3.3.0-3.tar.bz2'),
+        (4, 'python-3.3.0-2.tar.bz2'),
+        (5, 'python-3.3.0-pro1.tar.bz2'),
+        (6, 'python-3.3.0-pro0.tar.bz2'),
+        (7, 'python-2.7.5-0.tar.bz2'),
+        (8, 'python-2.7.4-0.tar.bz2'),
+        (9, 'python-2.7.3-7.tar.bz2'),
+        (10, 'python-2.7.3-6.tar.bz2'),
+        (11, 'python-2.7.3-5.tar.bz2'),
+        (12, 'python-2.7.3-4.tar.bz2'),
+        (13, 'python-2.7.3-3.tar.bz2'),
+        (14, 'python-2.7.3-2.tar.bz2'),
+        (15, 'python-2.6.8-6.tar.bz2'),
+        (16, 'python-2.6.8-5.tar.bz2'),
+        (17, 'python-2.6.8-4.tar.bz2'),
+        (18, 'python-2.6.8-3.tar.bz2'),
+        (19, 'python-2.6.8-2.tar.bz2'),
+        (20, 'python-2.6.8-1.tar.bz2'),
+        (1, 'numpy-1.7.0-py26_0.tar.bz2'),
+        (1, 'numpy-1.7.0-py26_p0.tar.bz2'),
+        (1, 'numpy-1.7.0-py27_0.tar.bz2'),
+        (1, 'numpy-1.7.0-py27_p0.tar.bz2'),
+        (1, 'numpy-1.7.0-py33_0.tar.bz2'),
+        (1, 'numpy-1.7.0-py33_p0.tar.bz2'),
+        (2, 'numpy-1.7.0rc1-py26_0.tar.bz2'),
+        (2, 'numpy-1.7.0rc1-py26_p0.tar.bz2'),
+        (2, 'numpy-1.7.0rc1-py27_0.tar.bz2'),
+        (2, 'numpy-1.7.0rc1-py27_p0.tar.bz2'),
+        (2, 'numpy-1.7.0rc1-py33_0.tar.bz2'),
+        (2, 'numpy-1.7.0rc1-py33_p0.tar.bz2'),
+        (3, 'numpy-1.7.0b2-py26_ce0.tar.bz2'),
+        (3, 'numpy-1.7.0b2-py26_pro0.tar.bz2'),
+        (3, 'numpy-1.7.0b2-py27_ce0.tar.bz2'),
+        (3, 'numpy-1.7.0b2-py27_pro0.tar.bz2'),
+        (3, 'numpy-1.7.0b2-py33_pro0.tar.bz2'),
+        (4, 'numpy-1.6.2-py26_4.tar.bz2'),
+        (4, 'numpy-1.6.2-py27_4.tar.bz2'),
+        (1, 'nose-1.2.1-py26_0.tar.bz2'),
+        (1, 'nose-1.2.1-py27_0.tar.bz2'),
+        (1, 'nose-1.2.1-py33_0.tar.bz2'),
+        (2, 'nose-1.1.2-py26_0.tar.bz2'),
+        (2, 'nose-1.1.2-py27_0.tar.bz2'),
+        (2, 'nose-1.1.2-py33_0.tar.bz2'),
+        (1, 'mkl-10.3-p1.tar.bz2'),
+        (2, 'mkl-10.3-0.tar.bz2'),
+        (1, 'system-5.8-0.tar.bz2')])
