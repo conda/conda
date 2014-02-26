@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 The basic idea to nest logical expressions is instead of trying to denest
 things via distribution, we add new variables. So if we have some logical
@@ -62,7 +63,7 @@ false = FalseClass()
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
-# SAT," Een and Sorensson).
+# SAT," Eén and Sörensson).
 
 class Clauses(object):
     def __init__(self, MAX_N=0):
