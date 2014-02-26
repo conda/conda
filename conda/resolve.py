@@ -321,13 +321,14 @@ class Resolve(object):
         clauses = list(self.gen_clauses(v, dists, specs, features))
         rhs = 0
         while True:
+            log.debug("Building the constraint with rhs: %d" % rhs)
             constraints = list(self.generate_version_constraints(v, dists, rhs))
             if constraints[0] == [false]: # build_BDD returns false if the rhs is
                 solutions = []          # too big to be satisfied. TODO: We
                 break                   # can return false much sooner.
             if constraints[0] == [true]:
                 constraints = []
-            log.debug("Checking for solution with constraint rhs: %d" % rhs)
+            log.debug("Checking for solutions with rhs:  %d" % rhs)
             solutions = min_sat(clauses + constraints)
             if solutions:
                 break
