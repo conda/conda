@@ -62,7 +62,7 @@ false = FalseClass()
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
-# SAT," Eén and Sörensson).
+# SAT," Een and Sorensson).
 
 class Clauses(object):
     def __init__(self, MAX_N=0):
