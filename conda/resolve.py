@@ -342,7 +342,7 @@ class Resolve(object):
             solutions = min_sat(clauses + constraints)
 
         if not solutions:
-            lo, hi = [0, max_rhs*2]
+            lo, hi = [0, max_rhs]
             while True:
                 mid = (lo + hi)//2
                 rhs = [lo, mid]
@@ -362,9 +362,6 @@ class Resolve(object):
                     hi = mid
                 else:
                     # bisect bad
-                    if hi == max_rhs*2:
-                        # No solutions on the first pass
-                        break
                     lo = mid+1
 
         if len(solutions) == 0:
