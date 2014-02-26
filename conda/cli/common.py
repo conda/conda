@@ -94,6 +94,13 @@ def add_parser_install(p):
         help = "create prefix directory if necessary",
     )
     p.add_argument(
+        "--use-cache",
+        action="store_true",
+        default=False,
+        dest='use_cache',
+        help = "use cache of channel index files",
+    )
+    p.add_argument(
         "--use-local",
         action="store_true",
         default=False,

@@ -145,10 +145,12 @@ def install(args, parser, command='install'):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = get_index([url_path(build_config.croot)])
+        index = get_index([url_path(build_config.croot)],
+                          use_cache=args.use_cache)
     else:
         index = get_index(channel_urls=channel_urls, prepend=not
-                          args.override_channels)
+                          args.override_channels,
+                          use_cache=args.use_cache)
 
     # Don't update packages that are already up-to-date
     if command == 'update':
@@ -254,7 +256,8 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True):
     try:
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
-        index = get_index(channel_urls=channel_urls, prepend=prepend, platform=platform)
+        index = get_index(channel_urls=channel_urls, prepend=prepend,
+                          platform=platform)
         plan.install_actions(prefix, index, specs)
     finally:
         ci.rm_rf(prefix)
