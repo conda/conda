@@ -309,6 +309,7 @@ class Resolve(object):
 
         v = {} # map fn to variable number
         w = {} # map variable number to fn
+        i = -1 # in case the loop doesn't run
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
