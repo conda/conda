@@ -214,7 +214,7 @@ def test_generate_eq():
         v[fn] = i + 1
         w[i + 1] = fn
 
-    eq = r.generate_eq(v, dists)
+    eq, max_rhs = r.generate_eq(v, dists)
     assert all(i > 0 for i, _ in eq)
     e = [(i, w[j]) for i, j in eq]
     # Should satisfy the following criteria:
@@ -274,3 +274,5 @@ def test_generate_eq():
         (1, 'mkl-10.3-p1.tar.bz2'),
         (2, 'mkl-10.3-0.tar.bz2'),
         (1, 'system-5.8-0.tar.bz2')])
+
+    assert max_rhs == 20 + 4 + 2 + 2 + 1
