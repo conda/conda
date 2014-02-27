@@ -287,7 +287,7 @@ class Resolve(object):
 
     def generate_eq(self, v, dists):
         groups = defaultdict(list) # map name to list of filenames
-        for fn in dists:
+        for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
 
         eq = []
