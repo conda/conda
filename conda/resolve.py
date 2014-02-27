@@ -333,12 +333,14 @@ class Resolve(object):
         eq, max_rhs = self.generate_eq(v, dists)
 
         # Check the common case first
+        log.debug("Building the constraint with rhs: [0, 0]")
         constraints = list(self.generate_version_constraints(eq, v, [0, 0]))
         if constraints[0] == [false]:
             pass
         elif constraints[0] == [true]:
             constraints = []
 
+        log.debug("Checking for solutions with rhs:  [0, 0]")
         solutions = min_sat(clauses + constraints)
 
         if not solutions:
