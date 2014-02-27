@@ -5,6 +5,7 @@ from os.path import dirname, join
 
 from conda.resolve import MatchSpec, Package, Resolve
 
+from tests.helpers import raises
 
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -276,3 +277,11 @@ def test_generate_eq():
         (1, 'system-5.8-0.tar.bz2')])
 
     assert max_rhs == 20 + 4 + 2 + 2 + 1
+
+def test_unsat():
+    # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']))
+    # numpy 1.5 does not have a python 3 package
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'python 3*']))
+
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5', 'numpy 1.6']))
