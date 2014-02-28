@@ -64,7 +64,7 @@ class TestPackage(unittest.TestCase):
     def test_different_names(self):
         pkgs = [Package(fn, r.index[fn]) for fn in [
                 'llvm-3.1-1.tar.bz2', 'python-2.7.5-0.tar.bz2']]
-        self.assertRaises(ValueError, pkgs.sort)
+        self.assertRaises(TypeError, pkgs.sort)
 
 
 class TestSolve(unittest.TestCase):
@@ -285,3 +285,48 @@ def test_unsat():
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'python 3*']))
 
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5', 'numpy 1.6']))
+
+def test_package_ordering():
+    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
+    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
+    python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
+    numpy = Package('numpy-1.7.1-py27_0.tar.bz2', r.index['numpy-1.7.1-py27_0.tar.bz2'])
+    numpy_mkl = Package('numpy-1.7.1-py27_p0.tar.bz2', r.index['numpy-1.7.1-py27_p0.tar.bz2'])
+
+    assert sympy_071 < sympy_072
+    assert not sympy_071 < sympy_071
+    assert not sympy_072 < sympy_071
+    raises(TypeError, lambda: sympy_071 < python_275)
+
+    assert sympy_071 <= sympy_072
+    assert sympy_071 <= sympy_071
+    assert not sympy_072 <= sympy_071
+    assert raises(TypeError, lambda: sympy_071 <= python_275)
+
+    assert sympy_071 == sympy_071
+    assert not sympy_071 == sympy_072
+    assert (sympy_071 == python_275) is False
+    assert (sympy_071 == 1) is False
+
+    assert not sympy_071 != sympy_071
+    assert sympy_071 != sympy_072
+    assert (sympy_071 != python_275) is True
+
+    assert not sympy_071 > sympy_072
+    assert not sympy_071 > sympy_071
+    assert sympy_072 > sympy_071
+    raises(TypeError, lambda: sympy_071 > python_275)
+
+    assert not sympy_071 >= sympy_072
+    assert sympy_071 >= sympy_071
+    assert sympy_072 >= sympy_071
+    assert raises(TypeError, lambda: sympy_071 >= python_275)
+
+    # The first four are a bit arbitrary. For now, we just test that it
+    # doesn't prefer the mkl version.
+    assert not numpy < numpy_mkl
+    assert not numpy <= numpy_mkl
+    assert numpy > numpy_mkl
+    assert numpy >= numpy_mkl
+    assert (numpy != numpy_mkl) is True
+    assert (numpy == numpy_mkl) is False
