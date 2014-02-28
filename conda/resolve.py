@@ -287,22 +287,24 @@ class Resolve(object):
         for clause in C.clauses:
             yield list(clause)
 
-    def generate_eq(self, v, dists):
+    def generate_eq(self, v, dists, include0=False):
         groups = defaultdict(list) # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
 
         eq = []
         max_rhs = 0
-        for filenames in itervalues(groups):
+        for filenames in sorted(itervalues(groups)):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
             i = 0
             prev = pkgs[0]
             for pkg in pkgs:
                 # > compares build strings but == does not
-                if dists[pkg] != dists[prev]:
+                if (dists[pkg].name, dists[pkg].norm_version,
+                    dists[pkg].build_number) != (dists[prev].name,
+                        dists[prev].norm_version, dists[prev].build_number):
                     i += 1
-                if i:
+                if i or include0:
                     eq += [(i, v[pkg])]
                 prev = pkg
             max_rhs += i
@@ -338,13 +340,25 @@ class Resolve(object):
         log.debug("Building the constraint with rhs: [0, 0]")
         constraints = list(self.generate_version_constraints(eq, v, [0, 0]))
         if constraints[0] == [false]:
-            pass
-        elif constraints[0] == [true]:
-            constraints = []
+            # XXX: This should *never* happen. build_BDD only returns false
+            # when the linear constraint is unsatisfiable, but any linear
+            # constraint can equal 0, by setting all the variables to 0.
+            solutions = []
+        else:
+            if constraints[0] == [true]:
+                constraints = []
 
-        log.debug("Checking for solutions with rhs:  [0, 0]")
-        solutions = min_sat(clauses + constraints)
+            log.debug("Checking for solutions with rhs:  [0, 0]")
+            solutions = min_sat(clauses + constraints)
 
+        # XXX: Should we check the other common case of unsatisfiable specs?
+        # It could make a difference for the hint check.
+
+        # We bisect the solution space. It's actually not that much faster
+        # than a linear search, because a single term rhs generates fewer
+        # clauses. The npSolver paper also indicates that a binary
+        # search is not more effective than a top-down search. But bisecting
+        # allows us to exit sooner on unsatisfiable specs.
         if not solutions:
             lo, hi = [0, max_rhs]
             while True:
