@@ -165,7 +165,7 @@ class Resolve(object):
         self.msd_cache = {}
 
     def find_matches(self, ms):
-        for fn in self.groups[ms.name]:
+        for fn in sorted(self.groups[ms.name]):
             if ms.match(fn):
                 yield fn
 
