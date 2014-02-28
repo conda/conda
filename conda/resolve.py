@@ -280,11 +280,6 @@ class Resolve(object):
             yield clause
 
     def generate_version_constraints(self, eq, v, rhs):
-        # You would think that bisecting would be better here, but it seems it
-        # is not. The reason is that a rhs like [0, 20] generates far more
-        # clauses than [0, 0]. The npSolver paper also indicates that a binary
-        # search is not more effective than a top-down search.
-        # OTOH, maybe bisecting would exit sooner on unsatisfiable specs.
         l = Linear(eq, rhs)
         m = max(v.values()) if v else 0
         C = Clauses(m)
