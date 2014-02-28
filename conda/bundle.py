@@ -90,7 +90,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         depends = [],
     )
     meta['version'] = get_version(meta)
-    tar_path = 'analysis-package-%s.tar.bz2' % bundle_name
+    tar_path = 'analysis_package_%s.tar.bz2' % bundle_name
     #tar_path = join('bundle-%(version)s-0.tar.bz2' % meta)
     t = tarfile.open(tar_path, 'w:bz2')
     if prefix:
