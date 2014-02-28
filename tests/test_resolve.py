@@ -201,6 +201,7 @@ class TestFindSubstitute(unittest.TestCase):
 
 
 def test_get_dists():
+    r.msd_cache = {}
     dists = r.get_dists(["anaconda 1.5.0"])
     assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
     assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
@@ -208,6 +209,8 @@ def test_get_dists():
         assert dists[d].fn == d
 
 def test_generate_eq():
+    r.msd_cache = {}
+
     dists = r.get_dists(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
     v = {}
     w = {}
@@ -266,19 +269,34 @@ def test_generate_eq():
         (3, 'numpy-1.7.0b2-py33_pro0.tar.bz2'),
         (4, 'numpy-1.6.2-py26_4.tar.bz2'),
         (4, 'numpy-1.6.2-py27_4.tar.bz2'),
-        (1, 'nose-1.2.1-py26_0.tar.bz2'),
-        (1, 'nose-1.2.1-py27_0.tar.bz2'),
-        (1, 'nose-1.2.1-py33_0.tar.bz2'),
-        (2, 'nose-1.1.2-py26_0.tar.bz2'),
-        (2, 'nose-1.1.2-py27_0.tar.bz2'),
-        (2, 'nose-1.1.2-py33_0.tar.bz2'),
-        (1, 'mkl-10.3-p1.tar.bz2'),
-        (2, 'mkl-10.3-0.tar.bz2'),
-        (1, 'system-5.8-0.tar.bz2')])
+        (1, 'python-3.3.1-0.tar.bz2'),
+        (2, 'python-3.3.0-4.tar.bz2'),
+        (3, 'python-3.3.0-3.tar.bz2'),
+        (4, 'python-3.3.0-2.tar.bz2'),
+        (5, 'python-3.3.0-pro1.tar.bz2'),
+        (6, 'python-3.3.0-pro0.tar.bz2'),
+        (7, 'python-2.7.5-0.tar.bz2'),
+        (8, 'python-2.7.4-0.tar.bz2'),
+        (9, 'python-2.7.3-7.tar.bz2'),
+        (10, 'python-2.7.3-6.tar.bz2'),
+        (11, 'python-2.7.3-5.tar.bz2'),
+        (12, 'python-2.7.3-4.tar.bz2'),
+        (13, 'python-2.7.3-3.tar.bz2'),
+        (14, 'python-2.7.3-2.tar.bz2'),
+        (15, 'python-2.6.8-6.tar.bz2'),
+        (16, 'python-2.6.8-5.tar.bz2'),
+        (17, 'python-2.6.8-4.tar.bz2'),
+        (18, 'python-2.6.8-3.tar.bz2'),
+        (19, 'python-2.6.8-2.tar.bz2'),
+        (20, 'python-2.6.8-1.tar.bz2'),
+        (1, 'system-5.8-0.tar.bz2')
+    ]
 
     assert max_rhs == 20 + 4 + 2 + 2 + 1
 
 def test_unsat():
+    r.msd_cache = {}
+
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']))
     # numpy 1.5 does not have a python 3 package
