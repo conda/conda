@@ -7,7 +7,7 @@ installed directly into an install prefix.  The format is identical across
 platforms and operating systems.  It is important to note that during the
 install process, all files are basically just extracted into the install
 prefix, with the exception of the ones in ``info/``.  Installing a conda
-package into an environment may be roughly taught of as executing the
+package into an environment may be roughly thought of as executing the
 following using command::
 
    $ cd <environment prefix>
