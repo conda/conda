@@ -100,7 +100,7 @@ class Package(object):
 
     def __lt__(self, other):
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
+            raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number, other.build) <
@@ -110,18 +110,25 @@ class Package(object):
                     (other.version, other.build_number))
 
     def __eq__(self, other):
+        if not isinstance(other, Package):
+            return False
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
-                             'names: %r %r' % (self.fn, other.fn))
+            return False
         try:
-            return ((self.norm_version, self.build_number) ==
-                    (other.norm_version, other.build_number))
+            return ((self.norm_version, self.build_number, self.build) ==
+                    (other.norm_version, other.build_number, other.build))
         except TypeError:
-            return ((self.version, self.build_number) ==
-                    (other.version, other.build_number))
+            return ((self.version, self.build_number, self.build) ==
+                    (other.version, other.build_number, other.build))
 
     def __gt__(self, other):
         return not (self.__lt__(other) or self.__eq__(other))
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
 
     def __repr__(self):
         return '<Package %s>' % self.fn
