@@ -475,7 +475,8 @@ remaining packages:
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = {}
-        for fn1 in self.get_max_dists(MatchSpec(name + ' ' + version)):
+        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
+            fn1 = pkg.fn
             if self.features(fn1).intersection(features):
                 continue
             key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
