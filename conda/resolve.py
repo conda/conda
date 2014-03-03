@@ -196,7 +196,10 @@ class Resolve(object):
 
     @memoize
     def get_pkgs(self, ms):
-        return [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
+        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
+        if not pkgs:
+            raise RuntimeError("No packages found matching: %s" % ms)
+        return pkgs
 
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms)
