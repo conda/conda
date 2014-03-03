@@ -610,7 +610,7 @@ def test_unsat():
 
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5', 'numpy 1.6']), 'Unsatisfiable')
 
-def test_nonexistant():
+def test_nonexistent():
     r.msd_cache = {}
 
     assert raises(RuntimeError, lambda: r.solve(['notarealpackage 2.0']), 'No packages found')
