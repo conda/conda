@@ -523,11 +523,13 @@ remaining packages:
             features = self.installed_features(installed)
         for spec in specs:
             ms = MatchSpec(spec)
-            for fn in self.get_max_dists(ms):
+            for pkg in self.get_pkgs(ms):
+                fn = pkg.fn
                 features.update(self.track_features(fn))
         log.debug('specs=%r  features=%r' % (specs, features))
         for spec in specs:
-            for fn in self.get_max_dists(MatchSpec(spec)):
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                fn = pkg.fn
                 self.update_with_features(fn, features)
 
         return self.explicit(specs) or self.solve2(specs, features)
