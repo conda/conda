@@ -604,11 +604,17 @@ def test_unsat():
     r.msd_cache = {}
 
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']))
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']), 'Unsatisfiable')
     # numpy 1.5 does not have a python 3 package
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'python 3*']))
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'python 3*']), 'Unsatisfiable')
 
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5', 'numpy 1.6']))
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5', 'numpy 1.6']), 'Unsatisfiable')
+
+def test_nonexistant():
+    r.msd_cache = {}
+
+    assert raises(RuntimeError, lambda: r.solve(['notarealpackage 2.0']), 'No packages found')
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5']), 'No packages found')
 
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
