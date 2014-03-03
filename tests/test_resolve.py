@@ -607,13 +607,13 @@ def test_unsat():
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']), 'Unsatisfiable')
     # numpy 1.5 does not have a python 3 package
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'python 3*']), 'Unsatisfiable')
-
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5', 'numpy 1.6']), 'Unsatisfiable')
+    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'numpy 1.6*']), 'Unsatisfiable')
 
 def test_nonexistent():
     r.msd_cache = {}
 
-    assert raises(RuntimeError, lambda: r.solve(['notarealpackage 2.0']), 'No packages found')
+    assert raises(RuntimeError, lambda: r.solve(['notarealpackage 2.0*']), 'No packages found')
+    # This exact version of NumPy does not exist
     assert raises(RuntimeError, lambda: r.solve(['numpy 1.5']), 'No packages found')
 
 def test_package_ordering():
