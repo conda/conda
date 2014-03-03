@@ -279,7 +279,7 @@ class Resolve(object):
             # numpy-1.7-py27[mkl] OR ...
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
-            assert len(clause) >= 1
+            assert len(clause) >= 1, ms
             yield clause
 
     def generate_version_constraints(self, eq, v, rhs):
