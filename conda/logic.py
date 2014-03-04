@@ -204,8 +204,8 @@ class Clauses(object):
                 continue
 
             new_linear = linear[:-1]
-            LC = linear.coeffs[-1]
-            LA = linear.atoms[-1]
+            LC = linear.LC
+            LA = linear.LA
             # This is handled by the abs() call below. I think it's done this way to
             # aid caching.
             hi_sum = sum if LA < 0 else sum + LC
@@ -238,8 +238,8 @@ class Clauses(object):
             return false
 
         new_linear = linear[:-1]
-        LC = linear.coeffs[-1]
-        LA = linear.atoms[-1]
+        LC = linear.LC
+        LA = linear.LA
         # This is handled by the abs() call below. I think it's done this way to
         # aid caching.
         hi_sum = sum if LA < 0 else sum + LC
@@ -267,15 +267,38 @@ class Linear(object):
             self.lo = self.hi = rhs
         else:
             self.lo, self.hi = rhs
-        self.coeffs = []
-        self.atoms = []
-        for coeff, atom in self.equation:
-            self.coeffs.append(coeff)
-            self.atoms.append(atom)
         self.total = sum([i for i, _ in equation])
-        self.atom2coeff = defaultdict(int, {atom: coeff for coeff, atom in self.equation})
+        if equation:
+            self.LC = self.equation[-1][0]
+            self.LA = self.equation[-1][1]
         # self.lower_limit = self.lo - self.total
         # self.upper_limit = self.hi - self.total
+
+    @property
+    def coeffs(self):
+        if hasattr(self, '_coeffs'):
+            return self._coeffs
+        self._coeffs = []
+        self._atoms = []
+        for coeff, atom in self.equation:
+            self._coeffs.append(coeff)
+            self._atoms.append(atom)
+        return self._coeffs
+
+    @property
+    def atoms(self):
+        if hasattr(self, '_atoms'):
+            return self._atoms
+        self._coeffs = []
+        self._atoms = []
+        for coeff, atom in self.equation:
+            self._coeffs.append(coeff)
+            self._atoms.append(atom)
+        return self._atoms
+
+    @property
+    def atom2coeff(self):
+        return defaultdict(int, {atom: coeff for coeff, atom in self.equation})
 
     def __call__(self, sol):
         """
