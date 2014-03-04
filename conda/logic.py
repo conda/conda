@@ -256,7 +256,7 @@ class Linear(object):
 
     Canonicalized means all coefficients are positive.
     """
-    def __init__(self, equation, rhs):
+    def __init__(self, equation, rhs, total=None):
         """
         Equation should be a list of tuples of the form (coeff, atom). rhs is
         the number on the right-hand side, or a list [lo, hi].
@@ -267,7 +267,7 @@ class Linear(object):
             self.lo = self.hi = rhs
         else:
             self.lo, self.hi = rhs
-        self.total = sum([i for i, _ in equation])
+        self.total = total or sum([i for i, _ in equation])
         if equation:
             self.LC = self.equation[-1][0]
             self.LA = self.equation[-1][1]
@@ -315,7 +315,11 @@ class Linear(object):
     def __getitem__(self, key):
         if not isinstance(key, slice):
             raise NotImplementedError("Non-slice indices are not supported")
-        return self.__class__(self.equation.__getitem__(key), self.rhs)
+        if key == slice(None, -1, None):
+            total = self.total - self.LC
+        else:
+            total = None
+        return self.__class__(self.equation.__getitem__(key), self.rhs, total=total)
 
     def __eq__(self, other):
         if not isinstance(other, Linear):
@@ -324,9 +328,13 @@ class Linear(object):
         self.hi == other.hi)
 
     def __hash__(self):
-        hashable_equation = tuple([tuple([i for i in term]) for term in
-            self.equation])
-        return hash((hashable_equation, self.lo, self.hi))
+        try:
+            return self._hash
+        except AttributeError:
+            hashable_equation = tuple([tuple([i for i in term]) for term in
+                self.equation])
+            self._hash = hash((hashable_equation, self.lo, self.hi))
+            return self._hash
 
     def __str__(self):
         return "Linear(%r, %r)" % (self.equation, self.rhs)
