@@ -326,6 +326,7 @@ class Resolve(object):
         return dists
 
     def solve2(self, specs, features, guess=True):
+        log.debug("Solving for %s" % str(specs))
         dists = self.get_dists(specs)
 
         v = {} # map fn to variable number
