@@ -375,7 +375,10 @@ class Resolve(object):
             # allows us to exit sooner on unsatisfiable specs.
             lo, hi = [0, max_rhs] # Already checked max_rhs above
             while True:
-                mid = (lo + hi)//2
+                # We expect the optimal solution to be near 0, with the
+                # exception of the unsatisfiable case, which is handled
+                # above.
+                mid = min([lo + 10, (lo + hi)//2])
                 rhs = [lo, mid]
                 log.debug("Building the constraint with rhs: %s" % rhs)
                 constraints = list(self.generate_version_constraints(eq, v, rhs))
