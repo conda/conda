@@ -227,7 +227,7 @@ class Clauses(object):
         return ret[first_stack]
 
     # Reference implementation for testing. The recursion depth gets exceeded
-        # for too long formulas, so we use the non-recursive version above.
+    # for too long formulas, so we use the non-recursive version above.
     @memoize
     def build_BDD_recursive(self, linear, sum=0):
         lower_limit = linear.lo - sum
@@ -259,7 +259,7 @@ class Linear(object):
     def __init__(self, equation, rhs):
         """
         Equation should be a list of tuples of the form (coeff, atom). rhs is
-    the number on the right-hand side, or a list [lo, hi].
+        the number on the right-hand side, or a list [lo, hi].
         """
         self.equation = sorted(equation)
         self.rhs = rhs
