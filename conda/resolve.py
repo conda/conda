@@ -355,16 +355,25 @@ class Resolve(object):
             log.debug("Checking for solutions with rhs:  [0, 0]")
             solutions = min_sat(clauses + constraints)
 
-        # XXX: Should we check the other common case of unsatisfiable specs?
-        # It could make a difference for the hint check.
-
-        # We bisect the solution space. It's actually not that much faster
-        # than a linear search, because a single term rhs generates fewer
-        # clauses. The npSolver paper also indicates that a binary
-        # search is not more effective than a top-down search. But bisecting
-        # allows us to exit sooner on unsatisfiable specs.
         if not solutions:
-            lo, hi = [0, max_rhs]
+            # Second common case, check if it's unsatisfiable
+            log.debug("Checking for unsatisfiability")
+            solutions = min_sat(clauses)
+
+            # XXX: Maybe also check if there is exactly one solution. Should
+            # be pretty rare, though.
+            if not solutions:
+                if guess:
+                    raise RuntimeError("Unsatisfiable package specifications\n" +
+                        self.guess_bad_solve(specs, features))
+                raise RuntimeError("Unsatisfiable package specifications")
+
+            # We bisect the solution space. It's actually not that much faster
+            # than a linear search, because a single term rhs generates fewer
+            # clauses. The npSolver paper also indicates that a binary search
+            # is not more effective than a top-down search. But bisecting
+            # allows us to exit sooner on unsatisfiable specs.
+            lo, hi = [0, max_rhs] # Already checked max_rhs above
             while True:
                 mid = (lo + hi)//2
                 rhs = [lo, mid]
@@ -388,11 +397,7 @@ class Resolve(object):
                     # bisect bad
                     lo = mid+1
 
-        if len(solutions) == 0:
-            if guess:
-                raise RuntimeError("Unsatisfiable package specifications\n" +
-                                   self.guess_bad_solve(specs, features))
-            raise RuntimeError("Unsatisfiable package specifications")
+        assert solutions, (specs, features)
 
         if len(solutions) > 1:
             print('Warning:', len(solutions), "possible package resolutions:")
