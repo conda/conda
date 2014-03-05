@@ -258,6 +258,24 @@ def test_true_false():
     assert -true == false
     assert -false == true
 
+    assert false < true
+    assert not (true < false)
+    assert not (false < false)
+    assert not (true < true)
+    assert false <= true
+    assert true <= true
+    assert false <= false
+    assert true <= true
+
+    assert not (false > true)
+    assert true > false
+    assert not (false > false)
+    assert not (true > true)
+    assert not (false >= true)
+    assert (true >= true)
+    assert false >= false
+    assert true >= true
+
 def test_Linear():
     l = Linear([(3, 1), (2, -4), (4, 5)], 12)
     l2 = Linear([(3, 1), (2, -4), (4, 5)], 12)
