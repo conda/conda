@@ -308,7 +308,8 @@ def extract(pkgs_dir, dist):
         t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
             # When extracting as root, tarfile will by restore ownership
-            # of extracted files.  However, we want root to be the owner.
+            # of extracted files.  However, we want root to be the owner
+            # (our implementation of --no-same-owner).
             for root, dirs, files in os.walk(path):
                 for fn in files:
                     p = join(root, fn)
