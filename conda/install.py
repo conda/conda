@@ -306,6 +306,11 @@ def extract(pkgs_dir, dist):
         t = tarfile.open(path + '.tar.bz2')
         t.extractall(path=path)
         t.close()
+        if sys.platform.startswith('linux') and os.getuid() == 0:
+            for root, dirs, files in os.walk(path):
+                for fn in files:
+                    p = join(root, fn)
+                    os.lchown(p, 0, 0)
 
 def is_extracted(pkgs_dir, dist):
     return (isfile(join(pkgs_dir, dist, 'info', 'files')) and
