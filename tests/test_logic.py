@@ -412,3 +412,60 @@ def test_BDD():
         assert l(sol)
     for _, sol in zip(range(20), my_itersolve({(-x,)} | C.clauses)):
         assert not l(sol)
+
+
+
+def test_cmp_clauses():
+    # XXX: Is this i, j stuff necessary?
+    for i in range(-1, 2, 2): # [-1, 1]
+        for j in range(-1, 2, 2):
+            C = Clauses(2)
+            x, y = C.Cmp(i*1, j*2)
+            for sol in my_itersolve(C.clauses):
+                f = i*1 in sol
+                g = j*2 in sol
+                M = x in sol
+                m = y in sol
+                assert M == max(f, g)
+                assert m == min(f, g)
+
+    C = Clauses(1)
+    x, y = C.Cmp(1, -1)
+    assert x, y == [true, false] # true > false
+    assert C.clauses == set([])
+
+    C = Clauses(1)
+    x, y = C.Cmp(1, 1)
+    for sol in my_itersolve(C.clauses):
+        f = 1 in sol
+        M = x in sol
+        m = y in sol
+        assert M == max(f, f)
+        assert m == min(f, f)
+
+def test_Cmp_bools():
+    for f in [true, false]:
+        for g in [true, false]:
+            C = Clauses(2)
+            x, y = C.Cmp(f, g)
+            assert x == max(f, g)
+            assert y == min(f, g)
+            assert C.clauses == set([])
+
+        C = Clauses(1)
+        x, y = C.Cmp(f, 1)
+        fb = boolize(f)
+        # No better way to test this without defining true >= 1, which seems
+        # like a bad idea. Should represent the order true >= 1 >= false.
+        if fb:
+            assert [x, y] == [true, 1]
+        else:
+            assert [x, y] == [1, false]
+
+        C = Clauses(1)
+        x, y = C.Cmp(1, f)
+        fb = boolize(f)
+        if fb:
+            assert [x, y] == [true, 1]
+        else:
+            assert [x, y] == [1, false]

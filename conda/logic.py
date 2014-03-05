@@ -167,7 +167,6 @@ class Clauses(object):
 
         return x
 
-
     @memoize
     def Or(self, f, g):
         return -self.And(-f, -g)
@@ -266,6 +265,14 @@ class Clauses(object):
         ret = self.ITE(abs(LA), hi, lo)
 
         return ret
+
+    def Cmp(self, a, b):
+        """
+        Returns [max(a, b), min(a, b)].
+        """
+        return [self.Or(a, b), self.And(a, b)]
+
+
 
 class Linear(object):
     """
