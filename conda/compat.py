@@ -28,6 +28,7 @@ if PY3:
     import configparser
     from io import StringIO
     import urllib.parse as urlparse
+    from itertools import zip_longest
 
 else:
     import ConfigParser as configparser
@@ -47,6 +48,7 @@ else:
             # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
+    from itertools import izip_longest as zip_longest
 
 if PY3:
     _iterkeys = "keys"

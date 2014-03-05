@@ -23,6 +23,7 @@ representing the various logical classes, only atoms.
 from collections import defaultdict
 from functools import total_ordering
 
+from conda.compat import zip_longest
 from conda.utils import memoize
 
 # Custom classes for true and false. Using True and False is too risky, since
@@ -273,6 +274,20 @@ class Clauses(object):
         return [self.Or(a, b), self.And(a, b)]
 
 
+class PlaceHolder:
+    pass
+
+def riffle(*iterables):
+    """
+    riffle(A, B, ...) = A[0], B[0], ..., A[1], B[1], ...
+
+    Shorter iterables are skipped when exhausted, so riffle('abc', 'AB') gives
+    'a' 'A' 'b' 'B' 'c'.
+    """
+    for value in zip_longest(*iterables, fillvalue=PlaceHolder):
+        for v in value:
+            if v != PlaceHolder:
+                yield v
 
 class Linear(object):
     """
