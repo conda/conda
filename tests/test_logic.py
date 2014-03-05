@@ -480,3 +480,8 @@ def test_riffle():
     b = 'AB'
     assert ''.join(riffle(a, b)) == 'aAbBcd'
     assert ''.join(riffle(b, a)) == 'AaBbcd'
+
+    a = list(range(10))
+    b = list(range(9))
+    assert list(riffle(a[::2], a[1::2])) == a
+    assert list(riffle(b[::2], b[1::2])) == b
