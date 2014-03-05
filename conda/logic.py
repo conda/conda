@@ -21,11 +21,13 @@ representing the various logical classes, only atoms.
 
 """
 from collections import defaultdict
+from functools import total_ordering
 
 from conda.utils import memoize
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
+@total_ordering
 class TrueClass(object):
     def __eq__(self, other):
         return isinstance(other, TrueClass)
@@ -40,6 +42,14 @@ class TrueClass(object):
     def __hash__(self):
         return 1
 
+    def __lt__(self, other):
+        if isinstance(other, TrueClass):
+            return False
+        if isinstance(other, FalseClass):
+            return False
+        return NotImplemented
+
+@total_ordering
 class FalseClass(object):
     def __eq__(self, other):
         return isinstance(other, FalseClass)
@@ -53,6 +63,13 @@ class FalseClass(object):
 
     def __hash__(self):
         return 0
+
+    def __lt__(self, other):
+        if isinstance(other, FalseClass):
+            return False
+        if isinstance(other, TrueClass):
+            return True
+        return NotImplemented
 
 true = TrueClass()
 false = FalseClass()
