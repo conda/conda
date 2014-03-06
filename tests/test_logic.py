@@ -1,6 +1,6 @@
 import pycosat
 
-from conda.logic import Linear, Clauses, true, false, riffle
+from conda.logic import Linear, Clauses, true, false
 
 def my_itersolve(iterable):
     """
