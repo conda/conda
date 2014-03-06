@@ -37,7 +37,7 @@ def configure_parser(sub_parsers):
     p.add_argument("--data-path",
                    action = "store",
                    help = "path to data to be included in bundle",
-                   metavar = "PATH"
+                   metavar = "PATH",
                    )
     p.add_argument("--extra-meta",
                    action = "store",
@@ -89,12 +89,13 @@ def execute(args, parser):
 
 
     if args.extract:
-        if args.data_path or args.extra_meta:
+        if args.extra_meta:
             sys.exit("""\
-Error: -x/--extract does not allow --data-path or --extra-meta""")
+Error: -x/--extract does not allow --extra-meta""")
 
         with TmpDownload(args.extract, verbose=not args.quiet) as path:
-            bundle.clone_bundle(path, prefix, args.bundle_name)
+            bundle.clone_bundle(path, prefix, args.bundle_name, 
+                                data_path=args.data_path)
 
 
     if args.metadump:
