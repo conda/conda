@@ -522,6 +522,29 @@ def test_odd_even_mergesort():
     assert raises(ValueError, lambda: Clauses(5).odd_even_mergesort([1, 2, 3,
     4, 5]))
 
+    # Make sure it works with booleans
+    for n in [1, 2, 4]:
+        for item in product(*[[true, false]]*n):
+            assert list(Clauses(0).odd_even_mergesort(item)) == sorted(item, reverse=True)
+
+    # The most important use-case is extending a non-power of 2 length list
+    # with false.
+    for n in range(1, 9):
+        next_power_of_2 = 2**ceil(log2(n))
+        assert n <= next_power_of_2
+        for item in product(*[[true, false]]*(next_power_of_2 - n)):
+
+            A = list(range(1, n + 1)) + list(item)
+            C = Clauses(n)
+            S = C.odd_even_mergesort(A)
+
+            for sol in my_itersolve(C.clauses):
+                a = [boolize(i) if isinstance(boolize(i), bool) else
+                    i in sol for i in A]
+                s = [boolize(i) if isinstance(boolize(i), bool) else
+                    i in sol for i in S]
+
+                assert s == sorted(a, reverse=True), (a, s, sol)
 
 def test_sorter():
     L = [
