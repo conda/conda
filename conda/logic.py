@@ -22,6 +22,7 @@ representing the various logical classes, only atoms.
 """
 from collections import defaultdict
 from functools import total_ordering
+from math import ceil
 
 from conda.compat import zip_longest, log2
 from conda.utils import memoize
@@ -303,6 +304,14 @@ class Clauses(object):
             merged += self.Cmp(i, j)
 
         return merged
+
+    def build_sorter(self, linear):
+        sorter_input = []
+        for coeff, atom in linear.equation:
+            sorter_input += [atom]*coeff
+        next_power_of_2 = 2**ceil(log2(len(sorter_input)))
+        sorter_input += [false]*(next_power_of_2 - len(sorter_input))
+        return self.odd_even_mergesort(sorter_input)
 
 class Linear(object):
     """
