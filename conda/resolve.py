@@ -134,16 +134,17 @@ class Package(object):
         return '<Package %s>' % self.fn
 
 
-def min_sat(clauses, max_n=1000):
+def min_sat(clauses, max_n=1000, N=sys.maxsize):
     """
-    Calculate the SAT solutions for the `clauses` for which the number of
-    true literals is minimal.  Returned is the list of those solutions.
+    Calculate the SAT solutions for the `clauses` for which the number of true
+    literals from 1 to N is minimal.  Returned is the list of those solutions.
     When the clauses are unsatisfiable, an empty list is returned.
 
     This function could be implemented using a Pseudo-Boolean SAT solver,
     which would avoid looping over the SAT solutions, and would therefore
     be much more efficient.  However, for our purpose the current
     implementation is good enough.
+
     """
     try:
         import pycosat
@@ -153,14 +154,13 @@ def min_sat(clauses, max_n=1000):
 
     min_tl, solutions = sys.maxsize, []
     for sol in islice(pycosat.itersolve(clauses), max_n):
-        tl = sum(lit > 0 for lit in sol) # number of true literals
+        tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
         if tl < min_tl:
             min_tl, solutions = tl, [sol]
         elif tl == min_tl:
             solutions.append(sol)
 
     return solutions
-
 
 class Resolve(object):
 
