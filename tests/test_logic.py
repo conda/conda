@@ -1,6 +1,10 @@
 import pycosat
 
+from itertools import permutations
+
 from conda.logic import Linear, Clauses, true, false
+
+from tests.helpers import raises
 
 def my_itersolve(iterable):
     """
@@ -469,3 +473,50 @@ def test_Cmp_bools():
             assert [x, y] == [true, 1]
         else:
             assert [x, y] == [1, false]
+
+# XXX: I'm not sure how to test odd_even_merge
+
+def test_odd_even_merge():
+    for n in [1, 2, 4, 8, 16]:
+        A = list(range(1, n+1))
+        B = list(range(n+1, 2*n+1))
+        C = Clauses(n)
+        merged = C.odd_even_merge(A, B)
+        for i in range(n+1):
+            for j in range(n+1):
+                # Test all possible mergings of sorted lists, like [1, 1, 0,
+                # 0] and [1, 0, 0, 0] -> [1, 1, 1, 0, 0, 0, 0, 0].
+                Asigns = [1]*i + [-1]*(n - i)
+                Bsigns = [1]*j + [-1]*(n - j)
+                As = {(s*a,) for s, a in zip(Asigns, A)}
+                Bs = {(s*b,) for s, b in zip(Bsigns, B)}
+                for sol in my_itersolve(C.clauses | As | Bs):
+                    a = [i in sol for i in A]
+                    b = [i in sol for i in B]
+                    m = [i in sol for i in merged]
+                    # Check we did the above correctly
+                    assert a == sorted(a, reverse=True)
+                    assert b == sorted(b, reverse=True)
+                    # And check that the merge is correct
+                    assert m == sorted(a + b, reverse=True)
+
+    assert raises(ValueError, lambda: Clauses(4).odd_even_merge([1, 2], [2, 3, 4]))
+
+def test_odd_even_mergesort():
+    for n in [1, 2, 4, 8]:
+        A = list(range(1, n+1))
+        C = Clauses(n)
+        S = C.odd_even_mergesort(A)
+        # Note, the zero-one principle states we only need to test lists of
+        # 0's and
+        # 1's. https://en.wikipedia.org/wiki/Sorting_network#Zero-one_principle.
+        for sol in my_itersolve(C.clauses):
+            a = [i in sol for i in A]
+            s = [i in sol for i in S]
+            assert s == sorted(a, reverse=True)
+
+    # TODO: n > 8 takes too long to test all combinations, but maybe we should test
+    # some random combinations.
+
+    assert raises(ValueError, lambda: Clauses(5).odd_even_mergesort([1, 2, 3,
+    4, 5]))
