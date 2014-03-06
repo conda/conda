@@ -368,22 +368,24 @@ class Resolve(object):
         # Check the common case first
         log.debug("Building the constraint with rhs: [0, 0]")
         constraints = list(self.generate_version_constraints(eq, v, [0, 0]))
-        if constraints[0] == [false]:
+
+        # Only relevant for build_BDD
+        if constraints and constraints[0] == [false]:
             # XXX: This should *never* happen. build_BDD only returns false
             # when the linear constraint is unsatisfiable, but any linear
             # constraint can equal 0, by setting all the variables to 0.
             solutions = []
         else:
-            if constraints[0] == [true]:
+            if constraints and constraints[0] == [true]:
                 constraints = []
 
             log.debug("Checking for solutions with rhs:  [0, 0]")
-            solutions = min_sat(clauses + constraints)
+            solutions = min_sat(clauses + constraints, 1)
 
         if not solutions:
             # Second common case, check if it's unsatisfiable
             log.debug("Checking for unsatisfiability")
-            solutions = min_sat(clauses)
+            solutions = min_sat(clauses, 1)
 
             # XXX: Maybe also check if there is exactly one solution. Should
             # be pretty rare, though.
@@ -398,7 +400,7 @@ class Resolve(object):
             # clauses. The npSolver paper also indicates that a binary search
             # is not more effective than a top-down search. But bisecting
             # allows us to exit sooner on unsatisfiable specs.
-            lo, hi = [0, max_rhs] # Already checked max_rhs above
+            lo, hi = [0, max_rhs]
             while True:
                 # We expect the optimal solution to be near 0, with the
                 # exception of the unsatisfiable case, which is handled
@@ -413,7 +415,7 @@ class Resolve(object):
                 if constraints[0] == [true]:
                     constraints = []
                 log.debug("Checking for solutions with rhs:  %s" % rhs)
-                solutions = min_sat(clauses + constraints)
+                solutions = min_sat(clauses + constraints, 1)
                 if lo >= hi:
                     break
                 if solutions:
@@ -425,6 +427,8 @@ class Resolve(object):
                     # bisect bad
                     lo = mid+1
 
+        log.debug("Finding minimal solution")
+        solutions = min_sat(clauses + constraints, N=m+1)
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
