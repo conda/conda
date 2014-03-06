@@ -80,6 +80,14 @@ def add_parser_known(p):
              "the local package cache (which are of from unknown channels)",
     )
 
+def add_parser_use_index_cache(p):
+    p.add_argument(
+        "--use-index-cache",
+        action="store_true",
+        default=False,
+        help = "use cache of channel index files",
+    )
+
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
@@ -104,12 +112,7 @@ def add_parser_install(p):
         action = "store_true",
         help = "create prefix directory if necessary",
     )
-    p.add_argument(
-        "--use-index-cache",
-        action="store_true",
-        default=False,
-        help = "use cache of channel index files",
-    )
+    add_parser_use_index_cache(p)
     p.add_argument(
         "--use-local",
         action="store_true",

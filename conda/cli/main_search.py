@@ -48,6 +48,7 @@ def configure_parser(sub_parsers):
         help    = "output canonical names of packages only",
     )
     common.add_parser_known(p)
+    common.add_parser_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
         action  = "store_true",
@@ -115,6 +116,7 @@ def execute(args, parser):
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
                       args.override_channels, platform=args.platform,
+                      use_cache=args.use_index_cache,
                       unknown=args.unknown)
 
     r = Resolve(index)
