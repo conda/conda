@@ -1,7 +1,7 @@
 2014-03-06   3.1.0:
 -------------------
   * local packages in cache are now added to the index
-  * add --use-cache option to enable using cache of channel index files
+  * add --use-index-cache option to enable using cache of channel index files
   * fix ownership of files when installing as root on Linux
 
 
