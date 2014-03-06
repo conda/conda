@@ -116,6 +116,21 @@ def fetch_index(channel_urls, use_cache=False):
             info['channel'] = url
         index.update(new_index)
 
+    for pkgs_dir in config.pkgs_dirs:
+        for dn in os.listdir(pkgs_dir):
+            fn = dn + '.tar.bz2'
+            if fn in index:
+                continue
+            try:
+                with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
+                    meta = json.load(fi)
+            except IOError:
+                continue
+            if 'depends' not in meta:
+                continue
+            log.debug("adding cached pkg to index: %s" % fn)
+            index[fn] = meta
+
     return index
 
 
