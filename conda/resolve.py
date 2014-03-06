@@ -427,7 +427,7 @@ class Resolve(object):
                     # bisect bad
                     lo = mid+1
 
-        log.debug("Finding minimal solution")
+        log.debug("Finding the minimal solution")
         solutions = min_sat(clauses + constraints, N=m+1)
         assert solutions, (specs, features)
 
