@@ -1,6 +1,8 @@
 2014-03-06   3.1.0:
 -------------------
-  * local packages in cache are now added to the index
+  * local packages in cache are now added to the index, this may be disabled
+    by using the --known option, which only makes conda use index metadata
+    from (known) remote channels
   * add --use-index-cache option to enable using cache of channel index files
   * fix ownership of files when installing as root on Linux
 
