@@ -391,13 +391,15 @@ class Linear(object):
         return (self.equation == other.equation and self.lo == other.lo and
         self.hi == other.hi)
 
+    @property
+    def hashable_equation(self):
+        return tuple([tuple([i for i in term]) for term in self.equation])
+
     def __hash__(self):
         try:
             return self._hash
         except AttributeError:
-            hashable_equation = tuple([tuple([i for i in term]) for term in
-                self.equation])
-            self._hash = hash((hashable_equation, self.lo, self.hi))
+            self._hash = hash((self.hashable_equation, self.lo, self.hi))
             return self._hash
 
     def __str__(self):
