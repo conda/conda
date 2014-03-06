@@ -29,7 +29,7 @@ if PY3:
     from io import StringIO
     import urllib.parse as urlparse
     from itertools import zip_longest
-    from math import log2
+    from math import log2, ceil
 
 else:
     import ConfigParser as configparser
@@ -53,6 +53,9 @@ else:
     from math import log
     def log2(x):
         return log(x, 2)
+    def ceil(x):
+        from math import ceil
+        return int(ceil(x))
 
 if PY3:
     _iterkeys = "keys"

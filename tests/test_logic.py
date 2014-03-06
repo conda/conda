@@ -1,7 +1,8 @@
 import pycosat
 
-from itertools import permutations
+from itertools import product
 
+from conda.compat import log2, ceil
 from conda.logic import Linear, Clauses, true, false
 
 from tests.helpers import raises
