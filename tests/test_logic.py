@@ -475,8 +475,6 @@ def test_Cmp_bools():
         else:
             assert [x, y] == [1, false]
 
-# XXX: I'm not sure how to test odd_even_merge
-
 def test_odd_even_merge():
     for n in [1, 2, 4, 8, 16]:
         A = list(range(1, n+1))
