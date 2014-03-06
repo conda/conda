@@ -634,3 +634,7 @@ def test_sorter():
     print('checking negative solutions')
     for sol, _ in zip(my_itersolve(nx | C.clauses), range(2)):
         assert not l(sol)
+
+    C = Clauses(0)
+    assert C.build_sorter([]) == []
+    assert not C.clauses
