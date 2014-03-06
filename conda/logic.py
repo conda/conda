@@ -22,9 +22,8 @@ representing the various logical classes, only atoms.
 """
 from collections import defaultdict
 from functools import total_ordering
-from math import ceil
 
-from conda.compat import zip_longest, log2
+from conda.compat import zip_longest, log2, ceil
 from conda.utils import memoize
 
 # Custom classes for true and false. Using True and False is too risky, since
