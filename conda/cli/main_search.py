@@ -96,7 +96,6 @@ def canonical_channel_name(channel):
 def execute(args, parser):
     import re
 
-    import conda.install as install
     from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
 
@@ -108,7 +107,13 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
     if not args.canonical:
-        linked = install.linked(prefix)
+        import conda.config
+        import conda.install
+
+        linked = conda.install.linked(prefix)
+        extracted = set()
+        for pkgs_dir in conda.config.pkgs_dirs:
+            extracted.update(conda.install.extracted(pkgs_dir))
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
@@ -143,7 +148,13 @@ def execute(args, parser):
             if args.canonical:
                 print(dist)
                 continue
-            inst = '*' if dist in linked else ' '
+            if dist in linked:
+                inst = '*'
+            elif dist in extracted:
+                inst = '.'
+            else:
+                inst = ' ' 
+
             print('%-25s %s  %-15s %15s  %-15s %s' % (
                 disp_name, inst,
                 pkg.version,
