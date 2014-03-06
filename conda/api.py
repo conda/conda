@@ -21,7 +21,8 @@ def _fn2spec(fn):
     return ' '.join(fn[:-8].rsplit('-', 2))
 
 
-def get_index(channel_urls=(), prepend=True, platform=None, use_cache=False):
+def get_index(channel_urls=(), prepend=True, platform=None,
+              use_cache=False, unknown=False):
     """
     Return the index of packages available on the channels
 
@@ -31,7 +32,8 @@ def get_index(channel_urls=(), prepend=True, platform=None, use_cache=False):
     channel_urls = config.normalize_urls(channel_urls, platform=platform)
     if prepend:
         channel_urls += config.get_channel_urls(platform=platform)
-    return fetch_index(tuple(channel_urls), use_cache=use_cache)
+    return fetch_index(tuple(channel_urls), use_cache=use_cache,
+                       unknown=unknown)
 
 
 def app_get_index(all_version=False):

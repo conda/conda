@@ -47,6 +47,7 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         help    = "output canonical names of packages only",
     )
+    common.add_parser_known(p)
     p.add_argument(
         '-o', "--outdated",
         action  = "store_true",
@@ -80,7 +81,7 @@ def configure_parser(sub_parsers):
 # XXX: Should this go in the library code somewhere:
 def canonical_channel_name(channel):
     if channel is None:
-        return '???'
+        return 'unknown'
     channel_alias = config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS)
     if channel.startswith(channel_alias):
         return channel.split(channel_alias, 1)[1].split('/')[0]
@@ -113,7 +114,8 @@ def execute(args, parser):
     common.ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
-                      args.override_channels, platform=args.platform)
+                      args.override_channels, platform=args.platform,
+                      unknown=args.unknown)
 
     r = Resolve(index)
     for name in sorted(r.groups):
