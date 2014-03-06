@@ -282,11 +282,36 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield clause
 
-    def generate_version_constraints(self, eq, v, rhs):
+    sorter_cache = {}
+    def generate_version_constraints(self, eq, v, rhs, alg='sorter'):
         l = Linear(eq, rhs)
+        if not l:
+            raise StopIteration
         m = max(v.values()) if v else 0
         C = Clauses(m)
-        yield [C.build_BDD(l)]
+        if alg == 'BDD':
+            yield [C.build_BDD(l)]
+        elif alg == 'BDD_recursive':
+            yield [C.build_BDD_recursive(l)]
+        elif alg == 'sorter':
+            if l.hashable_equation in self.sorter_cache:
+                m, C = self.sorter_cache[l.hashable_equation]
+            else:
+                m = C.build_sorter(l)
+                self.sorter_cache[l.hashable_equation] = m, C
+
+            if l.rhs[0]:
+                # Output must be between lower bound and upper bound, meaning
+                # the lower bound of the sorted output must be true and one more
+                # than the upper bound should be false.
+                yield [m[l.rhs[0]-1]]
+                yield [-m[l.rhs[1]]]
+            else:
+                # The lower bound is zero, which is always true.
+                yield [-m[l.rhs[1]]]
+        else:
+            raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
+
         for clause in C.clauses:
             yield list(clause)
 
