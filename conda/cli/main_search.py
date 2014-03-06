@@ -79,6 +79,8 @@ def configure_parser(sub_parsers):
 
 # XXX: Should this go in the library code somewhere:
 def canonical_channel_name(channel):
+    if channel is None:
+        return '???'
     channel_alias = config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS)
     if channel.startswith(channel_alias):
         return channel.split(channel_alias, 1)[1].split('/')[0]
