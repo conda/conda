@@ -469,19 +469,3 @@ def test_Cmp_bools():
             assert [x, y] == [true, 1]
         else:
             assert [x, y] == [1, false]
-
-def test_riffle():
-    a = range(10)
-    b = range(5)
-    c = range(2)
-    assert list(riffle(a, b, c)) == [0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6,
-    7, 8, 9]
-    a = 'abcd'
-    b = 'AB'
-    assert ''.join(riffle(a, b)) == 'aAbBcd'
-    assert ''.join(riffle(b, a)) == 'AaBbcd'
-
-    a = list(range(10))
-    b = list(range(9))
-    assert list(riffle(a[::2], a[1::2])) == a
-    assert list(riffle(b[::2], b[1::2])) == b
