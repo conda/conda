@@ -23,7 +23,7 @@ representing the various logical classes, only atoms.
 from collections import defaultdict
 from functools import total_ordering
 
-from conda.compat import zip_longest
+from conda.compat import zip_longest, log2
 from conda.utils import memoize
 
 # Custom classes for true and false. Using True and False is too risky, since
@@ -81,7 +81,7 @@ false = FalseClass()
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
-# SAT," Eén and Sörensson).
+# SAT," Eén and Sörensson).  The sorter code is in Hardware_sorters.cc.
 
 class Clauses(object):
     def __init__(self, MAX_N=0):
@@ -273,6 +273,36 @@ class Clauses(object):
         """
         return [self.Or(a, b), self.And(a, b)]
 
+    def odd_even_mergesort(self, A):
+        if len(A) == 1:
+            return A
+        if int(log2(len(A))) != log2(len(A)): # accurate to about 2**48
+            raise ValueError("Length of list must be a power of 2 to odd-even merge sort")
+
+        evens = A[::2]
+        odds = A[1::2]
+        sorted_evens = self.odd_even_mergesort(evens)
+        sorted_odds = self.odd_even_mergesort(odds)
+        return self.odd_even_merge(sorted_evens, sorted_odds)
+
+    def odd_even_merge(self, A, B):
+        if len(A) != len(B):
+            raise ValueError("Lists must be of the same length to odd-even merge")
+        if len(A) == 1:
+            return self.Cmp(A[0], B[0])
+
+        # Guaranteed to have the same length because len(A) is a power of 2
+        A_evens = A[::2]
+        A_odds = A[1::2]
+        B_evens = B[::2]
+        B_odds = B[1::2]
+        C = self.odd_even_merge(A_evens, B_odds)
+        D = self.odd_even_merge(A_odds, B_evens)
+        merged = []
+        for i, j in zip(C, D):
+            merged += self.Cmp(i, j)
+
+        return merged
 
 class Linear(object):
     """
