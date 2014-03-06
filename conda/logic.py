@@ -267,6 +267,7 @@ class Clauses(object):
 
         return ret
 
+    @memoize
     def Cmp(self, a, b):
         """
         Returns [max(a, b), min(a, b)].
