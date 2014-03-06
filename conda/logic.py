@@ -305,6 +305,8 @@ class Clauses(object):
         return merged
 
     def build_sorter(self, linear):
+        if not linear:
+            return []
         sorter_input = []
         for coeff, atom in linear.equation:
             sorter_input += [atom]*coeff
