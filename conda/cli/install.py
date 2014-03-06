@@ -146,11 +146,13 @@ def install(args, parser, command='install'):
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
         index = get_index([url_path(build_config.croot)],
-                          use_cache=args.use_index_cache)
+                          use_cache=args.use_index_cache,
+                          unknown=args.unknown)
     else:
         index = get_index(channel_urls=channel_urls, prepend=not
                           args.override_channels,
-                          use_cache=args.use_index_cache)
+                          use_cache=args.use_index_cache,
+                          unknown=args.unknown)
 
     # Don't update packages that are already up-to-date
     if command == 'update':

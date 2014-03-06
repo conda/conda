@@ -70,6 +70,16 @@ def add_parser_channels(p):
         help = """Do not search default or .condarc channels.  Requires --channel.""",
     )
 
+def add_parser_known(p):
+    p.add_argument(
+        "--known",
+        action="store_false",
+        default=True,
+        dest='unknown',
+        help="only use index metadata from (known) remote channels, and not "
+             "the local package cache (which are of from unknown channels)",
+    )
+
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
@@ -83,6 +93,7 @@ def add_parser_install(p):
         action = "store",
         help = "read package versions from FILE",
     )
+    add_parser_known(p)
     p.add_argument(
         "--no-deps",
         action = "store_true",
@@ -103,7 +114,6 @@ def add_parser_install(p):
         "--use-local",
         action="store_true",
         default=False,
-        dest='use_local',
         help = "use locally built packages",
     )
     add_parser_channels(p)
