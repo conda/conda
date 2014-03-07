@@ -272,11 +272,10 @@ def try_hard_link(pkgs_dir, prefix, dist):
 # ------- package cache ----- fetched
 
 def fetched(pkgs_dir):
-    if isdir(pkgs_dir):
-        return set(fn[:-8] for fn in os.listdir(pkgs_dir)
-                   if fn.endswith('.tar.bz2'))
-    else:
+    if not isdir(pkgs_dir):
         return set()
+    return set(fn[:-8] for fn in os.listdir(pkgs_dir)
+               if fn.endswith('.tar.bz2'))
 
 def is_fetched(pkgs_dir, dist):
     return isfile(join(pkgs_dir, dist + '.tar.bz2'))
@@ -292,6 +291,8 @@ def extracted(pkgs_dir):
     """
     return the (set of canonical names) of all extracted packages
     """
+    if not isdir(pkgs_dir):
+        return set()
     return set(dn for dn in os.listdir(pkgs_dir)
                if (isfile(join(pkgs_dir, dn, 'info', 'files')) and
                    isfile(join(pkgs_dir, dn, 'info', 'index.json'))))

@@ -7,6 +7,11 @@
     constraints into SAT clauses.
 
 
+2014-03-07   3.1.1:
+-------------------
+  * check if directory exists, fixed issue #591
+
+
 2014-03-07   3.1.0:
 -------------------
   * local packages in cache are now added to the index, this may be disabled
