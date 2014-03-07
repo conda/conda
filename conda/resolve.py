@@ -350,7 +350,7 @@ class Resolve(object):
 
         return dists
 
-    def solve2(self, specs, features, guess=True):
+    def solve2(self, specs, features, guess=True, alg='sorter'):
         log.debug("Solving for %s" % str(specs))
         dists = self.get_dists(specs)
 
@@ -367,7 +367,7 @@ class Resolve(object):
 
         # Check the common case first
         log.debug("Building the constraint with rhs: [0, 0]")
-        constraints = list(self.generate_version_constraints(eq, v, [0, 0]))
+        constraints = list(self.generate_version_constraints(eq, v, [0, 0], alg=alg))
 
         # Only relevant for build_BDD
         if constraints and constraints[0] == [false]:
@@ -408,7 +408,8 @@ class Resolve(object):
                 mid = min([lo + 10, (lo + hi)//2])
                 rhs = [lo, mid]
                 log.debug("Building the constraint with rhs: %s" % rhs)
-                constraints = list(self.generate_version_constraints(eq, v, rhs))
+                constraints = list(self.generate_version_constraints(eq, v,
+                    rhs, alg=alg))
                 if constraints[0] == [false]: # build_BDD returns false if the rhs is
                     solutions = []            # too big to be satisfied. XXX: This
                     break                     # probably indicates a bug.
