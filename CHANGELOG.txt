@@ -1,3 +1,11 @@
+2014-03-07   3.2.0a1:
+---------------------
+  * conda now uses pseudo-boolean constraints in the SAT solver. This allows
+    it to search for all versions at once, rather than only the latest (issue
+    #491).
+  * Conda contains a brand new logic submodule for converting pseudo-boolean
+    constraints into SAT clauses.
+
 2014-03-07   3.1.0:
 -------------------
   * local packages in cache are now added to the index, this may be disabled
