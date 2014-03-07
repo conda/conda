@@ -162,9 +162,12 @@ def force_linked_actions(dists, index, prefix):
         fn = dist + '.tar.bz2'
         pkg_path = join(config.pkgs_dirs[0], fn)
         if isfile(pkg_path):
-            if md5_file(pkg_path) != index[fn]['md5']:
-                actions[RM_FETCHED].append(dist)
-                actions[FETCH].append(dist)
+            try:
+                if md5_file(pkg_path) != index[fn]['md5']:
+                    actions[RM_FETCHED].append(dist)
+                    actions[FETCH].append(dist)
+            except KeyError:
+                sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
         else:
             actions[FETCH].append(dist)
         actions[RM_EXTRACTED].append(dist)
