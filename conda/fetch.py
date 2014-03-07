@@ -14,7 +14,7 @@ import shutil
 import hashlib
 import tempfile
 from logging import getLogger
-from os.path import basename, isfile, join
+from os.path import basename, isdir, isfile, join
 
 from conda import config
 from conda.utils import memoized
@@ -118,6 +118,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
 
     if unknown:
         for pkgs_dir in config.pkgs_dirs:
+            if not isdir(pkgs_dir):
+                continue
             for dn in os.listdir(pkgs_dir):
                 fn = dn + '.tar.bz2'
                 if fn in index:
