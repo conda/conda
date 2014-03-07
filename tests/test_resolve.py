@@ -2,7 +2,7 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import MatchSpec, Package, Resolve, partial_lt
 
 
 
@@ -62,7 +62,7 @@ class TestPackage(unittest.TestCase):
     def test_different_names(self):
         pkgs = [Package(fn, r.index[fn]) for fn in [
                 'llvm-3.1-1.tar.bz2', 'python-2.7.5-0.tar.bz2']]
-        self.assertRaises(ValueError, pkgs.sort)
+        self.assertRaises(TypeError, pkgs.sort)
 
 
 class TestSolve(unittest.TestCase):
@@ -110,7 +110,7 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
                      set()),
-            ['iopro-1.4.3-np17py27_p0.tar.bz2',
+            ('iopro-1.4.3-np17py27_p0.tar.bz2',
              'numpy-1.7.1-py27_0.tar.bz2',
              'openssl-1.0.1c-0.tar.bz2',
              'python-2.7.5-0.tar.bz2',
@@ -119,13 +119,13 @@ class TestSolve(unittest.TestCase):
              'system-5.8-1.tar.bz2',
              'tk-8.5.13-0.tar.bz2',
              'unixodbc-2.3.1-0.tar.bz2',
-             'zlib-1.2.7-0.tar.bz2'])
+             'zlib-1.2.7-0.tar.bz2'))
 
     def test_iopro_mkl(self):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
                     f_mkl),
-            ['iopro-1.4.3-np17py27_p0.tar.bz2',
+            ('iopro-1.4.3-np17py27_p0.tar.bz2',
              'mkl-rt-11.0-p0.tar.bz2',
              'numpy-1.7.1-py27_p0.tar.bz2',
              'openssl-1.0.1c-0.tar.bz2',
@@ -135,7 +135,7 @@ class TestSolve(unittest.TestCase):
              'system-5.8-1.tar.bz2',
              'tk-8.5.13-0.tar.bz2',
              'unixodbc-2.3.1-0.tar.bz2',
-             'zlib-1.2.7-0.tar.bz2'])
+             'zlib-1.2.7-0.tar.bz2'))
 
     def test_mkl(self):
         self.assertEqual(r.solve(['mkl'], set()),
@@ -197,6 +197,86 @@ class TestFindSubstitute(unittest.TestCase):
             self.assertTrue(old in installed)
             self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
+def _raises(exception, func):
+    try:
+        a = func()
+    except exception:
+        return True
+    raise Exception("did not raise, gave %s" % a)
 
-if __name__ == '__main__':
-    unittest.main()
+def test_package_ordering():
+    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
+    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
+    python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
+    numpy = Package('numpy-1.7.1-py27_0.tar.bz2', r.index['numpy-1.7.1-py27_0.tar.bz2'])
+    numpy_mkl = Package('numpy-1.7.1-py27_p0.tar.bz2', r.index['numpy-1.7.1-py27_p0.tar.bz2'])
+
+    assert sympy_071 < sympy_072
+    assert not sympy_071 < sympy_071
+    assert not sympy_072 < sympy_071
+    _raises(TypeError, lambda: sympy_071 < python_275)
+
+    assert sympy_071 <= sympy_072
+    assert sympy_071 <= sympy_071
+    assert not sympy_072 <= sympy_071
+    assert _raises(TypeError, lambda: sympy_071 <= python_275)
+
+    assert sympy_071 == sympy_071
+    assert not sympy_071 == sympy_072
+    # This is wrong. It should just be False
+    assert _raises(TypeError, lambda: sympy_071 == python_275)
+
+    assert not sympy_071 != sympy_071
+    assert sympy_071 != sympy_072
+    assert _raises(TypeError, lambda: sympy_071 != python_275)
+
+    assert not sympy_071 > sympy_072
+    assert not sympy_071 > sympy_071
+    assert sympy_072 > sympy_071
+    _raises(TypeError, lambda: sympy_071 > python_275)
+
+    assert not sympy_071 >= sympy_072
+    assert sympy_071 >= sympy_071
+    assert sympy_072 >= sympy_071
+    assert _raises(TypeError, lambda: sympy_071 >= python_275)
+
+    assert _raises(TypeError, lambda: numpy < numpy_mkl)
+    assert _raises(TypeError, lambda: numpy <= numpy_mkl)
+    assert _raises(TypeError, lambda: numpy > numpy_mkl)
+    assert _raises(TypeError, lambda: numpy >= numpy_mkl)
+    assert _raises(TypeError, lambda: numpy == numpy_mkl)
+    assert _raises(TypeError, lambda: numpy != numpy_mkl)
+
+
+def test_partial_lt():
+    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
+    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
+    python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
+    python_274 = Package('python-2.7.4-0.tar.bz2', r.index['python-2.7.4-0.tar.bz2'])
+    matplotlib_121 = Package('matplotlib-1.2.1-np17py27_1.tar.bz2', r.index['matplotlib-1.2.1-np17py27_1.tar.bz2'])
+
+    assert partial_lt((sympy_071, python_274), (sympy_071, python_275)) is True
+    assert partial_lt((sympy_071, python_275), (sympy_071, python_274)) is False
+    assert partial_lt((sympy_071, python_274), (sympy_072, python_275)) is True
+    assert partial_lt((sympy_072, python_275), (sympy_071, python_274)) is False
+    assert partial_lt((sympy_071, python_274), (sympy_071, python_274)) is False
+
+    assert partial_lt((sympy_071, python_274), (sympy_071, python_274,
+    matplotlib_121)) is False
+    assert partial_lt((sympy_071, python_274, matplotlib_121), (sympy_071,
+    python_274)) is True
+
+    assert partial_lt((sympy_071, python_274), (sympy_072, python_274,
+    matplotlib_121)) is True
+    assert partial_lt((sympy_072, python_274, matplotlib_121), (sympy_071,
+    python_274)) is False
+
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, python_275), (sympy_071, matplotlib_121)))
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, matplotlib_121), (sympy_071, python_275)))
+
+    assert _raises(TypeError, lambda: partial_lt((sympy_071, python_275),
+    (sympy_072, python_274, matplotlib_121)))
+    assert _raises(TypeError, lambda: partial_lt((sympy_072, python_274, matplotlib_121), (sympy_071, python_275)))
+
+    assert partial_lt((sympy_071, python_275), (sympy_072, matplotlib_121)) is True
+    assert partial_lt((sympy_072, matplotlib_121), (sympy_071, python_275)) is False

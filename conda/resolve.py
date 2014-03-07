@@ -99,7 +99,7 @@ class Package(object):
 
     def __lt__(self, other):
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
+            raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number, self.build) <
@@ -110,7 +110,7 @@ class Package(object):
 
     def __eq__(self, other):
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
+            raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
             return ((self.norm_version, self.build_number) ==
@@ -121,6 +121,18 @@ class Package(object):
 
     def __gt__(self, other):
         return not (self.__lt__(other) or self.__eq__(other))
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
+
+    def __hash__(self):
+        try:
+            return hash((self.name, self.norm_version, self.build_number))
+        except TypeError:
+            return hash((self.name, self.version, self.build_number))
 
     def __repr__(self):
         return '<Package %s>' % self.fn
@@ -144,12 +156,13 @@ def min_sat(clauses, max_n=1000):
                  'resolving)')
 
     min_tl, solutions = sys.maxsize, []
-    for sol in islice(pycosat.itersolve(clauses), max_n):
-        tl = sum(lit > 0 for lit in sol) # number of true literals
-        if tl < min_tl:
-            min_tl, solutions = tl, [sol]
-        elif tl == min_tl:
-            solutions.append(sol)
+    count = 0
+    for sol in pycosat.itersolve(clauses):
+        solutions.append(sol)
+        count += 1
+        if count >= max_n:
+            print("Warning, stopping at %s solutions" % count)
+            break
 
     return solutions
 
@@ -205,7 +218,8 @@ class Resolve(object):
 
         def add_dependents(fn1):
             for ms in self.ms_depends(fn1):
-                for fn2 in self.get_max_dists(ms):
+                for pkg2 in self.get_pkgs(ms):
+                    fn2 = pkg2.fn
                     if fn2 in res:
                         continue
                     res.add(fn2)
@@ -271,14 +285,14 @@ class Resolve(object):
             assert len(clause) >= 1
             yield clause
 
-    def solve2(self, specs, features, guess=True):
+    def solve2(self, specs, features, guess=True, return_all=False):
         dists = set()
         for spec in specs:
-            for fn in self.get_max_dists(MatchSpec(spec)):
-                if fn in dists:
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                if pkg.fn in dists:
                     continue
-                dists.update(self.all_deps(fn))
-                dists.add(fn)
+                dists.update(self.all_deps(pkg.fn))
+                dists.add(pkg.fn)
 
         v = {} # map fn to variable number
         w = {} # map variable number to fn
@@ -289,18 +303,25 @@ class Resolve(object):
         clauses = self.gen_clauses(v, dists, specs, features)
         solutions = min_sat(clauses)
 
-        if len(solutions) == 0:
+        sols = [[w[lit] for lit in sol if lit > 0] for sol in solutions]
+
+        maximal_solutions = self.maximal_sols(sols)
+
+        if len(maximal_solutions) == 0:
             if guess:
                 raise RuntimeError("Unsatisfiable package specifications\n" +
                                    self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
-        if len(solutions) > 1:
-            print('Warning:', len(solutions), "possible package resolutions:")
-            for sol in solutions:
-                print('\t', [w[lit] for lit in sol if lit > 0])
+        if len(maximal_solutions) > 1:
+            if return_all:
+                return maximal_solutions
 
-        return [w[lit] for lit in solutions.pop(0) if lit > 0]
+            print('Warning:', len(maximal_solutions), "possible package resolutions:")
+            for sol in maximal_solutions:
+                print('\t', sol)
+
+        return maximal_solutions.pop()
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
@@ -431,8 +452,62 @@ remaining packages:
             for fn in self.get_max_dists(MatchSpec(spec)):
                 self.update_with_features(fn, features)
 
-        return self.explicit(specs) or self.solve2(specs, features)
+        return self.explicit(specs) or list(self.solve2(specs, features))
 
+    def maximal_sols(self, sols):
+        """
+        Return the set of maximal solutions.
+
+        A solution is maximal if there are no solutions > it.
+        """
+        maxset = set()
+        solutions = [tuple([Package(fn, self.index[fn]) for fn in sol]) for sol in sols]
+        for sol in solutions:
+            newmax = True
+            remove = set()
+            for e in maxset:
+                try:
+                    lt = partial_lt(e, sol)
+                    if lt:
+                        remove.add(e)
+                    if not lt:
+                        newmax = False
+                except TypeError:
+                    pass
+            maxset -= remove
+            if newmax:
+                maxset.add(sol)
+        return {tuple([pkg.fn for pkg in sol]) for sol in maxset}
+
+def partial_lt(a, b):
+    """
+    Partial ordering on tuples of packages a and b
+
+    Returns true if each element of a is < each corresponding element of b,
+    False if each element of a is > each element of b, and raises TypeError
+    otherwise.
+
+    If either has an element that is not in the other, that is ignored for the
+    purpose of the comparison.
+    """
+    a, b = {pkg.name: pkg for pkg in a}, {pkg.name: pkg for pkg in b}
+    if a == b:
+        return False
+    if all(a[i] <= b[i] for i in a if i in b):
+        if not any(a[i] < b[i] for i in set(a).intersection(set(b))):
+            # a and b are different but all common packages are the same
+            # Break the tie by finding smaller packages
+            if len(a) > len(b):
+                return True
+            elif len(a) < len(b):
+                return False
+            raise TypeError("%s and %s are not comparable" % (a, b))
+        return True
+    if all(a[i] >= b[i] for i in a if i in b):
+        # The case where a and b are different but all common packages are the
+        # same is already handled above
+        return False
+    raise TypeError("%s and %s are not comparable" % (a, b))
 
 if __name__ == '__main__':
     import json
