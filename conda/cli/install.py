@@ -89,7 +89,7 @@ def install(args, parser, command='install'):
     conda install, conda update, and conda create
     """
 
-    newenv = command == 'create'
+    newenv = bool(command == 'create')
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
