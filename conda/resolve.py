@@ -9,6 +9,7 @@ from collections import defaultdict
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
+from conda.logic import Clauses, Linear, false, true
 
 log = logging.getLogger(__name__)
 
@@ -99,43 +100,51 @@ class Package(object):
 
     def __lt__(self, other):
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
+            raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
-            return ((self.norm_version, self.build_number, self.build) <
-                    (other.norm_version, other.build_number, other.build))
+            return ((self.norm_version, self.build_number, other.build) <
+                    (other.norm_version, other.build_number, self.build))
         except TypeError:
             return ((self.version, self.build_number) <
                     (other.version, other.build_number))
 
     def __eq__(self, other):
+        if not isinstance(other, Package):
+            return False
         if self.name != other.name:
-            raise ValueError('cannot compare packages with different '
-                             'names: %r %r' % (self.fn, other.fn))
+            return False
         try:
-            return ((self.norm_version, self.build_number) ==
-                    (other.norm_version, other.build_number))
+            return ((self.norm_version, self.build_number, self.build) ==
+                    (other.norm_version, other.build_number, other.build))
         except TypeError:
-            return ((self.version, self.build_number) ==
-                    (other.version, other.build_number))
+            return ((self.version, self.build_number, self.build) ==
+                    (other.version, other.build_number, other.build))
 
     def __gt__(self, other):
         return not (self.__lt__(other) or self.__eq__(other))
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
 
     def __repr__(self):
         return '<Package %s>' % self.fn
 
 
-def min_sat(clauses, max_n=1000):
+def min_sat(clauses, max_n=1000, N=sys.maxsize):
     """
-    Calculate the SAT solutions for the `clauses` for which the number of
-    true literals is minimal.  Returned is the list of those solutions.
+    Calculate the SAT solutions for the `clauses` for which the number of true
+    literals from 1 to N is minimal.  Returned is the list of those solutions.
     When the clauses are unsatisfiable, an empty list is returned.
 
     This function could be implemented using a Pseudo-Boolean SAT solver,
     which would avoid looping over the SAT solutions, and would therefore
     be much more efficient.  However, for our purpose the current
     implementation is good enough.
+
     """
     try:
         import pycosat
@@ -145,14 +154,13 @@ def min_sat(clauses, max_n=1000):
 
     min_tl, solutions = sys.maxsize, []
     for sol in islice(pycosat.itersolve(clauses), max_n):
-        tl = sum(lit > 0 for lit in sol) # number of true literals
+        tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
         if tl < min_tl:
             min_tl, solutions = tl, [sol]
         elif tl == min_tl:
             solutions.append(sol)
 
     return solutions
-
 
 class Resolve(object):
 
@@ -164,7 +172,7 @@ class Resolve(object):
         self.msd_cache = {}
 
     def find_matches(self, ms):
-        for fn in self.groups[ms.name]:
+        for fn in sorted(self.groups[ms.name]):
             if ms.match(fn):
                 yield fn
 
@@ -188,7 +196,10 @@ class Resolve(object):
 
     @memoize
     def get_pkgs(self, ms):
-        return [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
+        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
+        if not pkgs:
+            raise RuntimeError("No packages found matching: %s" % ms)
+        return pkgs
 
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms)
@@ -201,16 +212,16 @@ class Resolve(object):
                 yield pkg.fn
 
     def all_deps(self, root_fn):
-        res = set()
+        res = {}
 
         def add_dependents(fn1):
             for ms in self.ms_depends(fn1):
-                for fn2 in self.get_max_dists(ms):
-                    if fn2 in res:
+                for pkg2 in self.get_pkgs(ms):
+                    if pkg2.fn in res:
                         continue
-                    res.add(fn2)
+                    res[pkg2.fn] = pkg2
                     if ms.strictness < 3:
-                        add_dependents(fn2)
+                        add_dependents(pkg2.fn)
 
         add_dependents(root_fn)
         return res
@@ -268,39 +279,166 @@ class Resolve(object):
             # numpy-1.7-py27[mkl] OR ...
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
-            assert len(clause) >= 1
+            assert len(clause) >= 1, ms
             yield clause
 
-    def solve2(self, specs, features, guess=True):
-        dists = set()
+    sorter_cache = {}
+    def generate_version_constraints(self, eq, v, rhs, alg='sorter'):
+        l = Linear(eq, rhs)
+        if not l:
+            raise StopIteration
+        m = max(v.values()) if v else 0
+        C = Clauses(m)
+        if alg == 'BDD':
+            yield [C.build_BDD(l)]
+        elif alg == 'BDD_recursive':
+            yield [C.build_BDD_recursive(l)]
+        elif alg == 'sorter':
+            if l.hashable_equation in self.sorter_cache:
+                m, C = self.sorter_cache[l.hashable_equation]
+            else:
+                m = C.build_sorter(l)
+                self.sorter_cache[l.hashable_equation] = m, C
+
+            if l.rhs[0]:
+                # Output must be between lower bound and upper bound, meaning
+                # the lower bound of the sorted output must be true and one more
+                # than the upper bound should be false.
+                yield [m[l.rhs[0]-1]]
+                yield [-m[l.rhs[1]]]
+            else:
+                # The lower bound is zero, which is always true.
+                yield [-m[l.rhs[1]]]
+        else:
+            raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
+
+        for clause in C.clauses:
+            yield list(clause)
+
+    def generate_eq(self, v, dists, include0=False):
+        groups = defaultdict(list) # map name to list of filenames
+        for fn in sorted(dists):
+            groups[self.index[fn]['name']].append(fn)
+
+        eq = []
+        max_rhs = 0
+        for filenames in sorted(itervalues(groups)):
+            pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
+            i = 0
+            prev = pkgs[0]
+            for pkg in pkgs:
+                # > compares build strings but == does not
+                if (dists[pkg].name, dists[pkg].norm_version,
+                    dists[pkg].build_number) != (dists[prev].name,
+                        dists[prev].norm_version, dists[prev].build_number):
+                    i += 1
+                if i or include0:
+                    eq += [(i, v[pkg])]
+                prev = pkg
+            max_rhs += i
+
+        return eq, max_rhs
+
+    def get_dists(self, specs):
+        dists = {}
         for spec in specs:
-            for fn in self.get_max_dists(MatchSpec(spec)):
-                if fn in dists:
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                if pkg.fn in dists:
                     continue
-                dists.update(self.all_deps(fn))
-                dists.add(fn)
+                dists.update(self.all_deps(pkg.fn))
+                dists[pkg.fn] = pkg
+
+        return dists
+
+    def solve2(self, specs, features, guess=True, alg='sorter'):
+        log.debug("Solving for %s" % str(specs))
+        dists = self.get_dists(specs)
 
         v = {} # map fn to variable number
         w = {} # map variable number to fn
+        i = -1 # in case the loop doesn't run
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
+        m = i + 1
 
-        clauses = self.gen_clauses(v, dists, specs, features)
-        solutions = min_sat(clauses)
+        clauses = list(self.gen_clauses(v, dists, specs, features))
+        eq, max_rhs = self.generate_eq(v, dists)
 
-        if len(solutions) == 0:
-            if guess:
-                raise RuntimeError("Unsatisfiable package specifications\n" +
-                                   self.guess_bad_solve(specs, features))
-            raise RuntimeError("Unsatisfiable package specifications")
+        # Check the common case first
+        log.debug("Building the constraint with rhs: [0, 0]")
+        constraints = list(self.generate_version_constraints(eq, v, [0, 0], alg=alg))
+
+        # Only relevant for build_BDD
+        if constraints and constraints[0] == [false]:
+            # XXX: This should *never* happen. build_BDD only returns false
+            # when the linear constraint is unsatisfiable, but any linear
+            # constraint can equal 0, by setting all the variables to 0.
+            solutions = []
+        else:
+            if constraints and constraints[0] == [true]:
+                constraints = []
+
+            log.debug("Checking for solutions with rhs:  [0, 0]")
+            solutions = min_sat(clauses + constraints, 1)
+
+        if not solutions:
+            # Second common case, check if it's unsatisfiable
+            log.debug("Checking for unsatisfiability")
+            solutions = min_sat(clauses, 1)
+
+            # XXX: Maybe also check if there is exactly one solution. Should
+            # be pretty rare, though.
+            if not solutions:
+                if guess:
+                    raise RuntimeError("Unsatisfiable package specifications\n" +
+                        self.guess_bad_solve(specs, features))
+                raise RuntimeError("Unsatisfiable package specifications")
+
+            # We bisect the solution space. It's actually not that much faster
+            # than a linear search, because a single term rhs generates fewer
+            # clauses. The npSolver paper also indicates that a binary search
+            # is not more effective than a top-down search. But bisecting
+            # allows us to exit sooner on unsatisfiable specs.
+            lo, hi = [0, max_rhs]
+            while True:
+                # We expect the optimal solution to be near 0, with the
+                # exception of the unsatisfiable case, which is handled
+                # above.
+                mid = min([lo + 10, (lo + hi)//2])
+                rhs = [lo, mid]
+                log.debug("Building the constraint with rhs: %s" % rhs)
+                constraints = list(self.generate_version_constraints(eq, v,
+                    rhs, alg=alg))
+                if constraints[0] == [false]: # build_BDD returns false if the rhs is
+                    solutions = []            # too big to be satisfied. XXX: This
+                    break                     # probably indicates a bug.
+                if constraints[0] == [true]:
+                    constraints = []
+                log.debug("Checking for solutions with rhs:  %s" % rhs)
+                solutions = min_sat(clauses + constraints, 1)
+                if lo >= hi:
+                    break
+                if solutions:
+                    if lo == mid:
+                        break
+                    # bisect good
+                    hi = mid
+                else:
+                    # bisect bad
+                    lo = mid+1
+
+        log.debug("Finding the minimal solution")
+        solutions = min_sat(clauses + constraints, N=m+1)
+        assert solutions, (specs, features)
 
         if len(solutions) > 1:
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
-                print('\t', [w[lit] for lit in sol if lit > 0])
+                print('\t', [w[lit] for lit in sol if 0 < lit <= m])
 
-        return [w[lit] for lit in solutions.pop(0) if lit > 0]
+        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
@@ -370,13 +508,14 @@ remaining packages:
         """
         Find a substitute package for `fn` (given `installed` packages)
         which does *NOT* have `features`.  If found, the substitute will
-        have the same package namd and version and its dependencies will
+        have the same package name and version and its dependencies will
         match the installed packages as closely as possible.
-        If no substribute is found, None is returned.
+        If no substitute is found, None is returned.
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = {}
-        for fn1 in self.get_max_dists(MatchSpec(name + ' ' + version)):
+        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
+            fn1 = pkg.fn
             if self.features(fn1).intersection(features):
                 continue
             key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
@@ -424,15 +563,16 @@ remaining packages:
             features = self.installed_features(installed)
         for spec in specs:
             ms = MatchSpec(spec)
-            for fn in self.get_max_dists(ms):
+            for pkg in self.get_pkgs(ms):
+                fn = pkg.fn
                 features.update(self.track_features(fn))
         log.debug('specs=%r  features=%r' % (specs, features))
         for spec in specs:
-            for fn in self.get_max_dists(MatchSpec(spec)):
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                fn = pkg.fn
                 self.update_with_features(fn, features)
 
         return self.explicit(specs) or self.solve2(specs, features)
-
 
 if __name__ == '__main__':
     import json

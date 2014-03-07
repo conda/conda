@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import, division
 
 from conda import config
 
-from test_cli import run_conda_command
+from .test_cli import run_conda_command
 
 def test_info():
     conda_info_out, conda_info_err = run_conda_command('info')
