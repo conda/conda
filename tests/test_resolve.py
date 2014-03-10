@@ -634,10 +634,10 @@ def test_unsat():
     r.msd_cache = {}
 
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']), 'Unsatisfiable')
+    assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']), 'conflict')
     # numpy 1.5 does not have a python 3 package
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'python 3*']), 'Unsatisfiable')
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5*', 'numpy 1.6*']), 'Unsatisfiable')
+    assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'python 3*']), 'conflict')
+    assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'numpy 1.6*']), 'conflict')
 
 def test_nonexistent():
     r.msd_cache = {}
