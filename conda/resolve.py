@@ -133,6 +133,42 @@ class Package(object):
     def __repr__(self):
         return '<Package %s>' % self.fn
 
+def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
+    """
+    Bisect the solution space of a constraint, to minimize it.
+
+    func should be a function that is called with the arguments func(lo_rhs,
+    hi_rhs) and returns a list of constraints.
+
+    The midpoint of the bisection will not happen more than lo value +
+    increment.  To not use it, set a very large increment. The increment
+    argument should be used if you expect the optimal solution to be near 0.
+
+    """
+    lo, hi = [min_rhs, max_rhs]
+    while True:
+        mid = min([lo + increment, (lo + hi)//2])
+        rhs = [lo, mid]
+        log.debug("Building the constraint with rhs: %s" % rhs)
+        constraints = func(*rhs)
+        if constraints[0] == [false]: # build_BDD returns false if the rhs is
+            solutions = []            # too big to be satisfied. XXX: This
+            break                     # probably indicates a bug.
+        if constraints[0] == [true]:
+            constraints = []
+        log.debug("Checking for solutions with rhs:  %s" % rhs)
+        solutions = sat(clauses + constraints)
+        if lo >= hi:
+            break
+        if solutions:
+            if lo == mid:
+                break
+            # bisect good
+            hi = mid
+        else:
+            # bisect bad
+            lo = mid+1
+    return constraints
 
 def min_sat(clauses, max_n=1000, N=sys.maxsize):
     """
@@ -161,6 +197,25 @@ def min_sat(clauses, max_n=1000, N=sys.maxsize):
             solutions.append(sol)
 
     return solutions
+
+def sat(clauses):
+    """
+    Calculate a SAT solution for `clauses`.
+
+    Returned is the list of those solutions.  When the clauses are
+    unsatisfiable, an empty list is returned.
+
+    """
+    try:
+        import pycosat
+    except ImportError:
+        sys.exit('Error: could not import pycosat (required for dependency '
+                 'resolving)')
+
+    solution = pycosat.solve(clauses)
+    if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
+        return []
+    return solution
 
 class Resolve(object):
 
@@ -363,6 +418,8 @@ class Resolve(object):
         m = i + 1
 
         clauses = list(self.gen_clauses(v, dists, specs, features))
+        if not clauses:
+            return []
         eq, max_rhs = self.generate_eq(v, dists)
 
         # Check the common case first
@@ -374,59 +431,30 @@ class Resolve(object):
             # XXX: This should *never* happen. build_BDD only returns false
             # when the linear constraint is unsatisfiable, but any linear
             # constraint can equal 0, by setting all the variables to 0.
-            solutions = []
+            solution = []
         else:
             if constraints and constraints[0] == [true]:
                 constraints = []
 
             log.debug("Checking for solutions with rhs:  [0, 0]")
-            solutions = min_sat(clauses + constraints, 1)
+            solution = sat(clauses + constraints)
 
-        if not solutions:
+        if not solution:
             # Second common case, check if it's unsatisfiable
             log.debug("Checking for unsatisfiability")
-            solutions = min_sat(clauses, 1)
+            solution = sat(clauses)
 
-            # XXX: Maybe also check if there is exactly one solution. Should
-            # be pretty rare, though.
-            if not solutions:
+            if not solution:
                 if guess:
                     raise RuntimeError("Unsatisfiable package specifications\n" +
                         self.guess_bad_solve(specs, features))
                 raise RuntimeError("Unsatisfiable package specifications")
 
-            # We bisect the solution space. It's actually not that much faster
-            # than a linear search, because a single term rhs generates fewer
-            # clauses. The npSolver paper also indicates that a binary search
-            # is not more effective than a top-down search. But bisecting
-            # allows us to exit sooner on unsatisfiable specs.
-            lo, hi = [0, max_rhs]
-            while True:
-                # We expect the optimal solution to be near 0, with the
-                # exception of the unsatisfiable case, which is handled
-                # above.
-                mid = min([lo + 10, (lo + hi)//2])
-                rhs = [lo, mid]
-                log.debug("Building the constraint with rhs: %s" % rhs)
-                constraints = list(self.generate_version_constraints(eq, v,
-                    rhs, alg=alg))
-                if constraints[0] == [false]: # build_BDD returns false if the rhs is
-                    solutions = []            # too big to be satisfied. XXX: This
-                    break                     # probably indicates a bug.
-                if constraints[0] == [true]:
-                    constraints = []
-                log.debug("Checking for solutions with rhs:  %s" % rhs)
-                solutions = min_sat(clauses + constraints, 1)
-                if lo >= hi:
-                    break
-                if solutions:
-                    if lo == mid:
-                        break
-                    # bisect good
-                    hi = mid
-                else:
-                    # bisect bad
-                    lo = mid+1
+            def version_constraints(lo, hi):
+                return list(self.generate_version_constraints(eq, v, [lo, hi], alg=alg))
+
+            log.debug("Bisecting the version constraint")
+            constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
 
         log.debug("Finding the minimal solution")
         solutions = min_sat(clauses + constraints, N=m+1)
