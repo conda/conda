@@ -308,6 +308,8 @@ class Resolve(object):
         eq, max_rhs = self.generate_version_eq(v, dists)
 
         # Check the common case first
+        sys.stdout.write('.')
+        sys.stdout.flush()
         log.debug("Building the constraint with rhs: [0, 0]")
         constraints = list(generate_constraints(eq, m, [0, 0], alg=alg))
 
@@ -321,18 +323,24 @@ class Resolve(object):
             if constraints and constraints[0] == [true]:
                 constraints = []
 
+            sys.stdout.write('.')
+            sys.stdout.flush()
             log.debug("Checking for solutions with rhs:  [0, 0]")
             solution = sat(clauses + constraints)
 
         if not solution:
             # Second common case, check if it's unsatisfiable
+            sys.stdout.write('.')
+            sys.stdout.flush()
             log.debug("Checking for unsatisfiability")
             solution = sat(clauses)
 
             if not solution:
                 if guess:
-                    raise RuntimeError("Unsatisfiable package specifications\n" +
-                        self.guess_bad_solve(specs, features))
+                    sys.stderr.write('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: ')
+                    sys.stderr.flush()
+                    sys.exit(self.guess_bad_solve(specs, features))
                 raise RuntimeError("Unsatisfiable package specifications")
 
             def version_constraints(lo, hi):
@@ -341,6 +349,8 @@ class Resolve(object):
             log.debug("Bisecting the version constraint")
             constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
 
+        sys.stdout.write('.')
+        sys.stdout.flush()
         log.debug("Finding the minimal solution")
         solutions = min_sat(clauses + constraints, N=m+1)
         assert solutions, (specs, features)
@@ -378,9 +388,9 @@ class Resolve(object):
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("Hint: %s has a conflict with the remaining packages" %
+            return ("\nHint: %s has a conflict with the remaining packages" %
                     hint[0])
-        return ("""\
+        return ("""
 Hint: the following combinations of packages create a conflict with the
 remaining packages:
   - %s""" % '\n  - '.join(hint))
@@ -485,7 +495,14 @@ remaining packages:
                 fn = pkg.fn
                 self.update_with_features(fn, features)
 
-        return self.explicit(specs) or self.solve2(specs, features)
+        sys.stdout.write("Solving package specifications: ")
+        sys.stdout.flush()
+        try:
+            return self.explicit(specs) or self.solve2(specs, features)
+        except RuntimeError:
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+            raise
 
 if __name__ == '__main__':
     import json

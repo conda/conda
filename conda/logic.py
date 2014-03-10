@@ -462,6 +462,8 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
         mid = min([lo + increment, (lo + hi)//2])
         rhs = [lo, mid]
 
+        sys.stdout.write('.')
+        sys.stdout.flush()
         log.debug("Building the constraint with rhs: %s" % rhs)
         constraints = func(*rhs)
         if constraints[0] == [false]: # build_BDD returns false if the rhs is
@@ -470,6 +472,8 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
         if constraints[0] == [true]:
             constraints = []
 
+        sys.stdout.write('.')
+        sys.stdout.flush()
         log.debug("Checking for solutions with rhs:  %s" % rhs)
         solutions = sat(clauses + constraints)
         if lo >= hi:
