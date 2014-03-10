@@ -3,13 +3,14 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import islice, combinations
+from itertools import combinations
 from collections import defaultdict
 
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
-from conda.logic import Clauses, Linear, false, true
+from conda.logic import (false, true, sat, min_sat, generate_constraints,
+    bisect_constraints)
 
 log = logging.getLogger(__name__)
 
@@ -133,121 +134,6 @@ class Package(object):
     def __repr__(self):
         return '<Package %s>' % self.fn
 
-
-def generate_constraints(eq, m, rhs, alg='sorter', sorter_cache={}):
-    l = Linear(eq, rhs)
-    if not l:
-        raise StopIteration
-    C = Clauses(m)
-    if alg == 'BDD':
-        yield [C.build_BDD(l)]
-    elif alg == 'BDD_recursive':
-        yield [C.build_BDD_recursive(l)]
-    elif alg == 'sorter':
-        if l.hashable_equation in sorter_cache:
-            m, C = sorter_cache[l.hashable_equation]
-        else:
-            m = C.build_sorter(l)
-            sorter_cache[l.hashable_equation] = m, C
-
-        if l.rhs[0]:
-            # Output must be between lower bound and upper bound, meaning
-            # the lower bound of the sorted output must be true and one more
-            # than the upper bound should be false.
-            yield [m[l.rhs[0]-1]]
-            yield [-m[l.rhs[1]]]
-        else:
-            # The lower bound is zero, which is always true.
-            yield [-m[l.rhs[1]]]
-    else:
-        raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
-
-    for clause in C.clauses:
-        yield list(clause)
-
-def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
-    """
-    Bisect the solution space of a constraint, to minimize it.
-
-    func should be a function that is called with the arguments func(lo_rhs,
-    hi_rhs) and returns a list of constraints.
-
-    The midpoint of the bisection will not happen more than lo value +
-    increment.  To not use it, set a very large increment. The increment
-    argument should be used if you expect the optimal solution to be near 0.
-
-    """
-    lo, hi = [min_rhs, max_rhs]
-    while True:
-        mid = min([lo + increment, (lo + hi)//2])
-        rhs = [lo, mid]
-        log.debug("Building the constraint with rhs: %s" % rhs)
-        constraints = func(*rhs)
-        if constraints[0] == [false]: # build_BDD returns false if the rhs is
-            solutions = []            # too big to be satisfied. XXX: This
-            break                     # probably indicates a bug.
-        if constraints[0] == [true]:
-            constraints = []
-        log.debug("Checking for solutions with rhs:  %s" % rhs)
-        solutions = sat(clauses + constraints)
-        if lo >= hi:
-            break
-        if solutions:
-            if lo == mid:
-                break
-            # bisect good
-            hi = mid
-        else:
-            # bisect bad
-            lo = mid+1
-    return constraints
-
-def min_sat(clauses, max_n=1000, N=sys.maxsize):
-    """
-    Calculate the SAT solutions for the `clauses` for which the number of true
-    literals from 1 to N is minimal.  Returned is the list of those solutions.
-    When the clauses are unsatisfiable, an empty list is returned.
-
-    This function could be implemented using a Pseudo-Boolean SAT solver,
-    which would avoid looping over the SAT solutions, and would therefore
-    be much more efficient.  However, for our purpose the current
-    implementation is good enough.
-
-    """
-    try:
-        import pycosat
-    except ImportError:
-        sys.exit('Error: could not import pycosat (required for dependency '
-                 'resolving)')
-
-    min_tl, solutions = sys.maxsize, []
-    for sol in islice(pycosat.itersolve(clauses), max_n):
-        tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
-        if tl < min_tl:
-            min_tl, solutions = tl, [sol]
-        elif tl == min_tl:
-            solutions.append(sol)
-
-    return solutions
-
-def sat(clauses):
-    """
-    Calculate a SAT solution for `clauses`.
-
-    Returned is the list of those solutions.  When the clauses are
-    unsatisfiable, an empty list is returned.
-
-    """
-    try:
-        import pycosat
-    except ImportError:
-        sys.exit('Error: could not import pycosat (required for dependency '
-                 'resolving)')
-
-    solution = pycosat.solve(clauses)
-    if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
-        return []
-    return solution
 
 class Resolve(object):
 
