@@ -133,6 +133,38 @@ class Package(object):
     def __repr__(self):
         return '<Package %s>' % self.fn
 
+
+def generate_constraints(eq, m, rhs, alg='sorter', sorter_cache={}):
+    l = Linear(eq, rhs)
+    if not l:
+        raise StopIteration
+    C = Clauses(m)
+    if alg == 'BDD':
+        yield [C.build_BDD(l)]
+    elif alg == 'BDD_recursive':
+        yield [C.build_BDD_recursive(l)]
+    elif alg == 'sorter':
+        if l.hashable_equation in sorter_cache:
+            m, C = sorter_cache[l.hashable_equation]
+        else:
+            m = C.build_sorter(l)
+            sorter_cache[l.hashable_equation] = m, C
+
+        if l.rhs[0]:
+            # Output must be between lower bound and upper bound, meaning
+            # the lower bound of the sorted output must be true and one more
+            # than the upper bound should be false.
+            yield [m[l.rhs[0]-1]]
+            yield [-m[l.rhs[1]]]
+        else:
+            # The lower bound is zero, which is always true.
+            yield [-m[l.rhs[1]]]
+    else:
+        raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
+
+    for clause in C.clauses:
+        yield list(clause)
+
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
     """
     Bisect the solution space of a constraint, to minimize it.
@@ -337,39 +369,6 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield clause
 
-    sorter_cache = {}
-    def generate_version_constraints(self, eq, v, rhs, alg='sorter'):
-        l = Linear(eq, rhs)
-        if not l:
-            raise StopIteration
-        m = max(v.values()) if v else 0
-        C = Clauses(m)
-        if alg == 'BDD':
-            yield [C.build_BDD(l)]
-        elif alg == 'BDD_recursive':
-            yield [C.build_BDD_recursive(l)]
-        elif alg == 'sorter':
-            if l.hashable_equation in self.sorter_cache:
-                m, C = self.sorter_cache[l.hashable_equation]
-            else:
-                m = C.build_sorter(l)
-                self.sorter_cache[l.hashable_equation] = m, C
-
-            if l.rhs[0]:
-                # Output must be between lower bound and upper bound, meaning
-                # the lower bound of the sorted output must be true and one more
-                # than the upper bound should be false.
-                yield [m[l.rhs[0]-1]]
-                yield [-m[l.rhs[1]]]
-            else:
-                # The lower bound is zero, which is always true.
-                yield [-m[l.rhs[1]]]
-        else:
-            raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
-
-        for clause in C.clauses:
-            yield list(clause)
-
     def generate_eq(self, v, dists, include0=False):
         groups = defaultdict(list) # map name to list of filenames
         for fn in sorted(dists):
@@ -424,7 +423,7 @@ class Resolve(object):
 
         # Check the common case first
         log.debug("Building the constraint with rhs: [0, 0]")
-        constraints = list(self.generate_version_constraints(eq, v, [0, 0], alg=alg))
+        constraints = list(generate_constraints(eq, m, [0, 0], alg=alg))
 
         # Only relevant for build_BDD
         if constraints and constraints[0] == [false]:
@@ -451,7 +450,7 @@ class Resolve(object):
                 raise RuntimeError("Unsatisfiable package specifications")
 
             def version_constraints(lo, hi):
-                return list(self.generate_version_constraints(eq, v, [lo, hi], alg=alg))
+                return list(generate_constraints(eq, m, [lo, hi], alg=alg))
 
             log.debug("Bisecting the version constraint")
             constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
