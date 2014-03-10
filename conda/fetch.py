@@ -54,6 +54,8 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
 
 
 def fetch_repodata(url, cache_dir=None, use_cache=False):
+    sys.stdout.write('.')
+    sys.stdout.flush()
     log.debug("fetching repodata: %s ..." % url)
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
@@ -107,6 +109,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
+    sys.stdout.write("Fetching package metadata: ")
+    sys.stdout.flush()
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url, use_cache=use_cache)
         if repodata is None:
@@ -115,7 +119,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
-
+    sys.stdout.write('\n')
+    sys.stdout.flush()
     if unknown:
         for pkgs_dir in config.pkgs_dirs:
             if not isdir(pkgs_dir):
