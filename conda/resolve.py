@@ -369,7 +369,7 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield clause
 
-    def generate_eq(self, v, dists, include0=False):
+    def generate_version_eq(self, v, dists, include0=False):
         groups = defaultdict(list) # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
@@ -419,7 +419,7 @@ class Resolve(object):
         clauses = list(self.gen_clauses(v, dists, specs, features))
         if not clauses:
             return []
-        eq, max_rhs = self.generate_eq(v, dists)
+        eq, max_rhs = self.generate_version_eq(v, dists)
 
         # Check the common case first
         log.debug("Building the constraint with rhs: [0, 0]")
