@@ -141,3 +141,9 @@ def test_wrong_args():
             stdout, stderr = run_in(commands, shell)
             assert stdout == PATH
             assert stderr == 'Error: too many arguments.\n'
+
+# TODO:
+# - Test activating an env by name
+# - Test activating "root"
+# - Test PS1
+# - Test CONDA_DEFAULT_ENV
