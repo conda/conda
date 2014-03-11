@@ -111,3 +111,33 @@ def test_activate_test1_deactivate():
             stdout, stderr = run_in(commands, shell)
             assert stdout == PATH
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
+
+def test_wrong_args():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            commands = (setup + """
+            source {activate}
+            printf $PATH
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == PATH
+            assert stderr == 'Error: no environment provided.\n'
+
+            commands = (setup + """
+            source {deactivate} test
+            printf $PATH
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == PATH
+            assert stderr == 'Error: too many arguments.\n'
+
+            commands = (setup + """
+            source {deactivate} {envs}/test
+            printf $PATH
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == PATH
+            assert stderr == 'Error: too many arguments.\n'
