@@ -5,6 +5,7 @@ import sys
 from os.path import isdir, join, abspath
 
 from conda.cli.common import find_prefix_name
+import conda.config
 
 def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
@@ -60,10 +61,14 @@ def main():
             sys.exit("Error: No environment to deactivate")
         try:
             binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
+            rootpath = binpath_from_arg(conda.config.root_env_name)
         except SystemExit:
             print(os.environ['PATH'])
             raise
-        paths = []
+        # Deactivate is the same as activate root (except without setting
+        # CONDA_DEFAULT_ENV or PS1. XXX: The user might want to put the root
+        # env back somewhere in the middle of the PATH, not at the beginning.
+        paths = [rootpath]
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
