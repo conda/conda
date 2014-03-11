@@ -2,17 +2,21 @@ from __future__ import print_function, absolute_import
 
 import sys
 from os.path import dirname, join
-import tempfile
 
+from conda.compat import TemporaryDirectory
 from .helpers import run_in
 
 # Only run these tests for commands that are installed.
 
 shells = []
 for shell in ['bash', 'zsh']:
-    stdout, stderr = run_in('echo', shell)
-    if not stderr:
-        shells.append(shell)
+    try:
+        stdout, stderr = run_in('echo', shell)
+    except OSError:
+        pass
+    else:
+        if not stderr:
+            shells.append(shell)
 
 activate = join(dirname(dirname(__file__)), 'bin', 'activate')
 deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
