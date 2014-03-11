@@ -84,3 +84,30 @@ def test_activate_test1_test3():
             stdout, stderr = run_in(commands, shell)
             assert stdout == envs + "/test1/bin:" + PATH
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+
+
+def test_deactivate():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            commands = (setup + """
+            source {deactivate}
+            printf $PATH
+            """).format(envs=envs, deactivate=deactivate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == PATH
+            assert stderr == 'Error: No environment to deactivate\n'
+
+
+def test_activate_test1_deactivate():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            commands = (setup + """
+            source {activate} {envs}/test1 2> /dev/null
+            source {deactivate}
+            printf $PATH
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == PATH
+            assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
