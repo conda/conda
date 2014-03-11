@@ -1,3 +1,10 @@
+...
+-------------------
+
+  * Print dots to the screen for progress
+  * Move logic functions from resolve to logic module
+
+
 2014-03-07   3.2.0a1:
 ---------------------
   * conda now uses pseudo-boolean constraints in the SAT solver. This allows
