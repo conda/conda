@@ -21,7 +21,7 @@ syspath = dirname(sys.executable)
 
 def test_activate():
     for shell in shells:
-        with tempfile.TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             PATH = ':'.join([syspath, '/bin', '/usr/bin'])
             setup = """\
             export PATH="{PATH}"
