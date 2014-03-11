@@ -60,7 +60,7 @@ from conda.cli import main_clean
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..activate', '..deactivate', '..checkenv'):
+        if argv1 in ('..activate', '..deactivate', '..activateroot', '..checkenv'):
             import conda.cli.activate as activate
             activate.main()
             return

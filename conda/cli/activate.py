@@ -61,11 +61,25 @@ def main():
             sys.exit("Error: No environment to deactivate")
         try:
             binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
+        except SystemExit:
+            print(os.environ['PATH'])
+            raise
+        paths = []
+        sys.stderr.write("discarding %s from PATH\n" % binpath)
+
+    elif sys.argv[1] == '..activateroot':
+        if len(sys.argv) != 2:
+            sys.exit("Error: too many arguments.")
+
+        if 'CONDA_DEFAULT_ENV' not in os.environ:
+            sys.exit("Error: No environment to deactivate")
+        try:
+            binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
             rootpath = binpath_from_arg(conda.config.root_env_name)
         except SystemExit:
             print(os.environ['PATH'])
             raise
-        # Deactivate is the same as activate root (except without setting
+        # deactivate is the same as activate root (except without setting
         # CONDA_DEFAULT_ENV or PS1. XXX: The user might want to put the root
         # env back somewhere in the middle of the PATH, not at the beginning.
         paths = [rootpath]
