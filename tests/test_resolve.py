@@ -690,3 +690,18 @@ def test_package_ordering():
     assert numpy >= numpy_mkl
     assert (numpy != numpy_mkl) is True
     assert (numpy == numpy_mkl) is False
+
+def test_irrational_version():
+    r.msd_cache = {}
+
+    # verlib.NormalizedVersion('2012d') raises IrrationalVersionError.
+    assert r.solve2(['pytz 2012d', 'python 3*'], set()) == [
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'pytz-2012d-py33_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2'
+    ]
