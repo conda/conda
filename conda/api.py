@@ -18,6 +18,10 @@ def _name_fn(fn):
 
 def _fn2spec(fn):
     assert fn.endswith('.tar.bz2')
+    return ' '.join(fn[:-8].rsplit('-', 2)[:2])
+
+def _fn2fullspec(fn):
+    assert fn.endswith('.tar.bz2')
     return ' '.join(fn[:-8].rsplit('-', 2))
 
 
@@ -86,7 +90,7 @@ def app_info_packages(fn):
     index = get_index()
     r = Resolve(index)
     res = []
-    for fn2 in r.solve([_fn2spec(fn)]):
+    for fn2 in r.solve([_fn2fullspec(fn)]):
         info = index[fn2]
         res.append((info['name'], info['version'], info['size'],
                     any(install.is_fetched(pkgs_dir, fn2[:-8])
