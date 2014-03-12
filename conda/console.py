@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import sys
 import logging
 
 from conda.utils import memoized
@@ -54,6 +55,10 @@ class PrintHandler(logging.Handler):
         if record.name == 'print':
             print(record.msg)
 
+class DotHandler(logging.Handler):
+    def emit(self, record):
+        sys.stdout.write('.')
+        sys.stdout.flush()
 
 @memoized  # to avoid setting up handlers more than once
 def setup_handlers():
@@ -68,3 +73,7 @@ def setup_handlers():
     print_logger = logging.getLogger('print')
     print_logger.setLevel(logging.INFO)
     print_logger.addHandler(PrintHandler())
+
+    dotlogger = logging.getLogger('dotupdate')
+    dotlogger.setLevel(logging.DEBUG)
+    dotlogger.addHandler(DotHandler())

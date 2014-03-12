@@ -29,7 +29,7 @@ import logging
 from conda.compat import log2, ceil
 from conda.utils import memoize
 
-log = logging.getLogger(__name__)
+dotlog = logging.getLogger('dotupdate')
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
@@ -462,9 +462,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
         mid = min([lo + increment, (lo + hi)//2])
         rhs = [lo, mid]
 
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        log.debug("Building the constraint with rhs: %s" % rhs)
+        dotlog.debug("Building the constraint with rhs: %s" % rhs)
         constraints = func(*rhs)
         if constraints[0] == [false]: # build_BDD returns false if the rhs is
             solutions = []            # too big to be satisfied. XXX: This
@@ -472,9 +470,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
         if constraints[0] == [true]:
             constraints = []
 
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        log.debug("Checking for solutions with rhs:  %s" % rhs)
+        dotlog.debug("Checking for solutions with rhs:  %s" % rhs)
         solutions = sat(clauses + constraints)
         if lo >= hi:
             break
