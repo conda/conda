@@ -2,6 +2,8 @@
 -------------------
   * fix installing packages with irrational versions
   * fix installation in the api
+  * use a logging handler to print the dots
+
 
 2014-03-11   3.2.0:
 -------------------
