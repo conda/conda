@@ -23,17 +23,15 @@ get_abs_filename() {
     echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
-if [[ -n $CONDA_DEFAULT_ENV ]]; then
-    if $_THIS_DIR/conda ..checkenv "$@"; then
-        _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
-        export PATH=$_NEW_PATH
-        if (( $($_THIS_DIR/conda ..changeps1) )); then
-            PS1=$CONDA_OLD_PS1
-            unset CONDA_OLD_PS1
-        fi
-    else
-        return 1
+if $_THIS_DIR/conda ..checkenv "$@"; then
+    _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
+    export PATH=$_NEW_PATH
+    if (( $($_THIS_DIR/conda ..changeps1) )); then
+        PS1=$CONDA_OLD_PS1
+        unset CONDA_OLD_PS1
     fi
+else
+    return 1
 fi
 
 _NEW_PATH=$($_THIS_DIR/conda ..activate "$@")
