@@ -30,6 +30,7 @@ else:
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
+stdoutlog = getLogger('stdoutlog')
 
 fail_unknown_host = False
 retries = 3
@@ -108,8 +109,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
-    sys.stdout.write("Fetching package metadata: ")
-    sys.stdout.flush()
+    stdoutlog.info("Fetching package metadata: ")
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url, use_cache=use_cache)
         if repodata is None:
@@ -118,8 +118,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
-    sys.stdout.write('\n')
-    sys.stdout.flush()
+    stdoutlog.info('\n')
     if unknown:
         for pkgs_dir in config.pkgs_dirs:
             if not isdir(pkgs_dir):

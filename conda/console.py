@@ -50,7 +50,6 @@ class ProgressHandler(logging.Handler):
 
 
 class PrintHandler(logging.Handler):
-
     def emit(self, record):
         if record.name == 'print':
             print(record.msg)
@@ -58,6 +57,11 @@ class PrintHandler(logging.Handler):
 class DotHandler(logging.Handler):
     def emit(self, record):
         sys.stdout.write('.')
+        sys.stdout.flush()
+
+class SysStdoutWriteHandler(logging.Handler):
+    def emit(self, record):
+        sys.stdout.write(record.msg)
         sys.stdout.flush()
 
 @memoized  # to avoid setting up handlers more than once
@@ -77,3 +81,7 @@ def setup_handlers():
     dotlogger = logging.getLogger('dotupdate')
     dotlogger.setLevel(logging.DEBUG)
     dotlogger.addHandler(DotHandler())
+
+    stdoutlogger = logging.getLogger('stdoutlog')
+    stdoutlogger.setLevel(logging.DEBUG)
+    stdoutlogger.addHandler(SysStdoutWriteHandler())
