@@ -29,6 +29,7 @@ else:
 
 
 log = getLogger(__name__)
+dotlog = getLogger('dotupdate')
 
 fail_unknown_host = False
 retries = 3
@@ -54,9 +55,7 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
 
 
 def fetch_repodata(url, cache_dir=None, use_cache=False):
-    sys.stdout.write('.')
-    sys.stdout.flush()
-    log.debug("fetching repodata: %s ..." % url)
+    dotlog.debug("fetching repodata: %s ..." % url)
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:

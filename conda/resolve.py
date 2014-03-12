@@ -11,9 +11,11 @@ from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints)
+from conda.console import setup_handlers
 
 log = logging.getLogger(__name__)
-
+dotlog = logging.getLogger('dotupdate')
+setup_handlers()
 
 class MatchSpec(object):
 
@@ -311,9 +313,7 @@ class Resolve(object):
         eq, max_rhs = self.generate_version_eq(v, dists)
 
         # Check the common case first
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        log.debug("Building the constraint with rhs: [0, 0]")
+        dotlog.debug("Building the constraint with rhs: [0, 0]")
         constraints = list(generate_constraints(eq, m, [0, 0], alg=alg))
 
         # Only relevant for build_BDD
@@ -326,16 +326,12 @@ class Resolve(object):
             if constraints and constraints[0] == [true]:
                 constraints = []
 
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            log.debug("Checking for solutions with rhs:  [0, 0]")
+            dotlog.debug("Checking for solutions with rhs:  [0, 0]")
             solution = sat(clauses + constraints)
 
         if not solution:
             # Second common case, check if it's unsatisfiable
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            log.debug("Checking for unsatisfiability")
+            dotlog.debug("Checking for unsatisfiability")
             solution = sat(clauses)
 
             if not solution:
@@ -352,9 +348,7 @@ class Resolve(object):
             log.debug("Bisecting the version constraint")
             constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
 
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        log.debug("Finding the minimal solution")
+        dotlog.debug("Finding the minimal solution")
         solutions = min_sat(clauses + constraints, N=m+1)
         assert solutions, (specs, features)
 
