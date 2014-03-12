@@ -125,6 +125,15 @@ def test_wrong_args():
             assert stderr == 'Error: no environment provided.\n'
 
             commands = (setup + """
+            source {activate} two args
+            printf $PATH
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == PATH
+            assert stderr == 'Error: did not expect more than one argument.\n'
+
+            commands = (setup + """
             source {deactivate} test
             printf $PATH
             """).format(envs=envs, deactivate=deactivate, activate=activate)
