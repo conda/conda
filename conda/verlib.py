@@ -11,6 +11,8 @@ from __future__ import print_function, division, absolute_import
 
 import re
 
+from .compat import string_types
+
 class IrrationalVersionError(Exception):
     """This is an irrational version."""
     pass
@@ -197,6 +199,13 @@ class NormalizedVersion(object):
                 % (type(self).__name__, type(other).__name__))
 
     def __eq__(self, other):
+        if isinstance(other, string_types):
+            try:
+                other = NormalizedVersion(other)
+            except IrrationalVersionError:
+                # if other can't be interpreted by NormalizedVersion,
+                # there's no way it can be equal to something that can.
+                return False
         if not isinstance(other, NormalizedVersion):
             #print("error: self.parts = {0}, other = {1}".format(self.parts, other))
             self._cannot_compare(other)
