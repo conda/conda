@@ -268,9 +268,12 @@ class Resolve(object):
             prev = pkgs[0]
             for pkg in pkgs:
                 # > compares build strings but == does not
-                if (dists[pkg].name, dists[pkg].norm_version,
-                    dists[pkg].build_number) != (dists[prev].name,
-                        dists[prev].norm_version, dists[prev].build_number):
+                try:
+                    if (dists[pkg].name, dists[pkg].norm_version,
+                        dists[pkg].build_number) != (dists[prev].name,
+                            dists[prev].norm_version, dists[prev].build_number):
+                        i += 1
+                except TypeError:
                     i += 1
                 if i or include0:
                     eq += [(i, v[pkg])]
