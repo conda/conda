@@ -3,7 +3,7 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import VersionSpec, MatchSpec, Package, Resolve
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve
 
 from .helpers import raises
 
@@ -15,6 +15,12 @@ f_mkl = set(['mkl'])
 
 
 class TestVersionSpec(unittest.TestCase):
+
+    def test_ver_eval(self):
+        self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
+        self.assertEqual(ver_eval('1.7.0', '<1.7'), False)
+        self.assertEqual(ver_eval('1.7.0', '>=1.7'), True)
+        self.assertEqual(ver_eval('1.6.7', '>=1.7'), False)
 
     def test_match(self):
         for vspec, res in [('1.7*', True),
