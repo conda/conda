@@ -77,7 +77,7 @@ def add_parser_known(p):
         default=True,
         dest='unknown',
         help="only use index metadata from the known remote channels, and not "
-             "the local package cache (which are of from unknown channels)",
+             "the local package cache (which are from unknown channels)",
     )
 
 def add_parser_use_index_cache(p):
