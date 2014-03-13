@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 
-import sys
+import os
 from os.path import dirname, join
 
 from conda.compat import TemporaryDirectory
@@ -25,12 +25,14 @@ deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
 syspath = join(root_dir, 'bin')
 PATH = ':'.join(['/bin', '/usr/bin'])
 ROOTPATH = syspath + ':' + PATH
+PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
 setup = """\
 export PATH="{ROOTPATH}"
 export PS1='$'
+export PYTHONPATH="{PYTHONPATH}"
 cd {here}
-""".format(here=dirname(__file__), ROOTPATH=ROOTPATH)
+""".format(here=dirname(__file__), ROOTPATH=ROOTPATH, PYTHONPATH=PYTHONPATH)
 
 setup = setup + """
 mkdir -p {envs}/test1/bin
