@@ -10,12 +10,13 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints)
+                         bisect_constraints)
 from conda.console import setup_handlers
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
 setup_handlers()
+
 
 class MatchSpec(object):
 
