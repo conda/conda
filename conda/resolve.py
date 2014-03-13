@@ -18,16 +18,71 @@ dotlog = logging.getLogger('dotupdate')
 setup_handlers()
 
 
+def normalized_version(version):
+    version = version.replace('rc', '.dev99999')
+    if version.endswith('.dev'):
+        version += '0'
+    try:
+        return verlib.NormalizedVersion(version)
+    except verlib.IrrationalVersionError:
+        return version
+
+
+const_pat = re.compile(r'([=<>!]{1,2})(.+)')
+def ver_eval(version, constraint):
+    a = version
+    m = const_pat.match(constraint)
+    if m is None:
+        raise RuntimeError("Did not recognize version specification: %r" %
+                           constraint)
+    op, b = m.groups()
+    na = normalized_version(a)
+    nb = normalized_version(b)
+    if op == '==':
+        try:
+            return na == nb
+        except TypeError:
+            return a == b
+    elif op == '>=':
+        try:
+            return na >= nb
+        except TypeError:
+            return a >= b
+    elif op == '<=':
+        try:
+            return na <= nb
+        except TypeError:
+            return a <= b
+    elif op == '>':
+        try:
+            return na > nb
+        except TypeError:
+            return a > b
+    elif op == '<':
+        try:
+            return na < nb
+        except TypeError:
+            return a < b
+    elif op == '!=':
+        try:
+            return na != nb
+        except TypeError:
+            return a != b
+    else:
+        raise RuntimeError("Did not recognize version comparison operator: %r" %
+                           constraint)
+
+
 class VersionSpec(object):
 
-    def __init__(self, vspec):
-        assert '|' not in vspec
-        if vspec.startswith(('=', '<', '>', '!')):
+    def __init__(self, spec):
+        assert '|' not in spec
+        if spec.startswith(('=', '<', '>', '!')):
             self.regex = False
-
+            self.constraints = spec.split(',')
         else:
             self.regex = True
-            rx = vspec.replace('.', r'\.')
+            rx = spec.replace('.', r'\.')
             rx = rx.replace('*', r'.*')
             rx = r'(%s)$' % rx
             self.pat = re.compile(rx)
@@ -36,7 +91,7 @@ class VersionSpec(object):
         if self.regex:
             return bool(self.pat.match(version))
         else:
-            pass
+            return all(ver_eval(version, c) for c in self.constraints)
 
 
 class MatchSpec(object):
