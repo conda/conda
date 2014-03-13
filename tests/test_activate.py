@@ -4,6 +4,7 @@ import sys
 from os.path import dirname, join
 
 from conda.compat import TemporaryDirectory
+from conda.config import root_dir
 from .helpers import run_in
 
 # Only run these tests for commands that are installed.
@@ -21,7 +22,7 @@ for shell in ['bash', 'zsh']:
 activate = join(dirname(dirname(__file__)), 'bin', 'activate')
 deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
 # Make sure the subprocess activate calls this python
-syspath = dirname(sys.executable)
+syspath = join(root_dir, 'bin')
 PATH = ':'.join([syspath, '/bin', '/usr/bin'])
 
 setup = """\
