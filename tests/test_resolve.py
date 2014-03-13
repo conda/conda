@@ -3,7 +3,7 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import VersionSpec, MatchSpec, Package, Resolve
 
 from .helpers import raises
 
@@ -14,6 +14,19 @@ with open(join(dirname(__file__), 'index.json')) as fi:
 f_mkl = set(['mkl'])
 
 
+class TestVersionSpec(unittest.TestCase):
+
+    def test_match(self):
+        for vspec, res in [('1.7*', True),
+                           ('1.7.1', True),
+                           ('1.7.0', False),
+                           ('1.7', False),
+                           ('1.5*', False),
+                           ]:
+            m = VersionSpec(vspec)
+            self.assertEqual(m.match('1.7.1'), res)
+
+
 class TestMatchSpec(unittest.TestCase):
 
     def test_match(self):
@@ -21,6 +34,7 @@ class TestMatchSpec(unittest.TestCase):
                           ('numpy 1.7.1', True),
                           ('numpy 1.7', False),
                           ('numpy 1.5*', False),
+                          #('numpy >=1.5', True),
                           ('numpy 1.6*|1.7*', True),
                           ('numpy 1.6*|1.8*', False),
                           ('numpy 1.6.2|1.7*', True),
