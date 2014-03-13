@@ -299,6 +299,17 @@ class Resolve(object):
         log.debug("Solving for %s" % str(specs))
         dists = self.get_dists(specs)
 
+        if "python 2.7*" in specs:
+            remove = []
+            # Special-case Python 2, as its a common older version, to speed
+            # things up.
+            for fn in dists:
+                if MatchSpec('python').match(fn) and not MatchSpec('python 2.7*').match(fn):
+                    remove.append(fn)
+
+            for fn in remove:
+                del dists[fn]
+
         v = {} # map fn to variable number
         w = {} # map variable number to fn
         i = -1 # in case the loop doesn't run
