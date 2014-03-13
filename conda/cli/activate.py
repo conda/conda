@@ -87,10 +87,11 @@ def main():
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
-        try:
-            binpath_from_arg(sys.argv[2])
-        except IndexError:
-            sys.exit(1)
+        if len(sys.argv) < 3:
+            sys.exit("Error: no environment provided.")
+        if len(sys.argv) > 3:
+            sys.exit("Error: did not expect more than one argument.")
+        binpath_from_arg(sys.argv[2])
         sys.exit(0)
 
     else:
