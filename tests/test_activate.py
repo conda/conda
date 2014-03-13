@@ -167,7 +167,23 @@ def test_activate_help():
             assert "Usage: source activate ENV" in stderr
 
             commands = (setup + """
-            {deactivate} {envs}/test1
+            source {activate} --help
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert "Usage: source activate ENV" in stderr
+
+            commands = (setup + """
+            {deactivate}
+            """).format(envs=envs, deactivate=deactivate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert "Usage: source deactivate" in stderr
+
+            commands = (setup + """
+            source {deactivate} --help
             """).format(envs=envs, deactivate=deactivate)
 
             stdout, stderr = run_in(commands, shell)
