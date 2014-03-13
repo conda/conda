@@ -143,7 +143,6 @@ class Package(object):
     The only purpose of this class is to provide package objects which
     are sortable.
     """
-
     def __init__(self, fn, info):
         self.fn = fn
         self.name = info['name']
@@ -151,15 +150,7 @@ class Package(object):
         self.build_number = info['build_number']
         self.build = info['build']
         self.channel = info.get('channel')
-
-        v = self.version
-        v = v.replace('rc', '.dev99999')
-        if v.endswith('.dev'):
-            v += '0'
-        try:
-            self.norm_version = verlib.NormalizedVersion(v)
-        except verlib.IrrationalVersionError:
-            self.norm_version = self.version
+        self.norm_version = normalized_version(self.version)
 
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
 #     def __cmp__(self, other):
