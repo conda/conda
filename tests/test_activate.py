@@ -23,13 +23,14 @@ activate = join(dirname(dirname(__file__)), 'bin', 'activate')
 deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
 # Make sure the subprocess activate calls this python
 syspath = join(root_dir, 'bin')
-PATH = ':'.join([syspath, '/bin', '/usr/bin'])
+PATH = ':'.join(['/bin', '/usr/bin'])
+ROOTPATH = syspath + ':' + PATH
 
 setup = """\
-export PATH="{PATH}"
+export PATH="{ROOTPATH}"
 export PS1='$'
 cd {here}
-""".format(here=dirname(__file__), PATH=PATH)
+""".format(here=dirname(__file__), ROOTPATH=ROOTPATH)
 
 setup = setup + """
 mkdir -p {envs}/test1/bin
@@ -70,7 +71,7 @@ def test_activate_test3():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
 def test_activate_test1_test3():
@@ -96,7 +97,7 @@ def test_deactivate():
             """).format(envs=envs, deactivate=deactivate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'Error: No environment to deactivate\n'
 
 
@@ -110,7 +111,7 @@ def test_activate_test1_deactivate():
             """).format(envs=envs, deactivate=deactivate, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
 
 def test_wrong_args():
@@ -122,7 +123,7 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'Error: no environment provided.\n'
 
             commands = (setup + """
@@ -131,7 +132,7 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'Error: did not expect more than one argument.\n'
 
             commands = (setup + """
@@ -140,7 +141,7 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'Error: too many arguments.\n'
 
             commands = (setup + """
@@ -149,7 +150,7 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == PATH
+            assert stdout == ROOTPATH
             assert stderr == 'Error: too many arguments.\n'
 
 # TODO:
