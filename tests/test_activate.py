@@ -155,6 +155,25 @@ def test_wrong_args():
             assert stdout == ROOTPATH
             assert stderr == 'Error: too many arguments.\n'
 
+def test_activate_help():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            commands = (setup + """
+            {activate} {envs}/test1
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert "Usage: source activate ENV" in stderr
+
+            commands = (setup + """
+            {deactivate} {envs}/test1
+            """).format(envs=envs, deactivate=deactivate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert "Usage: source deactivate" in stderr
+
 # TODO:
 # - Test activating an env by name
 # - Test activating "root"
