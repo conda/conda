@@ -49,11 +49,7 @@ class MatchSpec(object):
         self.name = parts[0]
 
         if self.strictness == 2:
-            rx = parts[1]
-            rx = rx.replace('.', r'\.')
-            rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
-            self.ver_pat = re.compile(rx)
+            self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
 
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
@@ -63,11 +59,10 @@ class MatchSpec(object):
         name, version, build = fn[:-8].rsplit('-', 2)
         if name != self.name:
             return False
-        if self.strictness == 2 and self.ver_pat.match(version) is None:
-            return False
-        if self.strictness == 3 and ((version, build) != self.ver_build):
-            return False
-        return True
+        if self.strictness == 2:
+            return any(vs.match(version) for vs in self.vspecs)
+        if self.strictness == 3:
+            return bool((version, build) == self.ver_build)
 
     def to_filename(self):
         if self.strictness == 3:
