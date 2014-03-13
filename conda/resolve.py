@@ -18,6 +18,27 @@ dotlog = logging.getLogger('dotupdate')
 setup_handlers()
 
 
+class VersionSpec(object):
+
+    def __init__(self, vspec):
+        assert '|' not in vspec
+        if vspec.startswith(('=', '<', '>', '!')):
+            self.regex = False
+
+        else:
+            self.regex = True
+            rx = vspec.replace('.', r'\.')
+            rx = rx.replace('*', r'.*')
+            rx = r'(%s)$' % rx
+            self.pat = re.compile(rx)
+
+    def match(self, version):
+        if self.regex:
+            return bool(self.pat.match(version))
+        else:
+            pass
+
+
 class MatchSpec(object):
 
     def __init__(self, spec):
