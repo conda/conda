@@ -28,7 +28,7 @@ def normalized_version(version):
         return version
 
 
-const_pat = re.compile(r'([=<>!]{1,2})(.+)')
+const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
 def ver_eval(version, constraint):
     """
     return the Boolean result of a comparison between two versions, where the
