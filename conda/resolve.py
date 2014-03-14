@@ -30,6 +30,11 @@ def normalized_version(version):
 
 const_pat = re.compile(r'([=<>!]{1,2})(.+)')
 def ver_eval(version, constraint):
+    """
+    return the Boolean result of a comparison between two versions, where the
+    second argument includes the comparison operator.  For example,
+    ver_eval('1.2', '>=1.1') will return True.
+    """
     a = version
     m = const_pat.match(constraint)
     if m is None:
@@ -102,10 +107,8 @@ class MatchSpec(object):
         self.strictness = len(parts)
         assert 1 <= self.strictness <= 3
         self.name = parts[0]
-
         if self.strictness == 2:
             self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
-
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
 
@@ -120,8 +123,6 @@ class MatchSpec(object):
             return any(vs.match(version) for vs in self.vspecs)
         elif self.strictness == 3:
             return bool((version, build) == self.ver_build)
-        else:
-            raise
 
     def to_filename(self):
         if self.strictness == 3:
