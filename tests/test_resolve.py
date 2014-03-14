@@ -3,7 +3,7 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve
 
 from .helpers import raises
 
@@ -14,21 +14,49 @@ with open(join(dirname(__file__), 'index.json')) as fi:
 f_mkl = set(['mkl'])
 
 
+class TestVersionSpec(unittest.TestCase):
+
+    def test_ver_eval(self):
+        self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
+        self.assertEqual(ver_eval('1.7.0', '<1.7'), False)
+        self.assertEqual(ver_eval('1.7.0', '>=1.7'), True)
+        self.assertEqual(ver_eval('1.6.7', '>=1.7'), False)
+        self.assertEqual(ver_eval('2013a', '>2013b'), False)
+        self.assertEqual(ver_eval('2013k', '>2013b'), True)
+        self.assertEqual(ver_eval('3.0.0', '>2013b'), True)
+
+    def test_ver_eval_errors(self):
+        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
+        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!!2.4.5')
+        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!')
+
+    def test_match(self):
+        for vspec, res in [
+            ('1.7*', True),   ('1.7.1', True),    ('1.7.0', False),
+            ('1.7', False),   ('1.5*', False),    ('>=1.5', True),
+            ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
+            ('==1.7', False), ('==1.7.2', False), ('==1.7.1.0', True),
+            ]:
+            m = VersionSpec(vspec)
+            self.assertEqual(m.match('1.7.1'), res)
+
+
 class TestMatchSpec(unittest.TestCase):
 
     def test_match(self):
-        for spec, res in [('numpy 1.7*', True),
-                          ('numpy 1.7.1', True),
-                          ('numpy 1.7', False),
-                          ('numpy 1.5*', False),
-                          ('numpy 1.6*|1.7*', True),
-                          ('numpy 1.6*|1.8*', False),
-                          ('numpy 1.6.2|1.7*', True),
-                          ('numpy 1.6.2|1.7.1', True),
-                          ('numpy 1.6.2|1.7.0', False),
-                          ('numpy 1.7.1 py27_0', True),
-                          ('numpy 1.7.1 py26_0', False),
-                          ('python', False)]:
+        for spec, res in [
+            ('numpy 1.7*', True),          ('numpy 1.7.1', True),
+            ('numpy 1.7', False),          ('numpy 1.5*', False),
+            ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
+            ('numpy >=1.8,<1.9', False),   ('numpy >1.5,<2,!=1.7.1', False),
+            ('numpy >1.8,<2|==1.7', False),('numpy >1.8,<2|>=1.7.1', True),
+            ('numpy >=1.8|1.7*', True),    ('numpy ==1.7', False),
+            ('numpy >=1.5,>1.6', True),    ('numpy ==1.7.1', True),
+            ('numpy 1.6*|1.7*', True),     ('numpy 1.6*|1.8*', False),
+            ('numpy 1.6.2|1.7*', True),    ('numpy 1.6.2|1.7.1', True),
+            ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
+            ('numpy 1.7.1 py26_0', False), ('python', False),
+            ]:
             m = MatchSpec(spec)
             self.assertEqual(m.match('numpy-1.7.1-py27_0.tar.bz2'), res)
 

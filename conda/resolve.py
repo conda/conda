@@ -18,6 +18,87 @@ dotlog = logging.getLogger('dotupdate')
 setup_handlers()
 
 
+def normalized_version(version):
+    version = version.replace('rc', '.dev99999')
+    if version.endswith('.dev'):
+        version += '0'
+    try:
+        return verlib.NormalizedVersion(version)
+    except verlib.IrrationalVersionError:
+        return version
+
+
+const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
+def ver_eval(version, constraint):
+    """
+    return the Boolean result of a comparison between two versions, where the
+    second argument includes the comparison operator.  For example,
+    ver_eval('1.2', '>=1.1') will return True.
+    """
+    a = version
+    m = const_pat.match(constraint)
+    if m is None:
+        raise RuntimeError("Did not recognize version specification: %r" %
+                           constraint)
+    op, b = m.groups()
+    na = normalized_version(a)
+    nb = normalized_version(b)
+    if op == '==':
+        try:
+            return na == nb
+        except TypeError:
+            return a == b
+    elif op == '>=':
+        try:
+            return na >= nb
+        except TypeError:
+            return a >= b
+    elif op == '<=':
+        try:
+            return na <= nb
+        except TypeError:
+            return a <= b
+    elif op == '>':
+        try:
+            return na > nb
+        except TypeError:
+            return a > b
+    elif op == '<':
+        try:
+            return na < nb
+        except TypeError:
+            return a < b
+    elif op == '!=':
+        try:
+            return na != nb
+        except TypeError:
+            return a != b
+    else:
+        raise RuntimeError("Did not recognize version comparison operator: %r" %
+                           constraint)
+
+
+class VersionSpec(object):
+
+    def __init__(self, spec):
+        assert '|' not in spec
+        if spec.startswith(('=', '<', '>', '!')):
+            self.regex = False
+            self.constraints = spec.split(',')
+        else:
+            self.regex = True
+            rx = spec.replace('.', r'\.')
+            rx = rx.replace('*', r'.*')
+            rx = r'(%s)$' % rx
+            self.pat = re.compile(rx)
+
+    def match(self, version):
+        if self.regex:
+            return bool(self.pat.match(version))
+        else:
+            return all(ver_eval(version, c) for c in self.constraints)
+
+
 class MatchSpec(object):
 
     def __init__(self, spec):
@@ -26,14 +107,8 @@ class MatchSpec(object):
         self.strictness = len(parts)
         assert 1 <= self.strictness <= 3
         self.name = parts[0]
-
         if self.strictness == 2:
-            rx = parts[1]
-            rx = rx.replace('.', r'\.')
-            rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
-            self.ver_pat = re.compile(rx)
-
+            self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
 
@@ -42,11 +117,12 @@ class MatchSpec(object):
         name, version, build = fn[:-8].rsplit('-', 2)
         if name != self.name:
             return False
-        if self.strictness == 2 and self.ver_pat.match(version) is None:
-            return False
-        if self.strictness == 3 and ((version, build) != self.ver_build):
-            return False
-        return True
+        if self.strictness == 1:
+            return True
+        elif self.strictness == 2:
+            return any(vs.match(version) for vs in self.vspecs)
+        elif self.strictness == 3:
+            return bool((version, build) == self.ver_build)
 
     def to_filename(self):
         if self.strictness == 3:
@@ -72,7 +148,6 @@ class Package(object):
     The only purpose of this class is to provide package objects which
     are sortable.
     """
-
     def __init__(self, fn, info):
         self.fn = fn
         self.name = info['name']
@@ -80,15 +155,7 @@ class Package(object):
         self.build_number = info['build_number']
         self.build = info['build']
         self.channel = info.get('channel')
-
-        v = self.version
-        v = v.replace('rc', '.dev99999')
-        if v.endswith('.dev'):
-            v += '0'
-        try:
-            self.norm_version = verlib.NormalizedVersion(v)
-        except verlib.IrrationalVersionError:
-            self.norm_version = self.version
+        self.norm_version = normalized_version(self.version)
 
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
 #     def __cmp__(self, other):
