@@ -31,11 +31,12 @@ class TestVersionSpec(unittest.TestCase):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!')
 
     def test_match(self):
-        for vspec, res in [('1.7*', True), ('1.7.1', True), ('1.7.0', False),
-                           ('1.7', False), ('1.5*', False), ('>=1.5', True),
-                           ('!=1.5', True), ('!=1.7.1', False),
-                           ('==1.7.1', True), ('==1.7', False), ('==1.7.2', False),
-                           ]:
+        for vspec, res in [
+            ('1.7*', True),   ('1.7.1', True),    ('1.7.0', False),
+            ('1.7', False),   ('1.5*', False),    ('>=1.5', True),
+            ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
+            ('==1.7', False), ('==1.7.2', False), ('==1.7.1.0', True),
+            ]:
             m = VersionSpec(vspec)
             self.assertEqual(m.match('1.7.1'), res)
 
