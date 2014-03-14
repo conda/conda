@@ -280,7 +280,6 @@ class Resolve(object):
             i = 0
             prev = pkgs[0]
             for pkg in pkgs:
-                # > compares build strings but == does not
                 try:
                     if (dists[pkg].name, dists[pkg].norm_version,
                         dists[pkg].build_number) != (dists[prev].name,
