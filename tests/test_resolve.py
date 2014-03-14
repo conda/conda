@@ -49,6 +49,7 @@ class TestMatchSpec(unittest.TestCase):
             ('numpy 1.7', False),          ('numpy 1.5*', False),
             ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
             ('numpy >=1.8,<1.9', False),   ('numpy >1.5,<2,!=1.7.1', False),
+            ('numpy >1.8,<2|==1.7', False),('numpy >1.8,<2|>=1.7.1', True),
             ('numpy >=1.8|1.7*', True),    ('numpy ==1.7', False),
             ('numpy >=1.5,>1.6', True),    ('numpy ==1.7.1', True),
             ('numpy 1.6*|1.7*', True),     ('numpy 1.6*|1.8*', False),
