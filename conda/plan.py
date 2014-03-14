@@ -236,7 +236,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
     linked = install.linked(prefix)
 
-    if is_root_prefix(prefix):
+    if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
 
@@ -250,9 +250,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        if not (force or only_names or r.explicit(specs)):
-            # ensure conda is in root environment
-            assert 'conda' in must_have
         if install.on_win:
             for name in install.win_ignore_root:
                 if name in must_have:

@@ -229,6 +229,7 @@ use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('binstar_upload', None) # None means ask
 binstar_personal = bool(rc.get('binstar_personal', True))
 allow_softlinks = bool(rc.get('allow_softlinks', True))
+self_update = bool(rc.get('self_update', True))
 # set packages disallowed to be installed
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
