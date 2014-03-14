@@ -25,11 +25,16 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('2013k', '>2013b'), True)
         self.assertEqual(ver_eval('3.0.0', '>2013b'), True)
 
+    def test_ver_eval_errors(self):
+        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
+        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!!2.4.5')
+        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!')
+
     def test_match(self):
         for vspec, res in [('1.7*', True), ('1.7.1', True), ('1.7.0', False),
                            ('1.7', False), ('1.5*', False), ('>=1.5', True),
                            ('!=1.5', True), ('!=1.7.1', False),
-                           ('==1.7.1', True), ('==1.7', False),
+                           ('==1.7.1', True), ('==1.7', False), ('==1.7.2', False),
                            ]:
             m = VersionSpec(vspec)
             self.assertEqual(m.match('1.7.1'), res)
