@@ -1,3 +1,7 @@
+  * add ability to disable self update of conda, by setting
+    "self_update: False" in .condarc
+
+
 2014-03-12   3.2.1:
 -------------------
   * fix installing packages with irrational versions
