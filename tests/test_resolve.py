@@ -23,11 +23,10 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.6.7', '>=1.7'), False)
 
     def test_match(self):
-        for vspec, res in [('1.7*', True),
-                           ('1.7.1', True),
-                           ('1.7.0', False),
-                           ('1.7', False),
-                           ('1.5*', False),
+        for vspec, res in [('1.7*', True), ('1.7.1', True), ('1.7.0', False),
+                           ('1.7', False), ('1.5*', False), ('>=1.5', True),
+                           ('!=1.5', True), ('!=1.7.1', False),
+                           ('==1.7.1', True), ('==1.7', False),
                            ]:
             m = VersionSpec(vspec)
             self.assertEqual(m.match('1.7.1'), res)
@@ -40,7 +39,8 @@ class TestMatchSpec(unittest.TestCase):
                           ('numpy 1.7.1', True),
                           ('numpy 1.7', False),
                           ('numpy 1.5*', False),
-                          #('numpy >=1.5', True),
+                          ('numpy >=1.5', True),
+                          ('numpy >=1.5|<2', True),
                           ('numpy 1.6*|1.7*', True),
                           ('numpy 1.6*|1.8*', False),
                           ('numpy 1.6.2|1.7*', True),
