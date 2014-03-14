@@ -1,3 +1,7 @@
+2014-03-XX   3.3.0:
+-------------------
+  * allow new package specification, i.e. ==, >=, >, <=, <, != separated by ','
+    for example: >=2.3,<3.0
   * add ability to disable self update of conda, by setting
     "self_update: False" in .condarc
 
