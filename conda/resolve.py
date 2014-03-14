@@ -171,35 +171,45 @@ class Resolve(object):
         return set(self.index[fn].get('track_features', '').split())
 
     @memoize
-    def get_pkgs(self, ms):
+    def get_pkgs(self, ms, max_only=False):
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
             raise RuntimeError("No packages found matching: %s" % ms)
+        if max_only:
+            maxpkg = max(pkgs)
+            ret = []
+            for pkg in pkgs:
+                try:
+                    if (pkg.name, pkg.norm_version, pkg.build_number) ==\
+                       (maxpkg.name, maxpkg.norm_version, maxpkg.build_number):
+                        ret.append(pkg)
+                except TypeError:
+                    # They are not equal
+                    pass
+            return ret
+
         return pkgs
 
     def get_max_dists(self, ms):
-        pkgs = self.get_pkgs(ms)
-
+        pkgs = self.get_pkgs(ms, max_only=True)
         if not pkgs:
             raise RuntimeError("No packages found matching: %s" % ms)
-        maxpkg = max(pkgs)
         for pkg in pkgs:
-            if pkg == maxpkg:
-                yield pkg.fn
+            yield pkg.fn
 
-    def all_deps(self, root_fn):
+    def all_deps(self, root_fn, max_only=False):
         res = {}
 
-        def add_dependents(fn1):
+        def add_dependents(fn1, max_only=False):
             for ms in self.ms_depends(fn1):
-                for pkg2 in self.get_pkgs(ms):
+                for pkg2 in self.get_pkgs(ms, max_only=max_only):
                     if pkg2.fn in res:
                         continue
                     res[pkg2.fn] = pkg2
                     if ms.strictness < 3:
-                        add_dependents(pkg2.fn)
+                        add_dependents(pkg2.fn, max_only=max_only)
 
-        add_dependents(root_fn)
+        add_dependents(root_fn, max_only=max_only)
         return res
 
     def gen_clauses(self, v, dists, specs, features):
@@ -285,13 +295,13 @@ class Resolve(object):
 
         return eq, max_rhs
 
-    def get_dists(self, specs):
+    def get_dists(self, specs, max_only=False):
         dists = {}
         for spec in specs:
-            for pkg in self.get_pkgs(MatchSpec(spec)):
+            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
                 if pkg.fn in dists:
                     continue
-                dists.update(self.all_deps(pkg.fn))
+                dists.update(self.all_deps(pkg.fn, max_only=max_only))
                 dists[pkg.fn] = pkg
 
         return dists
@@ -425,7 +435,7 @@ remaining packages:
     def sum_matches(self, fn1, fn2):
         return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
 
-    def find_substitute(self, installed, features, fn):
+    def find_substitute(self, installed, features, fn, max_only=False):
         """
         Find a substitute package for `fn` (given `installed` packages)
         which does *NOT* have `features`.  If found, the substitute will
@@ -435,7 +445,7 @@ remaining packages:
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = {}
-        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
+        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version), max_only=max_only):
             fn1 = pkg.fn
             if self.features(fn1).intersection(features):
                 continue
@@ -477,19 +487,19 @@ remaining packages:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None):
+    def solve(self, specs, installed=None, features=None, max_only=False):
         if installed is None:
             installed = []
         if features is None:
             features = self.installed_features(installed)
         for spec in specs:
             ms = MatchSpec(spec)
-            for pkg in self.get_pkgs(ms):
+            for pkg in self.get_pkgs(ms, max_only=max_only):
                 fn = pkg.fn
                 features.update(self.track_features(fn))
         log.debug('specs=%r  features=%r' % (specs, features))
         for spec in specs:
-            for pkg in self.get_pkgs(MatchSpec(spec)):
+            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
                 fn = pkg.fn
                 self.update_with_features(fn, features)
 
