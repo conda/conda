@@ -114,10 +114,14 @@ class MatchSpec(object):
         name, version, build = fn[:-8].rsplit('-', 2)
         if name != self.name:
             return False
-        if self.strictness == 2:
+        if self.strictness == 1:
+            return True
+        elif self.strictness == 2:
             return any(vs.match(version) for vs in self.vspecs)
-        if self.strictness == 3:
+        elif self.strictness == 3:
             return bool((version, build) == self.ver_build)
+        else:
+            raise
 
     def to_filename(self):
         if self.strictness == 3:
