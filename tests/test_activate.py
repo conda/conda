@@ -2,6 +2,7 @@ from __future__ import print_function, absolute_import
 
 import os
 from os.path import dirname, join
+import shutil
 
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir
@@ -19,13 +20,41 @@ for shell in ['bash', 'zsh']:
         if not stderr:
             shells.append(shell)
 
-activate = join(dirname(dirname(__file__)), 'bin', 'activate')
-deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
+def write_entry_points(envs):
+    """
+    Write entry points to {envs}/root/bin
+
+    This is needed because the conda in bin/conda uses #!/usr/bin/env python,
+    which doesn't work if you remove the root environment from the PATH. So we
+    have to use a conda entry point that has the root Python hard-coded in the
+    shebang line.
+    """
+    activate = join(dirname(dirname(__file__)), 'bin', 'activate')
+    deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
+    os.makedirs(join(envs, 'bin'))
+    shutil.copy2(activate, join(envs, 'bin', 'activate'))
+    shutil.copy2(deactivate, join(envs, 'bin', 'deactivate'))
+    with open(join(envs, 'bin', 'conda'), 'w') as f:
+        f.write(CONDA_ENTRY_POINT.format(syspath=syspath))
+    os.chmod(join(envs, 'bin', 'conda'), 0o755)
+    return (join(envs, 'bin', 'activate'), join(envs, 'bin', 'deactivate'),
+        join(envs, 'bin', 'conda'))
+
 # Make sure the subprocess activate calls this python
 syspath = join(root_dir, 'bin')
+# dirname, which is used in the activate script, is typically installed in
+# /usr/bin (not sure if it has to be)
 PATH = ':'.join(['/bin', '/usr/bin'])
 ROOTPATH = syspath + ':' + PATH
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
+
+CONDA_ENTRY_POINT="""\
+#!{syspath}/python
+import sys
+from conda.cli import main
+
+sys.exit(main())
+"""
 
 setup = """\
 export PATH="{ROOTPATH}"
@@ -42,6 +71,7 @@ mkdir -p {envs}/test2/bin
 def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {activate} {envs}/test1
             printf $PATH
@@ -49,11 +79,12 @@ def test_activate_test1():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == envs + "/test1/bin:" + PATH
-            assert stderr == 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
+            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
 def test_activate_test1_test2():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test2
@@ -67,6 +98,7 @@ def test_activate_test1_test2():
 def test_activate_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {activate} {envs}/test3
             printf $PATH
@@ -79,6 +111,7 @@ def test_activate_test3():
 def test_activate_test1_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test3
@@ -93,6 +126,7 @@ def test_activate_test1_test3():
 def test_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {deactivate}
             printf $PATH
@@ -106,6 +140,7 @@ def test_deactivate():
 def test_activate_test1_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {deactivate}
@@ -119,6 +154,7 @@ def test_activate_test1_deactivate():
 def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             source {activate}
             printf $PATH
@@ -158,6 +194,7 @@ def test_wrong_args():
 def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
             commands = (setup + """
             {activate} {envs}/test1
             """).format(envs=envs, activate=activate)
