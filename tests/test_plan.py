@@ -65,12 +65,12 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def test_4(self):
         self.linked = []
-        ps = 'python %s*' % default_python
+        ps = ['python 2.7*'] if default_python == '2.7' else []
         for specs, added in [
-            (['python'],     [ps]),
-            (['numpy'],      [ps]),
-            (['scipy'],      [ps]),
-            (['anaconda'],   [ps]),
+            (['python'],     ps),
+            (['numpy'],      ps),
+            (['scipy'],      ps),
+            (['anaconda'],   ps),
             (['anaconda 1.5.0 np17py27_0'], []),
             (['sympy 0.7.2 py27_0'], []),
             (['scipy 0.12.0 np16py27_0'], []),
