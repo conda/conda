@@ -21,6 +21,8 @@
     changed.
   * Begin work to support Python 3.4.
   * Fix a bug in version comparison
+  * Fix usage of sys.stdout and sys.stderr in environments like pythonw on
+    Windows where they are nonstandard file descriptors.
 
 
 2014-03-12   3.2.1:
