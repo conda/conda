@@ -75,8 +75,8 @@ class SysStdoutWriteHandler(logging.Handler):
 class SysStderrWriteHandler(logging.Handler):
     def emit(self, record):
         try:
-            sys.stdout.write(record.msg)
-            sys.stdout.flush()
+            sys.stderr.write(record.msg)
+            sys.stderr.flush()
         except IOError:
             pass
 
