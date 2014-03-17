@@ -3,6 +3,7 @@ from __future__ import print_function, absolute_import
 import os
 from os.path import dirname, join
 import shutil
+import stat
 
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir
@@ -226,6 +227,74 @@ def test_activate_help():
             stdout, stderr = run_in(commands, shell)
             assert stdout == ''
             assert "Usage: source deactivate" in stderr
+
+def test_activate_symlinking():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
+            commands = (setup + """
+            source {activate} {envs}/test1
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert not stdout
+            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+            for f in ['conda', 'activate', 'deactivate']:
+                assert os.path.lexists('{envs}/test1/bin/{f}'.format(envs=envs, f=f))
+                assert os.path.exists('{envs}/test1/bin/{f}'.format(envs=envs, f=f))
+                s = os.lstat('{envs}/test1/bin/{f}'.format(envs=envs, f=f))
+                assert stat.S_ISLNK(s.st_mode)
+                assert os.readlink('{envs}/test1/bin/{f}'.format(envs=envs,
+                    f=f)) == '{syspath}/{f}'.format(syspath=syspath, f=f)
+
+            try:
+                # Test activate when there are no write permissions in the
+                # env. There are two cases:
+                # - conda/deactivate/activate are already symlinked
+                commands = (setup + """
+                mkdir -p {envs}/test3/bin
+                ln -s {activate} {envs}/test3/bin/activate
+                ln -s {deactivate} {envs}/test3/bin/deactivate
+                ln -s {conda} {envs}/test3/bin/conda
+                chmod 555 {envs}/test3/bin
+                source {activate} {envs}/test3
+                """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
+                stdout, stderr = run_in(commands, shell)
+                assert not stdout
+                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test3/bin to PATH\n'.format(envs=envs, syspath=syspath)
+
+                # Make sure it stays the same
+                for f in ['conda', 'activate', 'deactivate']:
+                    assert os.path.lexists('{envs}/test3/bin/{f}'.format(envs=envs, f=f))
+                    assert os.path.exists('{envs}/test3/bin/{f}'.format(envs=envs, f=f))
+                    s = os.lstat('{envs}/test3/bin/{f}'.format(envs=envs, f=f))
+                    assert stat.S_ISLNK(s.st_mode)
+                    assert os.readlink('{envs}/test3/bin/{f}'.format(envs=envs,
+                        f=f)) == '{f}'.format(f=locals()[f])
+
+                # - conda/deactivate/activate are not symlinked. In this case,
+                # activate should fail
+                commands = (setup + """
+                mkdir -p {envs}/test4/bin
+                chmod 555 {envs}/test4/bin
+                source {activate} {envs}/test4
+                echo $PATH
+                echo $CONDA_DEFAULT_ENV
+                """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
+
+                stdout, stderr = run_in(commands, shell)
+                assert stdout == (
+                    '/Users/aaronmeurer/anaconda/bin:/bin:/usr/bin\n' # PATH
+                    '\n'                                              # CONDA_DEFAULT_ENV
+                    )
+                assert stderr == ('Cannot activate environment {envs}/test4, '
+                'do not have write access to write conda symlink\n').format(envs=envs)
+
+            finally:
+                # Change the permissions back so that we can delete the directory
+                run_in('chmod 777 {envs}/test3/bin'.format(envs=envs), shell)
+                run_in('chmod 777 {envs}/test4/bin'.format(envs=envs), shell)
+
 
 # TODO:
 # - Test activating an env by name
