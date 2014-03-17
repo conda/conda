@@ -407,6 +407,7 @@ class Resolve(object):
                     sys.stderr.write('\nError: Unsatisfiable package '
                         'specifications.\nGenerating hint: ')
                     sys.stderr.flush()
+                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v, w))
                     sys.exit(self.guess_bad_solve(specs, features))
                 raise RuntimeError("Unsatisfiable package specifications")
 
@@ -427,6 +428,19 @@ class Resolve(object):
 
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
 
+
+    def minimal_unsatisfiable_subset(self, clauses, v, w):
+        while True:
+            for i in combinations(clauses, len(clauses) - 1):
+                if not sat(list(i)):
+                    sys.stdout.write('.');sys.stdout.flush()
+                    clauses = i
+                    break
+            else:
+                break
+        import pprint
+        print()
+        pprint.pprint([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
