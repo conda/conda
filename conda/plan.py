@@ -14,7 +14,7 @@ import re
 import sys
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join
+from os.path import abspath, isfile, join, dirname
 
 from conda import config
 from conda import install
@@ -23,7 +23,6 @@ from conda.fetch import fetch_pkg
 from conda.resolve import MatchSpec, Resolve
 
 log = getLogger(__name__)
-
 
 # op codes
 FETCH = 'FETCH'
@@ -35,8 +34,7 @@ RM_FETCHED = 'RM_FETCHED'
 PREFIX = 'PREFIX'
 PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
-
-
+SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -87,9 +85,8 @@ def display_actions(actions, index=None):
         print_dists(lst)
     print()
 
-
 # the order matters here, don't change it
-action_codes = FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED, RM_FETCHED
+action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
 
 def nothing_to_do(actions):
     for op in action_codes:
@@ -119,13 +116,11 @@ def plan_from_actions(actions):
             res.append('%s %s' % (op, arg))
     return res
 
-
 def extracted_where(dist):
     for pkgs_dir in config.pkgs_dirs:
         if install.is_extracted(pkgs_dir, dist):
             return pkgs_dir
     return None
-
 
 def ensure_linked_actions(dists, prefix):
     actions = defaultdict(list)
@@ -151,7 +146,6 @@ def ensure_linked_actions(dists, prefix):
             continue
         actions[FETCH].append(dist)
     return actions
-
 
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
@@ -269,6 +263,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     else:
         actions = ensure_linked_actions(smh, prefix)
 
+    if actions[LINK] and sys.platform != 'win32':
+        actions[SYMLINK_CONDA] = [config.root_dir]
+
     for dist in sorted(linked):
         name = install.name_dist(dist)
         if name in must_have and dist != must_have[name]:
@@ -372,6 +369,8 @@ def execute_plan(plan, index=None, verbose=False):
             link(prefix, arg)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
+        elif cmd == SYMLINK_CONDA:
+            install.symlink_conda(prefix, arg)
         else:
             raise Exception("Did not expect command: %r" % cmd)
 
