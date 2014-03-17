@@ -72,6 +72,14 @@ class SysStdoutWriteHandler(logging.Handler):
             pass
 
 
+class SysStderrWriteHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            sys.stdout.write(record.msg)
+            sys.stdout.flush()
+        except IOError:
+            pass
+
 @memoized  # to avoid setting up handlers more than once
 def setup_handlers():
     fetch_prog_logger = logging.getLogger('fetch')
@@ -93,3 +101,7 @@ def setup_handlers():
     stdoutlogger = logging.getLogger('stdoutlog')
     stdoutlogger.setLevel(logging.DEBUG)
     stdoutlogger.addHandler(SysStdoutWriteHandler())
+
+    stderrlogger = logging.getLogger('stderrlog')
+    stderrlogger.setLevel(logging.DEBUG)
+    stderrlogger.addHandler(SysStderrWriteHandler())
