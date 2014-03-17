@@ -19,7 +19,7 @@ from conda.utils import try_write
 log = logging.getLogger(__name__)
 
 
-default_python = '.'.join(map(str, sys.version_info[:2]))
+default_python = '%d.%d' % sys.version_info[:2]
 
 # ----- operating system and architecture -----
 
