@@ -12,14 +12,14 @@ import logging
 from platform import machine
 from os.path import abspath, dirname, expanduser, isfile, isdir, join
 
-from conda.compat import PY3, urlparse
+from conda.compat import urlparse
 from conda.utils import try_write
 
 
 log = logging.getLogger(__name__)
 
 
-default_python = '3.3' if PY3 else '2.7'
+default_python = '.'.join(map(str, sys.version_info[:2]))
 
 # ----- operating system and architecture -----
 
