@@ -4,6 +4,9 @@
     for example: >=2.3,<3.0
   * add ability to disable self update of conda, by setting
     "self_update: False" in .condarc
+  * Try installing packages using the old way of just installing the maximum
+    versions of things first. This provides a major speedup of solving the
+    package specifications in the cases where this scheme works.
 
 
 2014-03-12   3.2.1:
