@@ -7,6 +7,20 @@
   * Try installing packages using the old way of just installing the maximum
     versions of things first. This provides a major speedup of solving the
     package specifications in the cases where this scheme works.
+  * Don't include python=3.3 in the specs automatically for the Python 3
+    version of conda.  This allows you to do "conda create -n env package" for
+    a package that only has a Python 2 version without specifying
+    "python=2". This change has no effect in Python 2.
+  * Automatically put symlinks to conda, activate, and deactivate in each
+    environment on Unix.
+  * On Unix, activate and deactivate now remove the root environment from the
+    PATH. This should prevent "bleed through" issues with commands not
+    installed in the activated environment but that are installed in the root
+    environment. If you have "setup.py develop" installed conda on Unix, you
+    should run this command again, as the activate and deactivate scripts have
+    changed.
+  * Begin work to support Python 3.4.
+  * Fix a bug in version comparison
 
 
 2014-03-12   3.2.1:
