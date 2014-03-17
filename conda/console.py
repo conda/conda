@@ -56,13 +56,21 @@ class PrintHandler(logging.Handler):
 
 class DotHandler(logging.Handler):
     def emit(self, record):
-        sys.stdout.write('.')
-        sys.stdout.flush()
+        try:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        except IOError:
+            # sys.stdout.flush doesn't work in pythonw
+            pass
 
 class SysStdoutWriteHandler(logging.Handler):
     def emit(self, record):
-        sys.stdout.write(record.msg)
-        sys.stdout.flush()
+        try:
+            sys.stdout.write(record.msg)
+            sys.stdout.flush()
+        except IOError:
+            pass
+
 
 @memoized  # to avoid setting up handlers more than once
 def setup_handlers():
