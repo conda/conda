@@ -284,9 +284,9 @@ def test_activate_symlinking():
 
                 stdout, stderr = run_in(commands, shell)
                 assert stdout == (
-                    '/Users/aaronmeurer/anaconda/bin:/bin:/usr/bin\n' # PATH
-                    '\n'                                              # CONDA_DEFAULT_ENV
-                    )
+                    '{ROOTPATH}\n' # PATH
+                    '\n'           # CONDA_DEFAULT_ENV
+                    ).format(ROOTPATH=ROOTPATH)
                 assert stderr == ('Cannot activate environment {envs}/test4, '
                 'do not have write access to write conda symlink\n').format(envs=envs)
 
