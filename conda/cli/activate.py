@@ -3,9 +3,11 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 from os.path import isdir, join, abspath
+import errno
 
 from conda.cli.common import find_prefix_name
 import conda.config
+import conda.install
 
 def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
@@ -91,7 +93,14 @@ def main():
             sys.exit("Error: no environment provided.")
         if len(sys.argv) > 3:
             sys.exit("Error: did not expect more than one argument.")
-        binpath_from_arg(sys.argv[2])
+        binpath = binpath_from_arg(sys.argv[2])
+        # Make sure an env always has the conda symlink
+        try:
+            conda.install.symlink_conda(join(binpath, '..'), conda.config.root_dir)
+        except (IOError, OSError) as e:
+            if e.errno == errno.EPERM or e.errno == errno.EACCES:
+                sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
+            raise
         sys.exit(0)
 
     else:
