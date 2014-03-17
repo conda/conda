@@ -15,6 +15,8 @@ from conda.console import setup_handlers
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
+stdoutlog = logging.getLogger('stdoutlog')
+stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
 
@@ -436,9 +438,9 @@ class Resolve(object):
 
             if not solution:
                 if guess:
-                    sys.stderr.write('\nError: Unsatisfiable package '
+                    stderrlog.info('\nError: Unsatisfiable package '
                         'specifications.\nGenerating hint: ')
-                    sys.stderr.flush()
+
                     sys.exit(self.guess_bad_solve(specs, features))
                 raise RuntimeError("Unsatisfiable package specifications")
 
@@ -592,13 +594,11 @@ remaining packages:
                 fn = pkg.fn
                 self.update_with_features(fn, features)
 
-        sys.stdout.write("Solving package specifications: ")
-        sys.stdout.flush()
+        stdoutlog.info("Solving package specifications: ")
         try:
             return self.explicit(specs) or self.solve2(specs, features)
         except RuntimeError:
-            sys.stdout.write('\n')
-            sys.stdout.flush()
+            stdoutlog.info('\n')
             raise
 
 if __name__ == '__main__':
