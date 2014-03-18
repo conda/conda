@@ -140,10 +140,6 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # automatically whenever the package is installed.
       run:
         - python
-      # Packages that conflict with the given package. Conda will not allow
-      # installing them both at the same time.
-      conflicts:
-        - package
 
     test:
       # files which are copied from the recipe into the (temporary) test
