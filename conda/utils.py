@@ -54,7 +54,7 @@ def human_bytes(n):
     if m < 1024:
         return '%.1f MB' % m
     g = m/1024
-    return '%.1f GB' % g
+    return '%.2f GB' % g
 
 
 class memoized(object):
