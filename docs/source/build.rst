@@ -96,7 +96,7 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
 
       # Optional Python entry points
       entry_points:
-        # This creates an entry point named bsdiff4 that calls bsdiff4.main_bsdiff4()
+        # This creates an entry point named bsdiff4 that calls bsdiff4.cli.main_bsdiff4()
         - bsdiff4 = bsdiff4.cli:main_bsdiff4
         - bspatch4 = bsdiff4.cli:main_bspatch4
 
