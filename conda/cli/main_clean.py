@@ -161,6 +161,8 @@ def rm_pkgs(args):
         pkgsize = 0
         for root, dir, files in walk(join(pkgs_dir, pkg)):
             for fn in files:
+                # We don't have to worry about counting things twice:  by
+                # definition these files all have a link count of 1!
                 size = lstat(join(root, fn)).st_size
                 totalsize += size
                 pkgsize += size
