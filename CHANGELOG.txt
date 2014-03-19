@@ -4,6 +4,8 @@
   * Add conda update --all.
   * Allow setting CONDARC=' ' to use no condarc.
   * Add conda clean --packages.
+  * Don't include bin/conda, bin/activate, or bin/deactivate in conda
+    package.
 
 2014-03-18   3.3.0:
 -------------------
