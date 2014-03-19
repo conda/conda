@@ -212,7 +212,11 @@ def install(args, parser, command='install'):
         linked = ci.linked(prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
-            specs.append('%s >=%s' % (name, ver))
+            if name == 'python' and ver.startswith('2'):
+                # Oh Python 2...
+                specs.append('%s >=%s,<3' % (name, ver))
+            else:
+                specs.append('%s >=%s' % (name, ver))
     else:
         specs = common.specs_from_args(args.packages)
 
