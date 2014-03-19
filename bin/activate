@@ -26,9 +26,11 @@ get_abs_filename() {
 if "$_THIS_DIR/conda" ..checkenv "$@"; then
     _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate)
     export PATH=$_NEW_PATH
-    if (( $($_THIS_DIR/conda ..changeps1) )); then
-        PS1=$CONDA_OLD_PS1
-        unset CONDA_OLD_PS1
+    if (( $("$_THIS_DIR/conda" ..changeps1) )); then
+        if [[ -n $CONDA_OLD_PS1 ]]; then
+            PS1=$CONDA_OLD_PS1
+            unset CONDA_OLD_PS1
+        fi
     fi
 else
     return 1
@@ -44,9 +46,9 @@ if (( $? == 0 )); then
         export CONDA_DEFAULT_ENV="$@"
     fi
 
-    if (( $($_THIS_DIR/conda ..changeps1) ));  then
-        CONDA_OLD_PS1="$PS1"
-        PS1="($CONDA_DEFAULT_ENV)$PS1"
+    if (( $("$_THIS_DIR/conda" ..changeps1) ));  then
+            CONDA_OLD_PS1="$PS1"
+            PS1="($CONDA_DEFAULT_ENV)$PS1"
     fi
 else
     return $?
