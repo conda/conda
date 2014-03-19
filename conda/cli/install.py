@@ -98,8 +98,12 @@ def install(args, parser, command='install'):
     config.set_pkgs_dirs(prefix)
 
     if command == 'update':
-        if len(args.packages) == 0:
-            sys.exit("""Error: no package names supplied
+        if args.all:
+            if args.packages:
+                sys.exit("""Error: --all cannot be used with packages""")
+        else:
+            if len(args.packages) == 0:
+                sys.exit("""Error: no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
@@ -155,7 +159,7 @@ def install(args, parser, command='install'):
                           unknown=args.unknown)
 
     # Don't update packages that are already up-to-date
-    if command == 'update':
+    if command == 'update' and not args.all:
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
@@ -203,6 +207,12 @@ def install(args, parser, command='install'):
 
     if args.file:
         specs = common.specs_from_url(args.file)
+    if getattr(args, 'all', False):
+        specs = []
+        linked = ci.linked(prefix)
+        for pkg in linked:
+            name, ver, build = pkg.rsplit('-', 2)
+            specs.append('%s >=%s' % (name, ver))
     else:
         specs = common.specs_from_args(args.packages)
 

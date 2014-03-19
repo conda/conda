@@ -27,6 +27,11 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     common.add_parser_install(p)
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Update all installed packages in the environment",
+    )
     p.set_defaults(func=execute)
 
 
