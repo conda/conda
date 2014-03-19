@@ -3,7 +3,7 @@
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    $(dirname $0)/conda ..activate -h
+    "$(dirname "$0")/conda" ..activate -h
     exit 1
 fi
 
@@ -23,8 +23,8 @@ get_abs_filename() {
     echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
-if $_THIS_DIR/conda ..checkenv "$@"; then
-    _NEW_PATH=$($_THIS_DIR/conda ..deactivate)
+if "$_THIS_DIR/conda" ..checkenv "$@"; then
+    _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate)
     export PATH=$_NEW_PATH
     if (( $($_THIS_DIR/conda ..changeps1) )); then
         PS1=$CONDA_OLD_PS1
@@ -34,7 +34,7 @@ else
     return 1
 fi
 
-_NEW_PATH=$($_THIS_DIR/conda ..activate "$@")
+_NEW_PATH=$("$_THIS_DIR/conda" ..activate "$@")
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
     # If the string contains / it's a path
