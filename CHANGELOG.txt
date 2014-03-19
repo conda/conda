@@ -1,4 +1,4 @@
-2014-03-??   3.3.1:
+2014-03-19   3.3.1:
 -------------------
   * Fix setting of PS1 in activate.
   * Add conda update --all.
@@ -6,6 +6,7 @@
   * Add conda clean --packages.
   * Don't include bin/conda, bin/activate, or bin/deactivate in conda
     package.
+
 
 2014-03-18   3.3.0:
 -------------------
