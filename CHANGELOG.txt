@@ -1,3 +1,10 @@
+2014-03-??   3.3.1:
+-------------------
+  * Fix setting of PS1 in activate.
+  * Add conda update --all.
+  * Allow setting CONDARC=' ' to use no condarc.
+  * Add conda clean --packages.
+
 2014-03-18   3.3.0:
 -------------------
   * allow new package specification, i.e. ==, >=, >, <=, <, != separated
