@@ -14,7 +14,7 @@ import re
 import sys
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join, dirname
+from os.path import abspath, isfile, join
 
 from conda import config
 from conda import install
