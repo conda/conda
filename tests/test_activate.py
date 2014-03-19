@@ -497,6 +497,112 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: too many arguments.\n'
 
+def test_CONDA_DEFAULT_ENV():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = write_entry_points(envs)
+            commands = (setup + """
+            source {activate} {envs}/test1
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == '{envs}/test1'.format(envs=envs)
+            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+
+            commands = (setup + """
+            source {activate} {envs}/test1 2> /dev/null
+            source {activate} {envs}/test2
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == '{envs}/test2'.format(envs=envs)
+            assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
+
+            commands = (setup + """
+            source {activate} {envs}/test3
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+
+            commands = (setup + """
+            source {activate} {envs}/test1 2> /dev/null
+            source {activate} {envs}/test3
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == '{envs}/test1'.format(envs=envs)
+            assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+
+            commands = (setup + """
+            source {deactivate}
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, deactivate=deactivate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'Error: No environment to deactivate\n'
+
+            commands = (setup + """
+            source {activate} {envs}/test1 2> /dev/null
+            source {deactivate}
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
+
+            commands = (setup + """
+            source {activate}
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'Error: no environment provided.\n'
+
+            commands = (setup + """
+            source {activate} two args
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'Error: did not expect more than one argument.\n'
+
+            commands = (setup + """
+            source {deactivate} test
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'Error: too many arguments.\n'
+
+            commands = (setup + """
+            source {deactivate} {envs}/test
+            printf "$CONDA_DEFAULT_ENV"
+            """).format(envs=envs, deactivate=deactivate, activate=activate)
+
+            stdout, stderr = run_in(commands, shell)
+            assert stdout == ''
+            assert stderr == 'Error: too many arguments.\n'
+
+            # commands = (setup + """
+            # source {activate} root
+            # printf "$CONDA_DEFAULT_ENV"
+            # """).format(envs=envs, deactivate=deactivate, activate=activate)
+            #
+            # stdout, stderr = run_in(commands, shell)
+            # assert stdout == 'root'
+            # assert stderr == 'Error: too many arguments.\n'
+
 def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -536,4 +642,4 @@ def test_activate_help():
 # TODO:
 # - Test activating an env by name
 # - Test activating "root"
-# - Test CONDA_DEFAULT_ENV
+# - Test activating "root" and then deactivating
