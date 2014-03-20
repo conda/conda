@@ -10,6 +10,7 @@ from conda.config import root_dir
 from .helpers import run_in
 
 # Only run these tests for commands that are installed.
+
 shells = []
 for shell in ['bash', 'zsh']:
     try:
@@ -17,7 +18,7 @@ for shell in ['bash', 'zsh']:
     except OSError:
         pass
     else:
-        if not stderr and not "command not found" in stdout:
+        if not stderr:
             shells.append(shell)
 
 def write_entry_points(envs):
