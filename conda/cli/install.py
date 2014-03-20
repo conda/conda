@@ -207,7 +207,7 @@ def install(args, parser, command='install'):
 
     if args.file:
         specs = common.specs_from_url(args.file)
-    if getattr(args, 'all', False):
+    elif getattr(args, 'all', False):
         specs = []
         linked = ci.linked(prefix)
         for pkg in linked:
