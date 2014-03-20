@@ -1,3 +1,7 @@
+2014-03-??   3.3.2:
+-------------------
+  * Fix the --file option
+
 2014-03-19   3.3.1:
 -------------------
   * Fix setting of PS1 in activate.
