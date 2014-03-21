@@ -196,3 +196,5 @@ def execute(args, parser):
         rm_index_cache()
     if args.packages:
         rm_pkgs(args)
+    if not (args.lock or args.tarballs or args.index_cache or args.packages):
+        sys.exit("One of {--lock, --tarballs, --index-cache, --packages} required")
