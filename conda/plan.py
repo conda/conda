@@ -36,6 +36,8 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
+progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
@@ -110,7 +112,7 @@ def plan_from_actions(actions):
             continue
         if '_' not in op:
             res.append('PRINT %sing packages ...' % op.capitalize())
-        if op not in (FETCH, RM_FETCHED, RM_EXTRACTED):
+        if op in progress_cmds:
             res.append('PROGRESS %d' % len(actions[op]))
         for arg in actions[op]:
             res.append('%s %s' % (op, arg))
@@ -343,7 +345,6 @@ def execute_plan(plan, index=None, verbose=False):
         from conda.console import setup_handlers
         setup_handlers()
 
-    progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
     # set default prefix
     prefix = config.root_dir
     i = None
