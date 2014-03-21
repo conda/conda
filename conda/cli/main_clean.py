@@ -142,7 +142,7 @@ def rm_pkgs(args):
                     print(e)
                     continue
                 if stat.st_nlink > 1:
-                    print('%s is installed: %s' % (pkg, join(root, fn)))
+                    # print('%s is installed: %s' % (pkg, join(root, fn)))
                     breakit = True
                     break
         else:
