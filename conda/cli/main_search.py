@@ -117,6 +117,8 @@ def execute(args, parser):
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
+    if platform and platform != config.subdir:
+        args.unknown = False
     common.ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not
