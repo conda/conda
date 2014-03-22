@@ -1,6 +1,11 @@
 2014-03-??   3.3.2:
 -------------------
-  * Fix the --file option
+  * fix the --file option
+  * check install arguments before fetching metadata
+  * fix a printing glitch with the progress bars
+  * give a better error message for conda clean with no arguments
+  * don't include unknown packages when searching another platform
+
 
 2014-03-19   3.3.1:
 -------------------
