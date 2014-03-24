@@ -3,13 +3,15 @@ import json
 import unittest
 from os.path import dirname, join
 
-from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
 
 from .helpers import raises
 
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    r = Resolve(json.load(fi))
+    index = json.load(fi)
+
+r = Resolve(index)
 
 f_mkl = set(['mkl'])
 
@@ -670,9 +672,183 @@ def test_unsat():
 def test_nonexistent():
     r.msd_cache = {}
 
-    assert raises(RuntimeError, lambda: r.solve(['notarealpackage 2.0*']), 'No packages found')
+    assert raises(NoPackagesFound, lambda: r.solve(['notarealpackage 2.0*']), 'No packages found')
     # This exact version of NumPy does not exist
-    assert raises(RuntimeError, lambda: r.solve(['numpy 1.5']), 'No packages found')
+    assert raises(NoPackagesFound, lambda: r.solve(['numpy 1.5']), 'No packages found')
+
+def test_nonexistent_deps():
+    index2 = index.copy()
+    index2['mypackage-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
+        'name': 'mypackage',
+        'requires': ['nose 1.2.1', 'python 3.3'],
+        'version': '1.0',
+    }
+    index2['mypackage-1.1-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'python 3.3*'],
+        'name': 'mypackage',
+        'requires': ['nose 1.2.1', 'python 3.3'],
+        'version': '1.1',
+    }
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('mypackage'))) == {
+        'mypackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
+    }
+    assert set(r.get_dists(['mypackage']).keys()) == {
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.1.2-py26_0.tar.bz2',
+        'nose-1.1.2-py27_0.tar.bz2',
+        'nose-1.1.2-py33_0.tar.bz2',
+        'nose-1.2.1-py26_0.tar.bz2',
+        'nose-1.2.1-py27_0.tar.bz2',
+        'nose-1.2.1-py33_0.tar.bz2',
+        'nose-1.3.0-py26_0.tar.bz2',
+        'nose-1.3.0-py27_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.6.8-1.tar.bz2',
+        'python-2.6.8-2.tar.bz2',
+        'python-2.6.8-3.tar.bz2',
+        'python-2.6.8-4.tar.bz2',
+        'python-2.6.8-5.tar.bz2',
+        'python-2.6.8-6.tar.bz2',
+        'python-2.7.3-2.tar.bz2',
+        'python-2.7.3-3.tar.bz2',
+        'python-2.7.3-4.tar.bz2',
+        'python-2.7.3-5.tar.bz2',
+        'python-2.7.3-6.tar.bz2',
+        'python-2.7.3-7.tar.bz2',
+        'python-2.7.4-0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'python-3.3.0-2.tar.bz2',
+        'python-3.3.0-3.tar.bz2',
+        'python-3.3.0-4.tar.bz2',
+        'python-3.3.0-pro0.tar.bz2',
+        'python-3.3.0-pro1.tar.bz2',
+        'python-3.3.1-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    }
+
+    assert set(r.get_dists(['mypackage'], max_only=True).keys()) == {
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.3.0-py26_0.tar.bz2',
+        'nose-1.3.0-py27_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.6.8-6.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    }
+
+    assert r.solve(['mypackage']) == r.solve(['mypackage 1.1']) == [
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.0']))
+
+    # This time, the latest version is messed up
+    index3 = index.copy()
+    index3['mypackage-1.1-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
+        'name': 'mypackage',
+        'requires': ['nose 1.2.1', 'python 3.3'],
+        'version': '1.1',
+    }
+    index3['mypackage-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'python 3.3*'],
+        'name': 'mypackage',
+        'requires': ['nose 1.2.1', 'python 3.3'],
+        'version': '1.0',
+    }
+    r = Resolve(index3)
+
+    assert set(r.find_matches(MatchSpec('mypackage'))) == {
+        'mypackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
+        }
+    assert set(r.get_dists(['mypackage']).keys()) == {
+        'mypackage-1.0-py33_0.tar.bz2',
+        'nose-1.1.2-py26_0.tar.bz2',
+        'nose-1.1.2-py27_0.tar.bz2',
+        'nose-1.1.2-py33_0.tar.bz2',
+        'nose-1.2.1-py26_0.tar.bz2',
+        'nose-1.2.1-py27_0.tar.bz2',
+        'nose-1.2.1-py33_0.tar.bz2',
+        'nose-1.3.0-py26_0.tar.bz2',
+        'nose-1.3.0-py27_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.6.8-1.tar.bz2',
+        'python-2.6.8-2.tar.bz2',
+        'python-2.6.8-3.tar.bz2',
+        'python-2.6.8-4.tar.bz2',
+        'python-2.6.8-5.tar.bz2',
+        'python-2.6.8-6.tar.bz2',
+        'python-2.7.3-2.tar.bz2',
+        'python-2.7.3-3.tar.bz2',
+        'python-2.7.3-4.tar.bz2',
+        'python-2.7.3-5.tar.bz2',
+        'python-2.7.3-6.tar.bz2',
+        'python-2.7.3-7.tar.bz2',
+        'python-2.7.4-0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'python-3.3.0-2.tar.bz2',
+        'python-3.3.0-3.tar.bz2',
+        'python-3.3.0-4.tar.bz2',
+        'python-3.3.0-pro0.tar.bz2',
+        'python-3.3.0-pro1.tar.bz2',
+        'python-3.3.1-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    }
+
+    assert raises(NoPackagesFound, lambda: r.get_dists(['mypackage'], max_only=True))
+
+    assert r.solve(['mypackage']) == r.solve(['mypackage 1.0']) == [
+        'mypackage-1.0-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.1']))
 
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
