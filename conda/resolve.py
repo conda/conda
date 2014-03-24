@@ -30,6 +30,9 @@ def normalized_version(version):
         return version
 
 
+class NoPackagesFound(RuntimeError):
+    pass
+
 const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
 def ver_eval(version, constraint):
     """
@@ -243,7 +246,7 @@ class Resolve(object):
     def get_pkgs(self, ms, max_only=False):
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
-            raise RuntimeError("No packages found matching: %s" % ms)
+            raise NoPackagesFound("No packages found matching: %s" % ms)
         if max_only:
             maxpkg = max(pkgs)
             ret = []
@@ -262,7 +265,7 @@ class Resolve(object):
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms, max_only=True)
         if not pkgs:
-            raise RuntimeError("No packages found matching: %s" % ms)
+            raise NoPackagesFound("No packages found matching: %s" % ms)
         for pkg in pkgs:
             yield pkg.fn
 
@@ -366,11 +369,21 @@ class Resolve(object):
     def get_dists(self, specs, max_only=False):
         dists = {}
         for spec in specs:
+            found = False
             for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
                 if pkg.fn in dists:
+                    found = True
                     continue
-                dists.update(self.all_deps(pkg.fn, max_only=max_only))
-                dists[pkg.fn] = pkg
+                try:
+                    dists.update(self.all_deps(pkg.fn, max_only=max_only))
+                except NoPackagesFound:
+                    # Ignore any package that has nonexisting dependencies.
+                    pass
+                else:
+                    dists[pkg.fn] = pkg
+                    found = True
+            if not found:
+                raise NoPackagesFound("No packages found matching: %s" % spec)
 
         return dists
 
@@ -382,22 +395,27 @@ class Resolve(object):
         # complicated cases that the pseudo-boolean solver does, but it's also
         # much faster when it does work.
 
-        dists = self.get_dists(specs, max_only=True)
+        try:
+            dists = self.get_dists(specs, max_only=True)
+        except NoPackagesFound:
+            # Handle packages that are not included because some dependencies
+            # couldn't be found.
+            pass
+        else:
+            v = {} # map fn to variable number
+            w = {} # map variable number to fn
+            i = -1 # in case the loop doesn't run
+            for i, fn in enumerate(sorted(dists)):
+                v[fn] = i + 1
+                w[i + 1] = fn
+            m = i + 1
 
-        v = {} # map fn to variable number
-        w = {} # map variable number to fn
-        i = -1 # in case the loop doesn't run
-        for i, fn in enumerate(sorted(dists)):
-            v[fn] = i + 1
-            w[i + 1] = fn
-        m = i + 1
+            dotlog.debug("Solving using max dists only")
+            clauses = self.gen_clauses(v, dists, specs, features)
+            solutions = min_sat(clauses)
 
-        dotlog.debug("Solving using max dists only")
-        clauses = self.gen_clauses(v, dists, specs, features)
-        solutions = min_sat(clauses)
-
-        if len(solutions) == 1:
-            return [w[lit] for lit in solutions.pop(0) if 0 < lit]
+            if len(solutions) == 1:
+                return [w[lit] for lit in solutions.pop(0) if 0 < lit]
 
         dists = self.get_dists(specs)
 
