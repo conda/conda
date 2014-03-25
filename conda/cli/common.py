@@ -277,7 +277,8 @@ def spec_from_line(line):
     m = spec_pat.match(line)
     if m is None:
         return None
-    name, oldc, newc = m.group('name'), m.group('oldc'), m.group('newc')
+    name, oldc, newc = (m.group('name').lower(),
+                        m.group('oldc'), m.group('newc'))
     if oldc:
         return name + oldc.replace('=', ' ')
     elif newc:
@@ -296,7 +297,11 @@ def specs_from_url(url):
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                specs.append(arg2spec(line))
+                spec = spec_from_line(line)
+                if spec is None:
+                    sys.exit("Error: could not parse '%s' in: %s" %
+                             (line, url))
+                specs.append(spec)
         except IOError:
             sys.exit('Error: cannot open file: %s' % path)
     return specs
