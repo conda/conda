@@ -90,19 +90,18 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         depends = [],
     )
     meta['version'] = get_version(meta)
-
-    tar_path = join('bundle-%(version)s-0.tar.bz2' % meta)
+    tar_path = 'analysis_package_%s.tar.bz2' % bundle_name
+    #tar_path = join('bundle-%(version)s-0.tar.bz2' % meta)
     t = tarfile.open(tar_path, 'w:bz2')
     if prefix:
         prefix = abspath(prefix)
-        if not prefix.startswith('/opt/anaconda'):
-            for f in sorted(untracked(prefix, exclude_self_build=True)):
-                if f.startswith(BDP):
-                    raise RuntimeError('bad untracked file: %s' % f)
-                if f.startswith('info/'):
-                    continue
-                path = join(prefix, f)
-                add_file(t, path, f)
+        for f in sorted(untracked(prefix, exclude_self_build=True)):
+            if f.startswith(BDP):
+                raise RuntimeError('bad untracked file: %s' % f)
+            if f.startswith('info/'):
+                continue
+            path = join(prefix, f)
+            add_file(t, path, f)
         meta['bundle_prefix'] = prefix
         meta['depends'] = [' '.join(dist.rsplit('-', 2)) for dist in
                            sorted(install.linked(prefix))]
@@ -118,7 +117,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     return tar_path
 
 
-def clone_bundle(path, prefix=None, bundle_name=None):
+def clone_bundle(path, prefix=None, bundle_name=None, data_path=None):
     """
     Clone the bundle (located at `path`) by creating a new environment at
     `prefix` (unless prefix is None or the prefix directory already exists)
@@ -142,9 +141,11 @@ def clone_bundle(path, prefix=None, bundle_name=None):
         index = get_index()
         plan.display_actions(actions, index)
         plan.execute_actions(actions, index, verbose=True)
-
-    bundle_dir = abspath(expanduser('~/bundles/%s' %
-                                    (bundle_name or meta.get('bundle_name'))))
+    if not data_path:
+        bundle_dir = abspath(expanduser('~/bundles/%s' %
+                                        (bundle_name or meta.get('bundle_name'))))
+    else:
+        bundle_dir = data_path
     for m in t.getmembers():
         if m.path.startswith(BDP):
             targetpath = join(bundle_dir, m.path[len(BDP):])
