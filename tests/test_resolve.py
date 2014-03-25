@@ -768,7 +768,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.0']))
+    assert raises(RuntimeError, lambda: r.solve(['mypackage 1.0']))
 
     # This time, the latest version is messed up
     index3 = index.copy()
@@ -835,7 +835,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     }
 
-    assert raises(NoPackagesFound, lambda: r.get_dists(['mypackage'], max_only=True))
+    assert raises(RuntimeError, lambda: r.get_dists(['mypackage'], max_only=True))
 
     assert r.solve(['mypackage']) == r.solve(['mypackage 1.0']) == [
         'mypackage-1.0-py33_0.tar.bz2',
