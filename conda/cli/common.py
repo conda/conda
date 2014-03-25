@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import re
 import os
 import sys
 import argparse
@@ -260,6 +261,29 @@ def arg2spec(arg):
 
 def specs_from_args(args):
     return [arg2spec(arg) for arg in args]
+
+
+spec_pat = re.compile(r'''
+(?P<name>[^=<>!\s]+)               # package name
+\s*                                # ignore spaces
+(
+  (?P<oldc>=[^=<>!]+(=[^=<>!]+)?)  # old constraint
+  |
+  (?P<newc>[=<>!]{1,2}.+)          # new constraint(s)
+)?
+$                                  # end-of-line
+''', re.VERBOSE)
+def spec_from_line(line):
+    m = spec_pat.match(line)
+    if m is None:
+        return None
+    name, oldc, newc = m.group('name'), m.group('oldc'), m.group('newc')
+    if oldc:
+        return name + oldc.replace('=', ' ')
+    elif newc:
+        return name + ' ' + newc.replace(' ', '')
+    else:
+        return name
 
 
 def specs_from_url(url):
