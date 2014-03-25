@@ -1,6 +1,6 @@
 import unittest
 
-from conda.cli.common import arg2spec
+from conda.cli.common import arg2spec, spec_from_line
 
 
 class TestArg2Spec(unittest.TestCase):
@@ -18,6 +18,19 @@ class TestArg2Spec(unittest.TestCase):
 
     def test_too_long(self):
         self.assertRaises(SystemExit, arg2spec, 'foo=1.3=2=4')
+
+    def test_spec_from_line(self):
+        self.assertEqual(spec_from_line('='), None)
+
+        self.assertEqual(spec_from_line('foo'), 'foo')
+        self.assertEqual(spec_from_line('foo=1.0'), 'foo 1.0')
+        self.assertEqual(spec_from_line('foo=1.0=2'), 'foo 1.0 2')
+
+        self.assertEqual(spec_from_line('foo>=1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('foo >=1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('foo >= 1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('foo >=1.0 , < 2.0'), 'foo >=1.0,<2.0')
+
 
 if __name__ == '__main__':
     unittest.main()
