@@ -415,6 +415,14 @@ Environment variables are set in these scripts:
 No output is shown from the build script, but it may write to
 ``$PREFIX/.messages.txt``, which is shown after conda completes all actions.
 
+Post-build version
+------------------
+
+In some cases, you may not know the version of the package until after it is
+built. In this case, you can write a file named ``__conda_version__.txt`` to
+the source directory, and the contents of the file will be used as the version
+(and the version from the ``meta.yaml`` will be ignored).
+
 Features
 --------
 
