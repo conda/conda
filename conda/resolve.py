@@ -31,7 +31,9 @@ def normalized_version(version):
 
 
 class NoPackagesFound(RuntimeError):
-    pass
+    def __init__(self, msg, pkg):
+        super(NoPackagesFound, self).__init__(msg)
+        self.pkg = pkg
 
 const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
 def ver_eval(version, constraint):
@@ -246,7 +248,7 @@ class Resolve(object):
     def get_pkgs(self, ms, max_only=False):
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms)
+            raise NoPackagesFound("No packages found matching: %s" % ms, ms.spec)
         if max_only:
             maxpkg = max(pkgs)
             ret = []
@@ -265,7 +267,7 @@ class Resolve(object):
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms, max_only=True)
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms)
+            raise NoPackagesFound("No packages found matching: %s" % ms, ms.spec)
         for pkg in pkgs:
             yield pkg.fn
 
@@ -370,20 +372,21 @@ class Resolve(object):
         dists = {}
         for spec in specs:
             found = False
+            notfound = []
             for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
                 if pkg.fn in dists:
                     found = True
                     continue
                 try:
                     dists.update(self.all_deps(pkg.fn, max_only=max_only))
-                except NoPackagesFound:
+                except NoPackagesFound as e:
                     # Ignore any package that has nonexisting dependencies.
-                    pass
+                    notfound.append(e.pkg)
                 else:
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("No packages found matching: %s" % spec)
+                raise RuntimeError("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)))
 
         return dists
 
