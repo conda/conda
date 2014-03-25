@@ -19,17 +19,23 @@ class TestArg2Spec(unittest.TestCase):
     def test_too_long(self):
         self.assertRaises(SystemExit, arg2spec, 'foo=1.3=2=4')
 
-    def test_spec_from_line(self):
+
+class TestSpecFromLine(unittest.TestCase):
+
+    def test_invalid(self):
         self.assertEqual(spec_from_line('='), None)
         self.assertEqual(spec_from_line('foo bar'), None)
 
+    def test_conda_style(self):
         self.assertEqual(spec_from_line('foo'), 'foo')
         self.assertEqual(spec_from_line('foo=1.0'), 'foo 1.0')
         self.assertEqual(spec_from_line('foo=1.0|1.2'), 'foo 1.0|1.2')
         self.assertEqual(spec_from_line('foo=1.0=2'), 'foo 1.0 2')
 
+    def test_pip_style(self):
         self.assertEqual(spec_from_line('foo>=1.0'), 'foo >=1.0')
         self.assertEqual(spec_from_line('foo >=1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('FOO-Bar >=1.0'), 'foo-bar >=1.0')
         self.assertEqual(spec_from_line('foo >= 1.0'), 'foo >=1.0')
         self.assertEqual(spec_from_line('foo > 1.0'), 'foo >1.0')
         self.assertEqual(spec_from_line('foo != 1.0'), 'foo !=1.0')
