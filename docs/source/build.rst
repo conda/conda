@@ -482,6 +482,4 @@ Conda build does the following things automatically to make packages relocatable
 - You can manually add files to ``has_prefix`` by listing the in
   ``build/has_prefix_files`` in the meta.yaml (see above).  The files listed
   here should have the placeholder prefix
-  (``/opt/anaconda1anaconda2anaconda3``). ``has_prefix`` files to not have to
-  be non-binary, but the replacement is not guaranteed to work if they are
-  binary.
+  (``/opt/anaconda1anaconda2anaconda3``).
