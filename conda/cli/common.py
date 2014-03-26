@@ -267,9 +267,9 @@ spec_pat = re.compile(r'''
 (?P<name>[^=<>!\s]+)               # package name
 \s*                                # ignore spaces
 (
-  (?P<oldc>=[^=<>!]+(=[^=<>!]+)?)  # old constraint
+  (?P<cc>=[^=<>!]+(=[^=<>!]+)?)    # conda constraint
   |
-  (?P<newc>[=<>!]{1,2}.+)          # new constraint(s)
+  (?P<pc>[=<>!]{1,2}.+)            # new (pip-style) constraint(s)
 )?
 $                                  # end-of-line
 ''', re.VERBOSE)
@@ -277,12 +277,11 @@ def spec_from_line(line):
     m = spec_pat.match(line)
     if m is None:
         return None
-    name, oldc, newc = (m.group('name').lower(),
-                        m.group('oldc'), m.group('newc'))
-    if oldc:
-        return name + oldc.replace('=', ' ')
-    elif newc:
-        return name + ' ' + newc.replace(' ', '')
+    name, cc, pc = (m.group('name').lower(), m.group('cc'), m.group('pc'))
+    if cc:
+        return name + cc.replace('=', ' ')
+    elif pc:
+        return name + ' ' + pc.replace(' ', '')
     else:
         return name
 

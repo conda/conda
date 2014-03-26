@@ -24,7 +24,7 @@ class TestSpecFromLine(unittest.TestCase):
 
     def test_invalid(self):
         self.assertEqual(spec_from_line('='), None)
-        self.assertEqual(spec_from_line('foo bar'), None)
+        self.assertEqual(spec_from_line('foo 1.0'), None)
 
     def test_conda_style(self):
         self.assertEqual(spec_from_line('foo'), 'foo')
