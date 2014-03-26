@@ -129,6 +129,14 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # different scripts for different platforms.
       script: python setup.py install
 
+      # Files that should have the placeholder prefix
+      # (/opt/anaconda1anaconda2anaconda3) replaced with the install prefix at
+      # installation.  Note that conda build does this automatically for the
+      # build prefix. See the Relocatable section below.
+      has_prefix_files:
+        - bin/file1
+        - lib/file2
+
     # the build and runtime requirements. Dependencies of these requirements
     # are included automatically.
     requirements:
@@ -450,3 +458,30 @@ To install a feature, install a package that tracks it. To remove a feature,
 use ``conda remove --features``
 
 .. or use conda install --features, blocking on https://github.com/conda/conda/issues/543
+
+Making Packages Relocatable
+---------------------------
+
+Often, the most difficult thing about building a conda package is making it
+relocatable.  Relocatable means that the package can be installed into any
+prefix.  Otherwise, the package would only be usable in the same environment
+in which it was built.
+
+Conda build does the following things automatically to make packages relocatable:
+
+- Binary object files are converted to use relative paths using
+  ``install-name-tool`` on Mac OS X and ``patchelf`` on Linux.
+
+- The build prefix is replaced in any text (non-binary) file with the prefix
+  placeholder, ``/opt/anaconda1anaconda2anaconda3``, and the file is added to
+  the ``has_prefix`` file in the package metadata.  When conda installs the
+  package, the placeholder prefix is replaced with the install prefix in all
+  files in ``info/has_prefix``.  See :ref:`package_metadata` for more
+  information.
+
+- You can manually add files to ``has_prefix`` by listing the in
+  ``build/has_prefix_files`` in the meta.yaml (see above).  The files listed
+  here should have the placeholder prefix
+  (``/opt/anaconda1anaconda2anaconda3``). ``has_prefix`` files to not have to
+  be non-binary, but the replacement is not guaranteed to work if they are
+  binary.

@@ -22,6 +22,8 @@ In the following, we describe the precise layout of the metadata contained in
 the ``info/`` directory and how it relates to the repository index
 (``repodata.json.bz``).
 
+.. _package_metadata:
+
 Package metadata
 ----------------
 
