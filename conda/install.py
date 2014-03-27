@@ -401,7 +401,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         # Build mapping from inode to filenames to maintain hardlinks
         inode_dict = defaultdict(list)
         for f in files:
-            inode = os.lstat(os.path.realpath(join(source_dir, f))).st_ino
+            inode = os.lstat(join(source_dir, f)).st_ino
             if inode:
                 inode_dict[inode].append(f)
 
@@ -432,7 +432,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                           (src, dst, lt, e))
             # If this was a hard link in archive, make sure we maintain those
             # links even when link type is copy
-            inode = os.lstat(os.path.realpath(src)).st_ino
+            inode = os.lstat(src).st_ino
             if inode:
                 link_src = dst
                 for link_file in inode_dict[inode]:
@@ -442,9 +442,9 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                             # Hard link to newly created file
                             _link(link_src, link_dst, LINK_HARD)
                         except OSError as e:
-                            log.error(('failed to link (src=%r, dst=%r, ' + 
-                                       'type=%r, error=%r)') % (link_src, 
-                                                               link_dst, 
+                            log.error(('failed to link (src=%r, dst=%r, ' +
+                                       'type=%r, error=%r)') % (link_src,
+                                                               link_dst,
                                                                LINK_HARD, e))
                         file_set.remove(link_file)
 
