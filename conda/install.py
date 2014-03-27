@@ -407,7 +407,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         # Use while loop so we can modify file_set on the fly
         file_set = set(files)
         while files:
-            f = files.pop()
+            f = file_set.pop()
             src = join(source_dir, f)
             dst = join(prefix, f)
             dst_dir = dirname(dst)
@@ -443,7 +443,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                         log.error(('failed to link (src=%r, dst=%r, type=%r, ' +
                                    'error=%r)') % (link_src, link_dst, 
                                                    LINK_HARD, e))
-                    files.remove(link_file)
+                    file_set.remove(link_file)
 
         if name_dist(dist) == '_cache':
             return
