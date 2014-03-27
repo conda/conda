@@ -60,7 +60,7 @@ from conda.cli import main_clean
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..activate', '..deactivate', '..checkenv'):
+        if argv1 in ('..activate', '..deactivate', '..activateroot', '..checkenv'):
             import conda.cli.activate as activate
             activate.main()
             return
@@ -160,7 +160,7 @@ In short:
         pass
     except AttributeError:
         # On Python 3.3, argcomplete can be an empty namespace package when
-        # argcomplete is not installed. Not sure why, but this fixes it.
+        # we are in the conda-recipes directory.
         pass
 
     args = p.parse_args()

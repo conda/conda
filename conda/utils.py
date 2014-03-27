@@ -47,10 +47,14 @@ def human_bytes(n):
     """
     if n < 1024:
         return '%d B' % n
-    k = (n - 1) / 1024 + 1
+    k = n/1024
     if k < 1024:
-        return '%d KB' % k
-    return '%.1f MB' % (float(n) / (2**20))
+        return '%d KB' % round(k)
+    m = k/1024
+    if m < 1024:
+        return '%.1f MB' % m
+    g = m/1024
+    return '%.2f GB' % g
 
 
 class memoized(object):

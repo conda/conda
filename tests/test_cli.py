@@ -1,9 +1,6 @@
-import sys
 import unittest
-import os
-import subprocess
 
-from conda.cli.common import arg2spec
+from conda.cli.common import arg2spec, spec_from_line
 
 
 class TestArg2Spec(unittest.TestCase):
@@ -22,18 +19,29 @@ class TestArg2Spec(unittest.TestCase):
     def test_too_long(self):
         self.assertRaises(SystemExit, arg2spec, 'foo=1.3=2=4')
 
-python = sys.executable
-conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
 
-def run_conda_command(*args):
-    env = os.environ.copy()
-    # Make sure bin/conda imports *this* conda.
-    env['PYTHONPATH'] = os.path.dirname(os.path.dirname(__file__))
-    p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, env=env)
-    stdout, stderr = p.communicate()
-    return (stdout.decode('utf-8').replace('\r\n', '\n'),
-        stderr.decode('utf-8').replace('\r\n', '\n'))
+class TestSpecFromLine(unittest.TestCase):
+
+    def test_invalid(self):
+        self.assertEqual(spec_from_line('='), None)
+        self.assertEqual(spec_from_line('foo 1.0'), None)
+
+    def test_conda_style(self):
+        self.assertEqual(spec_from_line('foo'), 'foo')
+        self.assertEqual(spec_from_line('foo=1.0'), 'foo 1.0')
+        self.assertEqual(spec_from_line('foo=1.0|1.2'), 'foo 1.0|1.2')
+        self.assertEqual(spec_from_line('foo=1.0=2'), 'foo 1.0 2')
+
+    def test_pip_style(self):
+        self.assertEqual(spec_from_line('foo>=1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('foo >=1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('FOO-Bar >=1.0'), 'foo-bar >=1.0')
+        self.assertEqual(spec_from_line('foo >= 1.0'), 'foo >=1.0')
+        self.assertEqual(spec_from_line('foo > 1.0'), 'foo >1.0')
+        self.assertEqual(spec_from_line('foo != 1.0'), 'foo !=1.0')
+        self.assertEqual(spec_from_line('foo <1.0'), 'foo <1.0')
+        self.assertEqual(spec_from_line('foo >=1.0 , < 2.0'), 'foo >=1.0,<2.0')
+
 
 if __name__ == '__main__':
     unittest.main()

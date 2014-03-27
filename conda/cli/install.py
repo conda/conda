@@ -98,8 +98,12 @@ def install(args, parser, command='install'):
     config.set_pkgs_dirs(prefix)
 
     if command == 'update':
-        if len(args.packages) == 0:
-            sys.exit("""Error: no package names supplied
+        if args.all:
+            if args.packages:
+                sys.exit("""Error: --all cannot be used with packages""")
+        else:
+            if len(args.packages) == 0:
+                sys.exit("""Error: no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
@@ -134,6 +138,24 @@ def install(args, parser, command='install'):
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
 
+
+    if args.file:
+        specs = common.specs_from_url(args.file)
+    elif getattr(args, 'all', False):
+        specs = []
+        linked = ci.linked(prefix)
+        for pkg in linked:
+            name, ver, build = pkg.rsplit('-', 2)
+            if name == 'python' and ver.startswith('2'):
+                # Oh Python 2...
+                specs.append('%s >=%s,<3' % (name, ver))
+            else:
+                specs.append('%s >=%s' % (name, ver))
+    else:
+        specs = common.specs_from_args(args.packages)
+
+    common.check_specs(prefix, specs)
+
     if args.use_local:
         from conda.fetch import fetch_index
         from conda.utils import url_path
@@ -155,7 +177,7 @@ def install(args, parser, command='install'):
                           unknown=args.unknown)
 
     # Don't update packages that are already up-to-date
-    if command == 'update':
+    if command == 'update' and not args.all:
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
@@ -200,13 +222,6 @@ def install(args, parser, command='install'):
 
     if args.force:
         args.no_deps = True
-
-    if args.file:
-        specs = common.specs_from_url(args.file)
-    else:
-        specs = common.specs_from_args(args.packages)
-
-    common.check_specs(prefix, specs)
 
     spec_names = set(s.split()[0] for s in specs)
     if args.no_deps:
