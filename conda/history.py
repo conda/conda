@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import time
-import string
 from os.path import isfile, join
 
 from conda import install
@@ -47,7 +46,7 @@ def pretty_content(content):
     if is_diff(content):
         return pretty_diff(content)
     else:
-        return iter(sorted(content, key=string.lower))
+        return iter(sorted(content, key=str.lower))
 
 
 class History(object):
