@@ -1,6 +1,7 @@
 2014-XX-XX   3.X.X:
 -------------------
   * allow parsing pip-style requirement files with --file optoin
+  * stop update_prefix from breaking hard links, issue #622
 
 
 2014-03-24   3.3.2:
