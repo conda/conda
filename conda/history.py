@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import re
 import sys
 import time
@@ -133,10 +135,10 @@ class History(object):
 
     def print_log(self):
         for i, (date, content) in enumerate(self.parse()):
-            print '%s  (rev %d)' % (date, i)
+            print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
-                print '    %s' % line
-            print
+                print('    %s' % line)
+            print()
 
     def write_dists(self, dists):
         fo = open(self.path, 'w')
