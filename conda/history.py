@@ -46,7 +46,7 @@ def pretty_content(content):
     if is_diff(content):
         return pretty_diff(content)
     else:
-        return iter(sorted(content, key=str.lower))
+        return iter(sorted(content))
 
 
 class History(object):
