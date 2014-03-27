@@ -47,6 +47,12 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "remove cached package tarballs",
     )
+    p.add_argument(
+        '-p', '--packages',
+        action='store_true',
+        help="""remove unused cached packages. Warning: this does not check
+    for soft-linked packages.""",
+    )
     p.set_defaults(func=execute)
 
 
@@ -110,6 +116,67 @@ def rm_tarballs(args):
         print("removing %s" % fn)
         os.unlink(os.path.join(pkgs_dir, fn))
 
+def rm_pkgs(args):
+    # TODO: This doesn't handle packages that have hard links to files within
+    # themselves, like bin/python3.3 and bin/python3.3m in the Python package
+    from os.path import join, isdir
+    from os import lstat, walk, listdir
+    from conda.install import rm_rf
+
+    pkgs_dir = config.pkgs_dirs[0]
+    print('Cache location: %s' % pkgs_dir)
+
+    rmlist = []
+    pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
+        # Only include actual packages
+        isdir(join(pkgs_dir, i, 'info'))]
+    for pkg in pkgs:
+        breakit = False
+        for root, dir, files in walk(join(pkgs_dir, pkg)):
+            if breakit:
+                break
+            for fn in files:
+                try:
+                    stat = lstat(join(root, fn))
+                except OSError as e:
+                    print(e)
+                    continue
+                if stat.st_nlink > 1:
+                    # print('%s is installed: %s' % (pkg, join(root, fn)))
+                    breakit = True
+                    break
+        else:
+            rmlist.append(pkg)
+
+    if not rmlist:
+        print("There are no unused packages to remove")
+        sys.exit(0)
+
+    print("Will remove the following packages:")
+    print()
+    totalsize = 0
+    maxlen = len(max(rmlist, key=lambda x: len(str(x))))
+    fmt = "%-40s %10s"
+    for pkg in rmlist:
+        pkgsize = 0
+        for root, dir, files in walk(join(pkgs_dir, pkg)):
+            for fn in files:
+                # We don't have to worry about counting things twice:  by
+                # definition these files all have a link count of 1!
+                size = lstat(join(root, fn)).st_size
+                totalsize += size
+                pkgsize += size
+        print(fmt % (pkg, human_bytes(pkgsize)))
+    print('-' * (maxlen + 2 + 10))
+    print(fmt % ('Total:', human_bytes(totalsize)))
+    print()
+
+    common.confirm_yn(args)
+
+    for pkg in rmlist:
+        print("removing %s" % pkg)
+        rm_rf(join(pkgs_dir, pkg))
+
 
 def rm_index_cache():
     from os.path import join
@@ -127,3 +194,7 @@ def execute(args, parser):
         rm_tarballs(args)
     if args.index_cache:
         rm_index_cache()
+    if args.packages:
+        rm_pkgs(args)
+    if not (args.lock or args.tarballs or args.index_cache or args.packages):
+        sys.exit("One of {--lock, --tarballs, --index-cache, --packages} required")

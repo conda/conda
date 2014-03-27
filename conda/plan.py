@@ -24,7 +24,6 @@ from conda.resolve import MatchSpec, Resolve
 
 log = getLogger(__name__)
 
-
 # op codes
 FETCH = 'FETCH'
 EXTRACT = 'EXTRACT'
@@ -35,8 +34,9 @@ RM_FETCHED = 'RM_FETCHED'
 PREFIX = 'PREFIX'
 PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
+SYMLINK_CONDA = 'SYMLINK_CONDA'
 
-
+progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -87,9 +87,8 @@ def display_actions(actions, index=None):
         print_dists(lst)
     print()
 
-
 # the order matters here, don't change it
-action_codes = FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED, RM_FETCHED
+action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
 
 def nothing_to_do(actions):
     for op in action_codes:
@@ -113,19 +112,17 @@ def plan_from_actions(actions):
             continue
         if '_' not in op:
             res.append('PRINT %sing packages ...' % op.capitalize())
-        if op not in (FETCH, RM_FETCHED, RM_EXTRACTED):
+        if op in progress_cmds:
             res.append('PROGRESS %d' % len(actions[op]))
         for arg in actions[op]:
             res.append('%s %s' % (op, arg))
     return res
-
 
 def extracted_where(dist):
     for pkgs_dir in config.pkgs_dirs:
         if install.is_extracted(pkgs_dir, dist):
             return pkgs_dir
     return None
-
 
 def ensure_linked_actions(dists, prefix):
     actions = defaultdict(list)
@@ -151,7 +148,6 @@ def ensure_linked_actions(dists, prefix):
             continue
         actions[FETCH].append(dist)
     return actions
-
 
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
@@ -228,6 +224,11 @@ def add_defaults_to_specs(r, linked, specs):
             specs.append(dist2spec3v(names_linked[name]))
             continue
 
+        if (name, def_ver) == ('python', '3.3'):
+            # Don't include Python 3 in the specs if this is the Python 3
+            # version of conda.
+            continue
+
         specs.append('%s %s*' % (name, def_ver))
     log.debug('HF specs=%r' % specs)
 
@@ -268,6 +269,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
         actions = force_linked_actions(smh, index, prefix)
     else:
         actions = ensure_linked_actions(smh, prefix)
+
+    if actions[LINK] and sys.platform != 'win32':
+        actions[SYMLINK_CONDA] = [config.root_dir]
 
     for dist in sorted(linked):
         name = install.name_dist(dist)
@@ -341,7 +345,6 @@ def execute_plan(plan, index=None, verbose=False):
         from conda.console import setup_handlers
         setup_handlers()
 
-    progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
     # set default prefix
     prefix = config.root_dir
     i = None
@@ -372,6 +375,8 @@ def execute_plan(plan, index=None, verbose=False):
             link(prefix, arg)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
+        elif cmd == SYMLINK_CONDA:
+            install.symlink_conda(prefix, arg)
         else:
             raise Exception("Did not expect command: %r" % cmd)
 

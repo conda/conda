@@ -176,7 +176,6 @@ def update_prefix(path, new_prefix):
     if new_data == data:
         return
     st = os.lstat(path)
-    os.unlink(path)
     with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -250,6 +249,21 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     except subprocess.CalledProcessError:
         return False
     return True
+
+# Should this be an API function?
+def symlink_conda(prefix, root_dir):
+    root_conda = join(root_dir, 'bin', 'conda')
+    root_activate = join(root_dir, 'bin', 'activate')
+    root_deactivate = join(root_dir, 'bin', 'deactivate')
+    prefix_conda = join(prefix, 'bin', 'conda')
+    prefix_activate = join(prefix, 'bin', 'activate')
+    prefix_deactivate = join(prefix, 'bin', 'deactivate')
+    if not os.path.exists(prefix_conda):
+        os.symlink(root_conda, prefix_conda)
+    if not os.path.exists(prefix_activate):
+        os.symlink(root_activate, prefix_activate)
+    if not os.path.exists(prefix_deactivate):
+        os.symlink(root_deactivate, prefix_deactivate)
 
 # ========================== begin API functions =========================
 

@@ -1,9 +1,53 @@
-2014-03-XX   3.3.0:
+2014-XX-XX   3.X.X:
 -------------------
-  * allow new package specification, i.e. ==, >=, >, <=, <, != separated by ','
-    for example: >=2.3,<3.0
+  * allow parsing pip-style requirement files with --file optoin
+  * stop update_prefix from breaking hard links, issue #622
+
+
+2014-03-24   3.3.2:
+-------------------
+  * fix the --file option
+  * check install arguments before fetching metadata
+  * fix a printing glitch with the progress bars
+  * give a better error message for conda clean with no arguments
+  * don't include unknown packages when searching another platform
+
+
+2014-03-19   3.3.1:
+-------------------
+  * Fix setting of PS1 in activate.
+  * Add conda update --all.
+  * Allow setting CONDARC=' ' to use no condarc.
+  * Add conda clean --packages.
+  * Don't include bin/conda, bin/activate, or bin/deactivate in conda
+    package.
+
+
+2014-03-18   3.3.0:
+-------------------
+  * allow new package specification, i.e. ==, >=, >, <=, <, != separated
+    by ',' for example: >=2.3,<3.0
   * add ability to disable self update of conda, by setting
     "self_update: False" in .condarc
+  * Try installing packages using the old way of just installing the maximum
+    versions of things first. This provides a major speedup of solving the
+    package specifications in the cases where this scheme works.
+  * Don't include python=3.3 in the specs automatically for the Python 3
+    version of conda.  This allows you to do "conda create -n env package" for
+    a package that only has a Python 2 version without specifying
+    "python=2". This change has no effect in Python 2.
+  * Automatically put symlinks to conda, activate, and deactivate in each
+    environment on Unix.
+  * On Unix, activate and deactivate now remove the root environment from the
+    PATH. This should prevent "bleed through" issues with commands not
+    installed in the activated environment but that are installed in the root
+    environment. If you have "setup.py develop" installed conda on Unix, you
+    should run this command again, as the activate and deactivate scripts have
+    changed.
+  * Begin work to support Python 3.4.
+  * Fix a bug in version comparison
+  * Fix usage of sys.stdout and sys.stderr in environments like pythonw on
+    Windows where they are nonstandard file descriptors.
 
 
 2014-03-12   3.2.1:

@@ -3,7 +3,7 @@
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    $(dirname $0)/conda ..deactivate -h
+    "$(dirname $0)/conda" ..deactivate -h
     exit 1
 fi
 
@@ -18,7 +18,7 @@ else
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
 
-_NEW_PATH=$($_THIS_DIR/conda ..deactivate "$@")
+_NEW_PATH=$("$_THIS_DIR/conda" ..activateroot "$@")
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
     unset CONDA_DEFAULT_ENV

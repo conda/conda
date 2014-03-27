@@ -52,6 +52,7 @@ def walk_prefix(prefix):
               'users', 'LICENSE.txt', 'info', 'conda-recipes',
               'users', 'LICENSE.txt', 'info',
               '.index', '.unionfs', '.nonadmin'}
+    binignore = {'conda', 'activate', 'deactivate'}
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
     for fn in os.listdir(prefix):
@@ -61,8 +62,10 @@ def walk_prefix(prefix):
             res.add(fn)
             continue
         for root, dirs, files in os.walk(join(prefix, fn)):
-            for fn in files:
-                res.add(rel_path(prefix, join(root, fn)))
+            for fn2 in files:
+                if root == join(prefix, 'bin') and fn2 in binignore:
+                    continue
+                res.add(rel_path(prefix, join(root, fn2)))
             for dn in dirs:
                 path = join(root, dn)
                 if islink(path):

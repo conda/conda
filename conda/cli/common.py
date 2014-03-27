@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import re
 import os
 import sys
 import argparse
@@ -262,6 +263,29 @@ def specs_from_args(args):
     return [arg2spec(arg) for arg in args]
 
 
+spec_pat = re.compile(r'''
+(?P<name>[^=<>!\s]+)               # package name
+\s*                                # ignore spaces
+(
+  (?P<cc>=[^=<>!]+(=[^=<>!]+)?)    # conda constraint
+  |
+  (?P<pc>[=<>!]{1,2}.+)            # new (pip-style) constraint(s)
+)?
+$                                  # end-of-line
+''', re.VERBOSE)
+def spec_from_line(line):
+    m = spec_pat.match(line)
+    if m is None:
+        return None
+    name, cc, pc = (m.group('name').lower(), m.group('cc'), m.group('pc'))
+    if cc:
+        return name + cc.replace('=', ' ')
+    elif pc:
+        return name + ' ' + pc.replace(' ', '')
+    else:
+        return name
+
+
 def specs_from_url(url):
     from conda.fetch import TmpDownload
 
@@ -272,7 +296,11 @@ def specs_from_url(url):
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                specs.append(arg2spec(line))
+                spec = spec_from_line(line)
+                if spec is None:
+                    sys.exit("Error: could not parse '%s' in: %s" %
+                             (line, url))
+                specs.append(spec)
         except IOError:
             sys.exit('Error: cannot open file: %s' % path)
     return specs
