@@ -384,7 +384,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         sys.exit('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
-    files = set(yield_lines(join(info_dir, 'files')))
+    files = list(yield_lines(join(info_dir, 'files')))
 
     try:
         has_prefix_files = set(yield_lines(join(info_dir, 'has_prefix')))
@@ -404,7 +404,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             inode = os.lstat(os.path.realpath(join(source_dir, f))).st_ino
             inode_dict[inode].append(f)
 
-        # Use while loop so we can modify files set on the fly
+        # Use while loop so we can modify file_set on the fly
+        file_set = set(files)
         while files:
             f = files.pop()
             src = join(source_dir, f)
@@ -459,7 +460,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             return
 
         create_meta(prefix, dist, info_dir, {
-                'files': list(files),
+                'files': files,
                 'link': {'source': source_dir,
                          'type': link_name_map.get(linktype)},
                 })
