@@ -406,7 +406,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
         # Use while loop so we can modify file_set on the fly
         file_set = set(files)
-        while files:
+        while file_set:
             f = file_set.pop()
             src = join(source_dir, f)
             dst = join(prefix, f)
