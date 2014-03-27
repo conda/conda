@@ -431,14 +431,17 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             # If this was a hard link in archive, make sure we maintain those
             # links even when link type is copy
             inode = os.lstat(os.path.realpath(src)).st_ino
+            link_src = dst
             for link_file in inode_dict[inode]:
                 if link_file != f:
+                    link_dst = join(prefix, link_file)
                     try:
                         # Hard link to newly created file
-                        _link(dst, join(prefix, link_file), LINK_HARD)
+                        _link(link_src, link_dst, LINK_HARD)
                     except OSError as e:
                         log.error(('failed to link (src=%r, dst=%r, type=%r, ' +
-                                   'error=%r)') % (src, dst, LINK_HARD, e))
+                                   'error=%r)') % (link_src, link_dst, 
+                                                   LINK_HARD, e))
                     files.remove(link_file)
 
         if name_dist(dist) == '_cache':
