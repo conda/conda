@@ -37,6 +37,7 @@ import subprocess
 import tarfile
 import traceback
 import logging
+from collections import defaultdict
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -383,7 +384,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         sys.exit('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
-    files = list(yield_lines(join(info_dir, 'files')))
+    files = set(yield_lines(join(info_dir, 'files')))
 
     try:
         has_prefix_files = set(yield_lines(join(info_dir, 'has_prefix')))
@@ -397,7 +398,15 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             no_softlink = set()
 
     with Locked(prefix), Locked(pkgs_dir):
+        # Build mapping from inode to filenames to maintain hardlinks
+        inode_dict = defaultdict(list)
         for f in files:
+            inode = os.lstat(os.path.realpath(join(source_dir, f))).st_ino
+            inode_dict[inode].append(f)
+
+        # Use while loop so we can modify files set on the fly
+        while files:
+            f = files.pop()
             src = join(source_dir, f)
             dst = join(prefix, f)
             dst_dir = dirname(dst)
@@ -419,6 +428,18 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             except OSError as e:
                 log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                           (src, dst, lt, e))
+            # If this was a hard link in archive, make sure we maintain those
+            # links even when link type is copy
+            inode = os.lstat(os.path.realpath(src)).st_ino
+            for link_file in inode_dict[inode]:
+                if link_file != f:
+                    try:
+                        # Hard link to newly created file
+                        _link(dst, join(prefix, link_file), LINK_HARD)
+                    except OSError as e:
+                        log.error(('failed to link (src=%r, dst=%r, type=%r, ' +
+                                   'error=%r)') % (src, dst, LINK_HARD, e))
+                    files.remove(link_file)
 
         if name_dist(dist) == '_cache':
             return
@@ -435,7 +456,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             return
 
         create_meta(prefix, dist, info_dir, {
-                'files': files,
+                'files': list(files),
                 'link': {'source': source_dir,
                          'type': link_name_map.get(linktype)},
                 })
