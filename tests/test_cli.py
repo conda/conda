@@ -12,12 +12,13 @@ class TestArg2Spec(unittest.TestCase):
         self.assertEqual(arg2spec('ipython=0.13.0'), 'ipython 0.13|0.13.0*')
         self.assertEqual(arg2spec('foo=1.3.0=3'), 'foo 1.3.0 3')
 
-    def test_invalid_char(self):
-        self.assertRaises(SystemExit, arg2spec, 'abc%def')
-        self.assertRaises(SystemExit, arg2spec, '!xyz 1.3')
+    def test_pip_style(self):
+        self.assertEqual(arg2spec('foo>=1.3'), 'foo >=1.3')
+        self.assertEqual(arg2spec('zope.int>=1.3,<3.0'), 'zope.int >=1.3,<3.0')
+        self.assertEqual(arg2spec('numpy >=1.9'), 'numpy >=1.9')
 
-    def test_too_long(self):
-        self.assertRaises(SystemExit, arg2spec, 'foo=1.3=2=4')
+    def test_invalid(self):
+        self.assertRaises(SystemExit, arg2spec, '!xyz 1.3')
 
 
 class TestSpecFromLine(unittest.TestCase):
