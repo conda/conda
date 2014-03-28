@@ -238,25 +238,21 @@ def check_write(command, prefix):
 # -------------------------------------------------------------------------
 
 def arg2spec(arg):
-    parts = arg.split('=')
-    name = parts[0].lower()
-    for c in ' !@#$%^&*()[]{}|<>?':
-        if c in name:
-            sys.exit("Error: Invalid character '%s' in package "
-                     "name: '%s'" % (c, name))
+    spec = spec_from_line(arg)
+    if spec is None:
+        sys.exit('Error: Invalid package specification: %s' % arg)
+    parts = spec.split()
+    name = parts[0]
     if name in config.disallow:
         sys.exit("Error: specification '%s' is disallowed" % name)
-    if len(parts) == 1:
-        return name
     if len(parts) == 2:
         ver = parts[1]
-        if ver.endswith('.0'):
-            return '%s %s|%s*' % (name, ver[:-2], ver)
-        else:
-            return '%s %s*' % (name, ver)
-    if len(parts) == 3:
-        return '%s %s %s' % (name, parts[1], parts[2])
-    sys.exit('Error: Invalid package specification: %s' % arg)
+        if not ver.startswith(('=', '>', '<', '!')):
+            if ver.endswith('.0'):
+                return '%s %s|%s*' % (name, ver[:-2], ver)
+            else:
+                return '%s %s*' % (name, ver)
+    return spec
 
 
 def specs_from_args(args):
