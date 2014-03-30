@@ -386,7 +386,7 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise RuntimeError("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)))
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), None)
 
         return dists
 
