@@ -1,6 +1,20 @@
-2014-03-??   3.3.2:
+2014-XX-XX   3.X.X:
 -------------------
-  * Fix the --file option
+  * allow parsing pip-style requirement files with --file option and in command
+    line arguments, e.g. conda install 'numpy>=1.7', issue #624
+  * stop update_prefix from breaking hard links, issue #622
+  * fix error message for --file option when file does not exist
+  * allow DEFAULTS in CONDA_ENVS_PATH
+
+
+2014-03-24   3.3.2:
+-------------------
+  * fix the --file option
+  * check install arguments before fetching metadata
+  * fix a printing glitch with the progress bars
+  * give a better error message for conda clean with no arguments
+  * don't include unknown packages when searching another platform
+
 
 2014-03-19   3.3.1:
 -------------------

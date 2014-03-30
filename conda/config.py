@@ -105,18 +105,24 @@ root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
 root_writable = try_write(root_dir)
 root_env_name = 'root'
 
-def _pathsep_env(name):
-    x = os.getenv(name)
-    if x:
-        return x.split(os.pathsep)
-    else:
-        return []
-
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
     if not root_writable:
         lst.insert(0, '~/envs')
     return lst
+
+def _pathsep_env(name):
+    x = os.getenv(name)
+    if x is None:
+        return []
+    res = []
+    for path in x.split(os.pathsep):
+        if path == 'DEFAULTS':
+            for p in rc.get('envs_dirs') or _default_envs_dirs():
+                res.append(p)
+        else:
+            res.append(path)
+    return res
 
 envs_dirs = [abspath(expanduser(path)) for path in (
         _pathsep_env('CONDA_ENVS_PATH') or
