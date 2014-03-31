@@ -329,6 +329,11 @@ class Resolve(object):
                 if len(clause) > 0:
                     yield clause
 
+            # Don't instlal any package that has a feature that wasn't requested.
+            for fn in self.find_matches(ms):
+                if fn in dists and self.features(fn) - features:
+                    yield [-v[fn]]
+
             # finally, ensure a matching package itself is installed
             # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
             # numpy-1.7-py27[mkl] OR ...
