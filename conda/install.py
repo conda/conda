@@ -250,6 +250,17 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return False
     return True
 
+def read_url(pkgs_dir, dist):
+    try:
+        data = open(join(pkgs_dir, 'urls.txt')).read()
+        urls = data.split()
+        for url in urls[::-1]:
+            if url.endswith('/%s.tar.bz2' % dist):
+                return url
+    except IOError:
+        pass
+    return None
+
 # Should this be an API function?
 def symlink_conda(prefix, root_dir):
     root_conda = join(root_dir, 'bin', 'conda')
@@ -435,6 +446,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             return
 
         create_meta(prefix, dist, info_dir, {
+                'url': read_url(pkgs_dir, dist),
                 'files': files,
                 'link': {'source': source_dir,
                          'type': link_name_map.get(linktype)},
