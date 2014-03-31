@@ -104,7 +104,9 @@ class History(object):
         """
         res = []
         for dt, cont in self.parse():
-            if is_diff(cont):
+            if not is_diff(cont):
+                cur = cont
+            else:
                 for s in cont:
                     if s.startswith('-'):
                         cur.discard(s[1:])
@@ -112,8 +114,6 @@ class History(object):
                         cur.add(s[1:])
                     else:
                         raise Exception('Did not expect: %s' % s)
-            else:
-                cur = cont
             res.append((dt, cur.copy()))
         return res
 
@@ -136,15 +136,15 @@ class History(object):
     def write_dists(self, dists):
         with open(self.path, 'w') as fo:
             write_head(fo)
-            for dist in dists:
+            for dist in sorted(dists):
                 fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
         with open(self.path, 'a') as fo:
             write_head(fo)
-            for fn in last_state - current_state:
+            for fn in sorted(last_state - current_state):
                 fo.write('-%s\n' % fn)
-            for fn in current_state - last_state:
+            for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
 
