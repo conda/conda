@@ -1,9 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import re
 import sys
 import time
-from os.path import isfile, join
+from os.path import isdir, isfile, join
 
 from conda import install
 
@@ -49,7 +50,8 @@ class History(object):
         self.prefix = prefix
         if prefix is None:
             return
-        self.path = join(prefix, 'conda-meta/history')
+        self.meta_dir = join(prefix, 'conda-meta')
+        self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
         if self.prefix is None:
@@ -104,7 +106,9 @@ class History(object):
         """
         res = []
         for dt, cont in self.parse():
-            if is_diff(cont):
+            if not is_diff(cont):
+                cur = cont
+            else:
                 for s in cont:
                     if s.startswith('-'):
                         cur.discard(s[1:])
@@ -112,8 +116,6 @@ class History(object):
                         cur.add(s[1:])
                     else:
                         raise Exception('Did not expect: %s' % s)
-            else:
-                cur = cont
             res.append((dt, cur.copy()))
         return res
 
@@ -134,22 +136,23 @@ class History(object):
             print()
 
     def write_dists(self, dists):
+        if not isdir(self.meta_dir):
+            os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
             write_head(fo)
-            for dist in dists:
+            for dist in sorted(dists):
                 fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
         with open(self.path, 'a') as fo:
             write_head(fo)
-            for fn in last_state - current_state:
+            for fn in sorted(last_state - current_state):
                 fo.write('-%s\n' % fn)
-            for fn in current_state - last_state:
+            for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
 
 if __name__ == '__main__':
     h = History(sys.prefix)
     with h:
-        h.update()
         h.print_log()

@@ -18,9 +18,10 @@ from os.path import abspath, isfile, join
 
 from conda import config
 from conda import install
-from conda.utils import md5_file, human_bytes
 from conda.fetch import fetch_pkg
+from conda.history import History
 from conda.resolve import MatchSpec, Resolve
+from conda.utils import md5_file, human_bytes
 
 log = getLogger(__name__)
 
@@ -62,11 +63,16 @@ def split_linkarg(arg):
 def display_actions(actions, index=None):
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
-        print_dists([
-                (dist,
-                 ('%15s' % human_bytes(index[dist + '.tar.bz2']['size']))
-                 if index else None)
-                for dist in actions[FETCH]])
+
+        disp_lst = []
+        for dist in actions[FETCH]:
+            info = index[dist + '.tar.bz2']
+            extra = '%15s' % human_bytes(info['size'])
+            if config.show_channel_urls:
+                extra += '  %s' % info.get('channel', '?')
+            disp_lst.append((dist, extra))
+        print_dists(disp_lst)
+
         if index and len(actions[FETCH]) > 1:
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" %
@@ -319,6 +325,25 @@ def remove_features_actions(prefix, index, features):
         actions.update(ensure_linked_actions(to_link, prefix))
     return actions
 
+
+def revert_actions(prefix, revision=-1):
+    h = History(prefix)
+    h.update()
+    try:
+        state = h.get_state(revision)
+    except IndexError:
+        sys.exit("Error: no such revision: %d" % revision)
+
+    curr = h.get_state()
+    if state == curr:
+        return {}
+
+    actions = ensure_linked_actions(state, prefix)
+    for dist in curr - state:
+        actions[UNLINK].append(dist)
+
+    return actions
+
 # ---------------------------- EXECUTION --------------------------
 
 def fetch(index, dist):
@@ -389,4 +414,11 @@ def execute_plan(plan, index=None, verbose=False):
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    execute_plan(plan, index, verbose)
+    with History(actions[PREFIX]):
+        execute_plan(plan, index, verbose)
+
+
+if __name__ == '__main__':
+    # for testing new revert_actions() only
+    from pprint import pprint
+    pprint(dict(revert_actions(sys.prefix, int(sys.argv[1]))))

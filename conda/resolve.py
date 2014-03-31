@@ -334,6 +334,11 @@ class Resolve(object):
                 if len(clause) > 0:
                     yield clause
 
+            # Don't instlal any package that has a feature that wasn't requested.
+            for fn in self.find_matches(ms):
+                if fn in dists and self.features(fn) - features:
+                    yield [-v[fn]]
+
             # finally, ensure a matching package itself is installed
             # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
             # numpy-1.7-py27[mkl] OR ...
@@ -390,7 +395,7 @@ class Resolve(object):
 
         return dists
 
-    def solve2(self, specs, features, guess=True, alg='sorter'):
+    def solve2(self, specs, features, guess=True, alg='sorter', returnall=False):
         log.debug("Solving for %s" % str(specs))
 
         # First try doing it the "old way", i.e., just look at the most recent
@@ -417,8 +422,12 @@ class Resolve(object):
             clauses = self.gen_clauses(v, dists, specs, features)
             solutions = min_sat(clauses)
 
+
             if len(solutions) == 1:
-                return [w[lit] for lit in solutions.pop(0) if 0 < lit]
+                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
+                if returnall:
+                    return [ret]
+                return ret
 
         dists = self.get_dists(specs)
 
@@ -432,6 +441,8 @@ class Resolve(object):
 
         clauses = list(self.gen_clauses(v, dists, specs, features))
         if not clauses:
+            if returnall:
+                return [[]]
             return []
         eq, max_rhs = self.generate_version_eq(v, dists)
 
@@ -480,6 +491,8 @@ class Resolve(object):
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if 0 < lit <= m])
 
+        if returnall:
+            return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
 
 
