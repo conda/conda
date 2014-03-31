@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -14,7 +14,7 @@ import shutil
 import hashlib
 import tempfile
 from logging import getLogger
-from os.path import basename, isdir, isfile, join
+from os.path import basename, isdir, join
 
 from conda import config
 from conda.utils import memoized
@@ -200,6 +200,11 @@ def fetch_pkg(info, dst_dir=None):
                 os.rename(pp, path)
             except OSError:
                 raise RuntimeError("Could not rename %r to %r." % (pp, path))
+            try:
+                with open(join(dst_dir, 'urls.txt'), 'a') as fa:
+                    fa.write('%s\n' % url)
+            except IOError:
+                pass
             return
 
     raise RuntimeError("Could not locate '%s'" % url)
