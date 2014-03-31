@@ -50,7 +50,6 @@ def walk_prefix(prefix):
     prefix = abspath(prefix)
     ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', '.conda_lock',
               'users', 'LICENSE.txt', 'info', 'conda-recipes',
-              'users', 'LICENSE.txt', 'info',
               '.index', '.unionfs', '.nonadmin'}
     binignore = {'conda', 'activate', 'deactivate'}
     if sys.platform == 'darwin':
