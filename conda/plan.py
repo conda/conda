@@ -18,9 +18,10 @@ from os.path import abspath, isfile, join
 
 from conda import config
 from conda import install
-from conda.utils import md5_file, human_bytes
 from conda.fetch import fetch_pkg
+from conda.history import History
 from conda.resolve import MatchSpec, Resolve
+from conda.utils import md5_file, human_bytes
 
 log = getLogger(__name__)
 
@@ -389,4 +390,5 @@ def execute_plan(plan, index=None, verbose=False):
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    execute_plan(plan, index, verbose)
+    with History(actions[PREFIX]):
+        execute_plan(plan, index, verbose)
