@@ -11,17 +11,12 @@ from conda import install
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S %z %Z'
 
 
-def now():
-    """
-    return the current local time as an ISO formated
-    string with time zone data, e.g. '2014-03-26 18:12:45 -0500 CDT'
-    """
-    return time.strftime(TIME_FORMAT)
-
+def write_head(fo):
+    fo.write("==> %s <==\n" % time.strftime(TIME_FORMAT))
+    fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
 
 def is_diff(content):
     return any(s.startswith(('-', '+')) for s in content)
-
 
 def pretty_diff(diff):
     added = {}
@@ -40,7 +35,6 @@ def pretty_diff(diff):
         yield '-%s-%s' % (name, removed[name])
     for name in sorted(set(added) - changed):
         yield '+%s-%s' % (name, added[name])
-
 
 def pretty_content(content):
     if is_diff(content):
@@ -140,20 +134,18 @@ class History(object):
             print()
 
     def write_dists(self, dists):
-        fo = open(self.path, 'w')
-        fo.write("==> %s <==\n" % now())
-        for dist in dists:
-            fo.write('%s\n' % dist)
-        fo.close()
+        with open(self.path, 'w') as fo:
+            write_head(fo)
+            for dist in sorted(dists):
+                fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
-        fo = open(self.path, 'a')
-        fo.write("==> %s <==\n" % now())
-        for fn in last_state - current_state:
-            fo.write('-%s\n' % fn)
-        for fn in current_state - last_state:
-            fo.write('+%s\n' % fn)
-        fo.close()
+        with open(self.path, 'a') as fo:
+            write_head(fo)
+            for fn in sorted(last_state - current_state):
+                fo.write('-%s\n' % fn)
+            for fn in sorted(current_state - last_state):
+                fo.write('+%s\n' % fn)
 
 
 if __name__ == '__main__':
