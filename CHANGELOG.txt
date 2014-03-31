@@ -4,7 +4,8 @@
     line arguments, e.g. conda install 'numpy>=1.7', issue #624
   * stop update_prefix from breaking hard links, issue #622
   * fix error message for --file option when file does not exist
-  * allow DEFAULTS in CONDA_ENVS_PATH
+  * allow DEFAULTS in CONDA_ENVS_PATH, which expands to the defaults settings,
+    including the condarc file
 
 
 2014-03-24   3.3.2:
