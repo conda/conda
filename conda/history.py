@@ -1,9 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import re
 import sys
 import time
-from os.path import isfile, join
+from os.path import isdir, isfile, join
 
 from conda import install
 
@@ -49,7 +50,8 @@ class History(object):
         self.prefix = prefix
         if prefix is None:
             return
-        self.path = join(prefix, 'conda-meta/history')
+        self.meta_dir = join(prefix, 'conda-meta')
+        self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
         if self.prefix is None:
@@ -134,6 +136,8 @@ class History(object):
             print()
 
     def write_dists(self, dists):
+        if not isdir(self.meta_dir):
+            os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
             write_head(fo)
             for dist in sorted(dists):
