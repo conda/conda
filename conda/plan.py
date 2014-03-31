@@ -419,5 +419,6 @@ def execute_actions(actions, index=None, verbose=False):
 
 
 if __name__ == '__main__':
+    # for testing new revert_actions() only
     from pprint import pprint
-    pprint(revert_actions(sys.prefix, int(sys.argv[1])))
+    pprint(dict(revert_actions(sys.prefix, int(sys.argv[1]))))
