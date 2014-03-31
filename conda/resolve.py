@@ -374,7 +374,7 @@ class Resolve(object):
 
         return dists
 
-    def solve2(self, specs, features, guess=True, alg='sorter'):
+    def solve2(self, specs, features, guess=True, alg='sorter', returnall=False):
         log.debug("Solving for %s" % str(specs))
 
         # First try doing it the "old way", i.e., just look at the most recent
@@ -397,7 +397,10 @@ class Resolve(object):
         solutions = min_sat(clauses)
 
         if len(solutions) == 1:
-            return [w[lit] for lit in solutions.pop(0) if 0 < lit]
+            ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
+            if returnall:
+                return [ret]
+            return ret
 
         dists = self.get_dists(specs)
 
@@ -411,6 +414,8 @@ class Resolve(object):
 
         clauses = list(self.gen_clauses(v, dists, specs, features))
         if not clauses:
+            if returnall:
+                return [[]]
             return []
         eq, max_rhs = self.generate_version_eq(v, dists)
 
@@ -459,6 +464,8 @@ class Resolve(object):
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if 0 < lit <= m])
 
+        if returnall:
+            return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
 
 

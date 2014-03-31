@@ -139,33 +139,33 @@ class TestSolve(unittest.TestCase):
     def test_iopro_nomkl(self):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
-                     set()),
-            ['iopro-1.4.3-np17py27_p0.tar.bz2',
-             'numpy-1.7.1-py27_0.tar.bz2',
-             'openssl-1.0.1c-0.tar.bz2',
-             'python-2.7.5-0.tar.bz2',
-             'readline-6.2-0.tar.bz2',
-             'sqlite-3.7.13-0.tar.bz2',
-             'system-5.8-1.tar.bz2',
-             'tk-8.5.13-0.tar.bz2',
-             'unixodbc-2.3.1-0.tar.bz2',
-             'zlib-1.2.7-0.tar.bz2'])
+                     set(), returnall=True),
+            [['iopro-1.4.3-np17py27_p0.tar.bz2',
+              'numpy-1.7.1-py27_0.tar.bz2',
+              'openssl-1.0.1c-0.tar.bz2',
+              'python-2.7.5-0.tar.bz2',
+              'readline-6.2-0.tar.bz2',
+              'sqlite-3.7.13-0.tar.bz2',
+              'system-5.8-1.tar.bz2',
+              'tk-8.5.13-0.tar.bz2',
+              'unixodbc-2.3.1-0.tar.bz2',
+              'zlib-1.2.7-0.tar.bz2']])
 
     def test_iopro_mkl(self):
         self.assertEqual(
             r.solve2(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'],
-                    f_mkl),
-            ['iopro-1.4.3-np17py27_p0.tar.bz2',
-             'mkl-rt-11.0-p0.tar.bz2',
-             'numpy-1.7.1-py27_p0.tar.bz2',
-             'openssl-1.0.1c-0.tar.bz2',
-             'python-2.7.5-0.tar.bz2',
-             'readline-6.2-0.tar.bz2',
-             'sqlite-3.7.13-0.tar.bz2',
-             'system-5.8-1.tar.bz2',
-             'tk-8.5.13-0.tar.bz2',
-             'unixodbc-2.3.1-0.tar.bz2',
-             'zlib-1.2.7-0.tar.bz2'])
+                    f_mkl, returnall=True),
+            [['iopro-1.4.3-np17py27_p0.tar.bz2',
+              'mkl-rt-11.0-p0.tar.bz2',
+              'numpy-1.7.1-py27_p0.tar.bz2',
+              'openssl-1.0.1c-0.tar.bz2',
+              'python-2.7.5-0.tar.bz2',
+              'readline-6.2-0.tar.bz2',
+              'sqlite-3.7.13-0.tar.bz2',
+              'system-5.8-1.tar.bz2',
+              'tk-8.5.13-0.tar.bz2',
+              'unixodbc-2.3.1-0.tar.bz2',
+                'zlib-1.2.7-0.tar.bz2']])
 
     def test_mkl(self):
         self.assertEqual(r.solve(['mkl'], set()),
@@ -230,7 +230,8 @@ class TestFindSubstitute(unittest.TestCase):
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     for alg in ['sorter', 'BDD']: #, 'BDD_recursive']:
-        assert r.solve2(['iopro', 'python 2.7*', 'numpy 1.5*'], set(), alg=alg) == [
+        assert r.solve2(['iopro', 'python 2.7*', 'numpy 1.5*'], set(),
+            alg=alg, returnall=True) == [[
             'iopro-1.4.3-np15py27_p0.tar.bz2',
             'numpy-1.5.1-py27_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
@@ -241,10 +242,11 @@ def test_pseudo_boolean():
             'tk-8.5.13-0.tar.bz2',
             'unixodbc-2.3.1-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
-        ]
+        ]]
 
     for alg in ['sorter', 'BDD']: #, 'BDD_recursive']:
-        assert r.solve2(['iopro', 'python 2.7*', 'numpy 1.5*'], f_mkl, alg=alg) == [
+        assert r.solve2(['iopro', 'python 2.7*', 'numpy 1.5*'], f_mkl,
+            alg=alg, returnall=True) == [[
             'iopro-1.4.3-np15py27_p0.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',
             'numpy-1.5.1-py27_p4.tar.bz2',
@@ -256,7 +258,7 @@ def test_pseudo_boolean():
             'tk-8.5.13-0.tar.bz2',
             'unixodbc-2.3.1-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
-        ]
+        ]]
 
 def test_get_dists():
     r.msd_cache = {}
@@ -723,7 +725,7 @@ def test_irrational_version():
     r.msd_cache = {}
 
     # verlib.NormalizedVersion('2012d') raises IrrationalVersionError.
-    assert r.solve2(['pytz 2012d', 'python 3*'], set()) == [
+    assert r.solve2(['pytz 2012d', 'python 3*'], set(), returnall=True) == [[
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
         'pytz-2012d-py33_0.tar.bz2',
@@ -732,4 +734,4 @@ def test_irrational_version():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'
-    ]
+    ]]
