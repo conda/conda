@@ -735,3 +735,35 @@ def test_irrational_version():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'
     ]]
+
+def test_no_features():
+    # Features that aren't specified shouldn't be selected.
+    r.msd_cache = {}
+
+    # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
+    assert r.solve2(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], set(),
+        returnall=True) == [[
+            'numpy-1.6.2-py26_4.tar.bz2',
+            'openssl-1.0.1c-0.tar.bz2',
+            'python-2.6.8-6.tar.bz2',
+            'readline-6.2-0.tar.bz2',
+            'scipy-0.11.0-np16py26_3.tar.bz2',
+            'sqlite-3.7.13-0.tar.bz2',
+            'system-5.8-1.tar.bz2',
+            'tk-8.5.13-0.tar.bz2',
+            'zlib-1.2.7-0.tar.bz2',
+            ]]
+
+    assert r.solve2(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], f_mkl,
+        returnall=True) == [[
+            'mkl-rt-11.0-p0.tar.bz2',           # This,
+            'numpy-1.6.2-py26_p4.tar.bz2',      # this,
+            'openssl-1.0.1c-0.tar.bz2',
+            'python-2.6.8-6.tar.bz2',
+            'readline-6.2-0.tar.bz2',
+            'scipy-0.11.0-np16py26_p3.tar.bz2', # and this are different.
+            'sqlite-3.7.13-0.tar.bz2',
+            'system-5.8-1.tar.bz2',
+            'tk-8.5.13-0.tar.bz2',
+            'zlib-1.2.7-0.tar.bz2',
+            ]]
