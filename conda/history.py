@@ -155,5 +155,4 @@ class History(object):
 if __name__ == '__main__':
     h = History(sys.prefix)
     with h:
-        h.update()
         h.print_log()
