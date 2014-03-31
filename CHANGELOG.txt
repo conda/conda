@@ -6,6 +6,9 @@
   * fix error message for --file option when file does not exist
   * allow DEFAULTS in CONDA_ENVS_PATH, which expands to the defaults settings,
     including the condarc file
+  * don't install a package with a feature (like mkl) unless it is
+    specifically requested (i.e., that feature is already enabled in that
+    environment)
 
 
 2014-03-24   3.3.2:
