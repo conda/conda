@@ -1,5 +1,9 @@
-2014-XX-XX   3.X.X:
+2014-04-XX   3.4.0:
 -------------------
+  * added revision history to each environment:
+      - conda list --revisions
+      - conda install --revert
+      - log is stored in conda-meta/history
   * allow parsing pip-style requirement files with --file option and in command
     line arguments, e.g. conda install 'numpy>=1.7', issue #624
   * stop update_prefix from breaking hard links, issue #622
@@ -11,7 +15,6 @@
     environment)
   * add ability to show channel URLs when displaying what is going to be
     downloaded by setting "show_channel_urls: True" in condarc
-  * add conda list --revisions and conda install --revert
 
 
 2014-03-24   3.3.2:
