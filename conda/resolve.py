@@ -395,8 +395,10 @@ class Resolve(object):
 
         return dists
 
-    def solve2(self, specs, features, guess=True, alg='sorter', returnall=False):
+    def solve2(self, specs, features, installed=(), guess=True, alg='sorter', returnall=False):
         log.debug("Solving for %s" % str(specs))
+        log.debug("Features: %s" % str(features))
+        log.debug("Installed: %s" % str(installed))
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
@@ -630,7 +632,7 @@ remaining packages:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features)
+            return self.explicit(specs) or self.solve2(specs, features, installed)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
