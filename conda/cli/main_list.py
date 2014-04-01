@@ -38,6 +38,11 @@ def configure_parser(sub_parsers):
                   "(output may be used by conda create --file)",
     )
     p.add_argument(
+        '-r', "--revisions",
+        action = "store_true",
+        help = "list the revision history and exit",
+    )
+    p.add_argument(
         "--no-pip",
         action = "store_false",
         default=True,
@@ -141,9 +146,8 @@ Error: environment does not exist: %s
             # Returns None if no meta-file found (e.g. pip install)
             info = install.is_linked(prefix, dist)
             features = set(info.get('features', '').split())
-            info['_features'] = common.disp_features(features)
-            disp = ('%(name)-25s %(version)-15s %(build)15s  %(_features)s' %
-                    info)
+            disp = '%(name)-25s %(version)-15s %(build)15s' % info
+            disp += '  %s' % common.disp_features(features)
             if config.show_channel_urls:
                 disp += '  %s' % info.get('url', '?')
             print(disp)
@@ -155,6 +159,13 @@ Error: environment does not exist: %s
 
 def execute(args, parser):
     prefix = common.get_prefix(args)
+
+    if args.revisions:
+        from conda.history import History
+
+        with History(prefix) as h:
+            h.print_log()
+        return
 
     if args.canonical:
         format = 'canonical'
