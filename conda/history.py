@@ -48,19 +48,14 @@ class History(object):
 
     def __init__(self, prefix):
         self.prefix = prefix
-        if prefix is None:
-            return
         self.meta_dir = join(prefix, 'conda-meta')
         self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
-        if self.prefix is None:
-            return
         self.update()
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.prefix is None:
-            return
         self.update()
 
     def init_log_file(self, force=False):
@@ -153,6 +148,5 @@ class History(object):
 
 
 if __name__ == '__main__':
-    h = History(sys.prefix)
-    with h:
+    with History(sys.prefix) as h:
         h.print_log()
