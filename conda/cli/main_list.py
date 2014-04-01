@@ -151,7 +151,7 @@ Error: environment does not exist: %s
             if config.show_channel_urls:
                 disp += '  %s' % info.get('url', '?')
             print(disp)
-        except AttributeError: # (IOError, KeyError, ValueError):
+        except: # (IOError, KeyError, ValueError):
             print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
 
     return res
