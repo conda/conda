@@ -2,7 +2,7 @@
 -------------------
   * added revision history to each environment:
       - conda list --revisions
-      - conda install --revert
+      - conda install --revision
       - log is stored in conda-meta/history
   * allow parsing pip-style requirement files with --file option and in command
     line arguments, e.g. conda install 'numpy>=1.7', issue #624

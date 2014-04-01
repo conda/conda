@@ -33,7 +33,7 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     p.add_argument(
-        "--revert",
+        "--revision",
         action = "store",
         help = "revert to the specified REVISION",
         metavar = 'REVISION',
