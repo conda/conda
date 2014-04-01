@@ -11,7 +11,7 @@
     environment)
   * add ability to show channel URLs when displaying what is going to be
     downloaded by setting "show_channel_urls: True" in condarc
-  * add conda list --revisions
+  * add conda list --revisions and conda install --revert
 
 
 2014-03-24   3.3.2:
