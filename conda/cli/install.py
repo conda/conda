@@ -159,8 +159,8 @@ def install(args, parser, command='install'):
     else:
         specs = common.specs_from_args(args.packages)
 
-    if command == 'install' and args.revert:
-        get_revision(args.revert)
+    if command == 'install' and args.revision:
+        get_revision(args.revision)
     else:
         common.check_specs(prefix, specs)
 
@@ -251,8 +251,8 @@ Error: environment does not exist: %s
 # into it.
 #""" % prefix)
 
-    if command == 'install' and args.revert:
-        actions = plan.revert_actions(prefix, get_revision(args.revert))
+    if command == 'install' and args.revision:
+        actions = plan.revert_actions(prefix, get_revision(args.revision))
     else:
         actions = plan.install_actions(prefix, index, specs, force=args.force,
                                        only_names=only_names)
