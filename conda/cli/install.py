@@ -200,7 +200,6 @@ def install(args, parser, command='install'):
             if not pkgs:
                 # Shouldn't happen?
                 continue
-            # This won't do the right thing for python 2
             latest = pkgs[-1]
             if latest.version == vers_inst[0] and latest.build == build_inst[0]:
                 args.packages.remove(name)
