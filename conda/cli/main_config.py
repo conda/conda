@@ -251,7 +251,7 @@ channels:
         # Note, force will also remove any checking that the keys are in
         # config.rc_keys
         with open(rc_path, 'w') as rc:
-            rc.write(yaml.dump(new_rc_config))
+            rc.write(yaml.dump(new_rc_config, default_flow_style=False))
         return
 
     # Now, try to parse the condarc file.
