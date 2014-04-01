@@ -141,11 +141,13 @@ Error: environment does not exist: %s
             # Returns None if no meta-file found (e.g. pip install)
             info = install.is_linked(prefix, dist)
             features = set(info.get('features', '').split())
-            print('%-25s %-15s %15s  %s' % (info['name'],
-                                            info['version'],
-                                            info['build'],
-                                            common.disp_features(features)))
-        except: # IOError, KeyError, ValueError
+            info['_features'] = common.disp_features(features)
+            disp = ('%(name)-25s %(version)-15s %(build)15s  %(_features)s' %
+                    info)
+            if config.show_channel_urls:
+                disp += '  %s' % info.get('url', '?')
+            print(disp)
+        except AttributeError: # (IOError, KeyError, ValueError):
             print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
 
     return res
