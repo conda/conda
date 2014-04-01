@@ -81,7 +81,7 @@ class SysStderrWriteHandler(logging.Handler):
             pass
 
 @memoized  # to avoid setting up handlers more than once
-def setup_handlers():
+def setup_verbose_handlers():
     fetch_prog_logger = logging.getLogger('fetch')
     fetch_prog_logger.setLevel(logging.INFO)
     fetch_prog_logger.addHandler(FetchProgressHandler())
@@ -94,6 +94,8 @@ def setup_handlers():
     print_logger.setLevel(logging.INFO)
     print_logger.addHandler(PrintHandler())
 
+@memoized
+def setup_handlers():
     dotlogger = logging.getLogger('dotupdate')
     dotlogger.setLevel(logging.DEBUG)
     dotlogger.addHandler(DotHandler())
