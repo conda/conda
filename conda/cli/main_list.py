@@ -163,8 +163,11 @@ def execute(args, parser):
     if args.revisions:
         from conda.history import History
 
-        with History(prefix) as h:
+        h = History(prefix)
+        if isfile(h.path):
             h.print_log()
+        else:
+            sys.stderr.write("No revision log found: %s\n" % h.path)
         return
 
     if args.canonical:
