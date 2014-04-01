@@ -367,8 +367,8 @@ def cmds_from_plan(plan):
 
 def execute_plan(plan, index=None, verbose=False):
     if verbose:
-        from conda.console import setup_handlers
-        setup_handlers()
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
 
     # set default prefix
     prefix = config.root_dir
