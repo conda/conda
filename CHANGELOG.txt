@@ -15,6 +15,8 @@
     environment)
   * add ability to show channel URLs when displaying what is going to be
     downloaded by setting "show_channel_urls: True" in condarc
+  * fix the --quiet option
+  * skip packages that have dependencies that can't be found
 
 
 2014-03-24   3.3.2:
