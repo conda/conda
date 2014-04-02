@@ -214,6 +214,19 @@ def get_channel_urls(platform=None):
 
     return normalize_urls(base_urls, platform=platform)
 
+def canonical_channel_name(channel):
+    if channel is None:
+        return '<unknown>'
+    channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+    if channel.startswith(channel_alias):
+        return channel.split(channel_alias, 1)[1].split('/')[0]
+    elif any(channel.startswith(i) for i in get_default_urls()):
+        return 'defaults'
+    elif channel.startswith('http://filer/'):
+        return 'filer'
+    else:
+        return channel
+
 # ----- proxy -----
 
 def get_proxy_servers():
