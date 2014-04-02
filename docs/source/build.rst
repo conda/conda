@@ -144,8 +144,8 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # listed explicitly if they are required.
       build:
         - python
-      # Packages required to run the package. They will be installed
-      # automatically whenever the package is installed.
+      # Packages required to run the package. These are the dependencies that
+      # will be installed automatically whenever the package is installed.
       run:
         - python
 
