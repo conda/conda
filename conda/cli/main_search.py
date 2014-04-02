@@ -83,7 +83,7 @@ def execute(args, parser):
 
     from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
-    from conda.common import canonical_channel_name
+    from conda.cli.common import canonical_channel_name
 
     if args.regex:
         pat = re.compile(args.regex, re.I)
