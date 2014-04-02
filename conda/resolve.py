@@ -408,31 +408,31 @@ class Resolve(object):
         # TODO: This won't handle packages that aren't found any more. We
         # should get this metadata directly from the package.
         installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
-        try:
-            dists = self.get_dists(specs, max_only=True)
-        except NoPackagesFound:
-            # Handle packages that are not included because some dependencies
-            # couldn't be found.
-            pass
-        else:
-            v = {} # map fn to variable number
-            w = {} # map variable number to fn
-            i = -1 # in case the loop doesn't run
-            for i, fn in enumerate(sorted(dists)):
-                v[fn] = i + 1
-                w[i + 1] = fn
-            m = i + 1
-
-            dotlog.debug("Solving using max dists only")
-            clauses = self.gen_clauses(v, dists, specs, features)
-            solutions = min_sat(clauses)
-
-
-            if len(solutions) == 1:
-                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
-                if returnall:
-                    return [ret]
-                return ret
+        # try:
+        #     dists = self.get_dists(specs, max_only=True)
+        # except NoPackagesFound:
+        #     # Handle packages that are not included because some dependencies
+        #     # couldn't be found.
+        #     pass
+        # else:
+        #     v = {} # map fn to variable number
+        #     w = {} # map variable number to fn
+        #     i = -1 # in case the loop doesn't run
+        #     for i, fn in enumerate(sorted(dists)):
+        #         v[fn] = i + 1
+        #         w[i + 1] = fn
+        #     m = i + 1
+        #
+        #     dotlog.debug("Solving using max dists only")
+        #     clauses = self.gen_clauses(v, dists, specs, features)
+        #     solutions = min_sat(clauses)
+        #
+        #
+        #     if len(solutions) == 1:
+        #         ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
+        #         if returnall:
+        #             return [ret]
+        #         return ret
 
         dists = self.get_dists(specs)
 
