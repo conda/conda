@@ -61,6 +61,7 @@ rc_bool_keys = [
     'use_pip',
     'binstar_upload',
     'binstar_personal',
+    'show_channel_urls',
     ]
 
 # Not supported by conda config yet
