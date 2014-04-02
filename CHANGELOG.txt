@@ -1,4 +1,4 @@
-2014-04-XX   3.4.0:
+2014-04-02   3.4.0:
 -------------------
   * added revision history to each environment:
       - conda list --revisions
