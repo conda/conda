@@ -149,7 +149,7 @@ Error: environment does not exist: %s
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % common.disp_features(features)
             if config.show_channel_urls:
-                disp += '  %s' % info.get('url', '?')
+                disp += '  %s' % common.canonical_channel_name(info.get('url'))
             print(disp)
         except: # (IOError, KeyError, ValueError):
             print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
