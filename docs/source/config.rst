@@ -42,7 +42,7 @@ package. First, make sure that ``argcomplete`` is installed
 
    $ conda install argcomplete
 
-Then add ``$(register-python-argcomplete conda)`` to your bash profile. You can
+Then add ``eval $(register-python-argcomplete conda)`` to your bash profile. You can
 test that it works by opening a new terminal window and typing
 
 .. code-block:: bash
