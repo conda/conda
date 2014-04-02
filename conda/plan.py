@@ -61,7 +61,6 @@ def split_linkarg(arg):
     return dist, pkgs_dir, int(linktype)
 
 def display_actions(actions, index=None):
-    from conda.cli import common
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
@@ -70,7 +69,8 @@ def display_actions(actions, index=None):
             info = index[dist + '.tar.bz2']
             extra = '%15s' % human_bytes(info['size'])
             if config.show_channel_urls:
-                extra += '  %s' % common.canonical_channel_name(info.get('channel'))
+                extra += '  %s' % config.canonical_channel_name(
+                                       info.get('channel'))
             disp_lst.append((dist, extra))
         print_dists(disp_lst)
 
