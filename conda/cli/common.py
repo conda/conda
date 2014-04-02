@@ -332,3 +332,16 @@ def stdout_json(d):
     sys.stdout.write('\n')
 
 root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'
+
+def canonical_channel_name(channel):
+    if channel is None:
+        return '<unknown>'
+    channel_alias = config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS)
+    if channel.startswith(channel_alias):
+        return channel.split(channel_alias, 1)[1].split('/')[0]
+    elif any(channel.startswith(i) for i in config.get_default_urls()):
+        return 'defaults'
+    elif channel.startswith('http://filer/'):
+        return 'filer'
+    else:
+        return channel
