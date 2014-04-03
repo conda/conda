@@ -23,7 +23,7 @@ representing the various logical classes, only atoms.
 import sys
 from collections import defaultdict
 from functools import total_ordering
-from itertools import islice
+from itertools import islice, chain
 import logging
 
 from conda.compat import log2, ceil
@@ -484,16 +484,14 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
             lo = mid+1
     return constraints
 
-def min_sat(clauses, max_n=1000, N=sys.maxsize):
+def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
     """
     Calculate the SAT solutions for the `clauses` for which the number of true
     literals from 1 to N is minimal.  Returned is the list of those solutions.
     When the clauses are unsatisfiable, an empty list is returned.
 
-    This function could be implemented using a Pseudo-Boolean SAT solver,
-    which would avoid looping over the SAT solutions, and would therefore
-    be much more efficient.  However, for our purpose the current
-    implementation is good enough.
+    alg can be any algorithm supported by generate_constraints, or 'iterate",
+    which iterates all solutions and finds the smallest.
 
     """
     try:
@@ -502,15 +500,24 @@ def min_sat(clauses, max_n=1000, N=sys.maxsize):
         sys.exit('Error: could not import pycosat (required for dependency '
                  'resolving)')
 
-    min_tl, solutions = sys.maxsize, []
-    for sol in islice(pycosat.itersolve(clauses), max_n):
-        tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
-        if tl < min_tl:
-            min_tl, solutions = tl, [sol]
-        elif tl == min_tl:
-            solutions.append(sol)
-
-    return solutions
+    m = max(map(abs, chain(*clauses)))
+    if not N:
+        N = m
+    if alg == 'iterate':
+        min_tl, solutions = sys.maxsize, []
+        for sol in islice(pycosat.itersolve(clauses), max_n):
+            tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
+            if tl < min_tl:
+                min_tl, solutions = tl, [sol]
+            elif tl == min_tl:
+                solutions.append(sol)
+        return solutions
+    else:
+        def func(lo, hi):
+            return list(generate_constraints([(1, i) for i in range(1, N+1)], m,
+                [lo, hi], alg=alg))
+        constraints = bisect_constraints(0, N, clauses, func)
+        return min_sat(clauses + constraints, max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
     """
