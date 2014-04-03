@@ -617,7 +617,7 @@ remaining packages:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, features=None, installed=None, max_only=False):
+    def solve(self, specs, installed=None, features=None, max_only=False):
         if installed is None:
             installed = []
         if features is None:
