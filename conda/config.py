@@ -136,7 +136,7 @@ def pkgs_dir_prefix(prefix):
             abspath(dirname(prefix)) == abspath(join(root_dir, 'envs'))):
         return join(root_dir, 'pkgs')
     else:
-        return abspath(join(prefix, '..', '.pkgs'))
+        return join(envs_dirs[0], '.pkgs')
 
 def set_pkgs_dirs(prefix=None):
     global pkgs_dirs
