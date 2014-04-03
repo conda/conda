@@ -78,6 +78,63 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             ]:
             self.check(specs, added)
 
+def test_pinned_specs_empty():
+    pinned_specs = []
+    specs = ['sympy']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['sympy']
 
-if __name__ == '__main__':
-    unittest.main()
+def test_pinned_specs():
+    pinned_specs = ['sympy']
+    specs = ['matplotlib']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['matplotlib', 'sympy']
+
+    # Dependencies do not matter
+    pinned_specs = ['sympy']
+    specs = ['anaconda']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['anaconda', 'sympy']
+
+    # Versioning does not matter
+    pinned_specs = ['sympy 0.7.1']
+    specs = ['matplotlib']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['matplotlib', 'sympy 0.7.1']
+
+    pinned_specs = ['sympy']
+    specs = ['matplotlib 1.2.0']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['matplotlib 1.2.0', 'sympy']
+
+    pinned_specs = ['sympy 0.7.1 py26_0']
+    specs = ['matplotlib']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['matplotlib', 'sympy 0.7.1 py26_0']
+
+    pinned_specs = ['sympy >=0.7.1']
+    specs = ['matplotlib']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['matplotlib', 'sympy >=0.7.1']
+
+def test_pinned_specs_override():
+    # If the package is already asked for, do not include it
+    pinned_specs = ['sympy 0.7.1']
+    specs = ['sympy']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['sympy']
+
+    pinned_specs = ['sympy']
+    specs = ['sympy 0.7.1']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['sympy 0.7.1']
+
+    pinned_specs = ['sympy 0.7.1 py26_0']
+    specs = ['sympy']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['sympy']
+
+    pinned_specs = ['sympy >=0.7.1']
+    specs = ['sympy']
+    plan.add_pinned_to_specs(pinned_specs, r, [], specs)
+    assert specs == ['sympy']
