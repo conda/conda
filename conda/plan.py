@@ -241,26 +241,6 @@ def add_defaults_to_specs(r, linked, specs):
         specs.append('%s %s*' % (name, def_ver))
     log.debug('HF specs=%r' % specs)
 
-def add_pinned_to_specs(pinned_specs, r, linked, specs):
-    if r.explicit(specs):
-        return
-    log.debug('Starting with specs=%r' % specs)
-    names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
-
-    #for name, def_ver in [('python', config.default_python),]:
-    for spec in pinned_specs:
-        pin_ms = MatchSpec(spec)
-        if pin_ms.name in names_ms:
-            # If the pinned package is given explicitly in the specs, it
-            # overrides the pin behavior.
-            # TODO: If the installed package changes, what should we do with
-            # the pin? Remove it? Update it? Ask?
-            log.debug('Not including pinned spec %s' % pin_ms.name)
-            continue
-        log.debug('Adding pinned spec %s' % (pin_ms))
-        specs.append(spec)
-    log.debug('Final specs (including pinned)=%r' % specs)
-
 def get_pinned_specs(prefix):
     pinfile = join(prefix, 'conda-meta', 'pinned')
     if not exists(pinfile):
@@ -268,15 +248,17 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return f.read().strip().split('\n')
 
-def install_actions(prefix, index, specs, force=False, only_names=None):
+def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True):
     r = Resolve(index)
     linked = install.linked(prefix)
 
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
-    pinned_specs = get_pinned_specs(prefix)
-    add_pinned_to_specs(pinned_specs, r, linked, specs)
+    if pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        specs += pinned_specs
+        # TODO: Improve error messages here
 
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
