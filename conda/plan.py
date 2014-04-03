@@ -14,7 +14,7 @@ import re
 import sys
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join
+from os.path import abspath, isfile, join, exists
 
 from conda import config
 from conda import install
@@ -190,6 +190,8 @@ def dist2spec3v(dist):
     return '%s %s*' % (name, version[:3])
 
 def add_defaults_to_specs(r, linked, specs):
+    # TODO: This should use the pinning mechanism. But don't change the API:
+    # cas uses it.
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
@@ -239,6 +241,32 @@ def add_defaults_to_specs(r, linked, specs):
         specs.append('%s %s*' % (name, def_ver))
     log.debug('HF specs=%r' % specs)
 
+def add_pinned_to_specs(pinned_specs, r, linked, specs):
+    if r.explicit(specs):
+        return
+    log.debug('Starting with specs=%r' % specs)
+    names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
+
+    #for name, def_ver in [('python', config.default_python),]:
+    for spec in pinned_specs:
+        pin_ms = MatchSpec(spec)
+        if pin_ms.name in names_ms:
+            # If the pinned package is given explicitly in the specs, it
+            # overrides the pin behavior.
+            # TODO: If the installed package changes, what should we do with
+            # the pin? Remove it? Update it? Ask?
+            log.debug('Not including pinned spec %s' % pin_ms.name)
+            continue
+        log.debug('Adding pinned spec %s' % (pin_ms))
+        specs.append(spec)
+    log.debug('Final specs (including pinned)=%r' % specs)
+
+def get_pinned_specs(prefix):
+    pinfile = join(prefix, 'conda-meta', 'pinned')
+    if not exists(pinfile):
+        return []
+    with open(pinfile) as f:
+        return f.read().strip().split('\n')
 
 def install_actions(prefix, index, specs, force=False, only_names=None):
     r = Resolve(index)
@@ -247,6 +275,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None):
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
+    pinned_specs = get_pinned_specs(prefix)
+    add_pinned_to_specs(pinned_specs, r, linked, specs)
 
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
