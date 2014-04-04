@@ -57,7 +57,7 @@ from conda.cli import main
 sys.exit(main())
 """
 
-setup = """\
+command_setup = """\
 export PATH="{ROOTPATH}"
 export PS1='$'
 export PYTHONPATH="{PYTHONPATH}"
@@ -65,7 +65,7 @@ export CONDARC=' '
 cd {here}
 """.format(here=dirname(__file__), ROOTPATH=ROOTPATH, PYTHONPATH=PYTHONPATH)
 
-setup = setup + """
+command_setup = command_setup + """
 mkdir -p {envs}/test1/bin
 mkdir -p {envs}/test2/bin
 """
@@ -74,7 +74,7 @@ def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1
             printf $PATH
             """).format(envs=envs, activate=activate)
@@ -87,7 +87,7 @@ def test_activate_test1_test2():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test2
             printf $PATH
@@ -101,7 +101,7 @@ def test_activate_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test3
             printf $PATH
             """).format(envs=envs, activate=activate)
@@ -114,7 +114,7 @@ def test_activate_test1_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test3
             printf $PATH
@@ -129,7 +129,7 @@ def test_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate}
             printf $PATH
             """).format(envs=envs, deactivate=deactivate)
@@ -143,7 +143,7 @@ def test_activate_test1_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {deactivate}
             printf $PATH
@@ -157,7 +157,7 @@ def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate}
             printf $PATH
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -166,7 +166,7 @@ def test_wrong_args():
             assert stdout == ROOTPATH
             assert stderr == 'Error: no environment provided.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} two args
             printf $PATH
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -175,7 +175,7 @@ def test_wrong_args():
             assert stdout == ROOTPATH
             assert stderr == 'Error: did not expect more than one argument.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} test
             printf $PATH
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -184,7 +184,7 @@ def test_wrong_args():
             assert stdout == ROOTPATH
             assert stderr == 'Error: too many arguments.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} {envs}/test
             printf $PATH
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -197,7 +197,7 @@ def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             {activate} {envs}/test1
             """).format(envs=envs, activate=activate)
 
@@ -205,7 +205,7 @@ def test_activate_help():
             assert stdout == ''
             assert "Usage: source activate ENV" in stderr
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} --help
             """).format(envs=envs, activate=activate)
 
@@ -213,7 +213,7 @@ def test_activate_help():
             assert stdout == ''
             assert "Usage: source activate ENV" in stderr
 
-            commands = (setup + """
+            commands = (command_setup + """
             {deactivate}
             """).format(envs=envs, deactivate=deactivate)
 
@@ -221,7 +221,7 @@ def test_activate_help():
             assert stdout == ''
             assert "Usage: source deactivate" in stderr
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} --help
             """).format(envs=envs, deactivate=deactivate)
 
@@ -233,7 +233,7 @@ def test_activate_symlinking():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1
             """).format(envs=envs, activate=activate)
 
@@ -252,7 +252,7 @@ def test_activate_symlinking():
                 # Test activate when there are no write permissions in the
                 # env. There are two cases:
                 # - conda/deactivate/activate are already symlinked
-                commands = (setup + """
+                commands = (command_setup + """
                 mkdir -p {envs}/test3/bin
                 ln -s {activate} {envs}/test3/bin/activate
                 ln -s {deactivate} {envs}/test3/bin/deactivate
@@ -275,7 +275,7 @@ def test_activate_symlinking():
 
                 # - conda/deactivate/activate are not symlinked. In this case,
                 # activate should fail
-                commands = (setup + """
+                commands = (command_setup + """
                 mkdir -p {envs}/test4/bin
                 chmod 555 {envs}/test4/bin
                 source {activate} {envs}/test4
@@ -300,7 +300,7 @@ def test_PS1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1
             printf $PS1
             """).format(envs=envs, activate=activate)
@@ -309,7 +309,7 @@ def test_PS1():
             assert stdout == '({envs}/test1)$'.format(envs=envs)
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test2
             printf $PS1
@@ -319,7 +319,7 @@ def test_PS1():
             assert stdout == '({envs}/test2)$'.format(envs=envs)
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test3
             printf $PS1
             """).format(envs=envs, activate=activate)
@@ -328,7 +328,7 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test3
             printf $PS1
@@ -338,7 +338,7 @@ def test_PS1():
             assert stdout == '({envs}/test1)$'.format(envs=envs)
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate}
             printf $PS1
             """).format(envs=envs, deactivate=deactivate)
@@ -347,7 +347,7 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'Error: No environment to deactivate\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {deactivate}
             printf $PS1
@@ -357,7 +357,7 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate}
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -366,7 +366,7 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'Error: no environment provided.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} two args
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -375,7 +375,7 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'Error: did not expect more than one argument.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} test
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -384,7 +384,7 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'Error: too many arguments.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} {envs}/test
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -404,7 +404,7 @@ changeps1: no
             condarc = """
             CONDARC="{envs}/.condarc"
             """
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate} {envs}/test1
             printf $PS1
             """).format(envs=envs, activate=activate)
@@ -413,7 +413,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test2
             printf $PS1
@@ -423,7 +423,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate} {envs}/test3
             printf $PS1
             """).format(envs=envs, activate=activate)
@@ -432,7 +432,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test3
             printf $PS1
@@ -442,7 +442,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {deactivate}
             printf $PS1
             """).format(envs=envs, deactivate=deactivate)
@@ -451,7 +451,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: No environment to deactivate\n'
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate} {envs}/test1 2> /dev/null
             source {deactivate}
             printf $PS1
@@ -461,7 +461,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate}
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -470,7 +470,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: no environment provided.\n'
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {activate} two args
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -479,7 +479,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: did not expect more than one argument.\n'
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {deactivate} test
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -488,7 +488,7 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: too many arguments.\n'
 
-            commands = (setup + condarc + """
+            commands = (command_setup + condarc + """
             source {deactivate} {envs}/test
             printf $PS1
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -501,7 +501,7 @@ def test_CONDA_DEFAULT_ENV():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, activate=activate)
@@ -510,7 +510,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == '{envs}/test1'.format(envs=envs)
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test2
             printf "$CONDA_DEFAULT_ENV"
@@ -520,7 +520,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == '{envs}/test2'.format(envs=envs)
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test3
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, activate=activate)
@@ -529,7 +529,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test3
             printf "$CONDA_DEFAULT_ENV"
@@ -539,7 +539,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == '{envs}/test1'.format(envs=envs)
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate}
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, deactivate=deactivate)
@@ -548,7 +548,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'Error: No environment to deactivate\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {deactivate}
             printf "$CONDA_DEFAULT_ENV"
@@ -558,7 +558,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate}
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -567,7 +567,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'Error: no environment provided.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {activate} two args
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -576,7 +576,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'Error: did not expect more than one argument.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} test
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -585,7 +585,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'Error: too many arguments.\n'
 
-            commands = (setup + """
+            commands = (command_setup + """
             source {deactivate} {envs}/test
             printf "$CONDA_DEFAULT_ENV"
             """).format(envs=envs, deactivate=deactivate, activate=activate)
@@ -594,7 +594,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == ''
             assert stderr == 'Error: too many arguments.\n'
 
-            # commands = (setup + """
+            # commands = (command_setup + """
             # source {activate} root
             # printf "$CONDA_DEFAULT_ENV"
             # """).format(envs=envs, deactivate=deactivate, activate=activate)
