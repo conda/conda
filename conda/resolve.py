@@ -334,7 +334,7 @@ class Resolve(object):
                 if len(clause) > 0:
                     yield clause
 
-            # Don't instlal any package that has a feature that wasn't requested.
+            # Don't install any package that has a feature that wasn't requested.
             for fn in self.find_matches(ms):
                 if fn in dists and self.features(fn) - features:
                     yield [-v[fn]]
