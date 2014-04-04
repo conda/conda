@@ -20,6 +20,7 @@ from conda.cli import pscheck
 from conda.cli import common
 from conda.misc import touch_nonadmin
 from conda.resolve import Resolve, MatchSpec
+from conda.compat import input
 import conda.install as ci
 
 
