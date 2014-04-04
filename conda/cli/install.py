@@ -95,6 +95,11 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
+    if not args.dry_run:
+        A = input("Warning: this branch does not work. Are you sure you want "
+            "to continue [y/N]? ")
+        if not A or A not in 'yY':
+            sys.exit("Bailing")
     newenv = bool(command == 'create')
     if newenv:
         common.ensure_name_or_prefix(args, command)
