@@ -603,42 +603,6 @@ def test_CONDA_DEFAULT_ENV():
             # assert stdout == 'root'
             # assert stderr == 'Error: too many arguments.\n'
 
-def test_activate_help():
-    for shell in shells:
-        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
-            commands = (setup + """
-            {activate} {envs}/test1
-            """).format(envs=envs, activate=activate)
-
-            stdout, stderr = run_in(commands, shell)
-            assert stdout == ''
-            assert "Usage: source activate ENV" in stderr
-
-            commands = (setup + """
-            source {activate} --help
-            """).format(envs=envs, activate=activate)
-
-            stdout, stderr = run_in(commands, shell)
-            assert stdout == ''
-            assert "Usage: source activate ENV" in stderr
-
-            commands = (setup + """
-            {deactivate}
-            """).format(envs=envs, deactivate=deactivate)
-
-            stdout, stderr = run_in(commands, shell)
-            assert stdout == ''
-            assert "Usage: source deactivate" in stderr
-
-            commands = (setup + """
-            source {deactivate} --help
-            """).format(envs=envs, deactivate=deactivate)
-
-            stdout, stderr = run_in(commands, shell)
-            assert stdout == ''
-            assert "Usage: source deactivate" in stderr
-
 # TODO:
 # - Test activating an env by name
 # - Test activating "root"
