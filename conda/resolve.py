@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import combinations
+from itertools import combinations, chain
 from collections import defaultdict
 
 from conda import verlib
@@ -286,9 +286,9 @@ class Resolve(object):
         add_dependents(root_fn, max_only=max_only)
         return res
 
-    def gen_clauses(self, v, dists, specs, features):
+    def gen_clauses(self, v, dists, specs, features, installed=()):
         groups = defaultdict(list) # map name to list of filenames
-        for fn in dists:
+        for fn in chain(dists, installed):
             groups[self.index[fn]['name']].append(fn)
 
         for filenames in itervalues(groups):
@@ -302,13 +302,13 @@ class Resolve(object):
                         # e.g. NOT (numpy-1.6 AND numpy-1.7)
                         yield [-v1, -v2]
 
-        for fn1 in dists:
+        for fn1 in chain(dists, installed):
             for ms in self.ms_depends(fn1):
                 # ensure dependencies are installed
                 # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
                 clause = [-v[fn1]]
                 for fn2 in self.find_matches(ms):
-                    if fn2 in dists:
+                    if fn2 in chain(dists, installed):
                         clause.append(v[fn2])
                 assert len(clause) > 1, '%s %r' % (fn1, ms)
                 yield clause
@@ -444,11 +444,36 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = list(self.gen_clauses(v, dists, specs, features))
+        installed_deps = list(installed)
+        for pkg in installed:
+            installed_deps.extend(self.all_deps(pkg))
+
+        extra_clauses = []
+        for i, fn in enumerate(sorted(set(installed)), m):
+            # Map negative i to the variable, so that when we minimize the
+            # number of true literals, we minimize the number already
+            # installed packages that are removed.
+            if fn not in v:
+                w[-i] = fn
+                v[fn] = -i
+
+        m = N = i
+
+        for i, fn in enumerate(sorted(set(installed_deps)), m):
+            if fn not in v:
+                w[-i] = fn
+                v[fn] = -i
+
+        m = i
+
+        clauses = list(self.gen_clauses(v, dists, specs, features, installed_deps))
         if not clauses:
             if returnall:
                 return [[]]
             return []
+
+        clauses.extend(extra_clauses)
+
         eq, max_rhs = self.generate_version_eq(v, dists)
 
         # Check the common case first
@@ -488,17 +513,20 @@ class Resolve(object):
             constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses + constraints, N=m+1)
+        solutions = min_sat(clauses + constraints, N=N)
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
-                print('\t', [w[lit] for lit in sol if 0 < lit <= m])
+                print('\t', [w[lit] for lit in sol if 0 < lit <= m and lit in
+            w])
+                print('\t remove:', [w[-lit] for lit in sol if 0 < lit <= m and
+                    -lit in w and w[-lit] in installed])
 
         if returnall:
-            return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
-        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+            return [[w[lit] for lit in sol if 0 < lit <= m and lit in w] for sol in solutions]
+        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m and lit in w]
 
 
     def guess_bad_solve(self, specs, features):
