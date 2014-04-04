@@ -377,8 +377,8 @@ def is_linked(prefix, dist):
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     '''
-    Set up a packages in a specified (environment) prefix.  We assume that
-    the packages has been extracted (using extract() above).
+    Set up a package in a specified (environment) prefix.  We assume that
+    the package has been extracted (using extract() above).
     '''
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
