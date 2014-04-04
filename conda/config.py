@@ -132,11 +132,13 @@ envs_dirs = [abspath(expanduser(path)) for path in (
         )]
 
 def pkgs_dir_prefix(prefix):
-    if (abspath(prefix) == root_dir or
-            abspath(dirname(prefix)) == abspath(join(root_dir, 'envs'))):
+    dir_prefix = abspath(dirname(prefix))
+    if abspath(prefix) == root_dir or dir_prefix == abspath(join(root_dir, 'envs')):
         return join(root_dir, 'pkgs')
+    elif dir_prefix in envs_dirs:
+        return join(dir_prefix, '.pkgs')
     else:
-        return abspath(join(prefix, '..', '.pkgs'))
+        return join(envs_dirs[0], '.pkgs')
 
 def set_pkgs_dirs(prefix=None):
     global pkgs_dirs
