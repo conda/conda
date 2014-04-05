@@ -101,6 +101,8 @@ rc = load_condarc(rc_path)
 
 # ----- local directories -----
 
+# root_dir should only be used for testing, which is why don't mention it in the
+# documentation, to avoid confusion (it can really mess up a lot of things)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
