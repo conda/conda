@@ -4,6 +4,7 @@
     when using -p option with an arbitrary a prefix which is not inside an
     envs dir
   * add setting of PYTHONHOME to conda info --system
+  * skip packages with bad metadata
 
 
 2014-04-02   3.4.0:
