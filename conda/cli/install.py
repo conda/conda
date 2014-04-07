@@ -101,7 +101,6 @@ def install(args, parser, command='install'):
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix)
-    config.set_pkgs_dirs(prefix)
 
     if command == 'update':
         if args.all:
