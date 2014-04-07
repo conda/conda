@@ -51,7 +51,7 @@ def configure_parser(sub_parsers):
         '-p', '--packages',
         action='store_true',
         help="""remove unused cached packages. Warning: this does not check
-    for soft-linked packages.""",
+    for symlinked packages.""",
     )
     p.set_defaults(func=execute)
 

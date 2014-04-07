@@ -232,6 +232,8 @@ class Resolve(object):
         try:
             res = self.msd_cache[fn]
         except KeyError:
+            if not 'depends' in self.index[fn]:
+                raise NoPackagesFound('Bad metadata for %s' % fn, fn)
             depends = self.index[fn]['depends']
             res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
         return res
@@ -334,7 +336,7 @@ class Resolve(object):
                 if len(clause) > 0:
                     yield clause
 
-            # Don't instlal any package that has a feature that wasn't requested.
+            # Don't install any package that has a feature that wasn't requested.
             for fn in self.find_matches(ms):
                 if fn in dists and self.features(fn) - features:
                     yield [-v[fn]]

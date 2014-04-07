@@ -104,7 +104,7 @@ def execute(args, parser):
 
     print()
     print("Package plan for package removal in environment %s:" % prefix)
-    plan.display_actions(actions)
+    plan.display_actions(actions, index)
 
     if not pscheck.main(args):
         common.confirm_yn(args)
