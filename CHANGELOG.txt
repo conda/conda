@@ -1,4 +1,4 @@
-2014-XX-XX   3.4.1:
+2014-04-07   3.4.1:
 -------------------
   * always use a pkgs cache directory associated with an envs directory, even
     when using -p option with an arbitrary a prefix which is not inside an
