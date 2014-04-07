@@ -100,6 +100,7 @@ class History(object):
         return a list of tuples(datetime strings, set of distributions)
         """
         res = []
+        cur = set([])
         for dt, cont in self.parse():
             if not is_diff(cont):
                 cur = cont
@@ -120,7 +121,10 @@ class History(object):
         defaults to latest (which is the same as the current state when
         the log file is up-to-date)
         """
-        times, pkgs = zip(*self.construct_states())
+        states = self.construct_states()
+        if not states:
+            return set([])
+        times, pkgs = zip(*states)
         return pkgs[rev]
 
     def print_log(self):
