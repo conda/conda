@@ -103,6 +103,11 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # If osx_is_app is set, entry points will use python.app instead of python in Mac OS X
       osx_is_app: yes # (defaults to no)
 
+      # Whether binary files should be made relocatable (using
+      # install_name_tool on OS X or patchelf on Linux). See the "making
+      # packages relocatable" section below for more information on this.
+      binary_relocation: false # (defaults to true)
+
       # See the features section below for more information on features
 
       # Defines what features a package has
@@ -470,7 +475,7 @@ in which it was built.
 Conda build does the following things automatically to make packages relocatable:
 
 - Binary object files are converted to use relative paths using
-  ``install-name-tool`` on Mac OS X and ``patchelf`` on Linux.
+  ``install_name_tool`` on Mac OS X and ``patchelf`` on Linux.
 
 - The build prefix is replaced in any text (non-binary) file with the prefix
   placeholder, ``/opt/anaconda1anaconda2anaconda3``, and the file is added to
