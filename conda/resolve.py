@@ -458,7 +458,7 @@ class Resolve(object):
         installed_deps = list(installed)
         for pkg in installed:
             installed_deps.extend(self.all_deps(pkg))
-            installed_deps.extend([i.fn for i in self.get_pkgs(MatchSpec(self.index[pkg]['name']))])
+            installed_deps.extend(list(self.get_dists([self.index[pkg]['name']])))
         installed_deps = sorted(set(installed_deps))
 
         # TODO: This won't handle packages that aren't found any more. We
