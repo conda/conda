@@ -455,15 +455,15 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        # TODO: This won't handle packages that aren't found any more. We
-        # should get this metadata directly from the package.
-        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
-
         installed_deps = list(installed)
         for pkg in installed:
             installed_deps.extend(self.all_deps(pkg))
             installed_deps.extend([i.fn for i in self.get_pkgs(MatchSpec(self.index[pkg]['name']))])
         installed_deps = sorted(set(installed_deps))
+
+        # TODO: This won't handle packages that aren't found any more. We
+        # should get this metadata directly from the package.
+        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed_deps}
 
         extra_clauses = []
         for fn in installed_deps:
@@ -500,6 +500,7 @@ class Resolve(object):
 
         clauses.extend(extra_clauses)
 
+        dists.update(installed_dists)
         eq, max_rhs = self.generate_version_eq(v, dists, installed)
 
         # Check the common case first
