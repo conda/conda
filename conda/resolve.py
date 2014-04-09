@@ -451,7 +451,7 @@ class Resolve(object):
             installed_deps.extend(self.all_deps(pkg))
 
         extra_clauses = []
-        for i, fn in enumerate(sorted(set(installed)), m):
+        for i, fn in enumerate(sorted(set(installed)), m + 1):
             # Map negative i to the variable, so that when we minimize the
             # number of true literals, we minimize the number already
             # installed packages that are removed.
@@ -461,7 +461,7 @@ class Resolve(object):
 
         m = N = i
 
-        for i, fn in enumerate(sorted(set(installed_deps)), m):
+        for i, fn in enumerate(sorted(set(installed_deps)), m + 1):
             if fn not in v:
                 w[-i] = fn
                 v[fn] = -i
