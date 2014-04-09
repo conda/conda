@@ -269,6 +269,8 @@ def symlink_conda(prefix, root_dir):
     prefix_conda = join(prefix, 'bin', 'conda')
     prefix_activate = join(prefix, 'bin', 'activate')
     prefix_deactivate = join(prefix, 'bin', 'deactivate')
+    if not os.path.exists(join(prefix, 'bin')):
+        os.makedirs(join(prefix, 'bin'))
     if not os.path.exists(prefix_conda):
         os.symlink(root_conda, prefix_conda)
     if not os.path.exists(prefix_activate):
