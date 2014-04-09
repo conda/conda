@@ -9,11 +9,9 @@ from os.path import isdir, isfile, join
 from conda import install
 
 
-TIME_FORMAT = '%Y-%m-%d %H:%M:%S %z %Z'
-
 
 def write_head(fo):
-    fo.write("==> %s <==\n" % time.strftime(TIME_FORMAT))
+    fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
     fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
 
 def is_diff(content):
