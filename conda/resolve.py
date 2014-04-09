@@ -453,6 +453,7 @@ class Resolve(object):
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
+        m = i + 1
 
         # TODO: This won't handle packages that aren't found any more. We
         # should get this metadata directly from the package.
@@ -461,21 +462,25 @@ class Resolve(object):
         installed_deps = list(installed)
         for pkg in installed:
             installed_deps.extend(self.all_deps(pkg))
+            installed_deps.extend([i.fn for i in self.get_pkgs(MatchSpec(self.index[pkg]['name']))])
+        installed_deps = sorted(set(installed_deps))
 
         extra_clauses = []
-        for i, fn in enumerate(sorted(set(installed)), m + 1):
+        for fn in installed_deps:
             if fn not in v:
-                w[i] = fn
-                v[fn] = i
+                m += 1
+                w[m] = fn
+                v[fn] = m
 
-        m = i
+        N = m
 
         packages = defaultdict(list)
-        for i, fn in enumerate(sorted(set(installed) | set(dists)), m + 1):
+        for fn in sorted(set(installed_deps) | set(dists)):
             package = self.index[fn]['name']
             if package not in v:
-                w[i] = package
-                v[package] = i
+                m += 1
+                w[m] = package
+                v[package] = m
             packages[package].append(fn)
 
         for package in packages:
@@ -486,13 +491,6 @@ class Resolve(object):
             # package] AND ...
             for fn in packages[package]:
                 extra_clauses.append([-v[fn], v[package]])
-
-        for i, fn in enumerate(sorted(set(installed_deps)), m + 1):
-            if fn not in v:
-                w[-i] = fn
-                v[fn] = -i
-
-        m = i
 
         clauses = list(self.gen_clauses(v, dists, specs, features, installed_deps))
         if not clauses:
@@ -544,17 +542,17 @@ class Resolve(object):
         solutions = min_sat(clauses + constraints, N=N)
         assert solutions, (specs, features)
 
-        if len(solutions) > 1:
+        if len(solutions) > 1 or True:
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
-                print('\t', [w[lit] for lit in sol if 0 < lit <= m and lit in
+                print('\t', [w[lit] for lit in sol if 0 < lit <= N and lit in
             w])
-                print('\t remove:', [w[-lit] for lit in sol if 0 < lit <= m and
+                print('\t remove:', [w[-lit] for lit in sol if 0 < lit <= N and
                     -lit in w and w[-lit] in installed])
 
         if returnall:
-            return [[w[lit] for lit in sol if 0 < lit <= m and lit in w] for sol in solutions]
-        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m and lit in w]
+            return [[w[lit] for lit in sol if 0 < lit <= N and lit in w] for sol in solutions]
+        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= N and lit in w]
 
 
     def guess_bad_solve(self, specs, features):
