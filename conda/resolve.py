@@ -349,14 +349,16 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield clause
 
-    def generate_version_eq(self, v, dists, include0=False):
+    def generate_version_eq(self, v, dists, installed, include0=False):
         groups = defaultdict(list) # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
 
         eq = []
         max_rhs = 0
-        for filenames in sorted(itervalues(groups)):
+        packagecoeff = defaultdict(int) # Maximum coeff for a given package
+        for package in groups:
+            filenames = groups[package]
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
             i = 0
             prev = pkgs[0]
@@ -371,7 +373,17 @@ class Resolve(object):
                 if i or include0:
                     eq += [(i, v[pkg])]
                 prev = pkg
+            packagecoeff[package] = i
             max_rhs += i
+
+        installed_groups = defaultdict(list)
+        for fn in sorted(installed):
+            # These lists should never be more than length 1
+            installed_groups[self.index[fn]['name']].append(fn)
+
+        for package in installed_groups:
+            eq += [(packagecoeff[package] + 1, -v[package])]
+            max_rhs += packagecoeff[package] + 1
 
         return eq, max_rhs
 
@@ -444,7 +456,7 @@ class Resolve(object):
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
-        m = i + 1
+        m = N = i + 1
 
         installed_deps = list(installed)
         for pkg in installed:
@@ -452,14 +464,28 @@ class Resolve(object):
 
         extra_clauses = []
         for i, fn in enumerate(sorted(set(installed)), m + 1):
-            # Map negative i to the variable, so that when we minimize the
-            # number of true literals, we minimize the number already
-            # installed packages that are removed.
             if fn not in v:
-                w[-i] = fn
-                v[fn] = -i
+                w[i] = fn
+                v[fn] = i
 
-        m = N = i
+        m = i
+
+        packages = defaultdict(list)
+        for i, fn in enumerate(sorted(set(installed) | set(dists)), m + 1):
+            package = self.index[fn]['name']
+            if package not in v:
+                w[i] = package
+                v[package] = i
+            packages[package].append(fn)
+
+        for package in packages:
+            # package <=> fn1 | fn2 | fn3 | ...
+            # package -> fn1 | fn2 | ... == -package | fn1 | fn2 | ...
+            extra_clauses.append([-v[package]] + [v[fn] for fn in packages[package]])
+            # fn1 | fn2 | ... -> package == [-fn1 | package] AND [-fn2 |
+            # package] AND ...
+            for fn in packages[package]:
+                extra_clauses.append([-v[fn], v[package]])
 
         for i, fn in enumerate(sorted(set(installed_deps)), m + 1):
             if fn not in v:
@@ -476,7 +502,7 @@ class Resolve(object):
 
         clauses.extend(extra_clauses)
 
-        eq, max_rhs = self.generate_version_eq(v, dists)
+        eq, max_rhs = self.generate_version_eq(v, dists, installed)
 
         # Check the common case first
         dotlog.debug("Building the constraint with rhs: [0, 0]")
