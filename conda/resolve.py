@@ -419,9 +419,6 @@ class Resolve(object):
         # complicated cases that the pseudo-boolean solver does, but it's also
         # much faster when it does work.
 
-        # TODO: This won't handle packages that aren't found any more. We
-        # should get this metadata directly from the package.
-        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
         # try:
         #     dists = self.get_dists(specs, max_only=True)
         # except NoPackagesFound:
@@ -456,7 +453,10 @@ class Resolve(object):
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
-        m = N = i + 1
+
+        # TODO: This won't handle packages that aren't found any more. We
+        # should get this metadata directly from the package.
+        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
 
         installed_deps = list(installed)
         for pkg in installed:
