@@ -554,7 +554,7 @@ class Resolve(object):
 
         dotlog.debug("Finding the minimal solution")
         solutions = min_sat(clauses + constraints, N=N)
-        assert solutions, (specs, features)
+        assert solutions, (specs, features, installed)
 
         if len(solutions) > 1 or log.getEffectiveLevel() <= logging.DEBUG:
             print('Warning:', len(solutions), "possible package resolutions:")
