@@ -556,7 +556,7 @@ class Resolve(object):
         solutions = min_sat(clauses + constraints, N=N)
         assert solutions, (specs, features)
 
-        if len(solutions) > 1 or True:
+        if len(solutions) > 1 or log.getEffectiveLevel() <= logging.DEBUG:
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if 0 < lit <= N and lit in
