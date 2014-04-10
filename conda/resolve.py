@@ -447,6 +447,7 @@ class Resolve(object):
 
         dists = self.get_dists(specs)
 
+        # Map variables to the dists to be installed
         v = {} # map fn to variable number
         w = {} # map variable number to fn
         i = -1 # in case the loop doesn't run
@@ -455,6 +456,8 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
+        # Get all related packages to the currently installed packages
+        # (dependencies and other versions)
         installed_deps = list(installed)
         for pkg in installed:
             installed_deps.extend(self.all_deps(pkg))
@@ -465,15 +468,19 @@ class Resolve(object):
         # should get this metadata directly from the package.
         installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed_deps}
 
-        extra_clauses = []
+        # Add installed packages and related packages to the variables
         for fn in installed_deps:
             if fn not in v:
                 m += 1
                 w[m] = fn
                 v[fn] = m
 
+        # m is the largest literal. N is the largest literal representing an
+        # actual package.
         N = m
 
+        # Create variables representing unversioned packages. e.g., 'python'
+        # means any version of python i.e., python 2.7.6 | python 3.3.5 | ...
         packages = defaultdict(list)
         for fn in sorted(set(installed_deps) | set(dists)):
             package = self.index[fn]['name']
@@ -483,6 +490,9 @@ class Resolve(object):
                 v[package] = m
             packages[package].append(fn)
 
+        # Add clauses to correspond unversioned package variables to the
+        # actual packages variables.
+        extra_clauses = []
         for package in packages:
             # package <=> fn1 | fn2 | fn3 | ...
             # package -> fn1 | fn2 | ... == -package | fn1 | fn2 | ...
@@ -492,6 +502,9 @@ class Resolve(object):
             for fn in packages[package]:
                 extra_clauses.append([-v[fn], v[package]])
 
+        # Generate all the clauses to represent the relationships between
+        # packages, e.g., dependencies, conflicts, only a single version of
+        # each package, features, etc.
         clauses = list(self.gen_clauses(v, dists, specs, features, installed_deps))
         if not clauses:
             if returnall:
