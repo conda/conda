@@ -564,10 +564,19 @@ class Resolve(object):
                 print('\t remove:', [w[-lit] for lit in sol if 0 < abs(lit) <= N and
                     -lit in w and w[-lit] in installed])
 
-        if returnall:
-            return [[w[lit] for lit in sol if 0 < lit <= N and lit in w] for sol in solutions]
-        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= N and lit in w]
+        all_sols = []
+        for sol in solutions:
+            this_sol = []
+            for lit in range(1, N + 1):
+                if lit in sol:
+                    this_sol.append(w[lit])
+                elif w[lit] in installed: # -lit in sol
+                    this_sol.append('remove ' + w[lit])
+            all_sols.append(this_sol)
 
+        if returnall:
+            return all_sols
+        return all_sols[0]
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
