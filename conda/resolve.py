@@ -560,8 +560,8 @@ class Resolve(object):
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
                 print('\t', [w[lit] for lit in sol if 0 < lit <= N and lit in
-            w])
-                print('\t remove:', [w[-lit] for lit in sol if 0 < lit <= N and
+                    w])
+                print('\t remove:', [w[-lit] for lit in sol if 0 < abs(lit) <= N and
                     -lit in w and w[-lit] in installed])
 
         if returnall:
