@@ -559,10 +559,11 @@ class Resolve(object):
         if len(solutions) > 1 or log.getEffectiveLevel() <= logging.DEBUG:
             print('Warning:', len(solutions), "possible package resolutions:")
             for sol in solutions:
-                print('\t', [w[lit] for lit in sol if 0 < lit <= N and lit in
+                print('\t install:', [w[lit] for lit in sol if 0 < lit <= N and lit in
                     w])
                 print('\t remove:', [w[-lit] for lit in sol if 0 < abs(lit) <= N and
                     -lit in w and w[-lit] in installed])
+                print()
 
         all_sols = []
         for sol in solutions:
