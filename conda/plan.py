@@ -20,7 +20,7 @@ from conda import config
 from conda import install
 from conda.fetch import fetch_pkg
 from conda.history import History
-from conda.resolve import MatchSpec, Resolve
+from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
 
 log = getLogger(__name__)
@@ -93,7 +93,7 @@ def display_actions(actions, index):
             lst.append((dist, extra))
         print_dists(lst)
 
-    # package -> [(oldver, oldbuild), (newver, newbuild)]
+    # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
 
     # This assumes each package will appear LINK no more than once.
@@ -106,15 +106,51 @@ def display_actions(actions, index):
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
 
-    print("The following changes:\n")
-    maxpkg = len(max(packages, key=len))
+    maxpkg = max(len(max(packages, key=len)), 15)
     maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
     maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
-    for pkg in sorted(packages):
+    new = {pkg for pkg in packages if not packages[pkg][0]}
+    removed = {pkg for pkg in packages if not packages[pkg][1]}
+    updated = set()
+    downgraded = set()
+    for pkg in packages:
+        if pkg in new or pkg in removed:
+            continue
+        fullnameold = pkg + '-' + packages[pkg][0] + '.tar.bz2'
+        fullnamenew = pkg + '-' + packages[pkg][1] + '.tar.bz2'
+        Pold = Package(fullnameold, index[fullnameold])
+        Pnew = Package(fullnamenew, index[fullnamenew])
+        if Pold <= Pnew:
+            updated.add(pkg)
+        else:
+            downgraded.add(pkg)
+
+    if new:
+        print("\nThe following new packages will be INSTALLED:\n")
+    for pkg in sorted(new):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
-        fmt = '  {pkg:<%s} {vers[0]:>%s} -> {vers[1]}' % (maxpkg, maxoldver)
+        fmt = '  {pkg:<%s} {vers[1]}' % maxpkg
         print(fmt.format(pkg=pkg, vers=packages[pkg]))
+
+    if removed:
+        print("\nThe following packages will be REMOVED:\n")
+    for pkg in sorted(removed):
+        fmt = '  {pkg:<%s} {vers[0]:>%s}' % (maxpkg, maxoldver)
+        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+
+    if updated:
+        print("\nThe following packages will be UPDATED:\n")
+    for pkg in sorted(updated):
+        fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
+        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+
+    if downgraded:
+        print("\nThe following packages will be DOWNGRADED:\n")
+    for pkg in sorted(downgraded):
+        fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
+        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+
 
 # the order matters here, don't change it
 action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
