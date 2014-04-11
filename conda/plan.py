@@ -60,7 +60,7 @@ def split_linkarg(arg):
         linktype = install.LINK_HARD
     return dist, pkgs_dir, int(linktype)
 
-def display_actions(actions, index=None):
+def display_actions(actions, index):
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
