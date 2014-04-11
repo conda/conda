@@ -136,19 +136,19 @@ def display_actions(actions, index):
     if removed:
         print("\nThe following packages will be REMOVED:\n")
     for pkg in sorted(removed):
-        fmt = '  {pkg:<%s} {vers[0]:>%s}' % (maxpkg, maxoldver)
+        fmt = '  {pkg:<%s} {vers[0]:%s}' % (maxpkg, maxoldver)
         print(fmt.format(pkg=pkg, vers=packages[pkg]))
 
     if updated:
         print("\nThe following packages will be UPDATED:\n")
     for pkg in sorted(updated):
-        fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
+        fmt = '  {pkg:<%s} {vers[0]:%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
         print(fmt.format(pkg=pkg, vers=packages[pkg]))
 
     if downgraded:
         print("\nThe following packages will be DOWNGRADED:\n")
     for pkg in sorted(downgraded):
-        fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
+        fmt = '  {pkg:<%s} {vers[0]:%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
         print(fmt.format(pkg=pkg, vers=packages[pkg]))
 
 
