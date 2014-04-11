@@ -92,7 +92,24 @@ def display_actions(actions, index=None):
             extra = '   %s' % install.link_name_map.get(lt)
             lst.append((dist, extra))
         print_dists(lst)
-    print()
+
+    # package -> [(oldver, oldbuild), (newver, newbuild)]
+    packages = defaultdict(lambda: list(('', '')))
+
+    # This assumes each package will appear LINK no more than once.
+    for arg in actions[LINK]:
+        dist, pkgs_dir, lt =  split_linkarg(arg)
+        pkg, ver, build = dist.rsplit('-', 2)
+        packages[pkg][1] = ver + '-' + build
+    for arg in actions[UNLINK]:
+        dist, pkgs_dir, lt =  split_linkarg(arg)
+        pkg, ver, build = dist.rsplit('-', 2)
+        packages[pkg][0] = ver + '-' + build
+
+    print("The following changes:\n")
+    for pkg in sorted(packages):
+        fmt = (pkg, packages[pkg][0], packages[pkg][1])
+        print('  %s %27s -> %-27s' % fmt)
 
 # the order matters here, don't change it
 action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
