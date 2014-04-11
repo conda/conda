@@ -12,6 +12,7 @@ conda provides the following commands:
 
     info       : display information about the current install
     list       : list packages linked into a specified environment
+    lsfiles    : list all files belonging to specified package
     search     : print information about a specified package
     help       : display a list of available conda commands and their help
                  strings
@@ -50,6 +51,7 @@ from conda.cli import main_init
 from conda.cli import main_info
 from conda.cli import main_install
 from conda.cli import main_list
+from conda.cli import main_lsfiles
 from conda.cli import main_remove
 from conda.cli import main_package
 from conda.cli import main_search
@@ -142,6 +144,7 @@ In short:
     main_info.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
+    main_lsfiles.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
