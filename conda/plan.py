@@ -108,7 +108,7 @@ def display_actions(actions, index=None):
 
     print("The following changes:\n")
     for pkg in sorted(packages):
-        print('  {pkg} {vers[0]} -> {vers[1]}'.format(pkg=pkg, vers=packages[pkg]))
+        print('  {pkg:<20} {vers[0]:>22} -> {vers[1]}'.format(pkg=pkg, vers=packages[pkg]))
 
 # the order matters here, don't change it
 action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
