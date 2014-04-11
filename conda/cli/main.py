@@ -45,6 +45,7 @@ import argparse
 from conda.cli import conda_argparse
 from conda.cli import main_bundle
 from conda.cli import main_create
+from conda.cli import main_envs
 from conda.cli import main_help
 from conda.cli import main_init
 from conda.cli import main_info
@@ -140,6 +141,7 @@ In short:
     )
 
     main_info.configure_parser(sub_parsers)
+    main_envs.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
