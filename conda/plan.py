@@ -107,8 +107,14 @@ def display_actions(actions, index=None):
         packages[pkg][0] = ver + '-' + build
 
     print("The following changes:\n")
+    maxpkg = len(max(packages, key=len))
+    maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
+    maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
     for pkg in sorted(packages):
-        print('  {pkg:<20} {vers[0]:>22} -> {vers[1]}'.format(pkg=pkg, vers=packages[pkg]))
+        # That's right. I'm using old-style string formatting to generate a
+        # string with new-style string formatting.
+        fmt = '  {pkg:<%s} {vers[0]:>%s} -> {vers[1]}' % (maxpkg, maxoldver)
+        print(fmt.format(pkg=pkg, vers=packages[pkg]))
 
 # the order matters here, don't change it
 action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
