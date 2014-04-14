@@ -79,19 +79,6 @@ def display_actions(actions, index):
             print(" " * 43 + "Total: %14s" %
                   human_bytes(sum(index[dist + '.tar.bz2']['size']
                                   for dist in actions[FETCH])))
-    if actions.get(UNLINK):
-        print("\nThe following packages will be UN-linked:\n")
-        print_dists([
-                (dist, None)
-                for dist in actions[UNLINK]])
-    if actions.get(LINK):
-        print("\nThe following packages will be linked:\n")
-        lst = []
-        for arg in actions[LINK]:
-            dist, pkgs_dir, lt = split_linkarg(arg)
-            extra = '   %s' % install.link_name_map.get(lt)
-            lst.append((dist, extra))
-        print_dists(lst)
 
     # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
