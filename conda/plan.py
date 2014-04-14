@@ -132,15 +132,30 @@ def display_actions(actions, index):
     if updated:
         print("\nThe following packages will be UPDATED:\n")
     for pkg in sorted(updated):
-        fmt = '  {pkg:<%s} {vers[0]:%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
-        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+        if config.show_channel_urls:
+            fmt = '  {pkg:<%s} {vers[0]:>%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
+                maxoldver, maxnewver)
+        else:
+            fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]:%s}' % (maxpkg,
+                maxoldver, maxnewver)
+        print(fmt.format(pkg=pkg, vers=packages[pkg],
+            channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
+            channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
 
     if downgraded:
         print("\nThe following packages will be DOWNGRADED:\n")
     for pkg in sorted(downgraded):
-        fmt = '  {pkg:<%s} {vers[0]:%s}   ->   {vers[1]}' % (maxpkg, maxoldver)
-        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+        if config.show_channel_urls:
+            fmt = '  {pkg:<%s} {vers[0]:>%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
+                maxoldver, maxnewver)
+        else:
+            fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]:%s}' % (maxpkg,
+                maxoldver, maxnewver)
+        print(fmt.format(pkg=pkg, vers=packages[pkg],
+            channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
+            channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
 
+    print()
 
 # the order matters here, don't change it
 action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
