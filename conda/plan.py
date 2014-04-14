@@ -84,14 +84,17 @@ def display_actions(actions, index):
     packages = defaultdict(lambda: list(('', '')))
 
     # This assumes each package will appear LINK no more than once.
+    Packages = {}
     for arg in actions[LINK]:
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][1] = ver + '-' + build
+        Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
     for arg in actions[UNLINK]:
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
+        Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
 
     maxpkg = max(len(max(packages, key=len)), 15)
     maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
@@ -103,11 +106,7 @@ def display_actions(actions, index):
     for pkg in packages:
         if pkg in new or pkg in removed:
             continue
-        fullnameold = pkg + '-' + packages[pkg][0] + '.tar.bz2'
-        fullnamenew = pkg + '-' + packages[pkg][1] + '.tar.bz2'
-        Pold = Package(fullnameold, index[fullnameold])
-        Pnew = Package(fullnamenew, index[fullnamenew])
-        if Pold <= Pnew:
+        if Packages[pkg + '-' + packages[pkg][0]] <= Packages[pkg + '-' + packages[pkg][1] + '.tar.bz2']:
             updated.add(pkg)
         else:
             downgraded.add(pkg)
