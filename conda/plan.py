@@ -112,20 +112,22 @@ def display_actions(actions, index):
             downgraded.add(pkg)
 
     if new:
-        print("\nThe following new packages will be INSTALLED:\n")
+        print("\nThe following NEW packages will be INSTALLED:\n")
     for pkg in sorted(new):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
         fmt = '  {pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
         if config.show_channel_urls:
-            fmt += ' {channel:>}'# % maxnewver
-        print(fmt.format(pkg=pkg, vers=packages[pkg], channel=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
+            fmt += ' {channel1:>}'
+        print(fmt.format(pkg=pkg, vers=packages[pkg], channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
     for pkg in sorted(removed):
         fmt = '  {pkg:<%s} {vers[0]:%s}' % (maxpkg, maxoldver)
-        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+        if config.show_channel_urls:
+            fmt += ' {channel0:>}'
+        print(fmt.format(pkg=pkg, vers=packages[pkg], channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel)))
 
     if updated:
         print("\nThe following packages will be UPDATED:\n")
