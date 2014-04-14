@@ -388,7 +388,8 @@ class Resolve(object):
                     dists.update(self.all_deps(pkg.fn, max_only=max_only))
                 except NoPackagesFound as e:
                     # Ignore any package that has nonexisting dependencies.
-                    notfound.append(e.pkg)
+                    if e.pkg not in notfound:
+                        notfound.append(e.pkg)
                 else:
                     dists[pkg.fn] = pkg
                     found = True
