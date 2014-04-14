@@ -278,12 +278,25 @@ class Resolve(object):
 
         def add_dependents(fn1, max_only=False):
             for ms in self.ms_depends(fn1):
+                found = False
+                notfound = []
                 for pkg2 in self.get_pkgs(ms, max_only=max_only):
                     if pkg2.fn in res:
+                        found = True
                         continue
-                    res[pkg2.fn] = pkg2
-                    if ms.strictness < 3:
-                        add_dependents(pkg2.fn, max_only=max_only)
+                    try:
+                        if ms.strictness < 3:
+                            add_dependents(pkg2.fn, max_only=max_only)
+                    except NoPackagesFound as e:
+                        if e.pkg not in notfound:
+                            notfound.append(e.pkg)
+                    else:
+                        found = True
+                        res[pkg2.fn] = pkg2
+
+                if not found:
+                    raise NoPackagesFound("Could not find some dependencies "
+                        "for %s: %s" % (ms, ', '.join(notfound)), str(ms))
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -394,7 +407,7 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), None)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), spec)
 
         return dists
 
