@@ -62,6 +62,7 @@ def execute(args, parser):
     from conda.api import get_index
     from conda.cli import pscheck
     from conda.install import rm_rf, linked
+    from conda import config
 
     if not (args.all or args.package_names):
         sys.exit('Error: no package names supplied,\n'
@@ -71,11 +72,12 @@ def execute(args, parser):
     common.check_write('remove', prefix)
 
     index = None
-    if args.features:
+    if args.features or config.show_channel_urls:
         common.ensure_override_channels_requires_channel(args)
         channel_urls = args.channel or ()
         index = get_index(channel_urls=channel_urls,
                           prepend=not args.override_channels)
+    if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
 
