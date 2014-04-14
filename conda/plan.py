@@ -85,12 +85,12 @@ def display_actions(actions, index):
 
     # This assumes each package will appear LINK no more than once.
     Packages = {}
-    for arg in actions[LINK]:
+    for arg in actions.get(LINK, []):
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][1] = ver + '-' + build
         Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
-    for arg in actions[UNLINK]:
+    for arg in actions.get(UNLINK, []):
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
