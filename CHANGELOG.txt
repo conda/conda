@@ -3,6 +3,7 @@
   * conda clean --lock: skip directories that don't exist, fixes #648
   * fixed empty history file causing crash, issue #644
   * remove timezone information from history file, fixes issue #651
+  * fix PackagesNotFound error for missing recursive dependencies
 
 
 2014-04-07   3.4.1:
