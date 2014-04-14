@@ -106,7 +106,7 @@ def display_actions(actions, index):
     for pkg in packages:
         if pkg in new or pkg in removed:
             continue
-        if Packages[pkg + '-' + packages[pkg][0]] <= Packages[pkg + '-' + packages[pkg][1] + '.tar.bz2']:
+        if Packages[pkg + '-' + packages[pkg][0]] <= Packages[pkg + '-' + packages[pkg][1]]:
             updated.add(pkg)
         else:
             downgraded.add(pkg)
