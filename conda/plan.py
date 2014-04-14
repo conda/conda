@@ -116,8 +116,10 @@ def display_actions(actions, index):
     for pkg in sorted(new):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
-        fmt = '  {pkg:<%s} {vers[1]}' % maxpkg
-        print(fmt.format(pkg=pkg, vers=packages[pkg]))
+        fmt = '  {pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
+        if config.show_channel_urls:
+            fmt += ' {channel:>}'# % maxnewver
+        print(fmt.format(pkg=pkg, vers=packages[pkg], channel=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
