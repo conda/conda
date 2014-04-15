@@ -71,12 +71,10 @@ def execute(args, parser):
     prefix = common.get_prefix(args)
     common.check_write('remove', prefix)
 
-    index = None
-    if args.features or config.show_channel_urls:
-        common.ensure_override_channels_requires_channel(args)
-        channel_urls = args.channel or ()
-        index = get_index(channel_urls=channel_urls,
-                          prepend=not args.override_channels)
+    common.ensure_override_channels_requires_channel(args)
+    channel_urls = args.channel or ()
+    index = get_index(channel_urls=channel_urls,
+                      prepend=not args.override_channels)
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
