@@ -61,6 +61,7 @@ rc_bool_keys = [
     'use_pip',
     'binstar_upload',
     'binstar_personal',
+    'show_channel_urls',
     ]
 
 # Not supported by conda config yet
@@ -100,17 +101,12 @@ rc = load_condarc(rc_path)
 
 # ----- local directories -----
 
+# root_dir should only be used for testing, which is why don't mention it in the
+# documentation, to avoid confusion (it can really mess up a lot of things)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
 root_env_name = 'root'
-
-def _pathsep_env(name):
-    x = os.getenv(name)
-    if x:
-        return x.split(os.pathsep)
-    else:
-        return []
 
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
@@ -118,29 +114,32 @@ def _default_envs_dirs():
         lst.insert(0, '~/envs')
     return lst
 
+def _pathsep_env(name):
+    x = os.getenv(name)
+    if x is None:
+        return []
+    res = []
+    for path in x.split(os.pathsep):
+        if path == 'DEFAULTS':
+            for p in rc.get('envs_dirs') or _default_envs_dirs():
+                res.append(p)
+        else:
+            res.append(path)
+    return res
+
 envs_dirs = [abspath(expanduser(path)) for path in (
         _pathsep_env('CONDA_ENVS_PATH') or
         rc.get('envs_dirs') or
         _default_envs_dirs()
         )]
 
-def pkgs_dir_prefix(prefix):
-    if (abspath(prefix) == root_dir or
-            abspath(dirname(prefix)) == abspath(join(root_dir, 'envs'))):
+def pkgs_dir_from_envs_dir(envs_dir):
+    if abspath(envs_dir) == abspath(join(root_dir, 'envs')):
         return join(root_dir, 'pkgs')
     else:
-        return abspath(join(prefix, '..', '.pkgs'))
+        return join(envs_dir, '.pkgs')
 
-def set_pkgs_dirs(prefix=None):
-    global pkgs_dirs
-
-    pkgs_dirs = [pkgs_dir_prefix(prefix)] if prefix else []
-    for envs_dir in envs_dirs:
-        pkgs_dir = pkgs_dir_prefix(join(envs_dir, 'dummy'))
-        if pkgs_dir not in pkgs_dirs:
-            pkgs_dirs.append(pkgs_dir)
-
-set_pkgs_dirs()
+pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
 
 # ----- default environment prefix -----
 
@@ -207,6 +206,19 @@ def get_channel_urls(platform=None):
 
     return normalize_urls(base_urls, platform=platform)
 
+def canonical_channel_name(channel):
+    if channel is None:
+        return '<unknown>'
+    channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+    if channel.startswith(channel_alias):
+        return channel.split(channel_alias, 1)[1].split('/')[0]
+    elif any(channel.startswith(i) for i in get_default_urls()):
+        return 'defaults'
+    elif channel.startswith('http://filer/'):
+        return 'filer'
+    else:
+        return channel
+
 # ----- proxy -----
 
 def get_proxy_servers():
@@ -232,6 +244,8 @@ binstar_upload = rc.get('binstar_upload', None) # None means ask
 binstar_personal = bool(rc.get('binstar_personal', True))
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
+# show channel URLs when displaying what is going to be downloaded
+show_channel_urls = bool(rc.get('show_channel_urls', False))
 # set packages disallowed to be installed
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default

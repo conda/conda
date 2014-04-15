@@ -51,7 +51,7 @@ def configure_parser(sub_parsers):
         '-p', '--packages',
         action='store_true',
         help="""remove unused cached packages. Warning: this does not check
-    for soft-linked packages.""",
+    for symlinked packages.""",
     )
     p.set_defaults(func=execute)
 
@@ -75,6 +75,8 @@ def rm_lock():
         pass
 
     for dir in lock_dirs:
+        if not os.path.exists(dir):
+            continue
         for dn in os.listdir(dir):
             if os.path.isdir(join(dir, dn)) and dn.startswith(LOCKFN):
                 path = join(dir, dn)

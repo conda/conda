@@ -84,18 +84,23 @@ def print_activate(arg):
     print("#")
 
 
+def get_revision(arg):
+    try:
+        return int(arg)
+    except ValueError:
+        sys.exit("Error: expected revision number, not: '%s'" % arg)
+
+
 def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
-
     newenv = bool(command == 'create')
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix)
-    config.set_pkgs_dirs(prefix)
 
     if command == 'update':
         if args.all:
@@ -138,7 +143,6 @@ def install(args, parser, command='install'):
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
 
-
     if args.file:
         specs = common.specs_from_url(args.file)
     elif getattr(args, 'all', False):
@@ -154,7 +158,10 @@ def install(args, parser, command='install'):
     else:
         specs = common.specs_from_args(args.packages)
 
-    common.check_specs(prefix, specs)
+    if command == 'install' and args.revision:
+        get_revision(args.revision)
+    else:
+        common.check_specs(prefix, specs)
 
     if args.use_local:
         from conda.fetch import fetch_index
@@ -192,7 +199,6 @@ def install(args, parser, command='install'):
             if not pkgs:
                 # Shouldn't happen?
                 continue
-            # This won't do the right thing for python 2
             latest = pkgs[-1]
             if latest.version == vers_inst[0] and latest.build == build_inst[0]:
                 args.packages.remove(name)
@@ -243,8 +249,11 @@ Error: environment does not exist: %s
 # into it.
 #""" % prefix)
 
-    actions = plan.install_actions(prefix, index, specs,
-                                   force=args.force, only_names=only_names)
+    if command == 'install' and args.revision:
+        actions = plan.revert_actions(prefix, get_revision(args.revision))
+    else:
+        actions = plan.install_actions(prefix, index, specs, force=args.force,
+                                       only_names=only_names)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
