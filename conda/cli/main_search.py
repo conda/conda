@@ -78,27 +78,11 @@ def configure_parser(sub_parsers):
     common.add_parser_channels(p)
     p.set_defaults(func=execute)
 
-
-# XXX: Should this go in the library code somewhere:
-def canonical_channel_name(channel):
-    if channel is None:
-        return '<unknown>'
-    channel_alias = config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS)
-    if channel.startswith(channel_alias):
-        return channel.split(channel_alias, 1)[1].split('/')[0]
-    elif any(channel.startswith(i) for i in config.get_default_urls()):
-        return 'defaults'
-    elif channel.startswith('http://filer/'):
-        return 'filer'
-    else:
-        return channel
-
 def execute(args, parser):
     import re
 
     from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
-
 
     if args.regex:
         pat = re.compile(args.regex, re.I)
@@ -161,7 +145,7 @@ def execute(args, parser):
                 disp_name, inst,
                 pkg.version,
                 r.index[pkg.fn]['build'],
-                canonical_channel_name(pkg.channel),
+                config.canonical_channel_name(pkg.channel),
                 common.disp_features(r.features(pkg.fn)),
                 ))
             disp_name = ''

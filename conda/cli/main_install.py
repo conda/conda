@@ -32,6 +32,12 @@ def configure_parser(sub_parsers):
         help = help,
         epilog = example,
     )
+    p.add_argument(
+        "--revision",
+        action = "store",
+        help = "revert to the specified REVISION",
+        metavar = 'REVISION',
+    )
     common.add_parser_install(p)
     p.set_defaults(func=execute)
 

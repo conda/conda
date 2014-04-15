@@ -1,27 +1,21 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import re
 import sys
 import time
-from os.path import isfile, join
+from os.path import isdir, isfile, join
 
 from conda import install
 
 
-TIME_FORMAT = '%Y-%m-%d %H:%M:%S %z %Z'
 
-
-def now():
-    """
-    return the current local time as an ISO formated
-    string with time zone data, e.g. '2014-03-26 18:12:45 -0500 CDT'
-    """
-    return time.strftime(TIME_FORMAT)
-
+def write_head(fo):
+    fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
+    fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
 
 def is_diff(content):
     return any(s.startswith(('-', '+')) for s in content)
-
 
 def pretty_diff(diff):
     added = {}
@@ -35,36 +29,31 @@ def pretty_diff(diff):
             added[name.lower()] = version
     changed = set(added) & set(removed)
     for name in sorted(changed):
-        yield ' %s  (%s -> %s)' % (name, removed[name], added[name])
+        yield ' %s  {%s -> %s}' % (name, removed[name], added[name])
     for name in sorted(set(removed) - changed):
         yield '-%s-%s' % (name, removed[name])
     for name in sorted(set(added) - changed):
         yield '+%s-%s' % (name, added[name])
 
-
 def pretty_content(content):
     if is_diff(content):
         return pretty_diff(content)
     else:
-        return iter(sorted(content, key=str.lower))
+        return iter(sorted(content))
 
 
 class History(object):
 
     def __init__(self, prefix):
         self.prefix = prefix
-        if prefix is None:
-            return
-        self.path = join(prefix, 'conda-meta/history')
+        self.meta_dir = join(prefix, 'conda-meta')
+        self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
-        if self.prefix is None:
-            return
         self.update()
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.prefix is None:
-            return
         self.update()
 
     def init_log_file(self, force=False):
@@ -109,6 +98,7 @@ class History(object):
         return a list of tuples(datetime strings, set of distributions)
         """
         res = []
+        cur = set([])
         for dt, cont in self.parse():
             if not is_diff(cont):
                 cur = cont
@@ -129,7 +119,10 @@ class History(object):
         defaults to latest (which is the same as the current state when
         the log file is up-to-date)
         """
-        times, pkgs = zip(*self.construct_states())
+        states = self.construct_states()
+        if not states:
+            return set([])
+        times, pkgs = zip(*states)
         return pkgs[rev]
 
     def print_log(self):
@@ -140,24 +133,22 @@ class History(object):
             print()
 
     def write_dists(self, dists):
-        fo = open(self.path, 'w')
-        fo.write("==> %s <==\n" % now())
-        for dist in dists:
-            fo.write('%s\n' % dist)
-        fo.close()
+        if not isdir(self.meta_dir):
+            os.makedirs(self.meta_dir)
+        with open(self.path, 'w') as fo:
+            write_head(fo)
+            for dist in sorted(dists):
+                fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
-        fo = open(self.path, 'a')
-        fo.write("==> %s <==\n" % now())
-        for fn in last_state - current_state:
-            fo.write('-%s\n' % fn)
-        for fn in current_state - last_state:
-            fo.write('+%s\n' % fn)
-        fo.close()
+        with open(self.path, 'a') as fo:
+            write_head(fo)
+            for fn in sorted(last_state - current_state):
+                fo.write('-%s\n' % fn)
+            for fn in sorted(current_state - last_state):
+                fo.write('+%s\n' % fn)
 
 
 if __name__ == '__main__':
-    h = History(sys.prefix)
-    with h:
-        h.update()
+    with History(sys.prefix) as h:
         h.print_log()

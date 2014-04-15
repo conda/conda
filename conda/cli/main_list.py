@@ -38,6 +38,11 @@ def configure_parser(sub_parsers):
                   "(output may be used by conda create --file)",
     )
     p.add_argument(
+        '-r', "--revisions",
+        action = "store_true",
+        help = "list the revision history and exit",
+    )
+    p.add_argument(
         "--no-pip",
         action = "store_false",
         default=True,
@@ -141,11 +146,12 @@ Error: environment does not exist: %s
             # Returns None if no meta-file found (e.g. pip install)
             info = install.is_linked(prefix, dist)
             features = set(info.get('features', '').split())
-            print('%-25s %-15s %15s  %s' % (info['name'],
-                                            info['version'],
-                                            info['build'],
-                                            common.disp_features(features)))
-        except: # IOError, KeyError, ValueError
+            disp = '%(name)-25s %(version)-15s %(build)15s' % info
+            disp += '  %s' % common.disp_features(features)
+            if config.show_channel_urls:
+                disp += '  %s' % config.canonical_channel_name(info.get('url'))
+            print(disp)
+        except: # (IOError, KeyError, ValueError):
             print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
 
     return res
@@ -153,6 +159,16 @@ Error: environment does not exist: %s
 
 def execute(args, parser):
     prefix = common.get_prefix(args)
+
+    if args.revisions:
+        from conda.history import History
+
+        h = History(prefix)
+        if isfile(h.path):
+            h.print_log()
+        else:
+            sys.stderr.write("No revision log found: %s\n" % h.path)
+        return
 
     if args.canonical:
         format = 'canonical'

@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -14,7 +14,7 @@ import shutil
 import hashlib
 import tempfile
 from logging import getLogger
-from os.path import basename, isdir, isfile, join
+from os.path import basename, isdir, join
 
 from conda import config
 from conda.utils import memoized
@@ -90,8 +90,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
         if e.code != 304:
             raise RuntimeError(msg)
 
-    except urllib2.URLError:
-        sys.stderr.write("Error: unknown host: %s\n" % url)
+    except urllib2.URLError as e:
+        sys.stderr.write("Error: unknown host: %s (%r)\n" % (url, e))
         if fail_unknown_host:
             sys.exit(1)
 
@@ -200,6 +200,11 @@ def fetch_pkg(info, dst_dir=None):
                 os.rename(pp, path)
             except OSError:
                 raise RuntimeError("Could not rename %r to %r." % (pp, path))
+            try:
+                with open(join(dst_dir, 'urls.txt'), 'a') as fa:
+                    fa.write('%s\n' % url)
+            except IOError:
+                pass
             return
 
     raise RuntimeError("Could not locate '%s'" % url)
@@ -245,7 +250,7 @@ class TmpDownload(object):
         self.verbose = verbose
 
     def __enter__(self):
-        if isfile(self.url):
+        if '://' not in self.url:
             # if we provide the file itself, no tmp dir is created
             self.tmp_dir = None
             return self.url
