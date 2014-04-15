@@ -116,7 +116,7 @@ def display_actions(actions, index):
     for pkg in sorted(new):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
-        fmt = '  {pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
+        fmt = '    {pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
         if config.show_channel_urls:
             fmt += ' {channel1:>}'
         print(fmt.format(pkg=pkg, vers=packages[pkg], channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
@@ -124,7 +124,7 @@ def display_actions(actions, index):
     if removed:
         print("\nThe following packages will be REMOVED:\n")
     for pkg in sorted(removed):
-        fmt = '  {pkg:<%s} {vers[0]:%s}' % (maxpkg, maxoldver)
+        fmt = '    {pkg:<%s} {vers[0]:%s}' % (maxpkg, maxoldver)
         if config.show_channel_urls:
             fmt += ' {channel0:>}'
         print(fmt.format(pkg=pkg, vers=packages[pkg], channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel)))
@@ -133,10 +133,10 @@ def display_actions(actions, index):
         print("\nThe following packages will be UPDATED:\n")
     for pkg in sorted(updated):
         if config.show_channel_urls:
-            fmt = '  {pkg:<%s} {vers[0]:>%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
+            fmt = '    {pkg:<%s} {vers[0]:>%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
                 maxoldver, maxnewver)
         else:
-            fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]:%s}' % (maxpkg,
+            fmt = '    {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]:%s}' % (maxpkg,
                 maxoldver, maxnewver)
         print(fmt.format(pkg=pkg, vers=packages[pkg],
             channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
@@ -146,10 +146,10 @@ def display_actions(actions, index):
         print("\nThe following packages will be DOWNGRADED:\n")
     for pkg in sorted(downgraded):
         if config.show_channel_urls:
-            fmt = '  {pkg:<%s} {vers[0]:>%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
+            fmt = '    {pkg:<%s} {vers[0]:>%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
                 maxoldver, maxnewver)
         else:
-            fmt = '  {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]:%s}' % (maxpkg,
+            fmt = '    {pkg:<%s} {vers[0]:>%s}   ->   {vers[1]:%s}' % (maxpkg,
                 maxoldver, maxnewver)
         print(fmt.format(pkg=pkg, vers=packages[pkg],
             channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
