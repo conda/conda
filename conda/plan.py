@@ -138,7 +138,7 @@ def display_actions(actions, index):
             fmt = '    {pkg:<%s}   {vers[0]:<%s} {channel0:>}  -->  {vers[1]:%s} {channel1:>}' % (maxpkg,
                 maxoldver, maxnewver)
         else:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s}   ->   {vers[1]:%s}' % (maxpkg,
+            fmt = '    {pkg:<%s}   {vers[0]:<%s}  -->  {vers[1]:%s}' % (maxpkg,
                 maxoldver, maxnewver)
         print(fmt.format(pkg=pkg+':', vers=packages[pkg],
             channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
@@ -148,10 +148,10 @@ def display_actions(actions, index):
         print("\nThe following packages will be DOWNGRADED:\n")
     for pkg in sorted(downgraded):
         if config.show_channel_urls:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s} {channel0:>}   ->   {vers[1]:%s} {channel1:>}' % (maxpkg,
+            fmt = '    {pkg:<%s}   {vers[0]:<%s} {channel0:>}  -->  {vers[1]:%s} {channel1:>}' % (maxpkg,
                 maxoldver, maxnewver)
         else:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s}   ->   {vers[1]:%s}' % (maxpkg,
+            fmt = '    {pkg:<%s}   {vers[0]:<%s}  -->  {vers[1]:%s}' % (maxpkg,
                 maxoldver, maxnewver)
         print(fmt.format(pkg=pkg+':', vers=packages[pkg],
             channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
