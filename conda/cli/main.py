@@ -140,7 +140,6 @@ In short:
     )
 
     main_info.configure_parser(sub_parsers)
-    main_env.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
