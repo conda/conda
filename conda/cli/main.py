@@ -45,7 +45,6 @@ import argparse
 from conda.cli import conda_argparse
 from conda.cli import main_bundle
 from conda.cli import main_create
-from conda.cli import main_env
 from conda.cli import main_help
 from conda.cli import main_init
 from conda.cli import main_info
