@@ -105,7 +105,18 @@ def display_actions(actions, index):
     removed = {pkg for pkg in packages if not packages[pkg][1]}
     updated = set()
     downgraded = set()
+    oldfmt = {}
+    newfmt = {}
     for pkg in packages:
+        # That's right. I'm using old-style string formatting to generate a
+        # string with new-style string formatting.
+        oldfmt[pkg] = '{pkg:<%s}   {vers[0]:<%s}' % (maxpkg, maxnewver)
+        if config.show_channel_urls:
+            oldfmt[pkg] += ' {channel[0]:>}'
+        newfmt[pkg] = '{pkg:<%s}   {vers[0]:<%s}' % (maxpkg, maxnewver)
+        if config.show_channel_urls:
+            newfmt[pkg] += ' {channel[1]:>}'
+
         if pkg in new or pkg in removed:
             continue
         P0 = Packages[pkg + '-' + packages[pkg][0]]
@@ -119,49 +130,35 @@ def display_actions(actions, index):
         else:
             downgraded.add(pkg)
 
+    arrow = '  -->  '
+    lead = ' '*4
+
+    def format(s, pkg):
+        channel = ['', '']
+        for i in range(2):
+            if packages[pkg][i]:
+                channel[i] = config.canonical_channel_name(Packages[pkg + '-' + packages[pkg][i]].channel)
+        return lead + s.format(pkg=pkg+':', vers=packages[pkg], channel=channel)
+
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
     for pkg in sorted(new):
-        # That's right. I'm using old-style string formatting to generate a
-        # string with new-style string formatting.
-        fmt = '    {pkg:<%s}   {vers[1]:<%s}' % (maxpkg, maxnewver)
-        if config.show_channel_urls:
-            fmt += ' {channel1:>}'
-        print(fmt.format(pkg=pkg+':', vers=packages[pkg], channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
+        print(format(newfmt[pkg], pkg))
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
     for pkg in sorted(removed):
-        fmt = '    {pkg:<%s}   {vers[0]:%s}' % (maxpkg, maxoldver)
-        if config.show_channel_urls:
-            fmt += ' {channel0:>}'
-        print(fmt.format(pkg=pkg+':', vers=packages[pkg], channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel)))
+        print(format(oldfmt[pkg], pkg))
 
     if updated:
         print("\nThe following packages will be UPDATED:\n")
     for pkg in sorted(updated):
-        if config.show_channel_urls:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s} {channel0:>}  -->  {vers[1]:%s} {channel1:>}' % (maxpkg,
-                maxoldver, maxnewver)
-        else:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s}  -->  {vers[1]:%s}' % (maxpkg,
-                maxoldver, maxnewver)
-        print(fmt.format(pkg=pkg+':', vers=packages[pkg],
-            channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
-            channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
+        print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if downgraded:
         print("\nThe following packages will be DOWNGRADED:\n")
     for pkg in sorted(downgraded):
-        if config.show_channel_urls:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s} {channel0:>}  -->  {vers[1]:%s} {channel1:>}' % (maxpkg,
-                maxoldver, maxnewver)
-        else:
-            fmt = '    {pkg:<%s}   {vers[0]:<%s}  -->  {vers[1]:%s}' % (maxpkg,
-                maxoldver, maxnewver)
-        print(fmt.format(pkg=pkg+':', vers=packages[pkg],
-            channel0=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][0]].channel),
-            channel1=config.canonical_channel_name(Packages[pkg+'-'+packages[pkg][1]].channel)))
+        print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     print()
 
