@@ -73,12 +73,12 @@ def add_parser_channels(p):
 
 def add_parser_known(p):
     p.add_argument(
-        "--known",
-        action="store_false",
-        default=True,
+        "--unknown",
+        action="store_true",
+        default=False,
         dest='unknown',
-        help="only use index metadata from the known remote channels, and not "
-             "the local package cache (which are from unknown channels)",
+        help="use index metadata from the local package cache "
+             "(which are from unknown channels)",
     )
 
 def add_parser_use_index_cache(p):
