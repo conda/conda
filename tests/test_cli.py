@@ -30,6 +30,7 @@ class TestSpecFromLine(unittest.TestCase):
     def test_conda_style(self):
         self.assertEqual(spec_from_line('foo'), 'foo')
         self.assertEqual(spec_from_line('foo=1.0'), 'foo 1.0')
+        self.assertEqual(spec_from_line('foo=1.0*'), 'foo 1.0*')
         self.assertEqual(spec_from_line('foo=1.0|1.2'), 'foo 1.0|1.2')
         self.assertEqual(spec_from_line('foo=1.0=2'), 'foo 1.0 2')
 
