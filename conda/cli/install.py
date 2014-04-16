@@ -253,7 +253,7 @@ Error: environment does not exist: %s
         actions = plan.revert_actions(prefix, get_revision(args.revision))
     else:
         actions = plan.install_actions(prefix, index, specs, force=args.force,
-                                       only_names=only_names)
+                                       only_names=only_names, minimal_hint=args.alt_hint)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages

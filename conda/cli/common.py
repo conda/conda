@@ -124,6 +124,11 @@ def add_parser_install(p):
     add_parser_prefix(p)
     add_parser_quiet(p)
     p.add_argument(
+        "--alt-hint",
+        action="store_true",
+        default=False,
+        help="Use an alternate algorithm to generate an unsatisfiable hint")
+    p.add_argument(
         'packages',
         metavar = 'package_spec',
         action = "store",
