@@ -22,6 +22,12 @@ def configure_parser(sub_parsers):
         help = "given some PATH print which conda package the file came from",
     )
     p.add_argument(
+        '-L', "--ls-files",
+        metavar = 'PKG-NAME',
+        action  = "store",
+        help    = "list all files belonging to specified package",
+    )
+    p.add_argument(
         '-r', "--reset",
         action  = "store_true",
         help    = "remove all untracked files and exit",
@@ -57,6 +63,55 @@ def configure_parser(sub_parsers):
     )
     p.set_defaults(func=execute)
 
+def listPackageFiles(pkgName=None):
+    import os
+    import re
+    import conda.config as config
+    from conda.misc import walk_prefix
+
+    pkgsDir = config.pkgs_dirs[0]
+    allDirNames = []
+    pattern = re.compile(pkgName, re.I)
+
+    print('\nINFO: The location for available packages: %s' % (pkgsDir))
+
+    for dir in os.listdir(pkgsDir):
+        ignoreDirs = [ '_cache-0.0-x0', 'cache' ]
+
+        if dir in ignoreDirs:
+            continue
+
+        if not os.path.isfile(pkgsDir+"/"+dir):
+            match = pattern.match(dir)
+
+            if match:
+                allDirNames.append(dir)
+
+    numOfAllDirNames = len(allDirNames)
+    dirNumWidth = len(str(numOfAllDirNames))
+
+    if numOfAllDirNames == 0:
+        print("\n\tWARN: There is NO '%s' package.\n" % (pkgName))
+        return 1
+    elif numOfAllDirNames >= 2:
+        print("\n\tWARN: Ambiguous package name ('%s'), choose one name from below list:\n" % (pkgName))
+
+        num = 0
+        for dir in allDirNames:
+            num += 1
+            print("\t[ {num:>{width}} / {total} ]: {dir}".format(num=num, width=dirNumWidth, total=numOfAllDirNames, dir=dir))
+        print("")
+        return 1
+
+    fullPkgName = allDirNames[0]
+
+    print("INFO: All files belonging to '%s' package:\n" % (fullPkgName))
+
+    pkgDir = pkgsDir+"/"+fullPkgName
+
+    ret = walk_prefix(pkgDir, ignorePredefinedFiles=True)
+    for item in ret:
+        print(pkgDir+"/"+item)
 
 def execute(args, parser):
     import sys
@@ -74,6 +129,12 @@ def execute(args, parser):
             for dist in which_package(path):
                 print('%-50s  %s' % (path, dist))
         return
+
+    if args.ls_files:
+        if listPackageFiles(args.ls_files) == 1:
+            sys.exit(1)
+        else:
+            return
 
     if args.path:
         sys.exit("Error: no positional arguments expected.")
