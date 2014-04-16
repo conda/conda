@@ -108,7 +108,13 @@ def display_actions(actions, index):
     for pkg in packages:
         if pkg in new or pkg in removed:
             continue
-        if Packages[pkg + '-' + packages[pkg][0]] <= Packages[pkg + '-' + packages[pkg][1]]:
+        P0 = Packages[pkg + '-' + packages[pkg][0]]
+        P1 = Packages[pkg + '-' + packages[pkg][1]]
+        try:
+            newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
+        except TypeError:
+            newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
+        if newer:
             updated.add(pkg)
         else:
             downgraded.add(pkg)
