@@ -109,7 +109,7 @@ def listPackageFiles(pkgName=None):
 
     pkgDir = pkgsDir+"/"+fullPkgName
 
-    ret = walk_prefix(pkgDir, ignorePredefinedFiles=True)
+    ret = walk_prefix(pkgDir, ignorePredefinedFiles=False)
     for item in ret:
         print(pkgDir+"/"+item)
 
