@@ -7,6 +7,8 @@
   * change the default for adding cache from the local package cache -
     known is now the default and the option to use index metadata from the
     local package cache is --unknown
+  * add --alt-hint as a method to get an alternate form of a hint for
+    unsatisfiable packages
 
 
 2014-04-07   3.4.1:
