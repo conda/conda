@@ -153,6 +153,7 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # will be installed automatically whenever the package is installed.
       run:
         - python
+        - argparse # [py26]
 
     test:
       # files which are copied from the recipe into the (temporary) test
@@ -208,7 +209,7 @@ has 1, 2 or 3 parts:
 Preprocessing selectors
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-In addition, you can add selectors to each line, which are used as part of a
+In addition, you can add selectors to any line, which are used as part of a
 preprocessing stage. Before the yaml file is read, each selector is evaluated,
 and if it is False, the line that it is on is removed.  A selector is of the
 form ``# [<selector>]`` at the end of a line.
