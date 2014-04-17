@@ -13,7 +13,8 @@ from difflib import get_close_matches
 
 from conda.cli.find_commands import find_commands
 
-build_commands = {'build', 'index', 'skeleton', 'package'}
+build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
+    'pipbuild', 'develop'}
 
 class ArgumentParser(argparse.ArgumentParser):
     def _get_action_from_name(self, name):
