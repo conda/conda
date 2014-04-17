@@ -90,8 +90,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
         if e.code != 304:
             raise RuntimeError(msg)
 
-    except urllib2.URLError:
-        sys.stderr.write("Error: unknown host: %s\n" % url)
+    except urllib2.URLError as e:
+        sys.stderr.write("Error: unknown host: %s (%r)\n" % (url, e))
         if fail_unknown_host:
             sys.exit(1)
 

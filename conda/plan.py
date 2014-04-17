@@ -248,7 +248,7 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return f.read().strip().split('\n')
 
-def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True):
+def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False):
     r = Resolve(index)
     linked = install.linked(prefix)
 
@@ -262,7 +262,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
 
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
-                      config.track_features):
+                      config.track_features, minimal_hint=minimal_hint):
         dist = fn[:-8]
         name = install.name_dist(dist)
         if only_names and name not in only_names:

@@ -101,6 +101,8 @@ rc = load_condarc(rc_path)
 
 # ----- local directories -----
 
+# root_dir should only be used for testing, which is why don't mention it in the
+# documentation, to avoid confusion (it can really mess up a lot of things)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
@@ -131,23 +133,13 @@ envs_dirs = [abspath(expanduser(path)) for path in (
         _default_envs_dirs()
         )]
 
-def pkgs_dir_prefix(prefix):
-    if (abspath(prefix) == root_dir or
-            abspath(dirname(prefix)) == abspath(join(root_dir, 'envs'))):
+def pkgs_dir_from_envs_dir(envs_dir):
+    if abspath(envs_dir) == abspath(join(root_dir, 'envs')):
         return join(root_dir, 'pkgs')
     else:
-        return abspath(join(prefix, '..', '.pkgs'))
+        return join(envs_dir, '.pkgs')
 
-def set_pkgs_dirs(prefix=None):
-    global pkgs_dirs
-
-    pkgs_dirs = [pkgs_dir_prefix(prefix)] if prefix else []
-    for envs_dir in envs_dirs:
-        pkgs_dir = pkgs_dir_prefix(join(envs_dir, 'dummy'))
-        if pkgs_dir not in pkgs_dirs:
-            pkgs_dirs.append(pkgs_dir)
-
-set_pkgs_dirs()
+pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
 
 # ----- default environment prefix -----
 

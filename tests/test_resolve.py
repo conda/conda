@@ -696,6 +696,22 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
     }
+    index2['anotherpackage-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage 1.1'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage 1.1'],
+        'version': '1.0',
+    }
+    index2['anotherpackage-2.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage'],
+        'version': '2.0',
+    }
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('mypackage'))) == {
@@ -770,7 +786,33 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(RuntimeError, lambda: r.solve(['mypackage 1.0']))
+    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.0']))
+
+    assert r.solve(['anotherpackage 1.0']) == [
+        'anotherpackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+    assert r.solve(['anotherpackage']) == [
+        'anotherpackage-2.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
 
     # This time, the latest version is messed up
     index3 = index.copy()
@@ -789,6 +831,22 @@ def test_nonexistent_deps():
         'name': 'mypackage',
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
+    }
+    index3['anotherpackage-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage 1.0'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage 1.0'],
+        'version': '1.0',
+    }
+    index3['anotherpackage-2.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage'],
+        'version': '2.0',
     }
     r = Resolve(index3)
 
@@ -837,7 +895,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     }
 
-    assert raises(RuntimeError, lambda: r.get_dists(['mypackage'], max_only=True))
+    assert raises(NoPackagesFound, lambda: r.get_dists(['mypackage'], max_only=True))
 
     assert r.solve(['mypackage']) == r.solve(['mypackage 1.0']) == [
         'mypackage-1.0-py33_0.tar.bz2',
@@ -851,6 +909,35 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
     assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.1']))
+
+
+    assert r.solve(['anotherpackage 1.0']) == [
+        'anotherpackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+    # If recursive checking is working correctly, this will give
+    # anotherpackage 2.0, not anotherpackage 1.0
+    assert r.solve(['anotherpackage']) == [
+        'anotherpackage-2.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
 
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
