@@ -63,55 +63,56 @@ def configure_parser(sub_parsers):
     )
     p.set_defaults(func=execute)
 
-def listPackageFiles(pkgName=None):
+def list_package_files(pkg_name=None):
     import os
     import re
     import conda.config as config
     from conda.misc import walk_prefix
 
-    pkgsDir = config.pkgs_dirs[0]
-    allDirNames = []
-    pattern = re.compile(pkgName, re.I)
+    pkgs_dirs = config.pkgs_dirs[0]
+    all_dir_names = []
+    pattern = re.compile(pkg_name, re.I)
 
-    print('\nINFO: The location for available packages: %s' % (pkgsDir))
+    print('\nINFO: The location for available packages: %s' % (pkgs_dirs))
 
-    for dir in os.listdir(pkgsDir):
-        ignoreDirs = [ '_cache-0.0-x0', 'cache' ]
+    for dir in os.listdir(pkgs_dirs):
+        ignore_dirs = [ '_cache-0.0-x0', 'cache' ]
 
-        if dir in ignoreDirs:
+        if dir in ignore_dirs:
             continue
 
-        if not os.path.isfile(pkgsDir+"/"+dir):
+        if not os.path.isfile(pkgs_dirs+"/"+dir):
             match = pattern.match(dir)
 
             if match:
-                allDirNames.append(dir)
+                all_dir_names.append(dir)
 
-    numOfAllDirNames = len(allDirNames)
-    dirNumWidth = len(str(numOfAllDirNames))
+    num_of_all_dir_names = len(all_dir_names)
+    dir_num_width = len(str(num_of_all_dir_names))
 
-    if numOfAllDirNames == 0:
-        print("\n\tWARN: There is NO '%s' package.\n" % (pkgName))
+    if num_of_all_dir_names == 0:
+        print("\n\tWARN: There is NO '%s' package.\n" % (pkg_name))
         return 1
-    elif numOfAllDirNames >= 2:
-        print("\n\tWARN: Ambiguous package name ('%s'), choose one name from below list:\n" % (pkgName))
+    elif num_of_all_dir_names >= 2:
+        print("\n\tWARN: Ambiguous package name ('%s'), choose one name from below list:\n" % (pkg_name))
 
         num = 0
-        for dir in allDirNames:
+        for dir in all_dir_names:
             num += 1
-            print("\t[ {num:>{width}} / {total} ]: {dir}".format(num=num, width=dirNumWidth, total=numOfAllDirNames, dir=dir))
+            print("\t[ {num:>{width}} / {total} ]: {dir}".format(num=num, width=dir_num_width, total=num_of_all_dir_names, dir=dir))
         print("")
         return 1
 
-    fullPkgName = allDirNames[0]
+    full_pkg_name = all_dir_names[0]
 
-    print("INFO: All files belonging to '%s' package:\n" % (fullPkgName))
+    print("INFO: All files belonging to '%s' package:\n" % (full_pkg_name))
 
-    pkgDir = pkgsDir+"/"+fullPkgName
+    pkg_dir = pkgs_dirs+"/"+full_pkg_name
 
-    ret = walk_prefix(pkgDir, ignorePredefinedFiles=False)
+    ret = walk_prefix(pkg_dir, ignore_predefined_files=False)
+
     for item in ret:
-        print(pkgDir+"/"+item)
+        print(pkg_dir+"/"+item)
 
 def execute(args, parser):
     import sys
@@ -131,7 +132,7 @@ def execute(args, parser):
         return
 
     if args.ls_files:
-        if listPackageFiles(args.ls_files) == 1:
+        if list_package_files(args.ls_files) == 1:
             sys.exit(1)
         else:
             return
