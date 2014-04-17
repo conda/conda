@@ -10,6 +10,10 @@
   * add --alt-hint as a method to get an alternate form of a hint for
     unsatisfiable packages
   * add conda package --ls-files to list files in a package
+  * add ability to pin specs in an environment. To pin a spec, add a file
+    called pinned to the environment's conda-meta directory with the specs to
+    pin. Pinned specs are always kept installed, unless the --no-pin flag is
+    used.
 
 2014-04-07   3.4.1:
 -------------------
