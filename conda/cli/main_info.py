@@ -170,8 +170,8 @@ Current conda install:
             print("conda-%s: %s" % (cmd, find_executable(cmd)))
         print()
 
-        evars = ['PATH', 'PYTHONPATH', 'CONDA_DEFAULT_ENV', 'CIO_TEST',
-                 'CONDA_ENVS_PATH']
+        evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
+                 'CIO_TEST', 'CONDA_ENVS_PATH']
         if config.platform == 'linux':
             evars.append('LD_LIBRARY_PATH')
         elif config.platform == 'osx':

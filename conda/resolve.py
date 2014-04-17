@@ -232,6 +232,8 @@ class Resolve(object):
         try:
             res = self.msd_cache[fn]
         except KeyError:
+            if not 'depends' in self.index[fn]:
+                raise NoPackagesFound('Bad metadata for %s' % fn, fn)
             depends = self.index[fn]['depends']
             res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
         return res
@@ -276,12 +278,25 @@ class Resolve(object):
 
         def add_dependents(fn1, max_only=False):
             for ms in self.ms_depends(fn1):
+                found = False
+                notfound = []
                 for pkg2 in self.get_pkgs(ms, max_only=max_only):
                     if pkg2.fn in res:
+                        found = True
                         continue
-                    res[pkg2.fn] = pkg2
-                    if ms.strictness < 3:
-                        add_dependents(pkg2.fn, max_only=max_only)
+                    try:
+                        if ms.strictness < 3:
+                            add_dependents(pkg2.fn, max_only=max_only)
+                    except NoPackagesFound as e:
+                        if e.pkg not in notfound:
+                            notfound.append(e.pkg)
+                    else:
+                        found = True
+                        res[pkg2.fn] = pkg2
+
+                if not found:
+                    raise NoPackagesFound("Could not find some dependencies "
+                        "for %s: %s" % (ms, ', '.join(notfound)), str(ms))
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -334,7 +349,7 @@ class Resolve(object):
                 if len(clause) > 0:
                     yield clause
 
-            # Don't instlal any package that has a feature that wasn't requested.
+            # Don't install any package that has a feature that wasn't requested.
             for fn in self.find_matches(ms):
                 if fn in dists and self.features(fn) - features:
                     yield [-v[fn]]
@@ -386,16 +401,18 @@ class Resolve(object):
                     dists.update(self.all_deps(pkg.fn, max_only=max_only))
                 except NoPackagesFound as e:
                     # Ignore any package that has nonexisting dependencies.
-                    notfound.append(e.pkg)
+                    if e.pkg not in notfound:
+                        notfound.append(e.pkg)
                 else:
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), None)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), spec)
 
         return dists
 
-    def solve2(self, specs, features, guess=True, alg='sorter', returnall=False):
+    def solve2(self, specs, features, guess=True, alg='sorter',
+        returnall=False, minimal_hint=False):
         log.debug("Solving for %s" % str(specs))
 
         # First try doing it the "old way", i.e., just look at the most recent
@@ -472,8 +489,11 @@ class Resolve(object):
                 if guess:
                     stderrlog.info('\nError: Unsatisfiable package '
                         'specifications.\nGenerating hint: ')
-
-                    sys.exit(self.guess_bad_solve(specs, features))
+                    if minimal_hint:
+                        sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
+                w))
+                    else:
+                        sys.exit(self.guess_bad_solve(specs, features))
                 raise RuntimeError("Unsatisfiable package specifications")
 
             def version_constraints(lo, hi):
@@ -495,6 +515,20 @@ class Resolve(object):
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
 
+
+    def minimal_unsatisfiable_subset(self, clauses, v, w):
+        while True:
+            for i in combinations(clauses, len(clauses) - 1):
+                if not sat(list(i)):
+                    sys.stdout.write('.');sys.stdout.flush()
+                    clauses = i
+                    break
+            else:
+                break
+        import pprint
+        print()
+        print("The following set of clauses is unsatisfiable")
+        pprint.pprint([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
@@ -612,7 +646,7 @@ remaining packages:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None, max_only=False):
+    def solve(self, specs, installed=None, features=None, max_only=False, minimal_hint=False):
         if installed is None:
             installed = []
         if features is None:
@@ -630,7 +664,7 @@ remaining packages:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features)
+            return self.explicit(specs) or self.solve2(specs, features, minimal_hint=minimal_hint)
         except RuntimeError:
             stdoutlog.info('\n')
             raise

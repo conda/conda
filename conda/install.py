@@ -269,6 +269,8 @@ def symlink_conda(prefix, root_dir):
     prefix_conda = join(prefix, 'bin', 'conda')
     prefix_activate = join(prefix, 'bin', 'activate')
     prefix_deactivate = join(prefix, 'bin', 'deactivate')
+    if not os.path.exists(join(prefix, 'bin')):
+        os.makedirs(join(prefix, 'bin'))
     if not os.path.exists(prefix_conda):
         os.symlink(root_conda, prefix_conda)
     if not os.path.exists(prefix_activate):
@@ -377,8 +379,8 @@ def is_linked(prefix, dist):
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     '''
-    Set up a packages in a specified (environment) prefix.  We assume that
-    the packages has been extracted (using extract() above).
+    Set up a package in a specified (environment) prefix.  We assume that
+    the package has been extracted (using extract() above).
     '''
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))

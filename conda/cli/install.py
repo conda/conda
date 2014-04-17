@@ -101,7 +101,6 @@ def install(args, parser, command='install'):
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix)
-    config.set_pkgs_dirs(prefix)
 
     if command == 'update':
         if args.all:
@@ -254,7 +253,7 @@ Error: environment does not exist: %s
         actions = plan.revert_actions(prefix, get_revision(args.revision))
     else:
         actions = plan.install_actions(prefix, index, specs, force=args.force,
-                                       only_names=only_names, pinned=args.pinned)
+                                       only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
