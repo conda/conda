@@ -77,7 +77,3 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             (['anaconda', 'python 3*'], []),
             ]:
             self.check(specs, added)
-
-
-if __name__ == '__main__':
-    unittest.main()

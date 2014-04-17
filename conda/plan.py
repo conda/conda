@@ -14,7 +14,7 @@ import re
 import sys
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join
+from os.path import abspath, isfile, join, exists
 
 from conda import config
 from conda import install
@@ -190,6 +190,8 @@ def dist2spec3v(dist):
     return '%s %s*' % (name, version[:3])
 
 def add_defaults_to_specs(r, linked, specs):
+    # TODO: This should use the pinning mechanism. But don't change the API:
+    # cas uses it.
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
@@ -239,14 +241,24 @@ def add_defaults_to_specs(r, linked, specs):
         specs.append('%s %s*' % (name, def_ver))
     log.debug('HF specs=%r' % specs)
 
+def get_pinned_specs(prefix):
+    pinfile = join(prefix, 'conda-meta', 'pinned')
+    if not exists(pinfile):
+        return []
+    with open(pinfile) as f:
+        return f.read().strip().split('\n')
 
-def install_actions(prefix, index, specs, force=False, only_names=None, minimal_hint=False):
+def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False):
     r = Resolve(index)
     linked = install.linked(prefix)
 
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
+    if pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        specs += pinned_specs
+        # TODO: Improve error messages here
 
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
@@ -288,15 +300,20 @@ def install_actions(prefix, index, specs, force=False, only_names=None, minimal_
     return actions
 
 
-def remove_actions(prefix, specs):
+def remove_actions(prefix, specs, pinned=True):
     linked = install.linked(prefix)
 
     mss = [MatchSpec(spec) for spec in specs]
+
+    pinned_specs = get_pinned_specs(prefix)
 
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     for dist in sorted(linked):
         if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
+            if pinned and any(MatchSpec(spec).match('%s.tar.bz2' % dist) for spec in
+    pinned_specs):
+                raise RuntimeError("Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
             actions[UNLINK].append(dist)
 
     return actions

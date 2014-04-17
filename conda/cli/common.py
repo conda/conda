@@ -120,6 +120,7 @@ def add_parser_install(p):
         default=False,
         help = "use locally built packages",
     )
+    add_parser_no_pin(p)
     add_parser_channels(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
@@ -136,6 +137,15 @@ def add_parser_install(p):
         help = "package versions to install into conda environment",
     )
 
+
+def add_parser_no_pin(p):
+    p.add_argument(
+        "--no-pin",
+        action="store_false",
+        default=True,
+        dest='pinned',
+        help="don't use pinned packages",
+    )
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not args.channel:
