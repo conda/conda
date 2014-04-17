@@ -42,7 +42,7 @@ def rel_path(prefix, path):
     return res
 
 
-def walk_prefix(prefix, ignorePredefinedFiles=True):
+def walk_prefix(prefix, ignore_predefined_files=True):
     """
     Return the set of all files in a given prefix directory.
     """
@@ -55,7 +55,7 @@ def walk_prefix(prefix, ignorePredefinedFiles=True):
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
     for fn in os.listdir(prefix):
-        if ignorePredefinedFiles == True:
+        if ignore_predefined_files:
             if fn in ignore:
                 continue
         if isfile(join(prefix, fn)):
@@ -63,7 +63,7 @@ def walk_prefix(prefix, ignorePredefinedFiles=True):
             continue
         for root, dirs, files in os.walk(join(prefix, fn)):
             for fn2 in files:
-                if ignorePredefinedFiles == True:
+                if ignore_predefined_files:
                     if root == join(prefix, 'bin') and fn2 in binignore:
                         continue
                 res.add(rel_path(prefix, join(root, fn2)))
