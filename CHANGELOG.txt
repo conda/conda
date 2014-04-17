@@ -9,7 +9,7 @@
     local package cache is --unknown
   * add --alt-hint as a method to get an alternate form of a hint for
     unsatisfiable packages
-
+  * add conda package --ls-files to list files in a package
 
 2014-04-07   3.4.1:
 -------------------
