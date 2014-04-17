@@ -300,15 +300,20 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     return actions
 
 
-def remove_actions(prefix, specs):
+def remove_actions(prefix, specs, pinned=True):
     linked = install.linked(prefix)
 
     mss = [MatchSpec(spec) for spec in specs]
+
+    pinned_specs = get_pinned_specs(prefix)
 
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     for dist in sorted(linked):
         if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
+            if pinned and any(MatchSpec(spec).match('%s.tar.bz2' % dist) for spec in
+    pinned_specs):
+                raise RuntimeError("Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
             actions[UNLINK].append(dist)
 
     return actions
