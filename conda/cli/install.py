@@ -259,7 +259,7 @@ Error: environment does not exist: %s
         from conda.cli.main_list import list_packages
 
         regex = '^(%s)$' % '|'.join(spec_names)
-        print('# All requested packages already installed.')
+        print('\n# All requested packages already installed.')
         list_packages(prefix, regex)
         return
 
