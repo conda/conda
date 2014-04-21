@@ -63,6 +63,7 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       url: https://pypi.python.org/packages/source/b/bsdiff4/bsdiff4-1.1.4.tar.gz
       md5: 29f6089290505fc1a852e176bd276c43
       sha1: f0a2c9a30073449cfb7d171c57552f3109d93894
+      sha256: 5a022ff4c1d1de87232b1c70bde50afbb98212fd246be4a867d8737173cf1f8f
       # or from git:
       git_url: git@github.com:ilanschnell/bsdiff4.git
       git_tag: 1.1.4
