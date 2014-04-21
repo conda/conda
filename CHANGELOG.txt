@@ -1,4 +1,4 @@
-2014-04-XX   3.4.2:
+2014-04-21   3.4.2:
 -------------------
   * conda clean --lock: skip directories that don't exist, fixes #648
   * fixed empty history file causing crash, issue #644
@@ -14,6 +14,7 @@
     called pinned to the environment's conda-meta directory with the specs to
     pin. Pinned specs are always kept installed, unless the --no-pin flag is
     used.
+
 
 2014-04-07   3.4.1:
 -------------------
