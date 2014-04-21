@@ -261,6 +261,15 @@ def read_url(pkgs_dir, dist):
         pass
     return None
 
+def read_no_link(info_dir):
+    res = set()
+    for fn in 'no_link', 'no_softlink':
+        try:
+            res.update(set(yield_lines(join(info_dir, fn))))
+        except IOError:
+            pass
+    return res
+
 # Should this be an API function?
 def symlink_conda(prefix, root_dir):
     root_conda = join(root_dir, 'bin', 'conda')
@@ -403,11 +412,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
     except IOError:
         has_prefix_files = set()
 
-    if linktype == LINK_SOFT:
-        try:
-            no_softlink = set(yield_lines(join(info_dir, 'no_softlink')))
-        except IOError:
-            no_softlink = set()
+    no_link = read_no_link(info_dir)
 
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
@@ -423,9 +428,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             lt = linktype
-            if (f in has_prefix_files or
-                    (linktype == LINK_SOFT and f in no_softlink) or
-                    islink(src)):
+            if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
             try:
                 _link(src, dst, lt)
