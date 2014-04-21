@@ -14,6 +14,8 @@
     called pinned to the environment's conda-meta directory with the specs to
     pin. Pinned specs are always kept installed, unless the --no-pin flag is
     used.
+  * fix keyboard interrupting of external commands. Now keyboard interupting
+    conda build correctly removes the lock file.
 
 
 2014-04-07   3.4.1:
