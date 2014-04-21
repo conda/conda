@@ -69,8 +69,13 @@ Error: You need to install conda-build in order to use the 'conda %s'
                             sys.exit(message)
                     args = [find_executable(cmd)]
                     args.extend(sys.argv[2:])
-                    sys.exit(subprocess.call(args))
-
+                    try:
+                        p = subprocess.Popen(args)
+                        p.communicate()
+                    except KeyboardInterrupt:
+                        p.wait()
+                    finally:
+                        sys.exit(p.returncode)
         super(ArgumentParser, self).error(message)
 
     def print_help(self):
