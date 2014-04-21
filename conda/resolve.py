@@ -112,7 +112,7 @@ class MatchSpec(object):
         self.spec = spec
         parts = spec.split()
         self.strictness = len(parts)
-        assert 1 <= self.strictness <= 3
+        assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
         if self.strictness == 2:
             self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
