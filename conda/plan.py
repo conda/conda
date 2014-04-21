@@ -246,7 +246,7 @@ def get_pinned_specs(prefix):
     if not exists(pinfile):
         return []
     with open(pinfile) as f:
-        return f.read().strip().split('\n')
+        return list(filter(len, f.read().strip().split('\n')))
 
 def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False):
     r = Resolve(index)
