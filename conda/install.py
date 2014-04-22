@@ -578,7 +578,6 @@ def main():
     if opts.verbose:
         print("pkgs_dir: %r" % pkgs_dir)
         print("prefix  : %r" % prefix)
-        print("dist    : %r" % dist)
 
     if opts.list:
         pprint(sorted(linked(prefix)))
@@ -588,7 +587,11 @@ def main():
         linktype = (LINK_HARD
                     if try_hard_link(pkgs_dir, prefix, dists[0]) else
                     LINK_COPY)
+        if opts.verbose:
+            print("linktype: %s" % link_name_map[linktype])
         for dist in dists:
+            if opts.verbose:
+                print("linking: %s" % dist)
             link(pkgs_dir, prefix, dist, linktype)
         messages(prefix)
 
