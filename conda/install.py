@@ -587,10 +587,10 @@ def main():
         linktype = (LINK_HARD
                     if try_hard_link(pkgs_dir, prefix, dists[0]) else
                     LINK_COPY)
-        if opts.verbose:
+        if opts.verbose or linktype == LINK_COPY:
             print("linktype: %s" % link_name_map[linktype])
         for dist in dists:
-            if opts.verbose:
+            if opts.verbose or linktype == LINK_COPY:
                 print("linking: %s" % dist)
             link(pkgs_dir, prefix, dist, linktype)
         messages(prefix)
