@@ -1,3 +1,9 @@
+2014-04-XX   3.4.3:
+-------------------
+  * check if creating hard link is possible and otherwise copy,
+    during install
+
+
 2014-04-21   3.4.2:
 -------------------
   * conda clean --lock: skip directories that don't exist, fixes #648
