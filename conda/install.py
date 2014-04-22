@@ -584,8 +584,12 @@ def main():
         pprint(sorted(linked(prefix)))
 
     elif opts.link_all:
-        for dist in sorted(extracted(pkgs_dir)):
-            link(pkgs_dir, prefix, dist)
+        dists = sorted(extracted(pkgs_dir))
+        linktype = (LINK_HARD
+                    if try_hard_link(pkgs_dir, prefix, dists[0]) else
+                    LINK_COPY)
+        for dist in dists:
+            link(pkgs_dir, prefix, dist, linktype)
         messages(prefix)
 
     elif opts.extract:
