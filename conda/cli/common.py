@@ -219,6 +219,9 @@ def find_prefix_name(name):
 
 def get_prefix(args, search=True):
     if args.name:
+        if '/' in args.name:
+            sys.exit("Error: '/' not allowed in environment name: %s" %
+                     args.name)
         if args.name == config.root_env_name:
             return config.root_dir
         if search:
