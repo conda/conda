@@ -327,10 +327,6 @@ Windows (``bld.bat``) during the build process:
     - Python's site-packages location
   * - ``PY_VER``
     - Python version building against
-  * - ``SYS_PYTHON``
-    - Python of process which is building
-  * - ``SYS_PREFIX``
-    - Prefix of process which is building, usually root env.
 
 When building "unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
