@@ -2,7 +2,7 @@ Low-level conda package utility. (ADVANCED)
 
 positional arguments:
 
-**usage**: ``conda package [-h] [-n NAME | -p PATH] [-c] [-w] [-r] [-u] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD] [PATH [PATH ...]]
+**usage**: ``conda package [-h] [-n NAME | -p PATH] [-c] [-w] [-r] [-u] [-L PKG_NAME] [--pkg-name PKG_NAME] [--pkg-version PKG_VERSION] [--pkg-build PKG_BUILD] [PATH [PATH ...]]
 
 Low-level conda package utility. (ADVANCED)
 
@@ -20,6 +20,8 @@ optional arguments:
   -w, --which           given some PATH print which conda package the file came from
   -r, --reset           remove all untracked files and exit
   -u, --untracked       display all untracked files and exit
+  -L, --ls-files PKG_NAME
+                        list all files belonging to specified package
   --pkg-name PKG_NAME   package name of the created package
   --pkg-version PKG_VERSION
                         package version of the created package
