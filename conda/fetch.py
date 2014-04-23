@@ -130,12 +130,14 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     return index
 
 
-def fetch_pkg(info, dst_dir=None):
+def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
     if dst_dir is None:
         dst_dir = config.pkgs_dirs[0]
+
+    session = session or requests.session()
 
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
@@ -146,12 +148,9 @@ def fetch_pkg(info, dst_dir=None):
     with Locked(dst_dir):
         for x in range(retries):
             try:
-                fi = connectionhandled_urlopen(url)
+                resp = session.get(url)
             except IOError:
                 log.debug("attempt %d failed at urlopen" % x)
-                continue
-            if fi is None:
-                log.debug("could not fetch (urlopen returned None)")
                 continue
             n = 0
             h = hashlib.new('md5')
@@ -162,14 +161,8 @@ def fetch_pkg(info, dst_dir=None):
             except IOError:
                 raise RuntimeError("Could not open %r for writing.  "
                           "Permissions problem or missing directory?" % pp)
-            while True:
-                try:
-                    chunk = fi.read(16384)
-                except IOError:
-                    need_retry = True
-                    break
-                if not chunk:
-                    break
+
+            for chunk in resp.iter_content(16384):
                 try:
                     fo.write(chunk)
                 except IOError:
@@ -182,7 +175,6 @@ def fetch_pkg(info, dst_dir=None):
             if need_retry:
                 continue
 
-            fi.close()
             getLogger('fetch.stop').info(None)
             if h.hexdigest() != info['md5']:
                 raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
