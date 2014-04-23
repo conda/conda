@@ -8,7 +8,6 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import bz2
-import sys
 import json
 import shutil
 import hashlib
@@ -19,14 +18,10 @@ from os.path import basename, isdir, join
 from conda import config
 from conda.utils import memoized
 from conda.connection import connectionhandled_urlopen
-from conda.compat import PY3, itervalues, get_http_value
+from conda.compat import itervalues, get_http_value
 from conda.lock import Locked
 
-if PY3:
-    import urllib.request as urllib2
-else:
-    import urllib2
-
+import requests
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -55,8 +50,10 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
         d[dict_key] = value
 
 
-def fetch_repodata(url, cache_dir=None, use_cache=False):
+def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     dotlog.debug("fetching repodata: %s ..." % url)
+
+    session = session or requests.session()
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
@@ -67,33 +64,25 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
     if use_cache:
         return cache
 
-    request = urllib2.Request(url + 'repodata.json.bz2')
-    if '_etag' in cache:
-        request.add_header('If-None-Match', cache['_etag'])
-    if '_mod' in cache:
-        request.add_header('If-Modified-Since', cache['_mod'])
+    headers = {}
+    if "_tag" in cache:
+        headers["If-None-Match"] = cache["_etag"]
+    if "_mod" in cache:
+        headers["If-Modified-Since"] = cache["_mod"]
 
     try:
-        u = connectionhandled_urlopen(request)
-        data = u.read()
-        u.close()
-        cache = json.loads(bz2.decompress(data).decode('utf-8'))
-        add_http_value_to_dict(u, 'Etag', cache, '_etag')
-        add_http_value_to_dict(u, 'Last-Modified', cache, '_mod')
+        resp = session.get(url + 'repodata.json.bz2', headers=headers)
+        resp.raise_for_status()
+
+        cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
 
     except ValueError:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
 
-    except urllib2.HTTPError as e:
-        msg = "HTTPError: %d  %s  %s\n" % (e.code, e.msg, url)
+    except requests.exceptions.HTTPError as e:
+        msg = "HTTPError: %s: %s\n" % (e, url)
         log.debug(msg)
-        if e.code != 304:
-            raise RuntimeError(msg)
-
-    except urllib2.URLError as e:
-        sys.stderr.write("Error: unknown host: %s (%r)\n" % (url, e))
-        if fail_unknown_host:
-            sys.exit(1)
+        raise RuntimeError(msg)
 
     cache['_url'] = url
     try:
@@ -110,8 +99,9 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     stdoutlog.info("Fetching package metadata: ")
+    session = requests.session()
     for url in reversed(channel_urls):
-        repodata = fetch_repodata(url, use_cache=use_cache)
+        repodata = fetch_repodata(url, use_cache=use_cache, session=session)
         if repodata is None:
             continue
         new_index = repodata['packages']
