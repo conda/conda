@@ -21,7 +21,8 @@
     pin. Pinned specs are always kept installed, unless the --no-pin flag is
     used.
   * fix keyboard interrupting of external commands. Now keyboard interupting
-    conda build correctly removes the lock file.
+    conda build correctly removes the lock file
+  * add no_link ability to conda, see issue #678
 
 
 2014-04-07   3.4.1:
