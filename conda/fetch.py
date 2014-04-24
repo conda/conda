@@ -92,7 +92,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     return cache or None
 
-
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
@@ -128,7 +127,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
 
     return index
 
-
 def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
@@ -142,20 +140,35 @@ def fetch_pkg(info, dst_dir=None, session=None):
     url = info['channel'] + fn
     log.debug("url=%r" % url)
     path = join(dst_dir, fn)
-    pp = path + '.part'
+
+    download(url, path, session=session, md5=info['md5'], urlstxt=True)
+
+def download(url, dst_path, session=None, md5=None, urlstxt=False):
+    pp = join(dst_path, '.part')
+    dst_dir = os.path.split(dst_path)[0]
+    session = session or CondaSession()
 
     with Locked(dst_dir):
         try:
             resp = session.get(url, stream=True)
+        except IOError:
+            raise RuntimeError("Could not open '%s'" % url)
         except requests.exceptions.HTTPError as e:
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
+
+        size = resp.headers['Content-Length']
+        if size:
+            size = int(size)
+            fn = basename(dst_path)
+            getLogger('fetch.start').info((fn[:14], size))
+
         n = 0
-        h = hashlib.new('md5')
-        getLogger('fetch.start').info((fn, info['size']))
+        if md5:
+            h = hashlib.new('md5')
         try:
-            with open(pp, 'wb') as fo:
+            with open(dst_path, 'wb') as fo:
                 for chunk in resp.iter_content(2**14):
                     try:
                         fo.write(chunk)
@@ -163,58 +176,29 @@ def fetch_pkg(info, dst_dir=None, session=None):
                         raise RuntimeError("Failed to write to %r." % pp)
                     h.update(chunk)
                     n += len(chunk)
-                    getLogger('fetch.update').info(n)
+                    if size:
+                        getLogger('fetch.update').info(n)
         except IOError:
             raise RuntimeError("Could not open %r for writing.  "
-                      "Permissions problem or missing directory?" % pp)
+                "Permissions problem or missing directory?" % pp)
 
-        getLogger('fetch.stop').info(None)
-        if h.hexdigest() != info['md5']:
-            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
-        try:
-            os.rename(pp, path)
-        except OSError:
-            raise RuntimeError("Could not rename %r to %r." % (pp, path))
-        try:
-            with open(join(dst_dir, 'urls.txt'), 'a') as fa:
-                fa.write('%s\n' % url)
-        except IOError:
-            pass
-        return
-
-    raise RuntimeError("Could not locate '%s'" % url)
-
-
-def download(url, dst_path):
-    try:
-        u = connectionhandled_urlopen(url)
-    except IOError:
-        raise RuntimeError("Could not open '%s'" % url)
-    except ValueError as e:
-        raise RuntimeError(e)
-
-    size = get_http_value(u, 'Content-Length')
-    if size:
-        size = int(size)
-        fn = basename(dst_path)
-        getLogger('fetch.start').info((fn[:14], size))
-
-    n = 0
-    fo = open(dst_path, 'wb')
-    while True:
-        chunk = u.read(16384)
-        if not chunk:
-            break
-        fo.write(chunk)
-        n += len(chunk)
         if size:
-            getLogger('fetch.update').info(n)
-    fo.close()
+            getLogger('fetch.stop').info(None)
 
-    u.close()
-    if size:
-        getLogger('fetch.stop').info(None)
+        if md5 and h.hexdigest() != md5:
+            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (url, h.hexdigest(), md5))
 
+        try:
+            os.rename(pp, dst_path)
+        except OSError:
+            raise RuntimeError("Could not rename %r to %r." % (pp, dst_path))
+
+        if urlstxt:
+            try:
+                with open(join(dst_dir, 'urls.txt'), 'a') as fa:
+                    fa.write('%s\n' % url)
+            except IOError:
+                pass
 
 class TmpDownload(object):
     """
