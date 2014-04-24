@@ -148,7 +148,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     with Locked(dst_dir):
         for x in range(retries):
             try:
-                resp = session.get(url)
+                resp = session.get(url, stream=True)
             except IOError:
                 log.debug("attempt %d failed at urlopen" % x)
                 continue
