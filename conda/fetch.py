@@ -17,7 +17,7 @@ from os.path import basename, isdir, join
 
 from conda import config
 from conda.utils import memoized
-from conda.connection import connectionhandled_urlopen, CondaSession
+from conda.connection import CondaSession
 from conda.compat import itervalues, get_http_value
 from conda.lock import Locked
 
