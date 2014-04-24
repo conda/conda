@@ -17,7 +17,7 @@ from os.path import basename, isdir, join
 
 from conda import config
 from conda.utils import memoized
-from conda.connection import connectionhandled_urlopen
+from conda.connection import connectionhandled_urlopen, CondaSession
 from conda.compat import itervalues, get_http_value
 from conda.lock import Locked
 
@@ -28,7 +28,6 @@ dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
 
 fail_unknown_host = False
-retries = 3
 
 
 def create_cache_dir():
@@ -53,7 +52,7 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     dotlog.debug("fetching repodata: %s ..." % url)
 
-    session = session or requests.session()
+    session = session or CondaSession()
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
@@ -99,7 +98,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     stdoutlog.info("Fetching package metadata: ")
-    session = requests.session()
+    session = CondaSession()
     for url in reversed(channel_urls):
         repodata = fetch_repodata(url, use_cache=use_cache, session=session)
         if repodata is None:
@@ -137,7 +136,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     if dst_dir is None:
         dst_dir = config.pkgs_dirs[0]
 
-    session = session or requests.session()
+    session = session or CondaSession()
 
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
@@ -146,48 +145,42 @@ def fetch_pkg(info, dst_dir=None, session=None):
     pp = path + '.part'
 
     with Locked(dst_dir):
-        for x in range(retries):
-            try:
-                resp = session.get(url, stream=True)
-            except IOError:
-                log.debug("attempt %d failed at urlopen" % x)
-                continue
-            n = 0
-            h = hashlib.new('md5')
-            getLogger('fetch.start').info((fn, info['size']))
-            need_retry = False
-            try:
-                fo = open(pp, 'wb')
-            except IOError:
-                raise RuntimeError("Could not open %r for writing.  "
-                          "Permissions problem or missing directory?" % pp)
+        try:
+            resp = session.get(url, stream=True)
+        except requests.exceptions.HTTPError as e:
+            msg = "HTTPError: %s: %s\n" % (e, url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+        n = 0
+        h = hashlib.new('md5')
+        getLogger('fetch.start').info((fn, info['size']))
+        try:
+            with open(pp, 'wb') as fo:
+                for chunk in resp.iter_content(2**14):
+                    try:
+                        fo.write(chunk)
+                    except IOError:
+                        raise RuntimeError("Failed to write to %r." % pp)
+                    h.update(chunk)
+                    n += len(chunk)
+                    getLogger('fetch.update').info(n)
+        except IOError:
+            raise RuntimeError("Could not open %r for writing.  "
+                      "Permissions problem or missing directory?" % pp)
 
-            for chunk in resp.iter_content(16384):
-                try:
-                    fo.write(chunk)
-                except IOError:
-                    raise RuntimeError("Failed to write to %r." % pp)
-                h.update(chunk)
-                n += len(chunk)
-                getLogger('fetch.update').info(n)
-
-            fo.close()
-            if need_retry:
-                continue
-
-            getLogger('fetch.stop').info(None)
-            if h.hexdigest() != info['md5']:
-                raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
-            try:
-                os.rename(pp, path)
-            except OSError:
-                raise RuntimeError("Could not rename %r to %r." % (pp, path))
-            try:
-                with open(join(dst_dir, 'urls.txt'), 'a') as fa:
-                    fa.write('%s\n' % url)
-            except IOError:
-                pass
-            return
+        getLogger('fetch.stop').info(None)
+        if h.hexdigest() != info['md5']:
+            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
+        try:
+            os.rename(pp, path)
+        except OSError:
+            raise RuntimeError("Could not rename %r to %r." % (pp, path))
+        try:
+            with open(join(dst_dir, 'urls.txt'), 'a') as fa:
+                fa.write('%s\n' % url)
+        except IOError:
+            pass
+        return
 
     raise RuntimeError("Could not locate '%s'" % url)
 
