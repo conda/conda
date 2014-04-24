@@ -278,7 +278,7 @@ Error: environment does not exist: %s
         print_activate(args.name if args.name else prefix)
 
 
-def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=True):
+def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=False):
     try:
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
