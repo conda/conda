@@ -73,8 +73,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     try:
         resp = session.get(url + 'repodata.json.bz2', headers=headers)
         resp.raise_for_status()
-
-        cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+        if resp.status_code != 304:
+            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
 
     except ValueError:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
