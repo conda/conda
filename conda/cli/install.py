@@ -278,12 +278,12 @@ Error: environment does not exist: %s
         print_activate(args.name if args.name else prefix)
 
 
-def check_install(packages, platform=None, channel_urls=(), prepend=True):
+def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=False):
     try:
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        plan.install_actions(prefix, index, specs)
+        plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
     finally:
         ci.rm_rf(prefix)
