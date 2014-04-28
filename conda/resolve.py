@@ -284,15 +284,17 @@ class Resolve(object):
                     if pkg2.fn in res:
                         found = True
                         continue
+                    res[pkg2.fn] = pkg2
                     try:
                         if ms.strictness < 3:
                             add_dependents(pkg2.fn, max_only=max_only)
                     except NoPackagesFound as e:
                         if e.pkg not in notfound:
                             notfound.append(e.pkg)
+                        if pkg2.fn in res:
+                            del res[pkg2.fn]
                     else:
                         found = True
-                        res[pkg2.fn] = pkg2
 
                 if not found:
                     raise NoPackagesFound("Could not find some dependencies "
