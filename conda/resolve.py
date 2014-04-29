@@ -317,7 +317,7 @@ class Resolve(object):
                     if v1 < v2:
                         # NOT (fn1 AND fn2)
                         # e.g. NOT (numpy-1.6 AND numpy-1.7)
-                        yield [-v1, -v2]
+                        yield (-v1, -v2)
 
         for fn1 in dists:
             for ms in self.ms_depends(fn1):
@@ -328,7 +328,7 @@ class Resolve(object):
                     if fn2 in dists:
                         clause.append(v[fn2])
                 assert len(clause) > 1, '%s %r' % (fn1, ms)
-                yield clause
+                yield tuple(clause)
 
                 for feat in features:
                     # ensure that a package (with required name) which has
@@ -339,7 +339,7 @@ class Resolve(object):
                          if feat in self.features(fn2):
                              clause.append(v[fn2])
                     if len(clause) > 1:
-                        yield clause
+                        yield tuple(clause)
 
         for spec in specs:
             ms = MatchSpec(spec)
@@ -349,12 +349,12 @@ class Resolve(object):
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
-                    yield clause
+                    yield tuple(clause)
 
             # Don't install any package that has a feature that wasn't requested.
             for fn in self.find_matches(ms):
                 if fn in dists and self.features(fn) - features:
-                    yield [-v[fn]]
+                    yield (-v[fn],)
 
             # finally, ensure a matching package itself is installed
             # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
@@ -362,7 +362,7 @@ class Resolve(object):
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1, ms
-            yield clause
+            yield tuple(clause)
 
     def generate_version_eq(self, v, dists, include0=False):
         groups = defaultdict(list) # map name to list of filenames
@@ -458,7 +458,7 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = list(self.gen_clauses(v, dists, specs, features))
+        clauses = set(self.gen_clauses(v, dists, specs, features))
         if not clauses:
             if returnall:
                 return [[]]
@@ -467,20 +467,20 @@ class Resolve(object):
 
         # Check the common case first
         dotlog.debug("Building the constraint with rhs: [0, 0]")
-        constraints = list(generate_constraints(eq, m, [0, 0], alg=alg))
+        constraints = generate_constraints(eq, m, [0, 0], alg=alg)
 
         # Only relevant for build_BDD
-        if constraints and constraints[0] == [false]:
+        if constraints and false in constraints:
             # XXX: This should *never* happen. build_BDD only returns false
             # when the linear constraint is unsatisfiable, but any linear
             # constraint can equal 0, by setting all the variables to 0.
             solution = []
         else:
-            if constraints and constraints[0] == [true]:
+            if constraints and true in constraints:
                 constraints = []
 
             dotlog.debug("Checking for solutions with rhs:  [0, 0]")
-            solution = sat(clauses + constraints)
+            solution = sat(clauses | constraints)
 
         if not solution:
             # Second common case, check if it's unsatisfiable
@@ -499,13 +499,13 @@ class Resolve(object):
                 raise RuntimeError("Unsatisfiable package specifications")
 
             def version_constraints(lo, hi):
-                return list(generate_constraints(eq, m, [lo, hi], alg=alg))
+                return generate_constraints(eq, m, [lo, hi], alg=alg)
 
             log.debug("Bisecting the version constraint")
             constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses + constraints, N=m+1)
+        solutions = min_sat(clauses | constraints, N=m+1)
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
