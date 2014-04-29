@@ -23,7 +23,7 @@ representing the various logical classes, only atoms.
 import sys
 from collections import defaultdict
 from functools import total_ordering
-from itertools import islice
+from itertools import islice, chain
 import logging
 
 from conda.compat import log2, ceil
@@ -413,16 +413,16 @@ class Linear(object):
 
     __repr__ = __str__
 
-
 def generate_constraints(eq, m, rhs, alg='sorter', sorter_cache={}):
     l = Linear(eq, rhs)
     if not l:
         raise StopIteration
     C = Clauses(m)
+    additional_clauses = set()
     if alg == 'BDD':
-        yield [C.build_BDD(l)]
+        additional_clauses.add((C.build_BDD(l),))
     elif alg == 'BDD_recursive':
-        yield [C.build_BDD_recursive(l)]
+        additional_clauses.add((C.build_BDD_recursive(l),))
     elif alg == 'sorter':
         if l.hashable_equation in sorter_cache:
             m, C = sorter_cache[l.hashable_equation]
@@ -434,16 +434,15 @@ def generate_constraints(eq, m, rhs, alg='sorter', sorter_cache={}):
             # Output must be between lower bound and upper bound, meaning
             # the lower bound of the sorted output must be true and one more
             # than the upper bound should be false.
-            yield [m[l.rhs[0]-1]]
-            yield [-m[l.rhs[1]]]
+            additional_clauses.add((m[l.rhs[0]-1],))
+            additional_clauses.add((-m[l.rhs[1]],))
         else:
             # The lower bound is zero, which is always true.
-            yield [-m[l.rhs[1]]]
+            additional_clauses.add((-m[l.rhs[1]],))
     else:
         raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
 
-    for clause in C.clauses:
-        yield list(clause)
+    return C.clauses | additional_clauses
 
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
     """
@@ -464,14 +463,14 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
 
         dotlog.debug("Building the constraint with rhs: %s" % rhs)
         constraints = func(*rhs)
-        if constraints[0] == [false]: # build_BDD returns false if the rhs is
-            solutions = []            # too big to be satisfied. XXX: This
-            break                     # probably indicates a bug.
-        if constraints[0] == [true]:
+        if false in constraints: # build_BDD returns false if the rhs is
+            solutions = []       # too big to be satisfied. XXX: This
+            break                # probably indicates a bug.
+        if true in constraints:
             constraints = []
 
         dotlog.debug("Checking for solutions with rhs:  %s" % rhs)
-        solutions = sat(clauses + constraints)
+        solutions = sat(chain(clauses, constraints))
         if lo >= hi:
             break
         if solutions:
@@ -501,8 +500,13 @@ def min_sat(clauses, max_n=1000, N=sys.maxsize):
     except ImportError:
         sys.exit('Error: could not import pycosat (required for dependency '
                  'resolving)')
+    from conda.resolve import normalized_version
 
     min_tl, solutions = sys.maxsize, []
+    if normalized_version(pycosat.__version__) < normalized_version('0.6.1'):
+        # Old versions of pycosat require lists. This conversion can be very
+        # slow, though, so only do it if we need to.
+        clauses = list(map(list, clauses))
     for sol in islice(pycosat.itersolve(clauses), max_n):
         tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
         if tl < min_tl:
@@ -525,6 +529,12 @@ def sat(clauses):
     except ImportError:
         sys.exit('Error: could not import pycosat (required for dependency '
                  'resolving)')
+    from conda.resolve import normalized_version
+
+    if normalized_version(pycosat.__version__) < normalized_version('0.6.1'):
+        # Old versions of pycosat require lists. This conversion can be very
+        # slow, though, so only do it if we need to.
+        clauses = list(map(list, clauses))
 
     solution = pycosat.solve(clauses)
     if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
