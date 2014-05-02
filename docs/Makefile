@@ -172,4 +172,4 @@ live:
 	$(LAUNCH) http://conda.pydata.org/docs
 
 livehtml:
-	livereload -b build/html
+	livereload build/html
