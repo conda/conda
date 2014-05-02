@@ -85,6 +85,7 @@ Reference Guide
 
    commands
    spec
+   travis
 
 Presentations & Blog Posts
 --------------------------
