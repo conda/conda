@@ -48,6 +48,8 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
+        self.proxies = get_proxy_servers()
+
         # Configure retries
         if retries:
             http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
