@@ -413,9 +413,10 @@ class Resolve(object):
 
         return dists
 
-    def solve2(self, specs, features, guess=True, alg='sorter',
+    def solve2(self, specs, features, guess=True, alg=None,
         returnall=False, minimal_hint=False):
         log.debug("Solving for %s" % str(specs))
+        log.debug("Using alg %s" % alg)
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
