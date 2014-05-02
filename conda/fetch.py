@@ -26,6 +26,7 @@ import requests
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
+stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
 
@@ -82,6 +83,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         msg = "HTTPError: %s: %s\n" % (e, url)
         log.debug(msg)
         raise RuntimeError(msg)
+
+    except requests.exceptions.ConnectionError as e:
+        msg = "Connection error: %s: %s\n" % (e, url)
+        stderrlog.info('Could not connect to %s\n' % url)
+        log.debug(msg)
+        if fail_unknown_host:
+            raise RuntimeError(msg)
 
     cache['_url'] = url
     try:
