@@ -18,8 +18,9 @@ The .travis.yml
 
 We assume here that you are already familiar with the `basic configuration for
 Travis <http://docs.travis-ci.com/user/languages/python/#Examples>`_.  The
-following shows how to modify ``.travis.yml`` to use `Miniconda <http://conda.pydata.org/miniconda.html>`_ for a
-project that supports Python 2.6, 2.7, 3.3, and 3.4.
+following shows how to modify ``.travis.yml`` to use `Miniconda
+<http://conda.pydata.org/miniconda.html>`_ for a project that supports Python
+2.6, 2.7, 3.3, and 3.4.
 
 .. code-block:: yaml
 
