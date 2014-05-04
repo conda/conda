@@ -167,12 +167,31 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
-def update_prefix(path, new_prefix):
+def read_has_prefix(path):    
+    res = {}
+    try:
+        for line in yield_lines(path):
+            try:
+                placeholder, mode, f = line.split(None, 2)
+                res[f] = (placeholder, mode)
+            except ValueError:
+                res[line] = (prefix_placeholder, 'text')
+    except IOError:
+        pass
+    return res
+
+
+def update_prefix(path, new_prefix, placeholder, mode):
     path = os.path.realpath(path)
     with open(path, 'rb') as fi:
         data = fi.read()
-    new_data = data.replace(prefix_placeholder.encode('utf-8'),
-                            new_prefix.encode('utf-8'))
+    if mode == 'text':
+        new_data = data.replace(placeholder.encode('utf-8'),
+                                new_prefix.encode('utf-8'))
+    elif mode == 'binary':
+        pass # TODO
+    else:
+        sys.exit("Invalid mode:" % mode)
     if new_data == data:
         return
     st = os.lstat(path)
@@ -406,12 +425,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
     info_dir = join(source_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
-
-    try:
-        has_prefix_files = set(yield_lines(join(info_dir, 'has_prefix')))
-    except IOError:
-        has_prefix_files = set()
-
+    has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
     with Locked(prefix), Locked(pkgs_dir):
@@ -440,7 +454,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             return
 
         for f in sorted(has_prefix_files):
-            update_prefix(join(prefix, f), prefix)
+            placeholder, mode = has_prefix_files[f]
+            update_prefix(join(prefix, f), prefix, placeholder, mode)
 
         mk_menus(prefix, files, remove=False)
 
