@@ -180,8 +180,10 @@ def read_has_prefix(path):
         pass
     return res
 
+def binary_replace(data, a, b):
+    pass # TODO
 
-def update_prefix(path, new_prefix, placeholder, mode):
+def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
     path = os.path.realpath(path)
     with open(path, 'rb') as fi:
         data = fi.read()
@@ -189,9 +191,10 @@ def update_prefix(path, new_prefix, placeholder, mode):
         new_data = data.replace(placeholder.encode('utf-8'),
                                 new_prefix.encode('utf-8'))
     elif mode == 'binary':
-        pass # TODO
+        new_data = binary_replace(data, placeholder, new_prefix)
     else:
         sys.exit("Invalid mode:" % mode)
+
     if new_data == data:
         return
     st = os.lstat(path)
