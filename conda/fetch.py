@@ -152,7 +152,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False):
-    pp = join(dst_path, '.part')
+    pp = dst_path + '.part'
     dst_dir = os.path.split(dst_path)[0]
     session = session or CondaSession()
 
@@ -176,7 +176,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
         if md5:
             h = hashlib.new('md5')
         try:
-            with open(dst_path, 'wb') as fo:
+            with open(pp, 'wb') as fo:
                 for chunk in resp.iter_content(2**14):
                     try:
                         fo.write(chunk)
