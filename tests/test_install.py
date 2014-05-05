@@ -19,11 +19,9 @@ class TestBinaryReplace(unittest.TestCase):
                            b'xxxbbbbxyz\x00\x00zz')
 
     def test_too_long(self):
-        self.assertEqual(
-            # Note that here, because the replacement is too long, the
-            # data remains unchanged
-            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb'),
-                           b'xxxaaaaaxyz\x00zz')
+        self.assertRaises(SystemExit,
+                          binary_replace,
+                          b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
 
     def test_no_extra(self):
         self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
