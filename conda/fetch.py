@@ -182,7 +182,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
                         fo.write(chunk)
                     except IOError:
                         raise RuntimeError("Failed to write to %r." % pp)
-                    h.update(chunk)
+                    if md5:
+                        h.update(chunk)
                     n += len(chunk)
                     if size:
                         getLogger('fetch.update').info(n)
