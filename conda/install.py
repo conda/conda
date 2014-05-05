@@ -167,7 +167,7 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
-def read_has_prefix(path):    
+def read_has_prefix(path):
     res = {}
     try:
         for line in yield_lines(path):
@@ -181,7 +181,24 @@ def read_has_prefix(path):
     return res
 
 def binary_replace(data, a, b):
-    pass # TODO
+    """
+    Perform a binary replacement of `data`, where the placeholder `a` is replaced
+    with `b` and the remaining string is padded with zeros.
+    """
+    import re
+
+    def replace(match):
+        padding = len(match.group()) - len(b) - len(match.group(1))
+        if padding < 1:
+            sys.stderr.write('WARNING: placeholder too short\n')
+        return b + match.group(1) + '\0' * padding
+    pat = re.compile(a.replace('.', '\.') + '([^\0\\s]*?)\0')
+    res = pat.sub(replace, data)
+    if len(res) == len(data):
+        return res
+    else:
+        sys.stderr.write('WARNING: unmodified\n')
+        return data
 
 def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
     path = os.path.realpath(path)
