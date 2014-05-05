@@ -9,28 +9,30 @@ from conda.install import binary_replace, update_prefix
 class TestBinaryReplace(unittest.TestCase):
 
     def test_simple(self):
-        self.assertEqual(binary_replace('xxxaaaaaxyz\x00zz', 'aaaaa', 'bbbbb'),
-                                        'xxxbbbbbxyz\x00zz')
+        self.assertEqual(
+            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
+                           b'xxxbbbbbxyz\x00zz')
 
     def test_shorter(self):
-        self.assertEqual(binary_replace('xxxaaaaaxyz\x00zz', 'aaaaa', 'bbbb'),
-                                        'xxxbbbbxyz\x00\x00zz')
+        self.assertEqual(
+            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbb'),
+                           b'xxxbbbbxyz\x00\x00zz')
 
     def test_too_long(self):
         self.assertEqual(
             # Note that here, because the replacement is too long, the
             # data remains unchanged
-            binary_replace('xxxaaaaaxyz\x00zz', 'aaaaa', 'bbbbbbbb'),
-                           'xxxaaaaaxyz\x00zz')
+            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb'),
+                           b'xxxaaaaaxyz\x00zz')
 
     def test_no_extra(self):
-        self.assertEqual(binary_replace('aaaaa\x00', 'aaaaa', 'bbbbb'),
-                                        'bbbbb\x00')
+        self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
+                                        b'bbbbb\x00')
 
     def test_two(self):
         self.assertEqual(
-            binary_replace('aaaaa\x001234aaaaacc\x00\x00', 'aaaaa', 'bbbbb'),
-                           'bbbbb\x001234bbbbbcc\x00\x00')
+            binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa', b'bbbbb'),
+                           b'bbbbb\x001234bbbbbcc\x00\x00')
 
 class FileTests(unittest.TestCase):
 

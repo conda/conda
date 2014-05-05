@@ -184,6 +184,7 @@ def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with zeros.
+    All input arguments are expected to be bytes objects.
     """
     import re
 
@@ -191,8 +192,8 @@ def binary_replace(data, a, b):
         padding = len(match.group()) - len(b) - len(match.group(1))
         if padding < 1:
             sys.stderr.write('WARNING: placeholder too short\n')
-        return b + match.group(1) + '\0' * padding
-    pat = re.compile(a.replace('.', '\.') + '([^\0\\s]*?)\0')
+        return b + match.group(1) + b'\0' * padding
+    pat = re.compile(a.replace(b'.', b'\.') + b'([^\0\\s]*?)\0')
     res = pat.sub(replace, data)
     if len(res) == len(data):
         return res
@@ -209,7 +210,8 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
         new_data = data.replace(placeholder.encode('utf-8'),
                                 new_prefix.encode('utf-8'))
     elif mode == 'binary':
-        new_data = binary_replace(data, placeholder, new_prefix)
+        new_data = binary_replace(data, placeholder.encode('utf-8'),
+                                  new_prefix.encode('utf-8'))
     else:
         sys.exit("Invalid mode:" % mode)
 
