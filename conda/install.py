@@ -184,6 +184,9 @@ def read_has_prefix(path):
         pass
     return res
 
+class PaddingError(Exception):
+    pass
+
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
@@ -195,7 +198,7 @@ def binary_replace(data, a, b):
     def replace(match):
         padding = len(match.group()) - len(b) - len(match.group(1))
         if padding < 1:
-            sys.exit('ERROR: placeholder %r too short\n' % a)
+            raise PaddingError
         return b + match.group(1) + b'\0' * padding
     pat = re.compile(a.replace(b'.', b'\.') + b'([^\0\\s]*?)\0')
     res = pat.sub(replace, data)
@@ -479,15 +482,16 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
-            update_prefix(join(prefix, f), prefix, placeholder, mode)
+            try:
+                update_prefix(join(prefix, f), prefix, placeholder, mode)
+            except PaddingError:
+                sys.exit('ERROR: placeholder %s too short in: %s\n' %
+                         (placeholder, dist))
 
         mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
-            # when the post-link step fails, we don't write any package
-            # metadata and return here.  This way the package is not
-            # considered installed.
-            return
+            sys.exit("Error: post-link failed for: %s" % dist)
 
         create_meta(prefix, dist, info_dir, {
                 'url': read_url(pkgs_dir, dist),

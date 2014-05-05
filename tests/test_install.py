@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from os.path import join
 
-from conda.install import binary_replace, update_prefix
+from conda.install import PaddingError, binary_replace, update_prefix
 
 
 class TestBinaryReplace(unittest.TestCase):
@@ -19,8 +19,7 @@ class TestBinaryReplace(unittest.TestCase):
                            b'xxxbbbbxyz\x00\x00zz')
 
     def test_too_long(self):
-        self.assertRaises(SystemExit,
-                          binary_replace,
+        self.assertRaises(PaddingError, binary_replace,
                           b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
 
     def test_no_extra(self):
