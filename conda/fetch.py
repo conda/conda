@@ -198,8 +198,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
 
         try:
             os.rename(pp, dst_path)
-        except OSError:
-            raise RuntimeError("Could not rename %r to %r." % (pp, dst_path))
+        except OSError as e:
+            raise RuntimeError("Could not rename %r to %r: %r" % (pp,
+                dst_path, e))
 
         if urlstxt:
             try:
