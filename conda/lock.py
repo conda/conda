@@ -19,7 +19,7 @@ We don't raise an error if the lock is named with the current PID
 import os
 from os.path import join
 import glob
-
+from time import sleep
 
 LOCKFN = '.conda_lock'
 
@@ -36,15 +36,28 @@ class Locked(object):
         self.remove = True
 
     def __enter__(self):
-        files = glob.glob(self.pattern)
-        if files and not files[0].endswith(self.end):
-            # Keep the string "LOCKERROR" in this string so that external
-            # programs can look for it.
-            raise RuntimeError("""\
-LOCKERROR: It looks like conda is already doing something.
-The lock %s was found. Wait for it to finish before continuing.
-If you are sure that conda is not running, remove it and try again.
-You can also use: $ conda clean --lock""" % self.lock_path)
+        retries = 10
+        # Keep the string "LOCKERROR" in this string so that external
+        # programs can look for it.
+        lockstr = ("""\
+    LOCKERROR: It looks like conda is already doing something.
+    The lock %s was found. Wait for it to finish before continuing.
+    If you are sure that conda is not running, remove it and try again.
+    You can also use: $ conda clean --lock""" % self.lock_path)
+        sleeptime = 1
+        while retries:
+            files = glob.glob(self.pattern)
+            if files and not files[0].endswith(self.end):
+                print(lockstr)
+                print("Sleeping for %s seconds" % sleeptime)
+                sleep(sleeptime)
+                sleeptime *= 2
+                retries -= 1
+            else:
+                break
+        else:
+            print("Exceeded max retries, giving up")
+            raise RuntimeError(lockstr)
 
         if not files:
             try:
