@@ -493,16 +493,11 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
 
-        meta_dict = {
-            'url': read_url(pkgs_dir, dist),
-            'files': files,
-            'link': {'source': source_dir,
-                'type': link_name_map.get(linktype)},
-        }
-
-        if 'binstar' in index.get(dist + '.tar.bz2', {}):
-            meta_dict['binstar'] = index[dist + '.tar.bz2']['binstar']
-
+        meta_dict = index.get(dist + '.tar.bz2', {})
+        meta_dict['url'] = read_url(pkgs_dir, dist)
+        meta_dict['files'] = files
+        meta_dict['link'] = {'source': source_dir,
+                             'type': link_name_map.get(linktype)}
         create_meta(prefix, dist, info_dir, meta_dict)
 
 def unlink(prefix, dist):
