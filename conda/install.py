@@ -182,8 +182,8 @@ def read_has_prefix(path):
 
 def binary_replace(data, a, b):
     """
-    Perform a binary replacement of `data`, where the placeholder `a` is replaced
-    with `b` and the remaining string is padded with zeros.
+    Perform a binary replacement of `data`, where the placeholder `a` is
+    replaced with `b` and the remaining string is padded with zeros.
     """
     import re
 
@@ -200,7 +200,8 @@ def binary_replace(data, a, b):
         sys.stderr.write('WARNING: unmodified\n')
         return data
 
-def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
+def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
+                  mode='text'):
     path = os.path.realpath(path)
     with open(path, 'rb') as fi:
         data = fi.read()
