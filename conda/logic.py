@@ -416,7 +416,7 @@ class Linear(object):
 def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
     l = Linear(eq, rhs)
     if not l:
-        raise StopIteration
+        return set()
     C = Clauses(m)
     additional_clauses = set()
     if alg is None:
