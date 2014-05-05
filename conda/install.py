@@ -431,11 +431,12 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
+def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
+    index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
@@ -492,13 +493,17 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
 
-        create_meta(prefix, dist, info_dir, {
-                'url': read_url(pkgs_dir, dist),
-                'files': files,
-                'link': {'source': source_dir,
-                         'type': link_name_map.get(linktype)},
-                })
+        meta_dict = {
+            'url': read_url(pkgs_dir, dist),
+            'files': files,
+            'link': {'source': source_dir,
+                'type': link_name_map.get(linktype)},
+        }
 
+        if 'binstar' in index.get(dist + '.tar.bz2', {}):
+            meta_dict['binstar'] = index[dist + '.tar.bz2']['binstar']
+
+        create_meta(prefix, dist, info_dir, meta_dict)
 
 def unlink(prefix, dist):
     '''
