@@ -23,7 +23,6 @@ Also, this module is directly invoked by the (self extracting (sfx)) tarball
 installer to create the initial environment, therefore it needs to be
 standalone, i.e. not import any other parts of `conda` (only depend on
 the standard library).
-
 '''
 
 from __future__ import print_function, division, absolute_import
@@ -485,7 +484,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             try:
                 update_prefix(join(prefix, f), prefix, placeholder, mode)
             except PaddingError:
-                sys.exit('ERROR: placeholder %s too short in: %s\n' %
+                sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
                          (placeholder, dist))
 
         mk_menus(prefix, files, remove=False)
