@@ -168,6 +168,10 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # will leave it unchanged
                       'anaconda3')
 def read_has_prefix(path):
+    """
+    reads `has_prefix` file and return dict mapping filenames to
+    tuples(placeholder, mode)
+    """
     res = {}
     try:
         for line in yield_lines(path):
