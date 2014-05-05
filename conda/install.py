@@ -191,15 +191,12 @@ def binary_replace(data, a, b):
     def replace(match):
         padding = len(match.group()) - len(b) - len(match.group(1))
         if padding < 1:
-            sys.stderr.write('WARNING: placeholder too short\n')
+            sys.exit('ERROR: placeholder too short\n')
         return b + match.group(1) + b'\0' * padding
     pat = re.compile(a.replace(b'.', b'\.') + b'([^\0\\s]*?)\0')
     res = pat.sub(replace, data)
-    if len(res) == len(data):
-        return res
-    else:
-        sys.stderr.write('WARNING: unmodified\n')
-        return data
+    assert len(res) == len(data)
+    return res
 
 def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
                   mode='text'):
