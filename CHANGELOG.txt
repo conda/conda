@@ -1,4 +1,4 @@
-2014-04-XX   3.4.3:
+2014-05-05   3.4.3:
 -------------------
   * allow prefix replacement in binary files, see issue #710
   * check if creating hard link is possible and otherwise copy,
