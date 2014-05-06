@@ -64,13 +64,6 @@ class CondaSession(requests.Session):
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-    def request(self, method, url, *args, **kwargs):
-        # Make file:// urls not fail due to lack of a hostname
-        parsed = urlparse.urlparse(url)
-        if parsed.scheme == "file":
-            url = urlparse.urlunparse(parsed[:1] + ("localhost",) + parsed[2:])
-
-        return super(CondaSession, self).request(method, url, *args, **kwargs)
 
 class LocalFSResponse(object):
 
