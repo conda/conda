@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, dirname, expanduser, isfile, isdir, join
+from os.path import abspath, expanduser, isfile, isdir, join
 
 from conda.compat import urlparse
 from conda.utils import try_write
