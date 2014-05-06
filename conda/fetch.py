@@ -112,7 +112,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     stdoutlog.info("Fetching package metadata: ")
     for url in reversed(channel_urls):
         if config.allowed_channels and url not in config.allowed_channels:
-            sys.exit("Error: URL '%s' no in allowed channels" % url)
+            sys.exit("\nError: URL '%s' not in allowed channels" % url)
         repodata = fetch_repodata(url, use_cache=use_cache)
         if repodata is None:
             continue
