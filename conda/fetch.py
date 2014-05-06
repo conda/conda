@@ -166,7 +166,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
             log.debug(msg)
             raise RuntimeError(msg)
 
-        size = resp.headers['Content-Length']
+        size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
             fn = basename(dst_path)
