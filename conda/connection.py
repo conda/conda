@@ -64,33 +64,15 @@ class CondaSession(requests.Session):
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-    def request(self, method, url, *args, **kwargs):
-        # Make file:// urls not fail due to lack of a hostname
-        parsed = urlparse.urlparse(url)
-        if parsed.scheme == "file":
-            url = urlparse.urlunparse(parsed[:1] + ("localhost",) + parsed[2:])
-
-        return super(CondaSession, self).request(method, url, *args, **kwargs)
-
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
-        parsed_url = urlparse.urlparse(request.url)
-
-        # We only work for requests with a host of localhost
-        if parsed_url.netloc.lower() != "localhost":
-            raise requests.exceptions.InvalidURL(
-                "Invalid URL %r: Only localhost is allowed" %
-                request.url
-            )
-
-        real_url = urlparse.urlunparse(parsed_url[:1] + ("",) + parsed_url[2:])
-        pathname = url_to_path(real_url)
+        pathname = url_to_path(request.url)
 
         resp = requests.models.Response()
         resp.status_code = 200
-        resp.url = real_url
+        resp.url = request.url
 
         try:
             stats = os.stat(pathname)
@@ -118,7 +100,6 @@ def url_to_path(url):
     """
     Convert a file: URL to a path.
     """
-    from conda.compat import urlparse
     assert url.startswith('file:'), (
         "You can only turn file: urls into filenames (not %r)" % url)
     path = url[len('file:'):].lstrip('/')
