@@ -110,7 +110,8 @@ def execute(args, parser):
             setattr(args, option, True)
 
     t_pat = re.compile(r'binstar\.org/(t/[0-9a-f\-]{4,})')
-    info_dict['channels2'] = [t_pat.sub('binstar.org/t/<TOKEN>', c) for c in info_dict['channels']]
+    info_dict['channels2'] = [t_pat.sub('binstar.org/t/<TOKEN>', c)
+                              for c in info_dict['channels']]
 
     if args.all or all(not getattr(args, opt) for opt in options):
         for key in 'pkgs_dirs', 'envs_dirs', 'channels2':
