@@ -110,11 +110,11 @@ def execute(args, parser):
             setattr(args, option, True)
 
     t_pat = re.compile(r'binstar\.org/(t/[0-9a-f\-]{4,})')
-    info_dict['channels2'] = [t_pat.sub('binstar.org/t/<TOKEN>', c)
-                              for c in info_dict['channels']]
+    info_dict['channels_disp'] = [t_pat.sub('binstar.org/t/<TOKEN>', c)
+                                  for c in info_dict['channels']]
 
     if args.all or all(not getattr(args, opt) for opt in options):
-        for key in 'pkgs_dirs', 'envs_dirs', 'channels2':
+        for key in 'pkgs_dirs', 'envs_dirs', 'channels_disp':
             info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
                                'read only')
@@ -128,7 +128,7 @@ Current conda install:
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
-         channel URLs : %(_channels2)s
+         channel URLs : %(_channels_disp)s
           config file : %(rc_path)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
@@ -138,7 +138,7 @@ Current conda install:
 #     root directory '%s' uninitalized,
 #     use 'conda init' to initialize.""" % config.root_dir)
 
-    del info_dict['channels2']
+    del info_dict['channels_disp']
 
     if args.envs:
         if not args.json:
