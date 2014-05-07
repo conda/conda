@@ -1,3 +1,7 @@
+  * add ability to only allow system-wise specified channels
+  * hide binstar from output of conda info
+
+
 2014-05-05   3.4.3:
 -------------------
   * allow prefix replacement in binary files, see issue #710
