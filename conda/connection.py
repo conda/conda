@@ -168,6 +168,8 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         if auth is not None:
             self.conn.login(auth[0], auth[1])
+        else:
+            self.conn.login()
 
         # Get the method and attempt to find the function to call.
         resp = self.func_table[request.method](path, request)
@@ -208,7 +210,6 @@ class FTPAdapter(requests.adapters.BaseAdapter):
         # method. See self.list().
         data.release_conn = data.close
 
-        self.conn.login()
         code = self.conn.retrbinary('RETR ' + path, data_callback_factory(data))
 
         response = build_binary_response(request, data, code)
