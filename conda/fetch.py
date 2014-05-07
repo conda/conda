@@ -107,6 +107,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     stdoutlog.info("Fetching package metadata: ")
     session = CondaSession()
     for url in reversed(channel_urls):
+        if config.allowed_channels and url not in config.allowed_channels:
+            sys.exit("\nError: URL '%s' not in allowed channels" % url)
         repodata = fetch_repodata(url, use_cache=use_cache, session=session)
         if repodata is None:
             continue

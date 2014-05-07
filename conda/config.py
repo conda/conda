@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, dirname, expanduser, isfile, isdir, join
+from os.path import abspath, expanduser, isfile, isdir, join
 
 from conda.compat import urlparse
 from conda.utils import try_write
@@ -62,13 +62,14 @@ rc_bool_keys = [
     'binstar_upload',
     'binstar_personal',
     'show_channel_urls',
+    'allow_other_channels',
     ]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
     'root_dir',
-    'channel_alias'
+    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -218,6 +219,22 @@ def canonical_channel_name(channel):
         return 'filer'
     else:
         return channel
+
+# ----- allowed channels -----
+
+def get_allowed_channels():
+    if not isfile(sys_rc_path):
+        return None
+    sys_rc = load_condarc(sys_rc_path)
+    if sys_rc.get('allow_other_channels', True):
+        return None
+    if 'channels' in sys_rc:
+        base_urls = sys_rc['channels']
+    else:
+        base_urls = get_default_urls()
+    return normalize_urls(base_urls)
+
+allowed_channels = get_allowed_channels()
 
 # ----- proxy -----
 
