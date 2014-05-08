@@ -369,9 +369,9 @@ def fetch(index, dist):
     fn = dist + '.tar.bz2'
     fetch_pkg(index[fn])
 
-def link(prefix, arg):
+def link(prefix, arg, index=None):
     dist, pkgs_dir, lt = split_linkarg(arg)
-    install.link(pkgs_dir, prefix, dist, lt)
+    install.link(pkgs_dir, prefix, dist, lt, index=index)
 
 def cmds_from_plan(plan):
     res = []
@@ -415,7 +415,7 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == RM_FETCHED:
             install.rm_fetched(config.pkgs_dirs[0], arg)
         elif cmd == LINK:
-            link(prefix, arg)
+            link(prefix, arg, index=index)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
         elif cmd == SYMLINK_CONDA:
