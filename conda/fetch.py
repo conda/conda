@@ -14,6 +14,8 @@ import hashlib
 import tempfile
 from logging import getLogger
 from os.path import basename, isdir, join
+import sys
+from multiprocessing.pool import ThreadPool
 
 from conda import config
 from conda.utils import memoized
@@ -103,13 +105,16 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
+    pool = ThreadPool(5)
     index = {}
     stdoutlog.info("Fetching package metadata: ")
     session = CondaSession()
     for url in reversed(channel_urls):
         if config.allowed_channels and url not in config.allowed_channels:
             sys.exit("\nError: URL '%s' not in allowed channels" % url)
-        repodata = fetch_repodata(url, use_cache=use_cache, session=session)
+    repodatas = pool.map(lambda url: fetch_repodata(url,
+        use_cache=use_cache, session=session), reversed(channel_urls))
+    for repodata in repodatas:
         if repodata is None:
             continue
         new_index = repodata['packages']
