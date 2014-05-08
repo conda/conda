@@ -52,7 +52,7 @@ def filter_descr(cmd):
     args = [find_executable(cmd), '--help']
     try:
         output = subprocess.check_output(args)
-    except subprocess.CalledProcessError:
+    except (OSError, subprocess.CalledProcessError):
         print('failed: %s' % (' '.join(args)))
         return
     pat = re.compile(r'(\r?\n){2}(.*?)(\r?\n){2}')
