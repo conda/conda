@@ -8,7 +8,6 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import bz2
-import sys
 import json
 import shutil
 import hashlib
@@ -18,22 +17,18 @@ from os.path import basename, isdir, join
 
 from conda import config
 from conda.utils import memoized
-from conda.connection import connectionhandled_urlopen
-from conda.compat import PY3, itervalues, get_http_value
+from conda.connection import CondaSession
+from conda.compat import itervalues, get_http_value
 from conda.lock import Locked
 
-if PY3:
-    import urllib.request as urllib2
-else:
-    import urllib2
-
+import requests
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
+stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
-retries = 3
 
 
 def create_cache_dir():
@@ -55,8 +50,10 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
         d[dict_key] = value
 
 
-def fetch_repodata(url, cache_dir=None, use_cache=False):
+def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     dotlog.debug("fetching repodata: %s ..." % url)
+
+    session = session or CondaSession()
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
@@ -67,33 +64,32 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
     if use_cache:
         return cache
 
-    request = urllib2.Request(url + 'repodata.json.bz2')
-    if '_etag' in cache:
-        request.add_header('If-None-Match', cache['_etag'])
-    if '_mod' in cache:
-        request.add_header('If-Modified-Since', cache['_mod'])
+    headers = {}
+    if "_tag" in cache:
+        headers["If-None-Match"] = cache["_etag"]
+    if "_mod" in cache:
+        headers["If-Modified-Since"] = cache["_mod"]
 
     try:
-        u = connectionhandled_urlopen(request)
-        data = u.read()
-        u.close()
-        cache = json.loads(bz2.decompress(data).decode('utf-8'))
-        add_http_value_to_dict(u, 'Etag', cache, '_etag')
-        add_http_value_to_dict(u, 'Last-Modified', cache, '_mod')
+        resp = session.get(url + 'repodata.json.bz2', headers=headers)
+        resp.raise_for_status()
+        if resp.status_code != 304:
+            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
 
     except ValueError:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
 
-    except urllib2.HTTPError as e:
-        msg = "HTTPError: %d  %s  %s\n" % (e.code, e.msg, url)
+    except requests.exceptions.HTTPError as e:
+        msg = "HTTPError: %s: %s\n" % (e, url)
         log.debug(msg)
-        if e.code != 304:
-            raise RuntimeError(msg)
+        raise RuntimeError(msg)
 
-    except urllib2.URLError as e:
-        sys.stderr.write("Error: unknown host: %s (%r)\n" % (url, e))
+    except requests.exceptions.ConnectionError as e:
+        msg = "Connection error: %s: %s\n" % (e, url)
+        stderrlog.info('Could not connect to %s\n' % url)
+        log.debug(msg)
         if fail_unknown_host:
-            sys.exit(1)
+            raise RuntimeError(msg)
 
     cache['_url'] = url
     try:
@@ -104,16 +100,16 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
 
     return cache or None
 
-
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     index = {}
     stdoutlog.info("Fetching package metadata: ")
+    session = CondaSession()
     for url in reversed(channel_urls):
         if config.allowed_channels and url not in config.allowed_channels:
             sys.exit("\nError: URL '%s' not in allowed channels" % url)
-        repodata = fetch_repodata(url, use_cache=use_cache)
+        repodata = fetch_repodata(url, use_cache=use_cache, session=session)
         if repodata is None:
             continue
         new_index = repodata['packages']
@@ -141,107 +137,80 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
 
     return index
 
-
-def fetch_pkg(info, dst_dir=None):
+def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
     if dst_dir is None:
         dst_dir = config.pkgs_dirs[0]
 
+    session = session or CondaSession()
+
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
     log.debug("url=%r" % url)
     path = join(dst_dir, fn)
-    pp = path + '.part'
+
+    download(url, path, session=session, md5=info['md5'], urlstxt=True)
+
+def download(url, dst_path, session=None, md5=None, urlstxt=False):
+    pp = dst_path + '.part'
+    dst_dir = os.path.split(dst_path)[0]
+    session = session or CondaSession()
 
     with Locked(dst_dir):
-        for x in range(retries):
-            try:
-                fi = connectionhandled_urlopen(url)
-            except IOError:
-                log.debug("attempt %d failed at urlopen" % x)
-                continue
-            if fi is None:
-                log.debug("could not fetch (urlopen returned None)")
-                continue
-            n = 0
+        try:
+            resp = session.get(url, stream=True)
+        except IOError:
+            raise RuntimeError("Could not open '%s'" % url)
+        except requests.exceptions.HTTPError as e:
+            msg = "HTTPError: %s: %s\n" % (e, url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+
+        size = resp.headers.get('Content-Length')
+        if size:
+            size = int(size)
+            fn = basename(dst_path)
+            getLogger('fetch.start').info((fn[:14], size))
+
+        n = 0
+        if md5:
             h = hashlib.new('md5')
-            getLogger('fetch.start').info((fn, info['size']))
-            need_retry = False
-            try:
-                fo = open(pp, 'wb')
-            except IOError:
-                raise RuntimeError("Could not open %r for writing.  "
-                          "Permissions problem or missing directory?" % pp)
-            while True:
-                try:
-                    chunk = fi.read(16384)
-                except IOError:
-                    need_retry = True
-                    break
-                if not chunk:
-                    break
-                try:
-                    fo.write(chunk)
-                except IOError:
-                    raise RuntimeError("Failed to write to %r." % pp)
-                h.update(chunk)
-                n += len(chunk)
-                getLogger('fetch.update').info(n)
+        try:
+            with open(pp, 'wb') as fo:
+                for chunk in resp.iter_content(2**14):
+                    try:
+                        fo.write(chunk)
+                    except IOError:
+                        raise RuntimeError("Failed to write to %r." % pp)
+                    if md5:
+                        h.update(chunk)
+                    n += len(chunk)
+                    if size:
+                        getLogger('fetch.update').info(n)
+        except IOError:
+            raise RuntimeError("Could not open %r for writing.  "
+                "Permissions problem or missing directory?" % pp)
 
-            fo.close()
-            if need_retry:
-                continue
-
-            fi.close()
+        if size:
             getLogger('fetch.stop').info(None)
-            if h.hexdigest() != info['md5']:
-                raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
-            try:
-                os.rename(pp, path)
-            except OSError:
-                raise RuntimeError("Could not rename %r to %r." % (pp, path))
+
+        if md5 and h.hexdigest() != md5:
+            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (url, h.hexdigest(), md5))
+
+        try:
+            os.rename(pp, dst_path)
+        except OSError as e:
+            raise RuntimeError("Could not rename %r to %r: %r" % (pp,
+                dst_path, e))
+
+        if urlstxt:
             try:
                 with open(join(dst_dir, 'urls.txt'), 'a') as fa:
                     fa.write('%s\n' % url)
             except IOError:
                 pass
-            return
-
-    raise RuntimeError("Could not locate '%s'" % url)
-
-
-def download(url, dst_path):
-    try:
-        u = connectionhandled_urlopen(url)
-    except IOError:
-        raise RuntimeError("Could not open '%s'" % url)
-    except ValueError as e:
-        raise RuntimeError(e)
-
-    size = get_http_value(u, 'Content-Length')
-    if size:
-        size = int(size)
-        fn = basename(dst_path)
-        getLogger('fetch.start').info((fn[:14], size))
-
-    n = 0
-    fo = open(dst_path, 'wb')
-    while True:
-        chunk = u.read(16384)
-        if not chunk:
-            break
-        fo.write(chunk)
-        n += len(chunk)
-        if size:
-            getLogger('fetch.update').info(n)
-    fo.close()
-
-    u.close()
-    if size:
-        getLogger('fetch.stop').info(None)
-
 
 class TmpDownload(object):
     """
