@@ -592,7 +592,7 @@ def best_alg_heuristic(eq, rhs):
     change in the future.
 
     """
-
+    # Stub
     return 'BDD'
 
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
