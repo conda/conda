@@ -1,3 +1,5 @@
+2014-05-XX   3.5.0:
+-------------------
   * add ability to only allow system-wise specified channels
   * hide binstar from output of conda info
   * replace use of urllib2 with requests. requests is now a hard dependency of
