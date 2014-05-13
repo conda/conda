@@ -648,7 +648,8 @@ remaining packages:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None, max_only=False, minimal_hint=False):
+    def solve(self, specs, installed=None, features=None, max_only=False,
+              minimal_hint=False):
         if installed is None:
             installed = []
         if features is None:
@@ -666,10 +667,12 @@ remaining packages:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features, minimal_hint=minimal_hint)
+            return self.explicit(specs) or self.solve2(specs, features,
+                                                       minimal_hint=minimal_hint)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
+
 
 if __name__ == '__main__':
     import json
