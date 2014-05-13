@@ -111,7 +111,13 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     session = CondaSession()
     for url in reversed(channel_urls):
         if config.allowed_channels and url not in config.allowed_channels:
-            sys.exit("\nError: URL '%s' not in allowed channels" % url)
+            sys.exit("""
+Error: URL '%s' not in allowed channels.
+
+Allowed channels are:
+  - %s
+""" % (url, '\n  - '.join(config.allowed_channels)))
+
     repodatas = map(lambda url: (url, fetch_repodata(url,
         use_cache=use_cache, session=session)), reversed(channel_urls))
     for url, repodata in repodatas:
