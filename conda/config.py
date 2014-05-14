@@ -102,8 +102,9 @@ rc = load_condarc(rc_path)
 
 # ----- local directories -----
 
-# root_dir should only be used for testing, which is why don't mention it in the
-# documentation, to avoid confusion (it can really mess up a lot of things)
+# root_dir should only be used for testing, which is why don't mention it in
+# the documentation, to avoid confusion (it can really mess up a lot of
+# things)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
@@ -178,12 +179,15 @@ def normalize_urls(urls, platform=None):
     newurls = []
     for url in urls:
         if url == "defaults":
-            newurls.extend(normalize_urls(get_default_urls(), platform=platform))
+            newurls.extend(normalize_urls(get_default_urls(),
+                                          platform=platform))
         elif url == "system":
             if not rc_path:
-                newurls.extend(normalize_urls(get_default_urls(), platform=platform))
+                newurls.extend(normalize_urls(get_default_urls(),
+                                              platform=platform))
             else:
-                newurls.extend(normalize_urls(get_rc_urls(), platform=platform))
+                newurls.extend(normalize_urls(get_rc_urls(),
+                                              platform=platform))
         elif not is_url(url):
             moreurls = normalize_urls([rc.get('channel_alias',
                 DEFAULT_CHANNEL_ALIAS)+url], platform=platform)
