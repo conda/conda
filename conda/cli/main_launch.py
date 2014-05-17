@@ -43,11 +43,6 @@ def configure_parser(sub_parsers):
         help="conda environment to use (by name or path, relative to app server)",
     )
     p.add_argument(
-        "-c", "--channel",
-        action="append",
-        help="a channel to use for fetching app and any dependencies",
-    )
-    p.add_argument(
         "notebook",
         help="notebook app name, URL, or path",
     )
