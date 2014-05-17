@@ -7,6 +7,7 @@
 from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
+import argparse
 
 from conda.cli import common
 
@@ -30,6 +31,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "-v", "--view",
         action="store_true",
+        default=False,
         help="view notebook app (do not execute or prompt for input)",
     )
     p.add_argument(
@@ -49,7 +51,7 @@ def configure_parser(sub_parsers):
         "notebook",
         help="notebook app name, URL, or path",
     )
-    parser.add_argument(
+    p.add_argument(
         'nbargs',
         nargs=argparse.REMAINDER
     )
@@ -59,4 +61,14 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     from conda import launch
-    launch.launch(args.notebook, server=args.server, env=args.env, args=args.nbargs)
+    try:
+        launch.launch(
+            notebook    = args.notebook,
+            args        = args.nbargs,
+            server      = args.server,
+            env         = args.env,
+            channels    = args.channel,
+            view        = args.view
+        )
+    except ValueError as ex:
+        print("invalid arguments: " + str(ex))

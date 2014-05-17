@@ -1,15 +1,34 @@
 HOST = "127.0.0.1"
 PORT = 5007
 
-def launch(notebook, server=None, env=None, args=None):
-    """ launch the app view of the specified notebook, using a server.
+def launch(notebook,
+        args=None,
+        server=None,
+        env=None,
+        channels=None,
+        output=None,
+        view=False,
+        mode="open",
+        format=None):
+    """ Launch the app view of the specified notebook, using a server.
         If the server is not specified, assume localhsot and (try to)
         start it.
+
+        :param notebook: a notebook identifier (path, gist, name)
+        :param args: input arguments to pass to the notebook
+        :param server: (protocol, host, port) string specifying server
+        :param env: environment to use for notebook app invocation
+        :param channels: list of channels for server to use to find apps and deps
+        :param output: specify a particular artifact to return from executed app
+        :param view: view mode only (don't execute notebook, just render and return)
+        :param mode: open (default) opens browser, fetch returns result on STDOUT
+        :param format: allows specification of result format: html (default), pdf
     """
 
-    import webbrowser
-    from urllib import pathname2url
     from os.path import abspath, exists
+    from urllib import urlencode
+    import webbrowser
+    import requests
 
     import ipyapp
 
@@ -17,32 +36,44 @@ def launch(notebook, server=None, env=None, args=None):
         ipyapp.start_local_server(port=PORT)
         server = "http://{host}:{port}".format(host=HOST, port=PORT)
 
+    urlargs = []
+
     if exists(notebook): # path to local file
-        nbpath = "nbfile=" + pathname2url(abspath(notebook))
+        urlargs.append(('nbfile',abspath(notebook)))
     elif notebook.isdigit(): # just digits, assume gist 
-        nbpath = "gist=" + notebook
+        urlargs.append(('gist',notebook))
     else:
-        nbpath = "nbapp=" + pathname2url(notebook)
+        urlargs.append(('nbapp',notebook))
 
     if args:
-        args_str = "&" + "&".join(args)
-    else:
-        args_str = ""
+        urlargs.extend(arg.split("=") for arg in args)
 
     if env:
-        env_str = "&" + env
-    else:
-        env_str = ""
+        urlargs.append(('env',env))
 
     if channels:
-        channels_str = "&" + ",".join(channels)
-    else:
-        channels_str = ""
+        urlargs.append(('channels',",".join(channels)))
 
-    webbrowser.open("{prefix}/?{nbpath}{args_str}{env_str}{channels_str}".format(
-        prefix=server,
-        nbpath=nbpath,
-        args_str=args_str,
-        env_str=env_str,
-        channels_str=channels_str
-    )
+    if view:
+        urlargs.append(('view','t'))
+
+    if output:
+        urlargs.append(('output', output))
+
+    if format:
+        urlargs.append(('format', format))
+
+    try:
+        urlargs_str = urlencode(urlargs).replace("%2F","/")
+    except ValueError:
+        raise ValueError("launch arguments must be valid pairs, such as 'a=7'")
+
+    url = "{prefix}/?{urlargs_str}".format(urlargs_str=urlargs_str)
+    if mode == 'open':
+        webbrowser.open(url)
+    elif mode == 'fetch':
+        r = requests.get(url)
+        if r.status_code == 200:
+            return r.text
+        else:
+            r.raise_for_status()
