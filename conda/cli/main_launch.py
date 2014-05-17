@@ -28,21 +28,35 @@ def configure_parser(sub_parsers):
     )
     common.add_parser_install(p)
     p.add_argument(
-        "-v", "--view"
+        "-v", "--view",
         action="store_true",
         help="view notebook app (do not execute or prompt for input)",
     )
     p.add_argument(
-        "-s", "--server"
-        help="specify the app server (protocol, hostname, port)",
+        "-s", "--server",
+        help="app server (protocol, hostname, port)",
     )
     p.add_argument(
-        "notebook"
+        "-e", "--env",
+        help="conda environment to use (by name or path, relative to app server)",
+    )
+    p.add_argument(
+        "-c", "--channel",
+        action="append",
+        help="a channel to use for fetching app and any dependencies",
+    )
+    p.add_argument(
+        "notebook",
         help="notebook app name, URL, or path",
     )
+    parser.add_argument(
+        'nbargs',
+        nargs=argparse.REMAINDER
+    )
+
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
     from conda import launch
-    launch.launch(args.notebook, server=args.server)
+    launch.launch(args.notebook, server=args.server, env=args.env, args=args.nbargs)
