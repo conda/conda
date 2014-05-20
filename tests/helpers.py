@@ -11,6 +11,7 @@ def raises(exception, func, string=None):
     except exception as e:
         if string:
             assert string in e.args[0]
+        print(e)
         return True
     raise Exception("did not raise, gave %s" % a)
 
