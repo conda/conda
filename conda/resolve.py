@@ -465,44 +465,27 @@ class Resolve(object):
             return []
         eq, max_rhs = self.generate_version_eq(v, dists)
 
-        # Check the common case first
-        dotlog.debug("Building the constraint with rhs: [0, 0]")
-        constraints = list(generate_constraints(eq, m, [0, 0], alg=alg))
 
-        # Only relevant for build_BDD
-        if constraints and constraints[0] == [false]:
-            # XXX: This should *never* happen. build_BDD only returns false
-            # when the linear constraint is unsatisfiable, but any linear
-            # constraint can equal 0, by setting all the variables to 0.
-            solution = []
-        else:
-            if constraints and constraints[0] == [true]:
-                constraints = []
-
-            dotlog.debug("Checking for solutions with rhs:  [0, 0]")
-            solution = sat(clauses + constraints)
+        # Second common case, check if it's unsatisfiable
+        dotlog.debug("Checking for unsatisfiability")
+        solution = sat(clauses)
 
         if not solution:
-            # Second common case, check if it's unsatisfiable
-            dotlog.debug("Checking for unsatisfiability")
-            solution = sat(clauses)
+            if guess:
+                stderrlog.info('\nError: Unsatisfiable package '
+                    'specifications.\nGenerating hint: ')
+                if minimal_hint:
+                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
+            w))
+                else:
+                    sys.exit(self.guess_bad_solve(specs, features))
+            raise RuntimeError("Unsatisfiable package specifications")
 
-            if not solution:
-                if guess:
-                    stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating hint: ')
-                    if minimal_hint:
-                        sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
-                w))
-                    else:
-                        sys.exit(self.guess_bad_solve(specs, features))
-                raise RuntimeError("Unsatisfiable package specifications")
+        def version_constraints(lo, hi):
+            return list(generate_constraints(eq, m, [lo, hi], alg=alg))
 
-            def version_constraints(lo, hi):
-                return list(generate_constraints(eq, m, [lo, hi], alg=alg))
-
-            log.debug("Bisecting the version constraint")
-            constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
+        log.debug("Bisecting the version constraint")
+        constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
 
         dotlog.debug("Finding the minimal solution")
         solutions = min_sat(clauses + constraints, N=m+1)
