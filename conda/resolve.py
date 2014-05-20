@@ -414,7 +414,7 @@ class Resolve(object):
         return dists
 
     def solve2(self, specs, features, guess=True, alg='sorter',
-        returnall=False, minimal_hint=False):
+        returnall=False, minimal_hint=False, unsat_only=False):
         log.debug("Solving for %s" % str(specs))
 
         # First try doing it the "old way", i.e., just look at the most recent
@@ -481,6 +481,9 @@ class Resolve(object):
                     sys.exit(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
+        if unsat_only:
+            return True
+
         def version_constraints(lo, hi):
             return list(generate_constraints(eq, m, [lo, hi], alg=alg))
 
@@ -525,7 +528,7 @@ class Resolve(object):
                 break
             for comb in combinations(specs, i):
                 try:
-                    self.solve2(comb, features, guess=False)
+                    self.solve2(comb, features, guess=False, unsat_only=True)
                 except RuntimeError:
                     pass
                 else:
