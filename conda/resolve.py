@@ -31,9 +31,9 @@ def normalized_version(version):
 
 
 class NoPackagesFound(RuntimeError):
-    def __init__(self, msg, pkg):
+    def __init__(self, msg, pkgs):
         super(NoPackagesFound, self).__init__(msg)
-        self.pkg = pkg
+        self.pkgs = pkgs
 
 const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
 def ver_eval(version, constraint):
@@ -233,7 +233,7 @@ class Resolve(object):
             res = self.msd_cache[fn]
         except KeyError:
             if not 'depends' in self.index[fn]:
-                raise NoPackagesFound('Bad metadata for %s' % fn, fn)
+                raise NoPackagesFound('Bad metadata for %s' % fn, [fn])
             depends = self.index[fn]['depends']
             res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
         return res
@@ -250,7 +250,7 @@ class Resolve(object):
     def get_pkgs(self, ms, max_only=False):
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms, ms.spec)
+            raise NoPackagesFound("No packages found matching: %s" % ms, [ms.spec])
         if max_only:
             maxpkg = max(pkgs)
             ret = []
@@ -269,7 +269,7 @@ class Resolve(object):
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms, max_only=True)
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms, ms.spec)
+            raise NoPackagesFound("No packages found matching: %s" % ms, [ms.spec])
         for pkg in pkgs:
             yield pkg.fn
 
@@ -289,8 +289,9 @@ class Resolve(object):
                         if ms.strictness < 3:
                             add_dependents(pkg2.fn, max_only=max_only)
                     except NoPackagesFound as e:
-                        if e.pkg not in notfound:
-                            notfound.append(e.pkg)
+                        for pkg in e.pkgs:
+                            if pkg not in notfound:
+                                notfound.append(pkg)
                         if pkg2.fn in res:
                             del res[pkg2.fn]
                     else:
@@ -298,7 +299,7 @@ class Resolve(object):
 
                 if not found:
                     raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), str(ms))
+                        "for %s: %s" % (ms, ', '.join(notfound)), notfound)
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -403,13 +404,14 @@ class Resolve(object):
                     dists.update(self.all_deps(pkg.fn, max_only=max_only))
                 except NoPackagesFound as e:
                     # Ignore any package that has nonexisting dependencies.
-                    if e.pkg not in notfound:
-                        notfound.append(e.pkg)
+                    for pkg in e.pkgs:
+                        if pkg not in notfound:
+                            notfound.append(pkg)
                 else:
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), spec)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), notfound)
 
         return dists
 
