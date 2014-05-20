@@ -127,6 +127,10 @@ class Clauses(object):
         #     swap(t, f)
         #     c = -c
 
+        if t < f:
+            t, f = f, t
+            c = -c
+
         # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
         x = self.get_new_var()
         # "Red" clauses are redundant, but they assist the unit propagation in the
@@ -159,6 +163,9 @@ class Clauses(object):
 
         # if g < f:
         #     swap(f, g)
+
+        if g < f:
+            f, g = g, f
 
         x = self.get_new_var()
         self.clauses |= {
@@ -195,6 +202,9 @@ class Clauses(object):
 
         # if g < f:
         #     swap(f, g)
+
+        if g < f:
+            f, g = g, f
 
         x = self.get_new_var()
         self.clauses |= {
