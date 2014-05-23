@@ -20,8 +20,8 @@ import getpass
 
 from conda import config
 from conda.utils import memoized
-from conda.connection import CondaSession
-from conda.compat import itervalues, get_http_value, input, urlparse
+from conda.connection import CondaSession, unparse_url
+from conda.compat import itervalues, get_http_value, input
 from conda.lock import Locked
 
 import requests
@@ -74,7 +74,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         headers["If-Modified-Since"] = cache["_mod"]
 
     try:
-        resp = session.get(url + 'repodata.json.bz2', headers=headers)
+        resp = session.get(url + 'repodata.json.bz2', headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
@@ -85,9 +85,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407: # Proxy Authentication Required
-            scheme = urlparse.urlparse(url).scheme
-            username, passwd = get_proxy_username_and_pass(scheme)
-            session.auth = requests.auth.HTTPProxyAuth(username, passwd)
+            handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
         msg = "HTTPError: %s: %s\n" % (e, url)
@@ -95,16 +93,15 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         raise RuntimeError(msg)
 
     except requests.exceptions.ConnectionError as e:
-        # For whatever reason, https gives this error and http gives the above
-        # error
+        # requests isn't so nice here. For whatever reason, https gives this
+        # error and http gives the above error. Also, there is no status_code
+        # attribute here. We have to just check if it looks like 407.  See
+        # https://github.com/kennethreitz/requests/issues/2061.
+        if "407" in str(e): # Proxy Authentication Required
+            handle_proxy_407(url, session)
+            # Try again
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
-        # # There is not status_code attribute here. Just check if it looks like 407
-        # if "407" in str(e): # Proxy Authentication Required
-        #     scheme = urlparse.urlparse(url).scheme
-        #     username, passwd = get_proxy_username_and_pass(scheme)
-        #     session.auth = requests.auth.HTTPProxyAuth(username, passwd)
-        #     # Try again
-        #     return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
         msg = "Connection error: %s: %s\n" % (e, url)
         stderrlog.info('Could not connect to %s\n' % url)
         log.debug(msg)
@@ -119,6 +116,22 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         pass
 
     return cache or None
+
+def handle_proxy_407(url, session):
+    """
+    Prompts the user for the proxy username and password and modifies the
+    proxy in the session object to include it.
+    """
+    # We could also use HTTPProxyAuth, but this does not work with https
+    # proxies (see https://github.com/kennethreitz/requests/issues/2061).
+    scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    username, passwd = get_proxy_username_and_pass(scheme)
+    session.proxies[scheme] = add_username_and_pass_to_url(session.proxies[scheme], username, passwd)
+
+def add_username_and_pass_to_url(url, username, passwd):
+    urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
+    urlparts[1] = username + ':' + passwd
+    return unparse_url(urlparts)
 
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
@@ -194,13 +207,28 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
 
     with Locked(dst_dir):
         try:
-            resp = session.get(url, stream=True)
-        except IOError:
-            raise RuntimeError("Could not open '%s'" % url)
+            resp = session.get(url, stream=True, proxies=session.proxies)
+            resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 407: # Proxy Authentication Required
+                handle_proxy_407(url, session)
+                # Try again
+                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
+
+        except requests.exceptions.ConnectionError as e:
+            # requests isn't so nice here. For whatever reason, https gives this
+            # error and http gives the above error. Also, there is no status_code
+            # attribute here. We have to just check if it looks like 407.  See
+            # https://github.com/kennethreitz/requests/issues/2061.
+            if "407" in str(e): # Proxy Authentication Required
+                handle_proxy_407(url, session)
+                # Try again
+                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt)
+        except IOError as e:
+            raise RuntimeError("Could not open '%s': %s" % (url, e))
 
         size = resp.headers.get('Content-Length')
         if size:
