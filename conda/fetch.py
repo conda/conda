@@ -172,6 +172,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
     with Locked(dst_dir):
         try:
             resp = session.get(url, stream=True)
+            resp.raise_for_status()
         except IOError:
             raise RuntimeError("Could not open '%s'" % url)
         except requests.exceptions.HTTPError as e:
