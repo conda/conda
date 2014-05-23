@@ -15,12 +15,13 @@ import tempfile
 from logging import getLogger
 from os.path import basename, isdir, join
 import sys
-from multiprocessing.pool import ThreadPool
+import getpass
+# from multiprocessing.pool import ThreadPool
 
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession
-from conda.compat import itervalues, get_http_value
+from conda.compat import itervalues, get_http_value, input, urlparse
 from conda.lock import Locked
 
 import requests
@@ -82,11 +83,27 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
 
     except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 407: # Proxy Authentication Required
+            scheme = urlparse.urlparse(url).scheme
+            username, passwd = get_proxy_username_and_pass(scheme)
+            session.auth = requests.auth.HTTPProxyAuth(username, passwd)
+            # Try again
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
         msg = "HTTPError: %s: %s\n" % (e, url)
         log.debug(msg)
         raise RuntimeError(msg)
 
     except requests.exceptions.ConnectionError as e:
+        # For whatever reason, https gives this error and http gives the above
+        # error
+
+        # # There is not status_code attribute here. Just check if it looks like 407
+        # if "407" in str(e): # Proxy Authentication Required
+        #     scheme = urlparse.urlparse(url).scheme
+        #     username, passwd = get_proxy_username_and_pass(scheme)
+        #     session.auth = requests.auth.HTTPProxyAuth(username, passwd)
+        #     # Try again
+        #     return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
         msg = "Connection error: %s: %s\n" % (e, url)
         stderrlog.info('Could not connect to %s\n' % url)
         log.debug(msg)
@@ -102,10 +119,15 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     return cache or None
 
+def get_proxy_username_and_pass(scheme):
+    username = input("\n%s proxy username: " % scheme)
+    passwd = getpass.getpass("Password:")
+    return username, passwd
+
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
-    pool = ThreadPool(5)
+    # pool = ThreadPool(5)
     index = {}
     stdoutlog.info("Fetching package metadata: ")
     session = CondaSession()
