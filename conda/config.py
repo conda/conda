@@ -271,6 +271,7 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
+post_link_patch_rpaths = bool(rc.get('post_link_patch_rpaths', False))
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:
