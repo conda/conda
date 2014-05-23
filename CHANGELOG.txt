@@ -1,12 +1,16 @@
+2014-05-XX   3.5.1:
+-------------------
+  * fix proxy support - conda now prompts for proxy username and password
+    again
+  * fix activate on Windows with spaces in the path
+
+
 2014-05-15   3.5.0:
 -------------------
   * replace use of urllib2 with requests. requests is now a hard dependency of
     conda.
   * add ability to only allow system-wise specified channels
   * hide binstar from output of conda info
-  * fix proxy support. Conda now prompts for proxy username and password
-    again.
-  * fix activate on Windows with spaces in the path
 
 
 2014-05-05   3.4.3:
