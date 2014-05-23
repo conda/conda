@@ -79,8 +79,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
 
-    except ValueError:
-        raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
+    except ValueError as e:
+        raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
+            (url, e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407: # Proxy Authentication Required
