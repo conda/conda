@@ -372,3 +372,51 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     return buf
+
+# Taken from urllib3 (actually
+# https://github.com/shazow/urllib3/pull/394). Once it is fully upstreamed to
+# requests.packages.urllib3 we can just use that.
+
+
+def unparse_url(U):
+    """
+    Convert a :class:`.Url` into a url
+
+    The input can be any iterable that gives ['scheme', 'auth', 'host',
+    'port', 'path', 'query', 'fragment']. Unused items should be None.
+
+    This function should more or less round-trip with :func:`.parse_url`. The
+    returned url may not be exactly the same as the url inputted to
+    :func:`.parse_url`, but it should be equivalent by the RFC (e.g., urls
+    with a blank port).
+
+
+    Example: ::
+
+        >>> Url = parse_url('http://google.com/mail/')
+        >>> unparse_url(Url)
+        'http://google.com/mail/'
+        >>> unparse_url(['http', 'username:password', 'host.com', 80,
+        ... '/path', 'query', 'fragment'])
+        'http://username:password@host.com:80/path?query#fragment'
+    """
+    scheme, auth, host, port, path, query, fragment = U
+    url = ''
+
+    # We use "is not None" we want things to happen with empty strings (or 0 port)
+    if scheme is not None:
+        url = scheme + '://'
+    if auth is not None:
+        url += auth + '@'
+    if host is not None:
+        url += host
+    if port is not None:
+        url += ':' + str(port)
+    if path is not None:
+        url += path
+    if query is not None:
+        url += '?' + query
+    if fragment is not None:
+        url += '#' + fragment
+
+    return url
