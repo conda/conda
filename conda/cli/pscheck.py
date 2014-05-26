@@ -21,10 +21,11 @@ def check_processes():
     # hard dependency)
     try:
         import psutil
-        # Old versions of psutil don't have this error,
-        # causing the below code to fail.
-        psutil._error.AccessDenied
-    except:
+    except ImportError:
+        return True
+
+    if psutil.__version__ < '2.':
+        # we now require psutil 2.0 or above
         return True
 
     ok = True
@@ -34,17 +35,17 @@ def check_processes():
             continue
         try:
             p = psutil.Process(n)
-        except psutil._error.NoSuchProcess:
+        except psutil.NoSuchProcess:
             continue
         try:
-            if abspath(p.exe).startswith(root_dir):
-                processcmd = ' '.join(p.cmdline)
+            if abspath(p.exe()).startswith(root_dir):
+                processcmd = ' '.join(p.cmdline())
                 if processcmd.startswith('conda '):
                     continue
                 print("WARNING: the process %s (%d) is running" %
                       (processcmd, n))
                 ok = False
-        except (psutil._error.AccessDenied, WindowsError):
+        except (psutil.AccessDenied, WindowsError):
             pass
     if not ok:
         print("""\
