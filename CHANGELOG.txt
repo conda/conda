@@ -1,4 +1,4 @@
-2014-05-XX   3.5.1:
+2014-05-26   3.5.1:
 -------------------
   * fix proxy support - conda now prompts for proxy username and password
     again
