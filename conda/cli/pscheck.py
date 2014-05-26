@@ -8,25 +8,13 @@ from conda.cli import conda_argparse
 from conda.config import root_dir
 from conda.cli.common import confirm, add_parser_yes
 
+
 try:
     WindowsError
 except NameError:
     class WindowsError(Exception):
         pass
 
-def main(args, windowsonly=True):
-    # Returns True for force, otherwise None
-    if sys.platform == 'win32' or not windowsonly:
-        if args.yes:
-            check_processes()
-        else:
-            while not check_processes():
-                choice = confirm(args, message="Continue (yes/no/force)",
-                    choices=('yes', 'no', 'force'), default='no')
-                if choice == 'no':
-                    sys.exit(1)
-                if choice == 'force':
-                    return True
 
 def check_processes():
     # Conda should still work if psutil is not installed (it should not be a
@@ -65,6 +53,22 @@ not recommended.  Please, close all Anaconda programs before installing or
 updating things with conda.
 """)
     return ok
+
+
+def main(args, windowsonly=True):
+    # Returns True for force, otherwise None
+    if sys.platform == 'win32' or not windowsonly:
+        if args.yes:
+            check_processes()
+        else:
+            while not check_processes():
+                choice = confirm(args, message="Continue (yes/no/force)",
+                    choices=('yes', 'no', 'force'), default='no')
+                if choice == 'no':
+                    sys.exit(1)
+                if choice == 'force':
+                    return True
+
 
 if __name__ == '__main__':
     p = conda_argparse.ArgumentParser()
