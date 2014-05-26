@@ -3,6 +3,7 @@
   * fix proxy support - conda now prompts for proxy username and password
     again
   * fix activate on Windows with spaces in the path
+  * update optional psutil dependency was updated to psutil 2.0 or higher
 
 
 2014-05-15   3.5.0:
