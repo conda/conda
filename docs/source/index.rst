@@ -76,6 +76,7 @@ User Guide
    faq
    config
    build
+   admin
 
 Reference Guide
 ---------------
