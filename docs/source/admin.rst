@@ -13,10 +13,10 @@ To illustrate the usage and syntax, look at the following example. The first com
    $ which conda
    /tmp/miniconda/bin/conda
 
-   $ more /tmp/miniconda/.condarc 
+   $ more /tmp/miniconda/.condarc
    allow_other_channels : false
    channels:
-     - admin 
+     - admin
 
 The user’s .condarc file specifies only the default channels::
 
@@ -46,7 +46,7 @@ which is reflected in the information conda displays to the user::
 However, because all channels are blocked except for “admin”, the user will receive this kind of message when seeking a package that is not available on the restricted channels::
 
    $ conda search flask
-   Fetching package metadata: 
+   Fetching package metadata:
    Error: URL 'http://repo.continuum.io/pkgs/pro/osx-64/' not in allowed channels.
 
    Allowed channels are:
