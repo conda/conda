@@ -1,4 +1,6 @@
-Administrative channel management for a centralized conda installation
+========================================================================
+ Administrative channel management for a centralized conda installation
+========================================================================
 
 By default, conda (and all packages it installs, including Anaconda) installs locally with a user-specific configuration. No administrative privileges are required, and no upstream files or other users are affected by the installation.
 
