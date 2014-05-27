@@ -1,6 +1,6 @@
-2014-05-XX   3.5.2:
+2014-05-27   3.5.2:
 -------------------
-  * fix bug in activate.bat on Windows
+  * fix bug in activate.bat and deactivate.bat on Windows
 
 
 2014-05-26   3.5.1:
