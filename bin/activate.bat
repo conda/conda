@@ -1,6 +1,6 @@
 @echo off
 
-for /f "delims=" %%i in ("%TMP%") do (
+for /f "delims=" %%i in ("%~dp0..\envs") do (
     set ANACONDA_ENVS=%%~fi
 )
 
