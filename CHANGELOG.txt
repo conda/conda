@@ -1,8 +1,13 @@
+2014-05-XX   3.5.2:
+-------------------
+  * fix bug in activate.bat on Windows
+
+
 2014-05-26   3.5.1:
 -------------------
   * fix proxy support - conda now prompts for proxy username and password
     again
-  * fix activate on Windows with spaces in the path
+  * fix activate.bat on Windows with spaces in the path
   * update optional psutil dependency was updated to psutil 2.0 or higher
 
 
