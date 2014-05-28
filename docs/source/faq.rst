@@ -254,11 +254,11 @@ Creating new environments
       $ conda create -n myenv python
 
 #. How can I create a new environment X (e.g. ``myenv``) with *python* Y.Y.Y
-   (e.g. 3.3) as the default interpreter inside it?
+   (e.g. 3.4) as the default interpreter inside it?
 
    .. code-block:: bash
 
-      $ conda create -n myenv python=3.3
+      $ conda create -n myenv python=3.4
 
 #. How can I create a new environment X (e.g. ``myenv``) with package Y inside it (e.g. *scipy*)?
 

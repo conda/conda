@@ -104,7 +104,7 @@ Presentations & Blog Posts
 Requirements
 ------------
 
-* python 2.7 or 3.3
+* python 2.7, 3.3, or 3.4
 * pycosat
 * pyyaml
 * requests

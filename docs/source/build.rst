@@ -259,6 +259,8 @@ variables are defined. Unless otherwise stated, the variables are booleans.
      - True if the Python version is 2.7
    * - ``py33``
      - True if the Python version is 3.3
+   * - ``py34``
+     - True if the Python version is 3.4
    * - ``np``
      - The NumPy version as a two digit string (like ``'17'``).  See also the
        ``CONDA_NPY`` environment variable :ref:`below <build-envs>`.

@@ -71,9 +71,9 @@ following keys:
 
 The build string is used to differentiate builds of packages with otherwise
 the same name and version, e.g. a build with other dependencies (like Python
-3.3 instead of Python 2.7), a bug fix in the build process, or some different
+3.4 instead of Python 2.7), a bug fix in the build process, or some different
 optional dependencies (MKL vs. ATLAS linkage), etc.  Nothing in conda actually
-inspects the build string---strings such as ``np17py33_1`` are only
+inspects the build string---strings such as ``np18py34_1`` are only
 designed for human readability, but are never parsed by conda.
 
 Unlike the build sting, the build number is inspected by conda.

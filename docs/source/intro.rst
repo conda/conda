@@ -210,23 +210,24 @@ Other conda environments usually contain the same subdirectories as the
 default environment.
 
 ----------------------------------------------
-Creating Python 3.3 or Python 2.6 environments
+Creating Python 3.4 or Python 2.6 environments
 ----------------------------------------------
 
-Anaconda supports Python 2.6, 2.7 & 3.3.  The default is Python 2.7.
+Anaconda supports Python 2.6, 2.7, 3.3, and 3.4.  The default is Python 2.7 or
+3.4, depending on which installer you used.
 
 To get started, you need to create an environment using the :ref:`conda create <create_example>`
 command.
 
 .. code-block:: bash
 
-    $ conda create -n py33 python=3.3 anaconda
+    $ conda create -n py34 python=3.4 anaconda
 
-Here, 'py33' is the name of the environment to create, and 'anaconda' is the
+Here, 'py34' is the name of the environment to create, and 'anaconda' is the
 meta-package that includes all of the actual Python packages comprising
 the Anaconda distribution.  When creating a new environment and installing
 the Anaconda meta-package, the NumPy and Python versions can be specified,
-e.g. `numpy=1.7` or `python=3.3`.
+e.g. `numpy=1.7` or `python=3.4`.
 
 .. code-block:: bash
 
