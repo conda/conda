@@ -1,4 +1,33 @@
-2014-04-XX   3.4.2:
+2014-05-27   3.5.2:
+-------------------
+  * fix bug in activate.bat and deactivate.bat on Windows
+
+
+2014-05-26   3.5.1:
+-------------------
+  * fix proxy support - conda now prompts for proxy username and password
+    again
+  * fix activate.bat on Windows with spaces in the path
+  * update optional psutil dependency was updated to psutil 2.0 or higher
+
+
+2014-05-15   3.5.0:
+-------------------
+  * replace use of urllib2 with requests. requests is now a hard dependency of
+    conda.
+  * add ability to only allow system-wise specified channels
+  * hide binstar from output of conda info
+
+
+2014-05-05   3.4.3:
+-------------------
+  * allow prefix replacement in binary files, see issue #710
+  * check if creating hard link is possible and otherwise copy,
+    during install
+  * allow circular dependencies
+
+
+2014-04-21   3.4.2:
 -------------------
   * conda clean --lock: skip directories that don't exist, fixes #648
   * fixed empty history file causing crash, issue #644
@@ -9,6 +38,14 @@
     local package cache is --unknown
   * add --alt-hint as a method to get an alternate form of a hint for
     unsatisfiable packages
+  * add conda package --ls-files to list files in a package
+  * add ability to pin specs in an environment. To pin a spec, add a file
+    called pinned to the environment's conda-meta directory with the specs to
+    pin. Pinned specs are always kept installed, unless the --no-pin flag is
+    used.
+  * fix keyboard interrupting of external commands. Now keyboard interupting
+    conda build correctly removes the lock file
+  * add no_link ability to conda, see issue #678
 
 
 2014-04-07   3.4.1:

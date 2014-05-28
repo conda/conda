@@ -23,7 +23,6 @@ Also, this module is directly invoked by the (self extracting (sfx)) tarball
 installer to create the initial environment, therefore it needs to be
 standalone, i.e. not import any other parts of `conda` (only depend on
 the standard library).
-
 '''
 
 from __future__ import print_function, division, absolute_import
@@ -167,12 +166,58 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
-def update_prefix(path, new_prefix):
+def read_has_prefix(path):
+    """
+    reads `has_prefix` file and return dict mapping filenames to
+    tuples(placeholder, mode)
+    """
+    res = {}
+    try:
+        for line in yield_lines(path):
+            try:
+                placeholder, mode, f = line.split(None, 2)
+                res[f] = (placeholder, mode)
+            except ValueError:
+                res[line] = (prefix_placeholder, 'text')
+    except IOError:
+        pass
+    return res
+
+class PaddingError(Exception):
+    pass
+
+def binary_replace(data, a, b):
+    """
+    Perform a binary replacement of `data`, where the placeholder `a` is
+    replaced with `b` and the remaining string is padded with zeros.
+    All input arguments are expected to be bytes objects.
+    """
+    import re
+
+    def replace(match):
+        padding = len(match.group()) - len(b) - len(match.group(1))
+        if padding < 1:
+            raise PaddingError
+        return b + match.group(1) + b'\0' * padding
+    pat = re.compile(a.replace(b'.', b'\.') + b'([^\0\\s]*?)\0')
+    res = pat.sub(replace, data)
+    assert len(res) == len(data)
+    return res
+
+def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
+                  mode='text'):
     path = os.path.realpath(path)
     with open(path, 'rb') as fi:
         data = fi.read()
-    new_data = data.replace(prefix_placeholder.encode('utf-8'),
-                            new_prefix.encode('utf-8'))
+    if mode == 'text':
+        new_data = data.replace(placeholder.encode('utf-8'),
+                                new_prefix.encode('utf-8'))
+    elif mode == 'binary':
+        new_data = binary_replace(data, placeholder.encode('utf-8'),
+                                  new_prefix.encode('utf-8'))
+    else:
+        sys.exit("Invalid mode:" % mode)
+
     if new_data == data:
         return
     st = os.lstat(path)
@@ -260,6 +305,15 @@ def read_url(pkgs_dir, dist):
     except IOError:
         pass
     return None
+
+def read_no_link(info_dir):
+    res = set()
+    for fn in 'no_link', 'no_softlink':
+        try:
+            res.update(set(yield_lines(join(info_dir, fn))))
+        except IOError:
+            pass
+    return res
 
 # Should this be an API function?
 def symlink_conda(prefix, root_dir):
@@ -377,11 +431,12 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
+def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
+    index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
@@ -397,17 +452,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
 
     info_dir = join(source_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
-
-    try:
-        has_prefix_files = set(yield_lines(join(info_dir, 'has_prefix')))
-    except IOError:
-        has_prefix_files = set()
-
-    if linktype == LINK_SOFT:
-        try:
-            no_softlink = set(yield_lines(join(info_dir, 'no_softlink')))
-        except IOError:
-            no_softlink = set()
+    has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
+    no_link = read_no_link(info_dir)
 
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
@@ -423,9 +469,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             lt = linktype
-            if (f in has_prefix_files or
-                    (linktype == LINK_SOFT and f in no_softlink) or
-                    islink(src)):
+            if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
             try:
                 _link(src, dst, lt)
@@ -437,23 +481,24 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD):
             return
 
         for f in sorted(has_prefix_files):
-            update_prefix(join(prefix, f), prefix)
+            placeholder, mode = has_prefix_files[f]
+            try:
+                update_prefix(join(prefix, f), prefix, placeholder, mode)
+            except PaddingError:
+                sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
+                         (placeholder, dist))
 
         mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
-            # when the post-link step fails, we don't write any package
-            # metadata and return here.  This way the package is not
-            # considered installed.
-            return
+            sys.exit("Error: post-link failed for: %s" % dist)
 
-        create_meta(prefix, dist, info_dir, {
-                'url': read_url(pkgs_dir, dist),
-                'files': files,
-                'link': {'source': source_dir,
-                         'type': link_name_map.get(linktype)},
-                })
-
+        meta_dict = index.get(dist + '.tar.bz2', {})
+        meta_dict['url'] = read_url(pkgs_dir, dist)
+        meta_dict['files'] = files
+        meta_dict['link'] = {'source': source_dir,
+                             'type': link_name_map.get(linktype)}
+        create_meta(prefix, dist, info_dir, meta_dict)
 
 def unlink(prefix, dist):
     '''
@@ -575,14 +620,21 @@ def main():
     if opts.verbose:
         print("pkgs_dir: %r" % pkgs_dir)
         print("prefix  : %r" % prefix)
-        print("dist    : %r" % dist)
 
     if opts.list:
         pprint(sorted(linked(prefix)))
 
     elif opts.link_all:
-        for dist in sorted(extracted(pkgs_dir)):
-            link(pkgs_dir, prefix, dist)
+        dists = sorted(extracted(pkgs_dir))
+        linktype = (LINK_HARD
+                    if try_hard_link(pkgs_dir, prefix, dists[0]) else
+                    LINK_COPY)
+        if opts.verbose or linktype == LINK_COPY:
+            print("linktype: %s" % link_name_map[linktype])
+        for dist in dists:
+            if opts.verbose or linktype == LINK_COPY:
+                print("linking: %s" % dist)
+            link(pkgs_dir, prefix, dist, linktype)
         messages(prefix)
 
     elif opts.extract:
