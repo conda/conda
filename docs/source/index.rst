@@ -107,7 +107,7 @@ Requirements
 * python 2.7 or 3.3
 * pycosat
 * pyyaml
-
+* requests
 
 
 License Agreement
