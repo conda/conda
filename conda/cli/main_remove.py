@@ -42,6 +42,7 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "remove features (instead of packages)",
     )
+    common.add_parser_no_pin(p)
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
@@ -93,7 +94,7 @@ def execute(args, parser):
             common.names_in_specs(common.root_no_rm, specs)):
             sys.exit('Error: cannot remove %s from root environment' %
                      ', '.join(common.root_no_rm))
-        actions = plan.remove_actions(prefix, specs)
+        actions = plan.remove_actions(prefix, specs, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
         if args.all:

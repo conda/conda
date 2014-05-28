@@ -939,6 +939,40 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
 
+def test_circular_dependencies():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = {
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    }
+    index2['package2-1.0-0.tar.bz2'] = {
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package1'],
+        'name': 'package2',
+        'requires': ['package1'],
+        'version': '1.0',
+    }
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        'package1-1.0-0.tar.bz2',
+    }
+    assert set(r.get_dists(['package1']).keys()) == {
+        'package1-1.0-0.tar.bz2',
+        'package2-1.0-0.tar.bz2',
+    }
+    assert r.solve(['package1']) == r.solve(['package2']) == \
+        r.solve(['package1', 'package2']) == [
+        'package1-1.0-0.tar.bz2',
+        'package2-1.0-0.tar.bz2',
+    ]
+
+
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
     sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])

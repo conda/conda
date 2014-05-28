@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, dirname, expanduser, isfile, isdir, join
+from os.path import abspath, expanduser, isfile, isdir, join
 
 from conda.compat import urlparse
 from conda.utils import try_write
@@ -62,13 +62,14 @@ rc_bool_keys = [
     'binstar_upload',
     'binstar_personal',
     'show_channel_urls',
+    'allow_other_channels',
     ]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
     'root_dir',
-    'channel_alias'
+    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -101,8 +102,9 @@ rc = load_condarc(rc_path)
 
 # ----- local directories -----
 
-# root_dir should only be used for testing, which is why don't mention it in the
-# documentation, to avoid confusion (it can really mess up a lot of things)
+# root_dir should only be used for testing, which is why don't mention it in
+# the documentation, to avoid confusion (it can really mess up a lot of
+# things)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
@@ -177,12 +179,15 @@ def normalize_urls(urls, platform=None):
     newurls = []
     for url in urls:
         if url == "defaults":
-            newurls.extend(normalize_urls(get_default_urls(), platform=platform))
+            newurls.extend(normalize_urls(get_default_urls(),
+                                          platform=platform))
         elif url == "system":
             if not rc_path:
-                newurls.extend(normalize_urls(get_default_urls(), platform=platform))
+                newurls.extend(normalize_urls(get_default_urls(),
+                                              platform=platform))
             else:
-                newurls.extend(normalize_urls(get_rc_urls(), platform=platform))
+                newurls.extend(normalize_urls(get_rc_urls(),
+                                              platform=platform))
         elif not is_url(url):
             moreurls = normalize_urls([rc.get('channel_alias',
                 DEFAULT_CHANNEL_ALIAS)+url], platform=platform)
@@ -219,11 +224,30 @@ def canonical_channel_name(channel):
     else:
         return channel
 
+# ----- allowed channels -----
+
+def get_allowed_channels():
+    if not isfile(sys_rc_path):
+        return None
+    sys_rc = load_condarc(sys_rc_path)
+    if sys_rc.get('allow_other_channels', True):
+        return None
+    if 'channels' in sys_rc:
+        base_urls = sys_rc['channels']
+    else:
+        base_urls = get_default_urls()
+    return normalize_urls(base_urls)
+
+allowed_channels = get_allowed_channels()
+
 # ----- proxy -----
 
 def get_proxy_servers():
     res = rc.get('proxy_servers')
-    if res is None or isinstance(res, dict):
+    if res is None:
+        import requests
+        return requests.utils.getproxies()
+    if isinstance(res, dict):
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
 

@@ -253,13 +253,13 @@ Error: environment does not exist: %s
         actions = plan.revert_actions(prefix, get_revision(args.revision))
     else:
         actions = plan.install_actions(prefix, index, specs, force=args.force,
-                                       only_names=only_names, minimal_hint=args.alt_hint)
+                                       only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import list_packages
 
         regex = '^(%s)$' % '|'.join(spec_names)
-        print('# All requested packages already installed.')
+        print('\n# All requested packages already installed.')
         list_packages(prefix, regex)
         return
 
@@ -278,12 +278,12 @@ Error: environment does not exist: %s
         print_activate(args.name if args.name else prefix)
 
 
-def check_install(packages, platform=None, channel_urls=(), prepend=True):
+def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=False):
     try:
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        plan.install_actions(prefix, index, specs)
+        plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
     finally:
         ci.rm_rf(prefix)

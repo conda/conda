@@ -7,106 +7,416 @@
 from __future__ import print_function, division, absolute_import
 
 from logging import getLogger
+import re
+import mimetypes
+import os
+import email
+import base64
+import ftplib
+import cgi
+from io import BytesIO
 
-from conda.compat import PY3, string_types
-from conda.compat import iteritems, input
+from conda.compat import urlparse, StringIO
 from conda.config import get_proxy_servers
 
-if PY3:
-    # Python 3.x
-    import urllib.request as urllib2
-    from urllib import parse as urlparse
-else:
-    # Python 2.x
-    import urllib2
-    import urlparse
+import requests
 
+RETRIES = 3
 
 log = getLogger(__name__)
 
-# 1. get proxies if needed. a proxy for each  protocol
-# 2. handle authentication
-# basic, digest, and nltm (windows) authentications should be handled.
-# 3. handle any protocol
-# typically http, https, ftp
+# Modified from code in pip/download.py:
 
-# 1. get the proxies list
-# urllib can only get proxies on windows and mac. so on linux or if the user
-# wants to specify the proxy there has to be a way to do that. TODO get proxies
-# from condarc and overrwrite any system proxies
-# the proxies are in a dict {'http':'http://proxy:8080'}
-# protocol:proxyserver
-proxies_dict = get_proxy_servers() or urllib2.getproxies()
+# Copyright (c) 2008-2014 The pip developers (see AUTHORS.txt file)
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#2. handle authentication
+class CondaSession(requests.Session):
 
-proxypwdmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    timeout = None
+
+    def __init__(self, *args, **kwargs):
+        retries = kwargs.pop('retries', RETRIES)
+
+        super(CondaSession, self).__init__(*args, **kwargs)
+
+        self.proxies = get_proxy_servers()
+
+        # Configure retries
+        if retries:
+            http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
+            self.mount("http://", http_adapter)
+            self.mount("https://", http_adapter)
+
+        # Enable file:// urls
+        self.mount("file://", LocalFSAdapter())
+
+        # Enable ftp:// urls
+        self.mount("ftp://", FTPAdapter())
+
+class LocalFSAdapter(requests.adapters.BaseAdapter):
+
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
+             proxies=None):
+        pathname = url_to_path(request.url)
+
+        resp = requests.models.Response()
+        resp.status_code = 200
+        resp.url = request.url
+
+        try:
+            stats = os.stat(pathname)
+        except OSError as exc:
+            resp.status_code = 404
+            resp.raw = exc
+        else:
+            modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
+            content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
+            resp.headers = requests.structures.CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": stats.st_size,
+                "Last-Modified": modified,
+            })
+
+            resp.raw = open(pathname, "rb")
+            resp.close = resp.raw.close
+
+        return resp
+
+    def close(self):
+        pass
+
+def url_to_path(url):
+    """
+    Convert a file: URL to a path.
+    """
+    assert url.startswith('file:'), (
+        "You can only turn file: urls into filenames (not %r)" % url)
+    path = url[len('file:'):].lstrip('/')
+    path = urlparse.unquote(path)
+    if _url_drive_re.match(path):
+        path = path[0] + ':' + path[2:]
+    else:
+        path = '/' + path
+    return path
+
+_url_drive_re = re.compile('^([a-z])[:|]', re.I)
+
+# Taken from requests-ftp
+# (https://github.com/Lukasa/requests-ftp/blob/master/requests_ftp/ftp.py)
+
+# Copyright 2012 Cory Benfield
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+class FTPAdapter(requests.adapters.BaseAdapter):
+    '''A Requests Transport Adapter that handles FTP urls.'''
+    def __init__(self):
+        super(FTPAdapter, self).__init__()
+
+        # Build a dictionary keyed off the methods we support in upper case.
+        # The values of this dictionary should be the functions we use to
+        # send the specific queries.
+        self.func_table = {'LIST': self.list,
+                           'RETR': self.retr,
+                           'STOR': self.stor,
+                           'NLST': self.nlst,
+                           'GET':  self.retr,}
+
+    def send(self, request, **kwargs):
+        '''Sends a PreparedRequest object over FTP. Returns a response object.
+        '''
+        # Get the authentication from the prepared request, if any.
+        auth = self.get_username_password_from_header(request)
+
+        # Next, get the host and the path.
+        host, port, path = self.get_host_and_path_from_url(request)
+
+        # Sort out the timeout.
+        timeout = kwargs.get('timeout', None)
+
+        # Establish the connection and login if needed.
+        self.conn = ftplib.FTP()
+        self.conn.connect(host, port, timeout)
+
+        if auth is not None:
+            self.conn.login(auth[0], auth[1])
+        else:
+            self.conn.login()
+
+        # Get the method and attempt to find the function to call.
+        resp = self.func_table[request.method](path, request)
+
+        # Return the response.
+        return resp
+
+    def close(self):
+        '''Dispose of any internal state.'''
+        # Currently this is a no-op.
+        pass
+
+    def list(self, path, request):
+        '''Executes the FTP LIST command on the given path.'''
+        data = StringIO()
+
+        # To ensure the StringIO gets cleaned up, we need to alias its close
+        # method to the release_conn() method. This is a dirty hack, but there
+        # you go.
+        data.release_conn = data.close
+
+        self.conn.cwd(path)
+        code = self.conn.retrbinary('LIST', data_callback_factory(data))
+
+        # When that call has finished executing, we'll have all our data.
+        response = build_text_response(request, data, code)
+
+        # Close the connection.
+        self.conn.close()
+
+        return response
+
+    def retr(self, path, request):
+        '''Executes the FTP RETR command on the given path.'''
+        data = BytesIO()
+
+        # To ensure the BytesIO gets cleaned up, we need to alias its close
+        # method. See self.list().
+        data.release_conn = data.close
+
+        code = self.conn.retrbinary('RETR ' + path, data_callback_factory(data))
+
+        response = build_binary_response(request, data, code)
+
+        # Close the connection.
+        self.conn.close()
+
+        return response
+
+    def stor(self, path, request):
+        '''Executes the FTP STOR command on the given path.'''
+
+        # First, get the file handle. We assume (bravely)
+        # that there is only one file to be sent to a given URL. We also
+        # assume that the filename is sent as part of the URL, not as part of
+        # the files argument. Both of these assumptions are rarely correct,
+        # but they are easy.
+        data = parse_multipart_files(request)
+
+        # Split into the path and the filename.
+        path, filename = os.path.split(path)
+
+        # Switch directories and upload the data.
+        self.conn.cwd(path)
+        code = self.conn.storbinary('STOR ' + filename, data)
+
+        # Close the connection and build the response.
+        self.conn.close()
+
+        response = build_binary_response(request, BytesIO(), code)
+
+        return response
+
+    def nlst(self, path, request):
+        '''Executes the FTP NLST command on the given path.'''
+        data = StringIO()
+
+        # Alias the close method.
+        data.release_conn = data.close
+
+        self.conn.cwd(path)
+        code = self.conn.retrbinary('NLST', data_callback_factory(data))
+
+        # When that call has finished executing, we'll have all our data.
+        response = build_text_response(request, data, code)
+
+        # Close the connection.
+        self.conn.close()
+
+        return response
+
+    def get_username_password_from_header(self, request):
+        '''Given a PreparedRequest object, reverse the process of adding HTTP
+        Basic auth to obtain the username and password. Allows the FTP adapter
+        to piggyback on the basic auth notation without changing the control
+        flow.'''
+        auth_header = request.headers.get('Authorization')
+
+        if auth_header:
+            # The basic auth header is of the form 'Basic xyz'. We want the
+            # second part. Check that we have the right kind of auth though.
+            encoded_components = auth_header.split()[:2]
+            if encoded_components[0] != 'Basic':
+                raise AuthError('Invalid form of Authentication used.')
+            else:
+                encoded = encoded_components[1]
+
+            # Decode the base64 encoded string.
+            decoded = base64.b64decode(encoded)
+
+            # The string is of the form 'username:password'. Split on the
+            # colon.
+            components = decoded.split(':')
+            username = components[0]
+            password = components[1]
+            return (username, password)
+        else:
+            # No auth header. Return None.
+            return None
+
+    def get_host_and_path_from_url(self, request):
+        '''Given a PreparedRequest object, split the URL in such a manner as to
+        determine the host and the path. This is a separate method to wrap some
+        of urlparse's craziness.'''
+        url = request.url
+        # scheme, netloc, path, params, query, fragment = urlparse(url)
+        parsed = urlparse.urlparse(url)
+        path = parsed.path
+
+        # If there is a slash on the front of the path, chuck it.
+        if path[0] == '/':
+            path = path[1:]
+
+        host = parsed.hostname
+        port = parsed.port or 0
+
+        return (host, port, path)
+
+def data_callback_factory(variable):
+    '''Returns a callback suitable for use by the FTP library. This callback
+    will repeatedly save data into the variable provided to this function. This
+    variable should be a file-like structure.'''
+    def callback(data):
+        variable.write(data)
+        return
+
+    return callback
+
+class AuthError(Exception):
+    '''Denotes an error with authentication.'''
+    pass
+
+def build_text_response(request, data, code):
+    '''Build a response for textual data.'''
+    return build_response(request, data, code, 'ascii')
+
+def build_binary_response(request, data, code):
+    '''Build a response for data whose encoding is unknown.'''
+    return build_response(request, data, code,  None)
+
+def build_response(request, data, code, encoding):
+    '''Builds a response object from the data returned by ftplib, using the
+    specified encoding.'''
+    response = requests.Response()
+
+    response.encoding = encoding
+
+    # Fill in some useful fields.
+    response.raw = data
+    response.url = request.url
+    response.request = request
+    response.status_code = code.split()[0]
+
+    # Make sure to seek the file-like raw object back to the start.
+    response.raw.seek(0)
+
+    # Run the response hook.
+    response = requests.hooks.dispatch_hook('response', request.hooks, response)
+    return response
+
+def parse_multipart_files(request):
+    '''Given a prepared reqest, return a file-like object containing the
+    original data. This is pretty hacky.'''
+    # Start by grabbing the pdict.
+    _, pdict = cgi.parse_header(request.headers['Content-Type'])
+
+    # Now, wrap the multipart data in a BytesIO buffer. This is annoying.
+    buf = BytesIO()
+    buf.write(request.body)
+    buf.seek(0)
+
+    # Parse the data. Simply take the first file.
+    data = cgi.parse_multipart(buf, pdict)
+    _, filedata = data.popitem()
+    buf.close()
+
+    # Get a BytesIO now, and write the file into it.
+    buf = BytesIO()
+    buf.write(''.join(filedata))
+    buf.seek(0)
+
+    return buf
+
+# Taken from urllib3 (actually
+# https://github.com/shazow/urllib3/pull/394). Once it is fully upstreamed to
+# requests.packages.urllib3 we can just use that.
 
 
-def get_userandpass(proxytype='', realm=''):
-    """a function to get username and password from terminal.
-    can be replaced with anything like some gui"""
-    import getpass
+def unparse_url(U):
+    """
+    Convert a :class:`.Url` into a url
 
-    uname = input(proxytype + ' proxy username:')
-    pword = getpass.getpass()
-    return uname, pword
+    The input can be any iterable that gives ['scheme', 'auth', 'host',
+    'port', 'path', 'query', 'fragment']. Unused items should be None.
 
-
-# a procedure that needs to be executed with changes to handlers
-def installopener():
-    opener = urllib2.build_opener(
-        urllib2.ProxyHandler(proxies_dict),
-        urllib2.ProxyBasicAuthHandler(proxypwdmgr),
-        urllib2.ProxyDigestAuthHandler(proxypwdmgr),
-        urllib2.HTTPHandler,
-    )
-    # digest auth may not work with all proxies
-    # http://bugs.python.org/issue16095
-    # could add windows/nltm authentication here
-    #opener=urllib2.build_opener(urllib2.ProxyHandler(proxies_dict), urllib2.HTTPHandler)
-
-    urllib2.install_opener(opener)
+    This function should more or less round-trip with :func:`.parse_url`. The
+    returned url may not be exactly the same as the url inputted to
+    :func:`.parse_url`, but it should be equivalent by the RFC (e.g., urls
+    with a blank port).
 
 
-firstconnection = True
-#i made this func so i wouldn't alter the original code much
-def connectionhandled_urlopen(request):
-    """handles aspects of establishing the connection with the remote"""
+    Example: ::
 
-    installopener()
+        >>> Url = parse_url('http://google.com/mail/')
+        >>> unparse_url(Url)
+        'http://google.com/mail/'
+        >>> unparse_url(['http', 'username:password', 'host.com', 80,
+        ... '/path', 'query', 'fragment'])
+        'http://username:password@host.com:80/path?query#fragment'
+    """
+    scheme, auth, host, port, path, query, fragment = U
+    url = ''
 
-    if isinstance(request, string_types):
-        request = urllib2.Request(request)
+    # We use "is not None" we want things to happen with empty strings (or 0 port)
+    if scheme is not None:
+        url = scheme + '://'
+    if auth is not None:
+        url += auth + '@'
+    if host is not None:
+        url += host
+    if port is not None:
+        url += ':' + str(port)
+    if path is not None:
+        url += path
+    if query is not None:
+        url += '?' + query
+    if fragment is not None:
+        url += '#' + fragment
 
-    try:
-        return urllib2.urlopen(request)
-
-    except urllib2.HTTPError as HTTPErrorinst:
-        if HTTPErrorinst.code in (407, 401):
-            # proxy authentication error
-            # ...(need to auth) or supplied creds failed
-            if HTTPErrorinst.code == 401:
-                log.debug('proxy authentication failed')
-            #authenticate and retry
-            uname, pword = get_userandpass()
-            #assign same user+pwd to all protocols (a reasonable assumption) to
-            #decrease user input. otherwise you'd need to assign a user/pwd to
-            #each proxy type
-            if firstconnection == True:
-                for aprotocol, aproxy in iteritems(proxies_dict):
-                    proxypwdmgr.add_password(None, aproxy, uname, pword)
-                firstconnection == False
-            else: #...assign a uname pwd for the specific protocol proxy type
-                assert(firstconnection == False)
-                protocol = urlparse.urlparse(request.get_full_url()).scheme
-                proxypwdmgr.add_password(None, proxies_dict[protocol],
-                                         uname, pword)
-            installopener()
-            # i'm uncomfortable with this
-            # but i just want to exec to start from the top again
-            return connectionhandled_urlopen(request)
-        raise
-
-    except:
-        raise
+    return url
