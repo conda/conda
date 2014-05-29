@@ -9,7 +9,7 @@ For this first example, we will use an environment */tmp/matplotlib*, which we c
 
 .. code-block:: bash
 
-    $ conda update -p /tmp/matplotlib
+    $ conda update -p /tmp/matplotlib matplotlib
     Upgrading Anaconda environment at /tmp/matplotlib
 
     The following packages will be UN-linked:
