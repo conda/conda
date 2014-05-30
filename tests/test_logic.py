@@ -654,3 +654,4 @@ def test_min_sat():
             [1, -2, -3, -4],
             [1, -2, 3, -4],
             ]
+        assert min_sat([[1], [-1]], alg=alg) == []
