@@ -47,3 +47,10 @@ on an environment */home/test/anaconda/envs/matplotlib*.
         matplotlib-1.2.1           |       np17py27_1
 
     Proceed ([y]/n)? n
+
+You can update all packages in an environment with ``conda update
+--all``. Note that it is sometimes possible that this does not work, because
+there is no satisfiable set of package dependencies without downgrades or
+removals in the current environment.  In this case, conda will give an
+``unsatisfiable package specifications`` error and will generate a hint
+regarding which packages conflict with one another.
