@@ -661,6 +661,8 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
                  'resolving)')
     from conda.resolve import normalized_version
 
+    if not clauses:
+        return []
     m = max(map(abs, chain(*clauses)))
     if not N:
         N = m
