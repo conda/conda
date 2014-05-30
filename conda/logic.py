@@ -680,6 +680,8 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
                 solutions.append(sol)
         return solutions
     else:
+        if not sat(clauses):
+            return []
         def func(lo, hi):
             return list(generate_constraints([(1, i) for i in range(1, N+1)], m,
                 [lo, hi], alg=alg))
