@@ -439,12 +439,11 @@ class Resolve(object):
             m = i + 1
 
             dotlog.debug("Solving using max dists only")
-            clauses = self.gen_clauses(v, dists, specs, features)
-            solutions = min_sat(set(clauses))
-
+            clauses = set(self.gen_clauses(v, dists, specs, features))
+            solutions = min_sat(clauses)
 
             if len(solutions) == 1:
-                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
+                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
                 if returnall:
                     return [ret]
                 return ret
