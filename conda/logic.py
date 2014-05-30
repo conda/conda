@@ -22,7 +22,7 @@ representing the various logical classes, only atoms.
 """
 import sys
 from collections import defaultdict
-from functools import total_ordering
+from functools import total_ordering, partial
 from itertools import islice, chain
 import logging
 
@@ -698,10 +698,12 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
     else:
         if not sat(clauses):
             return []
+        eq = [(1, i) for i in range(1, N+1)]
         def func(lo, hi):
-            return list(generate_constraints([(1, i) for i in range(1, N+1)], m,
+            return list(generate_constraints(eq, m,
                 [lo, hi], alg=alg))
-        constraints = bisect_constraints(0, N, clauses, func)
+        evaluate_func = partial(evaluate_eq, eq)
+        constraints = bisect_constraints(0, N, clauses, func, evaluate_func=evaluate_func)
         return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
