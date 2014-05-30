@@ -686,7 +686,7 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
             return list(generate_constraints([(1, i) for i in range(1, N+1)], m,
                 [lo, hi], alg=alg))
         constraints = bisect_constraints(0, N, clauses, func)
-        return min_sat(chain(clauses, constraints), max_n=max_n, N=N, alg='iterate')
+        return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
     """
