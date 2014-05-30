@@ -5,12 +5,13 @@ import sys
 import logging
 from itertools import combinations
 from collections import defaultdict
+from functools import partial
 
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-                         bisect_constraints)
+    bisect_constraints, evaluate_eq)
 from conda.console import setup_handlers
 
 log = logging.getLogger(__name__)
@@ -502,7 +503,9 @@ class Resolve(object):
                 return generate_constraints(eq, m, [lo, hi], alg=alg)
 
             log.debug("Bisecting the version constraint")
-            constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
+            evaluate_func = partial(evaluate_eq, eq)
+            constraints = bisect_constraints(0, max_rhs, clauses,
+                version_constraints, evaluate_func=evaluate_func)
 
         dotlog.debug("Finding the minimal solution")
         solutions = min_sat(clauses | constraints, N=m+1)

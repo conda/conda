@@ -30,6 +30,7 @@ from conda.compat import log2, ceil
 from conda.utils import memoize
 
 dotlog = logging.getLogger('dotupdate')
+log = logging.getLogger(__name__)
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
@@ -423,6 +424,16 @@ class Linear(object):
 
     __repr__ = __str__
 
+def evaluate_eq(eq, sol):
+    """
+    Evaluate an equation at a solution
+    """
+    atom2coeff = defaultdict(int, {atom: coeff for coeff, atom in eq})
+    t = 0
+    for s in sol:
+        t += atom2coeff[s]
+    return t
+
 def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
     l = Linear(eq, rhs)
     if not l:
@@ -605,7 +616,7 @@ def best_alg_heuristic(eq, rhs):
     # Stub
     return 'BDD'
 
-def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
+def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
     """
     Bisect the solution space of a constraint, to minimize it.
 
@@ -616,6 +627,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
     increment.  To not use it, set a very large increment. The increment
     argument should be used if you expect the optimal solution to be near 0.
 
+    If evalaute_func is given, it is used to evaluate solutions to aid in the bisection.
     """
     lo, hi = [min_rhs, max_rhs]
     while True:
@@ -631,14 +643,18 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
             constraints = []
 
         dotlog.debug("Checking for solutions with rhs:  %s" % rhs)
-        solutions = sat(chain(clauses, constraints))
+        solution = sat(chain(clauses, constraints))
         if lo >= hi:
             break
-        if solutions:
+        if solution:
             if lo == mid:
                 break
             # bisect good
             hi = mid
+            if evaluate_func:
+                eval_hi = evaluate_func(solution)
+                log.debug("Evaluated value: %s" % eval_hi)
+                hi = min(eval_hi, hi)
         else:
             # bisect bad
             lo = mid+1
