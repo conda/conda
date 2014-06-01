@@ -8,11 +8,53 @@ from conda.cli import conda_argparse
 from conda.config import root_dir
 from conda.cli.common import confirm, add_parser_yes
 
+
 try:
     WindowsError
 except NameError:
     class WindowsError(Exception):
         pass
+
+
+def check_processes():
+    # Conda should still work if psutil is not installed (it should not be a
+    # hard dependency)
+    try:
+        import psutil
+    except ImportError:
+        return True
+
+    if psutil.__version__ < '2.':
+        # we now require psutil 2.0 or above
+        return True
+
+    ok = True
+    curpid = os.getpid()
+    for n in psutil.get_pid_list():
+        if n == curpid: # The Python that conda is running is OK
+            continue
+        try:
+            p = psutil.Process(n)
+        except psutil.NoSuchProcess:
+            continue
+        try:
+            if abspath(p.exe()).startswith(root_dir):
+                processcmd = ' '.join(p.cmdline())
+                if processcmd.startswith('conda '):
+                    continue
+                print("WARNING: the process %s (%d) is running" %
+                      (processcmd, n))
+                ok = False
+        except (psutil.AccessDenied, WindowsError):
+            pass
+    if not ok:
+        print("""\
+WARNING: Continuing installation while the above processes are running is
+not recommended.  Please, close all Anaconda programs before installing or
+updating things with conda.
+""")
+    return ok
+
 
 def main(args, windowsonly=True):
     # Returns True for force, otherwise None
@@ -28,43 +70,6 @@ def main(args, windowsonly=True):
                 if choice == 'force':
                     return True
 
-def check_processes():
-    # Conda should still work if psutil is not installed (it should not be a
-    # hard dependency)
-    try:
-        import psutil
-        # Old versions of psutil don't have this error,
-        # causing the below code to fail.
-        psutil._error.AccessDenied
-    except:
-        return True
-
-    ok = True
-    curpid = os.getpid()
-    for n in psutil.get_pid_list():
-        if n == curpid: # The Python that conda is running is OK
-            continue
-        try:
-            p = psutil.Process(n)
-        except psutil._error.NoSuchProcess:
-            continue
-        try:
-            if abspath(p.exe).startswith(root_dir):
-                processcmd = ' '.join(p.cmdline)
-                if processcmd.startswith('conda '):
-                    continue
-                print("WARNING: the process %s (%d) is running" %
-                      (processcmd, n))
-                ok = False
-        except (psutil._error.AccessDenied, WindowsError):
-            pass
-    if not ok:
-        print("""\
-WARNING: Continuing installation while the above processes are running is
-not recommended.  Please, close all Anaconda programs before installing or
-updating things with conda.
-""")
-    return ok
 
 if __name__ == '__main__':
     p = conda_argparse.ArgumentParser()

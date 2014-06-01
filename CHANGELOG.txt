@@ -1,3 +1,16 @@
+2014-05-27   3.5.2:
+-------------------
+  * fix bug in activate.bat and deactivate.bat on Windows
+
+
+2014-05-26   3.5.1:
+-------------------
+  * fix proxy support - conda now prompts for proxy username and password
+    again
+  * fix activate.bat on Windows with spaces in the path
+  * update optional psutil dependency was updated to psutil 2.0 or higher
+
+
 2014-05-15   3.5.0:
 -------------------
   * replace use of urllib2 with requests. requests is now a hard dependency of
