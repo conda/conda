@@ -73,27 +73,43 @@ def test_And_clauses():
     for i in range(-1, 2, 2): # [-1, 1]
         for j in range(-1, 2, 2):
             C = Clauses(2)
+            Cpos = Clauses(2)
+            Cneg = Clauses(2)
             x = C.And(i*1, j*2)
-            for sol in my_itersolve({(x,)} | C.clauses):
+            xpos = Cpos.And(i*1, j*2, polarity=True)
+            xneg = Cneg.And(i*1, j*2, polarity=False)
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert f and g
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert not (f and g)
 
     C = Clauses(1)
+    Cpos = Clauses(1)
+    Cneg = Clauses(1)
     x = C.And(1, -1)
-    assert x == false # x and ~x
-    assert C.clauses == set([])
+    xpos = Cpos.And(1, -1, polarity=True)
+    xneg = Cneg.And(1, -1, polarity=False)
+    assert x == xneg == xpos == false # x and ~x
+    assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
     C = Clauses(1)
+    Cpos = Clauses(1)
+    Cneg = Clauses(1)
     x = C.And(1, 1)
-    for sol in my_itersolve({(x,)} | C.clauses):
+    xpos = Cpos.And(1, 1, polarity=True)
+    xneg = Cneg.And(1, 1, polarity=False)
+    for sol in chain(my_itersolve({(x,)} | C.clauses), my_itersolve({(xpos,)}
+        | Cpos.clauses)):
         f = 1 in sol
         assert (f and f)
-    for sol in my_itersolve({(-x,)} | C.clauses):
+    for sol in chain(my_itersolve({(-x,)} | C.clauses),
+        my_itersolve({(-xneg,)} | Cneg.clauses)):
         f = 1 in sol
         assert not (f and f)
 
@@ -101,36 +117,56 @@ def test_And_bools():
     for f in [true, false]:
         for g in [true, false]:
             C = Clauses(2)
+            Cpos = Clauses(2)
+            Cneg = Clauses(2)
             x = C.And(f, g)
-            assert x == (true if (boolize(f) and boolize(g)) else false)
-            assert C.clauses == set([])
+            xpos = Cpos.And(f, g, polarity=True)
+            xneg = Cneg.And(f, g, polarity=False)
+            assert x == xpos == xneg == (true if (boolize(f) and boolize(g)) else false)
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
         C = Clauses(1)
+        Cpos = Clauses(1)
+        Cneg = Clauses(1)
         x = C.And(f, 1)
+        xpos = Cpos.And(f, 1, polarity=True)
+        xneg = Cneg.And(f, 1, polarity=False)
         fb = boolize(f)
         if x in [true, false]:
-            assert C.clauses == set([])
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
             xb = boolize(x)
-            assert xb == (fb and NoBool())
+            xbpos = boolize(xpos)
+            xbneg = boolize(xneg)
+            assert xb == xbpos == xbneg == (fb and NoBool())
         else:
-            for sol in my_itersolve({(x,)} | C.clauses):
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 a = 1 in sol
                 assert (fb and a)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 a = 1 in sol
                 assert not (fb and a)
 
         C = Clauses(1)
+        Cpos = Clauses(1)
+        Cneg = Clauses(1)
         x = C.And(1, f)
+        xpos = Cpos.And(1, f, polarity=True)
+        xneg = Cneg.And(1, f, polarity=False)
         if x in [true, false]:
-            assert C.clauses == set([])
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
             xb = boolize(x)
-            assert xb == (fb and NoBool())
+            xbpos = boolize(xpos)
+            xbneg = boolize(xneg)
+            assert xb == xbpos == xbneg == (fb and NoBool())
         else:
-            for sol in my_itersolve({(x,)} | C.clauses):
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 a = 1 in sol
                 assert (fb and a)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 a = 1 in sol
                 assert not (fb and a)
 
@@ -140,27 +176,43 @@ def test_Or_clauses():
     for i in range(-1, 2, 2): # [-1, 1]
         for j in range(-1, 2, 2):
             C = Clauses(2)
+            Cpos = Clauses(2)
+            Cneg = Clauses(2)
             x = C.Or(i*1, j*2)
-            for sol in my_itersolve({(x,)} | C.clauses):
+            xpos = Cpos.Or(i*1, j*2, polarity=True)
+            xneg = Cneg.Or(i*1, j*2, polarity=False)
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert f or g
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert not (f or g)
 
     C = Clauses(1)
+    Cpos = Clauses(1)
+    Cneg = Clauses(1)
     x = C.Or(1, -1)
-    assert x == true # x or ~x
-    assert C.clauses == set([])
+    xpos = Cpos.Or(1, -1, polarity=True)
+    xneg = Cneg.Or(1, -1, polarity=False)
+    assert x == xpos == xneg == true # x or ~x
+    assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
     C = Clauses(1)
+    Cpos = Clauses(1)
+    Cneg = Clauses(1)
     x = C.Or(1, 1)
-    for sol in my_itersolve({(x,)} | C.clauses):
+    xpos = Cpos.Or(1, 1, polarity=True)
+    xneg = Cneg.Or(1, 1, polarity=False)
+    for sol in chain(my_itersolve({(x,)} | C.clauses), my_itersolve({(xpos,)}
+        | Cpos.clauses)):
         f = 1 in sol
         assert (f or f)
-    for sol in my_itersolve({(-x,)} | C.clauses):
+    for sol in chain(my_itersolve({(-x,)} | C.clauses),
+        my_itersolve({(-xneg,)} | Cneg.clauses)):
         f = 1 in sol
         assert not (f or f)
 
@@ -169,36 +221,56 @@ def test_Or_bools():
     for f in [true, false]:
         for g in [true, false]:
             C = Clauses(2)
+            Cpos = Clauses(2)
+            Cneg = Clauses(2)
             x = C.Or(f, g)
-            assert x == (true if (boolize(f) or boolize(g)) else false)
-            assert C.clauses == set([])
+            xpos = Cpos.Or(f, g, polarity=True)
+            xneg = Cneg.Or(f, g, polarity=False)
+            assert x == xpos == xneg == (true if (boolize(f) or boolize(g)) else false)
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
         C = Clauses(1)
+        Cpos = Clauses(1)
+        Cneg = Clauses(1)
         x = C.Or(f, 1)
+        xpos = Cpos.Or(f, 1, polarity=True)
+        xneg = Cneg.Or(f, 1, polarity=False)
         fb = boolize(f)
         if x in [true, false]:
-            assert C.clauses == set([])
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
             xb = boolize(x)
-            assert xb == (fb or NoBool())
+            xbpos = boolize(xpos)
+            xbneg = boolize(xneg)
+            assert xb == xbpos == xbneg == (fb or NoBool())
         else:
-            for sol in my_itersolve({(x,)} | C.clauses):
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 a = 1 in sol
                 assert (fb or a)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 a = 1 in sol
                 assert not (fb or a)
 
         C = Clauses(1)
+        Cpos = Clauses(1)
+        Cneg = Clauses(1)
         x = C.Or(1, f)
+        xpos = Cpos.Or(1, f, polarity=True)
+        xneg = Cneg.Or(1, f, polarity=False)
         if x in [true, false]:
-            assert C.clauses == set([])
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
             xb = boolize(x)
-            assert xb == (fb or NoBool())
+            xbpos = boolize(xpos)
+            xbneg = boolize(xneg)
+            assert xb == xbpos == xbneg == (fb or NoBool())
         else:
-            for sol in my_itersolve({(x,)} | C.clauses):
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 a = 1 in sol
                 assert (fb or a)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 a = 1 in sol
                 assert not (fb or a)
 
@@ -208,56 +280,86 @@ def test_Xor_clauses():
     for i in range(-1, 2, 2): # [-1, 1]
         for j in range(-1, 2, 2):
             C = Clauses(2)
+            Cpos = Clauses(2)
+            Cneg = Clauses(2)
             x = C.Xor(i*1, j*2)
-            for sol in my_itersolve({(x,)} | C.clauses):
+            xpos = Cpos.Xor(i*1, j*2, polarity=True)
+            xneg = Cneg.Xor(i*1, j*2, polarity=False)
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert (f != g)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 f = i*1 in sol
                 g = j*2 in sol
                 assert not (f != g)
 
     C = Clauses(1)
+    Cpos = Clauses(1)
+    Cneg = Clauses(1)
     x = C.Xor(1, 1)
-    assert x == false # x xor x
-    assert C.clauses == set([])
+    xpos = Cpos.Xor(1, 1, polarity=True)
+    xneg = Cneg.Xor(1, 1, polarity=False)
+    assert x == xpos == xneg == false # x xor x
+    assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
     C = Clauses(1)
+    Cpos = Clauses(1)
+    Cneg = Clauses(1)
     x = C.Xor(1, -1)
-    assert x == true # x xor -x
-    assert C.clauses == set([])
+    xpos = Cpos.Xor(1, -1, polarity=True)
+    xneg = Cneg.Xor(1, -1, polarity=False)
+    assert x == xpos == xneg == true # x xor -x
+    assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
 def test_Xor_bools():
     for f in [true, false]:
         for g in [true, false]:
             C = Clauses(2)
+            Cpos = Clauses(2)
+            Cneg = Clauses(2)
             x = C.Xor(f, g)
-            assert x == (true if (boolize(f) != boolize(g)) else false)
-            assert C.clauses == set([])
+            xpos = Cpos.Xor(f, g, polarity=True)
+            xneg = Cneg.Xor(f, g, polarity=False)
+            assert x == xpos == xneg == (true if (boolize(f) != boolize(g)) else false)
+            assert C.clauses == Cpos.clauses == Cneg.clauses == set([])
 
         C = Clauses(1)
+        Cpos = Clauses(1)
+        Cneg = Clauses(1)
         x = C.Xor(f, 1)
+        xpos = Cpos.Xor(f, 1, polarity=True)
+        xneg = Cneg.Xor(f, 1, polarity=False)
         fb = boolize(f)
-        if x in [true, false]:
+        if x in [true, false] or xpos in [true, false] or xneg in [true, false]:
             assert False
         else:
-            for sol in my_itersolve({(x,)} | C.clauses):
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 a = 1 in sol
                 assert (fb != a)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 a = 1 in sol
                 assert not (fb != a)
 
         C = Clauses(1)
+        Cpos = Clauses(1)
+        Cneg = Clauses(1)
         x = C.Xor(1, f)
-        if x in [true, false]:
+        xpos = Cpos.Xor(1, f, polarity=True)
+        xneg = Cneg.Xor(1, f, polarity=False)
+        if x in [true, false] or xpos in [true, false] or xneg in [true, false]:
             assert False
         else:
-            for sol in my_itersolve({(x,)} | C.clauses):
+            for sol in chain(my_itersolve({(x,)} | C.clauses),
+                my_itersolve({(xpos,)} | Cpos.clauses)):
                 a = 1 in sol
                 assert not (fb == a)
-            for sol in my_itersolve({(-x,)} | C.clauses):
+            for sol in chain(my_itersolve({(-x,)} | C.clauses),
+                my_itersolve({(-xneg,)} | Cneg.clauses)):
                 a = 1 in sol
                 assert not not (fb == a)
 
