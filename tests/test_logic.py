@@ -1,6 +1,6 @@
 import pycosat
 
-from itertools import product
+from itertools import product, chain
 
 from conda.compat import log2, ceil
 from conda.logic import Linear, Clauses, true, false, sat, min_sat
@@ -39,8 +39,12 @@ def test_ITE():
     for c in [true, false, 1]:
         for t in [true, false, 2]:
             for f in [true, false, 3]:
+                Clneg = Clauses(3)
+                Clpos = Clauses(3)
                 Cl = Clauses(3)
                 x = Cl.ITE(c, t, f)
+                xneg = Clneg.ITE(c, t, f, polarity=False)
+                xpos = Clpos.ITE(c, t, f, polarity=True)
                 if x in [true, false]:
                     if t == f:
                         # In this case, it doesn't matter if c is not boolizable
@@ -50,13 +54,15 @@ def test_ITE():
                             boolize(f)), (c, t, f)
                 else:
 
-                    for sol in my_itersolve({(x,)} | Cl.clauses):
+                    for sol in chain(my_itersolve({(x,)} | Cl.clauses),
+                        my_itersolve({(xpos,)} | Clpos.clauses)):
                         C = boolize(c) if c in [true, false] else (1 in sol)
                         T = boolize(t) if t in [true, false] else (2 in sol)
                         F = boolize(f) if f in [true, false] else (3 in sol)
                         assert T if C else F, (T, C, F, sol, t, c, f)
 
-                    for sol in my_itersolve({(-x,)} | Cl.clauses):
+                    for sol in chain(my_itersolve({(-x,)} | Cl.clauses),
+                        my_itersolve({(-xneg,)} | Clneg.clauses)):
                         C = boolize(c) if c in [true, false] else (1 in sol)
                         T = boolize(t) if t in [true, false] else (2 in sol)
                         F = boolize(f) if f in [true, false] else (3 in sol)
@@ -347,14 +353,28 @@ def test_BDD():
         ]
     for l in L:
         Cr = Clauses(max(l.atoms))
+        Crneg = Clauses(max(l.atoms))
+        Crpos = Clauses(max(l.atoms))
         xr = Cr.build_BDD_recursive(l)
+        xrneg = Crneg.build_BDD_recursive(l, polarity=False)
+        xrpos = Crpos.build_BDD_recursive(l, polarity=True)
         C = Clauses(max(l.atoms))
+        Cneg = Clauses(max(l.atoms))
+        Cpos = Clauses(max(l.atoms))
         x = C.build_BDD(l)
+        xneg = Cneg.build_BDD(l, polarity=False)
+        xpos = Cpos.build_BDD(l, polarity=True)
         assert x == xr
+        assert xneg == xrneg
+        assert xpos == xrpos
         assert C.clauses == Cr.clauses
-        for sol in my_itersolve({(x,)} | C.clauses):
+        assert Cneg.clauses == Crneg.clauses
+        assert Cpos.clauses == Crpos.clauses
+        for sol in chain(my_itersolve({(x,)} | C.clauses),
+            my_itersolve({(xpos,)} | Cpos.clauses)):
             assert l(sol)
-        for sol in my_itersolve({(-x,)} | C.clauses):
+        for sol in chain(my_itersolve({(-x,)} | C.clauses),
+            my_itersolve({(-xneg,)} | Cneg.clauses)):
             assert not l(sol)
 
     # Real life example. There are too many solutions to check them all, just
@@ -369,14 +389,32 @@ def test_BDD():
     (12, 54)], [192, 204])
 
     Cr = Clauses(max(l.atoms))
+    Crneg = Clauses(max(l.atoms))
+    Crpos = Clauses(max(l.atoms))
     xr = Cr.build_BDD_recursive(l)
+    xrneg = Crneg.build_BDD_recursive(l, polarity=False)
+    xrpos = Crpos.build_BDD_recursive(l, polarity=True)
     C = Clauses(max(l.atoms))
+    Cneg = Clauses(max(l.atoms))
+    Cpos = Clauses(max(l.atoms))
     x = C.build_BDD(l)
+    xneg = Cneg.build_BDD(l, polarity=False)
+    xpos = Cpos.build_BDD(l, polarity=True)
     assert x == xr
+    assert xneg == xrneg
+    assert xpos == xrpos
     assert C.clauses == Cr.clauses
+    assert Cneg.clauses == Crneg.clauses
+    assert Cpos.clauses == Crpos.clauses
+
     for _, sol in zip(range(20), my_itersolve({(x,)} | C.clauses)):
         assert l(sol)
     for _, sol in zip(range(20), my_itersolve({(-x,)} | C.clauses)):
+        assert not l(sol)
+
+    for _, sol in zip(range(20), my_itersolve({(xpos,)} | Cpos.clauses)):
+        assert l(sol)
+    for _, sol in zip(range(20), my_itersolve({(-xneg,)} | Cneg.clauses)):
         assert not l(sol)
 
     # Another real-life example. This one is too big to be built recursively
@@ -412,10 +450,18 @@ def test_BDD():
         (57, 107), (58, 106)], [21, 40])
 
     C = Clauses(max(l.atoms))
+    Cpos = Clauses(max(l.atoms))
+    Cneg = Clauses(max(l.atoms))
     x = C.build_BDD(l)
+    xpos = Cpos.build_BDD(l, polarity=True)
+    xneg = Cneg.build_BDD(l, polarity=False)
     for _, sol in zip(range(20), my_itersolve({(x,)} | C.clauses)):
         assert l(sol)
     for _, sol in zip(range(20), my_itersolve({(-x,)} | C.clauses)):
+        assert not l(sol)
+    for _, sol in zip(range(20), my_itersolve({(xpos,)} | Cpos.clauses)):
+        assert l(sol)
+    for _, sol in zip(range(20), my_itersolve({(-xneg,)} | Cneg.clauses)):
         assert not l(sol)
 
 
