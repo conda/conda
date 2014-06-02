@@ -99,7 +99,7 @@ class Clauses(object):
         return self.MAX_N
 
     @memoize
-    def ITE(self, c, t, f):
+    def ITE(self, c, t, f, polarity=None):
         """
         if c then t else f
 
@@ -136,16 +136,20 @@ class Clauses(object):
         x = self.get_new_var()
         # "Red" clauses are redundant, but they assist the unit propagation in the
         # SAT solver
-        self.clauses |= {
-            # Negative
-            (-c, -t, x),
-            (c, -f, x),
-            (-t, -f, x), # Red
-            # Positive
-            (-c, t, -x),
-            (c, f, -x),
-            (t, f, -x), # Red
-        }
+        if polarity in {False, None}:
+            self.clauses |= {
+                # Negative
+                (-c, -t, x),
+                (c, -f, x),
+                (-t, -f, x), # Red
+            }
+        if polarity in {True, None}:
+            self.clauses |= {
+                # Positive
+                (-c, t, -x),
+                (c, f, -x),
+                (t, f, -x), # Red
+            }
 
         return x
 
@@ -221,7 +225,7 @@ class Clauses(object):
     # Memoization is done in the function itself
     # TODO: This is a bit slower than the recursive version because it doesn't
     # "jump back" to the call site.
-    def build_BDD(self, linear, sum=0):
+    def build_BDD(self, linear, sum=0, polarity=None):
         call_stack = [(linear, sum)]
         first_stack = call_stack[0]
         ret = {}
@@ -255,14 +259,14 @@ class Clauses(object):
                 call_stack.append((new_linear, lo_sum))
                 continue
 
-            ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo)
+            ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo, polarity=polarity)
 
         return ret[first_stack]
 
     # Reference implementation for testing. The recursion depth gets exceeded
     # for too long formulas, so we use the non-recursive version above.
     @memoize
-    def build_BDD_recursive(self, linear, sum=0):
+    def build_BDD_recursive(self, linear, sum=0, polarity=None):
         lower_limit = linear.lo - sum
         upper_limit = linear.hi - sum
         if lower_limit <= 0 and upper_limit >= linear.total:
@@ -277,9 +281,9 @@ class Clauses(object):
         # aid caching.
         hi_sum = sum if LA < 0 else sum + LC
         lo_sum = sum + LC if LA < 0 else sum
-        hi = self.build_BDD_recursive(new_linear, hi_sum)
-        lo = self.build_BDD_recursive(new_linear, lo_sum)
-        ret = self.ITE(abs(LA), hi, lo)
+        hi = self.build_BDD_recursive(new_linear, hi_sum, polarity=polarity)
+        lo = self.build_BDD_recursive(new_linear, lo_sum, polarity=polarity)
+        ret = self.ITE(abs(LA), hi, lo, polarity=polarity)
 
         return ret
 
