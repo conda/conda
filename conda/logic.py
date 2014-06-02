@@ -447,9 +447,9 @@ def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
     if alg is None:
         alg = best_alg_heuristic(eq, rhs)
     if alg == 'BDD':
-        additional_clauses.add((C.build_BDD(l),))
+        additional_clauses.add((C.build_BDD(l, polarity=True),))
     elif alg == 'BDD_recursive':
-        additional_clauses.add((C.build_BDD_recursive(l),))
+        additional_clauses.add((C.build_BDD_recursive(l, polarity=True),))
     elif alg == 'sorter':
         if l.hashable_equation in sorter_cache:
             m, C = sorter_cache[l.hashable_equation]
