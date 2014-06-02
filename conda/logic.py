@@ -19,6 +19,10 @@ module), that is, it is the callers' responsibility to do the conversion of
 expressions recursively. This is done because we do not have data structures
 representing the various logical classes, only atoms.
 
+The polarity argument can be set to True or False if you know that the literal
+being used will only be used in the positive or the negative, respectively
+(e.g., you will only use x, not -x).  This will generate fewer clauses.
+
 """
 import sys
 from collections import defaultdict
@@ -113,13 +117,13 @@ class Clauses(object):
         if t == f:
             return t
         if t == -f:
-            return self.Xor(c, f)
+            return self.Xor(c, f, polarity=polarity)
         if t == false or t == -c:
-            return self.And(-c, f)
+            return self.And(-c, f, polarity=polarity)
         if t == true or t == c:
             return self.Or(c, f)
         if f == false or f == c:
-            return self.And(c, t)
+            return self.And(c, t, polarity=polarity)
         if f == true or f == -c:
             return self.Or(t, -c)
 
@@ -154,7 +158,7 @@ class Clauses(object):
         return x
 
     @memoize
-    def And(self, f, g):
+    def And(self, f, g, polarity=None):
         if f == false or g == false:
             return false
         if f == true:
@@ -173,11 +177,15 @@ class Clauses(object):
             f, g = g, f
 
         x = self.get_new_var()
-        self.clauses |= {
-            # positive
-            # ~f -> ~x, ~g -> ~x
-            (-x, f),
-            (-x, g),
+        if polarity in {True, None}:
+            self.clauses |= {
+                # positive
+                # ~f -> ~x, ~g -> ~x
+                (-x, f),
+                (-x, g),
+                }
+        if polarity in {False, None}:
+            self.clauses |= {
             # negative
             # (f AND g) -> x
             (x, -f, -g),
@@ -186,11 +194,13 @@ class Clauses(object):
         return x
 
     @memoize
-    def Or(self, f, g):
-        return -self.And(-f, -g)
+    def Or(self, f, g, polarity=None):
+        if polarity is not None:
+            polarity = not polarity
+        return -self.And(-f, -g, polarity=polarity)
 
     @memoize
-    def Xor(self, f, g):
+    def Xor(self, f, g, polarity=None):
         # Minisatp treats XOR as NOT EQUIV
         if f == false:
             return g
@@ -212,13 +222,17 @@ class Clauses(object):
             f, g = g, f
 
         x = self.get_new_var()
-        self.clauses |= {
-            # Positive
-            (-x, f, g),
-            (-x, -f, -g),
-            # Negative
-            (x, -f, g),
-            (x, f, -g),
+        if polarity in {True, None}:
+            self.clauses |= {
+                # Positive
+                (-x, f, g),
+                (-x, -f, -g),
+            }
+        if polarity in {False, None}:
+            self.clauses |= {
+                # Negative
+                (x, -f, g),
+                (x, f, -g),
             }
         return x
 
