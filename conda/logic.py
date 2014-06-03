@@ -363,10 +363,12 @@ class Linear(object):
     """
     def __init__(self, equation, rhs, total=None):
         """
-        Equation should be a list of tuples of the form (coeff, atom). rhs is
-        the number on the right-hand side, or a list [lo, hi].
+        Equation should be a list of tuples of the form (coeff, atom) (they must
+        be tuples so that the resulting object can be hashed). rhs is the
+        number on the right-hand side, or a list [lo, hi].
+
         """
-        self.equation = sorted(equation)
+        self.equation = tuple(sorted(equation))
         self.rhs = rhs
         if isinstance(rhs, int):
             self.lo = self.hi = rhs
@@ -432,15 +434,11 @@ class Linear(object):
         return (self.equation == other.equation and self.lo == other.lo and
         self.hi == other.hi)
 
-    @property
-    def hashable_equation(self):
-        return tuple(map(tuple, self.equation))
-
     def __hash__(self):
         try:
             return self._hash
         except AttributeError:
-            self._hash = hash((self.hashable_equation, self.lo, self.hi))
+            self._hash = hash((self.equation, self.lo, self.hi))
             return self._hash
 
     def __str__(self):
@@ -471,11 +469,11 @@ def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
     elif alg == 'BDD_recursive':
         additional_clauses.add((C.build_BDD_recursive(l, polarity=True),))
     elif alg == 'sorter':
-        if l.hashable_equation in sorter_cache:
-            m, C = sorter_cache[l.hashable_equation]
+        if l.equation in sorter_cache:
+            m, C = sorter_cache[l.equation]
         else:
             m = C.build_sorter(l)
-            sorter_cache[l.hashable_equation] = m, C
+            sorter_cache[l.equation] = m, C
 
         if l.rhs[0]:
             # Output must be between lower bound and upper bound, meaning
