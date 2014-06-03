@@ -36,37 +36,38 @@ def test_ITE():
     # e.g., itersolve([[2]]) gives [[1, 2], [-1, 2]]. This should not be an
     # issue here.
 
-    for c in [true, false, 1]:
-        for t in [true, false, 2]:
-            for f in [true, false, 3]:
-                Clneg = Clauses(3)
-                Clpos = Clauses(3)
-                Cl = Clauses(3)
-                x = Cl.ITE(c, t, f)
-                xneg = Clneg.ITE(c, t, f, polarity=False)
-                xpos = Clpos.ITE(c, t, f, polarity=True)
-                if x in [true, false]:
-                    if t == f:
-                        # In this case, it doesn't matter if c is not boolizable
-                        assert boolize(x) == boolize(t)
+    for red in [True, False]:
+        for c in [true, false, 1]:
+            for t in [true, false, 2]:
+                for f in [true, false, 3]:
+                    Clneg = Clauses(3)
+                    Clpos = Clauses(3)
+                    Cl = Clauses(3)
+                    x = Cl.ITE(c, t, f, red=red)
+                    xneg = Clneg.ITE(c, t, f, polarity=False, red=red)
+                    xpos = Clpos.ITE(c, t, f, polarity=True, red=red)
+                    if x in [true, false]:
+                        if t == f:
+                            # In this case, it doesn't matter if c is not boolizable
+                            assert boolize(x) == boolize(t)
+                        else:
+                            assert boolize(x) == (boolize(t) if boolize(c) else
+                                boolize(f)), (c, t, f)
                     else:
-                        assert boolize(x) == (boolize(t) if boolize(c) else
-                            boolize(f)), (c, t, f)
-                else:
 
-                    for sol in chain(my_itersolve({(x,)} | Cl.clauses),
-                        my_itersolve({(xpos,)} | Clpos.clauses)):
-                        C = boolize(c) if c in [true, false] else (1 in sol)
-                        T = boolize(t) if t in [true, false] else (2 in sol)
-                        F = boolize(f) if f in [true, false] else (3 in sol)
-                        assert T if C else F, (T, C, F, sol, t, c, f)
+                        for sol in chain(my_itersolve({(x,)} | Cl.clauses),
+                            my_itersolve({(xpos,)} | Clpos.clauses)):
+                            C = boolize(c) if c in [true, false] else (1 in sol)
+                            T = boolize(t) if t in [true, false] else (2 in sol)
+                            F = boolize(f) if f in [true, false] else (3 in sol)
+                            assert T if C else F, (T, C, F, sol, t, c, f)
 
-                    for sol in chain(my_itersolve({(-x,)} | Cl.clauses),
-                        my_itersolve({(-xneg,)} | Clneg.clauses)):
-                        C = boolize(c) if c in [true, false] else (1 in sol)
-                        T = boolize(t) if t in [true, false] else (2 in sol)
-                        F = boolize(f) if f in [true, false] else (3 in sol)
-                        assert not (T if C else F)
+                        for sol in chain(my_itersolve({(-x,)} | Cl.clauses),
+                            my_itersolve({(-xneg,)} | Clneg.clauses)):
+                            C = boolize(c) if c in [true, false] else (1 in sol)
+                            T = boolize(t) if t in [true, false] else (2 in sol)
+                            F = boolize(f) if f in [true, false] else (3 in sol)
+                            assert not (T if C else F)
 
 def test_And_clauses():
     # XXX: Is this i, j stuff necessary?

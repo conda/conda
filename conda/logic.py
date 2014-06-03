@@ -103,7 +103,7 @@ class Clauses(object):
         return self.MAX_N
 
     @memoize
-    def ITE(self, c, t, f, polarity=None):
+    def ITE(self, c, t, f, polarity=None, red=True):
         """
         if c then t else f
 
@@ -145,15 +145,21 @@ class Clauses(object):
                 # Negative
                 (-c, -t, x),
                 (c, -f, x),
-                (-t, -f, x), # Red
-            }
+                }
+            if red:
+                self.clauses |= {
+                    (-t, -f, x), # Red
+                }
         if polarity in {True, None}:
             self.clauses |= {
                 # Positive
                 (-c, t, -x),
                 (c, f, -x),
-                (t, f, -x), # Red
-            }
+                }
+            if red:
+                self.clauses |= {
+                    (t, f, -x), # Red
+                }
 
         return x
 
