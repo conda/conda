@@ -15,7 +15,7 @@ def try_write(dir_path):
                                     dir=dir_path, mode='wb') as fo:
             fo.write(b'This is a test file.\n')
         return True
-    except OSError:
+    except (IOError, OSError):
         return False
 
 

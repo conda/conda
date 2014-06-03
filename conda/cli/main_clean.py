@@ -97,7 +97,7 @@ def rm_tarballs(args):
 
     if not rmlist:
         print("There are no tarballs to remove")
-        sys.exit(0)
+        return
 
     print("Will remove the following tarballs:")
     print()

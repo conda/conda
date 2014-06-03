@@ -658,7 +658,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
             solutions = []       # too big to be satisfied. XXX: This
             break                # probably indicates a bug.
         if true in constraints:
-            constraints = []
+            constraints = set([])
 
         dotlog.debug("Checking for solutions with rhs:  %s" % rhs)
         solution = sat(chain(clauses, constraints))
