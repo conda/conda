@@ -361,14 +361,17 @@ class Linear(object):
 
     Canonicalized means all coefficients are positive.
     """
-    def __init__(self, equation, rhs, total=None):
+    def __init__(self, equation, rhs, total=None, sort=True):
         """
         Equation should be a list of tuples of the form (coeff, atom) (they must
         be tuples so that the resulting object can be hashed). rhs is the
         number on the right-hand side, or a list [lo, hi].
 
         """
-        self.equation = tuple(sorted(equation))
+        self.equation = equation
+        if sort:
+            self.equation = sorted(equation)
+        self.equation = tuple(self.equation)
         self.rhs = rhs
         if isinstance(rhs, int):
             self.lo = self.hi = rhs
@@ -424,9 +427,12 @@ class Linear(object):
             raise NotImplementedError("Non-slice indices are not supported")
         if key == slice(None, -1, None):
             total = self.total - self.LC
+            sort = False
         else:
             total = None
-        return self.__class__(self.equation.__getitem__(key), self.rhs, total=total)
+            sort = True
+        return self.__class__(self.equation.__getitem__(key), self.rhs,
+            total=total, sort=sort)
 
     def __eq__(self, other):
         if not isinstance(other, Linear):
