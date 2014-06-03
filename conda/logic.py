@@ -428,7 +428,7 @@ class Linear(object):
 
     @property
     def hashable_equation(self):
-        return tuple([tuple([i for i in term]) for term in self.equation])
+        return tuple(map(tuple, self.equation))
 
     def __hash__(self):
         try:
