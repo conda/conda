@@ -400,7 +400,7 @@ def test_Linear():
     assert l != l3
     assert l != l4
 
-    assert l.equation == [(2, -4), (3, 1), (4, 5)]
+    assert l.equation == ((2, -4), (3, 1), (4, 5))
     assert l.lo == l.hi == l.rhs == 12
     assert l.coeffs == [2, 3, 4]
     assert l.atoms == [-4, 1, 5]
@@ -411,14 +411,14 @@ def test_Linear():
     # Remember that the equation is sorted
     assert l[1:] == Linear([(3, 1), (4, 5)], 12)
 
-    assert str(l) == repr(l) == "Linear([(2, -4), (3, 1), (4, 5)], 12)"
+    assert str(l) == repr(l) == "Linear(((2, -4), (3, 1), (4, 5)), 12)"
 
     l = Linear([(3, 1), (2, -4), (4, 5)], [3, 5])
     assert l != l2
     assert l != l3
     assert l != l4
 
-    assert l.equation == [(2, -4), (3, 1), (4, 5)]
+    assert l.equation == ((2, -4), (3, 1), (4, 5))
     assert l.lo == 3
     assert l.hi == 5
     assert l.rhs == [3, 5]
@@ -437,9 +437,9 @@ def test_Linear():
     # Remember that the equation is sorted
     assert l[1:] == Linear([(3, 1), (4, 5)], [3, 5])
 
-    assert str(l) == repr(l) == "Linear([(2, -4), (3, 1), (4, 5)], [3, 5])"
+    assert str(l) == repr(l) == "Linear(((2, -4), (3, 1), (4, 5)), [3, 5])"
     l = Linear([], [1, 3])
-    assert l.equation == []
+    assert l.equation == ()
     assert l.lo == 1
     assert l.hi == 3
     assert l.coeffs == []
