@@ -226,7 +226,14 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
             if "407" in str(e): # Proxy Authentication Required
                 handle_proxy_407(url, session)
                 # Try again
-                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt)
+                return download(url, dst_path, session=session, md5=md5,
+                    urlstxt=urlstxt)
+            msg = "Connection error: %s: %s\n" % (e, url)
+            stderrlog.info('Could not connect to %s\n' % url)
+            log.debug(msg)
+            if fail_unknown_host:
+                raise RuntimeError(msg)
+
         except IOError as e:
             raise RuntimeError("Could not open '%s': %s" % (url, e))
 
