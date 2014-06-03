@@ -132,7 +132,7 @@ def versions_from_vcs(tag_prefix, versionfile_source, verbose=False):
 
     GIT = "git"
     if sys.platform == "win32":
-        GIT = "git.cmd"
+        GIT = "git.exe"
     stdout = run_command([GIT, "describe", "--tags", "--dirty", "--always"],
                          cwd=root)
     if stdout is None:

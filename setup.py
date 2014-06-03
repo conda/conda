@@ -21,7 +21,7 @@ import versioneer
 
 
 if sys.version_info[:2] < (2, 7) or sys.version_info > (3, 0) and sys.version_info < (3, 3):
-    sys.exit("conda is only meant for Python 2.7 or 3.3.  current version: %d.%d" % sys.version_info[:2])
+    sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  current version: %d.%d" % sys.version_info[:2])
 
 try:
     if os.environ['CONDA_DEFAULT_ENV']:
@@ -66,10 +66,11 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
     ],
     description = "package management tool",
     long_description = open('README.rst').read(),
     packages = ['conda', 'conda.cli', 'conda.progressbar'],
-    install_requires = ['pycosat', 'pyyaml'],
+    install_requires = ['pycosat', 'pyyaml', 'requests'],
     **kwds
 )

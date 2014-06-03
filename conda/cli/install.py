@@ -188,11 +188,13 @@ def install(args, parser, command='install'):
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
+            installed_metadata = [ci.is_linked(prefix, dist)
+                                  for dist in linked]
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
-                if dist.rsplit('-', 2)[0] == name]
-            build_inst = [dist.rsplit('-', 2)[2].rsplit('.tar.bz2', 1)[0]
-                          for dist in linked
-                          if dist.rsplit('-', 2)[0] == name]
+                         if dist.rsplit('-', 2)[0] == name]
+            build_inst = [m['build_number'] for m in installed_metadata if
+                          m['name'] == name]
+
             assert len(vers_inst) == 1, name
             assert len(build_inst) == 1, name
             pkgs = sorted(r.get_pkgs(MatchSpec(name)))
@@ -200,7 +202,8 @@ def install(args, parser, command='install'):
                 # Shouldn't happen?
                 continue
             latest = pkgs[-1]
-            if latest.version == vers_inst[0] and latest.build == build_inst[0]:
+
+            if latest.version == vers_inst[0] and latest.build_number == build_inst[0]:
                 args.packages.remove(name)
         if not args.packages:
             from conda.cli.main_list import list_packages
