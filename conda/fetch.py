@@ -231,8 +231,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
-            if fail_unknown_host:
-                raise RuntimeError(msg)
+            raise RuntimeError(msg)
 
         except IOError as e:
             raise RuntimeError("Could not open '%s': %s" % (url, e))
