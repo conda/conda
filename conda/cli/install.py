@@ -188,11 +188,12 @@ def install(args, parser, command='install'):
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
-            installed_metadata = [ci.is_linked(prefix, dist) for dist in linked]
+            installed_metadata = [ci.is_linked(prefix, dist)
+                                  for dist in linked]
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
-                if dist.rsplit('-', 2)[0] == name]
+                         if dist.rsplit('-', 2)[0] == name]
             build_inst = [m['build_number'] for m in installed_metadata if
-                m['name'] == name]
+                          m['name'] == name]
 
             assert len(vers_inst) == 1, name
             assert len(build_inst) == 1, name

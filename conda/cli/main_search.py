@@ -89,7 +89,7 @@ def execute(args, parser):
         try:
             pat = re.compile(args.regex, re.I)
         except re.error as e:
-            sys.exit("Error: %r is not a valid regex pattern (exception: %s)" % 
+            sys.exit("Error: %r is not a valid regex pattern (exception: %s)" %
                             (args.regex, e))
     else:
         pat = None
