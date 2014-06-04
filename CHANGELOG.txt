@@ -1,3 +1,10 @@
+2014-06-XX   3.5.3:
+-------------------
+  * fix conda update to correctly not install packages that are already
+    up-to-date
+  * always fail with connection error in download
+
+
 2014-05-27   3.5.2:
 -------------------
   * fix bug in activate.bat and deactivate.bat on Windows
