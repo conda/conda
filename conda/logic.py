@@ -478,6 +478,8 @@ def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
         if l.equation in sorter_cache:
             m, C = sorter_cache[l.equation]
         else:
+            if sorter_cache:
+                sorter_cache.popitem()
             m = C.build_sorter(l)
             sorter_cache[l.equation] = m, C
 
