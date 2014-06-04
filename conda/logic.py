@@ -690,6 +690,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
             lo = mid+1
     return constraints
 
+# TODO: alg='sorter' can be faster, especially when the main algorithm is sorter
 def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
     """
     Calculate the SAT solutions for the `clauses` for which the number of true
@@ -733,6 +734,7 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
             return list(generate_constraints(eq, m,
                 [lo, hi], alg=alg))
         evaluate_func = partial(evaluate_eq, eq)
+        # TODO: Bump up the increment for sorter
         constraints = bisect_constraints(0, N, clauses, func, evaluate_func=evaluate_func)
         return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
