@@ -497,6 +497,8 @@ def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
 
     return C.clauses | additional_clauses
 
+_USED_EQ = []
+
 def best_alg_heuristic(eq, rhs):
     """
     Try to generate the best algorithm for the given linear constraint
@@ -645,7 +647,11 @@ def best_alg_heuristic(eq, rhs):
     """
     # Stub
     alg = 'BDD'
-    log.debug("Heuristics using alg: %s" % alg)
+
+    # Avoid being too noisy
+    if eq not in _USED_EQ:
+        log.debug("Heuristics using alg: %s" % alg)
+        _USED_EQ.append(eq)
     return alg
 
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
