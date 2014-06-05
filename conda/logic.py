@@ -644,7 +644,9 @@ def best_alg_heuristic(eq, rhs):
 
     """
     # Stub
-    return 'BDD'
+    alg = 'BDD'
+    log.debug("Heuristics using alg: %s" % alg)
+    return alg
 
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
     """
