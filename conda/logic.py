@@ -703,6 +703,7 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
     which iterates all solutions and finds the smallest.
 
     """
+    log.debug("min_sat using algorithm %s" % alg)
     try:
         import pycosat
     except ImportError:
