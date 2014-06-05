@@ -727,15 +727,20 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
                 solutions.append(sol)
         return solutions
     else:
-        if not sat(clauses):
+        solution = sat(clauses)
+        if not solution:
             return []
         eq = [(1, i) for i in range(1, N+1)]
         def func(lo, hi):
             return list(generate_constraints(eq, m,
                 [lo, hi], alg=alg))
         evaluate_func = partial(evaluate_eq, eq)
+        # Since we have a solution, might as well make use of that fact
+        max_val = evaluate_func(solution)
+        log.debug("Using max_val %s. N=%s" % (max_val, N))
         # TODO: Bump up the increment for sorter
-        constraints = bisect_constraints(0, N, clauses, func, evaluate_func=evaluate_func)
+        constraints = bisect_constraints(0, min(max_val, N), clauses, func,
+            evaluate_func=evaluate_func, increment=1000)
         return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
