@@ -738,7 +738,6 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
         # Since we have a solution, might as well make use of that fact
         max_val = evaluate_func(solution)
         log.debug("Using max_val %s. N=%s" % (max_val, N))
-        # TODO: Bump up the increment for sorter
         constraints = bisect_constraints(0, min(max_val, N), clauses, func,
             evaluate_func=evaluate_func, increment=1000)
         return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
