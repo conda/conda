@@ -3,6 +3,7 @@
   * fix conda update to correctly not install packages that are already
     up-to-date
   * always fail with connection error in download
+  * the package resolution is now much faster and uses less memory
 
 
 2014-05-27   3.5.2:
