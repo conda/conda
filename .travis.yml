@@ -5,7 +5,7 @@ python:
   - "3.3"
   - "3.4"
 env:
-  - PYCOSAT=
+  -
   - PYCOSAT=0.6.0
 install:
   # TODO: Use a "latest" url
