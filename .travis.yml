@@ -23,7 +23,7 @@ install:
   - hash -r
   - conda config --set always_yes yes
   - conda install pytest requests
-  - if [[ -z "$PYCOSAT" ]]; then
+  - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
   - python setup.py install
