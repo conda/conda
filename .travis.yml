@@ -4,6 +4,9 @@ python:
   - "2.7"
   - "3.3"
   - "3.4"
+env:
+  - PYCOSAT=
+  - PYCOSAT=0.6.0
 install:
   # TODO: Use a "latest" url
   - sudo apt-get update
@@ -20,6 +23,7 @@ install:
   - hash -r
   - conda config --set always_yes yes
   - conda install pytest requests
+  - conda install pycosat=$PYCOSAT
   - python setup.py install
   - conda info -a
 
