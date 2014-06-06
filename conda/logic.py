@@ -462,14 +462,12 @@ def evaluate_eq(eq, sol):
         t += atom2coeff[s]
     return t
 
-def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
+def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
     l = Linear(eq, rhs)
     if not l:
         return set()
     C = Clauses(m)
     additional_clauses = set()
-    if alg is None:
-        alg = best_alg_heuristic(eq, rhs)
     if alg == 'BDD':
         additional_clauses.add((C.build_BDD(l, polarity=True),))
     elif alg == 'BDD_recursive':
@@ -496,163 +494,6 @@ def generate_constraints(eq, m, rhs, alg=None, sorter_cache={}):
         raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
 
     return C.clauses | additional_clauses
-
-_USED_EQ = []
-
-def best_alg_heuristic(eq, rhs):
-    """
-    Try to generate the best algorithm for the given linear constraint
-
-    A constraint has two basic measures, length and breadth.  The length of a
-    constraint is how large the coefficients are.  The breadth of a constraint
-    is roughly how many terms there are.
-
-    For the kinds of constraints considered here, which are always of the form
-
-    1*x1 + 2*x2 + ... + n*xn + 1*y1 + 2*y2 + ... + m*ym + ...,
-
-    that is to say, the coefficients occur in chains starting at 1, the length
-    can be thought of as the maximum coefficient, and the breadth can be
-    thought of as the number of terms with coefficient 1.
-
-    The importance of these measures is that the two algorithms here will
-    perform differently depending on which measure is large. Roughly speaking:
-
-    - If the length is large, sorter will perform poorly. This is because it
-      generates n sorter inputs for each term with coefficient n. Hence, if
-      there is a chain 1*x1 + ... + n*xn, it will result in n*(n+1)/2 =
-      O(n**2) sorter inputs.
-
-    - If the breadth is large, BDD will perform poorly. This is because the
-      decision tree is split at each term until enough splits are made to add
-      up to the rhs.  For example, for 1*x + 2*y + 3*z <= 3, the decision tree is
-
-                                 +---+
-                                 | z |
-                                 +---+
-                                /     \
-                               /       \
-                              /         \
-                             /           \
-                          1 /             \ 0
-                           /               \
-                          /                 \
-                         /                   \
-                        /                     \
-                   +---+                       +---+
-                   | y |                       | y |
-                   +---+                       +---+
-                1 /     \ 0                 1 /     \ 0
-                 /       \                   /       \
-            +---+         +---+         +---+         +---+
-            | x |         | x |         | x |         | x |
-            +---+         +---+         +---+         +---+
-         1 /     \ 0   1 /     \ 0   1 /     \ 0   1 /     \ 0
-          /       \     /       \     /       \     /       \
-       false    false false    true true     true true     true
-
-      which can be simplified to just
-
-                                 +---+
-                                 | z |
-                                 +---+
-                                /     \
-                               /       \
-                              /         \
-                             /           \
-                          1 /             \ 0
-                           /               \
-                          /                 \
-                         /                   \
-                        /                     \
-                   +---+                     true
-                   | y |
-                   +---+
-                1 /     \ 0
-                 /       \
-               false      +---+
-                          | x |
-                          +---+
-                       1 /     \ 0
-                        /       \
-                      false    true
-
-      but for 1*x + 1*y + 1*z <= 1, the decision tree is
-
-
-                                 +---+
-                                 | z |
-                                 +---+
-                                /     \
-                               /       \
-                              /         \
-                             /           \
-                          1 /             \ 0
-                           /               \
-                          /                 \
-                         /                   \
-                        /                     \
-                   +---+                       +---+
-                   | y |                       | y |
-                   +---+                       +---+
-                1 /     \ 0                 1 /     \ 0
-                 /       \                   /       \
-            +---+         +---+         +---+         +---+
-            | x |         | x |         | x |         | x |
-            +---+         +---+         +---+         +---+
-         1 /     \ 0   1 /     \ 0   1 /     \ 0   1 /     \ 0
-          /       \     /       \     /       \     /       \
-       false    false false   true false     true true     true
-
-      which can be simplified to
-
-
-                                 +---+
-                                 | z |
-                                 +---+
-                                /     \
-                               /       \
-                              /         \
-                             /           \
-                          1 /             \ 0
-                           /               \
-                          /                 \
-                         /                   \
-                        /                     \
-                   +---+                       +---+
-                   | y |                       | y |
-                   +---+                       +---+
-                1 /     \ 0                 1 /     \ 0
-                 /       \                   /       \
-              false       +---+         +---+       true
-                          | x |         | x |
-                          +---+         +---+
-                       1 /     \ 0   1 /     \ 0
-                        /       \     /       \
-                      false   true false     true
-
-
-      The more such simplifications it can make, the smaller the decision tree
-      will be. Broad equations will lead to more complicated BDDs (i.e., more
-      clauses), because they lead to fewer opportunities for simplification.
-      Intuitively, terms with small coefficients are less likely to make
-      further variable assignments superfluous.
-
-    - When an equation is both long and broad, empirical evidence shows that
-      although both algorithms take some time, BDD is better.
-
-    Currently the rhs parameter of this function is ignored, although that may
-    change in the future.
-
-    """
-    # Stub
-    alg = 'BDD'
-
-    # Avoid being too noisy
-    if eq not in _USED_EQ:
-        log.debug("Heuristics using alg: %s" % alg)
-        _USED_EQ.append(eq)
-    return alg
 
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
     """
