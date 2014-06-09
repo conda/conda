@@ -1,4 +1,4 @@
-2014-06-XX   3.5.3:
+2014-06-09   3.5.3:
 -------------------
   * fix conda update to correctly not install packages that are already
     up-to-date
