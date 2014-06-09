@@ -1,9 +1,11 @@
-2014-06-XX   3.5.3:
+2014-06-09   3.5.3:
 -------------------
   * fix conda update to correctly not install packages that are already
     up-to-date
   * always fail with connection error in download
   * the package resolution is now much faster and uses less memory
+  * add ssl_verify option in condarc to allow ignoring SSL certificate
+    verification, see issue #737
 
 
 2014-05-27   3.5.2:
