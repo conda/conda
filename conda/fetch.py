@@ -75,7 +75,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     try:
         resp = session.get(url + 'repodata.json.bz2',
-                           headers=headers, proxies=session.proxies)
+                           headers=headers, proxies=session.proxies,
+                           verify=config.ssl_verify)
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
@@ -212,7 +213,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
 
     with Locked(dst_dir):
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies)
+            resp = session.get(url, stream=True, proxies=session.proxies,
+                               verify=config.ssl_verify)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407: # Proxy Authentication Required
