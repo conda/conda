@@ -565,7 +565,9 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
         N = m
     if alg == 'iterate':
         min_tl, solutions = sys.maxsize, []
-        if normalized_version(pycosat.__version__) < normalized_version('0.6.1'):
+        try:
+            pycosat.itersolve({(1,)})
+        except TypeError:
             # Old versions of pycosat require lists. This conversion can be very
             # slow, though, so only do it if we need to.
             clauses = list(map(list, clauses))
