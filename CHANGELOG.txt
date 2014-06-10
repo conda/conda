@@ -1,3 +1,9 @@
+2014-06-10   3.5.5:
+-------------------
+  * remove another instance pycosat version detection, which fails on
+    Windows, see issue #761
+
+
 2014-06-10   3.5.4:
 -------------------
   * remove pycosat version detection, which fails on Windows, see issue #761
