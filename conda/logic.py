@@ -516,7 +516,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
         dotlog.debug("Building the constraint with rhs: %s" % rhs)
         constraints = func(*rhs)
         if false in constraints: # build_BDD returns false if the rhs is
-            solutions = []       # too big to be satisfied. XXX: This
+                                 # too big to be satisfied. XXX: This
             break                # probably indicates a bug.
         if true in constraints:
             constraints = set([])
