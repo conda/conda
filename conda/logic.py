@@ -568,8 +568,8 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
         try:
             pycosat.itersolve({(1,)})
         except TypeError:
-            # Old versions of pycosat require lists. This conversion can be very
-            # slow, though, so only do it if we need to.
+            # Old versions of pycosat require lists. This conversion can be
+            # very slow, though, so only do it if we need to.
             clauses = list(map(list, clauses))
         for sol in islice(pycosat.itersolve(clauses), max_n):
             tl = sum(lit > 0 for lit in sol[:N]) # number of true literals

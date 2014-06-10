@@ -1,3 +1,8 @@
+2014-06-10   3.5.4:
+-------------------
+  * remove pycosat version detection, which fails on Windows, see issue #761
+
+
 2014-06-09   3.5.3:
 -------------------
   * fix conda update to correctly not install packages that are already
