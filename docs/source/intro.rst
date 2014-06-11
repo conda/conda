@@ -250,7 +250,10 @@ This will modify your Bash PS1 to include the name of the environment.
    $ source activate myenv
    (myenv)$
 
-On Windows systems, you should change or set the **PATH** manually.
+You can disable this with ``conda config --set changeps1 no``. The environment
+variable ``CONDA_DEFAULT_ENV`` is set to the currently activated environment.
+
+On Windows systems, use ``activate`` instead of ``source activate``.
 
 Now you're ready to begin using the Python located in your created
 environment.
@@ -262,6 +265,7 @@ its previous state, use:
 
     $ source deactivate
 
+On Windows, this is just ``deactivate``.
 
 ---------------------------------
 Update Anaconda to latest version
