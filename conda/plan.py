@@ -437,7 +437,7 @@ def execute_plan(plan, index=None, verbose=False):
             forgiving=True,
             is_build=False,
         )
-        build_root.make_relocatable()
+        build_root.make_relocatable(copy=True)
 
     install.messages(prefix)
 
