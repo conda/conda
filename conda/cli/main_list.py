@@ -123,10 +123,10 @@ Error: environment does not exist: %s
     if format == 'human':
         print('# packages in environment at %s:' % prefix)
         print('#')
-        res = 1
     if format == 'export':
         print_export_header()
 
+    res = 1
     installed = install.linked(prefix)
     if piplist and config.use_pip and format == 'human':
         add_pip_installed(prefix, installed)
