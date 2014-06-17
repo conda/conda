@@ -341,7 +341,7 @@ def build_response(request, data, code, encoding):
     response.raw = data
     response.url = request.url
     response.request = request
-    response.status_code = code.split()[0]
+    response.status_code = int(code.split()[0])
 
     # Make sure to seek the file-like raw object back to the start.
     response.raw.seek(0)
