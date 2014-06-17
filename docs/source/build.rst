@@ -138,10 +138,21 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # Files that should have the placeholder prefix
       # (/opt/anaconda1anaconda2anaconda3) replaced with the install prefix at
       # installation.  Note that conda build does this automatically for the
-      # build prefix. See the Relocatable section below.
+      # build prefix. See also the Relocatable section below.
       has_prefix_files:
         - bin/file1
         - lib/file2
+
+      # Binary files that should have their build prefix replaced with the
+      # install prefix at installation time.  Due to the way this works, the
+      # install prefix cannot be longer than the build prefix.  It is
+      # recommended to build against a very long prefix. The easiest way to do
+      # this is to install miniconda into a very long path.  Future versions
+      # of conda build may do this automatically. See also the Relocatable
+      # section below.
+      binary_has_prefix_files:
+        - bin/binaryfile1
+        - lib/binaryfile2
 
     # the build and runtime requirements. Dependencies of these requirements
     # are included automatically.
@@ -486,7 +497,19 @@ Conda build does the following things automatically to make packages relocatable
   files in ``info/has_prefix``.  See :ref:`package_metadata` for more
   information.
 
-- You can manually add files to ``has_prefix`` by listing the in
+- You can manually add text files to ``has_prefix`` by listing them in
   ``build/has_prefix_files`` in the meta.yaml (see above).  The files listed
   here should have the placeholder prefix
   (``/opt/anaconda1anaconda2anaconda3``).
+
+- You can manually binary files to ``has_prefix`` by listing them in
+  ``build/binary_has_prefix_files`` in the meta.yaml (see above).  The files
+  listed here will have their build prefix replaced with the install prefix at
+  install time.  This works by padding the build prefix with null terminators,
+  so that the length of the binary file remains the same.  Due to this, the
+  install prefix must be shorter than the build prefix.  It is recommended to
+  build packages with ``binary_has_prefix_files`` in a very long build
+  prefix.  The easiest way to do this is to install miniconda into a long
+  prefix, such as
+  ``~/veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylongprefixminiconda``.
+  Future versions of conda-build may do this automatically.
