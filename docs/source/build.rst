@@ -511,5 +511,5 @@ Conda build does the following things automatically to make packages relocatable
   build packages with ``binary_has_prefix_files`` in a very long build
   prefix.  The easiest way to do this is to install miniconda into a long
   prefix, such as
-  ``~/veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylongprefixminiconda``.
+  ``~/veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryaveryveryveryveryverylongprefixminiconda``.
   Future versions of conda-build may do this automatically.
