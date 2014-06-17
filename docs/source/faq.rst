@@ -180,6 +180,28 @@ Updating packages (in the root environment)
 
       $ conda update scipy
 
+#. How can I keep a package from being updated?
+
+   You can pin a package specification in an environment, which will prevent
+   it from being changed, unless the ``--no-pin`` flag is passed to conda. To
+   do so, add a file called ``pinned`` to the environment's ``conda-meta``
+   directory with a list of specs. For example
+
+   ::
+
+      numpy 1.7.*
+      scipy ==0.13.2
+
+   will force numpy to stay on the 1.7 series (any version that starts with
+   "1.7."), and scipy to stay at exactly version 0.13.2.
+
+   With this pinned file, ``conda update numpy`` will keep numpy at 0.7.1, and
+   ``conda install scipy=0.14.0`` will lead to an error. To force either of
+   these, use the ``-no-pin`` flag, like ``conda update numpy --no-pin``. The
+   way pinning works is that the pined specs are included with each conda
+   install, so subsequent commands without ``--no-pin`` will revert numpy back
+   to the 1.7 series.
+
 .. _pkg-removing:
 
 Removing packages (from the root environment)
