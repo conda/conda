@@ -88,8 +88,21 @@ environment.  Any files in the package not listed in this file will not be
 linked when the package is installed.
 
 ``info/has_prefix``: This optional file lists all files that contain a
-placeholder, ``/opt/anaconda1anaconda2anaconda3``, for the install prefix,
-which upon install is replaced by the real install prefix.
+placeholder for the install prefix, which upon install is replaced by the real
+install prefix.
+
+Each line of this file should either be a path, in which case it is considered
+a text file with the default placeholder,
+``/opt/anaconda1anaconda2anaconda3``, or a space separate list of
+``placeholder``, ``mode``, ``path``, where ``placeholder`` is the placeholder
+prefix, ``mode`` is either ``text`` or ``binary``, and ``path`` is the
+relative path of the file to be updated. For instance
+
+::
+
+   bin/script.sh
+   /Users/username/anaconda/envs/_build binary bin/binary
+   /Users/username/anaconda/envs/_build text share/text
 
 ``info/no_softlink``: This optional file lists all files which cannot
 be soft-linked into environments (and are copied instead).
