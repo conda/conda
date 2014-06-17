@@ -104,6 +104,9 @@ relative path of the file to be updated. For instance
    /Users/username/anaconda/envs/_build binary bin/binary
    /Users/username/anaconda/envs/_build text share/text
 
+Note that due to the way the binary replacement works, the placeholder prefix
+must be longer than the install prefix.
+
 ``info/no_softlink``: This optional file lists all files which cannot
 be soft-linked into environments (and are copied instead).
 
