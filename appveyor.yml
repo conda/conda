@@ -35,6 +35,7 @@ init:
 install:
   - C:\Miniconda\python.exe setup.py install
   - C:\Miniconda\Scripts\conda info -a
+  - C:\Miniconda\Scripts\conda list
 
 test_script:
   - C:\Miniconda\Scripts\py.test
