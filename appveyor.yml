@@ -19,14 +19,14 @@ platform:
 init:
   - "ECHO %PYTHON%"
   - "ECHO %PYCOSAT%"
-  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x64" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.5.5-Windows-x86_64.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x64" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.4.2-Windows-x86_64.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x86" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.5.5-Windows-x86.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x86" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.4.2-Windows-x86.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x64" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Windows-x86_64.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x64" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Windows-x86_64.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x86" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Windows-x86.exe' C:\Miniconda.exe}
-  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x86" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Windows-x86.exe' C:\Miniconda.exe}
+  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x64" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.5.5-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x64" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.4.2-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x86" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.5.5-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x86" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.4.2-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x64" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x64" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x86" -and $env:PYCOSAT -eq "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
+  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x86" -and $env:PYCOSAT -ne "0.6.0"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
   - cmd: C:\Miniconda.exe /S /D=C:\Miniconda
   - ps: ls C:\Miniconda/Scripts
   - C:\Miniconda\Scripts\conda config --set always_yes yes
