@@ -27,7 +27,7 @@ init:
   - C:\Miniconda\Scripts\conda install pytest requests --quiet
 
 install:
-  - C:\Miniconda\Scripts\python setup.py install
+  - C:\Miniconda\Scripts\python.exe setup.py install
   - C:\Miniconda\Scripts\conda info -a
 
 test_script:
