@@ -1,0 +1,34 @@
+# Tell appveyor to not use msbuild
+build: false
+
+environment:
+  matrix:
+    - PYTHON: 2.7
+      PYCOSAT: 0.6.0
+    - PYTHON: 2.7
+      PYCOSAT: none
+    - PYTHON: 3.4
+      PYCOSAT: 0.6.0
+    - PYTHON: 3.4
+      PYCOSAT:
+
+platform:
+  - x86
+  - x64
+
+init:
+  - "ECHO %PYTHON%"
+  - "ECHO %PYCOSAT%"
+  - ps: if($env:PYTHON -eq "2.7"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda-3.5.5-Windows-x86_64.exe' C:\Miniconda.exe}
+  - ps: if($env:PYTHON -eq "3.4"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Windows-x86_64.exe' C:\Miniconda.exe}
+  - cmd: C:\Miniconda.exe /S /D=C:\Miniconda
+  - ps: ls C:\Miniconda/Scripts
+  - C:\Miniconda\Scripts\conda config --set always_yes yes
+  - C:\Miniconda\Scripts\conda install pytest requests
+
+install:
+  - C:\Miniconda\Scripts\python setup.py install
+  - C:\Miniconda\Scripts\conda info -a
+
+test_script:
+  - py.test
