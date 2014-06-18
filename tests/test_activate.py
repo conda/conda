@@ -76,7 +76,7 @@ mkdir -p {envs}/test2/bin
 def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1
             printf $PATH
@@ -89,7 +89,7 @@ def test_activate_test1():
 def test_activate_test1_test2():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test2
@@ -103,7 +103,7 @@ def test_activate_test1_test2():
 def test_activate_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test3
             printf $PATH
@@ -116,7 +116,7 @@ def test_activate_test3():
 def test_activate_test1_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {activate} {envs}/test3
@@ -131,7 +131,7 @@ def test_activate_test1_test3():
 def test_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {deactivate}
             printf $PATH
@@ -145,7 +145,7 @@ def test_deactivate():
 def test_activate_test1_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
             source {deactivate}
@@ -159,7 +159,7 @@ def test_activate_test1_deactivate():
 def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate}
             printf $PATH
@@ -199,7 +199,7 @@ def test_wrong_args():
 def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             {activate} {envs}/test1
             """).format(envs=envs, activate=activate)
@@ -235,7 +235,7 @@ def test_activate_help():
 def test_activate_symlinking():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1
             """).format(envs=envs, activate=activate)
@@ -302,7 +302,7 @@ def test_activate_symlinking():
 def test_PS1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1
             printf $PS1
@@ -399,7 +399,7 @@ def test_PS1():
 def test_PS1_no_changeps1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             with open(join(envs, '.condarc'), 'w') as f:
                 f.write("""\
 changeps1: no
@@ -503,7 +503,7 @@ changeps1: no
 def test_CONDA_DEFAULT_ENV():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            activate, deactivate, conda = write_entry_points(envs)
+            activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             source {activate} {envs}/test1
             printf "$CONDA_DEFAULT_ENV"
