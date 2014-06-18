@@ -508,8 +508,9 @@ Conda build does the following things automatically to make packages relocatable
   install time.  This works by padding the build prefix with null terminators,
   so that the length of the binary file remains the same.  Due to this, the
   install prefix must be shorter than the build prefix.  It is recommended to
-  build packages with ``binary_has_prefix_files`` in a very long build
-  prefix.  The easiest way to do this is to install miniconda into a long
-  prefix, such as
-  ``~/veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryaveryveryveryveryverylongprefixminiconda``.
+  build packages with ``binary_has_prefix_files`` in a very long build prefix.
+  The easiest way to do this is to install miniconda into a long prefix, such
+  as
+  ``~/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/longprefixminiconda``. Note
+  that on Linux, shebang lines longer than 127 characters will not work.
   Future versions of conda-build may do this automatically.
