@@ -169,14 +169,9 @@ In usage documentation, these will be referred to by `package_spec`.
 Meta-Packages
 -------------
 
-conda also provides the notion of `meta-packages`.
-A meta-package is a conda package that contains a list of explicit
-packages to install without any further dependency checking.
-When installing a meta-package, its listed packages override and will
-replace any existing package versions that may already be installed in an
-conda environment.  When creating, updating, or installing into
-environments, only one meta-package may be specified, and no additional
-packages may be specified.
+conda also provides the notion of `meta-packages`.  A meta-package is a conda
+package that only has dependencies, no files. An easy way to make a
+meta-package is with the ``conda metapackage`` command.
 
 .. _directory_structure:
 
