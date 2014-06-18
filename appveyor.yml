@@ -24,7 +24,7 @@ init:
   - cmd: C:\Miniconda.exe /S /D=C:\Miniconda
   - ps: ls C:\Miniconda/Scripts
   - C:\Miniconda\Scripts\conda config --set always_yes yes
-  - C:\Miniconda\Scripts\conda install pytest requests
+  - C:\Miniconda\Scripts\conda install pytest requests --quiet
 
 install:
   - C:\Miniconda\Scripts\python setup.py install
