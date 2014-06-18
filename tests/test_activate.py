@@ -6,7 +6,7 @@ import shutil
 import stat
 
 from conda.compat import TemporaryDirectory
-from conda.config import root_dir
+from conda.config import root_dir, platform
 from .helpers import run_in
 
 # Only run these tests for commands that are installed.
@@ -21,7 +21,10 @@ for shell in ['bash', 'zsh']:
         if not stderr:
             shells.append(shell)
 
-def write_entry_points(envs):
+if platform == 'win':
+    shells = []
+
+def _write_entry_points(envs):
     """
     Write entry points to {envs}/root/bin
 
