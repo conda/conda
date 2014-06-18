@@ -31,4 +31,4 @@ install:
   - C:\Miniconda\Scripts\conda info -a
 
 test_script:
-  - py.test
+  - C:\Miniconda\Scripts\py.test
