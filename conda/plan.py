@@ -130,7 +130,7 @@ def display_actions(actions, index):
         else:
             downgraded.add(pkg)
 
-    arrow = '  -->  '
+    arrow = ' --> '
     lead = ' '*4
 
     def format(s, pkg):
