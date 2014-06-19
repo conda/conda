@@ -47,7 +47,8 @@ class TestConfig(unittest.TestCase):
         root_pkgs = join(root_dir, 'pkgs')
         for pi, po in [
             (join(root_dir, 'envs'), root_pkgs),
-            ('/usr/local/foo/envs', '/usr/local/foo/envs/.pkgs'),
+            ('/usr/local/foo/envs' if config.platform != 'win' else 'C:\envs',
+                '/usr/local/foo/envs/.pkgs' if config.platform != 'win' else 'C:\envs\.pkgs'),
             ]:
             self.assertEqual(config.pkgs_dir_from_envs_dir(pi), po)
 
