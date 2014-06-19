@@ -126,7 +126,10 @@ def display_actions(actions, index):
         oldfmt[pkg] = '{pkg:<%s}  {vers[0]:<%s}' % (maxpkg, maxoldver)
         if config.show_channel_urls:
             oldfmt[pkg] += ' {channel[0]:>%s}' % maxoldchannel
-        newfmt[pkg] = '{vers[1]:<%s}' % (maxnewver)
+        if packages[pkg][0]:
+            newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
+        else:
+            newfmt[pkg] = '{pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
         if config.show_channel_urls:
             newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
         # TODO: Should we also care about the old package's link type?
