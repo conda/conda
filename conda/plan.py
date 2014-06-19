@@ -85,11 +85,13 @@ def display_actions(actions, index):
 
     # This assumes each package will appear LINK no more than once.
     Packages = {}
+    linktypes = {}
     for arg in actions.get(LINK, []):
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][1] = ver + '-' + build
         Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
+        linktypes[pkg] = lt
     for arg in actions.get(UNLINK, []):
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
@@ -102,6 +104,9 @@ def display_actions(actions, index):
     maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
     maxoldchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
         packages[pkg][0]].channel) for pkg in packages if packages[pkg][0]] or
+        [''], key=len))
+    maxnewchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
+        packages[pkg][1]].channel) for pkg in packages if packages[pkg][1]] or
         [''], key=len))
     maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
     new = {pkg for pkg in packages if not packages[pkg][0]}
@@ -118,7 +123,10 @@ def display_actions(actions, index):
             oldfmt[pkg] += ' {channel[0]:>%s}' % maxoldchannel
         newfmt[pkg] = '{vers[1]:<%s}' % (maxnewver)
         if config.show_channel_urls:
-            newfmt[pkg] += ' {channel[1]:>}'
+            newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
+        # TODO: Should we also care about the old package's link type?
+        if linktypes[pkg] != install.LINK_HARD:
+            newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
 
         if pkg in new or pkg in removed:
             continue
