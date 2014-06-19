@@ -125,7 +125,7 @@ def display_actions(actions, index):
         if config.show_channel_urls:
             newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
         # TODO: Should we also care about the old package's link type?
-        if linktypes[pkg] != install.LINK_HARD:
+        if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
             newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
 
         if pkg in new or pkg in removed:
