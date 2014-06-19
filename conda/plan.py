@@ -82,6 +82,7 @@ def display_actions(actions, index):
 
     # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
+    features = defaultdict(lambda: list(('', '')))
 
     # This assumes each package will appear LINK no more than once.
     Packages = {}
@@ -92,23 +93,27 @@ def display_actions(actions, index):
         packages[pkg][1] = ver + '-' + build
         Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
         linktypes[pkg] = lt
+        features[pkg][1] = index[dist + '.tar.bz2'].get('features', '')
     for arg in actions.get(UNLINK, []):
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
         Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
+        features[pkg][0] = index[dist + '.tar.bz2'].get('features', '')
 
     #             Put a minimum length here---.    .--For the :
     #                                         v    v
     maxpkg = max(len(max(packages, key=len)), 0) + 1
     maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
+    maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
+    maxoldfeatures = len(max(features.values(), key=lambda i: len(i[0]))[0])
+    maxnewfeatures = len(max(features.values(), key=lambda i: len(i[1]))[1])
     maxoldchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
         packages[pkg][0]].channel) for pkg in packages if packages[pkg][0]] or
         [''], key=len))
     maxnewchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
         packages[pkg][1]].channel) for pkg in packages if packages[pkg][1]] or
         [''], key=len))
-    maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
     new = {pkg for pkg in packages if not packages[pkg][0]}
     removed = {pkg for pkg in packages if not packages[pkg][1]}
     updated = set()
@@ -127,6 +132,11 @@ def display_actions(actions, index):
         # TODO: Should we also care about the old package's link type?
         if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
             newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
+
+        if features[pkg][0]:
+            oldfmt[pkg] += ' [{features[0]:>%s}]' % maxoldfeatures
+        if features[pkg][1]:
+            newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
 
         if pkg in new or pkg in removed:
             continue
@@ -149,7 +159,8 @@ def display_actions(actions, index):
         for i in range(2):
             if packages[pkg][i]:
                 channel[i] = config.canonical_channel_name(Packages[pkg + '-' + packages[pkg][i]].channel)
-        return lead + s.format(pkg=pkg+':', vers=packages[pkg], channel=channel)
+        return lead + s.format(pkg=pkg+':', vers=packages[pkg],
+            channel=channel, features=features[pkg])
 
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
