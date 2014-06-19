@@ -100,6 +100,9 @@ def display_actions(actions, index):
     #                                         v    v
     maxpkg = max(len(max(packages, key=len)), 0) + 1
     maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
+    maxoldchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
+        packages[pkg][0]].channel) for pkg in packages if packages[pkg][0]] or
+        [''], key=len))
     maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
     new = {pkg for pkg in packages if not packages[pkg][0]}
     removed = {pkg for pkg in packages if not packages[pkg][1]}
@@ -110,10 +113,10 @@ def display_actions(actions, index):
     for pkg in packages:
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
-        oldfmt[pkg] = '{pkg:<%s}   {vers[0]:<%s}' % (maxpkg, maxnewver)
+        oldfmt[pkg] = '{pkg:<%s}  {vers[0]:<%s}' % (maxpkg, maxnewver)
         if config.show_channel_urls:
-            oldfmt[pkg] += ' {channel[0]:>}'
-        newfmt[pkg] = '{vers[1]:<%s}' % (maxnewver)
+            oldfmt[pkg] += ' {channel[0]:>%s}' % maxoldchannel
+        newfmt[pkg] = '{vers[1]:>%s}' % (maxnewver)
         if config.show_channel_urls:
             newfmt[pkg] += ' {channel[1]:>}'
 
