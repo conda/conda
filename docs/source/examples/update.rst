@@ -3,7 +3,10 @@
 Update
 -------
 
-``conda update`` replaces old packages in a given environment with the latest versions.
+``conda update`` replaces old packages in a given environment with the latest
+versions. Note that Python will not update past the major version that is
+installed (so for example, if Python 2.7.4 is installed, ``conda update python`` will
+install Python 2.7.7, not 3.4.1).
 
 For this first example, we will use an environment */tmp/matplotlib*, which we can select using the prefix (``-p``) option.
 
