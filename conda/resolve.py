@@ -5,12 +5,13 @@ import sys
 import logging
 from itertools import combinations
 from collections import defaultdict
+from functools import partial
 
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-                         bisect_constraints)
+    bisect_constraints, evaluate_eq)
 from conda.console import setup_handlers
 
 log = logging.getLogger(__name__)
@@ -318,7 +319,7 @@ class Resolve(object):
                     if v1 < v2:
                         # NOT (fn1 AND fn2)
                         # e.g. NOT (numpy-1.6 AND numpy-1.7)
-                        yield [-v1, -v2]
+                        yield (-v1, -v2)
 
         for fn1 in dists:
             for ms in self.ms_depends(fn1):
@@ -329,7 +330,7 @@ class Resolve(object):
                     if fn2 in dists:
                         clause.append(v[fn2])
                 assert len(clause) > 1, '%s %r' % (fn1, ms)
-                yield clause
+                yield tuple(clause)
 
                 for feat in features:
                     # ensure that a package (with required name) which has
@@ -340,7 +341,7 @@ class Resolve(object):
                          if feat in self.features(fn2):
                              clause.append(v[fn2])
                     if len(clause) > 1:
-                        yield clause
+                        yield tuple(clause)
 
         for spec in specs:
             ms = MatchSpec(spec)
@@ -350,12 +351,12 @@ class Resolve(object):
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
-                    yield clause
+                    yield tuple(clause)
 
             # Don't install any package that has a feature that wasn't requested.
             for fn in self.find_matches(ms):
                 if fn in dists and self.features(fn) - features:
-                    yield [-v[fn]]
+                    yield (-v[fn],)
 
             # finally, ensure a matching package itself is installed
             # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
@@ -363,7 +364,7 @@ class Resolve(object):
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1, ms
-            yield clause
+            yield tuple(clause)
 
     def generate_version_eq(self, v, dists, include0=False):
         groups = defaultdict(list) # map name to list of filenames
@@ -415,9 +416,10 @@ class Resolve(object):
 
         return dists
 
-    def solve2(self, specs, features, guess=True, alg='sorter',
+    def solve2(self, specs, features, guess=True, alg='BDD',
         returnall=False, minimal_hint=False, unsat_only=False):
         log.debug("Solving for %s" % str(specs))
+        log.debug("Using alg %s" % alg)
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
@@ -440,12 +442,11 @@ class Resolve(object):
             m = i + 1
 
             dotlog.debug("Solving using max dists only")
-            clauses = self.gen_clauses(v, dists, specs, features)
+            clauses = set(self.gen_clauses(v, dists, specs, features))
             solutions = min_sat(clauses)
 
-
             if len(solutions) == 1:
-                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
+                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
                 if returnall:
                     return [ret]
                 return ret
@@ -460,7 +461,7 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = list(self.gen_clauses(v, dists, specs, features))
+        clauses = set(self.gen_clauses(v, dists, specs, features))
         if not clauses:
             if returnall:
                 return [[]]
@@ -487,13 +488,25 @@ class Resolve(object):
             return True
 
         def version_constraints(lo, hi):
-            return list(generate_constraints(eq, m, [lo, hi], alg=alg))
+            return set(generate_constraints(eq, m, [lo, hi], alg=alg))
 
         log.debug("Bisecting the version constraint")
-        constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
+        evaluate_func = partial(evaluate_eq, eq)
+        constraints = bisect_constraints(0, max_rhs, clauses,
+            version_constraints, evaluate_func=evaluate_func)
+
+        # Only relevant for build_BDD
+        if constraints and false in constraints:
+            # XXX: This should *never* happen. build_BDD only returns false
+            # when the linear constraint is unsatisfiable, but any linear
+            # constraint can equal 0, by setting all the variables to 0.
+            solution = []
+        else:
+            if constraints and true in constraints:
+                constraints = set([])
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses + constraints, N=m+1)
+        solutions = min_sat(clauses | constraints, N=m+1)
         assert solutions, (specs, features)
 
         if len(solutions) > 1:

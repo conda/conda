@@ -80,12 +80,17 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     import re
+    import sys
 
     from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
 
     if args.regex:
-        pat = re.compile(args.regex, re.I)
+        try:
+            pat = re.compile(args.regex, re.I)
+        except re.error as e:
+            sys.exit("Error: %r is not a valid regex pattern (exception: %s)" %
+                            (args.regex, e))
     else:
         pat = None
 
