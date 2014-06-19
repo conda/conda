@@ -116,7 +116,7 @@ def display_actions(actions, index):
         oldfmt[pkg] = '{pkg:<%s}  {vers[0]:<%s}' % (maxpkg, maxnewver)
         if config.show_channel_urls:
             oldfmt[pkg] += ' {channel[0]:>%s}' % maxoldchannel
-        newfmt[pkg] = '{vers[1]:>%s}' % (maxnewver)
+        newfmt[pkg] = '{vers[1]:<%s}' % (maxnewver)
         if config.show_channel_urls:
             newfmt[pkg] += ' {channel[1]:>}'
 
