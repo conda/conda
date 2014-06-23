@@ -224,6 +224,8 @@ The following packages will be DOWNGRADED:
 
 """
 
+
+
 def test_display_actions_show_channel_urls():
     conda.config.show_channel_urls = True
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
@@ -394,5 +396,159 @@ The following packages will be DOWNGRADED:
 
     cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown> \n\
     dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel
+
+"""
+
+
+def test_display_actions_link_type():
+    conda.config.show_channel_urls = False
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 2', 'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 2',
+    'numpy-1.7.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 2', 'python-3.3.2-0 /Users/aaronmeurer/anaconda/pkgs 2', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 2', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 2', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 2', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 2']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    cython:   0.19.1-py33_0 (soft-link)
+    dateutil: 1.5-py33_0    (soft-link)
+    numpy:    1.7.1-py33_0  (soft-link)
+    python:   3.3.2-0       (soft-link)
+    readline: 6.2-0         (soft-link)
+    sqlite:   3.7.13-0      (soft-link)
+    tk:       8.5.13-0      (soft-link)
+    zlib:     1.2.7-0       (soft-link)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 2',
+        'dateutil-2.1-py33_1 /Users/aaronmeurer/anaconda/pkgs 2'], 'UNLINK':  ['cython-0.19-py33_0',
+            'dateutil-1.5-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 --> 0.19.1-py33_0 (soft-link)
+    dateutil: 1.5-py33_0  --> 2.1-py33_1    (soft-link)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19-py33_0 /Users/aaronmeurer/anaconda/pkgs 2',
+        'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 2'], 'UNLINK':  ['cython-0.19.1-py33_0',
+            'dateutil-2.1-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 --> 0.19-py33_0 (soft-link)
+    dateutil: 2.1-py33_1    --> 1.5-py33_0  (soft-link)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 1', 'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 1',
+    'numpy-1.7.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 1', 'python-3.3.2-0 /Users/aaronmeurer/anaconda/pkgs 1', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 1', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    cython:   0.19.1-py33_0
+    dateutil: 1.5-py33_0   \n\
+    numpy:    1.7.1-py33_0 \n\
+    python:   3.3.2-0      \n\
+    readline: 6.2-0        \n\
+    sqlite:   3.7.13-0     \n\
+    tk:       8.5.13-0     \n\
+    zlib:     1.2.7-0      \n\
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 1',
+        'dateutil-2.1-py33_1 /Users/aaronmeurer/anaconda/pkgs 1'], 'UNLINK':  ['cython-0.19-py33_0',
+            'dateutil-1.5-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 --> 0.19.1-py33_0
+    dateutil: 1.5-py33_0  --> 2.1-py33_1   \n\
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19-py33_0 /Users/aaronmeurer/anaconda/pkgs 1',
+        'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 1'], 'UNLINK':  ['cython-0.19.1-py33_0',
+            'dateutil-2.1-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 --> 0.19-py33_0
+    dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 3', 'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 3',
+    'numpy-1.7.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 3', 'python-3.3.2-0 /Users/aaronmeurer/anaconda/pkgs 3', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 3', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 3', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 3', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 3']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    cython:   0.19.1-py33_0 (copy)
+    dateutil: 1.5-py33_0    (copy)
+    numpy:    1.7.1-py33_0  (copy)
+    python:   3.3.2-0       (copy)
+    readline: 6.2-0         (copy)
+    sqlite:   3.7.13-0      (copy)
+    tk:       8.5.13-0      (copy)
+    zlib:     1.2.7-0       (copy)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 3',
+        'dateutil-2.1-py33_1 /Users/aaronmeurer/anaconda/pkgs 3'], 'UNLINK':  ['cython-0.19-py33_0',
+            'dateutil-1.5-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 --> 0.19.1-py33_0 (copy)
+    dateutil: 1.5-py33_0  --> 2.1-py33_1    (copy)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19-py33_0 /Users/aaronmeurer/anaconda/pkgs 3',
+        'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 3'], 'UNLINK':  ['cython-0.19.1-py33_0',
+            'dateutil-2.1-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 --> 0.19-py33_0 (copy)
+    dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
 
 """
