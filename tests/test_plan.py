@@ -105,3 +105,58 @@ The following packages will be downloaded:
                                            Total:         9.9 MB
 
 """
+
+    conda.config.show_channel_urls = True
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
+    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
+    ------------------------------------------------------------
+                                           Total:         9.9 MB
+
+"""
+
+    conda.config.show_channel_urls = False
+
+    actions = defaultdict(list, {'PREFIX':
+    '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 1', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    python:   3.3.2-0 \n\
+    readline: 6.2-0   \n\
+    sqlite:   3.7.13-0
+    tk:       8.5.13-0
+    zlib:     1.2.7-0 \n\
+
+"""
+
+    actions['UNLINK'] = actions['LINK']
+    actions['LINK'] = []
+
+    with captured() as c:
+        display_actions(actions, index)
+
+
+    assert c.stdout == """
+The following packages will be REMOVED:
+
+    python:   3.3.2-0 \n\
+    readline: 6.2-0   \n\
+    sqlite:   3.7.13-0
+    tk:       8.5.13-0
+    zlib:     1.2.7-0 \n\
+
+"""
