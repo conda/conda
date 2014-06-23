@@ -169,6 +169,32 @@ The following packages will be DOWNGRADED:
 
 """
 
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
+        'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
+        ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    numpy:    1.7.1-py33_0 \n\
+
+The following packages will be REMOVED:
+
+    pip:      1.3.1-py33_1
+
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0  --> 0.19.1-py33_0
+
+The following packages will be DOWNGRADED:
+
+    dateutil: 2.1-py33_1   --> 1.5-py33_0   \n\
+
+"""
+
 def display_actions_show_channel_urls():
     conda.config.show_channel_urls = True
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
@@ -253,5 +279,32 @@ The following packages will be UPDATED:
 The following packages will be DOWNGRADED:
 
     cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
+
+"""
+
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
+        'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
+        ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    numpy:    1.7.1-py33_0 <unknown>
+
+The following packages will be REMOVED:
+
+    pip:      1.3.1-py33_1 <unknown>
+
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
+
+The following packages will be DOWNGRADED:
+
+    dateutil: 2.1-py33_1  <unknown> --> 1.5-py33_0    <unknown>
 
 """
