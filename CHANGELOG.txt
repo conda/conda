@@ -1,3 +1,7 @@
+???
+-------------------
+  * correctly check if a package can be hard-linked if it isn't extracted yet
+
 2014-06-10   3.5.5:
 -------------------
   * remove another instance pycosat version detection, which fails on
