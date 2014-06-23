@@ -123,7 +123,7 @@ def display_actions(actions, index):
     for pkg in packages:
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
-        oldfmt[pkg] = '{pkg:<%s}  {vers[0]:<%s}' % (maxpkg, maxoldver)
+        oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
         if config.show_channel_urls:
             oldfmt[pkg] += ' {channel[0]:>%s}' % maxoldchannel
         if packages[pkg][0]:
