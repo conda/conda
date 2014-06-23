@@ -195,7 +195,7 @@ The following packages will be DOWNGRADED:
 
 """
 
-def display_actions_show_channel_urls():
+def test_display_actions_show_channel_urls():
     conda.config.show_channel_urls = True
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
@@ -293,7 +293,7 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0 <unknown>
+    numpy:    1.7.1-py33_0  <unknown>
 
 The following packages will be REMOVED:
 
@@ -301,10 +301,10 @@ The following packages will be REMOVED:
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
+    cython:   0.19-py33_0  <unknown> --> 0.19.1-py33_0 <unknown>
 
 The following packages will be DOWNGRADED:
 
-    dateutil: 2.1-py33_1  <unknown> --> 1.5-py33_0    <unknown>
+    dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
 
 """
