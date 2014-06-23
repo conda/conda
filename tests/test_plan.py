@@ -142,6 +142,33 @@ The following packages will be REMOVED:
 
 """
 
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
+    ['cython-0.19-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython: 0.19-py33_0 --> 0.19.1-py33_0
+
+"""
+
+    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
+
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython: 0.19.1-py33_0 --> 0.19-py33_0
+
+"""
+
 def display_actions_show_channel_urls():
     conda.config.show_channel_urls = True
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
