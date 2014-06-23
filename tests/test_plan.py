@@ -356,7 +356,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -365,5 +364,35 @@ The following packages will be DOWNGRADED:
 
     cython:   0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
     dateutil: 2.1-py33_1    <unknown> --> 1.5-py33_0  <unknown>
+
+"""
+
+    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
+
+    index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
+    index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 <unknown>  --> 0.19.1-py33_0 my_channel
+    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    <unknown> \n\
+
+"""
+
+    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
+
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown> \n\
+    dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel
 
 """
