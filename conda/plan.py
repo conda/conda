@@ -161,7 +161,7 @@ def ensure_linked_actions(dists, prefix):
                     lt = (install.LINK_SOFT if (config.allow_softlinks and
                                             sys.platform != 'win32') else
                       install.LINK_COPY)
-                actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
+                actions[LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
             except (OSError, IOError):
                 actions[LINK].append(dist)
             finally:
