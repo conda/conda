@@ -661,6 +661,31 @@ The following packages will be UPDATED:
 
 """
 
+    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    # NB: Packages whose version do not changed are put in UPDATED
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    numpy: 1.7.1-py33_0 --> 1.7.1-py33_p0 [mkl]
+
+"""
+
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
+
+"""
+
     conda.config.show_channel_urls = True
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
@@ -711,5 +736,31 @@ The following packages will be DOWNGRADED:
 The following packages will be UPDATED:
 
     numpy: 1.7.0-py33_p0 <unknown> [mkl] --> 1.7.1-py33_p0 <unknown> [mkl]
+
+"""
+
+
+    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    # NB: Packages whose version do not changed are put in UPDATED
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    numpy: 1.7.1-py33_0 <unknown> --> 1.7.1-py33_p0 <unknown> [mkl]
+
+"""
+
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.1-py33_0 <unknown>
 
 """
