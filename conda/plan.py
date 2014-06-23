@@ -146,6 +146,7 @@ def display_actions(actions, index):
         P0 = Packages[pkg + '-' + packages[pkg][0]]
         P1 = Packages[pkg + '-' + packages[pkg][1]]
         try:
+            # <= here means that unchanged packages will be put in updated
             newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
         except TypeError:
             newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
