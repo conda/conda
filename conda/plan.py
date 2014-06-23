@@ -12,6 +12,7 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
+import os
 from logging import getLogger
 from collections import defaultdict
 from os.path import abspath, isfile, join, exists
@@ -147,13 +148,32 @@ def ensure_linked_actions(dists, prefix):
                                             sys.platform != 'win32') else
                       install.LINK_COPY)
             actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
-            continue
+        else:
+            # Make a guess from the first pkgs dir, which is where it will be
+            # extracted
+            try:
+                os.makedirs(join(config.pkgs_dirs[0], dist, 'info'))
+                with open(join(config.pkgs_dirs[0], dist, 'info', 'index.json'), 'w'):
+                    pass
+                if install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
+                    lt = install.LINK_HARD
+                else:
+                    lt = (install.LINK_SOFT if (config.allow_softlinks and
+                                            sys.platform != 'win32') else
+                      install.LINK_COPY)
+                actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
+            except (OSError, IOError):
+                actions[LINK].append(dist)
+            finally:
+                try:
+                    install.rm_rf(join(config.pkgs_dirs[0], dist))
+                except (OSError, IOError):
+                    pass
 
-        actions[LINK].append(dist)
-        actions[EXTRACT].append(dist)
-        if install.is_fetched(config.pkgs_dirs[0], dist):
-            continue
-        actions[FETCH].append(dist)
+            actions[EXTRACT].append(dist)
+            if install.is_fetched(config.pkgs_dirs[0], dist):
+                continue
+            actions[FETCH].append(dist)
     return actions
 
 def force_linked_actions(dists, index, prefix):
