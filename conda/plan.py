@@ -84,7 +84,7 @@ def display_actions(actions, index):
     packages = defaultdict(lambda: list(('', '')))
     features = defaultdict(lambda: list(('', '')))
 
-    # This assumes each package will appear LINK no more than once.
+    # This assumes each package will appear in LINK no more than once.
     Packages = {}
     linktypes = {}
     for arg in actions.get(LINK, []):
