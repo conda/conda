@@ -607,3 +607,61 @@ The following packages will be DOWNGRADED:
     dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel (copy)
 
 """
+
+def test_display_actions_features():
+    conda.config.show_channel_urls = False
+
+    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    cython: 0.19-py33_0  \n\
+    numpy:  1.7.1-py33_p0 [mkl]
+
+"""
+
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be REMOVED:
+
+    cython: 0.19-py33_0  \n\
+    numpy:  1.7.1-py33_p0 [mkl]
+
+"""
+
+    conda.config.show_channel_urls = True
+
+    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    cython: 0.19-py33_0   <unknown>
+    numpy:  1.7.1-py33_p0 <unknown> [mkl]
+
+"""
+
+
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be REMOVED:
+
+    cython: 0.19-py33_0   <unknown>
+    numpy:  1.7.1-py33_p0 <unknown> [mkl]
+
+"""
