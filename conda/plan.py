@@ -103,11 +103,11 @@ def display_actions(actions, index):
 
     #             Put a minimum length here---.    .--For the :
     #                                         v    v
-    maxpkg = max(len(max(packages, key=len)), 0) + 1
-    maxoldver = len(max(packages.values(), key=lambda i: len(i[0]))[0])
-    maxnewver = len(max(packages.values(), key=lambda i: len(i[1]))[1])
-    maxoldfeatures = len(max(features.values(), key=lambda i: len(i[0]))[0])
-    maxnewfeatures = len(max(features.values(), key=lambda i: len(i[1]))[1])
+    maxpkg = max(len(max(packages or [''], key=len)), 0) + 1
+    maxoldver = len(max(packages.values() or [['']], key=lambda i: len(i[0]))[0])
+    maxnewver = len(max(packages.values() or [['', '']], key=lambda i: len(i[1]))[1])
+    maxoldfeatures = len(max(features.values() or [['']], key=lambda i: len(i[0]))[0])
+    maxnewfeatures = len(max(features.values() or [['', '']], key=lambda i: len(i[1]))[1])
     maxoldchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
         packages[pkg][0]].channel) for pkg in packages if packages[pkg][0]] or
         [''], key=len))
