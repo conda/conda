@@ -228,3 +228,30 @@ The following packages will be REMOVED:
     zlib:     1.2.7-0  <unknown>
 
 """
+
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
+    ['cython-0.19-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython: 0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
+
+"""
+
+    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
+
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
+
+"""
