@@ -552,3 +552,58 @@ The following packages will be DOWNGRADED:
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
 
 """
+
+    conda.config.show_channel_urls = True
+
+    index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
+    index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 3', 'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 3',
+    'numpy-1.7.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 3', 'python-3.3.2-0 /Users/aaronmeurer/anaconda/pkgs 3', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 3', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 3', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 3', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 3']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    cython:   0.19.1-py33_0 my_channel (copy)
+    dateutil: 1.5-py33_0    my_channel (copy)
+    numpy:    1.7.1-py33_0  <unknown>  (copy)
+    python:   3.3.2-0       <unknown>  (copy)
+    readline: 6.2-0         <unknown>  (copy)
+    sqlite:   3.7.13-0      <unknown>  (copy)
+    tk:       8.5.13-0      <unknown>  (copy)
+    zlib:     1.2.7-0       <unknown>  (copy)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 /Users/aaronmeurer/anaconda/pkgs 3',
+        'dateutil-2.1-py33_1 /Users/aaronmeurer/anaconda/pkgs 3'], 'UNLINK':  ['cython-0.19-py33_0',
+            'dateutil-1.5-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 <unknown>  --> 0.19.1-py33_0 my_channel (copy)
+    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    <unknown>  (copy)
+
+"""
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19-py33_0 /Users/aaronmeurer/anaconda/pkgs 3',
+        'dateutil-1.5-py33_0 /Users/aaronmeurer/anaconda/pkgs 3'], 'UNLINK':  ['cython-0.19.1-py33_0',
+            'dateutil-2.1-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown>  (copy)
+    dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel (copy)
+
+"""
