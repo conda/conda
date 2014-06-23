@@ -1,15 +1,20 @@
 import json
 import unittest
 from os.path import dirname, join
+from collections import defaultdict
 
 from conda.config import default_python, pkgs_dirs
+import conda.config
 from conda.install import LINK_HARD
 import conda.plan as plan
+from conda.plan import display_actions
 from conda.resolve import Resolve
 
+from tests.helpers import captured
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    r = Resolve(json.load(fi))
+    index = json.load(fi)
+    r = Resolve(index)
 
 def solve(specs):
     return [fn[:-8] for fn in r.solve(specs)]
@@ -77,3 +82,26 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             (['anaconda', 'python 3*'], []),
             ]:
             self.check(specs, added)
+
+def test_display_actions():
+    conda.config.show_channel_urls = False
+    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
+        "numpy-1.7.1-py27_0"]})
+    # The older test index doesn't have the size metadata
+    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
+    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    sympy-0.7.2                |           py27_0         4.2 MB
+    numpy-1.7.1                |           py27_0         5.7 MB
+    ------------------------------------------------------------
+                                           Total:         9.9 MB
+
+"""
