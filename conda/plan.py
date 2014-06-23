@@ -137,7 +137,7 @@ def display_actions(actions, index):
             newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
 
         if features[pkg][0]:
-            oldfmt[pkg] += ' [{features[0]:>%s}]' % maxoldfeatures
+            oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
         if features[pkg][1]:
             newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
 
