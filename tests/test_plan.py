@@ -106,25 +106,6 @@ The following packages will be downloaded:
 
 """
 
-    conda.config.show_channel_urls = True
-
-    with captured() as c:
-        display_actions(actions, index)
-
-    assert c.stdout == """
-The following packages will be downloaded:
-
-    package                    |            build
-    ---------------------------|-----------------
-    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
-    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
-    ------------------------------------------------------------
-                                           Total:         9.9 MB
-
-"""
-
-    conda.config.show_channel_urls = False
-
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
     ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 1', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 1']})
@@ -158,5 +139,65 @@ The following packages will be REMOVED:
     sqlite:   3.7.13-0
     tk:       8.5.13-0
     zlib:     1.2.7-0 \n\
+
+"""
+
+def display_actions_show_channel_urls():
+    conda.config.show_channel_urls = True
+    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
+        "numpy-1.7.1-py27_0"]})
+    # The older test index doesn't have the size metadata
+    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
+    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
+    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
+    ------------------------------------------------------------
+                                           Total:         9.9 MB
+
+"""
+
+
+    actions = defaultdict(list, {'PREFIX':
+    '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 /Users/aaronmeurer/anaconda/pkgs 1', 'sqlite-3.7.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'tk-8.5.13-0 /Users/aaronmeurer/anaconda/pkgs 1', 'zlib-1.2.7-0 /Users/aaronmeurer/anaconda/pkgs 1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following NEW packages will be INSTALLED:
+
+    python:   3.3.2-0  <unknown>
+    readline: 6.2-0    <unknown>
+    sqlite:   3.7.13-0 <unknown>
+    tk:       8.5.13-0 <unknown>
+    zlib:     1.2.7-0  <unknown>
+
+"""
+
+    actions['UNLINK'] = actions['LINK']
+    actions['LINK'] = []
+
+    with captured() as c:
+        display_actions(actions, index)
+
+
+    assert c.stdout == """
+The following packages will be REMOVED:
+
+    python:   3.3.2-0  <unknown>
+    readline: 6.2-0    <unknown>
+    sqlite:   3.7.13-0 <unknown>
+    tk:       8.5.13-0 <unknown>
+    zlib:     1.2.7-0  <unknown>
 
 """
