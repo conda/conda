@@ -158,7 +158,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -192,6 +191,36 @@ The following packages will be UPDATED:
 The following packages will be DOWNGRADED:
 
     dateutil: 2.1-py33_1   --> 1.5-py33_0   \n\
+
+"""
+
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
+        'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
+            'dateutil-1.5-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 --> 0.19.1-py33_0
+    dateutil: 1.5-py33_0  --> 2.1-py33_1   \n\
+
+"""
+
+    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
+
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 --> 0.19-py33_0
+    dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
 
 """
 
@@ -306,5 +335,35 @@ The following packages will be UPDATED:
 The following packages will be DOWNGRADED:
 
     dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
+
+"""
+
+
+    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
+        'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
+            'dateutil-1.5-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    cython:   0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
+    dateutil: 1.5-py33_0  <unknown> --> 2.1-py33_1    <unknown>
+
+"""
+
+    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
+
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    cython:   0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
+    dateutil: 2.1-py33_1    <unknown> --> 1.5-py33_0  <unknown>
 
 """
