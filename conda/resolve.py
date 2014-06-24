@@ -23,11 +23,12 @@ setup_handlers()
 
 def normalized_version(version):
     version = version.replace('rc', '.dev99999')
-    if version.endswith('.dev'):
-        version += '0'
     try:
         return verlib.NormalizedVersion(version)
     except verlib.IrrationalVersionError:
+        suggested_version = verlib.suggest_normalized_version(version)
+        if suggested_version:
+            return verlib.NormalizedVersion(suggested_version)
         return version
 
 
