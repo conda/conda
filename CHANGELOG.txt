@@ -1,3 +1,33 @@
+???
+-------------------
+  * correctly check if a package can be hard-linked if it isn't extracted yet
+  * change how the package plan is printed to better show what is new,
+    updated, and downgraded
+  * use suggest_normalized_version in the resolve module. Now versions that
+    are not directly recognized by verlib's NormalizedVersion like 1.0alpha are
+    supported better.
+
+2014-06-10   3.5.5:
+-------------------
+  * remove another instance pycosat version detection, which fails on
+    Windows, see issue #761
+
+
+2014-06-10   3.5.4:
+-------------------
+  * remove pycosat version detection, which fails on Windows, see issue #761
+
+
+2014-06-09   3.5.3:
+-------------------
+  * fix conda update to correctly not install packages that are already
+    up-to-date
+  * always fail with connection error in download
+  * the package resolution is now much faster and uses less memory
+  * add ssl_verify option in condarc to allow ignoring SSL certificate
+    verification, see issue #737
+
+
 2014-05-27   3.5.2:
 -------------------
   * fix bug in activate.bat and deactivate.bat on Windows

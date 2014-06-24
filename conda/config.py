@@ -63,6 +63,7 @@ rc_bool_keys = [
     'binstar_personal',
     'show_channel_urls',
     'allow_other_channels',
+    'ssl_verify',
     ]
 
 # Not supported by conda config yet
@@ -275,6 +276,7 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 post_link_patch_rpaths = bool(rc.get('post_link_patch_rpaths', False))
+ssl_verify = bool(rc.get('ssl_verify', True))
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:

@@ -74,20 +74,23 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         headers["If-Modified-Since"] = cache["_mod"]
 
     try:
-        resp = session.get(url + 'repodata.json.bz2', headers=headers, proxies=session.proxies)
+        resp = session.get(url + 'repodata.json.bz2',
+                           headers=headers, proxies=session.proxies,
+                           verify=config.ssl_verify)
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
-            (url, e))
+                           (url, e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407: # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
         msg = "HTTPError: %s: %s\n" % (e, url)
         log.debug(msg)
         raise RuntimeError(msg)
@@ -100,7 +103,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if "407" in str(e): # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
 
         msg = "Connection error: %s: %s\n" % (e, url)
         stderrlog.info('Could not connect to %s\n' % url)
@@ -126,7 +130,8 @@ def handle_proxy_407(url, session):
     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
     username, passwd = get_proxy_username_and_pass(scheme)
-    session.proxies[scheme] = add_username_and_pass_to_url(session.proxies[scheme], username, passwd)
+    session.proxies[scheme] = add_username_and_pass_to_url(
+                           session.proxies[scheme], username, passwd)
 
 def add_username_and_pass_to_url(url, username, passwd):
     urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
@@ -200,6 +205,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
 
+
 def download(url, dst_path, session=None, md5=None, urlstxt=False):
     pp = dst_path + '.part'
     dst_dir = os.path.split(dst_path)[0]
@@ -207,13 +213,15 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
 
     with Locked(dst_dir):
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies)
+            resp = session.get(url, stream=True, proxies=session.proxies,
+                               verify=config.ssl_verify)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407: # Proxy Authentication Required
                 handle_proxy_407(url, session)
                 # Try again
-                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt)
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
@@ -226,7 +234,13 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
             if "407" in str(e): # Proxy Authentication Required
                 handle_proxy_407(url, session)
                 # Try again
-                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt)
+                return download(url, dst_path, session=session, md5=md5,
+                    urlstxt=urlstxt)
+            msg = "Connection error: %s: %s\n" % (e, url)
+            stderrlog.info('Could not connect to %s\n' % url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+
         except IOError as e:
             raise RuntimeError("Could not open '%s': %s" % (url, e))
 
@@ -259,7 +273,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
             getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
-            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (url, h.hexdigest(), md5))
+            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
+                               % (url, h.hexdigest(), md5))
 
         try:
             os.rename(pp, dst_path)

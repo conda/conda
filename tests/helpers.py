@@ -5,6 +5,8 @@ import subprocess
 import sys
 import os
 
+from contextlib import contextmanager
+
 def raises(exception, func, string=None):
     try:
         a = func()
@@ -35,3 +37,31 @@ def run_conda_command(*args):
     stdout, stderr = p.communicate()
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
         stderr.decode('utf-8').replace('\r\n', '\n'))
+
+class CapturedText(object):
+    pass
+
+@contextmanager
+def captured():
+    """
+    Context manager to capture the printed output of the code in the with block
+
+    Bind the context manager to a variable using `as` and the result will be
+    in the stdout property.
+
+    >>> from tests.helpers import capture
+    >>> with captured() as c:
+    ...     print('hello world!')
+    ...
+    >>> c.stdout
+    'hello world!\n'
+    """
+    from conda.compat import StringIO
+    import sys
+
+    stdout = sys.stdout
+    sys.stdout = file = StringIO()
+    c = CapturedText()
+    yield c
+    c.stdout = file.getvalue()
+    sys.stdout = stdout
