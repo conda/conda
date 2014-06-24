@@ -63,6 +63,7 @@ rc_bool_keys = [
     'binstar_personal',
     'show_channel_urls',
     'allow_other_channels',
+    'post_link_patch_rpaths',
     'ssl_verify',
     ]
 
