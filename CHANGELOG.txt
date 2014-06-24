@@ -1,6 +1,8 @@
 ???
 -------------------
   * correctly check if a package can be hard-linked if it isn't extracted yet
+  * change how the package plan is printed to better show what is new,
+    updated, and downgraded
 
 2014-06-10   3.5.5:
 -------------------
