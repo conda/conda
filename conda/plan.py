@@ -506,7 +506,8 @@ def execute_plan(plan, index=None, verbose=False):
     prefix = config.root_dir
     i = None
     cmds = cmds_from_plan(plan)
-    saw_link = False
+    saw_build_link = False
+    build_suffix = ''.join(('envs', os.pathsep, '_build'))
 
     for cmd, arg in cmds:
         if i is not None and cmd in progress_cmds:
@@ -530,7 +531,8 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == RM_FETCHED:
             install.rm_fetched(config.pkgs_dirs[0], arg)
         elif cmd == LINK:
-            saw_link = True
+            if prefix.endswith(build_suffix):
+                saw_build_link = True
             link(prefix, arg, index=index)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
@@ -543,8 +545,9 @@ def execute_plan(plan, index=None, verbose=False):
             i = None
             getLogger('progress.stop').info(None)
 
-    if saw_link and config.post_link_patch_rpaths:
-        print("Patching environment...")
+    if saw_build_link and config.post_link_patch_rpaths:
+        print("Patching build environment...")
+        assert prefix != config.root_dir, prefix
         from conda_build.dll import BuildRoot
         build_root = BuildRoot(
             prefix=prefix,
