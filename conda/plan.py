@@ -99,8 +99,13 @@ def display_actions(actions, index):
         dist, pkgs_dir, lt =  split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
-        Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
-        features[pkg][0] = index[dist + '.tar.bz2'].get('features', '')
+        # If the package is not in the index (e.g., an installed
+        # package that is not in the index any more), we just have to fake the metadata.
+        info = index.get(dist + '.tar.bz2', dict(name=pkg, version=ver, build_number=build, build=build, channel=None))
+        Packages[dist] = Package(dist + '.tar.bz2', info)
+        features[pkg][0] = info.get('features', '')
+
+
 
     #             Put a minimum length here---.    .--For the :
     #                                         v    v
