@@ -47,6 +47,10 @@ def app_get_index(all_version=False):
     By default only the latest version of each app is included in the result,
     unless all_version is set to True.
     """
+    import sys
+    import conda.plan as plan
+    python_spec = 'python {}.{}*'.format(*sys.version_info[:2])
+
     index = {fn: info for fn, info in iteritems(get_index())
              if info.get('type') == 'app'}
     if all_version:
@@ -58,7 +62,23 @@ def app_get_index(all_version=False):
 
     res = {}
     for pkgs in itervalues(d):
-        pkg = max(pkgs)
+        installed = [pkg for pkg in pkgs if app_is_installed(pkg.fn)]
+        full_index = get_index()
+
+        if installed:
+            pkg = max(installed)
+        else:
+            installable = []
+            for pkg in pkgs:
+                try:
+                    specs = [_fn2fullspec(pkg.fn), python_spec]
+                    if plan.install_actions(config.root_dir, full_index, specs):
+                        installable.append(pkg)
+                except SystemExit:
+                    # The package version cannot be installed.
+                    pass
+
+            pkg = max(installable)
         res[pkg.fn] = index[pkg.fn]
     return res
 
