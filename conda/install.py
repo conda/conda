@@ -36,6 +36,7 @@ import subprocess
 import tarfile
 import traceback
 import logging
+from collections import defaultdict
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -456,7 +457,17 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     no_link = read_no_link(info_dir)
 
     with Locked(prefix), Locked(pkgs_dir):
+        # Build mapping from inode to filenames to maintain hardlinks
+        inode_dict = defaultdict(list)
         for f in files:
+            inode = os.lstat(join(source_dir, f)).st_ino
+            if inode:
+                inode_dict[inode].append(f)
+
+        # Use while loop so we can modify file_set on the fly
+        file_set = set(files)
+        while file_set:
+            f = file_set.pop()
             src = join(source_dir, f)
             dst = join(prefix, f)
             dst_dir = dirname(dst)
@@ -476,6 +487,23 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
             except OSError as e:
                 log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                           (src, dst, lt, e))
+            # If this was a hard link in archive, make sure we maintain those
+            # links even when link type is copy
+            inode = os.lstat(src).st_ino
+            if inode:
+                link_src = dst
+                for link_file in inode_dict[inode]:
+                    if link_file != f:
+                        link_dst = join(prefix, link_file)
+                        try:
+                            # Hard link to newly created file
+                            _link(link_src, link_dst, LINK_HARD)
+                        except OSError as e:
+                            log.error(('failed to link (src=%r, dst=%r, ' +
+                                       'type=%r, error=%r)') % (link_src,
+                                                               link_dst,
+                                                               LINK_HARD, e))
+                        file_set.remove(link_file)
 
         if name_dist(dist) == '_cache':
             return
