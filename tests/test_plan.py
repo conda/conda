@@ -764,3 +764,18 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.1-py33_0 <unknown>
 
 """
+
+def test_display_actions_no_index():
+    # Test removing a package that is not in the index. This issue
+    # should only come up for removing.
+    actions = defaultdict(list, {'UNLINK': ['notinstalled-1.0-py33_0']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be REMOVED:
+
+    notinstalled: 1.0-py33_0 <unknown>
+
+"""

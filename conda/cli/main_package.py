@@ -18,7 +18,9 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     p.add_argument(
         '-w', "--which",
-        action = "store_true",
+        metavar = "PATH",
+        nargs = '+',
+        action = "store",
         help = "given some PATH print which conda package the file came from",
     )
     p.add_argument(
@@ -54,12 +56,6 @@ def configure_parser(sub_parsers):
         action  = "store",
         default = 0,
         help    = "package build number of the created package",
-    )
-    p.add_argument(
-        'path',
-        metavar = 'PATH',
-        action = "store",
-        nargs = '*',
     )
     p.set_defaults(func=execute)
 
@@ -126,7 +122,7 @@ def execute(args, parser):
     if args.which:
         from conda.misc import which_package
 
-        for path in args.path:
+        for path in args.which:
             for dist in which_package(path):
                 print('%-50s  %s' % (path, dist))
         return
@@ -136,9 +132,6 @@ def execute(args, parser):
             sys.exit(1)
         else:
             return
-
-    if args.path:
-        sys.exit("Error: no positional arguments expected.")
 
     print('# prefix:', prefix)
 
