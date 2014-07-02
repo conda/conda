@@ -166,6 +166,24 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
+old_prefix_placeholder = prefix_placeholder
+new_prefix_placeholder = (
+    '/for_an_explanation_of_why_you_are_seeing_this_go_to_the_url'
+    '_at_the_end_of_this_string_which_we_have_purposely_padded_out'
+    '_to_exactly_246_characters_for_very_good_reason_as_explained_'
+    'here_github.com/conda/conda-build/wiki/Build-prefix-placeholder/'
+)
+new_prefix_placeholder_len = 246
+assert len(new_prefix_placeholder) == new_prefix_placeholder_len, (
+    len(new_prefix_placeholder),
+    new_prefix_placeholder_len,
+)
+
+prefix_placeholders = (
+    old_prefix_placeholder,
+    new_prefix_placeholder,
+)
+
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
