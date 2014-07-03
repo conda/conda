@@ -26,6 +26,7 @@ def configure_parser(sub_parsers):
         help = descr,
     )
     common.add_parser_prefix(p)
+    common.add_parser_json(p)
     p.add_argument(
         '-c', "--canonical",
         action = "store_true",
@@ -80,7 +81,7 @@ def pip_args(prefix):
         return None
 
 
-def add_pip_installed(prefix, installed):
+def add_pip_installed(prefix, installed, json=False):
     args = pip_args(prefix)
     if args is None:
         return
@@ -90,7 +91,8 @@ def add_pip_installed(prefix, installed):
                                 args, universal_newlines=True).split('\n')
     except Exception as e:
         # Any error should just be ignored
-        print("# Warning: subprocess call to pip failed")
+        if not json:
+            print("# Warning: subprocess call to pip failed")
         return
 
     # For every package in pipinst that is not already represented
@@ -104,7 +106,8 @@ def add_pip_installed(prefix, installed):
             continue
         m = pat.match(line)
         if m is None:
-            print('Could not extract name and version from: %r' % line)
+            if not json:
+                print('Could not extract name and version from: %r' % line)
             continue
         name, version = m.groups()
         name = name.lower()
@@ -112,36 +115,30 @@ def add_pip_installed(prefix, installed):
             installed.add('%s-%s-<pip>' % (name, version))
 
 
-def list_packages(prefix, regex=None, format='human', piplist=False):
-    if not isdir(prefix):
-        sys.exit("""\
-Error: environment does not exist: %s
-#
-# Use 'conda create' to create an environment before listing its packages.""" % prefix)
+def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-
-    if format == 'human':
-        print('# packages in environment at %s:' % prefix)
-        print('#')
-    if format == 'export':
-        print_export_header()
-
-    res = 1
-    installed = install.linked(prefix)
-    if piplist and config.use_pip and format == 'human':
-        add_pip_installed(prefix, installed)
 
     for dist in sorted(installed):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
-        res = 0
+
+        yield dist
+
+
+def list_packages(installed, regex=None, format='human'):
+    res = 1
+
+    result = []
+    for dist in get_packages(installed, regex):
         if format == 'canonical':
-            print(dist)
+            result.append(dist)
             continue
         if format == 'export':
-            print('='.join(dist.rsplit('-', 2)))
+            result.append('='.join(dist.rsplit('-', 2)))
             continue
+
+        res = 0
         try:
             # Returns None if no meta-file found (e.g. pip install)
             info = install.is_linked(prefix, dist)
@@ -150,11 +147,11 @@ Error: environment does not exist: %s
             disp += '  %s' % common.disp_features(features)
             if config.show_channel_urls:
                 disp += '  %s' % config.canonical_channel_name(info.get('url'))
-            print(disp)
+            result.append(disp)
         except: # (IOError, KeyError, ValueError):
-            print('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
+            result.append('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
 
-    return res
+    return res, result
 
 
 def execute(args, parser):
@@ -165,9 +162,13 @@ def execute(args, parser):
 
         h = History(prefix)
         if isfile(h.path):
-            h.print_log()
+            if not args.json:
+                h.print_log()
+            else:
+                common.stdout_json(h.object_log())
         else:
-            sys.stderr.write("No revision log found: %s\n" % h.path)
+            common.error_and_exit("No revision log found: %s\n" % h.path,
+                                  json=args.json)
         return
 
     if args.canonical:
@@ -176,4 +177,28 @@ def execute(args, parser):
         format = 'export'
     else:
         format = 'human'
-    sys.exit(list_packages(prefix, args.regex, format=format, piplist=args.pip))
+
+    if not isdir(prefix):
+        common.error_and_exit("""\
+Error: environment does not exist: %s
+#
+# Use 'conda create' to create an environment before listing its packages.""" % prefix,
+                              json=args.json)
+
+    if not args.json:
+        if format == 'human':
+            print('# packages in environment at %s:' % prefix)
+            print('#')
+        if format == 'export':
+            print_export_header()
+
+    installed = install.linked(prefix)
+    if args.pip and config.use_pip and format == 'human':
+        add_pip_installed(prefix, installed, json=args.json)
+
+    exitcode, output = list_packages(installed, args.regex, format=format)
+    if not args.json:
+        print('\n'.join(output))
+    else:
+        common.stdout_json(output)
+    sys.exit(exitcode)

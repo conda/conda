@@ -132,6 +132,26 @@ class History(object):
                 print('    %s' % line)
             print()
 
+    def object_log(self):
+        result = []
+        for i, (date, content) in enumerate(self.parse()):
+            event = {
+                'date': date,
+                'rev': i
+            }
+            if is_diff(content):
+                event['content'] = {
+                    'type': 'diff',
+                    'diff': list(sorted(content))
+                }
+            else:
+                event['content'] = {
+                    'type': 'distribution',
+                    'distribution': list(sorted(content))
+                }
+            result.append(event)
+        return result
+
     def write_dists(self, dists):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
