@@ -63,7 +63,7 @@ def show_pkg_info(name):
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             print('    %-15s %15s  %s' % (
                     pkg.version,
-                    r.index[pkg.fn]['build'],
+                    pkg.build,
                     common.disp_features(r.features(pkg.fn))))
     else:
         print('    not available on channels')
