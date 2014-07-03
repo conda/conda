@@ -90,6 +90,6 @@ Options that can be passed to ``setup()`` (must include
 Command line options
 --------------------
 
-``--buildnum``: Set the build number. Defaults to the ``conda_buildnum``
+- ``--buildnum``: Set the build number. Defaults to the ``conda_buildnum``
   passed to ``setup()``, or 0. Overrides any ``conda_buildnum`` passed to
   ``setup()``.
