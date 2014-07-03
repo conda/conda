@@ -408,7 +408,7 @@ Environment variables that affect the build process
 .. list-table::
 
    * - ``CONDA_PY``
-     - Should be ``26``, ``27``, or ``33``.  This is the Python version
+     - Should be ``26``, ``27``, ``33``, or ``34``.  This is the Python version
        used to build the package.
    * - ``CONDA_NPY``
      - Should be either ``16`` or ``17``.  This is the NumPy version used to
