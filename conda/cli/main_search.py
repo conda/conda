@@ -118,13 +118,19 @@ def execute(args, parser):
                       unknown=args.unknown)
 
     r = Resolve(index)
-    json = {}
+
+    if args.canonical:
+        json = []
+    else:
+        json = {}
+
     for name in sorted(r.groups):
         disp_name = name
         if pat and pat.search(name) is None:
             continue
 
-        json[name] = []
+        if not args.canonical:
+            json[name] = []
 
         if args.outdated:
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
@@ -141,8 +147,11 @@ def execute(args, parser):
 
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             dist = pkg.fn[:-8]
-            if args.canonical and not args.json:
-                print(dist)
+            if args.canonical:
+                if not args.json:
+                    print(dist)
+                else:
+                    json.append(dist)
                 continue
             if dist in linked:
                 inst = '*'
