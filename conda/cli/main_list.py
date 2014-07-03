@@ -178,6 +178,9 @@ def execute(args, parser):
     else:
         format = 'human'
 
+    if args.json:
+        format = 'canonical'
+
     if not isdir(prefix):
         common.error_and_exit("""\
 Error: environment does not exist: %s
