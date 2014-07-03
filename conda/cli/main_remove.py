@@ -32,6 +32,7 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     common.add_parser_yes(p)
+    common.add_parser_json(p)
     p.add_argument(
         "--all",
         action = "store_true",
@@ -66,8 +67,9 @@ def execute(args, parser):
     from conda import config
 
     if not (args.all or args.package_names):
-        sys.exit('Error: no package names supplied,\n'
-                 '       try "conda remove -h" for more details')
+        common.error_and_exit('Error: no package names supplied,\n'
+                              '       try "conda remove -h" for more details',
+                              json=args.json)
 
     prefix = common.get_prefix(args)
     common.check_write('remove', prefix)
@@ -82,8 +84,9 @@ def execute(args, parser):
 
     elif args.all:
         if plan.is_root_prefix(prefix):
-            sys.exit('Error: cannot remove root environment,\n'
-                     '       add -n NAME or -p PREFIX option')
+            common.error_and_exit('Error: cannot remove root environment,\n'
+                                  '       add -n NAME or -p PREFIX option',
+                                  json=args.json)
 
         actions = {plan.PREFIX: prefix,
                    plan.UNLINK: sorted(linked(prefix))}
@@ -92,25 +95,36 @@ def execute(args, parser):
         specs = common.specs_from_args(args.package_names)
         if (plan.is_root_prefix(prefix) and
             common.names_in_specs(common.root_no_rm, specs)):
-            sys.exit('Error: cannot remove %s from root environment' %
-                     ', '.join(common.root_no_rm))
+            common.error_and_exit('Error: cannot remove %s from root environment' %
+                                  ', '.join(common.root_no_rm),
+                                  json=args.json)
         actions = plan.remove_actions(prefix, specs, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
         if args.all:
             rm_rf(prefix)
             return
-        sys.exit('Error: no packages found to remove from '
-                 'environment: %s' % prefix)
+        common.error_and_exit('Error: no packages found to remove from '
+                              'environment: %s' % prefix,
+                              json=args.json)
 
-    print()
-    print("Package plan for package removal in environment %s:" % prefix)
-    plan.display_actions(actions, index)
+    if not args.json:
+        print()
+        print("Package plan for package removal in environment %s:" % prefix)
+        plan.display_actions(actions, index)
 
-    if not pscheck.main(args):
-        common.confirm_yn(args)
+    # TODO handle dry-run/json interaction
+    if not args.json:
+        if not pscheck.main(args):
+            common.confirm_yn(args)
 
     plan.execute_actions(actions, index, verbose=not args.quiet)
 
     if args.all:
         rm_rf(prefix)
+
+    if args.json:
+        common.stdout_json({
+            'success': True,
+            'actions': actions
+        })
