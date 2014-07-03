@@ -167,7 +167,7 @@ In short:
 
     args = p.parse_args()
 
-    if args.json:
+    if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
         import logging
         logging.disable(logging.CRITICAL)
