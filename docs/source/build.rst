@@ -449,6 +449,8 @@ the package until after it is built. In this case, you can write files named
 file will be used as the version, build number, or build string, respectively
 (and the respective metadata from the ``meta.yaml`` will be ignored).
 
+.. _features:
+
 Features
 --------
 
@@ -476,6 +478,8 @@ To install a feature, install a package that tracks it. To remove a feature,
 use ``conda remove --features``
 
 .. or use conda install --features, blocking on https://github.com/conda/conda/issues/543
+
+.. _relocatable:
 
 Making Packages Relocatable
 ---------------------------
