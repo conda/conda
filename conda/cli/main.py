@@ -167,7 +167,13 @@ In short:
 
     args = p.parse_args()
 
+    if args.json:
+        # Silence logging info to avoid interfering with JSON output
+        import logging
+        logging.disable(logging.CRITICAL)
+
     if args.debug:
+        logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
     if (not main_init.is_initialized() and

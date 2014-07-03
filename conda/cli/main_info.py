@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 from os.path import isfile
+from collections import defaultdict
 
 from conda.cli import common
 
@@ -71,15 +72,29 @@ def show_pkg_info(name):
 
 
 def execute(args, parser):
+    from conda.api import get_package_versions
+
     if args.args:
+        results = defaultdict(list)
+
         for arg in args.args:
             if isfile(arg):
                 from conda.misc import which_package
                 path = arg
                 for dist in which_package(path):
-                    print('%-50s  %s' % (path, dist))
+                    if args.json:
+                        results[arg].append(dist)
+                    else:
+                        print('%-50s  %s' % (path, dist))
             else:
-                show_pkg_info(arg)
+                if args.json:
+                    for pkg in get_package_versions(arg):
+                        results[arg].append(pkg._asdict())
+                else:
+                    show_pkg_info(arg)
+
+        if args.json:
+            common.stdout_json(results)
         return
 
     import os
