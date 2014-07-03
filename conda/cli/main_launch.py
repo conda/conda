@@ -35,11 +35,6 @@ def execute(args, parser):
     from conda.api import get_package_versions, app_is_installed
     from conda.misc import launch
 
-    if args.json:
-        # Silence logging info to avoid interfering with JSON output
-        import logging
-        logging.disable(logging.CRITICAL)
-
     installed = []
     if args.package.endswith('.tar.bz2'):
         if app_is_installed(args.package):

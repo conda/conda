@@ -165,6 +165,13 @@ class Package(object):
         self.build = info['build']
         self.channel = info.get('channel')
         self.norm_version = normalized_version(self.version)
+        self.info = info
+
+    def _asdict(self):
+        result = self.info.copy()
+        result['fn'] = self.fn
+        result['norm_version'] = str(self.norm_version)
+        return result
 
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
 #     def __cmp__(self, other):
