@@ -9,7 +9,7 @@ from conda import install
 #from conda.utils import url_path
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
-from conda.resolve import Package
+from conda.resolve import MatchSpec, Package, Resolve
 
 
 def _name_fn(fn):
@@ -163,6 +163,15 @@ def app_uninstall(fn, prefix=config.root_dir):
         raise ValueError("Nothing to do")
 
     plan.execute_actions(actions, index)
+
+
+def get_package_versions(package):
+    index = get_index()
+    r = Resolve(index)
+    if package in r.groups:
+        return r.get_pkgs(MatchSpec(package))
+    else:
+        return []
 
 
 if __name__ == '__main__':

@@ -349,4 +349,11 @@ def stdout_json(d):
     json.dump(d, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write('\n')
 
+def error_and_exit(message, json=False):
+    if json:
+        stdout_json(dict(error=message))
+        sys.exit(1)
+    else:
+        sys.exit("Error: " + message)
+
 root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'

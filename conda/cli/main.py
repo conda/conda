@@ -49,6 +49,7 @@ from conda.cli import main_help
 from conda.cli import main_init
 from conda.cli import main_info
 from conda.cli import main_install
+from conda.cli import main_launch
 from conda.cli import main_list
 from conda.cli import main_remove
 from conda.cli import main_package
@@ -141,6 +142,7 @@ In short:
 
     main_info.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
+    main_launch.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
