@@ -87,6 +87,7 @@ Reference Guide
    commands
    spec
    travis
+   bdist_conda
 
 Presentations & Blog Posts
 --------------------------
