@@ -76,6 +76,7 @@ def configure_parser(sub_parsers):
                   "(default: display all packages)",
     )
     common.add_parser_channels(p)
+    common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 def execute(args, parser):
@@ -89,8 +90,9 @@ def execute(args, parser):
         try:
             pat = re.compile(args.regex, re.I)
         except re.error as e:
-            sys.exit("Error: %r is not a valid regex pattern (exception: %s)" %
-                            (args.regex, e))
+            common.error_and_exit("Error: %r is not a valid regex pattern (exception: %s)" %
+                                  (args.regex, e),
+                                  json=args.json)
     else:
         pat = None
 
@@ -116,10 +118,13 @@ def execute(args, parser):
                       unknown=args.unknown)
 
     r = Resolve(index)
+    json = {}
     for name in sorted(r.groups):
         disp_name = name
         if pat and pat.search(name) is None:
             continue
+
+        json[name] = []
 
         if args.outdated:
             vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
@@ -136,7 +141,7 @@ def execute(args, parser):
 
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             dist = pkg.fn[:-8]
-            if args.canonical:
+            if args.canonical and not args.json:
                 print(dist)
                 continue
             if dist in linked:
@@ -146,11 +151,25 @@ def execute(args, parser):
             else:
                 inst = ' '
 
-            print('%-25s %s  %-15s %15s  %-15s %s' % (
-                disp_name, inst,
-                pkg.version,
-                r.index[pkg.fn]['build'],
-                config.canonical_channel_name(pkg.channel),
-                common.disp_features(r.features(pkg.fn)),
-                ))
-            disp_name = ''
+            if not args.json:
+                print('%-25s %s  %-15s %15s  %-15s %s' % (
+                    disp_name, inst,
+                    pkg.version,
+                    pkg.build,
+                    config.canonical_channel_name(pkg.channel),
+                    common.disp_features(r.features(pkg.fn)),
+                    ))
+                disp_name = ''
+            else:
+                json[name].append({
+                    'fn': pkg.fn,
+                    'installed': inst == '*',
+                    'extracted': inst in '*.',
+                    'version': pkg.version,
+                    'build': pkg.build,
+                    'channel': config.canonical_channel_name(pkg.channel),
+                    'features': list(r.features(pkg.fn))
+                })
+
+    if args.json:
+        common.stdout_json(json)
