@@ -205,8 +205,9 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
 
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
-        sys.exit('Error: either -n NAME or -p PREFIX option required,\n'
-                 '       try "conda %s -h" for more details' % command)
+        error_and_exit('either -n NAME or -p PREFIX option required,\n'
+                       '       try "conda %s -h" for more details' % command,
+                       json=getattr(args, 'json', False))
 
 def find_prefix_name(name):
     if name == config.root_env_name:
@@ -220,8 +221,9 @@ def find_prefix_name(name):
 def get_prefix(args, search=True):
     if args.name:
         if '/' in args.name:
-            sys.exit("Error: '/' not allowed in environment name: %s" %
-                     args.name)
+            error_and_exit("'/' not allowed in environment name: %s" %
+                           args.name,
+                           json=getattr(args, 'json', False))
         if args.name == config.root_env_name:
             return config.root_dir
         if search:
@@ -255,14 +257,16 @@ def check_write(command, prefix, json=False):
 
 # -------------------------------------------------------------------------
 
-def arg2spec(arg):
+def arg2spec(arg, json=False):
     spec = spec_from_line(arg)
     if spec is None:
-        sys.exit('Error: Invalid package specification: %s' % arg)
+        common.error_and_exit('Invalid package specification: %s' % arg,
+                              json=json)
     parts = spec.split()
     name = parts[0]
     if name in config.disallow:
-        sys.exit("Error: specification '%s' is disallowed" % name)
+        common.error_and_exit("specification '%s' is disallowed" % name,
+                              json=json)
     if len(parts) == 2:
         ver = parts[1]
         if not ver.startswith(('=', '>', '<', '!')):
@@ -300,7 +304,7 @@ def spec_from_line(line):
         return name
 
 
-def specs_from_url(url):
+def specs_from_url(url, json=False):
     from conda.fetch import TmpDownload
 
     with TmpDownload(url, verbose=False) as path:
@@ -312,11 +316,12 @@ def specs_from_url(url):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
-                    sys.exit("Error: could not parse '%s' in: %s" %
-                             (line, url))
+                    error_and_exit("could not parse '%s' in: %s" %
+                                   (line, url), json=json)
                 specs.append(spec)
         except IOError:
-            sys.exit('Error: cannot open file: %s' % path)
+            error_and_exit('cannot open file: %s' % path,
+                           json=json)
     return specs
 
 
@@ -324,16 +329,18 @@ def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
-def check_specs(prefix, specs):
+def check_specs(prefix, specs, json=False):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        sys.exit('Error: too few arguments, must supply command line '
-                 'package specs or --file')
+        error_and_exit('too few arguments, must supply command line '
+                       'package specs or --file',
+                       json=json)
 
     if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
-        sys.exit("Error: Package 'conda' may only be installed in the "
-                 "root environment")
+        error_and_exit("Package 'conda' may only be installed in the "
+                       "root environment",
+                       json=json)
 
 
 def disp_features(features):
@@ -348,6 +355,7 @@ def stdout_json(d):
 
     json.dump(d, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write('\n')
+
 
 def error_and_exit(message, json=False):
     if json:
