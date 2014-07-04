@@ -15,6 +15,11 @@ except ImportError:
     except ImportError:
         from io import StringIO
 
+try:
+    StringClass = unicode
+except NameError:
+    StringClass = str
+
 
 class TestArg2Spec(unittest.TestCase):
 
@@ -106,9 +111,6 @@ class TestJson(unittest.TestCase):
         self.assertTrue('conda' in res)
         self.assertIsInstance(res['conda'], list)
 
-        res = capture_json_with_argv('conda', 'info', __file__, '--json')
-        self.assertIsInstance(res, dict)
-
     def test_launch(self):
         res = capture_json_with_argv('conda', 'launch', 'not_installed', '--json')
         self.assertJsonError(res)
@@ -155,7 +157,7 @@ class TestJson(unittest.TestCase):
 
         res = capture_json_with_argv('conda', 'search', '--canonical', '--json')
         self.assertIsInstance(res, list)
-        self.assertIsInstance(res[0], str)
+        self.assertIsInstance(res[0], StringClass)
 
 
 if __name__ == '__main__':
