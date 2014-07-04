@@ -364,4 +364,10 @@ def error_and_exit(message, json=False):
     else:
         sys.exit("Error: " + message)
 
+
+def stdout_json_success(success=True, **kwargs):
+    result = { 'success': success }
+    result.update(kwargs)
+    stdout_json(result)
+
 root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'

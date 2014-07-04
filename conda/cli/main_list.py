@@ -154,6 +154,33 @@ def list_packages(installed, regex=None, format='human'):
     return res, result
 
 
+def print_packages(prefix, regex=None, format='human', piplist=False, json=False):
+    if not isdir(prefix):
+        common.error_and_exit("""\
+Error: environment does not exist: %s
+#
+# Use 'conda create' to create an environment before listing its packages.""" % prefix,
+                              json=json)
+
+    if not json:
+        if format == 'human':
+            print('# packages in environment at %s:' % prefix)
+            print('#')
+        if format == 'export':
+            print_export_header()
+
+    installed = install.linked(prefix)
+    if piplist and config.use_pip and format == 'human':
+        add_pip_installed(prefix, installed, json=json)
+
+    exitcode, output = list_packages(installed, regex, format=format)
+    if not json:
+        print('\n'.join(output))
+    else:
+        common.stdout_json(output)
+    sys.exit(exitcode)
+
+
 def execute(args, parser):
     prefix = common.get_prefix(args)
 
@@ -181,27 +208,4 @@ def execute(args, parser):
     if args.json:
         format = 'canonical'
 
-    if not isdir(prefix):
-        common.error_and_exit("""\
-Error: environment does not exist: %s
-#
-# Use 'conda create' to create an environment before listing its packages.""" % prefix,
-                              json=args.json)
-
-    if not args.json:
-        if format == 'human':
-            print('# packages in environment at %s:' % prefix)
-            print('#')
-        if format == 'export':
-            print_export_header()
-
-    installed = install.linked(prefix)
-    if args.pip and config.use_pip and format == 'human':
-        add_pip_installed(prefix, installed, json=args.json)
-
-    exitcode, output = list_packages(installed, args.regex, format=format)
-    if not args.json:
-        print('\n'.join(output))
-    else:
-        common.stdout_json(output)
-    sys.exit(exitcode)
+    print_packages(prefix, args.regex, format, json=args.json)
