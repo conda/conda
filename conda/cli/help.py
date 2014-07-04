@@ -26,7 +26,7 @@ def root_read_only(command, prefix, json=False):
     msg = read_message('ro.txt')
     if not msg:
         msg = """\
-Error: Missing write permissions in: ${root_dir}
+Missing write permissions in: ${root_dir}
 #
 # You don't appear to have the necessary permissions to ${command} packages
 # into the install area '${root_dir}'.
