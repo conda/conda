@@ -108,6 +108,12 @@ def execute(args, parser):
     if plan.nothing_to_do(actions):
         if args.all:
             rm_rf(prefix)
+
+            if args.json:
+                common.stdout_json({
+                    'success': True,
+                    'actions': actions
+                })
             return
         common.error_and_exit('Error: no packages found to remove from '
                               'environment: %s' % prefix,
