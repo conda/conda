@@ -59,8 +59,6 @@ def capture_with_argv(*argv):
         cli.main()
     except SystemExit:
         pass
-    except Exception as e:
-        print(e, type(e))
     sys.stdout = oldstdout
     sys.stderr = oldstderr
 
