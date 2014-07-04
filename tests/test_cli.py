@@ -1,10 +1,19 @@
-import io
 import sys
 import json
 import unittest
 
 import conda.cli as cli
 from conda.cli.common import arg2spec, spec_from_line
+
+# Use the Python 2 StringIO when available because it works with str
+# (io.StringIO always expects unicode)
+try:
+    from cStringIO import StringIO
+except ImportError:
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 
 class TestArg2Spec(unittest.TestCase):
@@ -51,7 +60,7 @@ class TestSpecFromLine(unittest.TestCase):
 
 def capture_with_argv(*argv):
     sys.argv = argv
-    stdout, stderr = io.StringIO(), io.StringIO()
+    stdout, stderr = StringIO(), StringIO()
     oldstdout, oldstderr = sys.stdout, sys.stderr
     sys.stdout = stdout
     sys.stderr = stderr
@@ -73,7 +82,11 @@ def capture_json_with_argv(*argv):
         # TODO should be exception
         return stderr
 
-    return json.loads(stdout)
+    try:
+        return json.loads(stdout)
+    except ValueError:
+        print(stdout, stderr)
+        raise
 
 
 class TestJson(unittest.TestCase):
@@ -108,7 +121,8 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, list)
 
         res = capture_json_with_argv('conda', 'list', '-r', '--json')
-        self.assertIsInstance(res, list)
+        self.assertTrue(isinstance(res, list) or
+                        (isinstance(res, dict) and 'error' in res))
 
         res = capture_json_with_argv('conda', 'list', 'ipython', '--json')
         self.assertIsInstance(res, list)
