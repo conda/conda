@@ -16,7 +16,7 @@ except NameError:
         pass
 
 
-def check_processes():
+def check_processes(verbose=True):
     # Conda should still work if psutil is not installed (it should not be a
     # hard dependency)
     try:
@@ -42,12 +42,13 @@ def check_processes():
                 processcmd = ' '.join(p.cmdline())
                 if processcmd.startswith('conda '):
                     continue
-                print("WARNING: the process %s (%d) is running" %
-                      (processcmd, n))
+                if verbose:
+                    print("WARNING: the process %s (%d) is running" %
+                          (processcmd, n))
                 ok = False
         except (psutil.AccessDenied, WindowsError):
             pass
-    if not ok:
+    if not ok and verbose:
         print("""\
 WARNING: Continuing installation while the above processes are running is
 not recommended.  Please, close all Anaconda programs before installing or
