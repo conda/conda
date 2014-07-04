@@ -42,33 +42,49 @@ def install_tar(prefix, tar_path, verbose=False):
     shutil.rmtree(tmp_dir)
 
 
-def check_prefix(prefix):
+def check_prefix(prefix, json=False):
     from conda.config import root_env_name
 
     name = basename(prefix)
+    error = None
     if name.startswith('.'):
-        sys.exit("Error: environment name cannot start with '.': %s" % name)
+        error = "Error: environment name cannot start with '.': %s" % name
     if name == root_env_name:
-        sys.exit("Error: '%s' is a reserved environment name" % name)
+        error = "Error: '%s' is a reserved environment name" % name
     if exists(prefix):
-        sys.exit("Error: prefix already exists: %s" % prefix)
+        error = "prefix already exists: %s" % prefix
+
+    if error:
+        common.error_and_exit(error, json=json)
 
 
-def clone(src_arg, dst_prefix):
+def clone(src_arg, dst_prefix, json=False):
     from conda.misc import clone_env
 
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            sys.exit('Error: could such directory: %s' % src_arg)
+            common.error_and_exit('could such directory: %s' % src_arg,
+                                  json=json)
     else:
         src_prefix = common.find_prefix_name(src_arg)
         if src_prefix is None:
-            sys.exit('Error: could not find environment: %s' % src_arg)
+            common.error_and_exit('could not find environment: %s' % src_arg,
+                                  json=json)
 
-    print("src_prefix: %r" % src_prefix)
-    print("dst_prefix: %r" % dst_prefix)
-    clone_env(src_prefix, dst_prefix)
+    if not json:
+        print("src_prefix: %r" % src_prefix)
+        print("dst_prefix: %r" % dst_prefix)
+
+    actions, untracked_files = clone_env(src_prefix, dst_prefix, verbose=not json)
+
+    if json:
+        common.stdout_json_success(
+            actions=actions,
+            untracked_files=list(untracked_files),
+            src_prefix=src_prefix,
+            dst_prefix=dst_prefix
+        )
 
 
 def print_activate(arg):
@@ -84,11 +100,12 @@ def print_activate(arg):
     print("#")
 
 
-def get_revision(arg):
+def get_revision(arg, json=False):
     try:
         return int(arg)
     except ValueError:
-        sys.exit("Error: expected revision number, not: '%s'" % arg)
+        common.error_and_exit("expected revision number, not: '%s'" % arg,
+                              json=json)
 
 
 def install(args, parser, command='install'):
@@ -100,36 +117,42 @@ def install(args, parser, command='install'):
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
-        check_prefix(prefix)
+        check_prefix(prefix, json=args.json)
 
     if command == 'update':
         if args.all:
             if args.packages:
-                sys.exit("""Error: --all cannot be used with packages""")
+                common.error_and_exit("""--all cannot be used with packages""",
+                                      json=args.json)
         else:
             if len(args.packages) == 0:
-                sys.exit("""Error: no package names supplied
+                common.error_and_exit("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
-""" % prefix)
+""" % prefix,
+                                      json=args.json)
 
     if command == 'update':
         linked = ci.linked(prefix)
         for name in args.packages:
             common.arg2spec(name)
             if '=' in name:
-                sys.exit("Invalid package name: '%s'" % (name))
+                common.error_and_exit("Invalid package name: '%s'" % (name),
+                                      json=args.json)
             if name not in set(ci.name_dist(d) for d in linked):
-                sys.exit("Error: package '%s' is not installed in %s" %
-                         (name, prefix))
+                common.error_and_exit("package '%s' is not installed in %s" %
+                                      (name, prefix),
+                                      json=args.json)
 
     if newenv and args.clone:
         if args.packages:
-            sys.exit('Error: did not expect any arguments for --clone')
-        clone(args.clone, prefix)
+            common.error_and_exit('did not expect any arguments for --clone',
+                                  json=args.json)
+        clone(args.clone, prefix, json=args.json)
         touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
+        if not args.json:
+            print_activate(args.name if args.name else prefix)
         return
 
     if newenv and not args.no_default_packages:
@@ -144,7 +167,7 @@ def install(args, parser, command='install'):
     channel_urls = args.channel or ()
 
     if args.file:
-        specs = common.specs_from_url(args.file)
+        specs = common.specs_from_url(args.file, json=args.json)
     elif getattr(args, 'all', False):
         specs = []
         linked = ci.linked(prefix)
@@ -159,9 +182,9 @@ def install(args, parser, command='install'):
         specs = common.specs_from_args(args.packages)
 
     if command == 'install' and args.revision:
-        get_revision(args.revision)
+        get_revision(args.revision, json=args.json)
     else:
-        common.check_specs(prefix, specs)
+        common.check_specs(prefix, specs, json=args.json)
 
     if args.use_local:
         from conda.fetch import fetch_index
@@ -169,8 +192,9 @@ def install(args, parser, command='install'):
         try:
             from conda_build import config as build_config
         except ImportError:
-            sys.exit("Error: you need to have 'conda-build' installed"
-                     " to use the --use-local option")
+            common.error_and_exit("you need to have 'conda-build' installed"
+                                  " to use the --use-local option",
+                                  json=args.json)
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
@@ -195,8 +219,15 @@ def install(args, parser, command='install'):
             build_inst = [m['build_number'] for m in installed_metadata if
                           m['name'] == name]
 
-            assert len(vers_inst) == 1, name
-            assert len(build_inst) == 1, name
+            try:
+                assert len(vers_inst) == 1, name
+                assert len(build_inst) == 1, name
+            except AssertionError as e:
+                if args.json:
+                    common.error_and_exit("; ".join(e.args), json=True)
+                else:
+                    raise
+
             pkgs = sorted(r.get_pkgs(MatchSpec(name)))
             if not pkgs:
                 # Shouldn't happen?
@@ -206,11 +237,14 @@ def install(args, parser, command='install'):
             if latest.version == vers_inst[0] and latest.build_number == build_inst[0]:
                 args.packages.remove(name)
         if not args.packages:
-            from conda.cli.main_list import list_packages
+            from conda.cli.main_list import print_packages
 
-            regex = '^(%s)$' % '|'.join(orig_packages)
-            print('# All requested packages already installed.')
-            list_packages(prefix, regex)
+            if not args.json:
+                regex = '^(%s)$' % '|'.join(orig_packages)
+                print('# All requested packages already installed.')
+                print_packages(prefix, regex)
+            else:
+                common.stdout_json_success(message='All requested packages already installed.')
             return
 
     # handle tar file containing conda packages
@@ -227,7 +261,8 @@ def install(args, parser, command='install'):
         return
 
     if any(s.endswith('.tar.bz2') for s in args.packages):
-        sys.exit("cannot mix specifications with conda package filenames")
+        common.error_and_exit("cannot mix specifications with conda package filenames",
+                              json=args.json)
 
     if args.force:
         args.no_deps = True
@@ -243,14 +278,16 @@ def install(args, parser, command='install'):
             try:
                 os.makedirs(prefix)
             except OSError:
-                sys.exit("Error: could not create directory: %s" % prefix)
+                common.error_and_exit("Error: could not create directory: %s" % prefix,
+                                      json=args.json)
         else:
-            sys.exit("""\
+            common.error_and_exit("""\
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before installing packages
 # into it.
-#""" % prefix)
+#""" % prefix,
+                                  json=args.json)
 
     if command == 'install' and args.revision:
         actions = plan.revert_actions(prefix, get_revision(args.revision))
@@ -259,26 +296,41 @@ Error: environment does not exist: %s
                                        only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
 
     if plan.nothing_to_do(actions):
-        from conda.cli.main_list import list_packages
+        from conda.cli.main_list import print_packages
 
-        regex = '^(%s)$' % '|'.join(spec_names)
-        print('\n# All requested packages already installed.')
-        list_packages(prefix, regex)
+        if not args.json:
+            regex = '^(%s)$' % '|'.join(spec_names)
+            print('\n# All requested packages already installed.')
+            print_packages(prefix, regex)
+        else:
+            common.stdout_json_success(message='All requested packages already installed.')
         return
 
-    print()
-    print("Package plan for installation in environment %s:" % prefix)
-    plan.display_actions(actions, index)
+    if not args.json:
+        print()
+        print("Package plan for installation in environment %s:" % prefix)
+        plan.display_actions(actions, index)
+
     if command in {'install', 'update'}:
         common.check_write(command, prefix)
 
-    if not pscheck.main(args):
-        common.confirm_yn(args)
+    if not args.json:
+        if not pscheck.main(args):
+            common.confirm_yn(args)
+    # TODO reusing --force flag??
+    elif not args.force and not pscheck.check_processes(verbose=False):
+        common.error_and_exit("Cannot continue operation while processes "
+                              "from packages are running without --force.",
+                              json=True)
 
-    plan.execute_actions(actions, index, verbose=not args.quiet)
+    plan.execute_actions(actions, index, verbose=not (args.quiet or args.json))
     if newenv:
         touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
+        if not args.json:
+            print_activate(args.name if args.name else prefix)
+
+    if args.json:
+        common.stdout_json_success(actions=actions)
 
 
 def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=False):

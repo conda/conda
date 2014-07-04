@@ -39,6 +39,7 @@ def configure_parser(sub_parsers):
         metavar = 'REVISION',
     )
     common.add_parser_install(p)
+    common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 def execute(args, parser):

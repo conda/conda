@@ -138,8 +138,10 @@ def clone_env(prefix1, prefix2, verbose=True):
     """
     untracked_files = untracked(prefix1)
     dists = discard_conda(install.linked(prefix1))
-    print('Packages: %d' % len(dists))
-    print('Files: %d' % len(untracked_files))
+
+    if verbose:
+        print('Packages: %d' % len(dists))
+        print('Files: %d' % len(untracked_files))
 
     for f in untracked_files:
         src = join(prefix1, f)
@@ -169,6 +171,8 @@ def clone_env(prefix1, prefix2, verbose=True):
 
     actions = ensure_linked_actions(dists, prefix2)
     execute_actions(actions, index=get_index(), verbose=verbose)
+
+    return actions, untracked_files
 
 
 def install_local_packages(prefix, paths, verbose=False):
