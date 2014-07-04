@@ -48,6 +48,11 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
+        '-f', "--force",
+        action = "store_true",
+        help = "force removal (Windows; when package process is running)"
+    )
+    p.add_argument(
         'package_names',
         metavar = 'package_name',
         action = "store",
@@ -72,9 +77,9 @@ def execute(args, parser):
                               json=args.json)
 
     prefix = common.get_prefix(args)
-    common.check_write('remove', prefix)
+    common.check_write('remove', prefix, json=args.json)
 
-    common.ensure_override_channels_requires_channel(args)
+    common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls,
                       prepend=not args.override_channels)
@@ -113,10 +118,21 @@ def execute(args, parser):
         print("Package plan for package removal in environment %s:" % prefix)
         plan.display_actions(actions, index)
 
-    # TODO handle dry-run/json interaction
+    if args.json and args.dry_run:
+        common.stdout_json({
+            'success': True,
+            'dry_run': True,
+            'actions': actions
+        })
+        return
+
     if not args.json:
         if not pscheck.main(args):
             common.confirm_yn(args)
+    elif not args.force and not pscheck.check_processes(verbose=False):
+        common.error_and_exit("Cannot continue removal while processes "
+                              "from packages are running without --force.",
+                              json=True)
 
     plan.execute_actions(actions, index, verbose=not args.quiet)
 
