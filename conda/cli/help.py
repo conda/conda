@@ -2,7 +2,7 @@ import sys
 from os.path import join
 
 import conda.config as config
-from conda.cli.common import name_prefix
+from conda.cli.common import name_prefix, error_and_exit
 
 
 
@@ -20,7 +20,7 @@ def read_message(fn):
     return ''.join(res)
 
 
-def root_read_only(command, prefix):
+def root_read_only(command, prefix, json=False):
     assert command in {'install', 'update', 'remove'}
 
     msg = read_message('ro.txt')
@@ -40,4 +40,4 @@ Error: Missing write permissions in: ${root_dir}
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)
-    sys.exit(msg)
+    error_and_exit(msg, json=json)
