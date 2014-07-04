@@ -147,12 +147,12 @@ def add_parser_no_pin(p):
         help="don't use pinned packages",
     )
 
-def ensure_override_channels_requires_channel(args, dashc=True):
+def ensure_override_channels_requires_channel(args, dashc=True, json=False):
     if args.override_channels and not args.channel:
         if dashc:
-            sys.exit('Error: --override-channels requires -c/--channel')
+            error_and_exit('Error: --override-channels requires -c/--channel', json=json)
         else:
-            sys.exit('Error: --override-channels requires --channel')
+            error_and_exit('Error: --override-channels requires --channel', json=json)
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
@@ -247,11 +247,11 @@ def name_prefix(prefix):
         return config.root_env_name
     return basename(prefix)
 
-def check_write(command, prefix):
+def check_write(command, prefix, json=False):
     if inroot_notwritable(prefix):
         from conda.cli.help import root_read_only
 
-        root_read_only(command, prefix)
+        root_read_only(command, prefix, json=False)
 
 # -------------------------------------------------------------------------
 
