@@ -135,6 +135,11 @@ In short:
         action = "store_true",
         help = argparse.SUPPRESS,
     )
+    p.add_argument(
+        "--json",
+        action = "store_true",
+        help = argparse.SUPPRESS,
+    )
     sub_parsers = p.add_subparsers(
         metavar = 'command',
         dest = 'cmd',
@@ -142,13 +147,13 @@ In short:
 
     main_info.configure_parser(sub_parsers)
     main_help.configure_parser(sub_parsers)
-    main_launch.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_search.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
+    main_launch.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
     main_init.configure_parser(sub_parsers)
     main_clean.configure_parser(sub_parsers)
