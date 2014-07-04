@@ -150,9 +150,9 @@ def add_parser_no_pin(p):
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
     if args.override_channels and not args.channel:
         if dashc:
-            error_and_exit('Error: --override-channels requires -c/--channel', json=json)
+            error_and_exit('--override-channels requires -c/--channel', json=json)
         else:
-            error_and_exit('Error: --override-channels requires --channel', json=json)
+            error_and_exit('--override-channels requires --channel', json=json)
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
