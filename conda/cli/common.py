@@ -260,12 +260,12 @@ def check_write(command, prefix, json=False):
 def arg2spec(arg, json=False):
     spec = spec_from_line(arg)
     if spec is None:
-        common.error_and_exit('Invalid package specification: %s' % arg,
+        error_and_exit('Invalid package specification: %s' % arg,
                               json=json)
     parts = spec.split()
     name = parts[0]
     if name in config.disallow:
-        common.error_and_exit("specification '%s' is disallowed" % name,
+        error_and_exit("specification '%s' is disallowed" % name,
                               json=json)
     if len(parts) == 2:
         ver = parts[1]
