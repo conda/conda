@@ -214,6 +214,14 @@ class TestJson(unittest.TestCase):
                                      'python', '--json')
         self.assertJsonSuccess(res)
 
+        res = capture_json_with_argv('conda', 'install', '-n', 'testing',
+                                     'python', '--json')
+        self.assertJsonSuccess(res)
+
+        res = capture_json_with_argv('conda', 'install', '--dry-run',
+                                     'python', '--json')
+        self.assertJsonSuccess(res)
+
         res = capture_json_with_argv('conda', 'create', '--clone', 'testing',
                                      '-n', 'testing2', '--json')
         self.assertJsonSuccess(res)
