@@ -136,7 +136,7 @@ def install(args, parser, command='install'):
     if command == 'update':
         linked = ci.linked(prefix)
         for name in args.packages:
-            common.arg2spec(name)
+            common.arg2spec(name, json=args.json)
             if '=' in name:
                 common.error_and_exit("Invalid package name: '%s'" % (name),
                                       json=args.json)
@@ -179,7 +179,7 @@ def install(args, parser, command='install'):
             else:
                 specs.append('%s >=%s' % (name, ver))
     else:
-        specs = common.specs_from_args(args.packages)
+        specs = common.specs_from_args(args.packages, json=args.json)
 
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)

@@ -261,12 +261,12 @@ def arg2spec(arg, json=False):
     spec = spec_from_line(arg)
     if spec is None:
         error_and_exit('Invalid package specification: %s' % arg,
-                              json=json)
+                       json=json)
     parts = spec.split()
     name = parts[0]
     if name in config.disallow:
         error_and_exit("specification '%s' is disallowed" % name,
-                              json=json)
+                       json=json)
     if len(parts) == 2:
         ver = parts[1]
         if not ver.startswith(('=', '>', '<', '!')):
@@ -277,8 +277,8 @@ def arg2spec(arg, json=False):
     return spec
 
 
-def specs_from_args(args):
-    return [arg2spec(arg) for arg in args]
+def specs_from_args(args, json=False):
+    return [arg2spec(arg, json=json) for arg in args]
 
 
 spec_pat = re.compile(r'''
