@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
+from conda.console import json_progress_bars
 
 
 help = "Remove a list of packages from a specified conda environment."
@@ -140,7 +141,11 @@ def execute(args, parser):
                               "from packages are running without --force.",
                               json=True)
 
-    plan.execute_actions(actions, index, verbose=not args.quiet)
+    if args.json and not args.quiet:
+        with json_progress_bars():
+            plan.execute_actions(actions, index, verbose=not args.quiet)
+    else:
+        plan.execute_actions(actions, index, verbose=not args.quiet)
 
     if args.all:
         rm_rf(prefix)
