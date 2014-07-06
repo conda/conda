@@ -18,6 +18,7 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
+from conda.console import json_progress_bars
 from conda.misc import touch_nonadmin
 from conda.resolve import Resolve, MatchSpec
 import conda.install as ci
@@ -323,7 +324,12 @@ Error: environment does not exist: %s
                               "from packages are running without --force.",
                               json=True)
 
-    plan.execute_actions(actions, index, verbose=not (args.quiet or args.json))
+    if args.json and not args.quiet:
+        with json_progress_bars():
+            plan.execute_actions(actions, index, verbose=not (args.quiet or args.json))
+    else:
+        plan.execute_actions(actions, index, verbose=not (args.quiet or args.json))
+
     if newenv:
         touch_nonadmin(prefix)
         if not args.json:
