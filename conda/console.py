@@ -61,6 +61,8 @@ class JsonFetchProgressHandler(logging.Handler):
                 'progress': 0,
                 'finished': False
             }))
+            print('\0', end='')
+            sys.stdout.flush()
             self.filename = filename
             self.maxval = maxval
 
@@ -72,6 +74,8 @@ class JsonFetchProgressHandler(logging.Handler):
                 'progress': n,
                 'finished': False
             }))
+            print('\0', end='')
+            sys.stdout.flush()
 
         elif record.name == 'fetch.stop':
             print(json.dumps({
@@ -80,6 +84,8 @@ class JsonFetchProgressHandler(logging.Handler):
                 'progress': self.maxval,
                 'finished': True
             }))
+            print('\0', end='')
+            sys.stdout.flush()
             self.filename = None
             self.maxval = -1
 
@@ -94,6 +100,8 @@ class JsonProgressHandler(logging.Handler):
                 'progress': 0,
                 'finished': False
             }))
+            print('\0', end='')
+            sys.stdout.flush()
             self.maxval = maxval
 
         elif record.name == 'progress.update':
@@ -104,6 +112,8 @@ class JsonProgressHandler(logging.Handler):
                 'progress': n,
                 'finished': False
             }))
+            print('\0', end='')
+            sys.stdout.flush()
 
         elif record.name == 'progress.stop':
             print(json.dumps({
@@ -111,6 +121,8 @@ class JsonProgressHandler(logging.Handler):
                 'progress': self.maxval,
                 'finished': True
             }))
+            print('\0', end='')
+            sys.stdout.flush()
 
 
 class PrintHandler(logging.Handler):
