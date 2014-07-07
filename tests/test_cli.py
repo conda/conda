@@ -103,6 +103,11 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
         self.assertTrue('error' in res)
 
+    def test_clean(self):
+        res = capture_json_with_argv('conda', 'clean', '--index-cache', '--lock',
+                                     '--packages', '--tarballs', '--json')
+        self.assertJsonSuccess(res)
+
     def test_config(self):
         res = capture_json_with_argv('conda', 'config', '--get', '--json')
         self.assertJsonSuccess(res)
@@ -225,7 +230,6 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda', 'create', '--clone', 'testing',
                                      '-n', 'testing2', '--json', '--quiet')
         self.assertJsonSuccess(res)
-
 
     def test_launch(self):
         res = capture_json_with_argv('conda', 'launch', 'not_installed', '--json')

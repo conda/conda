@@ -9,6 +9,8 @@ from argparse import RawDescriptionHelpFormatter
 import os
 import sys
 
+from os.path import join, getsize
+
 from conda.cli import common
 import conda.config as config
 from conda.utils import human_bytes
@@ -32,6 +34,7 @@ def configure_parser(sub_parsers):
     )
 
     common.add_parser_yes(p)
+    common.add_parser_json(p)
     p.add_argument(
         "-i", "--index-cache",
         action = "store_true",
@@ -56,7 +59,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def rm_lock():
+def find_lock():
     from os.path import join
 
     from conda.lock import LOCKFN
@@ -80,15 +83,18 @@ def rm_lock():
         for dn in os.listdir(dir):
             if os.path.isdir(join(dir, dn)) and dn.startswith(LOCKFN):
                 path = join(dir, dn)
-                print('removing: %s' % path)
-                os.rmdir(path)
+                yield path
 
 
-def rm_tarballs(args):
-    from os.path import join, getsize
+def rm_lock(locks, verbose=True):
+    for path in locks:
+        if verbose:
+            print('removing: %s' % path)
+        os.rmdir(path)
 
+
+def find_tarballs():
     pkgs_dir = config.pkgs_dirs[0]
-    print('Cache location: %s' % pkgs_dir)
 
     rmlist = []
     for fn in os.listdir(pkgs_dir):
@@ -96,37 +102,57 @@ def rm_tarballs(args):
             rmlist.append(fn)
 
     if not rmlist:
-        print("There are no tarballs to remove")
-        return
+        return pkgs_dir, rmlist, 0
 
-    print("Will remove the following tarballs:")
-    print()
     totalsize = 0
-    maxlen = len(max(rmlist, key=lambda x: len(str(x))))
-    fmt = "%-40s %10s"
     for fn in rmlist:
         size = getsize(join(pkgs_dir, fn))
         totalsize += size
-        print(fmt % (fn, human_bytes(size)))
-    print('-' * (maxlen + 2 + 10))
-    print(fmt % ('Total:', human_bytes(totalsize)))
-    print()
 
-    common.confirm_yn(args)
+    return pkgs_dir, rmlist, totalsize
+
+
+def rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=True):
+    if verbose:
+        print('Cache location: %s' % pkgs_dir)
+
+    if not rmlist:
+        if verbose:
+            print("There are no tarballs to remove")
+        return
+
+    if verbose:
+        print("Will remove the following tarballs:")
+        print()
+
+        maxlen = len(max(rmlist, key=lambda x: len(str(x))))
+        fmt = "%-40s %10s"
+        for fn in rmlist:
+            size = getsize(join(pkgs_dir, fn))
+            print(fmt % (fn, human_bytes(size)))
+        print('-' * (maxlen + 2 + 10))
+        print(fmt % ('Total:', human_bytes(totalsize)))
+        print()
+
+    if not args.json:
+        common.confirm_yn(args)
+    if args.json and args.dry_run:
+        return
 
     for fn in rmlist:
-        print("removing %s" % fn)
+        if verbose:
+            print("removing %s" % fn)
         os.unlink(os.path.join(pkgs_dir, fn))
 
-def rm_pkgs(args):
+
+def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     from os.path import join, isdir
     from os import lstat, walk, listdir
-    from conda.install import rm_rf
 
     pkgs_dir = config.pkgs_dirs[0]
-    print('Cache location: %s' % pkgs_dir)
+    warnings = []
 
     rmlist = []
     pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
@@ -141,7 +167,7 @@ def rm_pkgs(args):
                 try:
                     stat = lstat(join(root, fn))
                 except OSError as e:
-                    print(e)
+                    warnings.append((fn, e))
                     continue
                 if stat.st_nlink > 1:
                     # print('%s is installed: %s' % (pkg, join(root, fn)))
@@ -151,14 +177,10 @@ def rm_pkgs(args):
             rmlist.append(pkg)
 
     if not rmlist:
-        print("There are no unused packages to remove")
-        sys.exit(0)
+        return pkgs_dir, rmlist, warnings, 0, []
 
-    print("Will remove the following packages:")
-    print()
     totalsize = 0
-    maxlen = len(max(rmlist, key=lambda x: len(str(x))))
-    fmt = "%-40s %10s"
+    pkgsizes = []
     for pkg in rmlist:
         pkgsize = 0
         for root, dir, files in walk(join(pkgs_dir, pkg)):
@@ -168,35 +190,91 @@ def rm_pkgs(args):
                 size = lstat(join(root, fn)).st_size
                 totalsize += size
                 pkgsize += size
-        print(fmt % (pkg, human_bytes(pkgsize)))
-    print('-' * (maxlen + 2 + 10))
-    print(fmt % ('Total:', human_bytes(totalsize)))
-    print()
+        pkgsizes.append(pkgsize)
 
-    common.confirm_yn(args)
+    return pkgs_dir, rmlist, warnings, totalsize, pkgsizes
+
+
+def rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
+            verbose=True):
+    from conda.install import rm_rf
+
+    if verbose:
+        print('Cache location: %s' % pkgs_dir)
+        for fn, exception in warnings:
+            print(exception)
+
+    if not rmlist:
+        if verbose:
+            print("There are no unused packages to remove")
+        return
+
+    if verbose:
+        print("Will remove the following packages:")
+        print()
+        maxlen = len(max(rmlist, key=lambda x: len(str(x))))
+        fmt = "%-40s %10s"
+        for pkg, pkgsize in zip(rmlist, pkgsizes):
+            print(fmt % (pkg, human_bytes(pkgsize)))
+        print('-' * (maxlen + 2 + 10))
+        print(fmt % ('Total:', human_bytes(totalsize)))
+        print()
+
+    if not args.json:
+        common.confirm_yn(args)
+    if args.json and args.dry_run:
+        return
 
     for pkg in rmlist:
-        print("removing %s" % pkg)
+        if verbose:
+            print("removing %s" % pkg)
         rm_rf(join(pkgs_dir, pkg))
 
 
 def rm_index_cache():
-    from os.path import join
-
-    from conda.config import pkgs_dirs
     from conda.install import rm_rf
 
-    rm_rf(join(pkgs_dirs[0], 'cache'))
+    rm_rf(join(config.pkgs_dirs[0], 'cache'))
 
 
 def execute(args, parser):
+    json_result = {
+        'success': True
+    }
+
     if args.lock:
-        rm_lock()
+        locks = list(find_lock())
+        json_result['lock'] = {
+            'files': locks
+        }
+        rm_lock(locks, verbose=not args.json)
     if args.tarballs:
-        rm_tarballs(args)
+        pkgs_dir, rmlist, totalsize = find_tarballs()
+        json_result['tarballs'] = {
+            'pkgs_dir': pkgs_dir,
+            'files': rmlist,
+            'total_size': totalsize
+        }
+        rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=not args.json)
     if args.index_cache:
+        json_result['index_cache'] = {
+            'files': [join(config.pkgs_dirs[0], 'cache')]
+        }
         rm_index_cache()
     if args.packages:
-        rm_pkgs(args)
+        pkgs_dir, rmlist, warnings, totalsize, pkgsizes = find_pkgs()
+        json_result['packages'] = {
+            'pkgs_dir': pkgs_dir,
+            'files': rmlist,
+            'total_size': totalsize,
+            'warnings': warnings,
+            'pkg_sizes': dict(zip(rmlist, pkgsizes))
+        }
+        rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
+                verbose=not args.json)
     if not (args.lock or args.tarballs or args.index_cache or args.packages):
-        sys.exit("One of {--lock, --tarballs, --index-cache, --packages} required")
+        common.error_and_exit(
+            "One of {--lock, --tarballs, --index-cache, --packages} required")
+
+    if args.json:
+        common.stdout_json(json_result)
