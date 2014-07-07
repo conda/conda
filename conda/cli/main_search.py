@@ -73,8 +73,8 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--spec",
         action  = "store_true",
-        help    = "Treat regex argument as a package specification instead"
-                  "package_name[=version[=build]]",
+        help    = "Treat regex argument as a package specification instead "
+                  "(package_name[=version[=build]])",
     )
     p.add_argument(
         'regex',
