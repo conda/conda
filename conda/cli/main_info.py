@@ -72,7 +72,9 @@ def show_pkg_info(name):
 
 
 def execute(args, parser):
-    from conda.api import get_package_versions
+    from conda import config
+    from conda.api import get_package_versions, app_is_installed
+    from conda.install import is_linked
 
     if args.args:
         results = defaultdict(list)
@@ -86,6 +88,29 @@ def execute(args, parser):
                         results[arg].append(dist)
                     else:
                         print('%-50s  %s' % (path, dist))
+            elif arg.endswith('.tar.bz2'):
+                info = is_linked(config.root_dir, arg[:-8])
+                if not info:
+                    if args.json:
+                        results[arg] = {
+                            'installed': []
+                        }
+                    else:
+                        print("Package %s is not installed" % arg)
+
+                    continue
+
+                info['installed'] = app_is_installed(arg)
+                if args.json:
+                    results[arg] = info
+                else:
+                    print(arg)
+                    print('    %-15s %30s' %
+                               ('installed', bool(info.get('installed'))))
+
+                    for key in ('name', 'version', 'build', 'license',
+                                'platform', 'arch', 'size', 'summary'):
+                        print('    %-15s %30s' % (key, info.get(key)))
             else:
                 if args.json:
                     for pkg in get_package_versions(arg):
