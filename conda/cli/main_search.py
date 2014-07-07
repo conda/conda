@@ -8,6 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from conda.api import app_get_icon_url
 from conda.cli import common
+from conda.resolve import NoPackagesFound
 from argparse import RawDescriptionHelpFormatter
 from conda import config
 
@@ -70,6 +71,12 @@ def configure_parser(sub_parsers):
         default=None,
         )
     p.add_argument(
+        "--spec",
+        action  = "store_true",
+        help    = "Treat regex argument as a package specification instead"
+                  "package_name[=version[=build]]",
+    )
+    p.add_argument(
         'regex',
         action  = "store",
         nargs   = "?",
@@ -81,21 +88,31 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 def execute(args, parser):
+    try:
+        execute_search(args, parser)
+    except NoPackagesFound as e:
+        common.error_and_exit(e.args[0], json=args.json)
+
+def execute_search(args, parser):
     import re
     import sys
 
     from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
 
+    pat = None
+    ms = None
     if args.regex:
-        try:
-            pat = re.compile(args.regex, re.I)
-        except re.error as e:
-            common.error_and_exit("Error: %r is not a valid regex pattern (exception: %s)" %
-                                  (args.regex, e),
-                                  json=args.json)
-    else:
-        pat = None
+        if args.spec:
+            ms = MatchSpec(' '.join(args.regex.split('=')))
+        else:
+            try:
+                pat = re.compile(args.regex, re.I)
+            except re.error as e:
+                common.error_and_exit("Error: %r is not a valid regex pattern (exception: %s)" %
+                                      (args.regex, e),
+                                      json=args.json)
+
 
     prefix = common.get_prefix(args)
     if not args.canonical:
@@ -130,6 +147,13 @@ def execute(args, parser):
         disp_name = name
         if pat and pat.search(name) is None:
             continue
+        if ms and name != ms.name:
+            continue
+
+        if ms:
+            ms_name = ms
+        else:
+            ms_name = MatchSpec(name)
 
         if not args.canonical:
             json[name] = []
@@ -140,14 +164,14 @@ def execute(args, parser):
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name
-            pkgs = sorted(r.get_pkgs(MatchSpec(name)))
+            pkgs = sorted(r.get_pkgs(ms_name))
             if not pkgs:
                 continue
             latest = pkgs[-1]
             if latest.version == vers_inst[0]:
                 continue
 
-        for pkg in sorted(r.get_pkgs(MatchSpec(name))):
+        for pkg in sorted(r.get_pkgs(ms_name)):
             dist = pkg.fn[:-8]
             if args.canonical:
                 if not args.json:
