@@ -318,11 +318,15 @@ Error: environment does not exist: %s
     if not args.json:
         if not pscheck.main(args):
             common.confirm_yn(args)
-    # TODO reusing --force flag??
-    elif not args.force and not pscheck.check_processes(verbose=False):
-        common.error_and_exit("Cannot continue operation while processes "
-                              "from packages are running without --force.",
-                              json=True)
+    else:
+        # TODO reusing --force flag??
+        if not args.force and not pscheck.check_processes(verbose=False):
+            common.error_and_exit("Cannot continue operation while processes "
+                                  "from packages are running without --force.",
+                                  json=True)
+        elif args.dry_run:
+            common.stdout_json_success(actions=actions, dry_run=True)
+            sys.exit(0)
 
     if args.json and not args.quiet:
         with json_progress_bars():
