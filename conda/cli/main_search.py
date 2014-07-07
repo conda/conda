@@ -6,6 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+from conda.api import app_get_icon_url
 from conda.cli import common
 from argparse import RawDescriptionHelpFormatter
 from conda import config
@@ -171,15 +172,25 @@ def execute(args, parser):
                     ))
                 disp_name = ''
             else:
-                json[name].append({
+                data = {
                     'fn': pkg.fn,
                     'installed': inst == '*',
                     'extracted': inst in '*.',
                     'version': pkg.version,
                     'build': pkg.build,
+                    'build_number': pkg.build_number,
                     'channel': config.canonical_channel_name(pkg.channel),
-                    'features': list(r.features(pkg.fn))
-                })
+                    'full_channel': pkg.channel,
+                    'features': list(r.features(pkg.fn)),
+                    'license': pkg.info.get('license'),
+                    'size': pkg.info.get('size'),
+                    'depends': pkg.info.get('depends'),
+                    'type': pkg.info.get('type')
+                }
+
+                if data['type'] == 'app':
+                    data['icon'] = app_get_icon_url(pkg.fn)
+                json[name].append(data)
 
     if args.json:
         common.stdout_json(json)
