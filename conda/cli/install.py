@@ -20,7 +20,7 @@ from conda.cli import pscheck
 from conda.cli import common
 from conda.console import json_progress_bars
 from conda.misc import touch_nonadmin
-from conda.resolve import Resolve, MatchSpec
+from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
 
 
@@ -290,11 +290,14 @@ Error: environment does not exist: %s
 #""" % prefix,
                                   json=args.json)
 
-    if command == 'install' and args.revision:
-        actions = plan.revert_actions(prefix, get_revision(args.revision))
-    else:
-        actions = plan.install_actions(prefix, index, specs, force=args.force,
-                                       only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+    try:
+        if command == 'install' and args.revision:
+            actions = plan.revert_actions(prefix, get_revision(args.revision))
+        else:
+            actions = plan.install_actions(prefix, index, specs, force=args.force,
+                                           only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+    except NoPackagesFound as e:
+        common.error_and_exit(e.args[0], json=args.json)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import print_packages
