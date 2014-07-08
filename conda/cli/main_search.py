@@ -196,7 +196,9 @@ def execute_search(args, parser):
                     ))
                 disp_name = ''
             else:
-                data = {
+                data = {}
+                data.update(pkg.info)
+                data.update({
                     'fn': pkg.fn,
                     'installed': inst == '*',
                     'extracted': inst in '*.',
@@ -210,7 +212,7 @@ def execute_search(args, parser):
                     'size': pkg.info.get('size'),
                     'depends': pkg.info.get('depends'),
                     'type': pkg.info.get('type')
-                }
+                })
 
                 if data['type'] == 'app':
                     data['icon'] = app_get_icon_url(pkg.fn)
