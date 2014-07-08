@@ -298,6 +298,9 @@ Error: environment does not exist: %s
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
     except NoPackagesFound as e:
         common.error_and_exit(e.args[0], json=args.json)
+    except SystemExit as e:
+        # Unsatisfiable package specifications
+        common.error_and_exit(e.args[0], json=args.json)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import print_packages
