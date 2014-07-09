@@ -132,7 +132,7 @@ def touch_nonadmin(prefix):
             fo.write('')
 
 
-def clone_env(prefix1, prefix2, verbose=True):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False):
     """
     clone existing prefix1 into new prefix2
     """
@@ -170,7 +170,7 @@ def clone_env(prefix1, prefix2, verbose=True):
         shutil.copystat(src, dst)
 
     actions = ensure_linked_actions(dists, prefix2)
-    execute_actions(actions, index=get_index(), verbose=verbose)
+    execute_actions(actions, index=get_index(), verbose=not quiet)
 
     return actions, untracked_files
 
