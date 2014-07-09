@@ -140,9 +140,18 @@ class History(object):
                 'rev': i
             }
             if is_diff(content):
+                added = []
+                removed = []
+                for pkg in sorted(content):
+                    if pkg[0] == '+':
+                        added.append(pkg[1:])
+                    elif pkg[0] == '-':
+                        removed.append(pkg[1:])
+
                 event['content'] = {
                     'type': 'diff',
-                    'diff': list(sorted(content))
+                    'added': added,
+                    'removed': removed
                 }
             else:
                 event['content'] = {
