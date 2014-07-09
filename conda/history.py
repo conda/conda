@@ -141,7 +141,6 @@ class History(object):
                 'date': date,
                 'rev': i,
                 'install': [],
-                'add': [],
                 'remove': [],
                 'upgrade': [],
                 'downgrade': []
