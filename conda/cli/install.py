@@ -18,7 +18,6 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
-from conda.console import json_progress_bars
 from conda.misc import touch_nonadmin
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
@@ -59,7 +58,7 @@ def check_prefix(prefix, json=False):
         common.error_and_exit(error, json=json)
 
 
-def clone(src_arg, dst_prefix, json=False):
+def clone(src_arg, dst_prefix, json=False, quiet=False):
     from conda.misc import clone_env
 
     if os.sep in src_arg:
@@ -77,7 +76,10 @@ def clone(src_arg, dst_prefix, json=False):
         print("src_prefix: %r" % src_prefix)
         print("dst_prefix: %r" % dst_prefix)
 
-    actions, untracked_files = clone_env(src_prefix, dst_prefix, verbose=not json)
+    with common.json_progress_bars(json=json and not quiet):
+        actions, untracked_files = clone_env(src_prefix, dst_prefix,
+                                             verbose=not json,
+                                             quiet=quiet)
 
     if json:
         common.stdout_json_success(
@@ -150,7 +152,7 @@ def install(args, parser, command='install'):
         if args.packages:
             common.error_and_exit('did not expect any arguments for --clone',
                                   json=args.json)
-        clone(args.clone, prefix, json=args.json)
+        clone(args.clone, prefix, json=args.json, quiet=args.quiet)
         touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
@@ -334,11 +336,8 @@ Error: environment does not exist: %s
             common.stdout_json_success(actions=actions, dry_run=True)
             sys.exit(0)
 
-    if args.json and not args.quiet:
-        with json_progress_bars():
-            plan.execute_actions(actions, index, verbose=not (args.quiet or args.json))
-    else:
-        plan.execute_actions(actions, index, verbose=not (args.quiet or args.json))
+    with common.json_progress_bars(json=args.json and not args.quiet):
+        plan.execute_actions(actions, index, verbose=not args.quiet)
 
     if newenv:
         touch_nonadmin(prefix)

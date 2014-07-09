@@ -4,9 +4,11 @@ import re
 import os
 import sys
 import argparse
+import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
 
 import conda.config as config
+from conda import console
 
 
 def add_parser_prefix(p):
@@ -363,6 +365,15 @@ def error_and_exit(message, json=False):
         sys.exit(1)
     else:
         sys.exit("Error: " + message)
+
+
+@contextlib.contextmanager
+def json_progress_bars(json=False):
+    if json:
+        with console.json_progress_bars():
+            yield
+    else:
+        yield
 
 
 def stdout_json_success(success=True, **kwargs):
