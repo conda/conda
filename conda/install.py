@@ -443,7 +443,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
               name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
-        print('Ignored: %s' % dist)
+        log.warn('Ignored: %s' % dist)
         return
 
     source_dir = join(pkgs_dir, dist)
@@ -509,7 +509,7 @@ def unlink(prefix, dist):
               name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
-        print('Ignored: %s' % dist)
+        log.warn('Ignored: %s' % dist)
         return
 
     with Locked(prefix):
