@@ -531,15 +531,15 @@ class Resolve(object):
         while True:
             for i in combinations(clauses, len(clauses) - 1):
                 if not sat(list(i)):
-                    sys.stdout.write('.');sys.stdout.flush()
+                    dotlog.debug('Finding minimal unsatisfiable subset')
                     clauses = i
                     break
             else:
                 break
+
         import pprint
-        print()
-        print("The following set of clauses is unsatisfiable")
-        pprint.pprint([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
+        return "The following set of clauses is unsatisfiable\n%s" % \
+            pprint.pformat([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well

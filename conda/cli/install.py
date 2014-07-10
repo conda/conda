@@ -299,10 +299,14 @@ Error: environment does not exist: %s
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
     except NoPackagesFound as e:
-        common.error_and_exit(e.args[0], json=args.json)
+        common.error_and_exit('; '.join(e.args), json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications
-        common.error_and_exit(e.args[0], json=args.json)
+        if e.args:
+            common.error_and_exit(e.args[0], json=args.json,
+                                  newline=True, error_text=False)
+        else:
+            raise
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import print_packages
