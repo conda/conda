@@ -359,12 +359,18 @@ def stdout_json(d):
     sys.stdout.write('\n')
 
 
-def error_and_exit(message, json=False):
+def error_and_exit(message, json=False, newline=False, error_text=True):
     if json:
         stdout_json(dict(error=message))
         sys.exit(1)
     else:
-        sys.exit("Error: " + message)
+        if newline:
+            print()
+
+        if error_text:
+            sys.exit("Error: " + message)
+        else:
+            sys.exit(message)
 
 
 @contextlib.contextmanager
