@@ -40,4 +40,4 @@ Missing write permissions in: ${root_dir}
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)
-    error_and_exit(msg, json=json)
+    error_and_exit(msg, json=json, error_type='RootNotWritable')

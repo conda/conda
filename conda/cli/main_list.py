@@ -160,7 +160,8 @@ def print_packages(prefix, regex=None, format='human', piplist=False, json=False
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before listing its packages.""" % prefix,
-                              json=json)
+                              json=json,
+                              error_type="NoEnvironmentFound")
 
     if not json:
         if format == 'human':
@@ -195,7 +196,8 @@ def execute(args, parser):
                 common.stdout_json(h.object_log())
         else:
             common.error_and_exit("No revision log found: %s\n" % h.path,
-                                  json=args.json)
+                                  json=args.json,
+                                  error_type="NoRevisionLog")
         return
 
     if args.canonical:

@@ -152,9 +152,11 @@ def add_parser_no_pin(p):
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
     if args.override_channels and not args.channel:
         if dashc:
-            error_and_exit('--override-channels requires -c/--channel', json=json)
+            error_and_exit('--override-channels requires -c/--channel', json=json,
+                           error_type="ValueError")
         else:
-            error_and_exit('--override-channels requires --channel', json=json)
+            error_and_exit('--override-channels requires --channel', json=json,
+                           error_type="ValueError")
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
@@ -209,7 +211,8 @@ def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
         error_and_exit('either -n NAME or -p PREFIX option required,\n'
                        '       try "conda %s -h" for more details' % command,
-                       json=getattr(args, 'json', False))
+                       json=getattr(args, 'json', False),
+                       error_type="ValueError")
 
 def find_prefix_name(name):
     if name == config.root_env_name:
@@ -225,7 +228,8 @@ def get_prefix(args, search=True):
         if '/' in args.name:
             error_and_exit("'/' not allowed in environment name: %s" %
                            args.name,
-                           json=getattr(args, 'json', False))
+                           json=getattr(args, 'json', False),
+                           error_type="ValueError")
         if args.name == config.root_env_name:
             return config.root_dir
         if search:
@@ -263,12 +267,14 @@ def arg2spec(arg, json=False):
     spec = spec_from_line(arg)
     if spec is None:
         error_and_exit('Invalid package specification: %s' % arg,
-                       json=json)
+                       json=json,
+                       error_type="ValueError")
     parts = spec.split()
     name = parts[0]
     if name in config.disallow:
         error_and_exit("specification '%s' is disallowed" % name,
-                       json=json)
+                       json=json,
+                       error_type="ValueError")
     if len(parts) == 2:
         ver = parts[1]
         if not ver.startswith(('=', '>', '<', '!')):
@@ -319,11 +325,13 @@ def specs_from_url(url, json=False):
                 spec = spec_from_line(line)
                 if spec is None:
                     error_and_exit("could not parse '%s' in: %s" %
-                                   (line, url), json=json)
+                                   (line, url), json=json,
+                                   error_type="ValueError")
                 specs.append(spec)
         except IOError:
             error_and_exit('cannot open file: %s' % path,
-                           json=json)
+                           json=json,
+                           error_type="IOError")
     return specs
 
 
@@ -337,12 +345,14 @@ def check_specs(prefix, specs, json=False):
     if len(specs) == 0:
         error_and_exit('too few arguments, must supply command line '
                        'package specs or --file',
-                       json=json)
+                       json=json,
+                       error_type="ValueError")
 
     if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
         error_and_exit("Package 'conda' may only be installed in the "
                        "root environment",
-                       json=json)
+                       json=json,
+                       error_type="ValueError")
 
 
 def disp_features(features):
@@ -359,9 +369,10 @@ def stdout_json(d):
     sys.stdout.write('\n')
 
 
-def error_and_exit(message, json=False, newline=False, error_text=True):
+def error_and_exit(message, json=False, newline=False, error_text=True,
+                   error_type=None):
     if json:
-        stdout_json(dict(error=message))
+        stdout_json(dict(error=message, error_type=error_type))
         sys.exit(1)
     else:
         if newline:
@@ -371,6 +382,12 @@ def error_and_exit(message, json=False, newline=False, error_text=True):
             sys.exit("Error: " + message)
         else:
             sys.exit(message)
+
+
+def exception_and_exit(exc, **kwargs):
+    if 'error_type' not in kwargs:
+        kwargs['error_type'] = exc.__class__.__name__
+    error_and_exit('; '.join(exc.args), **kwargs)
 
 
 @contextlib.contextmanager

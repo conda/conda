@@ -75,7 +75,8 @@ def execute(args, parser):
     if not (args.all or args.package_names):
         common.error_and_exit('Error: no package names supplied,\n'
                               '       try "conda remove -h" for more details',
-                              json=args.json)
+                              json=args.json,
+                              error_type="ValueError")
 
     prefix = common.get_prefix(args)
     common.check_write('remove', prefix, json=args.json)
@@ -92,7 +93,8 @@ def execute(args, parser):
         if plan.is_root_prefix(prefix):
             common.error_and_exit('Error: cannot remove root environment,\n'
                                   '       add -n NAME or -p PREFIX option',
-                                  json=args.json)
+                                  json=args.json,
+                                  error_type="CantRemoveRoot")
 
         actions = {plan.PREFIX: prefix,
                    plan.UNLINK: sorted(linked(prefix))}
@@ -103,7 +105,8 @@ def execute(args, parser):
             common.names_in_specs(common.root_no_rm, specs)):
             common.error_and_exit('Error: cannot remove %s from root environment' %
                                   ', '.join(common.root_no_rm),
-                                  json=args.json)
+                                  json=args.json,
+                                  error_type="CantRemoveFromRoot")
         actions = plan.remove_actions(prefix, specs, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
@@ -118,7 +121,8 @@ def execute(args, parser):
             return
         common.error_and_exit('Error: no packages found to remove from '
                               'environment: %s' % prefix,
-                              json=args.json)
+                              json=args.json,
+                              error_type="PackageNotInstalled")
 
     if not args.json:
         print()
@@ -139,7 +143,8 @@ def execute(args, parser):
     elif not args.force and not pscheck.check_processes(verbose=False):
         common.error_and_exit("Cannot continue removal while processes "
                               "from packages are running without --force.",
-                              json=True)
+                              json=True,
+                              error_type="ProcessesStillRunning")
 
     if args.json and not args.quiet:
         with json_progress_bars():

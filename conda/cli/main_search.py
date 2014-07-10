@@ -91,7 +91,7 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFound as e:
-        common.error_and_exit(e.args[0], json=args.json)
+        common.exception_and_exit(e, json=args.json)
 
 def execute_search(args, parser):
     import re
@@ -109,9 +109,10 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(args.regex, re.I)
             except re.error as e:
-                common.error_and_exit("Error: %r is not a valid regex pattern (exception: %s)" %
+                common.error_and_exit("%r is not a valid regex pattern (exception: %s)" %
                                       (args.regex, e),
-                                      json=args.json)
+                                      json=args.json,
+                                      error_type="ValueError")
 
 
     prefix = common.get_prefix(args)

@@ -161,7 +161,7 @@ def execute(args, parser):
         execute_config(args, parser)
     except (CouldntParse, NotImplementedError) as e:
         if args.json:
-            common.error_and_exit('; '.join(e.args), json=True)
+            common.exception_and_exit(e, json=True)
         else:
             raise
 
@@ -171,7 +171,7 @@ def execute_config(args, parser):
         import yaml
     except ImportError:
         common.error_and_exit("Error: pyyaml is required to modify configuration",
-                              json=args.json)
+                              json=args.json, error_type="ImportError")
 
     json_warnings = []
     json_get = {}
@@ -244,37 +244,45 @@ channels:
 
     # Add
     for key, item in args.add:
-        if item in rc_config.get(key, []):
-            # Right now, all list keys should not contain duplicates
-            message = "Skipping %s: %s, item already exists" % (key, item)
-            if not args.json:
-                print(message, file=sys.stderr)
-            else:
-                json_warnings.append(message)
-            continue
+        try:
+            if item in rc_config.get(key, []):
+                # Right now, all list keys should not contain duplicates
+                message = "Skipping %s: %s, item already exists" % (key, item)
+                if not args.json:
+                    print(message, file=sys.stderr)
+                else:
+                    json_warnings.append(message)
+                continue
+        except TypeError:
+            common.error_and_exit("key must be one of %s, not %s" %
+                                  (config.rc_list_keys, key), json=args.json,
+                                  error_type="ValueError")
         new_rc_config.setdefault(key, []).insert(0, item)
 
     # Set
     for key, item in args.set:
         yamlitem = yaml.load(item)
         if not isinstance(yamlitem, bool):
-            common.error_and_exit("%r is not a boolean" % item, json=args.json)
+            common.error_and_exit("%r is not a boolean" % item, json=args.json,
+                                  error_type="TypeError")
 
         new_rc_config[key] = yamlitem
 
     # Remove
     for key, item in args.remove:
         if key not in new_rc_config:
-            common.error_and_exit("key %r is not in the config file" % key, json=args.json)
+            common.error_and_exit("key %r is not in the config file" % key, json=args.json,
+                                  error_type="KeyError")
         if item not in new_rc_config[key]:
             common.error_and_exit("%r is not in the %r key of the config file" %
-                     (item, key), json=args.json)
+                                  (item, key), json=args.json, error_type="KeyError")
         new_rc_config[key] = [i for i in new_rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in new_rc_config:
-            common.error_and_exit("key %r is not in the config file" % key, json=args.json)
+            common.error_and_exit("key %r is not in the config file" % key, json=args.json,
+                                  error_type="KeyError")
         del new_rc_config[key]
 
     if args.force:
@@ -306,7 +314,8 @@ channels:
     for key, item in args.add:
         if key not in config.rc_list_keys:
             common.error_and_exit("key must be one of %s, not %s" %
-                     (config.rc_list_keys, key), json=args.json)
+                                  (config.rc_list_keys, key), json=args.json,
+                                  error_type="ValueError")
 
         if item in rc_config.get(key, []):
             # Skip duplicates. See above
@@ -336,7 +345,8 @@ channels:
     for key, item in args.set:
         if key not in config.rc_bool_keys:
             common.error_and_exit("Error key must be one of %s, not %s" %
-                     (config.rc_bool_keys, key), json=args.json)
+                                  (config.rc_bool_keys, key), json=args.json,
+                                  error_type="ValueError")
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = setkeyregexes[key].match(line)
