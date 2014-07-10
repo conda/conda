@@ -41,7 +41,8 @@ def execute(args, parser):
             fn = args.package
         else:
             error_message = "Package {} not installed.".format(args.package)
-            common.error_and_exit(error_message, json=args.json)
+            common.error_and_exit(error_message, json=args.json,
+                                  error_type="PackageNotInstalled")
     else:
         for pkg in get_package_versions(args.package):
             if app_is_installed(pkg.fn):
@@ -49,7 +50,8 @@ def execute(args, parser):
 
         if not installed:
             error_message = "App {} not installed.".format(args.package)
-            common.error_and_exit(error_message, json=args.json)
+            common.error_and_exit(error_message, json=args.json,
+                                  error_type="AppNotInstalled")
 
         package = max(installed)
         fn = package.fn
@@ -61,5 +63,4 @@ def execute(args, parser):
         else:
             print("Started app. Some apps may take a while to finish loading.")
     except Exception as e:
-        error_message = '; '.join(e.args)
-        common.error_and_exit(error_message, json=args.json)
+        common.exception_and_exit(e, json=args.json)

@@ -55,7 +55,7 @@ def check_prefix(prefix, json=False):
         error = "prefix already exists: %s" % prefix
 
     if error:
-        common.error_and_exit(error, json=json)
+        common.error_and_exit(error, json=json, error_type="ValueError")
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False):
@@ -64,13 +64,15 @@ def clone(src_arg, dst_prefix, json=False, quiet=False):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            common.error_and_exit('could such directory: %s' % src_arg,
-                                  json=json)
+            common.error_and_exit('no such directory: %s' % src_arg,
+                                  json=json,
+                                  error_type="NoEnvironmentFound")
     else:
         src_prefix = common.find_prefix_name(src_arg)
         if src_prefix is None:
             common.error_and_exit('could not find environment: %s' % src_arg,
-                                  json=json)
+                                  json=json,
+                                  error_type="NoEnvironmentFound")
 
     if not json:
         print("src_prefix: %r" % src_prefix)
@@ -108,7 +110,8 @@ def get_revision(arg, json=False):
         return int(arg)
     except ValueError:
         common.error_and_exit("expected revision number, not: '%s'" % arg,
-                              json=json)
+                              json=json,
+                              error_type="ValueError")
 
 
 def install(args, parser, command='install'):
@@ -126,7 +129,8 @@ def install(args, parser, command='install'):
         if args.all:
             if args.packages:
                 common.error_and_exit("""--all cannot be used with packages""",
-                                      json=args.json)
+                                      json=args.json,
+                                      error_type="ValueError")
         else:
             if len(args.packages) == 0:
                 common.error_and_exit("""no package names supplied
@@ -134,7 +138,8 @@ def install(args, parser, command='install'):
 #
 # $ conda update --prefix %s anaconda
 """ % prefix,
-                                      json=args.json)
+                                      json=args.json,
+                                      error_type="ValueError")
 
     if command == 'update':
         linked = ci.linked(prefix)
@@ -142,16 +147,19 @@ def install(args, parser, command='install'):
             common.arg2spec(name, json=args.json)
             if '=' in name:
                 common.error_and_exit("Invalid package name: '%s'" % (name),
-                                      json=args.json)
+                                      json=args.json,
+                                      error_type="ValueError")
             if name not in set(ci.name_dist(d) for d in linked):
                 common.error_and_exit("package '%s' is not installed in %s" %
                                       (name, prefix),
-                                      json=args.json)
+                                      json=args.json,
+                                      error_type="ValueError")
 
     if newenv and args.clone:
         if args.packages:
             common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json)
+                                  json=args.json,
+                                  error_type="ValueError")
         clone(args.clone, prefix, json=args.json, quiet=args.quiet)
         touch_nonadmin(prefix)
         if not args.json:
@@ -197,7 +205,8 @@ def install(args, parser, command='install'):
         except ImportError:
             common.error_and_exit("you need to have 'conda-build' installed"
                                   " to use the --use-local option",
-                                  json=args.json)
+                                  json=args.json,
+                                  error_type="RuntimeError")
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
@@ -227,7 +236,7 @@ def install(args, parser, command='install'):
                 assert len(build_inst) == 1, name
             except AssertionError as e:
                 if args.json:
-                    common.error_and_exit("; ".join(e.args), json=True)
+                    common.exception_and_exit(e, json=True)
                 else:
                     raise
 
@@ -265,7 +274,8 @@ def install(args, parser, command='install'):
 
     if any(s.endswith('.tar.bz2') for s in args.packages):
         common.error_and_exit("cannot mix specifications with conda package filenames",
-                              json=args.json)
+                              json=args.json,
+                              error_type="ValueError")
 
     if args.force:
         args.no_deps = True
@@ -282,7 +292,8 @@ def install(args, parser, command='install'):
                 os.makedirs(prefix)
             except OSError:
                 common.error_and_exit("Error: could not create directory: %s" % prefix,
-                                      json=args.json)
+                                      json=args.json,
+                                      error_type="OSError")
         else:
             common.error_and_exit("""\
 Error: environment does not exist: %s
@@ -290,7 +301,8 @@ Error: environment does not exist: %s
 # Use 'conda create' to create an environment before installing packages
 # into it.
 #""" % prefix,
-                                  json=args.json)
+                                  json=args.json,
+                                  error_type="NoEnvironmentFound")
 
     try:
         if command == 'install' and args.revision:
@@ -302,11 +314,9 @@ Error: environment does not exist: %s
         common.error_and_exit('; '.join(e.args), json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications
-        if e.args:
-            common.error_and_exit(e.args[0], json=args.json,
-                                  newline=True, error_text=False)
-        else:
-            raise
+        common.exception_and_exit(e, json=args.json, newline=True,
+                                  error_text=False,
+                                  error_type='UnsatisfiableSpecifications')
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import print_packages
@@ -335,7 +345,8 @@ Error: environment does not exist: %s
         if not args.force and not pscheck.check_processes(verbose=False):
             common.error_and_exit("Cannot continue operation while processes "
                                   "from packages are running without --force.",
-                                  json=True)
+                                  json=True,
+                                  error_type="ProcessesStillRunning")
         elif args.dry_run:
             common.stdout_json_success(actions=actions, dry_run=True)
             sys.exit(0)
