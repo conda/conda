@@ -17,11 +17,15 @@ We don't raise an error if the lock is named with the current PID
 """
 
 import os
+import logging
 from os.path import join
 import glob
 from time import sleep
 
 LOCKFN = '.conda_lock'
+
+
+stdoutlog = logging.getLogger('stdoutlog')
 
 
 class Locked(object):
@@ -48,15 +52,15 @@ class Locked(object):
         while retries:
             files = glob.glob(self.pattern)
             if files and not files[0].endswith(self.end):
-                print(lockstr)
-                print("Sleeping for %s seconds" % sleeptime)
+                stdoutlog.info(lockstr)
+                stdoutlog.info("Sleeping for %s seconds" % sleeptime)
                 sleep(sleeptime)
                 sleeptime *= 2
                 retries -= 1
             else:
                 break
         else:
-            print("Exceeded max retries, giving up")
+            stdoutlog.error("Exceeded max retries, giving up")
             raise RuntimeError(lockstr)
 
         if not files:
