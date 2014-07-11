@@ -34,9 +34,10 @@ following shows how to modify ``.travis.yml`` to use `Miniconda
    install:
      - sudo apt-get update
      # You may want to periodically update this, although the conda update
-     # conda line below will keep everything up-to-date.
+     # conda line below will keep everything up-to-date.  We do this
+     # conditionally because it saves us some downloading if the version is
+     # the same.
      - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-         # This saves us some downloading for this version
          wget http://repo.continuum.io/miniconda/Miniconda-3.4.2-Linux-x86_64.sh -O miniconda.sh;
        else
          wget http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Linux-x86_64.sh -O miniconda.sh;
