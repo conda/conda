@@ -42,6 +42,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 import argparse
 
+from conda.cli import common
 from conda.cli import conda_argparse
 from conda.cli import main_bundle
 from conda.cli import main_create
@@ -198,7 +199,7 @@ def args_func(args, p):
     try:
         args.func(args, p)
     except RuntimeError as e:
-        sys.exit("Error: %s" % e)
+        common.error_and_exit(str(e), json=args.json)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             print("""\
