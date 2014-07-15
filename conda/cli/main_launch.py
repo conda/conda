@@ -16,6 +16,7 @@ def configure_parser(sub_parsers):
     p = sub_parsers.add_parser('launch',
                                description = descr,
                                help = descr)
+    common.add_parser_prefix(p)
     common.add_parser_json(p)
     p.add_argument(
         'package',
@@ -35,17 +36,19 @@ def execute(args, parser):
     from conda.api import get_package_versions, app_is_installed
     from conda.misc import launch
 
-    installed = []
+    prefix = common.get_prefix(args)
+
     if args.package.endswith('.tar.bz2'):
-        if app_is_installed(args.package):
+        if app_is_installed(args.package, prefixes=[prefix]):
             fn = args.package
         else:
             error_message = "Package {} not installed.".format(args.package)
             common.error_and_exit(error_message, json=args.json,
                                   error_type="PackageNotInstalled")
     else:
+        installed = []
         for pkg in get_package_versions(args.package):
-            if app_is_installed(pkg.fn):
+            if app_is_installed(pkg.fn, prefixes=[prefix]):
                 installed.append(pkg)
 
         if not installed:
@@ -57,7 +60,7 @@ def execute(args, parser):
         fn = package.fn
 
     try:
-        subprocess = launch(fn)
+        subprocess = launch(fn, prefix=prefix)
         if args.json:
             common.stdout_json(dict(fn=fn))
         else:
