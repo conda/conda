@@ -202,7 +202,7 @@ def args_func(args, p):
         common.error_and_exit(str(e), json=args.json)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-            print("""\
+            message = """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 
@@ -210,7 +210,12 @@ following traceback to the conda GitHub issue tracker at:
 
 Include the output of the command 'conda info' in your report.
 
-""")
+"""
+            if args.json:
+                import traceback
+                common.error_and_exit(message + traceback.format_exc(),
+                                      error_type="UnexpectedError", json=True)
+            print(message)
         raise  # as if we did not catch it
 
 if __name__ == '__main__':
