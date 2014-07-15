@@ -98,17 +98,18 @@ def app_info_packages(fn):
     return res
 
 
-def app_is_installed(fn):
+def app_is_installed(fn, prefixes=None):
     """
     Return the list of prefix directories in which `fn` in installed into,
     which might be an empty list.
     """
-    prefixes = [config.root_dir]
-    for envs_dir in config.envs_dirs:
-        for fn2 in os.listdir(envs_dir):
-            prefix = join(envs_dir, fn2)
-            if isdir(prefix):
-                prefixes.append(prefix)
+    if prefixes is None:
+        prefixes = [config.root_dir]
+        for envs_dir in config.envs_dirs:
+            for fn2 in os.listdir(envs_dir):
+                prefix = join(envs_dir, fn2)
+                if isdir(prefix):
+                    prefixes.append(prefix)
     dist = fn[:-8]
     return [prefix for prefix in prefixes if install.is_linked(prefix, dist)]
 
