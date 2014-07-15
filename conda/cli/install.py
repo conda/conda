@@ -311,9 +311,9 @@ Error: environment does not exist: %s
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
     except NoPackagesFound as e:
-        common.error_and_exit('; '.join(e.args), json=args.json)
+        common.exception_and_exit(e, json=args.json)
     except SystemExit as e:
-        # Unsatisfiable package specifications
+        # Unsatisfiable package specifications/no such revision
         common.exception_and_exit(e, json=args.json, newline=True,
                                   error_text=False,
                                   error_type='UnsatisfiableSpecifications')
@@ -352,7 +352,14 @@ Error: environment does not exist: %s
             sys.exit(0)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
-        plan.execute_actions(actions, index, verbose=not args.quiet)
+        try:
+            plan.execute_actions(actions, index, verbose=not args.quiet)
+        except RuntimeError as e:
+            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                error_type = "AlreadyLocked"
+            else:
+                error_type = "RuntimeError"
+            common.exception_and_exit(e, error_type=error_type, json=args.json)
 
     if newenv:
         touch_nonadmin(prefix)
