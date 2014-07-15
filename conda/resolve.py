@@ -582,6 +582,8 @@ remaining packages:
             fn = ms.to_filename()
             if fn is None:
                 return None
+            if fn not in self.index:
+                return None
             res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
             res.append(fn)
         else:

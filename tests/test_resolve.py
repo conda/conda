@@ -126,6 +126,9 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7']), None)
 
+    def test_explicitNone(self):
+        self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
+
     def test_empty(self):
         self.assertEqual(r.solve([]), [])
 
