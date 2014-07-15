@@ -87,6 +87,7 @@ if on_win:
 
 
 log = logging.getLogger(__name__)
+stdoutlog = logging.getLogger('stdoutlog')
 
 class NullHandler(logging.Handler):
     """ Copied from Python 2.7 to avoid getting
@@ -264,8 +265,8 @@ def mk_menus(prefix, files, remove=False):
         try:
             menuinst.install(join(prefix, f), remove, prefix)
         except:
-            print("menuinst Exception:")
-            traceback.print_exc(file=sys.stdout)
+            stdoutlog.error("menuinst Exception:")
+            stdoutlog.error(traceback.format_exc())
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
