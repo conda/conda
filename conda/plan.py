@@ -101,7 +101,8 @@ def display_actions(actions, index):
         packages[pkg][0] = ver + '-' + build
         # If the package is not in the index (e.g., an installed
         # package that is not in the index any more), we just have to fake the metadata.
-        info = index.get(dist + '.tar.bz2', dict(name=pkg, version=ver, build_number=build, build=build, channel=None))
+        info = index.get(dist + '.tar.bz2', dict(name=pkg, version=ver,
+            build_number=int(build) if build.isnumeric() else 0, build=build, channel=None))
         Packages[dist] = Package(dist + '.tar.bz2', info)
         features[pkg][0] = info.get('features', '')
 
