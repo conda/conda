@@ -164,6 +164,8 @@ changeps1: no
 always_yes: yes
 
 invalid_key: yes
+
+channel_alias: http://alpha.conda.binstar.org
 """)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
