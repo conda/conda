@@ -91,7 +91,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
-        msg = "HTTPError: %s: %s\n" % (e, url)
+        if e.response.status_code == 404:
+            if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
+                msg = 'Could not find Binstar user %s' % url.split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0]
+            else:
+                msg = 'Could not find URL: %s' % url
+        else:
+            msg = "HTTPError: %s: %s\n" % (e, url)
         log.debug(msg)
         raise RuntimeError(msg)
 
