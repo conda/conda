@@ -175,6 +175,7 @@ In short:
 # system.  The recommended way for setting up a conda system is by installing
 # Miniconda, see: http://repo.continuum.io/miniconda/index.html""")
 
+def args_func(args, p):
     try:
         args.func(args, p)
     except RuntimeError as e:
