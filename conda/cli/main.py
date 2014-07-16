@@ -196,10 +196,11 @@ In short:
     args_func(args, p)
 
 def args_func(args, p):
+    use_json = getattr(args, 'json', False)
     try:
         args.func(args, p)
     except RuntimeError as e:
-        common.error_and_exit(str(e), json=args.json)
+        common.error_and_exit(str(e), json=use_json)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
@@ -211,7 +212,7 @@ following traceback to the conda GitHub issue tracker at:
 Include the output of the command 'conda info' in your report.
 
 """
-            if args.json:
+            if use_json:
                 import traceback
                 common.error_and_exit(message + traceback.format_exc(),
                                       error_type="UnexpectedError", json=True)
