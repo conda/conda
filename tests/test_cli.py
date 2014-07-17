@@ -231,11 +231,11 @@ class TestJson(unittest.TestCase):
                                      '-n', 'testing2', '--json', '--quiet')
         self.assertJsonSuccess(res)
 
-    def test_launch(self):
-        res = capture_json_with_argv('conda', 'launch', 'not_installed', '--json')
+    def test_run(self):
+        res = capture_json_with_argv('conda', 'run', 'not_installed', '--json')
         self.assertJsonError(res)
 
-        res = capture_json_with_argv('conda', 'launch', 'not_installed-0.1-py27_0.tar.bz2', '--json')
+        res = capture_json_with_argv('conda', 'run', 'not_installed-0.1-py27_0.tar.bz2', '--json')
         self.assertJsonError(res)
 
     def test_list(self):
