@@ -779,3 +779,31 @@ The following packages will be REMOVED:
     notinstalled: 1.0-py33_0 <unknown>
 
 """
+
+    actions = defaultdict(list, {"LINK": ['numpy-1.7.1-py33_0'], "UNLINK":
+        ['numpy-2.0.0-py33_1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    numpy: 2.0.0-py33_1 <unknown> --> 1.7.1-py33_0 <unknown>
+
+"""
+
+    # tk-8.5.13-1 is not in the index. Test that it guesses the build number
+    # correctly.
+    actions = defaultdict(list, {"LINK": ['tk-8.5.13-0'], "UNLINK":
+        ['tk-8.5.13-1']})
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == """
+The following packages will be DOWNGRADED:
+
+    tk: 8.5.13-1 <unknown> --> 8.5.13-0 <unknown>
+
+"""
