@@ -42,7 +42,7 @@ class CapturedText(object):
     pass
 
 @contextmanager
-def captured():
+def captured(disallow_stderr=True):
     """
     Context manager to capture the printed output of the code in the with block
 
@@ -60,8 +60,14 @@ def captured():
     import sys
 
     stdout = sys.stdout
-    sys.stdout = file = StringIO()
+    stderr = sys.stderr
+    sys.stdout = outfile = StringIO()
+    sys.stderr = errfile = StringIO()
     c = CapturedText()
     yield c
-    c.stdout = file.getvalue()
+    c.stdout = outfile.getvalue()
+    c.stderr = errfile.getvalue()
     sys.stdout = stdout
+    sys.stderr = stderr
+    if disallow_stderr and c.stderr:
+        raise Exception("Got stderr output: %s" % c.stderr)
