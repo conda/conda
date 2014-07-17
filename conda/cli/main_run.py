@@ -25,6 +25,13 @@ def configure_parser(sub_parsers):
         nargs = '?',
         help = "package to launch"
     )
+    p.add_argument(
+        'arguments',
+        metavar = 'ARGUMENTS',
+        action = 'store',
+        nargs = '*',
+        help = "additional arguments to application"
+    )
     p.set_defaults(func=execute)
 
 
@@ -60,7 +67,7 @@ def execute(args, parser):
         fn = package.fn
 
     try:
-        subprocess = launch(fn, prefix=prefix)
+        subprocess = launch(fn, prefix=prefix, additional_args=args.arguments)
         if args.json:
             common.stdout_json(dict(fn=fn))
         else:
