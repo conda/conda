@@ -50,10 +50,10 @@ from conda.cli import main_help
 from conda.cli import main_init
 from conda.cli import main_info
 from conda.cli import main_install
-from conda.cli import main_launch
 from conda.cli import main_list
 from conda.cli import main_remove
 from conda.cli import main_package
+from conda.cli import main_run
 from conda.cli import main_search
 from conda.cli import main_update
 from conda.cli import main_config
@@ -154,7 +154,7 @@ In short:
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
-    main_launch.configure_parser(sub_parsers)
+    main_run.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
     main_init.configure_parser(sub_parsers)
     main_clean.configure_parser(sub_parsers)
