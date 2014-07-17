@@ -18,7 +18,7 @@ else
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
 
-_NEW_PATH=$("$_THIS_DIR/conda" ..activateroot "$@")
+_NEW_PATH=$("$_THIS_DIR/conda" ..activateroot)
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
     unset CONDA_DEFAULT_ENV
