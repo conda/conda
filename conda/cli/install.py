@@ -341,8 +341,8 @@ Error: environment does not exist: %s
         if not pscheck.main(args):
             common.confirm_yn(args)
     else:
-        # TODO reusing --force flag??
-        if not args.force and not pscheck.check_processes(verbose=False):
+        if (sys.platform == 'win32' and not args.force and
+            not pscheck.check_processes(verbose=False)):
             common.error_and_exit("Cannot continue operation while processes "
                                   "from packages are running without --force.",
                                   json=True,

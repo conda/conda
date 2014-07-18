@@ -6,6 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+import sys
+
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
@@ -140,7 +142,8 @@ def execute(args, parser):
     if not args.json:
         if not pscheck.main(args):
             common.confirm_yn(args)
-    elif not args.force and not pscheck.check_processes(verbose=False):
+    elif (sys.platform == 'win32' and not args.force and
+          not pscheck.check_processes(verbose=False)):
         common.error_and_exit("Cannot continue removal while processes "
                               "from packages are running without --force.",
                               json=True,
