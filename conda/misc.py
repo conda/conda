@@ -232,6 +232,15 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     return subprocess.Popen(args, cwd=cwd , env=env)
 
 
+def make_icon_url(info):
+    base_url = dirname(info['channel'].rstrip('/'))
+    icon_fn = info['icon']
+    #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+    #if isfile(icon_cache_path):
+    #    return url_path(icon_cache_path)
+    return '%s/icons/%s' % (base_url, icon_fn)
+
+
 if __name__ == '__main__':
     from optparse import OptionParser
 
