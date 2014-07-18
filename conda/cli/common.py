@@ -100,6 +100,11 @@ def add_parser_install(p):
                "implies --no-deps",
     )
     p.add_argument(
+        "--force-pscheck",
+        action = "store_true",
+        help = argparse.SUPPRESS,
+    )
+    p.add_argument(
         "--file",
         action = "store",
         help = "read package versions from FILE",
