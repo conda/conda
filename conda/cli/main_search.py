@@ -6,8 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-from conda.api import app_get_icon_url
 from conda.cli import common
+from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound
 from argparse import RawDescriptionHelpFormatter
 from conda import config
@@ -216,7 +216,7 @@ def execute_search(args, parser):
                 })
 
                 if data['type'] == 'app':
-                    data['icon'] = app_get_icon_url(pkg.fn)
+                    data['icon'] = make_icon_url(pkg.info)
                 json[name].append(data)
 
     if args.json:

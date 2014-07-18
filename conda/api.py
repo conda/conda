@@ -67,14 +67,10 @@ def app_get_icon_url(fn):
     """
     return the URL belonging to the icon for application `fn`.
     """
+    from conda.misc import make_icon_url
     index = get_index()
     info = index[fn]
-    base_url = dirname(info['channel'].rstrip('/'))
-    icon_fn = info['icon']
-    #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-    #if isfile(icon_cache_path):
-    #    return url_path(icon_cache_path)
-    return '%s/icons/%s' % (base_url, icon_fn)
+    return make_icon_url(info)
 
 
 def app_info_packages(fn):
