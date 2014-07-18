@@ -51,7 +51,7 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     p.add_argument(
-        '-f', "--force",
+        "--force-pscheck",
         action = "store_true",
         help = "force removal (Windows; when package process is running)"
     )
@@ -142,10 +142,10 @@ def execute(args, parser):
     if not args.json:
         if not pscheck.main(args):
             common.confirm_yn(args)
-    elif (sys.platform == 'win32' and not args.force and
+    elif (sys.platform == 'win32' and not args.force_pscheck and
           not pscheck.check_processes(verbose=False)):
         common.error_and_exit("Cannot continue removal while processes "
-                              "from packages are running without --force.",
+                              "from packages are running without --force-pscheck.",
                               json=True,
                               error_type="ProcessesStillRunning")
 

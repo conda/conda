@@ -341,10 +341,10 @@ Error: environment does not exist: %s
         if not pscheck.main(args):
             common.confirm_yn(args)
     else:
-        if (sys.platform == 'win32' and not args.force and
+        if (sys.platform == 'win32' and not args.force_pscheck and
             not pscheck.check_processes(verbose=False)):
             common.error_and_exit("Cannot continue operation while processes "
-                                  "from packages are running without --force.",
+                                  "from packages are running without --force-pscheck.",
                                   json=True,
                                   error_type="ProcessesStillRunning")
         elif args.dry_run:
