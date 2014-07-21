@@ -69,7 +69,6 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
-    from conda.api import get_index
     from conda.cli import pscheck
     from conda.install import rm_rf, linked
     from conda import config
@@ -82,11 +81,11 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
     common.check_write('remove', prefix, json=args.json)
-
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
-    index = get_index(channel_urls=channel_urls,
-                      prepend=not args.override_channels)
+    index = common.get_index_trap(channel_urls=channel_urls,
+                                  prepend=not args.override_channels,
+                                  json=args.json)
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
