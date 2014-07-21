@@ -313,10 +313,13 @@ Error: environment does not exist: %s
     except NoPackagesFound as e:
         common.exception_and_exit(e, json=args.json)
     except SystemExit as e:
-        # Unsatisfiable package specifications/no such revision
+        # Unsatisfiable package specifications/no such revision/import error
+        error_type = 'UnsatisfiableSpecifications'
+        if e.args and 'could not import' in e.args[0]:
+            error_type = 'ImportError'
         common.exception_and_exit(e, json=args.json, newline=True,
                                   error_text=False,
-                                  error_type='UnsatisfiableSpecifications')
+                                  error_type=error_type)
 
     if plan.nothing_to_do(actions):
         from conda.cli.main_list import print_packages
