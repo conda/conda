@@ -40,6 +40,8 @@ def execute(args, parser):
         parser.print_help()
         return
 
+    import conda.install
+    import conda.resolve
     from conda.api import get_package_versions, app_is_installed
     from conda.misc import launch
 
@@ -58,6 +60,12 @@ def execute(args, parser):
             if app_is_installed(pkg.fn, prefixes=[prefix]):
                 installed.append(pkg)
 
+        for pkg in conda.install.linked(prefix):
+            name, version, build = pkg.rsplit('-', 2)
+            if name == args.package:
+                installed = [conda.resolve.Package(pkg + '.tar.bz2',
+                                                   conda.install.is_linked(prefix, pkg))]
+
         if not installed:
             error_message = "App {} not installed.".format(args.package)
             common.error_and_exit(error_message, json=args.json,
@@ -69,7 +77,7 @@ def execute(args, parser):
     try:
         subprocess = launch(fn, prefix=prefix, additional_args=args.arguments)
         if args.json:
-            common.stdout_json(dict(fn=fn))
+            common.stdout_json(dict(fn=fn, pid=subprocess.pid))
         else:
             print("Started app. Some apps may take a while to finish loading.")
     except Exception as e:
