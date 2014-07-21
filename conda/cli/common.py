@@ -395,6 +395,28 @@ def exception_and_exit(exc, **kwargs):
     error_and_exit('; '.join(exc.args), **kwargs)
 
 
+def get_index_trap(*args, **kwargs):
+    """
+    Retrieves the package index, but traps exceptions and reports them as
+    JSON if necessary.
+    """
+    from conda.api import get_index
+
+    if 'json' in kwargs:
+        json = kwargs['json']
+        del kwargs['json']
+    else:
+        json = False
+
+    try:
+        return get_index(*args, **kwargs)
+    except BaseException as e:
+        if json:
+            common.exception_and_exit(e, json=json)
+        else:
+            raise
+
+
 @contextlib.contextmanager
 def json_progress_bars(json=False):
     if json:

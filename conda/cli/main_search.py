@@ -132,10 +132,10 @@ def execute_search(args, parser):
     common.ensure_override_channels_requires_channel(args, dashc=False,
                                                      json=args.json)
     channel_urls = args.channel or ()
-    index = get_index(channel_urls=channel_urls, prepend=not
-                      args.override_channels, platform=args.platform,
-                      use_cache=args.use_index_cache,
-                      unknown=args.unknown)
+    index = common.get_index_trap(channel_urls=channel_urls, prepend=not
+                                  args.override_channels, platform=args.platform,
+                                  use_cache=args.use_index_cache,
+                                  unknown=args.unknown, json=args.json)
 
     r = Resolve(index)
 
