@@ -48,9 +48,9 @@ def check_prefix(prefix, json=False):
     name = basename(prefix)
     error = None
     if name.startswith('.'):
-        error = "Error: environment name cannot start with '.': %s" % name
+        error = "environment name cannot start with '.': %s" % name
     if name == root_env_name:
-        error = "Error: '%s' is a reserved environment name" % name
+        error = "'%s' is a reserved environment name" % name
     if exists(prefix):
         error = "prefix already exists: %s" % prefix
 
@@ -298,7 +298,7 @@ def install(args, parser, command='install'):
                                       error_type="OSError")
         else:
             common.error_and_exit("""\
-Error: environment does not exist: %s
+environment does not exist: %s
 #
 # Use 'conda create' to create an environment before installing packages
 # into it.

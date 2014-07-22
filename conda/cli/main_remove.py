@@ -74,7 +74,7 @@ def execute(args, parser):
     from conda import config
 
     if not (args.all or args.package_names):
-        common.error_and_exit('Error: no package names supplied,\n'
+        common.error_and_exit('no package names supplied,\n'
                               '       try "conda remove -h" for more details',
                               json=args.json,
                               error_type="ValueError")
@@ -92,7 +92,7 @@ def execute(args, parser):
 
     elif args.all:
         if plan.is_root_prefix(prefix):
-            common.error_and_exit('Error: cannot remove root environment,\n'
+            common.error_and_exit('cannot remove root environment,\n'
                                   '       add -n NAME or -p PREFIX option',
                                   json=args.json,
                                   error_type="CantRemoveRoot")
@@ -104,7 +104,7 @@ def execute(args, parser):
         specs = common.specs_from_args(args.package_names)
         if (plan.is_root_prefix(prefix) and
             common.names_in_specs(common.root_no_rm, specs)):
-            common.error_and_exit('Error: cannot remove %s from root environment' %
+            common.error_and_exit('cannot remove %s from root environment' %
                                   ', '.join(common.root_no_rm),
                                   json=args.json,
                                   error_type="CantRemoveFromRoot")
@@ -120,7 +120,7 @@ def execute(args, parser):
                     'actions': actions
                 })
             return
-        common.error_and_exit('Error: no packages found to remove from '
+        common.error_and_exit('no packages found to remove from '
                               'environment: %s' % prefix,
                               json=args.json,
                               error_type="PackageNotInstalled")
