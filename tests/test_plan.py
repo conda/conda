@@ -1,3 +1,4 @@
+import sys
 import json
 import unittest
 from os.path import dirname, join
@@ -807,3 +808,20 @@ The following packages will be DOWNGRADED:
     tk: 8.5.13-1 <unknown> --> 8.5.13-0 <unknown>
 
 """
+
+def test_plan_menuinst_first():
+    if sys.platform != 'win32':
+        return
+
+    py_ver = ''.join(str(x) for x in sys.version_info[:2])
+    menuinst = 'menuinst-1.0.3-py%s_0.tar.bz2' % py_ver
+    ipython = 'ipython-2.1.0-py%s_2.tar.bz2' % py_ver
+    actions = {
+        'PREFIX': conda.config.default_prefix,
+        'LINK': [ipython, menuinst],
+        'UNLINK': [ipython, menuinst]
+    }
+
+    plan = plan.plan_from_actions(actions)
+    assert plan[2] == 'UNLINK %s' % menuinst
+    assert plan[3] == 'LINK %s' % menuinst
