@@ -825,3 +825,29 @@ def test_plan_menuinst_first():
     conda_plan = plan.plan_from_actions(actions)
     assert conda_plan[2] == 'UNLINK %s' % menuinst
     assert conda_plan[3] == 'LINK %s' % menuinst
+
+    actions = {
+        'PREFIX': conda.config.default_prefix,
+        'LINK': [ipython, menuinst],
+        'FETCH': [menuinst],
+        'UNLINK': [ipython, menuinst]
+    }
+
+    conda_plan = plan.plan_from_actions(actions)
+    assert conda_plan[2] == 'UNLINK %s' % menuinst
+    assert conda_plan[3] == 'FETCH %s' % menuinst
+    assert conda_plan[4] == 'LINK %s' % menuinst
+
+    actions = {
+        'PREFIX': conda.config.default_prefix,
+        'LINK': [ipython, menuinst],
+        'FETCH': [menuinst],
+        'EXTRACT': [menuinst],
+        'UNLINK': [ipython, menuinst]
+    }
+
+    conda_plan = plan.plan_from_actions(actions)
+    assert conda_plan[2] == 'UNLINK %s' % menuinst
+    assert conda_plan[3] == 'FETCH %s' % menuinst
+    assert conda_plan[3] == 'EXTRACT %s' % menuinst
+    assert conda_plan[4] == 'LINK %s' % menuinst
