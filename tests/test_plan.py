@@ -822,6 +822,6 @@ def test_plan_menuinst_first():
         'UNLINK': [ipython, menuinst]
     }
 
-    plan = plan.plan_from_actions(actions)
-    assert plan[2] == 'UNLINK %s' % menuinst
-    assert plan[3] == 'LINK %s' % menuinst
+    conda_plan = plan.plan_from_actions(actions)
+    assert conda_plan[2] == 'UNLINK %s' % menuinst
+    assert conda_plan[3] == 'LINK %s' % menuinst
