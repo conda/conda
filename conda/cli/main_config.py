@@ -170,7 +170,7 @@ def execute_config(args, parser):
     try:
         import yaml
     except ImportError:
-        common.error_and_exit("Error: pyyaml is required to modify configuration",
+        common.error_and_exit("pyyaml is required to modify configuration",
                               json=args.json, error_type="ImportError")
 
     json_warnings = []
