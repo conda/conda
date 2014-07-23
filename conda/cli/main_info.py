@@ -198,7 +198,8 @@ Current conda install:
 
         for prefix in misc.list_prefixes():
             disp_env(prefix)
-            info_dict['envs'].append(prefix)
+            if prefix != config.root_dir:
+                info_dict['envs'].append(prefix)
 
         print()
 
