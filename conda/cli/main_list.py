@@ -210,4 +210,4 @@ def execute(args, parser):
     if args.json:
         format = 'canonical'
 
-    print_packages(prefix, args.regex, format, json=args.json)
+    print_packages(prefix, args.regex, format, piplist=args.pip, json=args.json)
