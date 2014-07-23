@@ -241,6 +241,22 @@ def make_icon_url(info):
     return '%s/icons/%s' % (base_url, icon_fn)
 
 
+def list_prefixes():
+    # Lists all the prefixes that conda knows about.
+    for envs_dir in config.envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        for dn in sorted(os.listdir(envs_dir)):
+            if dn.startswith('.'):
+                continue
+            prefix = join(envs_dir, dn)
+            if isdir(prefix):
+                prefix = join(envs_dir, dn)
+                yield prefix
+
+    yield config.root_dir
+
+
 if __name__ == '__main__':
     from optparse import OptionParser
 
