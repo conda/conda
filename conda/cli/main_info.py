@@ -72,7 +72,13 @@ def show_pkg_info(name):
 
 
 def execute(args, parser):
-    from conda import config
+    import os
+    from os.path import basename, dirname, isdir, join
+
+    import conda
+    import conda.config as config
+    import conda.misc as misc
+    from conda.cli.main_init import is_initialized
     from conda.api import get_package_versions, app_is_installed
     from conda.install import is_linked
 
@@ -89,7 +95,12 @@ def execute(args, parser):
                     else:
                         print('%-50s  %s' % (path, dist))
             elif arg.endswith('.tar.bz2'):
-                info = is_linked(config.root_dir, arg[:-8])
+                info = None
+                for prefix in misc.list_prefixes():
+                    info = is_linked(prefix, arg[:-8])
+                    if info:
+                        break
+
                 if not info:
                     if args.json:
                         results[arg] = {
@@ -121,13 +132,6 @@ def execute(args, parser):
         if args.json:
             common.stdout_json(results)
         return
-
-    import os
-    from os.path import basename, dirname, isdir, join
-
-    import conda
-    import conda.config as config
-    from conda.cli.main_init import is_initialized
 
     options = 'envs', 'system', 'license'
 
@@ -192,18 +196,10 @@ Current conda install:
             if not args.json:
                 print(fmt % (name, default, prefix))
 
-        for envs_dir in config.envs_dirs:
-            if not isdir(envs_dir):
-                continue
-            for dn in sorted(os.listdir(envs_dir)):
-                if dn.startswith('.'):
-                    continue
-                prefix = join(envs_dir, dn)
-                if isdir(prefix):
-                    prefix = join(envs_dir, dn)
-                    disp_env(prefix)
-                    info_dict['envs'].append(prefix)
-        disp_env(config.root_dir)
+        for prefix in misc.list_prefixes():
+            disp_env(prefix)
+            info_dict['envs'].append(prefix)
+
         print()
 
     if args.system and not args.json:
