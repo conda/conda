@@ -177,10 +177,10 @@ def install(args, parser, command='install'):
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
 
+    specs = []
     if args.file:
-        specs = common.specs_from_url(args.file, json=args.json)
+        specs.extend(common.specs_from_url(args.file, json=args.json))
     elif getattr(args, 'all', False):
-        specs = []
         linked = ci.linked(prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
@@ -189,8 +189,7 @@ def install(args, parser, command='install'):
                 specs.append('%s >=%s,<3' % (name, ver))
             else:
                 specs.append('%s >=%s' % (name, ver))
-    else:
-        specs = common.specs_from_args(args.packages, json=args.json)
+    specs.extend(common.specs_from_args(args.packages, json=args.json))
 
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
