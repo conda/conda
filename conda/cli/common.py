@@ -102,7 +102,8 @@ def add_parser_install(p):
     p.add_argument(
         "--force-pscheck",
         action = "store_true",
-        help = argparse.SUPPRESS,
+        help = ("force removal (when package process is running)"
+                if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         "--file",
