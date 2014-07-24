@@ -176,11 +176,9 @@ In short:
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
         import logging
-        for logger in ('dotupdate', 'stdoutlog', 'stderrlog', 'print',
-                       'conda.config', 'conda.connection', 'conda.fetch',
-                       'conda.install', 'conda.logic', 'conda.plan',
-                       'conda.resolve'):
-            logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
+        for logger in logging.Logger.manager.loggerDict:
+            if logger not in ('fetch', 'progress'):
+                logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
 
     if args.debug:
         logging.disable(logging.NOTSET)
