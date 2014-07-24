@@ -5,20 +5,7 @@ import unittest
 import conda.cli as cli
 from conda.cli.common import arg2spec, spec_from_line
 
-# Use the Python 2 StringIO when available because it works with str
-# (io.StringIO always expects unicode)
-try:
-    from cStringIO import StringIO
-except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
-
-try:
-    StringClass = unicode
-except NameError:
-    StringClass = str
+from conda.compat import StringIO, text_type
 
 
 class TestArg2Spec(unittest.TestCase):
@@ -277,7 +264,7 @@ class TestJson(unittest.TestCase):
 
         res = capture_json_with_argv('conda', 'search', '--canonical', '--json')
         self.assertIsInstance(res, list)
-        self.assertIsInstance(res[0], StringClass)
+        self.assertIsInstance(res[0], text_type)
 
 
 if __name__ == '__main__':
