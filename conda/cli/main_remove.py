@@ -8,8 +8,10 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
+import argparse
 from argparse import RawDescriptionHelpFormatter
 
+from conda import config
 from conda.cli import common
 from conda.console import json_progress_bars
 
@@ -53,7 +55,8 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--force-pscheck",
         action = "store_true",
-        help = "force removal (Windows; when package process is running)"
+        help = ("force removal (when package process is running)"
+                if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         'package_names',
