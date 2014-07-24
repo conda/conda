@@ -851,3 +851,20 @@ def test_plan_menuinst_first():
     assert conda_plan[3] == 'FETCH %s' % menuinst
     assert conda_plan[4] == 'EXTRACT %s' % menuinst
     assert conda_plan[5] == 'LINK %s' % menuinst
+
+    if py_ver == '27':
+        # Old menuinst versions weren't packaged for Python 3
+        menuinst_old = 'menuinst-1.0.0-py27_0.tar.bz2'
+        menuinst_new = 'menuinst-1.0.3-py27_0.tar.bz2'
+
+        actions = {
+            'PREFIX': conda.config.default_prefix,
+            'LINK': [menuinst_new],
+            'FETCH': [menuinst_new],
+            'EXTRACT': [menuinst_new],
+            'UNLINK': [menuinst_old]
+        }
+        assert conda_plan[2] == 'UNLINK %s' % menuinst_old
+        assert conda_plan[3] == 'FETCH %s' % menuinst_new
+        assert conda_plan[4] == 'EXTRACT %s' % menuinst_new
+        assert conda_plan[5] == 'LINK %s' % menuinst_new
