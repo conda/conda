@@ -131,6 +131,7 @@ def list_packages(installed, regex=None, format='human'):
 
     result = []
     for dist in get_packages(installed, regex):
+        res = 0
         if format == 'canonical':
             result.append(dist)
             continue
@@ -138,7 +139,6 @@ def list_packages(installed, regex=None, format='human'):
             result.append('='.join(dist.rsplit('-', 2)))
             continue
 
-        res = 0
         try:
             # Returns None if no meta-file found (e.g. pip install)
             info = install.is_linked(prefix, dist)
