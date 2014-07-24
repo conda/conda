@@ -518,9 +518,9 @@ class Resolve(object):
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
-            stdoutlog.info('Warning:', len(solutions), "possible package resolutions:")
+            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
             for sol in solutions:
-                stdoutlog.info('\t', [w[lit] for lit in sol if 0 < lit <= m])
+                stdoutlog.info('\t' + str([w[lit] for lit in sol if 0 < lit <= m]))
 
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
