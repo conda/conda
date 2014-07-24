@@ -390,6 +390,40 @@ On Linux, we have:
   * - ``LD_RUN_PATH``
     - ``<build prefix>/lib``
 
+When the source is a git repository, the following variables are defined:
+
+.. list-table::
+
+   * - ``GIT_DESCRIBE_TAG``
+     - string denoting the most recent tag from the current commit (based on
+       the output of ``git describe --tags``)
+   * - ``GIT_DESCRIBE_NUMBER``
+     - string denoting the number of commits since the most recent tag
+   * - ``GIT_DESCRIBE_HASH``
+     - the current commit short-hash as displayed from ``git describe --tags``
+   * - ``GIT_BUILD_STR``
+     - a string that joins ``GIT_DESCRIBE_NUMBER`` and ``GIT_DESCRIBE_HASH``
+       by an underscore.
+
+These can be used in conjunction with templated meta.yaml files to set things
+like the build string based on the state of the git repository.
+
+For example, here's a meta.yaml that would work with these values. In this
+example, the recipe is included at the base directory of the git repository,
+so the ``git_url`` is ``../``:
+
+.. code-block:: yaml
+
+     package:
+       name: mypkg
+       version: {{ environ['GIT_DESCRIBE_TAG'] }}
+
+     build:
+       number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+       string: {{ environ.get('GIT_BUILD_STR', '') }}
+
+     source:
+       git_url: ../
 
 All of the above environment variables are also set during the test process,
 except with the test prefix instead of the build prefix everywhere.
