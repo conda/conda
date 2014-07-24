@@ -1,11 +1,8 @@
-import sys
-import json
 import unittest
 
-import conda.cli as cli
 from conda.cli.common import arg2spec, spec_from_line
 
-from conda.compat import StringIO, text_type
+from conda.compat import text_type
 
 
 class TestArg2Spec(unittest.TestCase):
@@ -48,37 +45,6 @@ class TestSpecFromLine(unittest.TestCase):
         self.assertEqual(spec_from_line('foo != 1.0'), 'foo !=1.0')
         self.assertEqual(spec_from_line('foo <1.0'), 'foo <1.0')
         self.assertEqual(spec_from_line('foo >=1.0 , < 2.0'), 'foo >=1.0,<2.0')
-
-
-def capture_with_argv(*argv):
-    sys.argv = argv
-    stdout, stderr = StringIO(), StringIO()
-    oldstdout, oldstderr = sys.stdout, sys.stderr
-    sys.stdout = stdout
-    sys.stderr = stderr
-    try:
-        cli.main()
-    except SystemExit:
-        pass
-    sys.stdout = oldstdout
-    sys.stderr = oldstderr
-
-    stdout.seek(0)
-    stderr.seek(0)
-    return stdout.read(), stderr.read()
-
-
-def capture_json_with_argv(*argv):
-    stdout, stderr = capture_with_argv(*argv)
-    if stderr:
-        # TODO should be exception
-        return stderr
-
-    try:
-        return json.loads(stdout)
-    except ValueError:
-        print(stdout, stderr)
-        raise
 
 
 class TestJson(unittest.TestCase):
