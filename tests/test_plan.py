@@ -864,6 +864,8 @@ def test_plan_menuinst_first():
             'EXTRACT': [menuinst_new],
             'UNLINK': [menuinst_old]
         }
+
+        conda_plan = plan.plan_from_actions(actions)
         assert conda_plan[2] == 'UNLINK %s' % menuinst_old
         assert conda_plan[3] == 'FETCH %s' % menuinst_new
         assert conda_plan[4] == 'EXTRACT %s' % menuinst_new
