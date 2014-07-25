@@ -4,8 +4,12 @@ Helpers for the tests
 import subprocess
 import sys
 import os
+import json
 
 from contextlib import contextmanager
+
+import conda.cli as cli
+from conda.compat import StringIO
 
 def raises(exception, func, string=None):
     try:
@@ -56,7 +60,6 @@ def captured(disallow_stderr=True):
     >>> c.stdout
     'hello world!\n'
     """
-    from conda.compat import StringIO
     import sys
 
     stdout = sys.stdout
@@ -71,3 +74,34 @@ def captured(disallow_stderr=True):
     sys.stderr = stderr
     if disallow_stderr and c.stderr:
         raise Exception("Got stderr output: %s" % c.stderr)
+
+
+def capture_with_argv(*argv):
+    sys.argv = argv
+    stdout, stderr = StringIO(), StringIO()
+    oldstdout, oldstderr = sys.stdout, sys.stderr
+    sys.stdout = stdout
+    sys.stderr = stderr
+    try:
+        cli.main()
+    except SystemExit:
+        pass
+    sys.stdout = oldstdout
+    sys.stderr = oldstderr
+
+    stdout.seek(0)
+    stderr.seek(0)
+    return stdout.read(), stderr.read()
+
+
+def capture_json_with_argv(*argv):
+    stdout, stderr = capture_with_argv(*argv)
+    if stderr:
+        # TODO should be exception
+        return stderr
+
+    try:
+        return json.loads(stdout)
+    except ValueError:
+        print(stdout, stderr)
+        raise
