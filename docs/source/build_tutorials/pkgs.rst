@@ -276,7 +276,7 @@ directives in ''meta.yaml'' file, to ''md5:'' directive:
     source:
       fn: music21-1.8.1.tar.gz#md5=b88f74b8a3940e4bca89d90158432ee0
       url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz#md5=b88f74b8a3940e4bca89d90158432ee0
-      #md5: 
+      #md5:
 
 to:
 
@@ -531,4 +531,3 @@ References
 
 `Using PyPI packages for conda <http://www.linkedin.com/today/post/article/20140107182855-25278008-using-pypi-packages-with-conda>`_
 `music21 inquiry on support list <https://groups.google.com/a/continuum.io/forum/#!searchin/anaconda/conda$20package/anaconda/yu2ZKPI3ixU/VSWejiDoXlQJ>`_
-

@@ -22,6 +22,7 @@ Format files to be compatible with a setup.py build process
 Our initial setup is a collection of .py files in a directory:
 
 .. code-block:: bash
+
     $ cd ~/
     $ git clone https://github.com/tpn/python-libcontinuum
     $ cd python-libcontinuum/
@@ -40,6 +41,7 @@ This is what we want to bundle and distribute as a conda package.
 We'll create a new directory and assemble everything we want:
 
 .. code-block:: bash
+
     $ mkdir continuum-python
     $ cp -r python-libcontinuum/lib continuum-python/
     $ ls -R continuum-python/
@@ -245,4 +247,3 @@ https://binstar.org/mutirri/continuum/0.1.0/download/linux-64/continuum-0.1.0-py
 and it seems to work. BUT it doesn't conform to the steps laid out in the docs.
 The problem is, how do you specify a url in the ''meta.yaml'' for the initial conda
 build **before** the package is uploaded yet?
-
