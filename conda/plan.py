@@ -213,6 +213,21 @@ def plan_from_actions(actions):
     assert PREFIX in actions and actions[PREFIX]
     res = ['# plan',
            'PREFIX %s' % actions[PREFIX]]
+
+    if sys.platform == 'win32':
+        # Always link/unlink menuinst first on windows in case a subsequent
+        # package tries to import it to create/remove a shortcut
+
+        for op in (UNLINK, FETCH, EXTRACT, LINK):
+            if op in actions:
+                pkgs = []
+                for pkg in actions[op]:
+                    if 'menuinst' in pkg:
+                        res.append('%s %s' % (op, pkg))
+                    else:
+                        pkgs.append(pkg)
+                actions[op] = pkgs
+
     for op in op_order:
         if op not in actions:
             continue

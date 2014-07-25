@@ -165,6 +165,13 @@ class Package(object):
         self.build = info['build']
         self.channel = info.get('channel')
         self.norm_version = normalized_version(self.version)
+        self.info = info
+
+    def _asdict(self):
+        result = self.info.copy()
+        result['fn'] = self.fn
+        result['norm_version'] = str(self.norm_version)
+        return result
 
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
 #     def __cmp__(self, other):
@@ -511,9 +518,9 @@ class Resolve(object):
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
-            print('Warning:', len(solutions), "possible package resolutions:")
+            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
             for sol in solutions:
-                print('\t', [w[lit] for lit in sol if 0 < lit <= m])
+                stdoutlog.info('\t' + str([w[lit] for lit in sol if 0 < lit <= m]))
 
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
@@ -524,15 +531,15 @@ class Resolve(object):
         while True:
             for i in combinations(clauses, len(clauses) - 1):
                 if not sat(list(i)):
-                    sys.stdout.write('.');sys.stdout.flush()
+                    dotlog.debug('Finding minimal unsatisfiable subset')
                     clauses = i
                     break
             else:
                 break
+
         import pprint
-        print()
-        print("The following set of clauses is unsatisfiable")
-        pprint.pprint([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
+        return "The following set of clauses is unsatisfiable\n%s" % \
+            pprint.pformat([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well

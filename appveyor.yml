@@ -39,3 +39,4 @@ install:
 
 test_script:
   - C:\Miniconda\Scripts\py.test
+  - IF %PYTHON%==2.7 IF DEFINED PYCOSAT C:\Miniconda\Scripts\conda install -f --force-pscheck menuinst ipython-notebook & echo "Finished menuinst test"

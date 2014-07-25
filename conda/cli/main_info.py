@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 from os.path import isfile
+from collections import defaultdict
 
 from conda.cli import common
 
@@ -63,7 +64,7 @@ def show_pkg_info(name):
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             print('    %-15s %15s  %s' % (
                     pkg.version,
-                    r.index[pkg.fn]['build'],
+                    pkg.build,
                     common.disp_features(r.features(pkg.fn))))
     else:
         print('    not available on channels')
@@ -71,23 +72,66 @@ def show_pkg_info(name):
 
 
 def execute(args, parser):
-    if args.args:
-        for arg in args.args:
-            if isfile(arg):
-                from conda.misc import which_package
-                path = arg
-                for dist in which_package(path):
-                    print('%-50s  %s' % (path, dist))
-            else:
-                show_pkg_info(arg)
-        return
-
     import os
     from os.path import basename, dirname, isdir, join
 
     import conda
     import conda.config as config
+    import conda.misc as misc
     from conda.cli.main_init import is_initialized
+    from conda.api import get_package_versions, app_is_installed
+    from conda.install import is_linked
+
+    if args.args:
+        results = defaultdict(list)
+
+        for arg in args.args:
+            if isfile(arg):
+                from conda.misc import which_package
+                path = arg
+                for dist in which_package(path):
+                    if args.json:
+                        results[arg].append(dist)
+                    else:
+                        print('%-50s  %s' % (path, dist))
+            elif arg.endswith('.tar.bz2'):
+                info = None
+                for prefix in misc.list_prefixes():
+                    info = is_linked(prefix, arg[:-8])
+                    if info:
+                        break
+
+                if not info:
+                    if args.json:
+                        results[arg] = {
+                            'installed': []
+                        }
+                    else:
+                        print("Package %s is not installed" % arg)
+
+                    continue
+
+                info['installed'] = app_is_installed(arg)
+                if args.json:
+                    results[arg] = info
+                else:
+                    print(arg)
+                    print('    %-15s %30s' %
+                               ('installed', bool(info.get('installed'))))
+
+                    for key in ('name', 'version', 'build', 'license',
+                                'platform', 'arch', 'size', 'summary'):
+                        print('    %-15s %30s' % (key, info.get(key)))
+            else:
+                if args.json:
+                    for pkg in get_package_versions(arg):
+                        results[arg].append(pkg._asdict())
+                else:
+                    show_pkg_info(arg)
+
+        if args.json:
+            common.stdout_json(results)
+        return
 
     options = 'envs', 'system', 'license'
 
@@ -152,18 +196,11 @@ Current conda install:
             if not args.json:
                 print(fmt % (name, default, prefix))
 
-        for envs_dir in config.envs_dirs:
-            if not isdir(envs_dir):
-                continue
-            for dn in sorted(os.listdir(envs_dir)):
-                if dn.startswith('.'):
-                    continue
-                prefix = join(envs_dir, dn)
-                if isdir(prefix):
-                    prefix = join(envs_dir, dn)
-                    disp_env(prefix)
-                    info_dict['envs'].append(prefix)
-        disp_env(config.root_dir)
+        for prefix in misc.list_prefixes():
+            disp_env(prefix)
+            if prefix != config.root_dir:
+                info_dict['envs'].append(prefix)
+
         print()
 
     if args.system and not args.json:

@@ -9,7 +9,7 @@ from conda import install
 #from conda.utils import url_path
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
-from conda.resolve import Package
+from conda.resolve import MatchSpec, Package, Resolve
 
 
 def _name_fn(fn):
@@ -67,14 +67,10 @@ def app_get_icon_url(fn):
     """
     return the URL belonging to the icon for application `fn`.
     """
+    from conda.misc import make_icon_url
     index = get_index()
     info = index[fn]
-    base_url = dirname(info['channel'].rstrip('/'))
-    icon_fn = info['icon']
-    #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-    #if isfile(icon_cache_path):
-    #    return url_path(icon_cache_path)
-    return '%s/icons/%s' % (base_url, icon_fn)
+    return make_icon_url(info)
 
 
 def app_info_packages(fn):
@@ -98,17 +94,18 @@ def app_info_packages(fn):
     return res
 
 
-def app_is_installed(fn):
+def app_is_installed(fn, prefixes=None):
     """
     Return the list of prefix directories in which `fn` in installed into,
     which might be an empty list.
     """
-    prefixes = [config.root_dir]
-    for envs_dir in config.envs_dirs:
-        for fn2 in os.listdir(envs_dir):
-            prefix = join(envs_dir, fn2)
-            if isdir(prefix):
-                prefixes.append(prefix)
+    if prefixes is None:
+        prefixes = [config.root_dir]
+        for envs_dir in config.envs_dirs:
+            for fn2 in os.listdir(envs_dir):
+                prefix = join(envs_dir, fn2)
+                if isdir(prefix):
+                    prefixes.append(prefix)
     dist = fn[:-8]
     return [prefix for prefix in prefixes if install.is_linked(prefix, dist)]
 
@@ -163,6 +160,15 @@ def app_uninstall(fn, prefix=config.root_dir):
         raise ValueError("Nothing to do")
 
     plan.execute_actions(actions, index)
+
+
+def get_package_versions(package):
+    index = get_index()
+    r = Resolve(index)
+    if package in r.groups:
+        return r.get_pkgs(MatchSpec(package))
+    else:
+        return []
 
 
 if __name__ == '__main__':

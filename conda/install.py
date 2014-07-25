@@ -59,7 +59,7 @@ if on_win:
 
     # on Windows we cannot update these packages in the root environment
     # because of the file lock problem
-    win_ignore_root = set(['python', 'pycosat', 'menuinst', 'psutil'])
+    win_ignore_root = set(['python', 'pycosat', 'psutil'])
 
     CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
@@ -87,6 +87,7 @@ if on_win:
 
 
 log = logging.getLogger(__name__)
+stdoutlog = logging.getLogger('stdoutlog')
 
 class NullHandler(logging.Handler):
     """ Copied from Python 2.7 to avoid getting
@@ -264,8 +265,8 @@ def mk_menus(prefix, files, remove=False):
         try:
             menuinst.install(join(prefix, f), remove, prefix)
         except:
-            print("menuinst Exception:")
-            traceback.print_exc(file=sys.stdout)
+            stdoutlog.error("menuinst Exception:")
+            stdoutlog.error(traceback.format_exc())
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
@@ -443,7 +444,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
               name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
-        print('Ignored: %s' % dist)
+        log.warn('Ignored: %s' % dist)
         return
 
     source_dir = join(pkgs_dir, dist)
@@ -509,7 +510,7 @@ def unlink(prefix, dist):
               name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
         # linking or unlinking some packages
-        print('Ignored: %s' % dist)
+        log.warn('Ignored: %s' % dist)
         return
 
     with Locked(prefix):

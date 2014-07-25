@@ -12,6 +12,7 @@ from argparse import RawDescriptionHelpFormatter
 from copy import deepcopy
 
 import conda.config as config
+from conda.cli import common
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -75,6 +76,7 @@ def configure_parser(sub_parsers):
         help = descr,
         epilog = example,
         )
+    common.add_parser_json(p)
 
     # TODO: use argparse.FileType
     location = p.add_mutually_exclusive_group()
@@ -156,9 +158,23 @@ write to the given file. Otherwise writes to the user config file
 
 def execute(args, parser):
     try:
+        execute_config(args, parser)
+    except (CouldntParse, NotImplementedError) as e:
+        if args.json:
+            common.exception_and_exit(e, json=True)
+        else:
+            raise
+
+
+def execute_config(args, parser):
+    try:
         import yaml
     except ImportError:
-        sys.exit("Error: pyyaml is required to modify configuration")
+        common.error_and_exit("pyyaml is required to modify configuration",
+                              json=args.json, error_type="ImportError")
+
+    json_warnings = []
+    json_get = {}
 
     if args.system:
         rc_path = config.sys_rc_path
@@ -193,10 +209,19 @@ channels:
         for key in args.get:
             if key not in config.rc_list_keys + config.rc_bool_keys:
                 if key not in config.rc_other:
-                    print("%s is not a valid key" % key, file=sys.stderr)
+                    if not args.json:
+                        message = "%s is not a valid key" % key
+                        print(message, file=sys.stderr)
+                    else:
+                        json_warnings.append(message)
                 continue
             if key not in rc_config:
                 continue
+
+            if args.json:
+                json_get[key] = rc_config[key]
+                continue
+
             if isinstance(rc_config[key], bool):
                 print("--set", key, rc_config[key])
             else:
@@ -219,33 +244,45 @@ channels:
 
     # Add
     for key, item in args.add:
-        if item in rc_config.get(key, []):
-            # Right now, all list keys should not contain duplicates
-            print("Skipping %s: %s, item already exists" % (key, item), file=sys.stderr)
-            continue
+        try:
+            if item in rc_config.get(key, []):
+                # Right now, all list keys should not contain duplicates
+                message = "Skipping %s: %s, item already exists" % (key, item)
+                if not args.json:
+                    print(message, file=sys.stderr)
+                else:
+                    json_warnings.append(message)
+                continue
+        except TypeError:
+            common.error_and_exit("key must be one of %s, not %s" %
+                                  (config.rc_list_keys, key), json=args.json,
+                                  error_type="ValueError")
         new_rc_config.setdefault(key, []).insert(0, item)
 
     # Set
     for key, item in args.set:
         yamlitem = yaml.load(item)
         if not isinstance(yamlitem, bool):
-            sys.exit("Error: %r is not a boolean" % item)
+            common.error_and_exit("%r is not a boolean" % item, json=args.json,
+                                  error_type="TypeError")
 
         new_rc_config[key] = yamlitem
 
     # Remove
     for key, item in args.remove:
         if key not in new_rc_config:
-            sys.exit("Error: key %r is not in the config file" % key)
+            common.error_and_exit("key %r is not in the config file" % key, json=args.json,
+                                  error_type="KeyError")
         if item not in new_rc_config[key]:
-            sys.exit("Error: %r is not in the %r key of the config file" %
-                     (item, key))
+            common.error_and_exit("%r is not in the %r key of the config file" %
+                                  (item, key), json=args.json, error_type="KeyError")
         new_rc_config[key] = [i for i in new_rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in new_rc_config:
-            sys.exit("Error: key %r is not in the config file" % key)
+            common.error_and_exit("key %r is not in the config file" % key, json=args.json,
+                                  error_type="KeyError")
         del new_rc_config[key]
 
     if args.force:
@@ -253,6 +290,13 @@ channels:
         # config.rc_keys
         with open(rc_path, 'w') as rc:
             rc.write(yaml.dump(new_rc_config, default_flow_style=False))
+
+        if args.json:
+            common.stdout_json_success(
+                rc_path=rc_path,
+                warnings=json_warnings,
+                get=json_get
+            )
         return
 
     # Now, try to parse the condarc file.
@@ -269,8 +313,9 @@ channels:
 
     for key, item in args.add:
         if key not in config.rc_list_keys:
-            sys.exit("Error: key must be one of %s, not %s" %
-                     (config.rc_list_keys, key))
+            common.error_and_exit("key must be one of %s, not %s" %
+                                  (config.rc_list_keys, key), json=args.json,
+                                  error_type="ValueError")
 
         if item in rc_config.get(key, []):
             # Skip duplicates. See above
@@ -299,8 +344,9 @@ channels:
 
     for key, item in args.set:
         if key not in config.rc_bool_keys:
-            sys.exit("Error key must be one of %s, not %s" %
-                     (config.rc_bool_keys, key))
+            common.error_and_exit("Error key must be one of %s, not %s" %
+                                  (config.rc_bool_keys, key), json=args.json,
+                                  error_type="ValueError")
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = setkeyregexes[key].match(line)
@@ -340,3 +386,10 @@ channels:
         with open(rc_path, 'w') as rc:
             rc.write('\n'.join(new_rc_text).strip('\n'))
             rc.write('\n')
+
+    if args.json:
+        common.stdout_json_success(
+            rc_path=rc_path,
+            warnings=json_warnings,
+            get=json_get
+        )

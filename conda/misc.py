@@ -132,14 +132,16 @@ def touch_nonadmin(prefix):
             fo.write('')
 
 
-def clone_env(prefix1, prefix2, verbose=True):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False):
     """
     clone existing prefix1 into new prefix2
     """
     untracked_files = untracked(prefix1)
     dists = discard_conda(install.linked(prefix1))
-    print('Packages: %d' % len(dists))
-    print('Files: %d' % len(untracked_files))
+
+    if verbose:
+        print('Packages: %d' % len(dists))
+        print('Files: %d' % len(untracked_files))
 
     for f in untracked_files:
         src = join(prefix1, f)
@@ -168,7 +170,9 @@ def clone_env(prefix1, prefix2, verbose=True):
         shutil.copystat(src, dst)
 
     actions = ensure_linked_actions(dists, prefix2)
-    execute_actions(actions, index=get_index(), verbose=verbose)
+    execute_actions(actions, index=get_index(), verbose=not quiet)
+
+    return actions, untracked_files
 
 
 def install_local_packages(prefix, paths, verbose=False):
@@ -226,6 +230,31 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     if additional_args:
         args.extend(additional_args)
     return subprocess.Popen(args, cwd=cwd , env=env)
+
+
+def make_icon_url(info):
+    base_url = dirname(info['channel'].rstrip('/'))
+    icon_fn = info['icon']
+    #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+    #if isfile(icon_cache_path):
+    #    return url_path(icon_cache_path)
+    return '%s/icons/%s' % (base_url, icon_fn)
+
+
+def list_prefixes():
+    # Lists all the prefixes that conda knows about.
+    for envs_dir in config.envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        for dn in sorted(os.listdir(envs_dir)):
+            if dn.startswith('.'):
+                continue
+            prefix = join(envs_dir, dn)
+            if isdir(prefix):
+                prefix = join(envs_dir, dn)
+                yield prefix
+
+    yield config.root_dir
 
 
 if __name__ == '__main__':
