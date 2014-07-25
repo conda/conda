@@ -229,7 +229,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
-    return subprocess.Popen(args, cwd=cwd , env=env)
+    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
 
 
 def make_icon_url(info):
