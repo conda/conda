@@ -85,9 +85,6 @@ class FalseClass(object):
 true = TrueClass()
 false = FalseClass()
 
-# TODO: Take advantage of polarity, meaning that we can add only one direction
-# of the implication, expr -> x or expr <- x, depending on how expr appears.
-
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
@@ -126,11 +123,6 @@ class Clauses(object):
             return self.And(c, t, polarity=polarity)
         if f == true or f == -c:
             return self.Or(t, -c)
-
-        # TODO: At this point, minisatp has
-        # if t < f:
-        #     swap(t, f)
-        #     c = -c
 
         if t < f:
             t, f = f, t
