@@ -229,16 +229,18 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
-    return subprocess.Popen(args, cwd=cwd , env=env)
+    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
 
 
 def make_icon_url(info):
-    base_url = dirname(info['channel'].rstrip('/'))
-    icon_fn = info['icon']
-    #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-    #if isfile(icon_cache_path):
-    #    return url_path(icon_cache_path)
-    return '%s/icons/%s' % (base_url, icon_fn)
+    if 'channel' in info and 'icon' in info:
+        base_url = dirname(info['channel'].rstrip('/'))
+        icon_fn = info['icon']
+        #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+        #if isfile(icon_cache_path):
+        #    return url_path(icon_cache_path)
+        return '%s/icons/%s' % (base_url, icon_fn)
+    return ''
 
 
 def list_prefixes():
