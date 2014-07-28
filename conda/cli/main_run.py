@@ -87,15 +87,12 @@ def execute(args, parser):
 def execute_command(cmd, prefix, additional_args, json=False):
     from conda.misc import execute_in_environment
     try:
-        if json:
-            # Don't try to spawn a process, especially one that may be
-            # interactive, with --json because the child process may write
-            # to stdout, messing up the JSON output.
-            raise OSError
-
         process = execute_in_environment(
-            cmd, prefix=prefix, additional_args=additional_args)
-        process.wait()
+            cmd, prefix=prefix, additional_args=additional_args, inherit=not json)
+        if not json:
+            process.wait()
+        else:
+            common.stdout_json(dict(cmd=cmd, pid=process.pid))
     except OSError:
         error_message = "App {} not installed.".format(cmd)
         common.error_and_exit(error_message, json=json,
