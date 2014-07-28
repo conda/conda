@@ -55,6 +55,8 @@ def initialize(prefix=config.root_dir):
                               version=conda.__version__.split('-')[0]))
     write_meta(meta_dir, dict(name='python', version=sys.version[:5],
         build_number=0, build="0"))
+    with open(join(meta_dir, "pinned"), 'w') as f:
+        f.write("python %s 0" % sys.version[:5])
 
 
 def execute(args, parser):
