@@ -231,7 +231,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     args = [a.replace('${PREFIX}', prefix) for a in args]
     arg0 = find_executable(args[0], env['PATH'])
     if arg0 is None:
-        raise FileNotFoundError('Executable not found: %s' % args[0])
+        raise Exception('Executable not found: %s' % args[0])
     args[0] = arg0
 
     cwd = abspath(expanduser('~'))

@@ -92,9 +92,9 @@ def execute_command(cmd, prefix, additional_args, json=False):
 
         if json:
             common.stdout_json(dict(command=cmd, pid=subprocess.pid))
-
-        subprocess.wait()
-    except FileNotFoundError:
+        else:
+            subprocess.wait()
+    except OSError:
         error_message = "App {} not installed.".format(cmd)
         common.error_and_exit(error_message, json=json,
                               error_type="AppNotInstalled")
