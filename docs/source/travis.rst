@@ -94,3 +94,11 @@ with
 
    - conda build your-conda-recipe
    - conda install your-package --use-local
+
+AppVeyor
+========
+
+Another option is `AppVeyor <http://www.appveyor.com/>`_, a continuous build
+service for Windows built on Azure.  An example project for building conda
+packages on AppVeyor is at
+https://github.com/rmcgibbo/python-appveyor-conda-example.
