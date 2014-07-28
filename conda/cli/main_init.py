@@ -53,7 +53,8 @@ def initialize(prefix=config.root_dir):
             fo.write('zlib sqlite readline tk openssl system\n')
     write_meta(meta_dir, dict(name='conda',
                               version=conda.__version__.split('-')[0]))
-    write_meta(meta_dir, dict(name='python', version=sys.version[:5]))
+    write_meta(meta_dir, dict(name='python', version=sys.version[:5],
+        build_number=0, build="0"))
 
 
 def execute(args, parser):
