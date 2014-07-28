@@ -66,19 +66,35 @@ def execute(args, parser):
                 installed = [conda.resolve.Package(pkg + '.tar.bz2',
                                                    conda.install.is_linked(prefix, pkg))]
 
-        if not installed:
-            error_message = "App {} not installed.".format(args.package)
-            common.error_and_exit(error_message, json=args.json,
-                                  error_type="AppNotInstalled")
+        if installed:
+            package = max(installed)
+            fn = package.fn
 
-        package = max(installed)
-        fn = package.fn
-
-    try:
-        subprocess = launch(fn, prefix=prefix, additional_args=args.arguments)
-        if args.json:
-            common.stdout_json(dict(fn=fn, pid=subprocess.pid))
+            try:
+                subprocess = launch(fn, prefix=prefix, additional_args=args.arguments)
+                if args.json:
+                    common.stdout_json(dict(fn=fn, pid=subprocess.pid))
+                else:
+                    print("Started app. Some apps may take a while to finish loading.")
+            except TypeError:
+                execute_command(args.package, prefix, args.arguments, args.json)
+            except Exception as e:
+                common.exception_and_exit(e, json=args.json)
         else:
-            print("Started app. Some apps may take a while to finish loading.")
-    except Exception as e:
-        common.exception_and_exit(e, json=args.json)
+            # Try interpreting it as a command
+            execute_command(args.package, prefix, args.arguments, args.json)
+
+def execute_command(cmd, prefix, additional_args, json=False):
+    from conda.misc import execute_in_environment
+    try:
+        subprocess = execute_in_environment(
+            cmd, prefix=prefix, additional_args=additional_args)
+
+        if json:
+            common.stdout_json(dict(command=cmd, pid=subprocess.pid))
+
+        subprocess.wait()
+    except FileNotFoundError:
+        error_message = "App {} not installed.".format(cmd)
+        common.error_and_exit(error_message, json=json,
+                              error_type="AppNotInstalled")
