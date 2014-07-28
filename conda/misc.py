@@ -199,21 +199,29 @@ def install_local_packages(prefix, paths, verbose=False):
     execute_actions(actions, verbose=verbose)
 
 
+def environment_for_conda_environment(prefix=config.root_dir):
+    # prepend the bin directory to the path
+    fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
+    binpath = fmt % abspath(prefix)
+    path = r'%s;%s' if sys.platform == 'win32' else '%s:%s'
+    path = path % (binpath, os.getenv('PATH'))
+    env = {'PATH': binpath}
+    # copy existing environment variables, but not anything with PATH in it
+    for k, v in iteritems(os.environ):
+        if 'PATH' not in k:
+            env[k] = v
+    return binpath, env
+
+
 def launch(fn, prefix=config.root_dir, additional_args=None):
     info = install.is_linked(prefix, fn[:-8])
     if info is None:
         return None
 
     if not info.get('type') == 'app':
-        raise Exception('Not an application: %s' % fn)
+        raise TypeError('Not an application: %s' % fn)
 
-    # prepend the bin directory to the path
-    fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
-    env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
-    # copy existing environment variables, but not anything with PATH in it
-    for k, v in iteritems(os.environ):
-        if 'PATH' not in k:
-            env[k] = v
+    binpath, env = environment_for_conda_environment(prefix)
     # allow updating environment variables from metadata
     if 'app_env' in info:
         env.update(info['app_env'])
@@ -223,12 +231,28 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     args = [a.replace('${PREFIX}', prefix) for a in args]
     arg0 = find_executable(args[0], env['PATH'])
     if arg0 is None:
-        raise Exception('Executable not found: %s' % args[0])
+        raise FileNotFoundError('Executable not found: %s' % args[0])
     args[0] = arg0
 
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
+    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
+
+
+def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None):
+    """
+    Runs ``cmd`` in the specified environment.
+    """
+    binpath, env = environment_for_conda_environment(prefix)
+
+    cmd = join(binpath, cmd)
+
+    args = [cmd]
+    cwd = abspath(expanduser('~'))
+    if additional_args:
+        args.extend(additional_args)
+
     return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
 
 
