@@ -240,7 +240,8 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
 
 
-def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None):
+def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
+                           inherit=True):
     """
     Runs ``cmd`` in the specified environment.
 
@@ -257,7 +258,13 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None):
     if additional_args:
         args.extend(additional_args)
 
-    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
+    if inherit:
+        stdin, stdout, stderr = None, None, None
+    else:
+        stdin, stdout, stderr = subprocess.PIPE, subprocess.PIPE, subprocess.PIPE
+
+    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False,
+                            stdin=stdin, stdout=stdout, stderr=stderr)
 
 
 def make_icon_url(info):
