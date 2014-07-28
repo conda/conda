@@ -243,6 +243,10 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
 def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None):
     """
     Runs ``cmd`` in the specified environment.
+
+    ``interactive`` specifies whether the caller is a human or another
+    process (in the latter case, for JSON output, we don't want to trample
+    this process's stdout).
     """
     binpath, env = environment_for_conda_environment(prefix)
 
