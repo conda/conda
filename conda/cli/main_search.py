@@ -116,14 +116,14 @@ def execute_search(args, parser):
 
 
     prefix = common.get_prefix(args)
-    if not args.canonical:
-        import conda.config
-        import conda.install
 
-        linked = conda.install.linked(prefix)
-        extracted = set()
-        for pkgs_dir in conda.config.pkgs_dirs:
-            extracted.update(conda.install.extracted(pkgs_dir))
+    import conda.config
+    import conda.install
+
+    linked = conda.install.linked(prefix)
+    extracted = set()
+    for pkgs_dir in conda.config.pkgs_dirs:
+        extracted.update(conda.install.extracted(pkgs_dir))
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
