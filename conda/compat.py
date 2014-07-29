@@ -28,6 +28,7 @@ if PY3:
     import configparser
     from io import StringIO
     import urllib.parse as urlparse
+    from urllib.parse import quote as urllib_quote
     from itertools import zip_longest
     from math import log2, ceil
     from shlex import quote
@@ -36,6 +37,7 @@ else:
     import ConfigParser as configparser
     from cStringIO import StringIO
     import urlparse
+    from urllib import quote as urllib_quote
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
