@@ -21,7 +21,7 @@ import getpass
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url
-from conda.compat import itervalues, get_http_value, input
+from conda.compat import itervalues, get_http_value, input, urllib_quote
 from conda.lock import Locked
 
 import requests
@@ -141,6 +141,7 @@ def handle_proxy_407(url, session):
 
 def add_username_and_pass_to_url(url, username, passwd):
     urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
+    passwd = urllib_quote(passwd, '')
     urlparts[1] = username + ':' + passwd
     return unparse_url(urlparts)
 
