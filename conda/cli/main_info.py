@@ -135,6 +135,14 @@ def execute(args, parser):
 
     options = 'envs', 'system', 'license'
 
+    try:
+        import requests
+        requests_version = requests.__version__
+    except ImportError:
+        requests_version = "could not import"
+    except Exception as e:
+        requests_version = "Error %s" % e
+
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
                      root_prefix=config.root_dir,
@@ -147,6 +155,7 @@ def execute(args, parser):
                      is_foreign=bool(config.foreign),
                      envs=[],
                      python_version='.'.join(map(str, sys.version_info)),
+                     requests_version=requests_version,
     )
 
     if args.all or args.json:
@@ -168,6 +177,7 @@ Current conda install:
              platform : %(platform)s
         conda version : %(conda_version)s
        python version : %(python_version)s
+     requests version : %(requests_version)s
      root environment : %(root_prefix)s  (%(_rtwro)s)
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
