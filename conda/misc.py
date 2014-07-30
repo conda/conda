@@ -253,6 +253,10 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
 
     cmd = join(binpath, cmd)
 
+    if sys.platform == 'win32' and cmd == 'python':
+        # python is located one directory up on Windows
+        cmd = join(binpath, '..', cmd)
+
     args = [cmd]
     cwd = abspath(expanduser('~'))
     if additional_args:
