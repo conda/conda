@@ -251,11 +251,11 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     """
     binpath, env = environment_for_conda_environment(prefix)
 
-    cmd = join(binpath, cmd)
-
     if sys.platform == 'win32' and cmd == 'python':
         # python is located one directory up on Windows
         cmd = join(binpath, '..', cmd)
+    else:
+        cmd = join(binpath, cmd)
 
     args = [cmd]
     cwd = abspath(expanduser('~'))
