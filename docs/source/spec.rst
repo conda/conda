@@ -159,3 +159,63 @@ In the following example, a repository provides the conda package
 
 Note that both conda packages have identical filenames, and are only
 distinguished by the repository sub-directory they are contained in.
+
+.. _build-version-spec:
+
+Package Match Specifications
+----------------------------
+
+Package dependencies are specified using a match specification.  A match
+specification a space separated string of 1, 2 or 3 parts:
+
+* The first part is always the (exact) name of the package.
+* The second part refers to the version, and may contain special
+  characters.
+
+  ``|`` means "or", e.g. ``1.0|1.`` matches either version 1.0 or 1.2
+
+  ``*`` matches zero or more characters in the version string. In terms of
+  regular expressions, it is the same as ``r'.*'``.
+
+  For example, ``1.0|1.4*``  matches 1.0, 1.4, 1.4.1b2, but not 1.2
+
+  ``<``, ``>``, ``<=``, ``>=``, ``==`` and ``!=`` are relational operators on
+  versions, which are compared using [PEP
+  386](http://legacy.python.org/dev/peps/pep-0386/).  For example, ``<=1.0``
+  matches ``0.9``, ``0.9.1``, and ``1.0``, but not ``1.0.1``. ``==`` and
+  ``!=`` are exact equality,
+
+  ``,`` means "and", e.g., ``>=2,<3`` matches all packages in the "2" series,
+  e.g., ``2.0``, ``2.1``, and ``2.9`` all match, but ``3.0`` and ``1.0`` do
+  not.
+
+  ``,`` has higher precedence than ``|``, i.e., ``>=1,<2|>3`` means "(greater
+  than or equal to 1 and less than 2) or (greater than 3)," which matches
+  ``1``, ``1.3``, and ``3.0``, but not ``2.2``.
+
+  Conda parses the version by splitting it into parts separated by ``|``. If
+  the part begins with ``<``, ``>``, ``=``, or ``!``, it is parsed as a
+  relational operator. Otherwise, it is parsed as a version, possibly
+  containing the ``*`` operator.
+
+* The third part is always the (exact) build string.  When there are 3
+  parts, the second part has to be the exact version.
+
+Remember that the version specification cannot contain spaces, as spaces are
+used to delimit the package, version, and build string in the whole match
+specification. ``python >= 2.7`` is an invalid match specification.
+
+Examples
+~~~~~~~~
+
+The following are all valid match specifications for numpy-1.8.1-py27_0:
+
+- ``numpy``
+- ``numpy 1.8*``
+- ``numpy 1.8.1``
+- ``numpy >=1.8``
+- ``numpy ==1.8.1``
+- ``numpy 1.8|1.8*``
+- ``numpy >=1.8,<2``
+- ``numpy >=1.8,<2|1.9``
+- ``numpy 1.8.1 py27_0``
