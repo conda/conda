@@ -258,7 +258,6 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
         cmd = join(binpath, cmd)
 
     args = [cmd]
-    cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
 
@@ -267,7 +266,7 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     else:
         stdin, stdout, stderr = subprocess.PIPE, subprocess.PIPE, subprocess.PIPE
 
-    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False,
+    return subprocess.Popen(args, env=env, close_fds=False,
                             stdin=stdin, stdout=stdout, stderr=stderr)
 
 
