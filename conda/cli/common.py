@@ -413,7 +413,7 @@ def get_index_trap(*args, **kwargs):
         return get_index(*args, **kwargs)
     except BaseException as e:
         if json:
-            common.exception_and_exit(e, json=json)
+            exception_and_exit(e, json=json)
         else:
             raise
 
