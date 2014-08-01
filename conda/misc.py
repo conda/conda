@@ -213,7 +213,7 @@ def environment_for_conda_environment(prefix=config.root_dir):
     return binpath, env
 
 
-def launch(fn, prefix=config.root_dir, additional_args=None):
+def launch(fn, prefix=config.root_dir, additional_args=None, background=False):
     info = install.is_linked(prefix, fn[:-8])
     if info is None:
         return None
@@ -237,17 +237,19 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
-    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
+    if sys.platform == 'win32' and background:
+        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
 
 
 def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
                            inherit=True):
-    """
-    Runs ``cmd`` in the specified environment.
+    """Runs ``cmd`` in the specified environment.
 
-    ``interactive`` specifies whether the caller is a human or another
-    process (in the latter case, for JSON output, we don't want to trample
-    this process's stdout).
+    ``inherit`` specifies whether the child inherits stdio handles (for JSON
+    output, we don't want to trample this process's stdout).
     """
     binpath, env = environment_for_conda_environment(prefix)
 
@@ -266,8 +268,13 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     else:
         stdin, stdout, stderr = subprocess.PIPE, subprocess.PIPE, subprocess.PIPE
 
-    return subprocess.Popen(args, env=env, close_fds=False,
-                            stdin=stdin, stdout=stdout, stderr=stderr)
+    if sys.platform == 'win32' and not inherit:
+        return subprocess.Popen(args, env=env, close_fds=False,
+                                stdin=stdin, stdout=stdout, stderr=stderr,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        return subprocess.Popen(args, env=env, close_fds=False,
+                                stdin=stdin, stdout=stdout, stderr=stderr)
 
 
 def make_icon_url(info):

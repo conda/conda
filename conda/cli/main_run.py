@@ -77,7 +77,9 @@ def execute(args, parser):
             fn = package.fn
 
             try:
-                subprocess = launch(fn, prefix=prefix, additional_args=args.arguments)
+                subprocess = launch(fn, prefix=prefix,
+                                    additional_args=args.arguments,
+                                    background=args.json)
                 if args.json:
                     common.stdout_json(dict(fn=fn, pid=subprocess.pid))
                 elif not args.quiet:
