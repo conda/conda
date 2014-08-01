@@ -5,10 +5,16 @@ import re
 import sys
 import time
 from os.path import isdir, isfile, join
+import warnings
 
 from conda import install
 
 
+class CondaHistoryException(Exception):
+    pass
+
+class CondaHistoryWarning(Warning):
+    pass
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
@@ -66,7 +72,12 @@ class History(object):
         update the history file (creating a new one if necessary)
         """
         self.init_log_file()
-        last = self.get_state()
+        try:
+            last = self.get_state()
+        except CondaHistoryException as e:
+            warnings.warn("Error in %s: %s" % (self.path, e),
+                CondaHistoryWarning)
+            return
         curr = set(install.linked(self.prefix))
         if last == curr:
             return
@@ -109,7 +120,7 @@ class History(object):
                     elif s.startswith('+'):
                         cur.add(s[1:])
                     else:
-                        raise Exception('Did not expect: %s' % s)
+                        raise CondaHistoryException('Did not expect: %s' % s)
             res.append((dt, cur.copy()))
         return res
 
