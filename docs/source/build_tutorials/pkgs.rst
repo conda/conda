@@ -115,63 +115,18 @@ Elementary conda Package Building
 Using conda skeleton to build from a PyPI package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-First, confirm that the package is hosted by `PyPI <https://pypi.python.org/>`_. Here I
-use the ``music21`` package, motivated by a `recent
-request <https://groups.google.com/a/continuum.io/forum/#!searchin/anaconda/conda$20package/anaconda/yu2ZKPI3ixU/VSWejiDoXlQJ>`_
-on the `Anaconda support
-list <https://groups.google.com/a/continuum.io/forum/#!forum/anaconda>`_. It
-turns out this has already been packaged for conda, but it serves its purpose
-as an example here:
+It is easy to build a skeleton recipe for any Python package that is hosted on
+`PyPI
+<https://pypi.python.org/>`_.
 
-.. code-block:: bash
-    $ conda create -n tstenv pip
-    $ conda info -e
-
-The above command creates virtual environment with pip tool installed inside it.
-Now I need to switch to just prepared environment by typing:
-
-.. code-block:: bash
-    $ source activate tstenv
-    $ which pip
-
-After that I can check ``music21`` package from `PyPI <https://pypi.python.org/>`_:
-
-.. code-block:: bash
-    $ pip install --allow-all-external music21
-
-In this particular case where ``music21`` sources are placed on a remote
-host (not on `PyPI <https://pypi.python.org/>`_ itself), the
-``--allow-all-external`` option is mandatory.  Normally most packages sources are
-directly available on `PyPI <https://pypi.python.org/>`_, so mentioned option
-maybe omitted.
-
-To verify if a package was properly installed, please just type:
-
-.. code-block:: bash
-    $ python -c 'import music21; print "Successfully imported music21"'
-
-Don't bother about warning which says:
-
-.. code-block:: bash
-    Certain music21 functions might need these optional packages: matplotlib, numpy, ...
-
-At this point it doesn't matter. We just wanted to check if ``music21`` can be
-appropriately imported, and those packages are optional. If this goes well,
-you can remove our virtual environment:
-
-.. code-block:: bash
-    $ source deactivate
-    $ conda remove -n tstenv --all
-    $ conda info -e
 
 and generate a new conda recipe for ``music21`` package, by using `PyPI <https://pypi.python.org/>`_ metadata:
 
 .. code-block:: bash
     $ cd ~/
-    $ conda skeleton pypi music21 --no-download
+    $ conda skeleton pypi music21
 
-The ``--no-download`` flag simply prevents the tarball from being downloaded again,
-to save a couple minutes, since we just did that. You should verify the
+You should verify the
 existence of the ``meta.yaml``, ``build.sh``, and ``bld.bat`` files in a newly created
 directory called ``music21``. Sometimes (like in this case - due to external place
 of sources) it is necessary to cut value of md5 sum from ``fn:`` and ``url:``
