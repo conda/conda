@@ -243,7 +243,7 @@ Getting info about environments
 
         $ conda list -n myenv
 
-   Id ``myenv`` is activated:
+   If ``myenv`` is activated:
 
      .. code-block:: bash
 
