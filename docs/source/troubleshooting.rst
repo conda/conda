@@ -2,8 +2,8 @@
  Troubleshooting
 =================
 
-Issue: Conda claims that a package is installed, but it appears not to be
-=========================================================================
+Issue: Conda claims that a package is installed, but it appears not to be.
+==========================================================================
 
 Sometimes conda will claim that a package is already installed, but it will
 not appear to be, e.g., a Python package that gives ImportError.
@@ -50,8 +50,8 @@ site-specific packages can be found is in `PEP 370
 Python may try importing packages from this directory, which can cause
 issues. The recommended fix is to remove the site-specific directory.
 
-For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on Mac OS X
--------------------------------------------------------------------------------------------------------------------
+For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on Mac OS X.
+--------------------------------------------------------------------------------------------------------------------
 
 These act similarly to ``PYTHONPATH`` for Python. If they are set, they can
 cause libraries to be loaded from locations other than the Conda
