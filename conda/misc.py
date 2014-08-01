@@ -208,7 +208,7 @@ def environment_for_conda_environment(prefix=config.root_dir):
     env = {'PATH': path}
     # copy existing environment variables, but not anything with PATH in it
     for k, v in iteritems(os.environ):
-        if 'PATH' not in k:
+        if k != 'PATH':
             env[k] = v
     return binpath, env
 
