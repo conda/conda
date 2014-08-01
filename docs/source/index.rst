@@ -74,6 +74,7 @@ User Guide
    intro
    examples
    faq
+   troubleshooting
    config
    build
    build-tutorial-pkgs
