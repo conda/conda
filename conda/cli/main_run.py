@@ -96,7 +96,7 @@ def execute_command(cmd, prefix, additional_args, json=False):
         process = execute_in_environment(
             cmd, prefix=prefix, additional_args=additional_args, inherit=not json)
         if not json:
-            process.wait()
+            sys.exit(process.wait())
         else:
             common.stdout_json(dict(cmd=cmd, pid=process.pid))
     except OSError:
