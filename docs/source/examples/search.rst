@@ -33,8 +33,8 @@ conda's list of packages.
 
 Notice the asterisk in the above example; this indicates the currently installed version of the package.
 
-In this next example, we will refine our search a bit.  With ``^s.*py$``, we want to find any packages
-that begin with ``s`` followed by any number of characters, and ending with ``py``.
+In this next example, we will refine our search a bit.  With ``^l.*py$``, we want to find any packages
+that begin with ``l`` followed by any number of characters, and ending with ``py``.
 
 .. code-block:: bash
 
