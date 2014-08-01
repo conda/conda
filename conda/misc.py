@@ -212,7 +212,7 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
     # copy existing environment variables, but not anything with PATH in it
     for k, v in iteritems(os.environ):
-        if 'PATH' not in k:
+        if k != 'PATH':
             env[k] = v
     # allow updating environment variables from metadata
     if 'app_env' in info:
