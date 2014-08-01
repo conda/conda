@@ -199,21 +199,29 @@ def install_local_packages(prefix, paths, verbose=False):
     execute_actions(actions, verbose=verbose)
 
 
-def launch(fn, prefix=config.root_dir, additional_args=None):
+def environment_for_conda_environment(prefix=config.root_dir):
+    # prepend the bin directory to the path
+    fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
+    binpath = fmt % abspath(prefix)
+    path = r'%s;%s' if sys.platform == 'win32' else '%s:%s'
+    path = path % (binpath, os.getenv('PATH'))
+    env = {'PATH': path}
+    # copy existing environment variables, but not anything with PATH in it
+    for k, v in iteritems(os.environ):
+        if k != 'PATH':
+            env[k] = v
+    return binpath, env
+
+
+def launch(fn, prefix=config.root_dir, additional_args=None, background=False):
     info = install.is_linked(prefix, fn[:-8])
     if info is None:
         return None
 
     if not info.get('type') == 'app':
-        raise Exception('Not an application: %s' % fn)
+        raise TypeError('Not an application: %s' % fn)
 
-    # prepend the bin directory to the path
-    fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
-    env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
-    # copy existing environment variables, but not anything with PATH in it
-    for k, v in iteritems(os.environ):
-        if 'PATH' not in k:
-            env[k] = v
+    binpath, env = environment_for_conda_environment(prefix)
     # allow updating environment variables from metadata
     if 'app_env' in info:
         env.update(info['app_env'])
@@ -229,7 +237,44 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
-    return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
+    if sys.platform == 'win32' and background:
+        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
+
+
+def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
+                           inherit=True):
+    """Runs ``cmd`` in the specified environment.
+
+    ``inherit`` specifies whether the child inherits stdio handles (for JSON
+    output, we don't want to trample this process's stdout).
+    """
+    binpath, env = environment_for_conda_environment(prefix)
+
+    if sys.platform == 'win32' and cmd == 'python':
+        # python is located one directory up on Windows
+        cmd = join(binpath, '..', cmd)
+    else:
+        cmd = join(binpath, cmd)
+
+    args = [cmd]
+    if additional_args:
+        args.extend(additional_args)
+
+    if inherit:
+        stdin, stdout, stderr = None, None, None
+    else:
+        stdin, stdout, stderr = subprocess.PIPE, subprocess.PIPE, subprocess.PIPE
+
+    if sys.platform == 'win32' and not inherit:
+        return subprocess.Popen(args, env=env, close_fds=False,
+                                stdin=stdin, stdout=stdout, stderr=stderr,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        return subprocess.Popen(args, env=env, close_fds=False,
+                                stdin=stdin, stdout=stdout, stderr=stderr)
 
 
 def make_icon_url(info):
