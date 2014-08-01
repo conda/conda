@@ -403,6 +403,9 @@ so the ``git_url`` is ``../``:
 
      build:
        number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+
+       # Note that this will override the default build string with the Python
+       # and NumPy versions
        string: {{ environ.get('GIT_BUILD_STR', '') }}
 
      source:
