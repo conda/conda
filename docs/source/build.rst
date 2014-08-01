@@ -523,7 +523,7 @@ Conda build does the following things automatically to make packages relocatable
   here should have the placeholder prefix
   (``/opt/anaconda1anaconda2anaconda3``).
 
-- You can manually binary files to ``has_prefix`` by listing them in
+- You can manually add binary files to ``has_prefix`` by listing them in
   ``build/binary_has_prefix_files`` in the meta.yaml (see above).  The files
   listed here will have their build prefix replaced with the install prefix at
   install time.  This works by padding the build prefix with null terminators,
