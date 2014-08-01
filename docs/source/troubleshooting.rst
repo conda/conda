@@ -2,8 +2,8 @@
  Troubleshooting
 =================
 
-Conda claims that a package is installed, but it appears not to be
-==================================================================
+Issue: Conda claims that a package is installed, but it appears not to be
+=========================================================================
 
 Sometimes conda will claim that a package is already installed, but it will
 not appear to be, e.g., a Python package that gives ImportError.
