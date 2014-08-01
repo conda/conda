@@ -99,7 +99,7 @@ def add_pip_installed(prefix, installed, json=False):
     # in installed append a fake name to installed with 'pip'
     # as the build string
     conda_names = {d.rsplit('-', 2)[0] for d in installed}
-    pat = re.compile('([\w.-]+)\s+\(([\w.]+)')
+    pat = re.compile('([\w.-]+)\s+\((.+)\)')
     for line in pipinst:
         line = line.strip()
         if not line:
@@ -111,7 +111,19 @@ def add_pip_installed(prefix, installed, json=False):
             continue
         name, version = m.groups()
         name = name.lower()
-        if name not in conda_names:
+        print('version', version)
+        if ', ' in version:
+            # Packages installed with setup.py develop will include a path in
+            # the version. They should be included here, even if they are
+            # installed with conda, as they are preferred over the conda
+            # version. We still include the conda version, though, because it
+            # is still installed.
+
+            version, path = version.split(', ')
+            # We do this because the code below uses rsplit('-', 2)
+            version = version.replace('-', ' ')
+            installed.add('%s (%s)-%s-<pip>' % (name, path, version))
+        elif name not in conda_names:
             installed.add('%s-%s-<pip>' % (name, version))
 
 
