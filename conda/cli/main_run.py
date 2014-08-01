@@ -7,6 +7,7 @@
 from __future__ import print_function, division, absolute_import
 
 import sys
+import logging
 
 from conda.cli import common
 
@@ -17,6 +18,7 @@ def configure_parser(sub_parsers):
                                description = descr,
                                help = descr)
     common.add_parser_prefix(p)
+    common.add_parser_quiet(p)
     common.add_parser_json(p)
     p.add_argument(
         'package',
@@ -47,6 +49,9 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
 
+    if args.quiet:
+        logging.disable(logging.CRITICAL)
+
     if args.package.endswith('.tar.bz2'):
         if app_is_installed(args.package, prefixes=[prefix]):
             fn = args.package
@@ -65,6 +70,7 @@ def execute(args, parser):
             if name == args.package:
                 installed = [conda.resolve.Package(pkg + '.tar.bz2',
                                                    conda.install.is_linked(prefix, pkg))]
+                break
 
         if installed:
             package = max(installed)
@@ -74,7 +80,7 @@ def execute(args, parser):
                 subprocess = launch(fn, prefix=prefix, additional_args=args.arguments)
                 if args.json:
                     common.stdout_json(dict(fn=fn, pid=subprocess.pid))
-                else:
+                elif not args.quiet:
                     print("Started app. Some apps may take a while to finish loading.")
             except TypeError:
                 execute_command(args.package, prefix, args.arguments, args.json)
