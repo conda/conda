@@ -111,7 +111,6 @@ def add_pip_installed(prefix, installed, json=False):
             continue
         name, version = m.groups()
         name = name.lower()
-        print('version', version)
         if ', ' in version:
             # Packages installed with setup.py develop will include a path in
             # the version. They should be included here, even if they are
