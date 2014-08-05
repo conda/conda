@@ -3,10 +3,25 @@
   * correctly check if a package can be hard-linked if it isn't extracted yet
   * change how the package plan is printed to better show what is new,
     updated, and downgraded
-  * use suggest_normalized_version in the resolve module. Now versions that
-    are not directly recognized by verlib's NormalizedVersion like 1.0alpha are
-    supported better
-
+  * use suggest_normalized_version in the resolve module. Now versions like
+    1.0alpha that are not directly recognized by verlib's NormalizedVersion
+    are supported better
+  * conda run command, to run apps and commands from packages
+  * more complete --json API. Every conda command should fully support --json
+    output now.
+  * show the conda_build and requests versions in conda info
+  * include packages from setup.py develop in conda list (with use_pip)
+  * raise a warning instead of dying when the history file is invalid
+  * use urllib.quote on the proxy password
+  * make conda search --outdated --canonical work
+  * pin the Python version during conda init
+  * fix some metadata that is written for Python during conda init
+  * allow comments in a pinned file
+  * allow installing and updating menuinst on Windows
+  * allow conda create with both --file and listed packages
+  * better handling of some nonexistent packages
+  * fix command line flags in conda package
+  * fix a bug in the ftp adapter
 
 2014-06-10   3.5.5:
 -------------------
