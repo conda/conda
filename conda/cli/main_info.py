@@ -143,8 +143,18 @@ def execute(args, parser):
     except Exception as e:
         requests_version = "Error %s" % e
 
+    try:
+        import conda_build
+    except ImportError:
+        conda_build_version = "not installed"
+    except Exception as e:
+        conda_build_version = "Error %s" % e
+    else:
+        conda_build_version = conda_build.__version__
+
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
+                     conda_build_version=conda_build_version,
                      root_prefix=config.root_dir,
                      root_writable=config.root_writable,
                      pkgs_dirs=config.pkgs_dirs,
@@ -176,6 +186,7 @@ Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
+  conda-build version : %(conda_build_version)s
        python version : %(python_version)s
      requests version : %(requests_version)s
      root environment : %(root_prefix)s  (%(_rtwro)s)
