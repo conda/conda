@@ -369,23 +369,6 @@ what means exactly the same thing.
 
 More info about this topic can be found directly on `binstar.org documentation page <http://docs.binstar.org/>`_.
 
-Issues/ Weird Stuff/ Needs Attention
-------------------------------------
-
-* conda-build splashes error asking for ``conda install jinja2`` to enable jinja
-  template support. Build proceeds to completion without, but fails if it's
-  installed with an error ``unable to load pkg_resources``.
-
-* I have seen versions of this question on the support lists. If a user needs
-  to maintain a conda environment with additional packages outside of conda
-  control, what is the best practice? Is it worth considering a model where
-  conda tracks not only packages under its control but also dependencies and
-  version compatibility of packages that exist in the environment but are not
-  conda-installed? In other words, a developer may not be able to offer a conda
-  package for their software for technical reasons, but they may still want to
-  support package info so that conda can be aware of that package and give the
-  user instructions about updates and maintaining compatibility.
-
 References
 ----------
 
