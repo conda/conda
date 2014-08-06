@@ -82,6 +82,7 @@ User Guide
    build-tutorial-from-a-directory
    build-tutorial-shared-libraries
    admin
+   custom-channels
 
 Reference Guide
 ---------------
