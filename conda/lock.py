@@ -47,13 +47,13 @@ class Locked(object):
     LOCKERROR: It looks like conda is already doing something.
     The lock %s was found. Wait for it to finish before continuing.
     If you are sure that conda is not running, remove it and try again.
-    You can also use: $ conda clean --lock""" % self.lock_path)
+    You can also use: $ conda clean --lock\n""" % self.lock_path)
         sleeptime = 1
         while retries:
             files = glob.glob(self.pattern)
             if files and not files[0].endswith(self.end):
                 stdoutlog.info(lockstr)
-                stdoutlog.info("Sleeping for %s seconds" % sleeptime)
+                stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
                 sleep(sleeptime)
                 sleeptime *= 2
                 retries -= 1
