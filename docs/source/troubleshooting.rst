@@ -78,3 +78,24 @@ can use up a lot of disk space if you have a lot of environments.  Note that
 the ``-f`` flag to ``conda install`` (``--force``) implies ``--no-deps``, so
 ``conda install -f package`` will not reinstall any of the dependencies of
 ``package``.
+
+Issue: conda build has issues finding a package
+===============================================
+
+Check the conda-bld directory
+-----------------------------
+
+conda build reuses the packages it has already built by default (the same as
+the ``--use-local`` flag to conda install).  These packages are stored in the
+``conda-bld`` directory in the root environment, e.g.,
+``~/anaconda/conda-bld``, in a directory named after your platform, e.g.,
+``osx-64``.
+
+To prevent this issue in the future, it is good to have some kind of test in
+the conda recipe, even if it just a very basic test (e.g., for a Python
+package, a just an import test using the ``imports`` section of the ``test``
+section in the meta.yaml). This will install the package into a ``_test``
+environment after building is done and run the test.  If the test fails, conda
+build will move the broken package into the ``conda-bld/broken`` directory,
+where it will not be picked up by future invocations of ``conda build`` or ``conda
+install --use-local``.
