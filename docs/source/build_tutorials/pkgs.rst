@@ -123,6 +123,7 @@ It is easy to build a skeleton recipe for any Python package that is hosted on
 and generate a new conda recipe for ``music21`` package, by using `PyPI <https://pypi.python.org/>`_ metadata:
 
 .. code-block:: bash
+
     $ cd ~/
     $ conda skeleton pypi music21
 
@@ -133,6 +134,7 @@ of sources) it is necessary to cut value of md5 sum from ``fn:`` and ``url:``
 directives in ``meta.yaml`` file, to ``md5:`` directive:
 
 .. code-block:: yaml
+
     source:
       fn: music21-1.8.1.tar.gz#md5=b88f74b8a3940e4bca89d90158432ee0
       url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz#md5=b88f74b8a3940e4bca89d90158432ee0
@@ -141,6 +143,7 @@ directives in ``meta.yaml`` file, to ``md5:`` directive:
 to:
 
 .. code-block:: yaml
+
     source:
       fn: music21-1.8.1.tar.gz
       url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
@@ -152,12 +155,14 @@ Generally speaking, User should always check the ``meta.yaml`` file output from 
 Now, it should be straightforward to use the ``conda-build`` tool. Let's try it:
 
 .. code-block:: bash
+
     $ cd ~/music21/
     $ conda build .
 
 Above command throws me an error:
 
 .. code-block:: bash
+
     + /home/irritum/anaconda/envs/_build/bin/python setup.py install
     Traceback (most recent call last):
       File "setup.py", line 14, in <module>
@@ -169,6 +174,7 @@ So, now I should add appropriate requirement to auto generated ``meta.yaml`` fil
 To do this, I need to change:
 
 .. code-block:: yaml
+
     requirements:
       build:
         - python
@@ -176,6 +182,7 @@ To do this, I need to change:
 to:
 
 .. code-block:: yaml
+
     requirements:
       build:
         - python
@@ -184,6 +191,7 @@ to:
 After above, I have re-run the command:
 
 .. code-block:: bash
+
     $ conda build .
 
 Now everything works great and the package was saved to ~/miniconda/conda-bld/linux-64/music21-1.8.1-py27_0.tar.bz2 file.
@@ -193,6 +201,7 @@ But this file shouldn't be used directly by anyone except the ``conda`` tool int
 So, now I want to install ``music21`` package:
 
 .. code-block:: bash
+
     $ conda install ~/miniconda/conda-bld/linux-64/music21-1.8.1-py27_0.tar.bz
     $ python -c 'import music21; print "Successfully imported music21"'
 
@@ -208,6 +217,7 @@ furnish a detailed failure mode, I'll take the ``meta.yaml`` file from the ``pyf
 package:
 
 .. code-block:: yaml
+
     package:
       name: pyfaker
 
@@ -236,6 +246,7 @@ music21](https://github.com/cuthbertLab/music21) and some sensible choices for
 substitutions, I get a makeshift .yaml for ``music21``:
 
 .. code-block:: yaml
+
     package:
       name: music21
 
@@ -263,6 +274,7 @@ This seems reasonable. Being sure to supply ``build.sh`` and ``bld.bat`` files i
 same directory, I try:
 
 .. code-block:: bash
+
     $ cd ~/music21/
     $ conda build .
 
@@ -271,12 +283,14 @@ comparison with the skeleton-generated file, I observe that the key difference
 is in the keywords that specify the git repository:
 
 .. code-block:: yaml
+
     fn: music21-1.8.1.tar.gz
     url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
 
 versus:
 
 .. code-block:: yaml
+
     git_tag: 1.8.1
     git_url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
 
@@ -297,6 +311,7 @@ Here is a minimal summary. First, we need a ``binstar`` client. We will install
 this tool by running:
 
 .. code-block:: bash
+
    $ conda install binstar
 
 Now we should `register our account on binstar.org site <https://binstar.org/account/register>`_
@@ -306,12 +321,14 @@ We have two ways to do this. The first option is to say ``yes`` during the build
 This means you can re-run below commands one more time, but you have to agree with uploading:
 
 .. code-block:: bash
+
     $ cd ~/music21/
     $ conda build .
 
 The second way is to explicitly upload the already built package. You can do this by:
 
 .. code-block:: bash
+
     $ binstar login
     $ binstar upload ~/miniconda/conda-bld/linux-64/music21-1.8.1-py27_0.tar.bz
 
@@ -329,6 +346,7 @@ easily search for all packages from Anaconda's distribution. Therefore to
 perform this search, please type (here I'm looking for the ``cmake`` package):
 
 .. code-block:: bash
+
     $ conda search cmake
 
 Sometimes we known that some person is constantly building new packages (and of
@@ -337,6 +355,7 @@ To be able to use those packages we have to add appropriate channel of that
 person to our ``.condarc`` file, just like this:
 
 .. code-block:: yaml
+
     channels:
         - defaults
         - http://conda.binstar.org/travis
@@ -349,6 +368,7 @@ However, what I should do if I want to search through all channels without expli
 Here is the answer:
 
 .. code-block:: bash
+
     $ binstar search cmake
 
 This command will search through all users packages on `binstar.org <http://binstar.org>`_.
@@ -358,11 +378,13 @@ The another way to do this, is to run the conda tool with a special option (use
 mutirri's channel and ``music21`` package in this case):
 
 .. code-block:: bash
+
     $ conda install --channel http://conda.binstar.org/mutirri music21
 
 or even shorter:
 
 .. code-block:: bash
+
     $ conda install --channel mutirri music21
 
 what means exactly the same thing.
