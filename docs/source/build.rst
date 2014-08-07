@@ -1,3 +1,5 @@
+.. _build:
+
 Conda build framework
 =====================
 

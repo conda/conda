@@ -1,27 +1,25 @@
-Overview of building conda packages
+Overview of building Conda packages
 ===================================
 
-Continuum's conda toolset provides cross-platform binary package management.
+Continuum's Conda toolset provides cross-platform binary package management.
 Originally built to furnish Python distributions, the tools are in active
 development and being applied in many use cases. This tutorial explores what
-goes into building conda packages.
-
-For a typical python-native binary package built in a Linux environment with
+goes into building conda packages, particularly for a typical Python package
+built with
 
 .. code-block:: bash
 
     $ python setup.py install
 
-conda packaging can be as simple as issuing a one-line command. Linked
+Conda packaging can be as simple as issuing a one-line command. Linked
 libraries are located relative to the binary (rather than referenced with
 absolute paths) and the software is bundled and ready to ship.
 
-As we'll explore, other package builds are not trivial, especially if complex
-dependencies are involved or the package was built in an ad-hoc way that does
-not conform to the usual placement of files relative to one another. This
-tutorial will move through the gradations of difficulty to illustrate both the
-potential and challenges of using conda to package and distribute your
-software.
+Other package builds are not trivial, especially if complex dependencies are
+involved or the package was built in an ad-hoc way that does not conform to
+the usual placement of files relative to one another. This tutorial will move
+through the gradations of difficulty to illustrate both the potential and
+challenges of using conda to package and distribute your software.
 
 Install conda and conda-build
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -29,9 +27,9 @@ Install conda and conda-build
 Conda is installed as part of `Continuum's Anaconda
 <https://store.continuum.io/cshop/anaconda/>`_ distribution. A lightweight
 standalone distribution called `Miniconda
-<http://conda.pydata.org/miniconda.html`_ is also available, which is what
-we'll assume here. Upon downloading the installer script, make sure that this
-installer has appropriate permissions:
+<http://conda.pydata.org/miniconda.html>`_ is also available, which is what
+this tutorial will assume. Upon downloading the installer script, make sure
+that this installer has appropriate permissions:
 
 On Linux and Mac OS X, run ``bash`` on the Miniconda installer, like
 
@@ -48,9 +46,9 @@ You will not need administrative access to run Conda or manage Conda
 environments.
 
 Provide the script with your choices about where to install conda and whether
-or not the path will be added to your environment. I will assume it is added to
-the path; otherwise you will have to know the explicit path to your conda
-executable.
+or not the path will be added to your environment. This tutorial will assume
+it is added to the path; otherwise you will have to know the explicit path to
+your conda executable.
 
 Once Conda is installed, relaunch a terminal window and confirm that:
 
@@ -109,8 +107,8 @@ have git installed you will need to install it first.
 After getting familiar with full process of package building, feel free to add
 your own new recipes to this repository by making a pull request.
 
-Elementary conda Package Building
----------------------------------
+Elementary Conda Package Building
+=================================
 
 Using conda skeleton to build from a PyPI package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -120,101 +118,68 @@ It is easy to build a skeleton recipe for any Python package that is hosted on
 <https://pypi.python.org/>`_.
 
 
-and generate a new conda recipe for ``music21`` package, by using `PyPI <https://pypi.python.org/>`_ metadata:
+Let's generate a new conda recipe for `pyinstrument <https://github.com/joerick/pyinstrument>`_, by using
+`PyPI <https://pypi.python.org/>`_ metadata:
 
 .. code-block:: bash
 
     $ cd ~/
-    $ conda skeleton pypi music21
+    $ conda skeleton pypi pyinstrument
 
 You should verify the
 existence of the ``meta.yaml``, ``build.sh``, and ``bld.bat`` files in a newly created
-directory called ``music21``. Sometimes (like in this case - due to external place
-of sources) it is necessary to cut value of md5 sum from ``fn:`` and ``url:``
-directives in ``meta.yaml`` file, to ``md5:`` directive:
+directory called ``pyinstrument``.
 
-.. code-block:: yaml
+You should always check the ``meta.yaml`` file output from the ``skeleton``
+subcommand invocation, as it is not perfect, and it often requires some things
+to be filled in manually. For instance, some packages do not specify
+dependencies properly in their setup.py, so they will need to be added
+manually. Some hints for Python package dependencies:
 
-    source:
-      fn: music21-1.8.1.tar.gz#md5=b88f74b8a3940e4bca89d90158432ee0
-      url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz#md5=b88f74b8a3940e4bca89d90158432ee0
-      #md5:
+* If you get an error saying that setuptools downloading is disabled during
+  conda build, this means that setuptools is trying to download and install a
+  dependency of the package. Dependencies should be split out into separate
+  packages, so this is disallowed, as it would create a single package with
+  all the dependencies. The fix is to add this package as both a run and build
+  time dependency in the ``requirements`` section of the meta.yaml.
 
-to:
+* If the build or test fails with an ImportError for an external library, it
+  means it needs to depend on it.
 
-.. code-block:: yaml
+* If a build fails with an ImportError for pkg_resources, it means it needs to
+  depend on setuptools (or alternately, you can write a patch for the package
+  that removes the runtime dependence on pkg_resources).
 
-    source:
-      fn: music21-1.8.1.tar.gz
-      url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
-      md5: b88f74b8a3940e4bca89d90158432ee0
-
-Generally speaking, User should always check the ``meta.yaml`` file output from the
-``skeleton`` subcommand invocation.
-
-Now, it should be straightforward to use the ``conda-build`` tool. Let's try it:
-
-.. code-block:: bash
-
-    $ cd ~/music21/
-    $ conda build .
-
-Above command throws me an error:
+Now, it should be straightforward to use the ``conda build`` tool. Let's try it:
 
 .. code-block:: bash
 
-    + /home/irritum/anaconda/envs/_build/bin/python setup.py install
-    Traceback (most recent call last):
-      File "setup.py", line 14, in <module>
-        from setuptools import setup, find_packages
-    ImportError: No module named setuptools
-    Command failed: /bin/bash -x -e /home/irritum/music21/build.sh
+    $ conda build pyinstrument
 
-So, now I should add appropriate requirement to auto generated ``meta.yaml`` file.
-To do this, I need to change:
+Now everything works great and the package was saved to
+~/miniconda/conda-bld/linux-64/pyinstrument-0.12_py270.tar.bz2 file. The exact
+location of the file may be a little different for you, depending on where you
+have conda installed and what operating system you are using. conda build will
+tell you where the file is located at the end of the build.
 
-.. code-block:: yaml
-
-    requirements:
-      build:
-        - python
-
-to:
-
-.. code-block:: yaml
-
-    requirements:
-      build:
-        - python
-        - setuptools
-
-After above, I have re-run the command:
+Later you will upload this package to Binstar, but for now, you can install it
+with the ``--use-local`` flag.
 
 .. code-block:: bash
 
-    $ conda build .
+   $ conda install --use-local pyinstrument
 
-Now everything works great and the package was saved to ~/miniconda/conda-bld/linux-64/music21-1.8.1-py27_0.tar.bz2 file.
-It's worth mentioning that during ``TEST`` phase of package it will be also placed in ~/miniconda/pkgs cache directory.
-But this file shouldn't be used directly by anyone except the ``conda`` tool internally.
+Writing the meta.yaml by hand
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-So, now I want to install ``music21`` package:
+Suppose you stick with the same package, ``pyinstrument``, but don't start
+from conda skeleton pypi. You can fill in the values in ``meta.yaml``
+manually, based on other conda recipes and information about where to download
+the tarball.
 
-.. code-block:: bash
-
-    $ conda install ~/miniconda/conda-bld/linux-64/music21-1.8.1-py27_0.tar.bz
-    $ python -c 'import music21; print "Successfully imported music21"'
-
-That's it :)
-
-Writing meta.yaml by hand
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Suppose we stick with the same package, ``music21``, but don't start from the pip
-installation. We can use common sense values for the ``meta.yaml`` fields, based on
-other conda recipes and information about where to download the tarball. To
-furnish a detailed failure mode, I'll take the ``meta.yaml`` file from the ``pyfaker``
-package:
+The easiest way to do this is to start from an existing example from the
+`conda-recipes <https://github.com/conda/conda-recipes>`_ repo.  Take the
+``meta.yaml`` file from the ``pyfaker`` package:
 
 .. code-block:: yaml
 
@@ -241,18 +206,18 @@ package:
       home: http://www.joke2k.net/faker
       license: MIT
 
-With a search on [github site of
-music21](https://github.com/cuthbertLab/music21) and some sensible choices for
-substitutions, I get a makeshift .yaml for ``music21``:
+With a search on the [GitHub site of
+pyinstrument](https://github.com/joerick/pyinstrument) and some sensible
+choices for substitutions, you get a makeshift .yaml for ``pyinstrument``:
 
 .. code-block:: yaml
 
     package:
-      name: music21
+      name: pyinstrument
 
     source:
-      git_tag: 1.8.1
-      git_url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
+      git_tag: 0.12
+      git_url: https://github.com/joerick/pyinstrument.git
 
     requirements:
       build:
@@ -264,135 +229,168 @@ substitutions, I get a makeshift .yaml for ``music21``:
 
     test:
       imports:
-        - music21
+        - pyinstrument
 
     about:
-      home: https://github.com/cuthbertLab/music21
-      license: LGPL
+      home: https://github.com/joerick/pyinstrument
+      license: BSD
+      summary: "Call stack profiler for Python. Inspired by Apple's Instruments.app"
 
 This seems reasonable. Being sure to supply ``build.sh`` and ``bld.bat`` files in the
-same directory, I try:
+same directory. For Python packages, these can just be ``python setup.py
+install`` for both.
 
-.. code-block:: bash
-
-    $ cd ~/music21/
-    $ conda build .
-
-and get a 403 error trying to access the repository. Now, with the benefit of
-comparison with the skeleton-generated file, I observe that the key difference
-is in the keywords that specify the git repository:
+Note that the original recipe was built using a tarball from PyPI:
 
 .. code-block:: yaml
 
-    fn: music21-1.8.1.tar.gz
-    url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
+    fn: pyinstrument-0.12.tar.gz
+    url: https://pypi.python.org/packages/source/p/pyinstrument/pyinstrument-0.12.tar.gz
 
-versus:
+whereas this one was built using a git url and a git tag:
 
 .. code-block:: yaml
 
-    git_tag: 1.8.1
-    git_url: https://github.com/cuthbertLab/music21/releases/download/v1.8.1/music21-1.8.1.tar.gz
+      git_tag: 0.12
+      git_url: https://github.com/joerick/pyinstrument.git
 
-To answer of question what parameters should be used with what values, you will
-find on page dedicated to [conda build
-framework](http://conda.pydata.org/docs/build.html).
+Both ways should work just fine. As the source should be identical. For some C
+packages, building from a tarball may be preferable to building from git, as
+building from git requires more build tools, such as autoconf. For pure Python
+packages such as pyinstrument, there is generally no difference.
 
-Uploading own packages to `binstar.org <https://binstar.org>`_
---------------------------------------------------------------
+There is more information about all the values that can go in the
+``meta.yaml`` file on the :ref:`build` page.
 
-All of above steps produce one object - the package (tar archive compressed by
-bzip2). During package building process we were asked if the package should be
-uploaded to `binstar.org <https://binstar.org>`_. To get more info about
-`binstar.org <https://binstar.org>`_ and possibility of uploading packages,
-please visit it's `documentation page <http://docs.binstar.org/>`_.
+Uploading packages to `binstar.org <https://binstar.org>`__
+-----------------------------------------------------------
 
-Here is a minimal summary. First, we need a ``binstar`` client. We will install
-this tool by running:
+All of above steps produce one object - the package (a tar.bz2
+archive). During package building process you were asked if the package should
+be uploaded to `binstar.org <https://binstar.org>`__. To get more info about
+`binstar.org <https://binstar.org>`__ visit `the Binstar documentation page
+<http://docs.binstar.org/>`_.
+
+Here is a minimal summary. First, you need the ``binstar`` command line
+client. Install this tool by running:
 
 .. code-block:: bash
 
    $ conda install binstar
 
-Now we should `register our account on binstar.org site <https://binstar.org/account/register>`_
-and generate appropriate access TOKEN. If we already performed all
-of this steps we are ready to upload our own package.
-We have two ways to do this. The first option is to say ``yes`` during the build process.
-This means you can re-run below commands one more time, but you have to agree with uploading:
+Now you should `register an account on binstar.org
+<https://binstar.org/account/register>`_.  Then login with the ``binstar``
+command
 
 .. code-block:: bash
 
-    $ cd ~/music21/
-    $ conda build .
+   $ binstar login
 
-The second way is to explicitly upload the already built package. You can do this by:
+One this is done, you are ready to upload your package.
 
 .. code-block:: bash
 
-    $ binstar login
-    $ binstar upload ~/miniconda/conda-bld/linux-64/music21-1.8.1-py27_0.tar.bz
+    $ binstar upload ~/miniconda/conda-bld/linux-64/pyinstrument-0.12-py27_0.tar.bz
+
+Replace this path with the path to the package printed at the end of conda
+build.
+
+If you always want conda build to upload to Binstar after a successful build,
+you can run
+
+.. code-block:: bash
+
+   $ conda config --set binstar_upload yes
+
+If you then want to install these packages, it is recommended to add your
+Binstar channel to the conda configuration, so that conda will always search
+your channel in addition to the default Continuum ones.
+
+.. code-block:: bash
+
+   $ conda config --add channels your_username
+
+(replace ``your_username`` with your Binstar username).
 
 Searching for already existing packages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have two methods to accomplish this task. First option is to use ``search``
-conda's subcommand. You have to know that when this operation is requested then
-``conda`` checks all available channels with packages (these channels are setup in
-``.condarc`` file) in search of desired package.
-
-Original ``.condarc`` file contains only default channels with software
-officially maintained by `Continuum Analytics <http://continuum.io/>`_. This means we can
-easily search for all packages from Anaconda's distribution. Therefore to
-perform this search, please type (here I'm looking for the ``cmake`` package):
+You have two methods to accomplish this task. First option is to use ``conda
+search``. ``conda`` searches all the channels configured from the ``.condarc``
+file for the given string. You can see what channels are searched by running
 
 .. code-block:: bash
 
-    $ conda search cmake
+   $ conda info
 
-Sometimes we known that some person is constantly building new packages (and of
-course publishing them on `binstar.org <https://binstar.org>`_) hosting service.
-To be able to use those packages we have to add appropriate channel of that
-person to our ``.condarc`` file, just like this:
+If there is no ``.condarc`` file, conda only searches the default Continuum
+channels, which are officially maintained by `Continuum Analytics
+<http://continuum.io/>`_. This includes all the packages from the Anaconda
+distribution.
+
+For example, to search for the ``sympy`` package, type
+
+.. code-block:: bash
+
+    $ conda search sympy
+
+Sometimes you may want to follow a person who is constantly building new
+packages and publishing them on `binstar.org <https://binstar.org>`__. To be
+able to use those packages you have to add appropriate channel of that person
+to your ``~/.condarc`` file, just like this:
 
 .. code-block:: yaml
 
     channels:
         - defaults
-        - http://conda.binstar.org/travis
-        - http://conda.binstar.org/mutirri
+        - asmeurer
+        - mutirri
 
-In above example I have added two new channels (of user travis and user mutirri).
-From now on I'm able to search for any requested package in these users package list (and of course I can install them also).
+In this example you have added two new channels (of ``asmeurer`` and
+``mutirri``).  Note that for Binstar channels, it is only necessary to enter
+the username of the person. You can also add the full channel url, like
+``https://conda.binstar.org/asmeurer``.
 
-However, what I should do if I want to search through all channels without explicitly add them to my ``.condarc`` file?
-Here is the answer:
+From now on you will be able to search for any package in these users' package
+lists, and install them too.
+
+Another way to do this is through the command line using the ``conda config``
+option.
+
+.. code-block:: yaml
+
+   $ conda config --add channels asmeurer
+   $ conda config --add channels mutirri
+
+The order of the channels matters. If two channels have the same version of
+the same package, the one from higher in the list will be chosen.  The ``conda
+config`` command will always prepend the channel (add it to the top of the
+list).
+
+You can also search all of Binstar, without adding channels to the
+``.condarc`` file using the ``binstar`` command.
 
 .. code-block:: bash
 
-    $ binstar search cmake
+    $ binstar search sympy
 
-This command will search through all users packages on `binstar.org <http://binstar.org>`_.
-**But remember**, to be able to install any of package which was found in this
-way, you still have to add appropriate user's channel to ``.condarc`` file.
-The another way to do this, is to run the conda tool with a special option (use
-mutirri's channel and ``music21`` package in this case):
+This command will search through all users' packages on `binstar.org
+<http://binstar.org>`__.  **But remember**, to be able to install a package
+which was found in this way, you still have to add the appropriate user's channel
+to your ``.condarc`` file.
 
-.. code-block:: bash
-
-    $ conda install --channel http://conda.binstar.org/mutirri music21
-
-or even shorter:
+Another way to do this is to run the conda tool with the ``-c`` flag, which
+adds the channel just for that one command. For example, to install the
+``pyinstrument`` package from ``asmeurer``'s Binstar channel, run
 
 .. code-block:: bash
 
-    $ conda install --channel mutirri music21
+    $ conda install -c asmeurer pyinstrument
 
-what means exactly the same thing.
-
-More info about this topic can be found directly on `binstar.org documentation page <http://docs.binstar.org/>`_.
+For more information about this topic, see the `binstar.org documentation page
+<http://docs.binstar.org/>`_.
 
 References
 ----------
 
-`Using PyPI packages for conda <http://www.linkedin.com/today/post/article/20140107182855-25278008-using-pypi-packages-with-conda>`_
-`music21 inquiry on support list <https://groups.google.com/a/continuum.io/forum/#!searchin/anaconda/conda$20package/anaconda/yu2ZKPI3ixU/VSWejiDoXlQJ>`_
+`Using PyPI packages for conda <http://www.peterbronez.com/Using%20PyPi%20Packages%20with%20Conda>`_
