@@ -1,5 +1,6 @@
-Overview of building Conda packages
-===================================
+=====================================================
+Tutorial: Basic tutorial for building a Conda package
+=====================================================
 
 Continuum's Conda toolset provides cross-platform binary package management.
 Originally built to furnish Python distributions, the tools are in active
@@ -263,7 +264,7 @@ There is more information about all the values that can go in the
 ``meta.yaml`` file on the :ref:`build` page.
 
 Uploading packages to `binstar.org <https://binstar.org>`__
------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 All of above steps produce one object - the package (a tar.bz2
 archive). During package building process you were asked if the package should
@@ -390,7 +391,7 @@ adds the channel just for that one command. For example, to install the
 For more information about this topic, see the `binstar.org documentation page
 <http://docs.binstar.org/>`_.
 
-References
-----------
+Additional References
+^^^^^^^^^^^^^^^^^^^^^
 
 `Using PyPI packages for conda <http://www.peterbronez.com/Using%20PyPi%20Packages%20with%20Conda>`_
