@@ -78,9 +78,10 @@ User Guide
    troubleshooting
    config
    build
-   build_tutorials/index
+   build_tutorials
    admin
    custom-channels
+
 
 Reference Guide
 ---------------

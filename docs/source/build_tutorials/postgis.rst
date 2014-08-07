@@ -144,7 +144,7 @@ is that you bundle what you need, so this utility has to be included in the
 package. I do:
 
 Some searching indicates pg_config is distributed with postgresql, so let me
-check that out. A search on `binstar.org <https://binstar.org/>`_ for conda
+check that out. A search on `binstar.org <https://binstar.org/>`__ for conda
 packages with the name ``postgresql`` yields some results for 64-bit
 Linux. I'll try to install from one of the Binstar channels. First the channel
 must be added with:
