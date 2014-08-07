@@ -77,10 +77,7 @@ User Guide
    troubleshooting
    config
    build
-   build-tutorial-pkgs
-   build-tutorial-postgis
-   build-tutorial-from-a-directory
-   build-tutorial-shared-libraries
+   build_tutorials/index
    admin
    custom-channels
 
