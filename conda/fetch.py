@@ -272,9 +272,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
                     n += len(chunk)
                     if size:
                         getLogger('fetch.update').info(n)
-        except IOError:
-            raise RuntimeError("Could not open %r for writing.  "
-                "Permissions problem or missing directory?" % pp)
+        except IOError as e:
+            raise RuntimeError("Could not open %r for writing (%s).  "
+                "Permissions problem or missing directory?" % (pp, e))
 
         if size:
             getLogger('fetch.stop').info(None)
