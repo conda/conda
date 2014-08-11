@@ -1,4 +1,4 @@
-2014-XX-XX   3.6.0:
+2014-08-11   3.6.0:
 -------------------
   * correctly check if a package can be hard-linked if it isn't extracted yet
   * change how the package plan is printed to better show what is new,
@@ -22,6 +22,7 @@
   * better handling of some nonexistent packages
   * fix command line flags in conda package
   * fix a bug in the ftp adapter
+
 
 2014-06-10   3.5.5:
 -------------------
