@@ -230,7 +230,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 handle_proxy_407(url, session)
                 # Try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt)
+                                urlstxt=urlstxt, retries=retries)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
@@ -278,6 +278,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee
                 # try again
+                log.debug("%s, trying again" % e)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("Could not open %r for writing (%s).  "
@@ -290,6 +291,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         if md5 and h.hexdigest() != md5:
             if retries:
                 # try again
+                log.debug("MD5 sums mismatch for download: %s (%s != %s), trying again"
+                               % (url, h.hexdigest(), md5))
+
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
