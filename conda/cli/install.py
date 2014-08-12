@@ -12,6 +12,7 @@ import shutil
 import tarfile
 import tempfile
 from os.path import isdir, join, basename, exists, abspath
+from difflib import get_close_matches
 
 import conda.config as config
 import conda.plan as plan
@@ -312,7 +313,17 @@ environment does not exist: %s
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
     except NoPackagesFound as e:
-        common.exception_and_exit(e, json=args.json)
+        error_message = e.args[0]
+
+        packages = {index[fn]['name'] for fn in index}
+
+        for pkg in e.pkgs:
+            close = get_close_matches(pkg, packages)
+            if close:
+                error_message += "\n\nDid you mean one of these?\n    %s" % (', '.join(close))
+            error_message += '\n\nYou can search for this package on Binstar with'
+            error_message += '\n\n    binstar search -t conda %s' % pkg
+        common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
         error_type = 'UnsatisfiableSpecifications'
