@@ -27,6 +27,7 @@ the standard library).
 
 from __future__ import print_function, division, absolute_import
 
+import time
 import os
 import json
 import shutil
@@ -133,7 +134,16 @@ def _link(src, dst, linktype=LINK_HARD):
         raise Exception("Did not expect linktype=%r" % linktype)
 
 
-def rm_rf(path):
+def rm_rf(path, max_retries=None):
+    """
+    Completely delete path
+
+    max_retries is the number of times to retry on failure. The default is 5
+    on Windows and 0 elsewhere. This only applies to deleting a directory.
+    """
+    if max_retries is None:
+        max_retries = 5 if on_win else 1
+
     if islink(path) or isfile(path):
         # Note that we have to check if the destination is a link because
         # exists('/path/to/dead-link') will return False, although
@@ -141,6 +151,14 @@ def rm_rf(path):
         os.unlink(path)
 
     elif isdir(path):
+        for i in range(max_retries):
+            try:
+                shutil.rmtree(path)
+            except OSError as e:
+                log.debug("Unable to delete %s (%s): retrying after %s seconds" %
+                    (path, e, i))
+                time.sleep(i)
+        # Final time. pass exceptions to caller.
         shutil.rmtree(path)
 
 def rm_empty_dir(path):
