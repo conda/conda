@@ -142,7 +142,7 @@ def rm_rf(path, max_retries=None):
     on Windows and 0 elsewhere. This only applies to deleting a directory.
     """
     if max_retries is None:
-        max_retries = 5 if on_win else 1
+        max_retries = 5 if on_win else 0
 
     if islink(path) or isfile(path):
         # Note that we have to check if the destination is a link because
