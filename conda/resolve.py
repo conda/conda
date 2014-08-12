@@ -13,6 +13,7 @@ from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints, evaluate_eq)
 from conda.console import setup_handlers
+from conda import config
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -259,7 +260,7 @@ class Resolve(object):
     def get_pkgs(self, ms, max_only=False):
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms, [ms.spec])
+            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
         if max_only:
             maxpkg = max(pkgs)
             ret = []
@@ -278,7 +279,7 @@ class Resolve(object):
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms, max_only=True)
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms, [ms.spec])
+            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
         for pkg in pkgs:
             yield pkg.fn
 
