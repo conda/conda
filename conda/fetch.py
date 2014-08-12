@@ -167,7 +167,7 @@ Allowed channels are:
 """ % (url, '\n  - '.join(config.allowed_channels)))
 
     repodatas = map(lambda url: (url, fetch_repodata(url,
-        use_cache=use_cache, session=session)), reversed(channel_urls))
+             use_cache=use_cache, session=session)), reversed(channel_urls))
     for url, repodata in repodatas:
         if repodata is None:
             continue
@@ -242,7 +242,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
                 handle_proxy_407(url, session)
                 # Try again
                 return download(url, dst_path, session=session, md5=md5,
-                    urlstxt=urlstxt)
+                                urlstxt=urlstxt)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
@@ -274,7 +274,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
                         getLogger('fetch.update').info(n)
         except IOError as e:
             raise RuntimeError("Could not open %r for writing (%s).  "
-                "Permissions problem or missing directory?" % (pp, e))
+                               "Permissions problem or missing directory?" %
+                               (pp, e))
 
         if size:
             getLogger('fetch.stop').info(None)
@@ -286,8 +287,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
         try:
             os.rename(pp, dst_path)
         except OSError as e:
-            raise RuntimeError("Could not rename %r to %r: %r" % (pp,
-                dst_path, e))
+            raise RuntimeError("Could not rename %r to %r: %r" %
+                               (pp, dst_path, e))
 
         if urlstxt:
             try:
