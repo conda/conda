@@ -20,7 +20,7 @@ import getpass
 
 from conda import config
 from conda.utils import memoized
-from conda.connection import CondaSession, unparse_url
+from conda.connection import CondaSession, unparse_url, RETRIES
 from conda.compat import itervalues, get_http_value, input, urllib_quote
 from conda.lock import Locked
 
@@ -212,12 +212,13 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
 
-
-def download(url, dst_path, session=None, md5=None, urlstxt=False):
+def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
     pp = dst_path + '.part'
     dst_dir = os.path.split(dst_path)[0]
     session = session or CondaSession()
 
+    if not retries:
+        retries = RETRIES
     with Locked(dst_dir):
         try:
             resp = session.get(url, stream=True, proxies=session.proxies,
@@ -273,6 +274,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
                     if size:
                         getLogger('fetch.update').info(n)
         except IOError as e:
+            if e.errno == 104 and retries: # Connection reset by pee
+                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt, retries=retries-1)
             raise RuntimeError("Could not open %r for writing (%s).  "
                 "Permissions problem or missing directory?" % (pp, e))
 
@@ -280,6 +283,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False):
             getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
+            if retries:
+                return download(url, dst_path, session=session, md5=md5,
+                    urlstxt=urlstxt, retries=retries-1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
 
