@@ -172,7 +172,7 @@ def execute(args, parser):
         for option in options:
             setattr(args, option, True)
 
-    t_pat = re.compile(r'binstar\.org/(t/[0-9a-f\-]{4,})')
+    t_pat = re.compile(r'binstar\.org/(t/[0-9a-zA-Z\-]{4,})')
     info_dict['channels_disp'] = [t_pat.sub('binstar.org/t/<TOKEN>', c)
                                   for c in info_dict['channels']]
 
