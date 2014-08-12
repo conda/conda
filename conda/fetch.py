@@ -212,6 +212,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
 
+
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
     pp = dst_path + '.part'
     dst_dir = os.path.split(dst_path)[0]
@@ -275,7 +276,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                         getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee
-                return download(url, dst_path, session=session, md5=md5, urlstxt=urlstxt, retries=retries-1)
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("Could not open %r for writing (%s).  "
                                "Permissions problem or missing directory?" %
                                (pp, e))
@@ -286,7 +288,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         if md5 and h.hexdigest() != md5:
             if retries:
                 return download(url, dst_path, session=session, md5=md5,
-                    urlstxt=urlstxt, retries=retries-1)
+                                urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
 
@@ -302,6 +304,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                     fa.write('%s\n' % url)
             except IOError:
                 pass
+
 
 class TmpDownload(object):
     """
