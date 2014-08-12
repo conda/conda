@@ -1,3 +1,8 @@
+2014-08-XX   3.6.1:
+-------------------
+  * add retries to download in fetch module
+
+
 2014-08-11   3.6.0:
 -------------------
   * correctly check if a package can be hard-linked if it isn't extracted yet
