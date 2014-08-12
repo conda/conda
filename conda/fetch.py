@@ -236,15 +236,16 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
             raise RuntimeError(msg)
 
         except requests.exceptions.ConnectionError as e:
-            # requests isn't so nice here. For whatever reason, https gives this
-            # error and http gives the above error. Also, there is no status_code
-            # attribute here. We have to just check if it looks like 407.  See
-            # https://github.com/kennethreitz/requests/issues/2061.
+            # requests isn't so nice here. For whatever reason, https gives
+            # this error and http gives the above error. Also, there is no
+            # status_code attribute here.  We have to just check if it looks
+            # like 407.
+            # See: https://github.com/kennethreitz/requests/issues/2061.
             if "407" in str(e): # Proxy Authentication Required
                 handle_proxy_407(url, session)
-                # Try again
+                # try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt)
+                                urlstxt=urlstxt, retries=retries)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
@@ -276,6 +277,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                         getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee
+                # try again
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("Could not open %r for writing (%s).  "
@@ -287,6 +289,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
+                # try again
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
