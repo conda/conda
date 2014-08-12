@@ -217,7 +217,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     dst_dir = os.path.split(dst_path)[0]
     session = session or CondaSession()
 
-    if not retries:
+    if retries is None:
         retries = RETRIES
     with Locked(dst_dir):
         try:
