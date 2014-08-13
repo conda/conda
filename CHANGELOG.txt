@@ -1,6 +1,7 @@
 2014-08-XX   3.6.1:
 -------------------
   * add retries to download in fetch module
+  * add retying to remove directories on Windows in install module
 
 
 2014-08-11   3.6.0:
