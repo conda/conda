@@ -2,7 +2,9 @@
 -------------------
   * add retries to download in fetch module
   * add retying to remove directories on Windows in install module
-
+  * improved error messages for missing packages
+  * more robust rm_rf on Windows
+  * print multiline help for subcommands correctly
 
 2014-08-11   3.6.0:
 -------------------
