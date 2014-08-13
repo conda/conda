@@ -153,10 +153,8 @@ def rm_rf(path, max_retries=None):
     elif isdir(path):
         for i in range(max_retries):
             try:
-                if sys.platform == 'win32':
-                    subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
-                else:
-                    shutil.rmtree(path)
+                shutil.rmtree(path)
+                return
             except OSError as e:
                 log.debug("Unable to delete %s (%s): retrying after %s seconds" %
                     (path, e, i))
