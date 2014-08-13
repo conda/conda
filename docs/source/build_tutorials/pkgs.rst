@@ -70,8 +70,8 @@ It's a useful habit to do:
 with a fresh install. You can run the ``update`` command for any installed
 package, including conda itself. This intrinsic bootstrapping capacity makes
 conda very powerful. In fact, if you started with the Miniconda installation,
-you can expand it to the full [Anaconda
-distribution](https://store.continuum.io/cshop/anaconda/) with:
+you can expand it to the full `Anaconda
+distribution <https://store.continuum.io/cshop/anaconda/>`_ with:
 
 .. code-block:: bash
 
@@ -207,8 +207,8 @@ The easiest way to do this is to start from an existing example from the
       home: http://www.joke2k.net/faker
       license: MIT
 
-With a search on the [GitHub site of
-pyinstrument](https://github.com/joerick/pyinstrument) and some sensible
+With a search on the `GitHub site of
+pyinstrument <https://github.com/joerick/pyinstrument>`_ and some sensible
 choices for substitutions, you get a makeshift .yaml for ``pyinstrument``:
 
 .. code-block:: yaml
