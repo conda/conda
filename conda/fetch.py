@@ -13,7 +13,7 @@ import shutil
 import hashlib
 import tempfile
 from logging import getLogger
-from os.path import basename, isdir, join
+from os.path import basename, dirname, isdir, join
 import sys
 import getpass
 # from multiprocessing.pool import ThreadPool
@@ -213,9 +213,10 @@ def fetch_pkg(info, dst_dir=None, session=None):
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
 
 
-def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
+def download(url, dst_path, session=None, md5=None, urlstxt=False,
+             retries=None):
     pp = dst_path + '.part'
-    dst_dir = os.path.split(dst_path)[0]
+    dst_dir = dirname(dst_path)
     session = session or CondaSession()
 
     if retries is None:
