@@ -7,7 +7,7 @@ import stat
 
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
-from .helpers import run_in
+from tests.helpers import run_in
 
 # Only run these tests for commands that are installed.
 
