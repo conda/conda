@@ -232,6 +232,10 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
         new_data = data.replace(placeholder.encode('utf-8'),
                                 new_prefix.encode('utf-8'))
     elif mode == 'binary':
+        if on_win and '/' in placeholder:
+            # windows binary contains prefix with unix-style path separators
+            # replace with unix-style path separators
+            new_prefix = new_prefix.replace('\\', '/')
         new_data = binary_replace(data, placeholder.encode('utf-8'),
                                   new_prefix.encode('utf-8'))
     else:
