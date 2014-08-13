@@ -209,7 +209,7 @@ def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with zeros.
-    All input arguments are expected to be bytes objects.
+    `data`, `a`, and `b` arguments are expected to be bytes objects.
     """
     import re
 
@@ -220,6 +220,10 @@ def binary_replace(data, a, b):
         return b + match.group(1) + b'\0' * padding
     pat = re.compile(a.replace(b'.', b'\.') + b'([^\0\\s]*?)\0')
     res = pat.sub(replace, data)
+    if res == data and on_win and b'\\' in a:
+        # perhaps the hardcoded path uses unix path separators
+        return binary_replace(data, a.replace(b'\\', b'/'),
+                              b.replace(b'\\', b'/'))
     assert len(res) == len(data)
     return res
 
@@ -234,6 +238,9 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     elif mode == 'binary':
         new_data = binary_replace(data, placeholder.encode('utf-8'),
                                   new_prefix.encode('utf-8'))
+        if new_data == data:
+            print("Binary replacement of prefix %s in path %s failed."
+                  % (placeholder, path))
     else:
         sys.exit("Invalid mode:" % mode)
 
