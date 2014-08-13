@@ -177,7 +177,7 @@ channel_alias: http://alpha.conda.binstar.org
 --add create_default_packages 'numpy'
 --add create_default_packages 'ipython'
 """
-        assert stderr == "invalid_key is not a valid key\n"
+        assert stderr == "unknown key invalid_key\n"
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
         '--get', 'channels')
