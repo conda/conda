@@ -13,7 +13,7 @@ import shutil
 import hashlib
 import tempfile
 from logging import getLogger
-from os.path import basename, isdir, join
+from os.path import basename, dirname, isdir, join
 import sys
 import getpass
 # from multiprocessing.pool import ThreadPool
@@ -93,7 +93,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                                   use_cache=use_cache, session=session)
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
-                msg = 'Could not find Binstar user %s' % url.split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0]
+                msg = ('Could not find Binstar user %s' %
+                   url.split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
                 msg = 'Could not find URL: %s' % url
         else:
@@ -213,9 +214,10 @@ def fetch_pkg(info, dst_dir=None, session=None):
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
 
 
-def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
+def download(url, dst_path, session=None, md5=None, urlstxt=False,
+             retries=None):
     pp = dst_path + '.part'
-    dst_dir = os.path.split(dst_path)[0]
+    dst_dir = dirname(dst_path)
     session = session or CondaSession()
 
     if retries is None:
@@ -291,9 +293,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         if md5 and h.hexdigest() != md5:
             if retries:
                 # try again
-                log.debug("MD5 sums mismatch for download: %s (%s != %s), trying again"
-                               % (url, h.hexdigest(), md5))
-
+                log.debug("MD5 sums mismatch for download: %s (%s != %s), "
+                          "trying again" % (url, h.hexdigest(), md5))
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
