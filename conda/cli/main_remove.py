@@ -88,6 +88,7 @@ def execute(args, parser):
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
     index = common.get_index_trap(channel_urls=channel_urls,
+                                  use_cache=args.use_index_cache,
                                   prepend=not args.override_channels,
                                   json=args.json,
                                   use_cache=args.use_index_cache)
