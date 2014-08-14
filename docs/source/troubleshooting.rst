@@ -79,23 +79,24 @@ the ``-f`` flag to ``conda install`` (``--force``) implies ``--no-deps``, so
 ``conda install -f package`` will not reinstall any of the dependencies of
 ``package``.
 
-Issue: conda build has issues finding a package
-===============================================
+Issue: pkg_resources.DistributionNotFound: conda==3.6.1-6-gb31b0d4-dirty
+========================================================================
 
-Check the conda-bld directory
------------------------------
+Force reinstall conda
+---------------------
 
-conda build reuses the packages it has already built by default (the same as
-the ``--use-local`` flag to conda install).  These packages are stored in the
-``conda-bld`` directory in the root environment, e.g.,
-``~/anaconda/conda-bld``, in a directory named after your platform, e.g.,
-``osx-64``.
+A useful way to work off the development version of conda is to run ``python
+setup.py develop`` on a checkout of the `conda git repository
+<https://github.com/conda/conda>`_.  However, if you are not regularly
+running ``git pull``, it is a good idea to un-develop, as you will otherwise
+not get any regular updates to conda.  The normal way to do this is to run
+``python setup.py develop -u``.
 
-To prevent this issue in the future, it is good to have some kind of test in
-the conda recipe, even if it just a very basic test (e.g., for a Python
-package, a just an import test using the ``imports`` section of the ``test``
-section in the meta.yaml). This will install the package into a ``_test``
-environment after building is done and run the test.  If the test fails, conda
-build will move the broken package into the ``conda-bld/broken`` directory,
-where it will not be picked up by future invocations of ``conda build`` or ``conda
-install --use-local``.
+However, this command does not replace the ``conda`` script itself. With other
+packages, this is not an issue, as you can just reinstall them with ``conda``,
+but conda cannot be used if conda is installed.
+
+The fix is to use the ``./bin/conda`` executable in the conda git repository
+to force reinstall conda, i.e., run ``./bin/conda install -f conda``.  You can
+then verify with ``conda info`` that you have the latest version of conda, and
+not a git checkout (the version should not include any hashes).
