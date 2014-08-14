@@ -90,8 +90,7 @@ def execute(args, parser):
     index = common.get_index_trap(channel_urls=channel_urls,
                                   use_cache=args.use_index_cache,
                                   prepend=not args.override_channels,
-                                  json=args.json,
-                                  use_cache=args.use_index_cache)
+                                  json=args.json)
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
