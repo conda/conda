@@ -1,3 +1,7 @@
+.....
+-------------------
+  * add --use-index-cache to conda remove
+
 2014-08-13   3.6.1:
 -------------------
   * add retries to download in fetch module
