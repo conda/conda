@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
 
-from .helpers import raises
+from tests.helpers import raises
 
 
 with open(join(dirname(__file__), 'index.json')) as fi:

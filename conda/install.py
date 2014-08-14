@@ -156,8 +156,8 @@ def rm_rf(path, max_retries=None):
                 shutil.rmtree(path)
                 return
             except OSError as e:
-                log.debug("Unable to delete %s (%s): retrying after %s seconds" %
-                    (path, e, i))
+                log.debug("Unable to delete %s (%s): retrying after %s "
+                          "seconds" % (path, e, i))
                 time.sleep(i)
         # Final time. pass exceptions to caller.
         shutil.rmtree(path)
