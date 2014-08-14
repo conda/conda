@@ -52,6 +52,7 @@ def configure_parser(sub_parsers):
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
+    common.add_parser_use_index_cache(p)
     p.add_argument(
         "--force-pscheck",
         action = "store_true",
@@ -88,7 +89,8 @@ def execute(args, parser):
     channel_urls = args.channel or ()
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,
-                                  json=args.json)
+                                  json=args.json,
+                                  use_cache=args.use_index_cache)
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
