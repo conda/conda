@@ -16,7 +16,6 @@ from logging import getLogger
 from os.path import basename, dirname, isdir, join
 import sys
 import getpass
-# from multiprocessing.pool import ThreadPool
 
 from conda import config
 from conda.utils import memoized
@@ -167,8 +166,23 @@ Allowed channels are:
   - %s
 """ % (url, '\n  - '.join(config.allowed_channels)))
 
-    repodatas = map(lambda url: (url, fetch_repodata(url,
-             use_cache=use_cache, session=session)), reversed(channel_urls))
+    try:
+        import concurrent.futures
+        from collections import OrderedDict
+
+        repodatas = []
+        with concurrent.futures.ThreadPoolExecutor(10) as executor:
+            future_to_url = OrderedDict([(executor.submit(fetch_repodata, url, use_cache=use_cache,
+                session=session), url) for url in reversed(channel_urls)])
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                repodatas.append((url, future.result()))
+    except ImportError:
+        # concurrent.futures is only available in Python 3
+        repodatas = map(lambda url: (url, fetch_repodata(url,
+                 use_cache=use_cache, session=session)),
+        reversed(channel_urls))
+
     for url, repodata in repodatas:
         if repodata is None:
             continue
