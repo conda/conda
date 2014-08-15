@@ -1,6 +1,7 @@
 .....
 -------------------
   * add --use-index-cache to conda remove
+  * fix a bug where features (like mkl) would be selected incorrectly
 
 2014-08-13   3.6.1:
 -------------------
