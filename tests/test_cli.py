@@ -136,53 +136,60 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res['conda'], list)
 
     def test_install(self):
-        res = capture_json_with_argv('conda', 'install', 'pip', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'install', 'pip',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'update', 'pip', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'update', 'pip',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'remove', 'pip', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'remove', 'pip',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'remove', 'pip', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'remove', 'pip',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonError(res)
 
-        res = capture_json_with_argv('conda', 'update', 'pip', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'update', 'pip',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonError(res)
 
-        res = capture_json_with_argv('conda', 'install', 'pip=1.5.5', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'install', 'pip=1.5.5',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'install', '=', '--json', '--quiet')
+        res = capture_json_with_argv('conda', 'install', '=',
+                                     '--json', '--quiet', '--force-pscheck')
         self.assertJsonError(res)
 
         res = capture_json_with_argv('conda', 'remove', '-n', 'testing',
-                                     '--all', '--json', '--quiet')
+                                     '--all', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'remove', '-n', 'testing',
-                                     '--all', '--json', '--quiet')
+                                     '--all', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'remove', '-n', 'testing2',
-                                     '--all', '--json', '--quiet')
+                                     '--all', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'create', '-n', 'testing',
-                                     'python', '--json', '--quiet')
+                                     'python', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'install', '-n', 'testing',
-                                     'python', '--json', '--quiet')
+                                     'python', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'install', '--dry-run',
-                                     'python', '--json', '--quiet')
+                                     'python', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'create', '--clone', 'testing',
-                                     '-n', 'testing2', '--json', '--quiet')
+                                     '-n', 'testing2', '--json', '--quiet', '--force-pscheck')
         self.assertJsonSuccess(res)
 
     def test_run(self):
