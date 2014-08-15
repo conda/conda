@@ -134,16 +134,14 @@ def _link(src, dst, linktype=LINK_HARD):
         raise Exception("Did not expect linktype=%r" % linktype)
 
 
-def rm_rf(path, max_retries=None):
+def rm_rf(path, max_retries=5):
     """
     Completely delete path
 
-    max_retries is the number of times to retry on failure. The default is 5
-    on Windows and 0 elsewhere. This only applies to deleting a directory.
-    """
-    if max_retries is None:
-        max_retries = 5 if on_win else 0
+    max_retries is the number of times to retry on failure. The default is
+    5. This only applies to deleting a directory.
 
+    """
     if islink(path) or isfile(path):
         # Note that we have to check if the destination is a link because
         # exists('/path/to/dead-link') will return False, although
