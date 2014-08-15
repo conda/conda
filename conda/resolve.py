@@ -352,6 +352,11 @@ class Resolve(object):
                     if len(clause) > 1:
                         yield tuple(clause)
 
+                # Don't install any package that has a feature that wasn't requested.
+                for fn in self.find_matches(ms):
+                    if fn in dists and self.features(fn) - features:
+                        yield (-v[fn],)
+
         for spec in specs:
             ms = MatchSpec(spec)
             # ensure that a matching package with the feature is installed
