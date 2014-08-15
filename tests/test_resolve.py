@@ -1067,3 +1067,79 @@ def test_no_features():
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
             ]]
+
+    index2 = index.copy()
+    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = \
+        {
+            "build": "np16py27_0",
+            "build_number": 0,
+            "depends": [
+              "dateutil",
+              "numpy 1.6*",
+              "python 2.7*",
+              "pytz"
+            ],
+            "name": "pandas",
+            "requires": [
+              "dateutil 1.5",
+              "numpy 1.6",
+              "python 2.7",
+              "pytz"
+            ],
+            "version": "0.12.0"
+        }
+    # Make it want to choose the pro version by having it be newer.
+    index2["numpy-1.6.2-py27_p5.tar.bz2"] = \
+        {
+            "build": "py27_p5",
+            "build_number": 5,
+            "depends": [
+              "mkl-rt 11.0",
+              "python 2.7*"
+            ],
+            "features": "mkl",
+            "name": "numpy",
+            "pub_date": "2013-04-29",
+            "requires": [
+              "mkl-rt 11.0",
+              "python 2.7"
+            ],
+            "version": "1.6.2"
+        }
+
+    r2 = Resolve(index2)
+
+    # This should not pick any mkl packages (the difference here is that none
+    # of the specs directly have mkl versions)
+    assert r2.solve2(['pandas 0.12.0 np16py27_0', 'python 2.7*'], set(),
+        returnall=True) == [[
+            'dateutil-2.1-py27_1.tar.bz2',
+            'numpy-1.6.2-py27_4.tar.bz2',
+            'openssl-1.0.1c-0.tar.bz2',
+            'pandas-0.12.0-np16py27_0.tar.bz2',
+            'python-2.7.5-0.tar.bz2',
+            'pytz-2013b-py27_0.tar.bz2',
+            'readline-6.2-0.tar.bz2',
+            'six-1.3.0-py27_0.tar.bz2',
+            'sqlite-3.7.13-0.tar.bz2',
+            'system-5.8-1.tar.bz2',
+            'tk-8.5.13-0.tar.bz2',
+            'zlib-1.2.7-0.tar.bz2',
+            ]]
+
+    assert r2.solve2(['pandas 0.12.0 np16py27_0', 'python 2.7*'], f_mkl,
+        returnall=True)[0] == [[
+            'dateutil-2.1-py27_1.tar.bz2',
+            'mkl-rt-11.0-p0.tar.bz2',           # This
+            'numpy-1.6.2-py27_p5.tar.bz2',      # and this are different.
+            'openssl-1.0.1c-0.tar.bz2',
+            'pandas-0.12.0-np16py27_0.tar.bz2',
+            'python-2.7.5-0.tar.bz2',
+            'pytz-2013b-py27_0.tar.bz2',
+            'readline-6.2-0.tar.bz2',
+            'six-1.3.0-py27_0.tar.bz2',
+            'sqlite-3.7.13-0.tar.bz2',
+            'system-5.8-1.tar.bz2',
+            'tk-8.5.13-0.tar.bz2',
+            'zlib-1.2.7-0.tar.bz2',
+            ]][0]
