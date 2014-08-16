@@ -45,10 +45,11 @@ if (( $? == 0 )); then
     else
         export CONDA_DEFAULT_ENV="$@"
     fi
+    CONDA_PS_PREFIX=$(basename $CONDA_DEFAULT_ENV)
 
     if (( $("$_THIS_DIR/conda" ..changeps1) ));  then
             CONDA_OLD_PS1="$PS1"
-            PS1="($CONDA_DEFAULT_ENV)$PS1"
+            PS1="($CONDA_PS_PREFIX)$PS1"
     fi
 else
     return $?

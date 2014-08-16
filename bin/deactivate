@@ -25,6 +25,7 @@ if (( $? == 0 )); then
     if (( $($_THIS_DIR/conda ..changeps1) )); then
         PS1=$CONDA_OLD_PS1
         unset CONDA_OLD_PS1
+        usset CONDA_PS_PREFIX
     fi
 else
     return $?
