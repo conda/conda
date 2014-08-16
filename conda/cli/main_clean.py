@@ -275,7 +275,8 @@ def execute(args, parser):
     if not (args.lock or args.tarballs or args.index_cache or args.packages):
         common.error_and_exit(
             "One of {--lock, --tarballs, --index-cache, --packages} required",
-            error_type="ValueError")
+            error_type="ValueError",
+            json=args.json)
 
     if args.json:
         common.stdout_json(json_result)
