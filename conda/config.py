@@ -14,7 +14,7 @@ from os.path import abspath, expanduser, isfile, isdir, join
 import re
 
 from conda.compat import urlparse
-from conda.utils import try_write
+from conda.utils import try_write, memoized
 
 
 log = logging.getLogger(__name__)
@@ -55,7 +55,10 @@ rc_list_keys = [
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
 
+ADD_BINSTAR_TOKEN = True
+
 rc_bool_keys = [
+    'add_binstar_token',
     'always_yes',
     'allow_softlinks',
     'changeps1',
@@ -176,12 +179,32 @@ def get_rc_urls():
 def is_url(url):
     return urlparse.urlparse(url).scheme != ""
 
+@memoized
+def binstar_channel_alias(channel_alias):
+    if rc.get('add_binstar_token', ADD_BINSTAR_TOKEN):
+        try:
+            print("Getting binstar tokens")
+            from binstar_client.utils import get_binstar
+            bs = get_binstar()
+            channel_alias = bs.domain.replace("api", "conda")
+            if not channel_alias.endswith('/'):
+                channel_alias += '/'
+            if bs.token:
+                channel_alias += 't/%s/' % bs.token
+        except ImportError:
+            log.debug("Could not import binstar")
+            pass
+    return channel_alias
+
 BINSTAR_TOKEN_PAT = re.compile(r'binstar\.org/(t/[0-9a-zA-Z\-]{4,})')
 
 def hide_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub('binstar.org/t/<TOKEN>', url)
 
 def normalize_urls(urls, platform=None):
+    channel_alias = binstar_channel_alias(rc.get('channel_alias',
+        DEFAULT_CHANNEL_ALIAS))
+
     platform = platform or subdir
     newurls = []
     for url in urls:
@@ -196,8 +219,7 @@ def normalize_urls(urls, platform=None):
                 newurls.extend(normalize_urls(get_rc_urls(),
                                               platform=platform))
         elif not is_url(url):
-            moreurls = normalize_urls([rc.get('channel_alias',
-                DEFAULT_CHANNEL_ALIAS)+url], platform=platform)
+            moreurls = normalize_urls([channel_alias+url], platform=platform)
             newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
