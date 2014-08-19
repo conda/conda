@@ -111,14 +111,16 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # packages relocatable" section below for more information on this.
       binary_relocation: false # (defaults to true)
 
-      # See the features section below for more information on features
+      # See the Features section below for more information on features
 
       # Defines what features a package has
       features:
         - feature1
 
       # Indicates that installing this package should enable (track) the given
-      # features. A package does not need to have a feature to track it.
+      # features. It is generally a good idea to use a separate metapackage to
+      # track a feature, which does not have the feature. See the Features
+      # section below for more information about features.
       track_features:
         - feature2
 
@@ -481,8 +483,9 @@ name and version.  For example, a feature might indicate a specialized
 compiler or runtime, or a fork of a package. The canonical example of a
 feature is the ``mkl`` feature in Anaconda Accelerate. Packages that are
 compiled against MKL, such as NumPy, have the ``mkl`` feature set.  The
-``mkl`` package has the ``mkl`` feature set in ``track_features``, so that
-installing it installs the ``mkl`` feature.
+``mkl`` metapackage has the ``mkl`` feature set in ``track_features``, so that
+installing it installs the ``mkl`` feature (the fact that the name of this
+metapackage matches the name of the feature is a coincidence).
 
 Features should be thought of as features of the environment the package is
 installed into, not the package itself. The reason is that when a feature is
@@ -497,7 +500,38 @@ Feature names are independent of package names---it is a coincidence that
 ``mkl`` is both the name of a package and the feature that it tracks.
 
 To install a feature, install a package that tracks it. To remove a feature,
-use ``conda remove --features``
+use ``conda remove --features``.
+
+It's a good idea to create a metapackage for ``track_features``.  If you add
+``track_features`` to a package that also has versions without that feature,
+then the versions without that feature will never be selected, because conda
+will always add the feature when it is installed from the ``track_features``
+specification if your package with the feature.
+
+Instead, it is a good idea to create a separate metapackage. For instance, if
+you want to create some packages with the feature ``debug``, you would create
+several packages with
+
+.. code-block:: yaml
+
+   build:
+     features:
+       - debug
+
+and then create a special metapackage
+
+.. code-block:: yaml
+
+   package:
+     # This name doesn't have to be the same as the feature, but can avoid confusion if it is
+     name: debug
+     # This need not relate to the version of any of the packages with the
+     # feature. It is just a version for this metapackage.
+     version: 1.0
+
+   build:
+     track_features:
+       - debug
 
 .. or use conda install --features, blocking on https://github.com/conda/conda/issues/543
 
