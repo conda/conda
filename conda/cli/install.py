@@ -318,7 +318,7 @@ environment does not exist: %s
         packages = {index[fn]['name'] for fn in index}
 
         for pkg in e.pkgs:
-            close = get_close_matches(pkg, packages)
+            close = get_close_matches(pkg, packages, cutoff=0.7)
             if close:
                 error_message += "\n\nDid you mean one of these?\n    %s" % (', '.join(close))
             error_message += '\n\nYou can search for this package on Binstar with'
