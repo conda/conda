@@ -11,6 +11,7 @@ import sys
 import logging
 from platform import machine
 from os.path import abspath, expanduser, isfile, isdir, join
+import re
 
 from conda.compat import urlparse
 from conda.utils import try_write
@@ -175,6 +176,11 @@ def get_rc_urls():
 def is_url(url):
     return urlparse.urlparse(url).scheme != ""
 
+BINSTAR_TOKEN_PAT = re.compile(r'binstar\.org/(t/[0-9a-zA-Z\-]{4,})')
+
+def hide_binstar_tokens(url):
+    return BINSTAR_TOKEN_PAT.sub('binstar.org/t/<TOKEN>', url)
+
 def normalize_urls(urls, platform=None):
     platform = platform or subdir
     newurls = []
@@ -212,17 +218,22 @@ def get_channel_urls(platform=None):
 
     return normalize_urls(base_urls, platform=platform)
 
-def canonical_channel_name(channel):
+def canonical_channel_name(channel, hide=True):
     if channel is None:
         return '<unknown>'
     channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
     if channel.startswith(channel_alias):
-        return channel.split(channel_alias, 1)[1].split('/')[0]
+        url = channel.split(channel_alias, 1)[1].split('/')[0]
+        if hide:
+            url = hide_binstar_tokens(url)
+        return url
     elif any(channel.startswith(i) for i in get_default_urls()):
         return 'defaults'
     elif channel.startswith('http://filer/'):
         return 'filer'
     else:
+        if hide:
+            return hide_binstar_tokens(channel)
         return channel
 
 # ----- allowed channels -----
