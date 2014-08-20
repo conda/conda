@@ -201,7 +201,7 @@ def install(args, parser, command='install'):
         from conda.fetch import fetch_index
         from conda.utils import url_path
         try:
-            from conda_build import config as build_config
+            from conda_build.config import config as build_config
         except ImportError:
             common.error_and_exit("you need to have 'conda-build' installed"
                                   " to use the --use-local option",
