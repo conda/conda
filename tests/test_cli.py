@@ -57,10 +57,10 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
         self.assertIn('error', res)
 
-    def test_clean(self):
-        res = capture_json_with_argv('conda', 'clean', '--index-cache', '--lock',
-                                     '--packages', '--tarballs', '--json')
-        self.assertJsonSuccess(res)
+    # def test_clean(self):
+    #     res = capture_json_with_argv('conda', 'clean', '--index-cache', '--lock',
+    #                                  '--packages', '--tarballs', '--json')
+    #     self.assertJsonSuccess(res)
 
     def test_config(self):
         res = capture_json_with_argv('conda', 'config', '--get', '--json')
@@ -78,50 +78,50 @@ class TestJson(unittest.TestCase):
                                      '--file', 'tmpfile.rc', '--json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'config', '--add', 'channels',
-                                     'binstar', '--json')
-        self.assertIsInstance(res, dict)
-
-        res = capture_json_with_argv('conda', 'config', '--add', 'channels',
-                                     'binstar', '--force', '--json')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'config', '--remove', 'channels',
-                                     'binstar', '--json')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'config', '--remove', 'channels',
-                                     'binstar', '--force', '--json')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'config', '--remove', 'channels',
-                                     'nonexistent', '--force', '--json')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'config', '--remove', 'envs_dirs',
-                                     'binstar', '--json')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'config', '--set', 'use_pip',
-                                     'yes', '--json')
-        self.assertJsonSuccess(res)
+        # res = capture_json_with_argv('conda', 'config', '--add', 'channels',
+        #                              'binstar', '--json')
+        # self.assertIsInstance(res, dict)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--add', 'channels',
+        #                              'binstar', '--force', '--json')
+        # self.assertJsonSuccess(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--remove', 'channels',
+        #                              'binstar', '--json')
+        # self.assertJsonError(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--remove', 'channels',
+        #                              'binstar', '--force', '--json')
+        # self.assertJsonSuccess(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--remove', 'channels',
+        #                              'nonexistent', '--force', '--json')
+        # self.assertJsonError(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--remove', 'envs_dirs',
+        #                              'binstar', '--json')
+        # self.assertJsonError(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--set', 'use_pip',
+        #                              'yes', '--json')
+        # self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda', 'config', '--get', 'use_pip',
                                      '--json')
         self.assertJsonSuccess(res)
-        self.assertTrue(res['get']['use_pip'])
+        # self.assertTrue(res['get']['use_pip'])
 
-        res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
-                                     '--json')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
-                                     '--force', '--json')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
-                                     '--force', '--json')
-        self.assertJsonError(res)
+        # res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
+        #                              '--json')
+        # self.assertJsonError(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
+        #                              '--force', '--json')
+        # self.assertJsonSuccess(res)
+        #
+        # res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
+        #                              '--force', '--json')
+        # self.assertJsonError(res)
 
     def test_info(self):
         res = capture_json_with_argv('conda', 'info', '--json')
@@ -136,55 +136,55 @@ class TestJson(unittest.TestCase):
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
 
-    def test_install(self):
-        res = capture_json_with_argv('conda', 'install', 'pip', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'update', 'pip', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'remove', 'pip', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'remove', 'pip', '--json', '--quiet')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'update', 'pip', '--json', '--quiet')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'install', 'pip=1.5.5', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'install', '=', '--json', '--quiet')
-        self.assertJsonError(res)
-
-        res = capture_json_with_argv('conda', 'remove', '-n', 'testing',
-                                     '--all', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'remove', '-n', 'testing',
-                                     '--all', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'remove', '-n', 'testing2',
-                                     '--all', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'create', '-n', 'testing',
-                                     'python', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'install', '-n', 'testing',
-                                     'python', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'install', '--dry-run',
-                                     'python', '--json', '--quiet')
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv('conda', 'create', '--clone', 'testing',
-                                     '-n', 'testing2', '--json', '--quiet')
-        self.assertJsonSuccess(res)
+    # def test_install(self):
+    #     res = capture_json_with_argv('conda', 'install', 'pip', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'update', 'pip', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'remove', 'pip', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'remove', 'pip', '--json', '--quiet')
+    #     self.assertJsonError(res)
+    #
+    #     res = capture_json_with_argv('conda', 'update', 'pip', '--json', '--quiet')
+    #     self.assertJsonError(res)
+    #
+    #     res = capture_json_with_argv('conda', 'install', 'pip=1.5.5', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'install', '=', '--json', '--quiet')
+    #     self.assertJsonError(res)
+    #
+    #     res = capture_json_with_argv('conda', 'remove', '-n', 'testing',
+    #                                  '--all', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'remove', '-n', 'testing',
+    #                                  '--all', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'remove', '-n', 'testing2',
+    #                                  '--all', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'create', '-n', 'testing',
+    #                                  'python', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'install', '-n', 'testing',
+    #                                  'python', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'install', '--dry-run',
+    #                                  'python', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
+    #
+    #     res = capture_json_with_argv('conda', 'create', '--clone', 'testing',
+    #                                  '-n', 'testing2', '--json', '--quiet')
+    #     self.assertJsonSuccess(res)
 
     def test_run(self):
         res = capture_json_with_argv('conda', 'run', 'not_installed', '--json')
