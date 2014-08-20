@@ -164,6 +164,11 @@ else:
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
 
 def get_default_urls():
+    if isfile(sys_rc_path):
+        sys_rc = load_condarc(sys_rc_path)
+        if 'default_channels' in sys_rc:
+            return sys_rc['default_channels']
+
     return ['http://repo.continuum.io/pkgs/free',
             'http://repo.continuum.io/pkgs/pro']
 
