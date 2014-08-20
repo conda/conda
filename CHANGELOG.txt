@@ -2,6 +2,10 @@
 -------------------
   * add --use-index-cache to conda remove
   * fix a bug where features (like mkl) would be selected incorrectly
+  * use concurrent.future.ThreadPool to fetch package metadata asynchronously
+    in Python 3.
+  * do the retries in rm_rf on every platform
+  * use a higher cutoff for package name misspellings
 
 2014-08-13   3.6.1:
 -------------------
