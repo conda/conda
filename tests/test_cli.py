@@ -51,11 +51,11 @@ class TestSpecFromLine(unittest.TestCase):
 class TestJson(unittest.TestCase):
     def assertJsonSuccess(self, res):
         self.assertIsInstance(res, dict)
-        self.assertTrue('success' in res)
+        self.assertIn('success', res)
 
     def assertJsonError(self, res):
         self.assertIsInstance(res, dict)
-        self.assertTrue('error' in res)
+        self.assertIn('error', res)
 
     def test_clean(self):
         res = capture_json_with_argv('conda', 'clean', '--index-cache', '--lock',
@@ -128,11 +128,12 @@ class TestJson(unittest.TestCase):
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
                 'envs_dirs', 'is_foreign', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
-        self.assertTrue(all(key in res for key in keys))
+        for key in keys:
+            self.assertIn(key, res)
 
         res = capture_json_with_argv('conda', 'info', 'conda', '--json')
         self.assertIsInstance(res, dict)
-        self.assertTrue('conda' in res)
+        self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
 
     def test_install(self):
@@ -216,7 +217,8 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res['_license'][0], dict)
         keys = ('build', 'channel', 'extracted', 'features', 'fn',
                 'installed', 'version')
-        self.assertTrue(all(key in res['_license'][0] for key in keys))
+        for key in keys:
+            self.assertIn(key, res['_license'][0])
         for res in (capture_json_with_argv('conda', 'search', 'ipython', '--json'),
             capture_json_with_argv('conda', 'search', '--unknown', '--json'),
             capture_json_with_argv('conda', 'search', '--use-index-cache', '--json'),
