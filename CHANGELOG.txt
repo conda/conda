@@ -1,4 +1,4 @@
-.....
+2014-08-20   3.6.2:
 -------------------
   * add --use-index-cache to conda remove
   * fix a bug where features (like mkl) would be selected incorrectly
@@ -6,6 +6,8 @@
     in Python 3.
   * do the retries in rm_rf on every platform
   * use a higher cutoff for package name misspellings
+  * allow changing default channels in "system" .condarc
+
 
 2014-08-13   3.6.1:
 -------------------
