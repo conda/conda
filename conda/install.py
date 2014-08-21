@@ -185,6 +185,7 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
+
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
@@ -195,6 +196,7 @@ def read_has_prefix(path):
         for line in yield_lines(path):
             try:
                 placeholder, mode, f = shlex.split(line, posix=False)
+                placeholder, mode, f = map(lambda x: x.strip('"\''), [placeholder, mode, f])
                 res[f] = (placeholder, mode)
             except ValueError:
                 res[line] = (prefix_placeholder, 'text')
