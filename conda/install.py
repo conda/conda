@@ -37,6 +37,7 @@ import subprocess
 import tarfile
 import traceback
 import logging
+import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -193,7 +194,7 @@ def read_has_prefix(path):
     try:
         for line in yield_lines(path):
             try:
-                placeholder, mode, f = line.split(None, 2)
+                placeholder, mode, f = shlex.split(line, posix=False)
                 res[f] = (placeholder, mode)
             except ValueError:
                 res[line] = (prefix_placeholder, 'text')
