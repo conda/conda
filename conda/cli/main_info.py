@@ -67,7 +67,7 @@ def show_pkg_info(name):
                     pkg.build,
                     common.disp_features(r.features(pkg.fn))))
     else:
-        print('    not available on channels')
+        print('    not available')
     # TODO
 
 
