@@ -85,6 +85,7 @@ def configure_parser(sub_parsers):
     )
     common.add_parser_channels(p)
     common.add_parser_json(p)
+    common.add_parser_use_local(p)
     p.set_defaults(func=execute)
 
 def execute(args, parser):
@@ -132,10 +133,29 @@ def execute_search(args, parser):
     common.ensure_override_channels_requires_channel(args, dashc=False,
                                                      json=args.json)
     channel_urls = args.channel or ()
-    index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                  args.override_channels, platform=args.platform,
-                                  use_cache=args.use_index_cache,
-                                  unknown=args.unknown, json=args.json)
+    if args.use_local:
+        from conda.fetch import fetch_index
+        from conda.utils import url_path
+        try:
+            from conda_build.config import config as build_config
+        except ImportError:
+            common.error_and_exit("you need to have 'conda-build' installed"
+                                  " to use the --use-local option",
+                                  json=args.json,
+                                  error_type="RuntimeError")
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = common.get_index_trap(channel_urls=[url_path(build_config.croot)] + list(channel_urls),
+                                      prepend=not args.override_channels,
+                                      use_cache=args.use_index_cache,
+                                      unknown=args.unknown,
+                                      json=args.json, platform=args.platform)
+    else:
+        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
+                                      args.override_channels, platform=args.platform,
+                                      use_cache=args.use_index_cache,
+                                      unknown=args.unknown, json=args.json)
 
     r = Resolve(index)
 
