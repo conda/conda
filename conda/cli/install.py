@@ -185,6 +185,8 @@ def install(args, parser, command='install'):
         linked = ci.linked(prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
+            if name in getattr(args, '_skip', []):
+                continue
             if name == 'python' and ver.startswith('2'):
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
@@ -314,6 +316,18 @@ environment does not exist: %s
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
     except NoPackagesFound as e:
         error_message = e.args[0]
+
+        if command == 'update' and args.all:
+            # Packages not found here just means they were installed but
+            # cannot be found any more. Just skip them.
+            if not args.json:
+                print("Warning: %s, skipping" % error_message)
+            else:
+                # Not sure what to do here
+                pass
+            args._skip = getattr(args, '_skip', [])
+            args._skip.extend([i.split()[0] for i in e.pkgs])
+            install(args, parser, command=command)
 
         packages = {index[fn]['name'] for fn in index}
 
