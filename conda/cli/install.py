@@ -210,16 +210,16 @@ def install(args, parser, command='install'):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap([url_path(build_config.croot)],
+        index = common.get_index_trap(channel_urls=[url_path(build_config.croot)] + list(channel_urls),
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
-                                      json=args.json)
+                                      json=args.json, platform=args.platform)
     else:
         index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels,
+                                      args.override_channels, platform=args.platform,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
-                                      json=args.json)
+                                      unknown=args.unknown, json=args.json)
 
     # Don't update packages that are already up-to-date
     if command == 'update' and not args.all:
