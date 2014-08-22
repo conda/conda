@@ -72,8 +72,8 @@ def find_lock():
                 lock_dirs.append(join(envs_dir, fn))
 
     try:
-        from conda_build.config import config
-        lock_dirs.append(config.croot)
+        from conda_build.config import croot
+        lock_dirs.append(croot)
     except ImportError:
         pass
 
