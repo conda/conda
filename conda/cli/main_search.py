@@ -139,7 +139,7 @@ def execute_search(args, parser):
         try:
             from conda_build.config import config as build_config
         except ImportError:
-            common.error_and_exit("you need to have 'conda-build' installed"
+            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
                                   " to use the --use-local option",
                                   json=args.json,
                                   error_type="RuntimeError")
