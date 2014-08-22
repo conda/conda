@@ -195,8 +195,8 @@ def read_has_prefix(path):
     try:
         for line in yield_lines(path):
             try:
-                placeholder, mode, f = shlex.split(line, posix=False)
-                placeholder, mode, f = map(lambda x: x.strip('"\''), [placeholder, mode, f])
+                placeholder, mode, f = [x.strip('"\'') for x in
+                                        shlex.split(line, posix=False)]
                 res[f] = (placeholder, mode)
             except ValueError:
                 res[line] = (prefix_placeholder, 'text')
