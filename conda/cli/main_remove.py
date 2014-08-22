@@ -104,13 +104,12 @@ def execute(args, parser):
         index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
                                       json=args.json)
     else:
         index = common.get_index_trap(channel_urls=channel_urls, prepend=not
                                       args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown, json=args.json)
+                                      json=args.json)
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
