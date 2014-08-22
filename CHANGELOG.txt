@@ -1,3 +1,18 @@
+...
+-------------------
+  * skip packages that can't be found with update --all
+  * add --use-local to search and remove
+  * allow --use-local to be used along with -c (--channels) and
+    --override-channels. --override-channels now requires either -c or
+    --use-local
+  * allow paths in has_prefix to be quoted, to allow for spaces in paths on
+    Windows
+  * retain Unix style path separators for binary prefixes in has_prefix on
+    Windows (if the placeholder path uses /, replace it with a path that uses
+    /, not \)
+  * fix bug in --use-local due to API changes in conda-build
+
+
 2014-08-20   3.6.2:
 -------------------
   * add --use-index-cache to conda remove
