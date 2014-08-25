@@ -85,7 +85,9 @@ build) may be added to a repository.
 ``info/files``: This file lists all files which are part of the package
 itself (one per line), i.e. all files which need to get linked into the
 environment.  Any files in the package not listed in this file will not be
-linked when the package is installed.
+linked when the package is installed.  The directory delimiter for the files
+in ``info/files`` should always be ``/``, even on Windows.  This matches the
+directory delimiter used in the tarball.
 
 ``info/has_prefix``: This optional file lists all files that contain a
 placeholder for the install prefix, which upon install is replaced by the real
@@ -106,6 +108,10 @@ relative path of the file to be updated. For instance
 
 Note that due to the way the binary replacement works, the placeholder prefix
 must be longer than the install prefix.
+
+The directory delimiter for the path must always be ``/``, even on
+Windows. The placeholder can use ``\`` or ``/`` on Windows; the replacement
+prefix will match the delimiter used in the placeholder.
 
 ``info/no_softlink``: This optional file lists all files which cannot
 be soft-linked into environments (and are copied instead).
