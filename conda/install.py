@@ -495,7 +495,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
             lt = linktype
-            if f in has_prefix_files or f in no_link or islink(src):
+            if f in has_prefix_files or f.replace('/', '\\') in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
             try:
                 _link(src, dst, lt)
