@@ -210,16 +210,17 @@ class PaddingError(Exception):
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
-    replaced with `b` and the remaining string is padded with zeros.
+    replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
     import re
 
     def replace(match):
-        padding = len(match.group()) - len(b) - len(match.group(1))
-        if padding < 1:
-            raise PaddingError
-        return b + match.group(1) + b'\0' * padding
+        occurances = match.group().count(a)
+        padding = (len(a) - len(b))*occurances
+        if padding < 0:
+            raise PaddingError(a, b, padding)
+        return match.group().replace(a, b) + b'\0' * padding
     pat = re.compile(a.replace(b'.', b'\.') + b'([^\0]*?)\0')
     res = pat.sub(replace, data)
     assert len(res) == len(data)
