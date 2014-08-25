@@ -220,7 +220,7 @@ def binary_replace(data, a, b):
         if padding < 1:
             raise PaddingError
         return b + match.group(1) + b'\0' * padding
-    pat = re.compile(a.replace(b'.', b'\.') + b'([^\0\\s]*?)\0')
+    pat = re.compile(a.replace(b'.', b'\.') + b'([^\0]*?)\0')
     res = pat.sub(replace, data)
     assert len(res) == len(data)
     return res

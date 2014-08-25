@@ -31,6 +31,11 @@ class TestBinaryReplace(unittest.TestCase):
             binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa', b'bbbbb'),
                            b'bbbbb\x001234bbbbbcc\x00\x00')
 
+    def test_spaces(self):
+        self.assertEqual(
+            binary_replace(b' aaaa \x00', b'aaaa', b'bbbb'),
+            b' bbbb \x00')
+
 class FileTests(unittest.TestCase):
 
     def setUp(self):
