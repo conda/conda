@@ -11,6 +11,10 @@
     Windows (if the placeholder path uses /, replace it with a path that uses
     /, not \)
   * fix bug in --use-local due to API changes in conda-build
+  * include user site directories in conda info -s
+  * make binary has_prefix replacement work with spaces after the prefix
+  * make binary has_prefix replacement replace multiple occurrences of the
+    placeholder in the same null-terminated string
 
 
 2014-08-20   3.6.2:
