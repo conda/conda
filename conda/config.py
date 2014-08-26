@@ -199,7 +199,7 @@ def binstar_channel_alias(channel_alias):
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 
 BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-]{4,})' %
-    (channel_alias.replace('.', r'\.')))
+    (re.escape(channel_alias)))
 
 def hide_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>', url)
