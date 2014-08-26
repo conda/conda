@@ -246,7 +246,10 @@ def canonical_channel_name(channel, hide=True):
         return '<unknown>'
     channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
     if channel.startswith(channel_alias):
-        url = channel.split(channel_alias, 1)[1].split('/')[0]
+        end = channel.split(channel_alias, 1)[1]
+        url = end.split('/')[0]
+        if url == 't' and len(end.split('/')) >= 3:
+            url = end.split('/')[2]
         if hide:
             url = hide_binstar_tokens(url)
         return url
