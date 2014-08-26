@@ -35,7 +35,10 @@ def prefix_from_arg(arg):
 
 
 def binpath_from_arg(arg):
-    path = join(prefix_from_arg(arg), 'bin')
+    if sys.platform == "win32":
+        path = prefix_from_arg(arg)
+    else:
+        path = join(prefix_from_arg(arg), 'bin')
     if not isdir(path):
         sys.exit("Error: no such directory: %s" % path)
     return path
@@ -95,22 +98,29 @@ def main():
             sys.exit("Error: did not expect more than one argument.")
         binpath = binpath_from_arg(sys.argv[2])
         # Make sure an env always has the conda symlink
-        try:
-            conda.install.symlink_conda(join(binpath, '..'), conda.config.root_dir)
-        except (IOError, OSError) as e:
-            if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
-            raise
+	# unless we are on a Windows box
+        if sys.platform != "win32":
+            try:
+                conda.install.symlink_conda(join(binpath, '..'), conda.config.root_dir)
+            except (IOError, OSError) as e:
+                if e.errno == errno.EPERM or e.errno == errno.EACCES:
+                    sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
+                raise
         sys.exit(0)
 
     else:
         # This means there is a bug in main.py
         raise ValueError("unexpected command")
 
-    for path in os.getenv('PATH').split(os.pathsep):
-        if path != binpath:
-            paths.append(path)
-    print(os.pathsep.join(paths))
+    # on win32 we need to also prepend %PREFIX%\Scripts to the %PATH%
+    # we delegate that to the activate script, all we need to return is the prefix 
+    if sys.platform == "win32":
+        print("%s" % binpath)
+    else:
+        for path in os.getenv('PATH').split(os.pathsep):
+            if path != binpath:
+                paths.append(path)
+        print(os.pathsep.join(paths))
 
 
 if __name__ == '__main__':
