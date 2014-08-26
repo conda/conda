@@ -196,11 +196,13 @@ def binstar_channel_alias(channel_alias):
             pass
     return channel_alias
 
-BINSTAR_TOKEN_PAT = re.compile(r'%s/(t/[0-9a-zA-Z\-]{4,})' %
-    (rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS).replace('.', r'\.')))
+channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-]{4,})' %
+    (channel_alias.replace('.', r'\.')))
 
 def hide_binstar_tokens(url):
-    return BINSTAR_TOKEN_PAT.sub('binstar.org/t/<TOKEN>', url)
+    return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>', url)
 
 def normalize_urls(urls, platform=None):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
@@ -244,7 +246,6 @@ def get_channel_urls(platform=None):
 def canonical_channel_name(channel, hide=True):
     if channel is None:
         return '<unknown>'
-    channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
     if channel.startswith(channel_alias):
         end = channel.split(channel_alias, 1)[1]
         url = end.split('/')[0]
