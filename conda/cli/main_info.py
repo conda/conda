@@ -255,7 +255,7 @@ Current conda install:
             print("conda-%s: %s" % (cmd, find_executable(cmd)))
         print("user site dirs: ", end='')
         site_dirs = get_user_site()
-	if site_dirs: print(site_dirs[0])
+        if site_dirs: print(site_dirs[0])
         for site_dir in site_dirs[1:]:
             print('                %s' % site_dir)
         print()
