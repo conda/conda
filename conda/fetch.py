@@ -297,9 +297,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 log.debug("%s, trying again" % e)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
-            raise RuntimeError("Could not open %r for writing (%s).  "
-                               "Permissions problem or missing directory?" %
-                               (pp, e))
+            raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
         if size:
             getLogger('fetch.stop').info(None)
