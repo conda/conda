@@ -42,16 +42,17 @@ REM Deactivate a previous activation if it is live
 if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     REM This search/replace removes the previous env from the path
     echo Deactivating environment "%CONDA_DEFAULT_ENV%"...
-    set CONDACTIVATE_PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;
-    call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
+    set NEWPATH=
+    FOR /F "delims=" %%i IN ('conda ..deactivate') DO set NEWPATH=%%i
+    set PATH=%NEWPATH%
     set CONDA_DEFAULT_ENV=
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
 set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
-REM set CONDA_NEW_ENV=
+set CONDA_NEW_ENV=
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
 set NEWPATH=
-FOR /F "delims=" %%i IN ('conda ..activate %CONDA_NEW_ENV%') DO set NEWPATH=%%i
-set PATH=%NEWPATH%;%NEWPATH%\Scripts;%PATH%
+FOR /F "delims=" %%i IN ('conda ..activate %CONDA_DEFAULT_ENV%') DO set NEWPATH=%%i
+set PATH=%NEWPATH%
 set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
