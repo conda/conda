@@ -35,9 +35,13 @@ def prefix_from_arg(arg):
 
 
 def binpath_from_arg(arg):
-    path = join(prefix_from_arg(arg), 'bin')
-    if not isdir(path):
-        sys.exit("Error: no such directory: %s" % path)
+    if sys.platform == "win32":
+        path = [prefix_from_arg(arg)] + [join(prefix_from_arg(arg), 'Scripts')]
+    else:
+        path = [join(prefix_from_arg(arg), 'bin')]
+    for p in path:
+        if not isdir(p):
+            sys.exit("Error: no such directory: %s" % p)
     return path
 
 def main():
@@ -52,7 +56,7 @@ def main():
         else:
             sys.exit("Error: did not expect more than one argument")
 
-        paths = [binpath]
+        paths = binpath
         sys.stderr.write("prepending %s to PATH\n" % binpath)
 
     elif sys.argv[1] == '..deactivate':
@@ -82,10 +86,11 @@ def main():
         # deactivate is the same as activate root (except without setting
         # CONDA_DEFAULT_ENV or PS1). XXX: The user might want to put the root
         # env back somewhere in the middle of the PATH, not at the beginning.
-        if rootpath not in os.getenv('PATH').split(os.pathsep):
-            paths = [rootpath]
-        else:
-            paths = []
+        paths = []
+        for r in rootpath:
+            if r not in os.getenv('PATH').split(os.pathsep):
+                #paths = rootpath
+                paths.append(r)
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
@@ -96,7 +101,8 @@ def main():
         binpath = binpath_from_arg(sys.argv[2])
         # Make sure an env always has the conda symlink
         try:
-            conda.install.symlink_conda(join(binpath, '..'), conda.config.root_dir)
+            for b in binpath:
+                conda.install.symlink_conda(join(b, '..'), conda.config.root_dir)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
@@ -108,7 +114,7 @@ def main():
         raise ValueError("unexpected command")
 
     for path in os.getenv('PATH').split(os.pathsep):
-        if path != binpath:
+        if path not in binpath:
             paths.append(path)
     print(os.pathsep.join(paths))
 
