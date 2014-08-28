@@ -198,6 +198,15 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       license: BSD
       summary: binary diff and patch using the BSDIFF4-format
 
+    # If the app key is present, the package will be an app, meaning it will
+    # appear in the Anaconda launcher.
+    app:
+      # The command that is called to launch the app
+      entry: ipython notebook
+      # Icon file contained in the recipe
+      icon: icon_64x65.png
+      summary: Summary of the package
+
 
 Specifying versions in requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
