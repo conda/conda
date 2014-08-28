@@ -15,7 +15,9 @@
   * make binary has_prefix replacement work with spaces after the prefix
   * make binary has_prefix replacement replace multiple occurrences of the
     placeholder in the same null-terminated string
-
+  * don't show packages from other platforms as installed or cached in conda
+    search
+  * be more careful about not warning about conda itself in pscheck
 
 2014-08-20   3.6.2:
 -------------------
