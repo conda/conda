@@ -206,6 +206,9 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # Icon file contained in the recipe
       icon: icon_64x65.png
       summary: Summary of the package
+      # If own_environment is true, installing the app through the launcher
+      # will install into its own environment. The default is false.
+      own_environment: true
 
 
 Specifying versions in requirements
