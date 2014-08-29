@@ -490,7 +490,7 @@ class Resolve(object):
         if not solution:
             if guess:
                 stderrlog.info('\nError: Unsatisfiable package '
-                    'specifications.\nGenerating hint: ')
+                    'specifications.\nGenerating hint: \n')
                 if minimal_hint:
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
@@ -536,7 +536,7 @@ class Resolve(object):
     def minimal_unsatisfiable_subset(self, clauses, v, w):
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
-        stderrlog.info('\n')
+
         L = len(clauses)
         logging.getLogger('progress.start').info(L)
         while True:
@@ -557,16 +557,28 @@ class Resolve(object):
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        # Don't show the dots in normal mode but do show the dotlog messages
+        # with --debug
+        dotlog.setLevel(logging.WARN)
         hint = []
         # Try to find the largest satisfiable subset
         found = False
         if len(specs) > 10:
-            stderrlog.info("\nWARNING: This could take a while. Type Ctrl-C to exit.\n")
+            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
         for i in range(len(specs), 0, -1):
             if found:
+                logging.getLogger('progress.stop').info(None)
                 break
-            for comb in combinations(specs, i):
+
+            # Too lazy to compute closed form expression
+            ncombs = len(list(combinations(specs, i)))
+            logging.getLogger('progress.start').info(ncombs)
+            for j, comb in enumerate(combinations(specs, i), 1):
                 try:
+                    logging.getLogger('progress.update').info(('%s/%s' % (j,
+                        ncombs), j))
                     self.solve2(comb, features, guess=False, unsat_only=True)
                 except RuntimeError:
                     pass
