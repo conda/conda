@@ -552,6 +552,8 @@ class Resolve(object):
         hint = []
         # Try to find the largest satisfiable subset
         found = False
+        if len(specs) > 10:
+            stderrlog.info("\nWARNING: This could take a while. Type Ctrl-C to exit.\n")
         for i in range(len(specs), 0, -1):
             if found:
                 break
