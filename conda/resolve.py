@@ -534,13 +534,21 @@ class Resolve(object):
 
 
     def minimal_unsatisfiable_subset(self, clauses, v, w):
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        stderrlog.info('\n')
+        L = len(clauses)
+        logging.getLogger('progress.start').info(L)
         while True:
             for i in combinations(clauses, len(clauses) - 1):
+                d = L - len(clauses)
                 if not sat(list(i)):
-                    dotlog.debug('Finding minimal unsatisfiable subset')
+                    # dotlog.debug('Finding minimal unsatisfiable subset')
+                    logging.getLogger('progress.update').info(('%s/%s' % (d, L), d))
                     clauses = i
                     break
             else:
+                logging.getLogger('progress.stop').info(None)
                 break
 
         import pprint
