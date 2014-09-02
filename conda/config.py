@@ -188,7 +188,6 @@ def is_url(url):
 def binstar_channel_alias(channel_alias):
     if rc.get('add_binstar_token', ADD_BINSTAR_TOKEN):
         try:
-            print("Getting binstar tokens")
             from binstar_client.utils import get_binstar
             bs = get_binstar()
             channel_alias = bs.domain.replace("api", "conda")
