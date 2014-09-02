@@ -132,7 +132,7 @@ def execute(args, parser):
                                   ', '.join(common.root_no_rm),
                                   json=args.json,
                                   error_type="CantRemoveFromRoot")
-        actions = plan.remove_actions(prefix, specs, pinned=args.pinned)
+        actions = plan.remove_actions(prefix, specs, index=index, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
         if args.all:
