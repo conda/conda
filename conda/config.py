@@ -247,6 +247,7 @@ def get_channel_urls(platform=None):
     return normalize_urls(base_urls, platform=platform)
 
 def canonical_channel_name(channel, hide=True):
+    channel = remove_binstar_tokens(channel)
     if channel is None:
         return '<unknown>'
     if channel.startswith(channel_alias):
