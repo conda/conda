@@ -58,6 +58,8 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
                           # version in quotes, so that it will be interpreted
                           # as a string.
 
+                          # The version cannot contain a dash '-' character.
+
     source:
       # The source section specifies where the source code of the package is coming
       # from, it may be coming from a source tarball like:
@@ -96,6 +98,7 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # The build number should be incremented for new builds of the same version
       number: 1       # (defaults to 0)
       string: abc     # (defaults to default conda build string plus the build number)
+                      # The build string cannot contain a dash '-' character
 
       # Optional Python entry points
       entry_points:
