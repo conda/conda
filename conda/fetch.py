@@ -16,6 +16,7 @@ from logging import getLogger
 from os.path import basename, dirname, isdir, join
 import sys
 import getpass
+import warnings
 
 from conda import config
 from conda.utils import memoized
@@ -54,6 +55,14 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
 
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     dotlog.debug("fetching repodata: %s ..." % url)
+
+    if not config.ssl_verify:
+        try:
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+        except ImportError:
+            pass
+        else:
+            warnings.simplefilter('ignore', InsecureRequestWarning)
 
     session = session or CondaSession()
 
@@ -233,6 +242,14 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
     pp = dst_path + '.part'
     dst_dir = dirname(dst_path)
     session = session or CondaSession()
+
+    if not config.ssl_verify:
+        try:
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+        except ImportError:
+            pass
+        else:
+            warnings.simplefilter('ignore', InsecureRequestWarning)
 
     if retries is None:
         retries = RETRIES
