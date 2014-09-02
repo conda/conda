@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -17,8 +17,12 @@ from tests.helpers import run_conda_command
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
 
-# unset CIO_TEST
+def _get_default_urls():
+    return ['http://repo.continuum.io/pkgs/free',
+            'http://repo.continuum.io/pkgs/pro']
+config.get_default_urls = _get_default_urls
 
+# unset CIO_TEST
 try:
     del os.environ['CIO_TEST']
 except KeyError:

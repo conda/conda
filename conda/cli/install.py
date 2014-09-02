@@ -185,6 +185,8 @@ def install(args, parser, command='install'):
         linked = ci.linked(prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
+            if name in getattr(args, '_skip', []):
+                continue
             if name == 'python' and ver.startswith('2'):
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
@@ -201,16 +203,17 @@ def install(args, parser, command='install'):
         from conda.fetch import fetch_index
         from conda.utils import url_path
         try:
-            from conda_build import config as build_config
+            from conda_build.config import croot
         except ImportError:
-            common.error_and_exit("you need to have 'conda-build' installed"
+            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
                                   " to use the --use-local option",
                                   json=args.json,
                                   error_type="RuntimeError")
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap([url_path(build_config.croot)],
+        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
                                       json=args.json)
@@ -218,8 +221,7 @@ def install(args, parser, command='install'):
         index = common.get_index_trap(channel_urls=channel_urls, prepend=not
                                       args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
-                                      json=args.json)
+                                      unknown=args.unknown, json=args.json)
 
     # Don't update packages that are already up-to-date
     if command == 'update' and not args.all:
@@ -315,6 +317,18 @@ environment does not exist: %s
     except NoPackagesFound as e:
         error_message = e.args[0]
 
+        if command == 'update' and args.all:
+            # Packages not found here just means they were installed but
+            # cannot be found any more. Just skip them.
+            if not args.json:
+                print("Warning: %s, skipping" % error_message)
+            else:
+                # Not sure what to do here
+                pass
+            args._skip = getattr(args, '_skip', [])
+            args._skip.extend([i.split()[0] for i in e.pkgs])
+            install(args, parser, command=command)
+
         packages = {index[fn]['name'] for fn in index}
 
         for pkg in e.pkgs:
@@ -395,6 +409,6 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True, minima
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        return plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
     finally:
         ci.rm_rf(prefix)

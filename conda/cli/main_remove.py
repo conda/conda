@@ -53,6 +53,7 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     common.add_parser_use_index_cache(p)
+    common.add_parser_use_local(p)
     p.add_argument(
         "--force-pscheck",
         action = "store_true",
@@ -87,10 +88,28 @@ def execute(args, parser):
     common.check_write('remove', prefix, json=args.json)
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
-    index = common.get_index_trap(channel_urls=channel_urls,
-                                  use_cache=args.use_index_cache,
-                                  prepend=not args.override_channels,
-                                  json=args.json)
+    if args.use_local:
+        from conda.fetch import fetch_index
+        from conda.utils import url_path
+        try:
+            from conda_build.config import croot
+        except ImportError:
+            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
+                                  " to use the --use-local option",
+                                  json=args.json,
+                                  error_type="RuntimeError")
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
+                                      prepend=not args.override_channels,
+                                      use_cache=args.use_index_cache,
+                                      json=args.json)
+    else:
+        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
+                                      args.override_channels,
+                                      use_cache=args.use_index_cache,
+                                      json=args.json)
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
@@ -113,7 +132,7 @@ def execute(args, parser):
                                   ', '.join(common.root_no_rm),
                                   json=args.json,
                                   error_type="CantRemoveFromRoot")
-        actions = plan.remove_actions(prefix, specs, pinned=args.pinned)
+        actions = plan.remove_actions(prefix, specs, index=index, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
         if args.all:

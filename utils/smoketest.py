@@ -82,8 +82,7 @@ if __name__ == '__main__':
 
     TESTLOG = 'conda-testlog.txt'
 
-    if len(sys.argv) > 1:
-        options = True
+    options = True if len(sys.argv) > 1 else False
 
     if options and 'new' in sys.argv:
         if exists(TESTLOG):

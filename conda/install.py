@@ -37,6 +37,7 @@ import subprocess
 import tarfile
 import traceback
 import logging
+import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -184,6 +185,7 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
+
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
@@ -193,7 +195,8 @@ def read_has_prefix(path):
     try:
         for line in yield_lines(path):
             try:
-                placeholder, mode, f = line.split(None, 2)
+                placeholder, mode, f = [x.strip('"\'') for x in
+                                        shlex.split(line, posix=False)]
                 res[f] = (placeholder, mode)
             except ValueError:
                 res[line] = (prefix_placeholder, 'text')
@@ -207,17 +210,18 @@ class PaddingError(Exception):
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
-    replaced with `b` and the remaining string is padded with zeros.
+    replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
     import re
 
     def replace(match):
-        padding = len(match.group()) - len(b) - len(match.group(1))
-        if padding < 1:
-            raise PaddingError
-        return b + match.group(1) + b'\0' * padding
-    pat = re.compile(re.escape(a) + b'([^\0\\s]*?)\0')
+        occurances = match.group().count(a)
+        padding = (len(a) - len(b))*occurances
+        if padding < 0:
+            raise PaddingError(a, b, padding)
+        return match.group().replace(a, b) + b'\0' * padding
+    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
     res = pat.sub(replace, data)
     assert len(res) == len(data)
     return res
@@ -231,6 +235,10 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
         new_data = data.replace(placeholder.encode('utf-8'),
                                 new_prefix.encode('utf-8'))
     elif mode == 'binary':
+        if on_win and '/' in placeholder:
+            # windows binary contains prefix with unix-style path separators
+            # replace with unix-style path separators
+            new_prefix = new_prefix.replace('\\', '/')
         new_data = binary_replace(data, placeholder.encode('utf-8'),
                                   new_prefix.encode('utf-8'))
     else:
