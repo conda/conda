@@ -154,7 +154,7 @@ def app_uninstall(fn, prefix=config.root_dir):
         raise ValueError("Cannot remove %s from the root environment" %
                          ', '.join(common.root_no_rm))
 
-    actions = plan.remove_actions(prefix, specs)
+    actions = plan.remove_actions(prefix, specs, index=index)
 
     if plan.nothing_to_do(actions):
         raise ValueError("Nothing to do")

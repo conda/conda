@@ -1,7 +1,34 @@
-.....
+...
+-------------------
+  * skip packages that can't be found with update --all
+  * add --use-local to search and remove
+  * allow --use-local to be used along with -c (--channels) and
+    --override-channels. --override-channels now requires either -c or
+    --use-local
+  * allow paths in has_prefix to be quoted, to allow for spaces in paths on
+    Windows
+  * retain Unix style path separators for binary prefixes in has_prefix on
+    Windows (if the placeholder path uses /, replace it with a path that uses
+    /, not \)
+  * fix bug in --use-local due to API changes in conda-build
+  * include user site directories in conda info -s
+  * make binary has_prefix replacement work with spaces after the prefix
+  * make binary has_prefix replacement replace multiple occurrences of the
+    placeholder in the same null-terminated string
+  * don't show packages from other platforms as installed or cached in conda
+    search
+  * be more careful about not warning about conda itself in pscheck
+
+2014-08-20   3.6.2:
 -------------------
   * add --use-index-cache to conda remove
   * fix a bug where features (like mkl) would be selected incorrectly
+  * use concurrent.future.ThreadPool to fetch package metadata asynchronously
+    in Python 3.
+  * do the retries in rm_rf on every platform
+  * use a higher cutoff for package name misspellings
+  * allow changing default channels in "system" .condarc
+
 
 2014-08-13   3.6.1:
 -------------------

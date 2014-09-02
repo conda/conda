@@ -40,7 +40,7 @@ def check_processes(verbose=True):
         try:
             if abspath(p.exe()).startswith(root_dir):
                 processcmd = ' '.join(p.cmdline())
-                if processcmd.startswith('conda '):
+                if 'conda ' in processcmd:
                     continue
                 if verbose:
                     print("WARNING: the process %s (%d) is running" %

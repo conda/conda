@@ -122,12 +122,7 @@ def add_parser_install(p):
         help = "create prefix directory if necessary",
     )
     add_parser_use_index_cache(p)
-    p.add_argument(
-        "--use-local",
-        action="store_true",
-        default=False,
-        help = "use locally built packages",
-    )
+    add_parser_use_local(p)
     add_parser_no_pin(p)
     add_parser_channels(p)
     add_parser_prefix(p)
@@ -145,6 +140,14 @@ def add_parser_install(p):
         help = "package versions to install into conda environment",
     )
 
+def add_parser_use_local(p):
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        help = "use locally built packages",
+    )
+
 
 def add_parser_no_pin(p):
     p.add_argument(
@@ -156,12 +159,12 @@ def add_parser_no_pin(p):
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
-    if args.override_channels and not args.channel:
+    if args.override_channels and not (args.channel or args.use_local):
         if dashc:
-            error_and_exit('--override-channels requires -c/--channel', json=json,
+            error_and_exit('--override-channels requires -c/--channel or --use-local', json=json,
                            error_type="ValueError")
         else:
-            error_and_exit('--override-channels requires --channel', json=json,
+            error_and_exit('--override-channels requires --channel or --use-local', json=json,
                            error_type="ValueError")
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):

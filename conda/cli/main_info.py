@@ -8,7 +8,9 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
-from os.path import isfile
+import os
+from os import listdir
+from os.path import isfile, exists, expanduser, join
 from collections import defaultdict
 
 from conda.cli import common
@@ -67,13 +69,31 @@ def show_pkg_info(name):
                     pkg.build,
                     common.disp_features(r.features(pkg.fn))))
     else:
-        print('    not available on channels')
+        print('    not available')
     # TODO
+
+python_re = re.compile('python\d\.\d')
+
+def get_user_site():
+    site_dirs = []
+    if sys.platform != 'win32':
+        if exists(expanduser('~/.local/lib')):
+            for path in listdir(expanduser('~/.local/lib/')):
+                if python_re.match(path):
+                    site_dirs.append("~/.local/lib/%s" % path)
+    else:
+        if 'APPDATA' not in os.environ:
+            return site_dirs
+        APPDATA = os.environ['APPDATA']
+        if exists(join(APPDATA, 'Python')):
+            site_dirs = [join(APPDATA, 'Python', i) for i in
+                listdir(join(APPDATA, 'PYTHON'))]
+    return site_dirs
 
 
 def execute(args, parser):
     import os
-    from os.path import basename, dirname, isdir, join
+    from os.path import basename, dirname
 
     import conda
     import conda.config as config
@@ -232,6 +252,14 @@ Current conda install:
         print("conda location: %s" % dirname(conda.__file__))
         for cmd in sorted(set(find_commands() + ['build'])):
             print("conda-%s: %s" % (cmd, find_executable(cmd)))
+        print("user site dirs: ", end='')
+        site_dirs = get_user_site()
+        if site_dirs:
+            print(site_dirs[0])
+        else:
+            print()
+        for site_dir in site_dirs[1:]:
+            print('                %s' % site_dir)
         print()
 
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
