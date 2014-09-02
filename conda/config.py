@@ -198,11 +198,14 @@ def binstar_channel_alias(channel_alias):
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-]{4,})' %
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
     (re.escape(channel_alias)))
 
 def hide_binstar_tokens(url):
-    return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>', url)
+    return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
+
+def remove_binstar_tokens(url):
+    return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
 def normalize_urls(urls, platform=None):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',

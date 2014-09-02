@@ -511,11 +511,24 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
 
+        # Make sure the script stays standalone for the installer
+        try:
+            from conda.config import remove_binstar_tokens
+        except ImportError:
+            # There won't be any binstar tokens in the installer anyway
+            def remove_binstar_tokens(url):
+                return url
+
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(pkgs_dir, dist)
+        if meta_dict['url']:
+            meta_dict['url'] = remove_binstar_tokens(meta_dict['url'])
         meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,
                              'type': link_name_map.get(linktype)}
+        if 'channel' in meta_dict:
+            meta_dict['channel'] = remove_binstar_tokens(meta_dict['channel'])
+
         create_meta(prefix, dist, info_dir, meta_dict)
 
 def unlink(prefix, dist):
