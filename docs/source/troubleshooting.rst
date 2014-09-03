@@ -112,3 +112,18 @@ This is a bug in the OS X Terminal app that only shows up in certain locales
 uncheck the box "Set locale environment variables on startup".
 
 .. image:: locale.jpg
+
+This will set your ``LANG`` environment variable to be empty. This may cause
+terminal to incorrect settings for your locale. The ``locale`` command in the
+Terminal will tell you what settings are used.  To use the correct language,
+add a line
+
+.. code-block:: bash
+
+   export LANG=your-lang
+
+Replace ``your-lang`` with the correct locale specifier for your language. The
+command ``locale -a`` will show you all the specifiers. For example, the
+language code for US English is ``en_US.UTF-8``. The locale affects what
+translations are used when they are available, and also how dates,
+currencies, and decimals are formatted.
