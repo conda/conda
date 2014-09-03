@@ -100,3 +100,15 @@ The fix is to use the ``./bin/conda`` executable in the conda git repository
 to force reinstall conda, i.e., run ``./bin/conda install -f conda``.  You can
 then verify with ``conda info`` that you have the latest version of conda, and
 not a git checkout (the version should not include any hashes).
+
+Issue: ``ValueError unknown locale: UTF-8`` on Mac OS X
+=======================================================
+
+Uncheck "set locale environment variables on startup" setting in Terminal settings
+----------------------------------------------------------------------------------
+
+This is a bug in the OS X Terminal app that only shows up in certain locales
+(country/language combinations). Open Terminal in /Applications/Utilities and
+uncheck the box "Set locale environment variables on startup".
+
+.. image:: locale.jpg
