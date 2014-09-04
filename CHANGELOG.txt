@@ -7,7 +7,7 @@
     --use-local
   * allow paths in has_prefix to be quoted, to allow for spaces in paths on
     Windows
-  * retain Unix style path separators for binary prefixes in has_prefix on
+  * retain Unix style path separators for prefixes in has_prefix on
     Windows (if the placeholder path uses /, replace it with a path that uses
     /, not \)
   * fix bug in --use-local due to API changes in conda-build
