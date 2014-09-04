@@ -1,4 +1,4 @@
-2014-09-XX   3.6.3:
+2014-09-04   3.6.3:
 -------------------
   * skip packages that can't be found with update --all
   * add --use-local to search and remove
@@ -23,7 +23,6 @@
   * Ignore InsecureRequestWarning when ssl_verify is False
   * conda remove removes features tracked by removed packages in
     track_features
-
 
 
 2014-08-20   3.6.2:
