@@ -18,6 +18,12 @@
   * don't show packages from other platforms as installed or cached in conda
     search
   * be more careful about not warning about conda itself in pscheck
+  * Use a progress bar for the unsatisfiable packages hint generation
+  * Don't use TemporaryFile in try_write, as it is too slow when it fails
+  * Ignore InsecureRequestWarning when ssl_verify is False
+  * conda remove removes features tracked by removed packages in
+    track_features
+
 
 2014-08-20   3.6.2:
 -------------------
