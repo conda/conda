@@ -532,6 +532,13 @@ class Resolve(object):
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
 
+    @staticmethod
+    def clause_pkg_name(i, w):
+        if i > 0:
+            ret = w[i]
+        else:
+            ret = 'not ' + w[-i]
+        return ret.rsplit('.tar.bz2', 1)[0]
 
     def minimal_unsatisfiable_subset(self, clauses, v, w):
         from conda.console import setup_verbose_handlers
@@ -551,9 +558,14 @@ class Resolve(object):
                 logging.getLogger('progress.stop').info(None)
                 break
 
-        import pprint
-        return "The following set of clauses is unsatisfiable\n%s" % \
-            pprint.pformat([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in clauses])
+        pretty_clauses = []
+        for clause in clauses:
+            if clause[0] < 0 and len(clause) > 1:
+                pretty_clauses.append('%s => %s' %
+                    (self.clause_pkg_name(-clause[0], w), ' and '.join([self.clause_pkg_name(j, w) for j in clause[1:]])))
+            else:
+                pretty_clauses.append(' and '.join([self.clause_pkg_name(j, w) for j in clause]))
+        return "The following set of clauses is unsatisfiable\n%s" % '\n'.join(pretty_clauses)
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
