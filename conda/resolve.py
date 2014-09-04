@@ -553,7 +553,7 @@ class Resolve(object):
 
         import pprint
         return "The following set of clauses is unsatisfiable\n%s" % \
-            pprint.pformat([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
+            pprint.pformat([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in clauses])
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
