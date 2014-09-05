@@ -457,7 +457,7 @@ def remove_actions(prefix, specs, index=None, pinned=True):
                 raise RuntimeError("Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
 
             actions[UNLINK].append(dist)
-            if r and r.track_features(fn):
+            if r and fn in index and r.track_features(fn):
                 features_actions = remove_features_actions(prefix, index, r.track_features(fn))
                 for action in features_actions:
                     if isinstance(actions[action], list):
