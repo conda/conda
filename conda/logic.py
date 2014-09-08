@@ -27,7 +27,7 @@ being used will only be used in the positive or the negative, respectively
 import sys
 from collections import defaultdict
 from functools import total_ordering, partial
-from itertools import islice, chain
+from itertools import islice, chain, combinations
 import logging
 
 from conda.compat import log2, ceil
@@ -610,3 +610,42 @@ def sat(clauses):
     if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
         return []
     return solution
+
+def minimal_unsatisfiable_subset(clauses, log=False):
+    """
+    Given a set of clauses, find a minimal unsatisfiable subset (an
+    unsatisfiable core)
+
+    A set is a minimal unsatisfiable subset if no proper subset is
+    unsatisfiable.  A set of clauses may have many minimal unsatisfiable
+    subsets of different sizes.
+
+    If log=True, progress bars will be displayed with the progress.
+    """
+    if log:
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        start = lambda x: logging.getLogger('progress.start').info(x)
+        update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
+        stop = lambda: logging.getLogger('progress.stop').info(None)
+    else:
+        start = lambda x: None
+        update = lambda x, y: None
+        stop = lambda: None
+
+    L = len(clauses)
+    start(L)
+
+    while True:
+        for i in combinations(clauses, len(clauses) - 1):
+            d = L - len(clauses)
+            if not sat(list(i)):
+                # dotlog.debug('Finding minimal unsatisfiable subset')
+                update(d, L)
+                clauses = i
+                break
+        else:
+            stop()
+            break
+
+    return clauses
