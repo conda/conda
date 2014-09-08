@@ -550,7 +550,7 @@ class Resolve(object):
                     (self.clause_pkg_name(-clause[0], w), ' or '.join([self.clause_pkg_name(j, w) for j in clause[1:]])))
             else:
                 pretty_clauses.append(' or '.join([self.clause_pkg_name(j, w) for j in clause]))
-        return "The following set of clauses is unsatisfiable\n%s" % '\n'.join(pretty_clauses)
+        return "The following set of clauses is unsatisfiable:\n\n%s" % '\n'.join(pretty_clauses)
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
