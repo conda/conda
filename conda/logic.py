@@ -662,7 +662,7 @@ def minimal_unsatisfiable_subset(clauses):
         # Base case: Since clauses + include is implicitly assumed to be
         # unsatisfiable, if clauses has only one element, it must be its own
         # minimal subset
-        assert not sat(clauses + include), (len(clauses), len(include))
+        # assert not sat(clauses + include), (len(clauses), len(include))
         if len(clauses) == 1:
             return clauses
 
