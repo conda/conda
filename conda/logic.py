@@ -634,6 +634,47 @@ def minimal_unsatisfiable_subset(clauses, log=False):
         stop = lambda: None
 
     L = len(clauses)
+
+    import random
+    print(L)
+    random.seed(1003)
+
+    clauses = sorted(clauses)
+    TRIES = 1000
+    k = L//2
+    found = False
+    ntry = 1
+    # Find a satisfiable subset
+    while not found:
+        subset = random.sample(clauses, k)
+        if sat(list(subset)):
+            if ntry > TRIES:
+                found = True
+                break
+            else:
+                ntry += 1
+        else:
+            # The subset is unsatisfiable. Use it instead
+            clauses = subset
+            L = len(clauses)
+            print(L)
+            k = L//2
+            ntry = 1
+
+    # Find a subset of clauses that is a superset of our subset and is
+    # unsatisfiable. It should ideally be small, but won't necessarily be minimal
+
+    S = list(subset)
+    start(len(set(clauses) - set(subset)))
+    for i, clause in enumerate(set(clauses) - set(subset)):
+        update(i, L)
+        S.append(clause)
+        if not sat(S):
+            break
+    stop()
+
+    clauses = S
+    L = len(clauses)
     start(L)
 
     while True:
