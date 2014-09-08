@@ -609,6 +609,8 @@ def sat(clauses):
     solution = pycosat.solve(clauses)
     if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
         return []
+    # XXX: If solution == [] (i.e., clauses == []), the result will have
+    # boolean value of False even though the clauses are not unsatisfiable)
     return solution
 
 def minimal_unsatisfiable_subset(clauses):
