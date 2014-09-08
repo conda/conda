@@ -1,9 +1,10 @@
 import pycosat
 
-from itertools import product, chain
+from itertools import product, chain, permutations
 
 from conda.compat import log2, ceil
-from conda.logic import Linear, Clauses, true, false, sat, min_sat
+from conda.logic import (Linear, Clauses, true, false, sat, min_sat,
+    minimal_unsatisfiable_subset)
 
 from tests.helpers import raises
 
@@ -804,3 +805,25 @@ def test_min_sat():
             [1, -2, 3, -4],
             ]
         assert min_sat([[1], [-1]], alg=alg) == []
+
+def test_minimal_unsatisfiable_subset():
+    assert raises(ValueError, lambda: minimal_unsatisfiable_subset([[1]]))
+
+    clauses = [[-10], [1], [5], [2, 3], [3, 4], [5, 2], [-7], [2], [3], [-2,
+        -3, 5], [7, 8, 9, 10], [-8], [-9]]
+    res = minimal_unsatisfiable_subset(clauses)
+    assert sorted(res) == [[-10], [-9], [-8], [-7], [7, 8, 9, 10]]
+    assert not sat(res)
+
+
+    clauses = [[1, 3], [2, 3], [-1], [4], [3], [-3]]
+    for perm in permutations(clauses):
+        res = minimal_unsatisfiable_subset(clauses)
+        assert sorted(res) == [[-3], [3]]
+        assert not sat(res)
+
+    clauses = [[1], [-1], [2], [-2], [3, 4], [4]]
+    for perm in permutations(clauses):
+        res = minimal_unsatisfiable_subset(perm)
+        assert sorted(res) in [[[-1], [1]], [[-2], [2]]]
+        assert not sat(res)

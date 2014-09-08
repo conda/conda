@@ -611,7 +611,7 @@ def sat(clauses):
         return []
     return solution
 
-def minimal_unsatisfiable_subset(clauses, log=False):
+def minimal_unsatisfiable_subset(clauses):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
@@ -619,74 +619,65 @@ def minimal_unsatisfiable_subset(clauses, log=False):
     A set is a minimal unsatisfiable subset if no proper subset is
     unsatisfiable.  A set of clauses may have many minimal unsatisfiable
     subsets of different sizes.
-
-    If log=True, progress bars will be displayed with the progress.
     """
-    if log:
-        from conda.console import setup_verbose_handlers
-        setup_verbose_handlers()
-        start = lambda x: logging.getLogger('progress.start').info(x)
-        update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
-        stop = lambda: logging.getLogger('progress.stop').info(None)
-    else:
-        start = lambda x: None
-        update = lambda x, y: None
-        stop = lambda: None
 
-    L = len(clauses)
+    clauses = tuple(clauses)
+    if sat(clauses):
+        raise ValueError("Clauses are not unsatisfiable")
 
-    import random
-    print(L)
-    random.seed(1003)
+    # Algorithm suggested from
+    # http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
+    # search on the clauses by splitting them in halves A and B. If A or B is
+    # UNSAT, we use that and repeat. Otherwise, we recursively check A, but
+    # each time we do a sat query, we include B, until we have a minimal
+    # subset A* of A such that A* U B is UNSAT. Then we find a minimal subset
+    # B* of B such that A* U B* is UNSAT. Then A* U B* will be a minimal
+    # unsatisfiable subset of the original set of clauses.
 
-    clauses = sorted(clauses)
-    TRIES = 1000
-    k = L//2
-    found = False
-    ntry = 1
-    # Find a satisfiable subset
-    while not found:
-        subset = random.sample(clauses, k)
-        if sat(list(subset)):
-            if ntry > TRIES:
-                found = True
-                break
-            else:
-                ntry += 1
-        else:
-            # The subset is unsatisfiable. Use it instead
-            clauses = subset
-            L = len(clauses)
-            print(L)
-            k = L//2
-            ntry = 1
+    # Proof: If some proper subset C of A* U B* is UNSAT, then there is some
+    # clause c in A* U B* not in C. If c is in A*, then that means (A* - {c})
+    # U B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a
+    # superset, which contradicts A* being the minimal subset of A with such
+    # property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B*
+    # - {c} is a strict subset of B*, contradicting B* being the minimal
+    # subset of B with this property.
 
-    # Find a subset of clauses that is a superset of our subset and is
-    # unsatisfiable. It should ideally be small, but won't necessarily be minimal
+    def split(S):
+        """
+        Split S into two equal parts
+        """
+        S = tuple(S)
+        L = len(S)
+        return S[:L//2], S[L//2:]
 
-    S = list(subset)
-    start(len(set(clauses) - set(subset)))
-    for i, clause in enumerate(set(clauses) - set(subset)):
-        update(i, L)
-        S.append(clause)
-        if not sat(S):
-            break
-    stop()
+    def minimal_unsat(clauses, include=()):
+        """
+        Return a minimal subset A of clauses such that A + include is
+        unsatisfiable.
 
-    clauses = S
-    L = len(clauses)
-    start(L)
+        Implicitly assumes that clauses + include is unsatisfiable.
+        """
+        # Base case: Since clauses + include is implicitly assumed to be
+        # unsatisfiable, if clauses has only one element, it must be its own
+        # minimal subset
+        assert not sat(clauses + include), (len(clauses), len(include))
+        if len(clauses) == 1:
+            return clauses
 
-    while True:
-        for i in combinations(clauses, len(clauses) - 1):
-            d = L - len(clauses)
-            if not sat(list(i)):
-                # dotlog.debug('Finding minimal unsatisfiable subset')
-                update(d, L)
-                clauses = i
-                break
-        else:
-            stop()
-            break
+        A, B = split(clauses)
 
-    return clauses
+        # If one half is unsatisfiable (with include), we can discard the
+        # other half.
+        dotlog.debug("")
+        if not sat(A + include):
+            return minimal_unsat(A, include)
+        dotlog.debug("")
+        if not sat(B + include):
+            return minimal_unsat(B, include)
+
+        Astar = minimal_unsat(A, B + include)
+        Bstar = minimal_unsat(B, Astar + include)
+        return Astar + Bstar
+
+    ret = minimal_unsat(clauses)
+    return ret
