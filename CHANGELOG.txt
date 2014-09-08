@@ -1,3 +1,8 @@
+2014-.............:
+-------------------
+  * fix removing packages that aren't in the channels any more
+  * Pretties output for --alt-hint
+
 2014-09-04   3.6.3:
 -------------------
   * skip packages that can't be found with update --all
