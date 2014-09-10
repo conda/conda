@@ -328,18 +328,18 @@ environment does not exist: %s
             args._skip = getattr(args, '_skip', [])
             args._skip.extend([i.split()[0] for i in e.pkgs])
             install(args, parser, command=command)
+        else:
+            packages = {index[fn]['name'] for fn in index}
 
-        packages = {index[fn]['name'] for fn in index}
-
-        for pkg in e.pkgs:
-            close = get_close_matches(pkg, packages, cutoff=0.7)
-            if close:
-                error_message += "\n\nDid you mean one of these?\n    %s" % (', '.join(close))
-            error_message += '\n\nYou can search for this package on Binstar with'
-            error_message += '\n\n    binstar search -t conda %s' % pkg
-            error_message += '\n\nYou may need to install the Binstar command line client with'
-            error_message += '\n\n    conda install binstar'
-        common.error_and_exit(error_message, json=args.json)
+            for pkg in e.pkgs:
+                close = get_close_matches(pkg, packages, cutoff=0.7)
+                if close:
+                    error_message += "\n\nDid you mean one of these?\n    %s" % (', '.join(close))
+                error_message += '\n\nYou can search for this package on Binstar with'
+                error_message += '\n\n    binstar search -t conda %s' % pkg
+                error_message += '\n\nYou may need to install the Binstar command line client with'
+                error_message += '\n\n    conda install binstar'
+            common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
         error_type = 'UnsatisfiableSpecifications'
