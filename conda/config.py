@@ -79,6 +79,7 @@ rc_other = [
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
+
 def get_rc_path():
     path = os.getenv('CONDARC')
     if path == ' ':
@@ -104,6 +105,7 @@ def load_condarc(path):
     return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
+sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
 
 # ----- local directories -----
 
@@ -201,6 +203,8 @@ def binstar_channel_alias(channel_alias):
     return channel_alias
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
+    channel_alias = sys_rc['channel_alias']
 
 BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
     (re.escape(channel_alias)))
@@ -276,7 +280,6 @@ def canonical_channel_name(channel, hide=True):
 def get_allowed_channels():
     if not isfile(sys_rc_path):
         return None
-    sys_rc = load_condarc(sys_rc_path)
     if sys_rc.get('allow_other_channels', True):
         return None
     if 'channels' in sys_rc:
