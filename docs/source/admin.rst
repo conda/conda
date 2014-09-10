@@ -11,7 +11,7 @@ However, it is also possible to install conda (and packages) in an
 admin-controlled location that a group of users have access to. In this
 configuration, each user may use the central conda installation with a
 personalized configuration specified by a .condarc file located in their $HOME
-directory. This user configuration is governed by a "root" .condarc file
+directory. This user configuration is governed by a "system" .condarc file
 located in the top-level conda installation directory given by ``$PREFIX``
 (precisely, the path returned by ``sys.prefix``).
 
@@ -25,6 +25,9 @@ administrative ``.condarc`` file are allowed. If the user specifies other
 channels, they will be blocked and the user will receive a message explaining
 this.
 
+Additionally, if the system ``.condarc`` file specifies the ``channel_alias``,
+it will override any channel aliases set in users' ``.condarc`` files.
+
 To illustrate the usage and syntax, look at the following example. The first
 command shows you that the administrative ``.condarc`` file is located in the
 top-level conda installation directory. Here, the administrative ``.condarc``
@@ -37,6 +40,7 @@ channel is not explicitly specified)::
 
    $ more /tmp/miniconda/.condarc
    allow_other_channels : false
+   channel_alias: https://conda.binstar.org/
    channels:
      - admin
 
