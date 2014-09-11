@@ -495,7 +495,7 @@ class Resolve(object):
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
                 else:
-                    sys.exit(self.guess_bad_solve(specs, features))
+                    sys.exit(self.guess_bad_solve(specs, features, clauses, w))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if unsat_only:
@@ -552,35 +552,42 @@ class Resolve(object):
                 pretty_clauses.append(' or '.join([self.clause_pkg_name(j, w) for j in clause]))
         return "The following set of clauses is unsatisfiable:\n\n%s" % '\n'.join(pretty_clauses)
 
-    def guess_bad_solve(self, specs, features):
+    def guess_bad_solve(self, specs, features, clauses=None, w=None):
         # TODO: Check features as well
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
         # Don't show the dots in normal mode but do show the dotlog messages
         # with --debug
-        dotlog.setLevel(logging.WARN)
+        # dotlog.setLevel(logging.WARN)
         hint = []
         # Try to find the largest satisfiable subset
         found = False
+        try_removing = specs
         if len(specs) > 10:
             stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
-        for i in range(len(specs), 0, -1):
+            if clauses:
+                minimal_clauses = minimal_unsatisfiable_subset(clauses, log=True)
+                try_removing = [spec for spec in specs if
+                    any([MatchSpec(spec).match(w[abs(i)]) for clause in
+                        minimal_clauses for i in clause])]
+        for i in range(1, len(specs) + 1):
             if found:
-                logging.getLogger('progress.stop').info(None)
+                # logging.getLogger('progress.stop').info(None)
                 break
 
             # Too lazy to compute closed form expression
             ncombs = len(list(combinations(specs, i)))
-            logging.getLogger('progress.start').info(ncombs)
-            for j, comb in enumerate(combinations(specs, i), 1):
+            # logging.getLogger('progress.start').info(ncombs)
+            for j, comb in enumerate(combinations(try_removing, i), 1):
                 try:
-                    logging.getLogger('progress.update').info(('%s/%s' % (j,
-                        ncombs), j))
-                    self.solve2(comb, features, guess=False, unsat_only=True)
+                    # logging.getLogger('progress.update').info(('%s/%s' % (j,
+                    #     ncombs), j))
+                    dotlog.debug("Trying removing %s" % str(comb))
+                    self.solve2(set(specs) - set(comb), features, guess=False, unsat_only=True)
                 except RuntimeError:
                     pass
                 else:
-                    rem = set(specs) - set(comb)
+                    rem = set(comb)
                     rem.discard('conda')
                     if len(rem) == 1:
                         hint.append("%s" % rem.pop())
