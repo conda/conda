@@ -52,7 +52,7 @@ class BoolKey(object):
 class ListKey(object):
     def __contains__(self, other):
         # We can't check the elements of the list themselves
-        return True
+        return other in config.rc_list_keys
 
     def __iter__(self):
         for i in config.rc_list_keys:
