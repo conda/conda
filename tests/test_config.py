@@ -35,6 +35,9 @@ class TestConfig(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         config.rc = config.load_condarc(config.rc_path)
+        # Otherwise normalization tests will fail if the user is logged into
+        # binstar.
+        config.rc['add_binstar_token'] = False
         super(TestConfig, self).__init__(*args, **kwargs)
 
     def test_globals(self):
