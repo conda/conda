@@ -51,8 +51,10 @@ class BoolKey(object):
 
 class ListKey(object):
     def __contains__(self, other):
-        # We can't check the elements of the list themselves
-        return other in config.rc_list_keys
+        # We can't check the elements of the list themselves because argparse
+        # considers both parts (like conda config --add channels test would
+        # check both 'channels' and 'test')
+        return True
 
     def __iter__(self):
         for i in config.rc_list_keys:
@@ -244,19 +246,21 @@ channels:
 
     # Add
     for key, item in args.add:
-        try:
-            if item in rc_config.get(key, []):
-                # Right now, all list keys should not contain duplicates
-                message = "Skipping %s: %s, item already exists" % (key, item)
-                if not args.json:
-                    print(message, file=sys.stderr)
-                else:
-                    json_warnings.append(message)
-                continue
-        except TypeError:
-            common.error_and_exit("key must be one of %s, not %s" %
+        if key not in config.rc_list_keys:
+            common.error_and_exit("key must be one of %s, not %r" %
                                   (config.rc_list_keys, key), json=args.json,
                                   error_type="ValueError")
+        if not isinstance(rc_config.get(key, []), list):
+            raise CouldntParse("key %r should be a list, not %s." % (key,
+                rc_config[key].__class__.__name__))
+        if item in rc_config.get(key, []):
+            # Right now, all list keys should not contain duplicates
+            message = "Skipping %s: %s, item already exists" % (key, item)
+            if not args.json:
+                print(message, file=sys.stderr)
+            else:
+                json_warnings.append(message)
+            continue
         new_rc_config.setdefault(key, []).insert(0, item)
 
     # Set

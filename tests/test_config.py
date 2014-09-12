@@ -480,3 +480,32 @@ def test_config_command_bad_args():
             os.unlink(test_condarc)
         except OSError:
             pass
+
+def test_invalid_rc():
+    # Some tests for unexpected input in the condarc, like keys that are the
+    # wrong type
+    try:
+        condarc = """\
+channels:
+"""
+
+        with open(test_condarc, 'w') as f:
+            f.write(condarc)
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--add', 'channels', 'test')
+        assert stdout == ''
+        assert stderr == """\
+Error: Could not parse the yaml file. Use -f to use the
+yaml parser (this will remove any structure or comments from the existing
+.condarc file). Reason: key 'channels' should be a list, not NoneType.
+"""
+        assert _read_test_condarc() == condarc
+
+        os.unlink(test_condarc)
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
