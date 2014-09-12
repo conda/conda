@@ -6,7 +6,7 @@
 
 import os
 import unittest
-from os.path import dirname, join
+from os.path import dirname, join, exists
 import yaml
 
 import conda.config as config
@@ -452,6 +452,27 @@ def test_config_command_remove_force():
         assert stdout == ''
         assert stderr == "Error: key 'always_yes' is not in the config file\n"
         os.unlink(test_condarc)
+
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_command_bad_args():
+    try:
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+            'notarealkey', 'test')
+        assert stdout == ''
+
+        assert not exists(test_condarc)
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--set',
+            'notarealkey', 'yes')
+        assert stdout == ''
+
+        assert not exists(test_condarc)
 
     finally:
         try:
