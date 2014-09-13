@@ -89,18 +89,18 @@ if on_win:
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
 
-    def win_bat_redirect(src, dst):
+    def win_conda_bat_redirect(src, dst):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
 
-        Simply creates a `.bat` file at `dst` (overides dst's file suffix)
-        which calls `src` together with all command line arguments.
+        Simply creates a `.bat` file at `dst` which calls `src` together with
+        all command line arguments.
 
-        Works of course only with callable files, e.g. `.bat` files.
+        Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        dst = os.path.splitext(dst)[0] + '.bat'
+        dst = dst + '.bat'
         with open(dst, 'w') as f:
-            f.write('@echo off\ncall "%s" %*\n' % src)
+            f.write('@echo off\n"%s" %%*\n' % src)
 
 
 log = logging.getLogger(__name__)
@@ -361,7 +361,7 @@ def symlink_conda(prefix, root_dir):
     if on_win:
         where = 'Scripts'
         if on_win_xp:
-            symlink_fn = win_bat_redirect
+            symlink_fn = win_conda_bat_redirect
         else:
             symlink_fn = win_soft_link
     else:
