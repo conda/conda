@@ -38,6 +38,7 @@ import tarfile
 import traceback
 import logging
 import shlex
+import platform
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -54,6 +55,7 @@ except ImportError:
             pass
 
 on_win = bool(sys.platform == 'win32')
+on_win_xp = True #platform.release() == 'XP'
 
 if on_win:
     import ctypes
@@ -86,6 +88,19 @@ if on_win:
             raise OSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
+
+    def win_bat_redirect(src, dst):
+        """Special function for Windows XP where the `CreateSymbolicLink`
+        function is not available.
+
+        Simply creates a `.bat` file at `dst` (overides dst's file suffix)
+        which calls `src` together with all command line arguments.
+
+        Works of course only with callable files, e.g. `.bat` files.
+        """
+        dst = os.path.splitext(dst)[0] + '.bat'
+        with open(dst, 'w') as f:
+            f.write('@echo off\ncall "%s" %*\n' % src)
 
 
 log = logging.getLogger(__name__)
@@ -345,7 +360,10 @@ def read_no_link(info_dir):
 def symlink_conda(prefix, root_dir):
     if on_win:
         where = 'Scripts'
-        symlink_fn = win_soft_link
+        if on_win_xp:
+            symlink_fn = win_bat_redirect
+        else:
+            symlink_fn = win_soft_link
     else:
         where = 'bin'
         symlink_fn = os.symlink
