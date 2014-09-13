@@ -55,7 +55,7 @@ except ImportError:
             pass
 
 on_win = bool(sys.platform == 'win32')
-on_win_xp = True #platform.release() == 'XP'
+on_win_xp = platform.release() == 'XP'
 
 if on_win:
     import ctypes
