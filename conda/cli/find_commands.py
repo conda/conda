@@ -42,6 +42,8 @@ def find_commands():
         if not isdir(dir_path):
             continue
         for fn in os.listdir(dir_path):
+            if not isfile(join(dir_path, fn)):
+                continue
             m = pat.match(fn)
             if m:
                 res.add(m.group(1))
@@ -50,6 +52,9 @@ def find_commands():
 
 def filter_descr(cmd):
     args = [find_executable(cmd), '--help']
+    if not args[0]:
+        print('failed: %s (could not find executable)' % (cmd))
+        return
     try:
         output = subprocess.check_output(args)
     except (OSError, subprocess.CalledProcessError):
