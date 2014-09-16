@@ -186,8 +186,15 @@ In short:
 
     if (not main_init.is_initialized() and
         'init' not in sys.argv and 'info' not in sys.argv):
-        sys.exit("""Error: conda is not initialized yet, try: conda init
-# Note that initializing conda is not the recommended way for setting up your
+        if hasattr(args, 'name') and hasattr(args, 'prefix'):
+            import conda.config as config
+            if common.get_prefix(args) == config.root_dir:
+                sys.exit("""\
+Error: This installation of conda is not initialized. Use 'conda create -n
+envname' to create a conda environment and 'source activate envname' to
+activate it.
+
+# Note that pip installing conda is not the recommended way for setting up your
 # system.  The recommended way for setting up a conda system is by installing
 # Miniconda, see: http://repo.continuum.io/miniconda/index.html""")
 
