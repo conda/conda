@@ -219,8 +219,7 @@ Current conda install:
         if not is_initialized():
             print("""\
 # NOTE:
-#     root directory '%s' uninitalized,
-#     use 'conda init' to initialize.""" % config.root_dir)
+#     root directory '%s' is uninitialized""" % config.root_dir)
 
     del info_dict['channels_disp']
 
