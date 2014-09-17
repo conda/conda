@@ -1,3 +1,23 @@
+.....
+-------------------
+  * faster algorithm for --alt-hint
+  * don't allow channel_alias with allow_other_channels: false if it is set in
+    the system .condarc
+  * don't show long "no packages found" error with update --all
+  * automatically add the Binstar token to urls when the binstar client is
+    installed and logged in
+  * carefully avoid showing the binstar token or writing it to a file
+  * be more careful in conda config about keys that are the wrong type
+  * don't expect directories starting with conda- to be commands
+  * no longer recommend to run conda init after pip installing conda. A pip
+    installed conda will now work without being initialized to create and
+    manage other environments
+  * the rm function on Windows now works around access denied errors
+  * fix channel urls now showing with conda list with show_channel_urls set to
+    true
+  * fix AssertionError when using strict package metadata
+
+
 2014-09-08   3.6.4:
 -------------------
   * fix removing packages that aren't in the channels any more
