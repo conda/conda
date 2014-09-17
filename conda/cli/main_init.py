@@ -14,7 +14,7 @@ import conda.config as config
 
 
 descr = ("Initialize conda into a regular environment (when conda was "
-         "installed as a Python package, e.g. using pip).")
+         "installed as a Python package, e.g. using pip). (DEPRECATED)")
 
 
 def configure_parser(sub_parsers):
