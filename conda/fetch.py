@@ -112,6 +112,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             msg = ("Warning: you may need to login to binstar again with "
                 "'binstar login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
+            stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
         else:
             msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
