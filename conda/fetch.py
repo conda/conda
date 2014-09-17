@@ -104,7 +104,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 msg = ('Could not find Binstar user %s' %
                    config.remove_binstar_tokens(url).split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
-                msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+                msg = 'Could not find URL: %s' % config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS)
         elif e.response.status_code == 401 and config.binstar_channel_alias() in url:
             msg = ("UNAUTHORIZED (401): %s, you may need to login to binstar "
             "again with 'binstar login' (%s)") % (url, e)
