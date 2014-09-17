@@ -55,7 +55,9 @@ except ImportError:
 
 on_win = bool(sys.platform == 'win32')
 
-if on_win:
+if not on_win:
+    rmtree = shutil.rmtree
+else:
     import ctypes
     from ctypes import wintypes
 
@@ -75,6 +77,8 @@ if on_win:
     except AttributeError:
         CreateSymbolicLink = None
 
+    rmtree = lambda path: subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
+
     def win_hard_link(src, dst):
         "Equivalent to os.link, using the win32 CreateHardLink call."
         if not CreateHardLink(dst, src, None):
@@ -86,7 +90,6 @@ if on_win:
             raise OSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
-
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -152,14 +155,14 @@ def rm_rf(path, max_retries=5):
     elif isdir(path):
         for i in range(max_retries):
             try:
-                shutil.rmtree(path)
+                rmtree(path)
                 return
             except OSError as e:
                 log.debug("Unable to delete %s (%s): retrying after %s "
                           "seconds" % (path, e, i))
                 time.sleep(i)
         # Final time. pass exceptions to caller.
-        shutil.rmtree(path)
+        rmtree(path)
 
 def rm_empty_dir(path):
     """
