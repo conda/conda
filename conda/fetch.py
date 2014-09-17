@@ -109,8 +109,10 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
-            msg = ("UNAUTHORIZED (401): %s, you may need to login to binstar "
-            "again with 'binstar login' (%s)") % (config.hide_binstar_tokens(url), e)
+            msg = ("Warning: you may need to login to binstar again with "
+                "'binstar login' to access private packages(%s, %s)" %
+                (config.hide_binstar_tokens(url), e))
+            return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
         else:
             msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
         log.debug(msg)
