@@ -10,6 +10,7 @@ import re
 import sys
 import subprocess
 from os.path import isdir, isfile, join
+import logging
 
 import conda.install as install
 import conda.config as config
@@ -18,6 +19,7 @@ from conda.cli import common
 
 descr = "List linked packages in a conda environment."
 
+log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -137,7 +139,7 @@ def get_packages(installed, regex):
         yield dist
 
 
-def list_packages(installed, regex=None, format='human'):
+def list_packages(prefix, installed, regex=None, format='human'):
     res = 1
 
     result = []
@@ -159,7 +161,8 @@ def list_packages(installed, regex=None, format='human'):
             if config.show_channel_urls:
                 disp += '  %s' % config.canonical_channel_name(info.get('url'))
             result.append(disp)
-        except: # (IOError, KeyError, ValueError):
+        except (AttributeError, IOError, KeyError, ValueError) as e:
+            log.debug(str(e))
             result.append('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
 
     return res, result
@@ -185,7 +188,7 @@ Error: environment does not exist: %s
     if piplist and config.use_pip and format == 'human':
         add_pip_installed(prefix, installed, json=json)
 
-    exitcode, output = list_packages(installed, regex, format=format)
+    exitcode, output = list_packages(prefix, installed, regex, format=format)
     if not json:
         print('\n'.join(output))
     else:
