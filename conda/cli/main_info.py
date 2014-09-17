@@ -277,7 +277,7 @@ Current conda install:
             show_info()
         except ImportError:
             print("""\
-WARNING: could import _license.show_info
+WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
 
