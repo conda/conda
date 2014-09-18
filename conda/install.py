@@ -156,7 +156,7 @@ def rm_rf(path, max_retries=5):
                 return
             except OSError as e:
                 msg = "Unable to delete %s\n%s\n" % (path, e)
-                if on_win and e.args[0] == 5:
+                if on_win:
                     try:
                         def remove_readonly(func, path, excinfo):
                             os.chmod(path, stat.S_IWRITE)
