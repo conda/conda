@@ -290,9 +290,9 @@ def test_generate_eq():
     #   coefficients.
     # - the same versions of the same package (e.g., different build strings)
     #   should have the same coefficients.
-    # - a package that only has one version should not appear, as it will have
-    #   a 0 coefficient. The same is true of the latest version of a package.
-    # The actual order may be arbitrary, so we compare sets
+    # - a package that only has one version should not appear, unless
+    #   include=True as it will have a 0 coefficient. The same is true of the
+    #   latest version of a package.
     assert e == [
         (0, '_license-1.1-py27_0.tar.bz2'),
         (0, 'anaconda-1.5.0-np16py26_0.tar.bz2'),
