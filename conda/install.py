@@ -165,10 +165,7 @@ def rm_rf(path, max_retries=5):
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
-        if on_win and e.args[0] == 5:
-            subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
-        else:
-            shutil.rmtree(path)
+        shutil.rmtree(path)
 
 def rm_empty_dir(path):
     """
