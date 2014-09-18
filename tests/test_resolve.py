@@ -1143,32 +1143,3 @@ def test_no_features():
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
             ]][0]
-
-def test_mixed_strictness():
-    # Don't behave differently for strictness == 3 in the dependencies
-    index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = {
-        'build': '0',
-        'build_number': 0,
-        'depends': ['pandas 0.11.0 np17py33_1', 'python 3.3*', 'numpy 1.7*'],
-        'name': 'package1',
-        'version': '1.0',
-    }
-    r = Resolve(index2)
-
-    assert r.solve2(['package1'], set()) == [
-        'dateutil-2.1-py33_1.tar.bz2',
-        'numpy-1.7.1-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'package1-1.0-0.tar.bz2',
-        'pandas-0.11.0-np17py33_1.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'pytz-2013b-py33_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np17py33_0.tar.bz2',
-        'six-1.3.0-py33_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]

@@ -296,7 +296,8 @@ class Resolve(object):
                         continue
                     res[pkg2.fn] = pkg2
                     try:
-                        add_dependents(pkg2.fn, max_only=max_only)
+                        if ms.strictness < 3:
+                            add_dependents(pkg2.fn, max_only=max_only)
                     except NoPackagesFound as e:
                         for pkg in e.pkgs:
                             if pkg not in notfound:
