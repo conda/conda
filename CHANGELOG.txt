@@ -15,7 +15,6 @@
   * the rm function on Windows now works around access denied errors
   * fix channel urls now showing with conda list with show_channel_urls set to
     true
-  * fix AssertionError when using strict package metadata
 
 
 2014-09-08   3.6.4:
