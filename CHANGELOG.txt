@@ -1,4 +1,4 @@
-.....
+2014-09-XX   3.7.0:
 -------------------
   * faster algorithm for --alt-hint
   * don't allow channel_alias with allow_other_channels: false if it is set in
