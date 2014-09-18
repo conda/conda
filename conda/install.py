@@ -158,10 +158,19 @@ def rm_rf(path, max_retries=5):
                 msg = "Unable to delete %s\n%s\n" % (path, e)
                 if on_win and e.args[0] == 5:
                     try:
+                        def remove_readonly(func, path, excinfo):
+                            os.chmod(path, stat.S_IWRITE)
+                            func(path)
+                        shutil.rmtree(path, onerror=remove_readonly)
+                        return
+                    except OSError as e1:
+                        msg += "Retry with onerror failed (%s)\n" % e1
+
+                    try:
                         subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
                         return
-                    except subprocess.CalledProcessError as e1:
-                        msg += '%s\n' % e1
+                    except subprocess.CalledProcessError as e2:
+                        msg += '%s\n' % e2
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
