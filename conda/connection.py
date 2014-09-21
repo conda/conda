@@ -101,7 +101,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
             return resp
 
         key = bucket.get_key(key_string)
-        if key.exists:
+        if key and key.exists:
             modified = key.last_modified
             content_type = key.content_type or "text/plain"
             resp.headers = requests.structures.CaseInsensitiveDict({
@@ -110,7 +110,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
                 "Last-Modified": modified,
                 })
 
-            _, self._temp_file = tempfile.mkstemp('.json.bz2')
+            _, self._temp_file = tempfile.mkstemp()
             key.get_contents_to_filename(self._temp_file)
             f = open(self._temp_file, 'rb')
             resp.raw = f
