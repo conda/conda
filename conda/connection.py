@@ -15,10 +15,12 @@ import base64
 import ftplib
 import cgi
 from io import BytesIO
+import tempfile
 
 from conda.compat import urlparse, StringIO
 from conda.config import get_proxy_servers
 
+import boto
 import requests
 
 RETRIES = 3
@@ -70,6 +72,69 @@ class CondaSession(requests.Session):
 
         # Enable ftp:// urls
         self.mount("ftp://", FTPAdapter())
+
+        # Enable s3:// urls
+        self.mount("s3://", S3Adapter())
+
+
+class S3Adapter(requests.adapters.BaseAdapter):
+
+    def __init__(self):
+        super(S3Adapter, self).__init__()
+        self._temp_file = None
+
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
+             proxies=None):
+        conn = boto.connect_s3()
+
+        bucket_name, key_string = url_to_S3_info(request.url)
+
+        resp = requests.models.Response()
+        resp.status_code = 200
+        resp.url = request.url
+
+        try:
+            bucket = conn.get_bucket(bucket_name)
+        except boto.exception.S3ResponseError as exc:
+            resp.status_code = 404
+            resp.raw = exc
+            return resp
+
+        key = bucket.get_key(key_string)
+        if key.exists:
+            modified = key.last_modified
+            content_type = key.content_type or "text/plain"
+            resp.headers = requests.structures.CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": key.size,
+                "Last-Modified": modified,
+                })
+
+            _, self._temp_file = tempfile.mkstemp('.json.bz2')
+            key.get_contents_to_filename(self._temp_file)
+            f = open(self._temp_file, 'rb')
+            resp.raw = f
+            resp.close = resp.raw.close
+        else:
+            resp.status_code = 404
+
+        return resp
+
+    def close(self):
+        if self._temp_file:
+            os.remove(self._temp_file)
+
+
+def url_to_S3_info(url):
+    """
+    Convert a file: URL to a path.
+    """
+    assert url.startswith('s3:'), (
+        "You can only use s3: urls (not %r)" % url)
+    path = url[len('s3:'):].lstrip('/')
+    bucket, key = path.split('/', 1)
+    return bucket, key
+
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
