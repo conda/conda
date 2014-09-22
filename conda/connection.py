@@ -20,7 +20,6 @@ import tempfile
 from conda.compat import urlparse, StringIO
 from conda.config import get_proxy_servers
 
-import boto
 import requests
 
 RETRIES = 3
@@ -85,6 +84,8 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
+        import boto
+
         conn = boto.connect_s3()
 
         bucket_name, key_string = url_to_S3_info(request.url)
