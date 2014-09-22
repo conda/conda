@@ -84,15 +84,22 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
-        import boto
-
-        conn = boto.connect_s3()
-
-        bucket_name, key_string = url_to_S3_info(request.url)
 
         resp = requests.models.Response()
         resp.status_code = 200
         resp.url = request.url
+
+        try:
+            import boto
+        except ImportError:
+            print('boto is required for S3 channels. Please install it with')
+            print('\nconda install boto')
+            resp.status_code = 404
+            return resp
+
+        conn = boto.connect_s3()
+
+        bucket_name, key_string = url_to_S3_info(request.url)
 
         try:
             bucket = conn.get_bucket(bucket_name)
