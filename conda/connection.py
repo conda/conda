@@ -25,6 +25,7 @@ import requests
 RETRIES = 3
 
 log = getLogger(__name__)
+stderrlog = getLogger('stderrlog')
 
 # Modified from code in pip/download.py:
 
@@ -92,8 +93,8 @@ class S3Adapter(requests.adapters.BaseAdapter):
         try:
             import boto
         except ImportError:
-            print('boto is required for S3 channels. Please install it with')
-            print('\nconda install boto')
+            stderrlog.info('Error: boto is required for S3 channels.'
+                           'Please install it with: conda install boto')
             resp.status_code = 404
             return resp
 
