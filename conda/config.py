@@ -18,7 +18,7 @@ from conda.utils import try_write, memoized
 
 
 log = logging.getLogger(__name__)
-
+stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
 
@@ -200,6 +200,9 @@ def binstar_channel_alias(channel_alias):
         except ImportError:
             log.debug("Could not import binstar")
             pass
+        except Exception as e:
+            stderrlog.info("Warning: could not import binstar_client (%s)" %
+                e)
     return channel_alias
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
