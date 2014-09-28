@@ -17,7 +17,7 @@ must set ``distclass=distutils.command.bdist_conda.CondaDistribution`` in
 .. note::
 
    If you use ``setuptools``, you must import ``setuptools`` *before*
-   importing ``distutils.commands.bdist_conda``, as ``setuptools``
+   importing ``distutils.command.bdist_conda``, as ``setuptools``
    monkeypatches ``distutils.dist.Distribution``.
 
 Notes
