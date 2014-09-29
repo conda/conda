@@ -327,7 +327,7 @@ environment does not exist: %s
                 pass
             args._skip = getattr(args, '_skip', [])
             args._skip.extend([i.split()[0] for i in e.pkgs])
-            install(args, parser, command=command)
+            return install(args, parser, command=command)
         else:
             packages = {index[fn]['name'] for fn in index}
 
