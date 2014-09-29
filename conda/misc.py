@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
+import shlex
 import shutil
 import subprocess
 from collections import defaultdict
@@ -259,7 +260,7 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     else:
         cmd = join(binpath, cmd)
 
-    args = [cmd]
+    args = shlex.split(cmd)
     if additional_args:
         args.extend(additional_args)
 
