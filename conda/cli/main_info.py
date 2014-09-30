@@ -11,7 +11,7 @@ import sys
 import os
 from os import listdir
 from os.path import isfile, exists, expanduser, join
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from conda.cli import common
 
@@ -45,8 +45,7 @@ def configure_parser(sub_parsers):
         help = "list environment variables",
     )
     p.add_argument(
-        'args',
-        metavar = 'args',
+        'packages',
         action = "store",
         nargs = '*',
         help = "display information about packages or files",
@@ -91,6 +90,41 @@ def get_user_site():
     return site_dirs
 
 
+def pretty_package(pkg):
+    import conda.config as config
+    from conda.utils import human_bytes
+    from conda.api import app_is_installed
+
+    d = OrderedDict([
+        ('file name', pkg.fn),
+        ('name', pkg.name),
+        ('version', pkg.version),
+        ('build number', pkg.build_number),
+        ('build string', pkg.build),
+        ('channel', config.canonical_channel_name(pkg.channel)),
+        ('size', human_bytes(pkg.info['size'])),
+        ])
+    rest = pkg.info.copy()
+    for key in sorted(rest):
+        if key in ['build', 'depends', 'requires', 'channel', 'name',
+            'version', 'build_number', 'size']:
+            continue
+        d[key] = rest[key]
+
+
+    print()
+    header = "%s %s %s" % (d['name'], d['version'], d['build string'])
+    print(header)
+    print('-'*len(header))
+    for key in d:
+        print("%-12s: %s" % (key, d[key]))
+    print("installed environments:")
+    for env in app_is_installed(pkg.fn):
+        print('    %s' % env)
+    print('dependencies:')
+    for dep in pkg.info['depends']:
+        print('    %s' % dep)
+
 def execute(args, parser):
     import os
     from os.path import basename, dirname
@@ -98,56 +132,20 @@ def execute(args, parser):
     import conda
     import conda.config as config
     import conda.misc as misc
+    from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
-    from conda.api import get_package_versions, app_is_installed
-    from conda.install import is_linked
+    from conda.api import get_index
 
-    if args.args:
+    if args.packages:
         results = defaultdict(list)
+        index = get_index()
+        r = Resolve(index)
+        specs = map(common.arg2spec, args.packages)
 
-        for arg in args.args:
-            if isfile(arg):
-                from conda.misc import which_package
-                path = arg
-                for dist in which_package(path):
-                    if args.json:
-                        results[arg].append(dist)
-                    else:
-                        print('%-50s  %s' % (path, dist))
-            elif arg.endswith('.tar.bz2'):
-                info = None
-                for prefix in misc.list_prefixes():
-                    info = is_linked(prefix, arg[:-8])
-                    if info:
-                        break
-
-                if not info:
-                    if args.json:
-                        results[arg] = {
-                            'installed': []
-                        }
-                    else:
-                        print("Package %s is not installed" % arg)
-
-                    continue
-
-                info['installed'] = app_is_installed(arg)
-                if args.json:
-                    results[arg] = info
-                else:
-                    print(arg)
-                    print('    %-15s %30s' %
-                               ('installed', bool(info.get('installed'))))
-
-                    for key in ('name', 'version', 'build', 'license',
-                                'platform', 'arch', 'size', 'summary'):
-                        print('    %-15s %30s' % (key, info.get(key)))
-            else:
-                if args.json:
-                    for pkg in get_package_versions(arg):
-                        results[arg].append(pkg._asdict())
-                else:
-                    show_pkg_info(arg)
+        for spec in specs:
+            versions = r.get_pkgs(MatchSpec(spec))
+            for pkg in versions:
+                pretty_package(pkg)
 
         if args.json:
             common.stdout_json(results)
