@@ -206,6 +206,7 @@ def test_activate_help():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == ''
+            assert "activate must be sourced" in stderr
             assert "Usage: source activate ENV" in stderr
 
             commands = (command_setup + """
@@ -222,6 +223,7 @@ def test_activate_help():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == ''
+            assert "deactivate must be sourced" in stderr
             assert "Usage: source deactivate" in stderr
 
             commands = (command_setup + """
