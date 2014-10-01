@@ -134,10 +134,16 @@ def execute(args, parser):
     import conda.misc as misc
     from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
-    from conda.api import get_index
+    from conda.api import get_index, get_package_versions
 
     if args.packages:
-        results = defaultdict(list)
+        if args.json:
+            results = defaultdict(list)
+            for arg in args.packages:
+                for pkg in get_package_versions(arg):
+                    results[arg].append(pkg._asdict())
+            common.stdout_json(results)
+            return
         index = get_index()
         r = Resolve(index)
         specs = map(common.arg2spec, args.packages)
@@ -147,8 +153,6 @@ def execute(args, parser):
             for pkg in versions:
                 pretty_package(pkg)
 
-        if args.json:
-            common.stdout_json(results)
         return
 
     options = 'envs', 'system', 'license'
