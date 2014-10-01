@@ -85,6 +85,8 @@ def execute(args, parser):
                               error_type="ValueError")
 
     prefix = common.get_prefix(args)
+    if args.all and prefix == config.default_prefix:
+        common.error_and_exit("cannot remove current environment. deactivate and run conda remove again")
     common.check_write('remove', prefix, json=args.json)
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
