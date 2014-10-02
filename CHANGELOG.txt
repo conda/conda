@@ -1,3 +1,12 @@
+2014-XX-XX   3.7.1:
+-------------------
+  * improve error message for forgetting to use source with activate and
+    deactivate, see issue #601
+  * don't allow to remove the current environment, see issue #639
+  * don't fail if binstar_client can't be imported for other reasons,
+    see issue #925
+
+
 2014-09-19   3.7.0:
 -------------------
   * faster algorithm for --alt-hint
