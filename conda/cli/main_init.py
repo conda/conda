@@ -14,7 +14,7 @@ import conda.config as config
 
 
 descr = ("Initialize conda into a regular environment (when conda was "
-         "installed as a Python package, e.g. using pip).")
+         "installed as a Python package, e.g. using pip). (DEPRECATED)")
 
 
 def configure_parser(sub_parsers):
@@ -52,14 +52,26 @@ def initialize(prefix=config.root_dir):
         if sys.platform != 'win32':
             fo.write('zlib sqlite readline tk openssl system\n')
     write_meta(meta_dir, dict(name='conda',
-                              version=conda.__version__.split('-')[0]))
-    write_meta(meta_dir, dict(name='python', version=sys.version[:5]))
+        version=conda.__version__.split('-')[0]), build_number=0)
+    write_meta(meta_dir, dict(name='python', version=sys.version[:5],
+        build_number=0, build="0"))
+    with open(join(meta_dir, "pinned"), 'w') as f:
+        f.write("python %s 0" % sys.version[:5])
 
 
 def execute(args, parser):
     if is_initialized():
         sys.exit('Error: conda appears to be already initalized in: %s' %
                  config.root_dir)
+
+    print("""\
+WARNING: conda init is deprecated. The recommended way to manage pip installed
+conda is to use pip to manage the root environment and conda to manage new
+conda environments.
+
+# Note that pip installing conda is not the recommended way for setting up your
+# system.  The recommended way for setting up a conda system is by installing
+# Miniconda, see: http://repo.continuum.io/miniconda/index.html""", file=sys.stderr)
 
     print('Initializing conda into: %s' % config.root_dir)
     initialize()

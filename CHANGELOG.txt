@@ -1,4 +1,172 @@
-2014-XX-XX   3.4.1:
+2014-09-19   3.7.0:
+-------------------
+  * faster algorithm for --alt-hint
+  * don't allow channel_alias with allow_other_channels: false if it is set in
+    the system .condarc
+  * don't show long "no packages found" error with update --all
+  * automatically add the Binstar token to urls when the binstar client is
+    installed and logged in
+  * carefully avoid showing the binstar token or writing it to a file
+  * be more careful in conda config about keys that are the wrong type
+  * don't expect directories starting with conda- to be commands
+  * no longer recommend to run conda init after pip installing conda. A pip
+    installed conda will now work without being initialized to create and
+    manage other environments
+  * the rm function on Windows now works around access denied errors
+  * fix channel urls now showing with conda list with show_channel_urls set to
+    true
+
+
+2014-09-08   3.6.4:
+-------------------
+  * fix removing packages that aren't in the channels any more
+  * Pretties output for --alt-hint
+
+
+2014-09-04   3.6.3:
+-------------------
+  * skip packages that can't be found with update --all
+  * add --use-local to search and remove
+  * allow --use-local to be used along with -c (--channels) and
+    --override-channels. --override-channels now requires either -c or
+    --use-local
+  * allow paths in has_prefix to be quoted, to allow for spaces in paths on
+    Windows
+  * retain Unix style path separators for prefixes in has_prefix on
+    Windows (if the placeholder path uses /, replace it with a path that uses
+    /, not \)
+  * fix bug in --use-local due to API changes in conda-build
+  * include user site directories in conda info -s
+  * make binary has_prefix replacement work with spaces after the prefix
+  * make binary has_prefix replacement replace multiple occurrences of the
+    placeholder in the same null-terminated string
+  * don't show packages from other platforms as installed or cached in conda
+    search
+  * be more careful about not warning about conda itself in pscheck
+  * Use a progress bar for the unsatisfiable packages hint generation
+  * Don't use TemporaryFile in try_write, as it is too slow when it fails
+  * Ignore InsecureRequestWarning when ssl_verify is False
+  * conda remove removes features tracked by removed packages in
+    track_features
+
+
+2014-08-20   3.6.2:
+-------------------
+  * add --use-index-cache to conda remove
+  * fix a bug where features (like mkl) would be selected incorrectly
+  * use concurrent.future.ThreadPool to fetch package metadata asynchronously
+    in Python 3.
+  * do the retries in rm_rf on every platform
+  * use a higher cutoff for package name misspellings
+  * allow changing default channels in "system" .condarc
+
+
+2014-08-13   3.6.1:
+-------------------
+  * add retries to download in fetch module
+  * improved error messages for missing packages
+  * more robust rm_rf on Windows
+  * print multiline help for subcommands correctly
+
+
+2014-08-11   3.6.0:
+-------------------
+  * correctly check if a package can be hard-linked if it isn't extracted yet
+  * change how the package plan is printed to better show what is new,
+    updated, and downgraded
+  * use suggest_normalized_version in the resolve module. Now versions like
+    1.0alpha that are not directly recognized by verlib's NormalizedVersion
+    are supported better
+  * conda run command, to run apps and commands from packages
+  * more complete --json API. Every conda command should fully support --json
+    output now.
+  * show the conda_build and requests versions in conda info
+  * include packages from setup.py develop in conda list (with use_pip)
+  * raise a warning instead of dying when the history file is invalid
+  * use urllib.quote on the proxy password
+  * make conda search --outdated --canonical work
+  * pin the Python version during conda init
+  * fix some metadata that is written for Python during conda init
+  * allow comments in a pinned file
+  * allow installing and updating menuinst on Windows
+  * allow conda create with both --file and listed packages
+  * better handling of some nonexistent packages
+  * fix command line flags in conda package
+  * fix a bug in the ftp adapter
+
+
+2014-06-10   3.5.5:
+-------------------
+  * remove another instance pycosat version detection, which fails on
+    Windows, see issue #761
+
+
+2014-06-10   3.5.4:
+-------------------
+  * remove pycosat version detection, which fails on Windows, see issue #761
+
+
+2014-06-09   3.5.3:
+-------------------
+  * fix conda update to correctly not install packages that are already
+    up-to-date
+  * always fail with connection error in download
+  * the package resolution is now much faster and uses less memory
+  * add ssl_verify option in condarc to allow ignoring SSL certificate
+    verification, see issue #737
+
+
+2014-05-27   3.5.2:
+-------------------
+  * fix bug in activate.bat and deactivate.bat on Windows
+
+
+2014-05-26   3.5.1:
+-------------------
+  * fix proxy support - conda now prompts for proxy username and password
+    again
+  * fix activate.bat on Windows with spaces in the path
+  * update optional psutil dependency was updated to psutil 2.0 or higher
+
+
+2014-05-15   3.5.0:
+-------------------
+  * replace use of urllib2 with requests. requests is now a hard dependency of
+    conda.
+  * add ability to only allow system-wise specified channels
+  * hide binstar from output of conda info
+
+
+2014-05-05   3.4.3:
+-------------------
+  * allow prefix replacement in binary files, see issue #710
+  * check if creating hard link is possible and otherwise copy,
+    during install
+  * allow circular dependencies
+
+
+2014-04-21   3.4.2:
+-------------------
+  * conda clean --lock: skip directories that don't exist, fixes #648
+  * fixed empty history file causing crash, issue #644
+  * remove timezone information from history file, fixes issue #651
+  * fix PackagesNotFound error for missing recursive dependencies
+  * change the default for adding cache from the local package cache -
+    known is now the default and the option to use index metadata from the
+    local package cache is --unknown
+  * add --alt-hint as a method to get an alternate form of a hint for
+    unsatisfiable packages
+  * add conda package --ls-files to list files in a package
+  * add ability to pin specs in an environment. To pin a spec, add a file
+    called pinned to the environment's conda-meta directory with the specs to
+    pin. Pinned specs are always kept installed, unless the --no-pin flag is
+    used.
+  * fix keyboard interrupting of external commands. Now keyboard interupting
+    conda build correctly removes the lock file
+  * add no_link ability to conda, see issue #678
+
+
+2014-04-07   3.4.1:
 -------------------
   * always use a pkgs cache directory associated with an envs directory, even
     when using -p option with an arbitrary a prefix which is not inside an

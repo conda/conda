@@ -12,15 +12,16 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
+import os
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join
+from os.path import abspath, isfile, join, exists
 
 from conda import config
 from conda import install
 from conda.fetch import fetch_pkg
 from conda.history import History
-from conda.resolve import MatchSpec, Resolve
+from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
 
 log = getLogger(__name__)
@@ -60,7 +61,7 @@ def split_linkarg(arg):
         linktype = install.LINK_HARD
     return dist, pkgs_dir, int(linktype)
 
-def display_actions(actions, index=None):
+def display_actions(actions, index):
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
@@ -79,19 +80,119 @@ def display_actions(actions, index=None):
             print(" " * 43 + "Total: %14s" %
                   human_bytes(sum(index[dist + '.tar.bz2']['size']
                                   for dist in actions[FETCH])))
-    if actions.get(UNLINK):
-        print("\nThe following packages will be UN-linked:\n")
-        print_dists([
-                (dist, None)
-                for dist in actions[UNLINK]])
-    if actions.get(LINK):
-        print("\nThe following packages will be linked:\n")
-        lst = []
-        for arg in actions[LINK]:
-            dist, pkgs_dir, lt = split_linkarg(arg)
-            extra = '   %s' % install.link_name_map.get(lt)
-            lst.append((dist, extra))
-        print_dists(lst)
+
+    # package -> [oldver-oldbuild, newver-newbuild]
+    packages = defaultdict(lambda: list(('', '')))
+    features = defaultdict(lambda: list(('', '')))
+
+    # This assumes each package will appear in LINK no more than once.
+    Packages = {}
+    linktypes = {}
+    for arg in actions.get(LINK, []):
+        dist, pkgs_dir, lt =  split_linkarg(arg)
+        pkg, ver, build = dist.rsplit('-', 2)
+        packages[pkg][1] = ver + '-' + build
+        Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
+        linktypes[pkg] = lt
+        features[pkg][1] = index[dist + '.tar.bz2'].get('features', '')
+    for arg in actions.get(UNLINK, []):
+        dist, pkgs_dir, lt =  split_linkarg(arg)
+        pkg, ver, build = dist.rsplit('-', 2)
+        packages[pkg][0] = ver + '-' + build
+        # If the package is not in the index (e.g., an installed
+        # package that is not in the index any more), we just have to fake the metadata.
+        info = index.get(dist + '.tar.bz2', dict(name=pkg, version=ver,
+            build_number=int(build) if build.isdigit() else 0, build=build, channel=None))
+        Packages[dist] = Package(dist + '.tar.bz2', info)
+        features[pkg][0] = info.get('features', '')
+
+
+
+    #             Put a minimum length here---.    .--For the :
+    #                                         v    v
+    maxpkg = max(len(max(packages or [''], key=len)), 0) + 1
+    maxoldver = len(max(packages.values() or [['']], key=lambda i: len(i[0]))[0])
+    maxnewver = len(max(packages.values() or [['', '']], key=lambda i: len(i[1]))[1])
+    maxoldfeatures = len(max(features.values() or [['']], key=lambda i: len(i[0]))[0])
+    maxnewfeatures = len(max(features.values() or [['', '']], key=lambda i: len(i[1]))[1])
+    maxoldchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
+        packages[pkg][0]].channel) for pkg in packages if packages[pkg][0]] or
+        [''], key=len))
+    maxnewchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
+        packages[pkg][1]].channel) for pkg in packages if packages[pkg][1]] or
+        [''], key=len))
+    new = {pkg for pkg in packages if not packages[pkg][0]}
+    removed = {pkg for pkg in packages if not packages[pkg][1]}
+    updated = set()
+    downgraded = set()
+    oldfmt = {}
+    newfmt = {}
+    for pkg in packages:
+        # That's right. I'm using old-style string formatting to generate a
+        # string with new-style string formatting.
+        oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
+        if config.show_channel_urls:
+            oldfmt[pkg] += ' {channel[0]:<%s}' % maxoldchannel
+        if packages[pkg][0]:
+            newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
+        else:
+            newfmt[pkg] = '{pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
+        if config.show_channel_urls:
+            newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
+        # TODO: Should we also care about the old package's link type?
+        if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
+            newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
+
+        if features[pkg][0]:
+            oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
+        if features[pkg][1]:
+            newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
+
+        if pkg in new or pkg in removed:
+            continue
+        P0 = Packages[pkg + '-' + packages[pkg][0]]
+        P1 = Packages[pkg + '-' + packages[pkg][1]]
+        try:
+            # <= here means that unchanged packages will be put in updated
+            newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
+        except TypeError:
+            newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
+        if newer:
+            updated.add(pkg)
+        else:
+            downgraded.add(pkg)
+
+    arrow = ' --> '
+    lead = ' '*4
+
+    def format(s, pkg):
+        channel = ['', '']
+        for i in range(2):
+            if packages[pkg][i]:
+                channel[i] = config.canonical_channel_name(Packages[pkg + '-' + packages[pkg][i]].channel)
+        return lead + s.format(pkg=pkg+':', vers=packages[pkg],
+            channel=channel, features=features[pkg])
+
+    if new:
+        print("\nThe following NEW packages will be INSTALLED:\n")
+    for pkg in sorted(new):
+        print(format(newfmt[pkg], pkg))
+
+    if removed:
+        print("\nThe following packages will be REMOVED:\n")
+    for pkg in sorted(removed):
+        print(format(oldfmt[pkg], pkg))
+
+    if updated:
+        print("\nThe following packages will be UPDATED:\n")
+    for pkg in sorted(updated):
+        print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
+    if downgraded:
+        print("\nThe following packages will be DOWNGRADED:\n")
+    for pkg in sorted(downgraded):
+        print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
     print()
 
 # the order matters here, don't change it
@@ -112,6 +213,21 @@ def plan_from_actions(actions):
     assert PREFIX in actions and actions[PREFIX]
     res = ['# plan',
            'PREFIX %s' % actions[PREFIX]]
+
+    if sys.platform == 'win32':
+        # Always link/unlink menuinst first on windows in case a subsequent
+        # package tries to import it to create/remove a shortcut
+
+        for op in (UNLINK, FETCH, EXTRACT, LINK):
+            if op in actions:
+                pkgs = []
+                for pkg in actions[op]:
+                    if 'menuinst' in pkg:
+                        res.append('%s %s' % (op, pkg))
+                    else:
+                        pkgs.append(pkg)
+                actions[op] = pkgs
+
     for op in op_order:
         if op not in actions:
             continue
@@ -147,13 +263,32 @@ def ensure_linked_actions(dists, prefix):
                                             sys.platform != 'win32') else
                       install.LINK_COPY)
             actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
-            continue
+        else:
+            # Make a guess from the first pkgs dir, which is where it will be
+            # extracted
+            try:
+                os.makedirs(join(config.pkgs_dirs[0], dist, 'info'))
+                with open(join(config.pkgs_dirs[0], dist, 'info', 'index.json'), 'w'):
+                    pass
+                if install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
+                    lt = install.LINK_HARD
+                else:
+                    lt = (install.LINK_SOFT if (config.allow_softlinks and
+                                            sys.platform != 'win32') else
+                      install.LINK_COPY)
+                actions[LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
+            except (OSError, IOError):
+                actions[LINK].append(dist)
+            finally:
+                try:
+                    install.rm_rf(join(config.pkgs_dirs[0], dist))
+                except (OSError, IOError):
+                    pass
 
-        actions[LINK].append(dist)
-        actions[EXTRACT].append(dist)
-        if install.is_fetched(config.pkgs_dirs[0], dist):
-            continue
-        actions[FETCH].append(dist)
+            actions[EXTRACT].append(dist)
+            if install.is_fetched(config.pkgs_dirs[0], dist):
+                continue
+            actions[FETCH].append(dist)
     return actions
 
 def force_linked_actions(dists, index, prefix):
@@ -190,6 +325,8 @@ def dist2spec3v(dist):
     return '%s %s*' % (name, version[:3])
 
 def add_defaults_to_specs(r, linked, specs):
+    # TODO: This should use the pinning mechanism. But don't change the API:
+    # cas uses it.
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
@@ -231,7 +368,7 @@ def add_defaults_to_specs(r, linked, specs):
             specs.append(dist2spec3v(names_linked[name]))
             continue
 
-        if (name, def_ver) == ('python', '3.3'):
+        if (name, def_ver) in [('python', '3.3'), ('python', '3.4')]:
             # Don't include Python 3 in the specs if this is the Python 3
             # version of conda.
             continue
@@ -239,8 +376,14 @@ def add_defaults_to_specs(r, linked, specs):
         specs.append('%s %s*' % (name, def_ver))
     log.debug('HF specs=%r' % specs)
 
+def get_pinned_specs(prefix):
+    pinfile = join(prefix, 'conda-meta', 'pinned')
+    if not exists(pinfile):
+        return []
+    with open(pinfile) as f:
+        return [i for i in f.read().strip().split('\n') if i and not i.strip().startswith('#')]
 
-def install_actions(prefix, index, specs, force=False, only_names=None,
+def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False,
     use_instaled=True):
     if not use_instaled:
         raise NotImplementedError("not using use_installed is not implemented")
@@ -250,11 +393,15 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
     add_defaults_to_specs(r, linked, specs)
+    if pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        specs += pinned_specs
+        # TODO: Improve error messages here
 
     must_have = {}
     mustnt_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
-                      config.track_features):
+                      config.track_features, minimal_hint=minimal_hint):
         dist = fn[:-8]
         name = install.name_dist(dist)
         if name.startswith('remove '):
@@ -302,16 +449,37 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     return actions
 
 
-def remove_actions(prefix, specs):
+def remove_actions(prefix, specs, index=None, pinned=True):
     linked = install.linked(prefix)
 
     mss = [MatchSpec(spec) for spec in specs]
 
+    if index:
+        r = Resolve(index)
+    else:
+        r = None
+
+    pinned_specs = get_pinned_specs(prefix)
+
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     for dist in sorted(linked):
-        if any(ms.match('%s.tar.bz2' % dist) for ms in mss):
+        fn = dist + '.tar.bz2'
+        if any(ms.match(fn) for ms in mss):
+            if pinned and any(MatchSpec(spec).match('%s.tar.bz2' % dist) for spec in
+    pinned_specs):
+                raise RuntimeError("Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
+
             actions[UNLINK].append(dist)
+            if r and fn in index and r.track_features(fn):
+                features_actions = remove_features_actions(prefix, index, r.track_features(fn))
+                for action in features_actions:
+                    if isinstance(actions[action], list):
+                        for item in features_actions[action]:
+                            if item not in actions[action]:
+                                actions[action].append(item)
+                    else:
+                        assert actions[action] == features_actions[action]
 
     return actions
 
@@ -366,9 +534,9 @@ def fetch(index, dist):
     fn = dist + '.tar.bz2'
     fetch_pkg(index[fn])
 
-def link(prefix, arg):
+def link(prefix, arg, index=None):
     dist, pkgs_dir, lt = split_linkarg(arg)
-    install.link(pkgs_dir, prefix, dist, lt)
+    install.link(pkgs_dir, prefix, dist, lt, index=index)
 
 def cmds_from_plan(plan):
     res = []
@@ -412,7 +580,7 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == RM_FETCHED:
             install.rm_fetched(config.pkgs_dirs[0], arg)
         elif cmd == LINK:
-            link(prefix, arg)
+            link(prefix, arg, index=index)
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
         elif cmd == SYMLINK_CONDA:

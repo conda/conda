@@ -5,13 +5,15 @@ import sys
 import logging
 from itertools import combinations, chain
 from collections import defaultdict
+from functools import partial
 
 from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-                         bisect_constraints)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset)
 from conda.console import setup_handlers
+from conda import config
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -22,18 +24,19 @@ setup_handlers()
 
 def normalized_version(version):
     version = version.replace('rc', '.dev99999')
-    if version.endswith('.dev'):
-        version += '0'
     try:
         return verlib.NormalizedVersion(version)
     except verlib.IrrationalVersionError:
+        suggested_version = verlib.suggest_normalized_version(version)
+        if suggested_version:
+            return verlib.NormalizedVersion(suggested_version)
         return version
 
 
 class NoPackagesFound(RuntimeError):
-    def __init__(self, msg, pkg):
+    def __init__(self, msg, pkgs):
         super(NoPackagesFound, self).__init__(msg)
-        self.pkg = pkg
+        self.pkgs = pkgs
 
 const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
 def ver_eval(version, constraint):
@@ -112,7 +115,7 @@ class MatchSpec(object):
         self.spec = spec
         parts = spec.split()
         self.strictness = len(parts)
-        assert 1 <= self.strictness <= 3
+        assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
         if self.strictness == 2:
             self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
@@ -163,6 +166,13 @@ class Package(object):
         self.build = info['build']
         self.channel = info.get('channel')
         self.norm_version = normalized_version(self.version)
+        self.info = info
+
+    def _asdict(self):
+        result = self.info.copy()
+        result['fn'] = self.fn
+        result['norm_version'] = str(self.norm_version)
+        return result
 
     # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
 #     def __cmp__(self, other):
@@ -233,7 +243,7 @@ class Resolve(object):
             res = self.msd_cache[fn]
         except KeyError:
             if not 'depends' in self.index[fn]:
-                raise NoPackagesFound('Bad metadata for %s' % fn, fn)
+                raise NoPackagesFound('Bad metadata for %s' % fn, [fn])
             depends = self.index[fn]['depends']
             res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
         return res
@@ -250,7 +260,7 @@ class Resolve(object):
     def get_pkgs(self, ms, max_only=False):
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms, ms.spec)
+            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
         if max_only:
             maxpkg = max(pkgs)
             ret = []
@@ -269,7 +279,7 @@ class Resolve(object):
     def get_max_dists(self, ms):
         pkgs = self.get_pkgs(ms, max_only=True)
         if not pkgs:
-            raise NoPackagesFound("No packages found matching: %s" % ms, ms.spec)
+            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
         for pkg in pkgs:
             yield pkg.fn
 
@@ -278,12 +288,28 @@ class Resolve(object):
 
         def add_dependents(fn1, max_only=False):
             for ms in self.ms_depends(fn1):
+                found = False
+                notfound = []
                 for pkg2 in self.get_pkgs(ms, max_only=max_only):
                     if pkg2.fn in res:
+                        found = True
                         continue
                     res[pkg2.fn] = pkg2
-                    if ms.strictness < 3:
-                        add_dependents(pkg2.fn, max_only=max_only)
+                    try:
+                        if ms.strictness < 3:
+                            add_dependents(pkg2.fn, max_only=max_only)
+                    except NoPackagesFound as e:
+                        for pkg in e.pkgs:
+                            if pkg not in notfound:
+                                notfound.append(pkg)
+                        if pkg2.fn in res:
+                            del res[pkg2.fn]
+                    else:
+                        found = True
+
+                if not found:
+                    raise NoPackagesFound("Could not find some dependencies "
+                        "for %s: %s" % (ms, ', '.join(notfound)), notfound)
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -302,7 +328,7 @@ class Resolve(object):
                     if v1 < v2:
                         # NOT (fn1 AND fn2)
                         # e.g. NOT (numpy-1.6 AND numpy-1.7)
-                        yield [-v1, -v2]
+                        yield (-v1, -v2)
 
         for fn1 in chain(dists, installed):
             for ms in self.ms_depends(fn1):
@@ -313,7 +339,7 @@ class Resolve(object):
                     if fn2 in chain(dists, installed):
                         clause.append(v[fn2])
                 assert len(clause) > 1, '%s %r' % (fn1, ms)
-                yield clause
+                yield tuple(clause)
 
                 for feat in features:
                     # ensure that a package (with required name) which has
@@ -324,7 +350,12 @@ class Resolve(object):
                          if feat in self.features(fn2):
                              clause.append(v[fn2])
                     if len(clause) > 1:
-                        yield clause
+                        yield tuple(clause)
+
+                # Don't install any package that has a feature that wasn't requested.
+                for fn in self.find_matches(ms):
+                    if fn in dists and self.features(fn) - features:
+                        yield (-v[fn],)
 
         for spec in specs:
             ms = MatchSpec(spec)
@@ -334,12 +365,12 @@ class Resolve(object):
                 clause = [v[fn] for fn in self.find_matches(ms)
                           if fn in dists and feat in self.features(fn)]
                 if len(clause) > 0:
-                    yield clause
+                    yield tuple(clause)
 
             # Don't install any package that has a feature that wasn't requested.
             for fn in self.find_matches(ms):
                 if fn in dists and self.features(fn) - features:
-                    yield [-v[fn]]
+                    yield (-v[fn],)
 
             # finally, ensure a matching package itself is installed
             # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
@@ -347,7 +378,7 @@ class Resolve(object):
             clause = [v[fn] for fn in self.find_matches(ms)
                       if fn in dists]
             assert len(clause) >= 1, ms
-            yield clause
+            yield tuple(clause)
 
     def generate_version_eq(self, v, dists, installed, include0=False):
         groups = defaultdict(list) # map name to list of filenames
@@ -400,19 +431,23 @@ class Resolve(object):
                     dists.update(self.all_deps(pkg.fn, max_only=max_only))
                 except NoPackagesFound as e:
                     # Ignore any package that has nonexisting dependencies.
-                    notfound.append(e.pkg)
+                    for pkg in e.pkgs:
+                        if pkg not in notfound:
+                            notfound.append(pkg)
                 else:
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), None)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), notfound)
 
         return dists
 
-    def solve2(self, specs, features, installed=(), guess=True, alg='sorter', returnall=False):
+    def solve2(self, specs, features, installed=(), guess=True, alg='BDD',
+        returnall=False, minimal_hint=False, unsat_only=False):
         log.debug("Solving for %s" % str(specs))
         log.debug("Features: %s" % str(features))
         log.debug("Installed: %s" % str(installed))
+        log.debug("Using alg %s" % alg)
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
@@ -440,7 +475,7 @@ class Resolve(object):
         #
         #
         #     if len(solutions) == 1:
-        #         ret = [w[lit] for lit in solutions.pop(0) if 0 < lit]
+        #         ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
         #         if returnall:
         #             return [ret]
         #         return ret
@@ -505,65 +540,66 @@ class Resolve(object):
         # Generate all the clauses to represent the relationships between
         # packages, e.g., dependencies, conflicts, only a single version of
         # each package, features, etc.
-        clauses = list(self.gen_clauses(v, dists, specs, features, installed_deps))
+        clauses = set(self.gen_clauses(v, dists, specs, features, installed_deps))
         if not clauses:
             if returnall:
                 return [[]]
             return []
 
-        clauses.extend(extra_clauses)
+        clauses.update(extra_clauses)
 
         dists.update(installed_dists)
         eq, max_rhs = self.generate_version_eq(v, dists, installed)
 
-        # Check the common case first
-        dotlog.debug("Building the constraint with rhs: [0, 0]")
-        constraints = list(generate_constraints(eq, m, [0, 0], alg=alg))
+
+        # Second common case, check if it's unsatisfiable
+        dotlog.debug("Checking for unsatisfiability")
+        solution = sat(clauses)
+
+        if not solution:
+            if guess:
+                stderrlog.info('\nError: Unsatisfiable package '
+                    'specifications.\nGenerating hint: \n')
+                if minimal_hint:
+                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
+            w))
+                else:
+                    sys.exit(self.guess_bad_solve(specs, features))
+            raise RuntimeError("Unsatisfiable package specifications")
+
+        if unsat_only:
+            return True
+
+        def version_constraints(lo, hi):
+            return set(generate_constraints(eq, m, [lo, hi], alg=alg))
+
+        log.debug("Bisecting the version constraint")
+        evaluate_func = partial(evaluate_eq, eq)
+        constraints = bisect_constraints(0, max_rhs, clauses,
+            version_constraints, evaluate_func=evaluate_func)
 
         # Only relevant for build_BDD
-        if constraints and constraints[0] == [false]:
+        if constraints and false in constraints:
             # XXX: This should *never* happen. build_BDD only returns false
             # when the linear constraint is unsatisfiable, but any linear
             # constraint can equal 0, by setting all the variables to 0.
             solution = []
         else:
-            if constraints and constraints[0] == [true]:
-                constraints = []
-
-            dotlog.debug("Checking for solutions with rhs:  [0, 0]")
-            solution = sat(clauses + constraints)
-
-        if not solution:
-            # Second common case, check if it's unsatisfiable
-            dotlog.debug("Checking for unsatisfiability")
-            solution = sat(clauses)
-
-            if not solution:
-                if guess:
-                    stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating hint: ')
-
-                    sys.exit(self.guess_bad_solve(specs, features))
-                raise RuntimeError("Unsatisfiable package specifications")
-
-            def version_constraints(lo, hi):
-                return list(generate_constraints(eq, m, [lo, hi], alg=alg))
-
-            log.debug("Bisecting the version constraint")
-            constraints = bisect_constraints(0, max_rhs, clauses, version_constraints)
+            if constraints and true in constraints:
+                constraints = set([])
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses + constraints, N=N)
+        solutions = min_sat(clauses | constraints, N=N)
         assert solutions, (specs, features, installed)
 
         if len(solutions) > 1 or log.getEffectiveLevel() <= logging.DEBUG:
-            print('Warning:', len(solutions), "possible package resolutions:")
+            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
             for sol in solutions:
-                print('\t install:', [w[lit] for lit in sol if 0 < lit <= N and lit in
-                    w])
-                print('\t remove:', [w[-lit] for lit in sol if 0 < abs(lit) <= N and
-                    -lit in w and w[-lit] in installed])
-                print()
+                stdoutlog.info('\t install: %s' % ([w[lit] for lit in sol if 0 < lit <= N and lit in
+                    w],))
+                stdoutlog.info('\t remove: %s' % ([w[-lit] for lit in sol if 0 < abs(lit) <= N and
+                    -lit in w and w[-lit] in installed],))
+                stdoutlog.info('')
 
         all_sols = []
         for sol in solutions:
@@ -579,17 +615,51 @@ class Resolve(object):
             return all_sols
         return all_sols[0]
 
+    @staticmethod
+    def clause_pkg_name(i, w):
+        if i > 0:
+            ret = w[i]
+        else:
+            ret = 'not ' + w[-i]
+        return ret.rsplit('.tar.bz2', 1)[0]
+
+    def minimal_unsatisfiable_subset(self, clauses, v, w):
+        clauses = minimal_unsatisfiable_subset(clauses, log=True)
+
+        pretty_clauses = []
+        for clause in clauses:
+            if clause[0] < 0 and len(clause) > 1:
+                pretty_clauses.append('%s => %s' %
+                    (self.clause_pkg_name(-clause[0], w), ' or '.join([self.clause_pkg_name(j, w) for j in clause[1:]])))
+            else:
+                pretty_clauses.append(' or '.join([self.clause_pkg_name(j, w) for j in clause]))
+        return "The following set of clauses is unsatisfiable:\n\n%s" % '\n'.join(pretty_clauses)
+
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        # Don't show the dots in normal mode but do show the dotlog messages
+        # with --debug
+        dotlog.setLevel(logging.WARN)
         hint = []
         # Try to find the largest satisfiable subset
         found = False
+        if len(specs) > 10:
+            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
         for i in range(len(specs), 0, -1):
             if found:
+                logging.getLogger('progress.stop').info(None)
                 break
-            for comb in combinations(specs, i):
+
+            # Too lazy to compute closed form expression
+            ncombs = len(list(combinations(specs, i)))
+            logging.getLogger('progress.start').info(ncombs)
+            for j, comb in enumerate(combinations(specs, i), 1):
                 try:
-                    self.solve2(comb, features, guess=False)
+                    logging.getLogger('progress.update').info(('%s/%s' % (j,
+                        ncombs), j))
+                    self.solve2(comb, features, guess=False, unsat_only=True)
                 except RuntimeError:
                     pass
                 else:
@@ -626,6 +696,8 @@ remaining packages:
             ms = MatchSpec(specs[0])
             fn = ms.to_filename()
             if fn is None:
+                return None
+            if fn not in self.index:
                 return None
             res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
             res.append(fn)
@@ -695,7 +767,8 @@ remaining packages:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None, max_only=False):
+    def solve(self, specs, installed=None, features=None, max_only=False,
+              minimal_hint=False):
         if installed is None:
             installed = []
         if features is None:
@@ -713,10 +786,12 @@ remaining packages:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features, installed)
+            return self.explicit(specs) or self.solve2(specs, features, installed,
+                                                       minimal_hint=minimal_hint)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
+
 
 if __name__ == '__main__':
     import json

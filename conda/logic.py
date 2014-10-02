@@ -19,17 +19,22 @@ module), that is, it is the callers' responsibility to do the conversion of
 expressions recursively. This is done because we do not have data structures
 representing the various logical classes, only atoms.
 
+The polarity argument can be set to True or False if you know that the literal
+being used will only be used in the positive or the negative, respectively
+(e.g., you will only use x, not -x).  This will generate fewer clauses.
+
 """
 import sys
 from collections import defaultdict
-from functools import total_ordering
-from itertools import islice, chain
+from functools import total_ordering, partial
+from itertools import islice, chain, combinations
 import logging
 
 from conda.compat import log2, ceil
 from conda.utils import memoize
 
 dotlog = logging.getLogger('dotupdate')
+log = logging.getLogger(__name__)
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
@@ -80,9 +85,6 @@ class FalseClass(object):
 true = TrueClass()
 false = FalseClass()
 
-# TODO: Take advantage of polarity, meaning that we can add only one direction
-# of the implication, expr -> x or expr <- x, depending on how expr appears.
-
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
@@ -98,7 +100,7 @@ class Clauses(object):
         return self.MAX_N
 
     @memoize
-    def ITE(self, c, t, f):
+    def ITE(self, c, t, f, polarity=None, red=True):
         """
         if c then t else f
 
@@ -112,40 +114,49 @@ class Clauses(object):
         if t == f:
             return t
         if t == -f:
-            return self.Xor(c, f)
+            return self.Xor(c, f, polarity=polarity)
         if t == false or t == -c:
-            return self.And(-c, f)
+            return self.And(-c, f, polarity=polarity)
         if t == true or t == c:
             return self.Or(c, f)
         if f == false or f == c:
-            return self.And(c, t)
+            return self.And(c, t, polarity=polarity)
         if f == true or f == -c:
             return self.Or(t, -c)
 
-        # TODO: At this point, minisatp has
-        # if t < f:
-        #     swap(t, f)
-        #     c = -c
+        if t < f:
+            t, f = f, t
+            c = -c
 
         # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
         x = self.get_new_var()
         # "Red" clauses are redundant, but they assist the unit propagation in the
         # SAT solver
-        self.clauses |= {
-            # Negative
-            (-c, -t, x),
-            (c, -f, x),
-            (-t, -f, x), # Red
-            # Positive
-            (-c, t, -x),
-            (c, f, -x),
-            (t, f, -x), # Red
-        }
+        if polarity in {False, None}:
+            self.clauses |= {
+                # Negative
+                (-c, -t, x),
+                (c, -f, x),
+                }
+            if red:
+                self.clauses |= {
+                    (-t, -f, x), # Red
+                }
+        if polarity in {True, None}:
+            self.clauses |= {
+                # Positive
+                (-c, t, -x),
+                (c, f, -x),
+                }
+            if red:
+                self.clauses |= {
+                    (t, f, -x), # Red
+                }
 
         return x
 
     @memoize
-    def And(self, f, g):
+    def And(self, f, g, polarity=None):
         if f == false or g == false:
             return false
         if f == true:
@@ -160,12 +171,19 @@ class Clauses(object):
         # if g < f:
         #     swap(f, g)
 
+        if g < f:
+            f, g = g, f
+
         x = self.get_new_var()
-        self.clauses |= {
-            # positive
-            # ~f -> ~x, ~g -> ~x
-            (-x, f),
-            (-x, g),
+        if polarity in {True, None}:
+            self.clauses |= {
+                # positive
+                # ~f -> ~x, ~g -> ~x
+                (-x, f),
+                (-x, g),
+                }
+        if polarity in {False, None}:
+            self.clauses |= {
             # negative
             # (f AND g) -> x
             (x, -f, -g),
@@ -174,11 +192,13 @@ class Clauses(object):
         return x
 
     @memoize
-    def Or(self, f, g):
-        return -self.And(-f, -g)
+    def Or(self, f, g, polarity=None):
+        if polarity is not None:
+            polarity = not polarity
+        return -self.And(-f, -g, polarity=polarity)
 
     @memoize
-    def Xor(self, f, g):
+    def Xor(self, f, g, polarity=None):
         # Minisatp treats XOR as NOT EQUIV
         if f == false:
             return g
@@ -196,21 +216,28 @@ class Clauses(object):
         # if g < f:
         #     swap(f, g)
 
+        if g < f:
+            f, g = g, f
+
         x = self.get_new_var()
-        self.clauses |= {
-            # Positive
-            (-x, f, g),
-            (-x, -f, -g),
-            # Negative
-            (x, -f, g),
-            (x, f, -g),
+        if polarity in {True, None}:
+            self.clauses |= {
+                # Positive
+                (-x, f, g),
+                (-x, -f, -g),
+            }
+        if polarity in {False, None}:
+            self.clauses |= {
+                # Negative
+                (x, -f, g),
+                (x, f, -g),
             }
         return x
 
     # Memoization is done in the function itself
     # TODO: This is a bit slower than the recursive version because it doesn't
     # "jump back" to the call site.
-    def build_BDD(self, linear, sum=0):
+    def build_BDD(self, linear, sum=0, polarity=None):
         call_stack = [(linear, sum)]
         first_stack = call_stack[0]
         ret = {}
@@ -244,14 +271,14 @@ class Clauses(object):
                 call_stack.append((new_linear, lo_sum))
                 continue
 
-            ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo)
+            ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo, polarity=polarity)
 
         return ret[first_stack]
 
     # Reference implementation for testing. The recursion depth gets exceeded
     # for too long formulas, so we use the non-recursive version above.
     @memoize
-    def build_BDD_recursive(self, linear, sum=0):
+    def build_BDD_recursive(self, linear, sum=0, polarity=None):
         lower_limit = linear.lo - sum
         upper_limit = linear.hi - sum
         if lower_limit <= 0 and upper_limit >= linear.total:
@@ -266,9 +293,9 @@ class Clauses(object):
         # aid caching.
         hi_sum = sum if LA < 0 else sum + LC
         lo_sum = sum + LC if LA < 0 else sum
-        hi = self.build_BDD_recursive(new_linear, hi_sum)
-        lo = self.build_BDD_recursive(new_linear, lo_sum)
-        ret = self.ITE(abs(LA), hi, lo)
+        hi = self.build_BDD_recursive(new_linear, hi_sum, polarity=polarity)
+        lo = self.build_BDD_recursive(new_linear, lo_sum, polarity=polarity)
+        ret = self.ITE(abs(LA), hi, lo, polarity=polarity)
 
         return ret
 
@@ -326,12 +353,17 @@ class Linear(object):
 
     Canonicalized means all coefficients are positive.
     """
-    def __init__(self, equation, rhs, total=None):
+    def __init__(self, equation, rhs, total=None, sort=True):
         """
-        Equation should be a list of tuples of the form (coeff, atom). rhs is
-        the number on the right-hand side, or a list [lo, hi].
+        Equation should be a list of tuples of the form (coeff, atom) (they must
+        be tuples so that the resulting object can be hashed). rhs is the
+        number on the right-hand side, or a list [lo, hi].
+
         """
-        self.equation = sorted(equation)
+        self.equation = equation
+        if sort:
+            self.equation = sorted(equation)
+        self.equation = tuple(self.equation)
         self.rhs = rhs
         if isinstance(rhs, int):
             self.lo = self.hi = rhs
@@ -387,9 +419,12 @@ class Linear(object):
             raise NotImplementedError("Non-slice indices are not supported")
         if key == slice(None, -1, None):
             total = self.total - self.LC
+            sort = False
         else:
             total = None
-        return self.__class__(self.equation.__getitem__(key), self.rhs, total=total)
+            sort = True
+        return self.__class__(self.equation.__getitem__(key), self.rhs,
+            total=total, sort=sort)
 
     def __eq__(self, other):
         if not isinstance(other, Linear):
@@ -397,15 +432,11 @@ class Linear(object):
         return (self.equation == other.equation and self.lo == other.lo and
         self.hi == other.hi)
 
-    @property
-    def hashable_equation(self):
-        return tuple([tuple([i for i in term]) for term in self.equation])
-
     def __hash__(self):
         try:
             return self._hash
         except AttributeError:
-            self._hash = hash((self.hashable_equation, self.lo, self.hi))
+            self._hash = hash((self.equation, self.lo, self.hi))
             return self._hash
 
     def __str__(self):
@@ -413,39 +444,50 @@ class Linear(object):
 
     __repr__ = __str__
 
+def evaluate_eq(eq, sol):
+    """
+    Evaluate an equation at a solution
+    """
+    atom2coeff = defaultdict(int, {atom: coeff for coeff, atom in eq})
+    t = 0
+    for s in sol:
+        t += atom2coeff[s]
+    return t
 
-def generate_constraints(eq, m, rhs, alg='sorter', sorter_cache={}):
+def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
     l = Linear(eq, rhs)
     if not l:
-        raise StopIteration
+        return set()
     C = Clauses(m)
+    additional_clauses = set()
     if alg == 'BDD':
-        yield [C.build_BDD(l)]
+        additional_clauses.add((C.build_BDD(l, polarity=True),))
     elif alg == 'BDD_recursive':
-        yield [C.build_BDD_recursive(l)]
+        additional_clauses.add((C.build_BDD_recursive(l, polarity=True),))
     elif alg == 'sorter':
-        if l.hashable_equation in sorter_cache:
-            m, C = sorter_cache[l.hashable_equation]
+        if l.equation in sorter_cache:
+            m, C = sorter_cache[l.equation]
         else:
+            if sorter_cache:
+                sorter_cache.popitem()
             m = C.build_sorter(l)
-            sorter_cache[l.hashable_equation] = m, C
+            sorter_cache[l.equation] = m, C
 
         if l.rhs[0]:
             # Output must be between lower bound and upper bound, meaning
             # the lower bound of the sorted output must be true and one more
             # than the upper bound should be false.
-            yield [m[l.rhs[0]-1]]
-            yield [-m[l.rhs[1]]]
+            additional_clauses.add((m[l.rhs[0]-1],))
+            additional_clauses.add((-m[l.rhs[1]],))
         else:
             # The lower bound is zero, which is always true.
-            yield [-m[l.rhs[1]]]
+            additional_clauses.add((-m[l.rhs[1]],))
     else:
         raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
 
-    for clause in C.clauses:
-        yield list(clause)
+    return C.clauses | additional_clauses
 
-def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
+def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
     """
     Bisect the solution space of a constraint, to minimize it.
 
@@ -456,6 +498,7 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
     increment.  To not use it, set a very large increment. The increment
     argument should be used if you expect the optimal solution to be near 0.
 
+    If evalaute_func is given, it is used to evaluate solutions to aid in the bisection.
     """
     lo, hi = [min_rhs, max_rhs]
     while True:
@@ -464,26 +507,31 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10):
 
         dotlog.debug("Building the constraint with rhs: %s" % rhs)
         constraints = func(*rhs)
-        if constraints[0] == [false]: # build_BDD returns false if the rhs is
-            solutions = []            # too big to be satisfied. XXX: This
-            break                     # probably indicates a bug.
-        if constraints[0] == [true]:
-            constraints = []
+        if false in constraints: # build_BDD returns false if the rhs is
+                                 # too big to be satisfied. XXX: This
+            break                # probably indicates a bug.
+        if true in constraints:
+            constraints = set([])
 
         dotlog.debug("Checking for solutions with rhs:  %s" % rhs)
-        solutions = sat(clauses + constraints)
+        solution = sat(chain(clauses, constraints))
         if lo >= hi:
             break
-        if solutions:
+        if solution:
             if lo == mid:
                 break
             # bisect good
             hi = mid
+            if evaluate_func:
+                eval_hi = evaluate_func(solution)
+                log.debug("Evaluated value: %s" % eval_hi)
+                hi = min(eval_hi, hi)
         else:
             # bisect bad
             lo = mid+1
     return constraints
 
+# TODO: alg='sorter' can be faster, especially when the main algorithm is sorter
 def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
     """
     Calculate the SAT solutions for the `clauses` for which the number of true
@@ -494,17 +542,26 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
     which iterates all solutions and finds the smallest.
 
     """
+    log.debug("min_sat using alg: %s" % alg)
     try:
         import pycosat
     except ImportError:
         sys.exit('Error: could not import pycosat (required for dependency '
                  'resolving)')
 
+    if not clauses:
+        return []
     m = max(map(abs, chain(*clauses)))
     if not N:
         N = m
     if alg == 'iterate':
         min_tl, solutions = sys.maxsize, []
+        try:
+            pycosat.itersolve({(1,)})
+        except TypeError:
+            # Old versions of pycosat require lists. This conversion can be
+            # very slow, though, so only do it if we need to.
+            clauses = list(map(list, clauses))
         for sol in islice(pycosat.itersolve(clauses), max_n):
             tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
             if tl < min_tl:
@@ -513,11 +570,20 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
                 solutions.append(sol)
         return solutions
     else:
+        solution = sat(clauses)
+        if not solution:
+            return []
+        eq = [(1, i) for i in range(1, N+1)]
         def func(lo, hi):
-            return list(generate_constraints([(1, i) for i in range(1, N+1)], m,
+            return list(generate_constraints(eq, m,
                 [lo, hi], alg=alg))
-        constraints = bisect_constraints(0, N, clauses, func)
-        return min_sat(clauses + constraints, max_n=max_n, N=N, alg='iterate')
+        evaluate_func = partial(evaluate_eq, eq)
+        # Since we have a solution, might as well make use of that fact
+        max_val = evaluate_func(solution)
+        log.debug("Using max_val %s. N=%s" % (max_val, N))
+        constraints = bisect_constraints(0, min(max_val, N), clauses, func,
+            evaluate_func=evaluate_func, increment=1000)
+        return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
     """
@@ -533,7 +599,116 @@ def sat(clauses):
         sys.exit('Error: could not import pycosat (required for dependency '
                  'resolving)')
 
+    try:
+        pycosat.itersolve({(1,)})
+    except TypeError:
+        # Old versions of pycosat require lists. This conversion can be very
+        # slow, though, so only do it if we need to.
+        clauses = list(map(list, clauses))
+
     solution = pycosat.solve(clauses)
     if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
         return []
+    # XXX: If solution == [] (i.e., clauses == []), the result will have
+    # boolean value of False even though the clauses are not unsatisfiable)
     return solution
+
+def minimal_unsatisfiable_subset(clauses, log=False):
+    """
+    Given a set of clauses, find a minimal unsatisfiable subset (an
+    unsatisfiable core)
+
+    A set is a minimal unsatisfiable subset if no proper subset is
+    unsatisfiable.  A set of clauses may have many minimal unsatisfiable
+    subsets of different sizes.
+
+    if log=True, progress bars will be displayed with the progress.
+    """
+
+    if log:
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        start = lambda x: logging.getLogger('progress.start').info(x)
+        update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
+        stop = lambda: logging.getLogger('progress.stop').info(None)
+    else:
+        start = lambda x: None
+        update = lambda x, y: None
+        stop = lambda: None
+
+    clauses = tuple(clauses)
+    if sat(clauses):
+        raise ValueError("Clauses are not unsatisfiable")
+
+    # Algorithm suggested from
+    # http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
+    # search on the clauses by splitting them in halves A and B. If A or B is
+    # UNSAT, we use that and repeat. Otherwise, we recursively check A, but
+    # each time we do a sat query, we include B, until we have a minimal
+    # subset A* of A such that A* U B is UNSAT. Then we find a minimal subset
+    # B* of B such that A* U B* is UNSAT. Then A* U B* will be a minimal
+    # unsatisfiable subset of the original set of clauses.
+
+    # Proof: If some proper subset C of A* U B* is UNSAT, then there is some
+    # clause c in A* U B* not in C. If c is in A*, then that means (A* - {c})
+    # U B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a
+    # superset, which contradicts A* being the minimal subset of A with such
+    # property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B*
+    # - {c} is a strict subset of B*, contradicting B* being the minimal
+    # subset of B with this property.
+
+    def split(S):
+        """
+        Split S into two equal parts
+        """
+        S = tuple(S)
+        L = len(S)
+        return S[:L//2], S[L//2:]
+
+    def minimal_unsat(clauses, include=()):
+        """
+        Return a minimal subset A of clauses such that A + include is
+        unsatisfiable.
+
+        Implicitly assumes that clauses + include is unsatisfiable.
+        """
+        global L, d
+
+        # assert not sat(clauses + include), (len(clauses), len(include))
+
+        # Base case: Since clauses + include is implicitly assumed to be
+        # unsatisfiable, if clauses has only one element, it must be its own
+        # minimal subset
+        if len(clauses) == 1:
+            return clauses
+
+        A, B = split(clauses)
+
+        # If one half is unsatisfiable (with include), we can discard the
+        # other half.
+
+        # To display progress, every time we discard clauses, we update the
+        # progress by that much.
+        # dotlog.debug("")
+        if not sat(A + include):
+            d += len(B)
+            update(d, L)
+            return minimal_unsat(A, include)
+        # dotlog.debug("")
+        if not sat(B + include):
+            d += len(A)
+            update(d, L)
+            return minimal_unsat(B, include)
+
+        Astar = minimal_unsat(A, B + include)
+        Bstar = minimal_unsat(B, Astar + include)
+        return Astar + Bstar
+
+    global L, d
+    L = len(clauses)
+    d = 0
+    start(L)
+    ret = minimal_unsat(clauses)
+    # Commented out because it hides the progress
+    # stop()
+    return ret

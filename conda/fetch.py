@@ -8,32 +8,30 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import bz2
-import sys
 import json
 import shutil
 import hashlib
 import tempfile
 from logging import getLogger
-from os.path import basename, isdir, join
+from os.path import basename, dirname, isdir, join
+import sys
+import getpass
+import warnings
 
 from conda import config
 from conda.utils import memoized
-from conda.connection import connectionhandled_urlopen
-from conda.compat import PY3, itervalues, get_http_value
+from conda.connection import CondaSession, unparse_url, RETRIES
+from conda.compat import itervalues, get_http_value, input, urllib_quote
 from conda.lock import Locked
 
-if PY3:
-    import urllib.request as urllib2
-else:
-    import urllib2
-
+import requests
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
+stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
-retries = 3
 
 
 def create_cache_dir():
@@ -55,8 +53,18 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
         d[dict_key] = value
 
 
-def fetch_repodata(url, cache_dir=None, use_cache=False):
+def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     dotlog.debug("fetching repodata: %s ..." % url)
+
+    if not config.ssl_verify:
+        try:
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+        except ImportError:
+            pass
+        else:
+            warnings.simplefilter('ignore', InsecureRequestWarning)
+
+    session = session or CondaSession()
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
@@ -67,35 +75,68 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
     if use_cache:
         return cache
 
-    request = urllib2.Request(url + 'repodata.json.bz2')
-    if '_etag' in cache:
-        request.add_header('If-None-Match', cache['_etag'])
-    if '_mod' in cache:
-        request.add_header('If-Modified-Since', cache['_mod'])
+    headers = {}
+    if "_tag" in cache:
+        headers["If-None-Match"] = cache["_etag"]
+    if "_mod" in cache:
+        headers["If-Modified-Since"] = cache["_mod"]
 
     try:
-        u = connectionhandled_urlopen(request)
-        data = u.read()
-        u.close()
-        cache = json.loads(bz2.decompress(data).decode('utf-8'))
-        add_http_value_to_dict(u, 'Etag', cache, '_etag')
-        add_http_value_to_dict(u, 'Last-Modified', cache, '_mod')
+        resp = session.get(url + 'repodata.json.bz2',
+                           headers=headers, proxies=session.proxies,
+                           verify=config.ssl_verify)
+        resp.raise_for_status()
+        if resp.status_code != 304:
+            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
 
-    except ValueError:
-        raise RuntimeError("Invalid index file: %srepodata.json.bz2" % url)
+    except ValueError as e:
+        raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
+                           (config.remove_binstar_tokens(url), e))
 
-    except urllib2.HTTPError as e:
-        msg = "HTTPError: %d  %s  %s\n" % (e.code, e.msg, url)
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 407: # Proxy Authentication Required
+            handle_proxy_407(url, session)
+            # Try again
+            return fetch_repodata(url, cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
+        if e.response.status_code == 404:
+            if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
+                msg = ('Could not find Binstar user %s' %
+                   config.remove_binstar_tokens(url).split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
+            else:
+                msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+        elif (e.response.status_code == 401 and config.rc.get('channel_alias',
+            config.DEFAULT_CHANNEL_ALIAS) in url):
+            # Note, this will not trigger if the binstar configured url does
+            # not match the conda configured one.
+            msg = ("Warning: you may need to login to binstar again with "
+                "'binstar login' to access private packages(%s, %s)" %
+                (config.hide_binstar_tokens(url), e))
+            stderrlog.info(msg)
+            return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
+        else:
+            msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
         log.debug(msg)
-        if e.code != 304:
+        raise RuntimeError(msg)
+
+    except requests.exceptions.ConnectionError as e:
+        # requests isn't so nice here. For whatever reason, https gives this
+        # error and http gives the above error. Also, there is no status_code
+        # attribute here. We have to just check if it looks like 407.  See
+        # https://github.com/kennethreitz/requests/issues/2061.
+        if "407" in str(e): # Proxy Authentication Required
+            handle_proxy_407(url, session)
+            # Try again
+            return fetch_repodata(url, cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
+
+        msg = "Connection error: %s: %s\n" % (e, config.remove_binstar_tokens(url))
+        stderrlog.info('Could not connect to %s\n' % config.remove_binstar_tokens(url))
+        log.debug(msg)
+        if fail_unknown_host:
             raise RuntimeError(msg)
 
-    except urllib2.URLError:
-        sys.stderr.write("Error: unknown host: %s\n" % url)
-        if fail_unknown_host:
-            sys.exit(1)
-
-    cache['_url'] = url
+    cache['_url'] = config.remove_binstar_tokens(url)
     try:
         with open(cache_path, 'w') as fo:
             json.dump(cache, fo, indent=2, sort_keys=True)
@@ -104,14 +145,63 @@ def fetch_repodata(url, cache_dir=None, use_cache=False):
 
     return cache or None
 
+def handle_proxy_407(url, session):
+    """
+    Prompts the user for the proxy username and password and modifies the
+    proxy in the session object to include it.
+    """
+    # We could also use HTTPProxyAuth, but this does not work with https
+    # proxies (see https://github.com/kennethreitz/requests/issues/2061).
+    scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    username, passwd = get_proxy_username_and_pass(scheme)
+    session.proxies[scheme] = add_username_and_pass_to_url(
+                           session.proxies[scheme], username, passwd)
+
+def add_username_and_pass_to_url(url, username, passwd):
+    urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
+    passwd = urllib_quote(passwd, '')
+    urlparts[1] = username + ':' + passwd
+    return unparse_url(urlparts)
+
+def get_proxy_username_and_pass(scheme):
+    username = input("\n%s proxy username: " % scheme)
+    passwd = getpass.getpass("Password:")
+    return username, passwd
 
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
+    # pool = ThreadPool(5)
     index = {}
     stdoutlog.info("Fetching package metadata: ")
+    session = CondaSession()
     for url in reversed(channel_urls):
-        repodata = fetch_repodata(url, use_cache=use_cache)
+        if config.allowed_channels and url not in config.allowed_channels:
+            sys.exit("""
+Error: URL '%s' not in allowed channels.
+
+Allowed channels are:
+  - %s
+""" % (url, '\n  - '.join(config.allowed_channels)))
+
+    try:
+        import concurrent.futures
+        from collections import OrderedDict
+
+        repodatas = []
+        with concurrent.futures.ThreadPoolExecutor(10) as executor:
+            future_to_url = OrderedDict([(executor.submit(fetch_repodata, url, use_cache=use_cache,
+                session=session), url) for url in reversed(channel_urls)])
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                repodatas.append((url, future.result()))
+    except ImportError:
+        # concurrent.futures is only available in Python 3
+        repodatas = map(lambda url: (url, fetch_repodata(url,
+                 use_cache=use_cache, session=session)),
+        reversed(channel_urls))
+
+    for url, repodata in repodatas:
         if repodata is None:
             continue
         new_index = repodata['packages']
@@ -139,106 +229,127 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
 
     return index
 
-
-def fetch_pkg(info, dst_dir=None):
+def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
     if dst_dir is None:
         dst_dir = config.pkgs_dirs[0]
 
+    session = session or CondaSession()
+
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
     log.debug("url=%r" % url)
     path = join(dst_dir, fn)
-    pp = path + '.part'
 
+    download(url, path, session=session, md5=info['md5'], urlstxt=True)
+
+
+def download(url, dst_path, session=None, md5=None, urlstxt=False,
+             retries=None):
+    pp = dst_path + '.part'
+    dst_dir = dirname(dst_path)
+    session = session or CondaSession()
+
+    if not config.ssl_verify:
+        try:
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+        except ImportError:
+            pass
+        else:
+            warnings.simplefilter('ignore', InsecureRequestWarning)
+
+    if retries is None:
+        retries = RETRIES
     with Locked(dst_dir):
-        for x in range(retries):
-            try:
-                fi = connectionhandled_urlopen(url)
-            except IOError:
-                log.debug("attempt %d failed at urlopen" % x)
-                continue
-            if fi is None:
-                log.debug("could not fetch (urlopen returned None)")
-                continue
-            n = 0
+        try:
+            resp = session.get(url, stream=True, proxies=session.proxies,
+                               verify=config.ssl_verify)
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 407: # Proxy Authentication Required
+                handle_proxy_407(url, session)
+                # Try again
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries)
+            msg = "HTTPError: %s: %s\n" % (e, url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+
+        except requests.exceptions.ConnectionError as e:
+            # requests isn't so nice here. For whatever reason, https gives
+            # this error and http gives the above error. Also, there is no
+            # status_code attribute here.  We have to just check if it looks
+            # like 407.
+            # See: https://github.com/kennethreitz/requests/issues/2061.
+            if "407" in str(e): # Proxy Authentication Required
+                handle_proxy_407(url, session)
+                # try again
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries)
+            msg = "Connection error: %s: %s\n" % (e, url)
+            stderrlog.info('Could not connect to %s\n' % url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+
+        except IOError as e:
+            raise RuntimeError("Could not open '%s': %s" % (url, e))
+
+        size = resp.headers.get('Content-Length')
+        if size:
+            size = int(size)
+            fn = basename(dst_path)
+            getLogger('fetch.start').info((fn[:14], size))
+
+        n = 0
+        if md5:
             h = hashlib.new('md5')
-            getLogger('fetch.start').info((fn, info['size']))
-            need_retry = False
-            try:
-                fo = open(pp, 'wb')
-            except IOError:
-                raise RuntimeError("Could not open %r for writing.  "
-                          "Permissions problem or missing directory?" % pp)
-            while True:
-                try:
-                    chunk = fi.read(16384)
-                except IOError:
-                    need_retry = True
-                    break
-                if not chunk:
-                    break
-                try:
-                    fo.write(chunk)
-                except IOError:
-                    raise RuntimeError("Failed to write to %r." % pp)
-                h.update(chunk)
-                n += len(chunk)
-                getLogger('fetch.update').info(n)
+        try:
+            with open(pp, 'wb') as fo:
+                for chunk in resp.iter_content(2**14):
+                    try:
+                        fo.write(chunk)
+                    except IOError:
+                        raise RuntimeError("Failed to write to %r." % pp)
+                    if md5:
+                        h.update(chunk)
+                    n += len(chunk)
+                    if size:
+                        getLogger('fetch.update').info(n)
+        except IOError as e:
+            if e.errno == 104 and retries: # Connection reset by pee
+                # try again
+                log.debug("%s, trying again" % e)
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries - 1)
+            raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
-            fo.close()
-            if need_retry:
-                continue
-
-            fi.close()
+        if size:
             getLogger('fetch.stop').info(None)
-            if h.hexdigest() != info['md5']:
-                raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)" % (fn, h.hexdigest(), info['md5']))
-            try:
-                os.rename(pp, path)
-            except OSError:
-                raise RuntimeError("Could not rename %r to %r." % (pp, path))
+
+        if md5 and h.hexdigest() != md5:
+            if retries:
+                # try again
+                log.debug("MD5 sums mismatch for download: %s (%s != %s), "
+                          "trying again" % (url, h.hexdigest(), md5))
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries - 1)
+            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
+                               % (url, h.hexdigest(), md5))
+
+        try:
+            os.rename(pp, dst_path)
+        except OSError as e:
+            raise RuntimeError("Could not rename %r to %r: %r" %
+                               (pp, dst_path, e))
+
+        if urlstxt:
             try:
                 with open(join(dst_dir, 'urls.txt'), 'a') as fa:
                     fa.write('%s\n' % url)
             except IOError:
                 pass
-            return
-
-    raise RuntimeError("Could not locate '%s'" % url)
-
-
-def download(url, dst_path):
-    try:
-        u = connectionhandled_urlopen(url)
-    except IOError:
-        raise RuntimeError("Could not open '%s'" % url)
-    except ValueError as e:
-        raise RuntimeError(e)
-
-    size = get_http_value(u, 'Content-Length')
-    if size:
-        size = int(size)
-        fn = basename(dst_path)
-        getLogger('fetch.start').info((fn[:14], size))
-
-    n = 0
-    fo = open(dst_path, 'wb')
-    while True:
-        chunk = u.read(16384)
-        if not chunk:
-            break
-        fo.write(chunk)
-        n += len(chunk)
-        if size:
-            getLogger('fetch.update').info(n)
-    fo.close()
-
-    u.close()
-    if size:
-        getLogger('fetch.stop').info(None)
 
 
 class TmpDownload(object):

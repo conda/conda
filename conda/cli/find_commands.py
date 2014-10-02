@@ -42,6 +42,8 @@ def find_commands():
         if not isdir(dir_path):
             continue
         for fn in os.listdir(dir_path):
+            if not isfile(join(dir_path, fn)):
+                continue
             m = pat.match(fn)
             if m:
                 res.add(m.group(1))
@@ -50,15 +52,22 @@ def find_commands():
 
 def filter_descr(cmd):
     args = [find_executable(cmd), '--help']
+    if not args[0]:
+        print('failed: %s (could not find executable)' % (cmd))
+        return
     try:
         output = subprocess.check_output(args)
-    except subprocess.CalledProcessError:
+    except (OSError, subprocess.CalledProcessError):
         print('failed: %s' % (' '.join(args)))
         return
-    pat = re.compile(r'(\r?\n){2}(.*?)(\r?\n){2}')
+    pat = re.compile(r'(\r?\n){2}(.*?)(\r?\n){2}', re.DOTALL)
     m = pat.search(output.decode('utf-8'))
-    descr = '<could not extract description>' if m is None else m.group(2)
-    print('    %-12s %s' % (cmd, descr))
+    descr = ['<could not extract description>'] if m is None else m.group(2).split('\n')
+    # XXX: using some stuff from textwrap would be better here, as it gets
+    # longer than 80 characters
+    print('    %-12s %s' % (cmd, descr[0]))
+    for d in descr[1:]:
+        print('                 %s' % d)
 
 
 def help():
