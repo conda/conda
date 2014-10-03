@@ -9,9 +9,9 @@ from os.path import isdir, isfile, join, expanduser
 from conda.utils import memoized
 
 def find_executable(executable, include_others=True):
-    # dir_paths is referenced as a module-level variable
-    #  in other code
+    # backwards compatibility
     global dir_paths
+
     if include_others:
         if sys.platform == 'win32':
             dir_paths = [join(sys.prefix, 'Scripts'),
@@ -36,7 +36,16 @@ def find_executable(executable, include_others=True):
     return None
 
 @memoized
-def find_commands():
+def find_commands(include_others=True):
+    if include_others:
+        if sys.platform == 'win32':
+            dir_paths = [join(sys.prefix, 'Scripts'),
+                         'C:\\cygwin\\bin']
+        else:
+            dir_paths = [join(sys.prefix, 'bin')]
+    else:
+        dir_paths = []
+
     if sys.platform == 'win32':
         pat = re.compile(r'conda-(\w+)\.(exe|bat)$')
     else:
