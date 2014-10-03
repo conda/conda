@@ -19,6 +19,7 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
+from conda.cli.find_commands import find_executable
 from conda.misc import touch_nonadmin
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
@@ -334,11 +335,13 @@ environment does not exist: %s
             for pkg in e.pkgs:
                 close = get_close_matches(pkg, packages, cutoff=0.7)
                 if close:
-                    error_message += "\n\nDid you mean one of these?\n    %s" % (', '.join(close))
+                    error_message += "\n\nDid you mean one of these?\n\n    %s" % (', '.join(close))
                 error_message += '\n\nYou can search for this package on Binstar with'
                 error_message += '\n\n    binstar search -t conda %s' % pkg
-                error_message += '\n\nYou may need to install the Binstar command line client with'
-                error_message += '\n\n    conda install binstar'
+                binstar = find_executable('binstar', include_others=False)
+                if not binstar:
+                    error_message += '\n\nYou may need to install the Binstar command line client with'
+                    error_message += '\n\n    conda install binstar'
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
