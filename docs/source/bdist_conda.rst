@@ -26,10 +26,6 @@ Notes
 - ``bdist_conda`` can only be installed into a root conda environment, as it
   imports ``conda`` and ``conda_build``.
 
-- To build against different versions of Python or NumPy, set the ``CONDA_PY``
-  or ``CONDA_NPY`` environment variables, e.g., ``CONDA_PY=33`` will build
-  against Python 3.3.  See :ref:`build-envs` for more information.
-
 - All metadata is gathered from the standard metadata from the ``setup()``
   function. Metadata that is not directly supported by ``setup()`` can be
   added using one of the options specified below.
