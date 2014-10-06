@@ -5,6 +5,10 @@
   * don't allow to remove the current environment, see issue #639
   * don't fail if binstar_client can't be imported for other reasons,
     see issue #925
+  * allow spaces to be contained in conda run
+  * only show the conda install binstar hint if binstar is not installed
+  * conda info package_spec now gives detailed info on packages. conda info
+    path has been removed, as it is duplicated by conda package -w path.
 
 
 2014-09-19   3.7.0:
