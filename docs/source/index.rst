@@ -8,7 +8,11 @@ Conda
 =====
 
 
-The `conda` command is the primary interface for managing `Anaconda <http://docs.continuum.io/anaconda/index.html>`_ installations. It can query and search the Anaconda package index and current Anaconda installation, create new Anaconda environments, and install and update packages into existing Anaconda environments.
+The `conda` command is the primary interface for managing `Anaconda
+<http://docs.continuum.io/anaconda/index.html>`_ installations. It can query
+and search the Anaconda package index and current Anaconda installation,
+create new conda environments, and install and update packages into existing
+conda environments.
 
 
 Installation
