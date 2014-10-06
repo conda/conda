@@ -41,7 +41,7 @@ First, we will check our system's Numpy version
 
 Next we will create an Anaconda environment using a different version of NumPy
 
-.. code-block:: bash
+.. code-block:: none
 
     $ conda create -p ~/anaconda/envs/test numpy=1.6 anaconda
 
@@ -59,7 +59,7 @@ Now we change our **PATH** variable to point to the new environment
 
 Finally, we check the version of Numpy again
 
-.. code-block:: bash
+.. code-block:: python
 
     $ python
     Python 2.7.5 |Anaconda 1.6.1 (x86_64)| (unknown, Jan 10 2013, 12:19:03)
