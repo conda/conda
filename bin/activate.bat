@@ -8,18 +8,24 @@ set CONDA_NEW_ENV=%1
 set CONDA_NEW_ENV=%CONDA_NEW_ENV:"=%
 
 if "%2" == "" goto skiptoomanyargs
-    echo ERROR: Too many arguments provided
-    goto usage
+    (echo Error: did not expect more than one argument.) 1>&2
+    exit /b 1
 :skiptoomanyargs
 
-if not "%CONDA_NEW_ENV%" == "" goto skipmissingarg
-:usage
-    echo Usage: activate envname
+if not "%1" == "" goto skipmissingarg
+    (echo Error: no environment provided.) 1>&2
+    exit /b 1
+:skipmissingarg
+
+if not "%1" == "--help" goto skipusage
+    (
+    echo Usage: activate ENV
     echo.
     echo Deactivates previously activated Conda
     echo environment, then activates the chosen one.
+    ) 1>&2
     exit /b 1
-:skipmissingarg
+:skipusage
 
 REM Use conda itself to figure things out
 REM No conda, no dice
@@ -41,7 +47,7 @@ if %ERRORLEVEL% EQU 1 (
 REM Deactivate a previous activation if it is live
 if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     REM This search/replace removes the previous env from the path
-    echo Deactivating environment "%CONDA_DEFAULT_ENV%"...
+    (echo Deactivating environment "%CONDA_DEFAULT_ENV%"...) 1>&2
     set NEWPATH=
     FOR /F "delims=" %%i IN ('conda ..deactivate') DO set NEWPATH=%%i
     set PATH=%NEWPATH%
@@ -51,8 +57,10 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
 
 set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
 set CONDA_NEW_ENV=
-echo Activating environment "%CONDA_DEFAULT_ENV%"...
+(echo Activating environment "%CONDA_DEFAULT_ENV%"...) 1>&2
 set NEWPATH=
 FOR /F "delims=" %%i IN ('conda ..activate %CONDA_DEFAULT_ENV%') DO set NEWPATH=%%i
 set PATH=%NEWPATH%
-set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
+
+for /F %%C IN ('conda ..changeps1') DO set CHANGEPS1=%%C
+if "%CHANGEPS1%" == "1" set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
