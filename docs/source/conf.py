@@ -104,8 +104,14 @@ modindex_common_prefix = ['conda.']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-extensions += ['sphinxjp.themes.basicstrap']
-html_theme = 'basicstrap'
+# extensions += ['sphinxjp.themes.basicstrap']
+# html_theme = 'basicstrap'
+
+import continuum_sphinx_theme
+
+html_theme = "continuum_sphinx_theme"
+
+html_theme_path = [continuum_sphinx_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
