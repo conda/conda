@@ -3,3 +3,8 @@ with
 
 
     conda install -c asmeurer continuum_sphinx_theme
+
+
+Then run
+
+    make html
