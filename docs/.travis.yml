@@ -1,0 +1,42 @@
+language: python
+python:
+  - 2.7
+  - 3.3
+matrix:
+  include:
+    - python: 2.7
+      env:
+        - DOCS="true"
+    - python: 3.3
+      env:
+        - WEBSITE="true"
+before_install:
+  - sudo apt-get update
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda config --add channels asmeurer
+  - conda update -q conda
+  - conda info -a
+  
+
+  - if [[ "${DOCS}" = "true" ]]; then
+      conda create -q -n docs-build --file 
+  - source activate test-environment
+  - python setup.py install
+install:
+  - if [[ "${TEST_SAGE}" != "true" ]]; then
+      python setup.py install;
+    fi
+script:
+  - bin/test_travis.sh
+notifications:
+  email: false
+after_success:
+  - bin/build_doc.sh
