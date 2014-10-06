@@ -113,6 +113,15 @@ html_theme = "continuum_sphinx_theme"
 
 html_theme_path = [continuum_sphinx_theme.get_html_theme_path()]
 
+html_context = {
+    'github_user': 'conda',
+    'github_repo': 'conda-docs',
+    'github_version': 'master/',
+    'display_github': True,
+    'conf_py_path': 'docs/source/',
+    'source_suffix': '.rst',
+    }
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
