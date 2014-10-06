@@ -119,7 +119,7 @@ Requirements
 License Agreement
 -----------------
 
-conda is distributed under the `OpenBSD license <http://opensource.org/licenses/bsd-license.php>`_.
+conda is distributed under the `BSD license <http://opensource.org/licenses/bsd-license.php>`_.
 
 
 Indices and tables
