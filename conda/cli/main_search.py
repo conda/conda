@@ -200,7 +200,9 @@ def execute_search(args, parser):
                 else:
                     json.append(dist)
                 continue
-            if dist in linked:
+            if platform and platform != config.subdir:
+                inst = ' '
+            elif dist in linked:
                 inst = '*'
             elif dist in extracted:
                 inst = '.'

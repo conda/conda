@@ -1,4 +1,38 @@
-...
+2014-XX-XX   3.7.1:
+-------------------
+  * improve error message for forgetting to use source with activate and
+    deactivate, see issue #601
+  * don't allow to remove the current environment, see issue #639
+  * don't fail if binstar_client can't be imported for other reasons,
+    see issue #925
+
+
+2014-09-19   3.7.0:
+-------------------
+  * faster algorithm for --alt-hint
+  * don't allow channel_alias with allow_other_channels: false if it is set in
+    the system .condarc
+  * don't show long "no packages found" error with update --all
+  * automatically add the Binstar token to urls when the binstar client is
+    installed and logged in
+  * carefully avoid showing the binstar token or writing it to a file
+  * be more careful in conda config about keys that are the wrong type
+  * don't expect directories starting with conda- to be commands
+  * no longer recommend to run conda init after pip installing conda. A pip
+    installed conda will now work without being initialized to create and
+    manage other environments
+  * the rm function on Windows now works around access denied errors
+  * fix channel urls now showing with conda list with show_channel_urls set to
+    true
+
+
+2014-09-08   3.6.4:
+-------------------
+  * fix removing packages that aren't in the channels any more
+  * Pretties output for --alt-hint
+
+
+2014-09-04   3.6.3:
 -------------------
   * skip packages that can't be found with update --all
   * add --use-local to search and remove
@@ -7,7 +41,7 @@
     --use-local
   * allow paths in has_prefix to be quoted, to allow for spaces in paths on
     Windows
-  * retain Unix style path separators for binary prefixes in has_prefix on
+  * retain Unix style path separators for prefixes in has_prefix on
     Windows (if the placeholder path uses /, replace it with a path that uses
     /, not \)
   * fix bug in --use-local due to API changes in conda-build
@@ -15,6 +49,14 @@
   * make binary has_prefix replacement work with spaces after the prefix
   * make binary has_prefix replacement replace multiple occurrences of the
     placeholder in the same null-terminated string
+  * don't show packages from other platforms as installed or cached in conda
+    search
+  * be more careful about not warning about conda itself in pscheck
+  * Use a progress bar for the unsatisfiable packages hint generation
+  * Don't use TemporaryFile in try_write, as it is too slow when it fails
+  * Ignore InsecureRequestWarning when ssl_verify is False
+  * conda remove removes features tracked by removed packages in
+    track_features
 
 
 2014-08-20   3.6.2:

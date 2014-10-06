@@ -4,34 +4,48 @@ import re
 import os
 import sys
 import subprocess
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile, join, expanduser
 
 from conda.utils import memoized
 
-if sys.platform == 'win32':
-    dir_paths = [join(sys.prefix, 'Scripts')]
-else:
-    dir_paths = [join(sys.prefix, 'bin')]
+def find_executable(executable, include_others=True):
+    # backwards compatibility
+    global dir_paths
 
-dir_paths.extend(os.environ['PATH'].split(os.pathsep))
+    if include_others:
+        if sys.platform == 'win32':
+            dir_paths = [join(sys.prefix, 'Scripts'),
+                         'C:\\cygwin\\bin']
+        else:
+            dir_paths = [join(sys.prefix, 'bin')]
+    else:
+        dir_paths = []
 
+    dir_paths.extend(os.environ['PATH'].split(os.pathsep))
 
-def find_executable(cmd):
-    executable = 'conda-%s' % cmd
     for dir_path in dir_paths:
         if sys.platform == 'win32':
-            for ext in  '.exe', '.bat':
+            for ext in  '.exe', '.bat', '':
                 path = join(dir_path, executable + ext)
                 if isfile(path):
                     return path
         else:
             path = join(dir_path, executable)
-            if isfile(path):
-                return path
+            if isfile(expanduser(path)):
+                return expanduser(path)
     return None
 
 @memoized
-def find_commands():
+def find_commands(include_others=True):
+    if include_others:
+        if sys.platform == 'win32':
+            dir_paths = [join(sys.prefix, 'Scripts'),
+                         'C:\\cygwin\\bin']
+        else:
+            dir_paths = [join(sys.prefix, 'bin')]
+    else:
+        dir_paths = []
+
     if sys.platform == 'win32':
         pat = re.compile(r'conda-(\w+)\.(exe|bat)$')
     else:
@@ -42,6 +56,8 @@ def find_commands():
         if not isdir(dir_path):
             continue
         for fn in os.listdir(dir_path):
+            if not isfile(join(dir_path, fn)):
+                continue
             m = pat.match(fn)
             if m:
                 res.add(m.group(1))
@@ -49,7 +65,10 @@ def find_commands():
 
 
 def filter_descr(cmd):
-    args = [find_executable(cmd), '--help']
+    args = [find_executable('conda-' + cmd), '--help']
+    if not args[0]:
+        print('failed: %s (could not find executable)' % (cmd))
+        return
     try:
         output = subprocess.check_output(args)
     except (OSError, subprocess.CalledProcessError):

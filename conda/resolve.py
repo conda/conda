@@ -11,7 +11,7 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset)
 from conda.console import setup_handlers
 from conda import config
 
@@ -490,7 +490,7 @@ class Resolve(object):
         if not solution:
             if guess:
                 stderrlog.info('\nError: Unsatisfiable package '
-                    'specifications.\nGenerating hint: ')
+                    'specifications.\nGenerating hint: \n')
                 if minimal_hint:
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
@@ -532,31 +532,50 @@ class Resolve(object):
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
 
+    @staticmethod
+    def clause_pkg_name(i, w):
+        if i > 0:
+            ret = w[i]
+        else:
+            ret = 'not ' + w[-i]
+        return ret.rsplit('.tar.bz2', 1)[0]
 
     def minimal_unsatisfiable_subset(self, clauses, v, w):
-        while True:
-            for i in combinations(clauses, len(clauses) - 1):
-                if not sat(list(i)):
-                    dotlog.debug('Finding minimal unsatisfiable subset')
-                    clauses = i
-                    break
-            else:
-                break
+        clauses = minimal_unsatisfiable_subset(clauses, log=True)
 
-        import pprint
-        return "The following set of clauses is unsatisfiable\n%s" % \
-            pprint.pformat([[w[j] if j > 0 else 'not ' + w[-j] for j in k] for k in i])
+        pretty_clauses = []
+        for clause in clauses:
+            if clause[0] < 0 and len(clause) > 1:
+                pretty_clauses.append('%s => %s' %
+                    (self.clause_pkg_name(-clause[0], w), ' or '.join([self.clause_pkg_name(j, w) for j in clause[1:]])))
+            else:
+                pretty_clauses.append(' or '.join([self.clause_pkg_name(j, w) for j in clause]))
+        return "The following set of clauses is unsatisfiable:\n\n%s" % '\n'.join(pretty_clauses)
 
     def guess_bad_solve(self, specs, features):
         # TODO: Check features as well
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        # Don't show the dots in normal mode but do show the dotlog messages
+        # with --debug
+        dotlog.setLevel(logging.WARN)
         hint = []
         # Try to find the largest satisfiable subset
         found = False
+        if len(specs) > 10:
+            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
         for i in range(len(specs), 0, -1):
             if found:
+                logging.getLogger('progress.stop').info(None)
                 break
-            for comb in combinations(specs, i):
+
+            # Too lazy to compute closed form expression
+            ncombs = len(list(combinations(specs, i)))
+            logging.getLogger('progress.start').info(ncombs)
+            for j, comb in enumerate(combinations(specs, i), 1):
                 try:
+                    logging.getLogger('progress.update').info(('%s/%s' % (j,
+                        ncombs), j))
                     self.solve2(comb, features, guess=False, unsat_only=True)
                 except RuntimeError:
                     pass

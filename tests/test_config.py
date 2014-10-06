@@ -6,7 +6,7 @@
 
 import os
 import unittest
-from os.path import dirname, join
+from os.path import dirname, join, exists
 import yaml
 
 import conda.config as config
@@ -35,6 +35,9 @@ class TestConfig(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         config.rc = config.load_condarc(config.rc_path)
+        # Otherwise normalization tests will fail if the user is logged into
+        # binstar.
+        config.rc['add_binstar_token'] = False
         super(TestConfig, self).__init__(*args, **kwargs)
 
     def test_globals(self):
@@ -450,6 +453,56 @@ def test_config_command_remove_force():
         assert stderr == "Error: key 'always_yes' is not in the config file\n"
         os.unlink(test_condarc)
 
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_command_bad_args():
+    try:
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+            'notarealkey', 'test')
+        assert stdout == ''
+
+        assert not exists(test_condarc)
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--set',
+            'notarealkey', 'yes')
+        assert stdout == ''
+
+        assert not exists(test_condarc)
+
+    finally:
+        try:
+            pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_invalid_rc():
+    # Some tests for unexpected input in the condarc, like keys that are the
+    # wrong type
+    try:
+        condarc = """\
+channels:
+"""
+
+        with open(test_condarc, 'w') as f:
+            f.write(condarc)
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+            '--add', 'channels', 'test')
+        assert stdout == ''
+        assert stderr == """\
+Error: Could not parse the yaml file. Use -f to use the
+yaml parser (this will remove any structure or comments from the existing
+.condarc file). Reason: key 'channels' should be a list, not NoneType.
+"""
+        assert _read_test_condarc() == condarc
+
+        os.unlink(test_condarc)
     finally:
         try:
             pass

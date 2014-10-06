@@ -170,8 +170,23 @@ def rm_rf(path, max_retries=5):
                 shutil.rmtree(path)
                 return
             except OSError as e:
-                log.debug("Unable to delete %s (%s): retrying after %s "
-                          "seconds" % (path, e, i))
+                msg = "Unable to delete %s\n%s\n" % (path, e)
+                if on_win:
+                    try:
+                        def remove_readonly(func, path, excinfo):
+                            os.chmod(path, stat.S_IWRITE)
+                            func(path)
+                        shutil.rmtree(path, onerror=remove_readonly)
+                        return
+                    except OSError as e1:
+                        msg += "Retry with onerror failed (%s)\n" % e1
+
+                    try:
+                        subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
+                        return
+                    except subprocess.CalledProcessError as e2:
+                        msg += '%s\n' % e2
+                log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
         shutil.rmtree(path)
@@ -236,13 +251,18 @@ def binary_replace(data, a, b):
         if padding < 0:
             raise PaddingError(a, b, padding)
         return match.group().replace(a, b) + b'\0' * padding
-    pat = re.compile(a.replace(b'.', b'\.') + b'([^\0]*?)\0')
+    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
     res = pat.sub(replace, data)
     assert len(res) == len(data)
     return res
 
 def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
                   mode='text'):
+    if on_win and (placeholder != prefix_placeholder) and ('/' in placeholder):
+        # original prefix uses unix-style path separators
+        # replace with unix-style path separators
+        new_prefix = new_prefix.replace('\\', '/')
+
     path = os.path.realpath(path)
     with open(path, 'rb') as fi:
         data = fi.read()
@@ -250,10 +270,6 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
         new_data = data.replace(placeholder.encode('utf-8'),
                                 new_prefix.encode('utf-8'))
     elif mode == 'binary':
-        if on_win and '/' in placeholder:
-            # windows binary contains prefix with unix-style path separators
-            # replace with unix-style path separators
-            new_prefix = new_prefix.replace('\\', '/')
         new_data = binary_replace(data, placeholder.encode('utf-8'),
                                   new_prefix.encode('utf-8'))
     else:
@@ -546,11 +562,24 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
 
+        # Make sure the script stays standalone for the installer
+        try:
+            from conda.config import remove_binstar_tokens
+        except ImportError:
+            # There won't be any binstar tokens in the installer anyway
+            def remove_binstar_tokens(url):
+                return url
+
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(pkgs_dir, dist)
+        if meta_dict['url']:
+            meta_dict['url'] = remove_binstar_tokens(meta_dict['url'])
         meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,
                              'type': link_name_map.get(linktype)}
+        if 'channel' in meta_dict:
+            meta_dict['channel'] = remove_binstar_tokens(meta_dict['channel'])
+
         create_meta(prefix, dist, info_dir, meta_dict)
 
 def unlink(prefix, dist):

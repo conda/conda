@@ -27,7 +27,7 @@ being used will only be used in the positive or the negative, respectively
 import sys
 from collections import defaultdict
 from functools import total_ordering, partial
-from itertools import islice, chain
+from itertools import islice, chain, combinations
 import logging
 
 from conda.compat import log2, ceil
@@ -609,4 +609,106 @@ def sat(clauses):
     solution = pycosat.solve(clauses)
     if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
         return []
+    # XXX: If solution == [] (i.e., clauses == []), the result will have
+    # boolean value of False even though the clauses are not unsatisfiable)
     return solution
+
+def minimal_unsatisfiable_subset(clauses, log=False):
+    """
+    Given a set of clauses, find a minimal unsatisfiable subset (an
+    unsatisfiable core)
+
+    A set is a minimal unsatisfiable subset if no proper subset is
+    unsatisfiable.  A set of clauses may have many minimal unsatisfiable
+    subsets of different sizes.
+
+    if log=True, progress bars will be displayed with the progress.
+    """
+
+    if log:
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+        start = lambda x: logging.getLogger('progress.start').info(x)
+        update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
+        stop = lambda: logging.getLogger('progress.stop').info(None)
+    else:
+        start = lambda x: None
+        update = lambda x, y: None
+        stop = lambda: None
+
+    clauses = tuple(clauses)
+    if sat(clauses):
+        raise ValueError("Clauses are not unsatisfiable")
+
+    # Algorithm suggested from
+    # http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
+    # search on the clauses by splitting them in halves A and B. If A or B is
+    # UNSAT, we use that and repeat. Otherwise, we recursively check A, but
+    # each time we do a sat query, we include B, until we have a minimal
+    # subset A* of A such that A* U B is UNSAT. Then we find a minimal subset
+    # B* of B such that A* U B* is UNSAT. Then A* U B* will be a minimal
+    # unsatisfiable subset of the original set of clauses.
+
+    # Proof: If some proper subset C of A* U B* is UNSAT, then there is some
+    # clause c in A* U B* not in C. If c is in A*, then that means (A* - {c})
+    # U B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a
+    # superset, which contradicts A* being the minimal subset of A with such
+    # property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B*
+    # - {c} is a strict subset of B*, contradicting B* being the minimal
+    # subset of B with this property.
+
+    def split(S):
+        """
+        Split S into two equal parts
+        """
+        S = tuple(S)
+        L = len(S)
+        return S[:L//2], S[L//2:]
+
+    def minimal_unsat(clauses, include=()):
+        """
+        Return a minimal subset A of clauses such that A + include is
+        unsatisfiable.
+
+        Implicitly assumes that clauses + include is unsatisfiable.
+        """
+        global L, d
+
+        # assert not sat(clauses + include), (len(clauses), len(include))
+
+        # Base case: Since clauses + include is implicitly assumed to be
+        # unsatisfiable, if clauses has only one element, it must be its own
+        # minimal subset
+        if len(clauses) == 1:
+            return clauses
+
+        A, B = split(clauses)
+
+        # If one half is unsatisfiable (with include), we can discard the
+        # other half.
+
+        # To display progress, every time we discard clauses, we update the
+        # progress by that much.
+        # dotlog.debug("")
+        if not sat(A + include):
+            d += len(B)
+            update(d, L)
+            return minimal_unsat(A, include)
+        # dotlog.debug("")
+        if not sat(B + include):
+            d += len(A)
+            update(d, L)
+            return minimal_unsat(B, include)
+
+        Astar = minimal_unsat(A, B + include)
+        Bstar = minimal_unsat(B, Astar + include)
+        return Astar + Bstar
+
+    global L, d
+    L = len(clauses)
+    d = 0
+    start(L)
+    ret = minimal_unsat(clauses)
+    # Commented out because it hides the progress
+    # stop()
+    return ret
