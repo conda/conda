@@ -1,7 +1,7 @@
 .. _build:
 
-Conda build framework
-=====================
+``conda build`` Recipe Reference
+================================
 
 Building a package requires a recipe.  A recipe is flat directory which
 contains the following files:
