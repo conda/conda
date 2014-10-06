@@ -24,7 +24,7 @@ conda is a part of the Anaconda distribution which can be downloaded `here <http
 Getting Started
 ---------------
 
-To demonstrate the ease of a typical conda workflow, we will create an Anaconda environment
+To demonstrate the ease of a typical conda workflow, we will create a conda environment
 with a version of `NumPy <http://www.numpy.org>`_ different from the default version.
 
 First, we will check our system's Numpy version
@@ -39,7 +39,7 @@ First, we will check our system's Numpy version
     >>> numpy.__version__
     '1.7.1'
 
-Next we will create an Anaconda environment using a different version of NumPy
+Next we will create a conda environment using a different version of NumPy
 
 .. code-block:: none
 
