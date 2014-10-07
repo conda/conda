@@ -1,4 +1,4 @@
-2014-XX-XX   3.7.1:
+2014-10-07   3.7.1:
 -------------------
   * improve error message for forgetting to use source with activate and
     deactivate, see issue #601
