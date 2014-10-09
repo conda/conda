@@ -70,16 +70,25 @@ sections are optional except for package/name and package/version.
       md5: 29f6089290505fc1a852e176bd276c43
       sha1: f0a2c9a30073449cfb7d171c57552f3109d93894
       sha256: 5a022ff4c1d1de87232b1c70bde50afbb98212fd246be4a867d8737173cf1f8f
+
       # or from git:
+      # git_url can also be a relative path to the recipe directory
       git_url: git@github.com:ilanschnell/bsdiff4.git
       git_tag: 1.1.4
+
       # or from hg:
       hg_url: ssh://hg@bitbucket.org/ilanschnell/bsdiff4
       hg_tag: 1.1.4
+
       # or from svn:
       svn_url: https://github.com/ilanschnell/bsdiff
       svn_rev: 1.1.4
       svn_ignore_externals: yes # (defaults to no)
+
+      # or from a local path:
+      # if the path is relative it is taken relative to the recipe
+      # directory. The source is copied to the work directory before building.
+      path: ../src
 
       # Patches may optionally be applied to the source
       patches:
