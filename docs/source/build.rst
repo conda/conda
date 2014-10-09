@@ -36,15 +36,17 @@ When building a package, the following steps are invoked:
 There are example recipes for many conda packages in the `conda-recipes
 <https://github.com/continuumio/conda-recipes>`_ repo.
 
-The :ref:`conda skeleton <skeleton_ref>` command can help to make skeleton recipes for common
-repositories, such as `PyPI <https://pypi.python.org/pypi>`_.
+The :ref:`conda skeleton <skeleton_ref>` command can help to make skeleton
+recipes for common repositories, such as
+`PyPI <https://pypi.python.org/pypi>`_.
 
 
 The meta.yaml file
 ------------------
 
 
-All the metadata in the recipe is specified in the ``meta.yaml`` file. All sections are optional except for package/name and package/version.
+All the metadata in the recipe is specified in the ``meta.yaml`` file. All
+sections are optional except for package/name and package/version.
 
 .. code-block:: yaml
 
@@ -61,8 +63,8 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
                           # The version cannot contain a dash '-' character.
 
     source:
-      # The source section specifies where the source code of the package is coming
-      # from, it may be coming from a source tarball like:
+      # The source section specifies where the source code of the package is
+      # comign from, it may be coming from a source tarball like:
       fn: bsdiff-1.1.14.tar.gz
       url: https://pypi.python.org/packages/source/b/bsdiff4/bsdiff4-1.1.4.tar.gz
       md5: 29f6089290505fc1a852e176bd276c43
@@ -83,36 +85,36 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       patches:
         - my.patch    # the patch file is expected to be found in the recipe
 
-    # Note, the source section is optional. If you want to specify a source
-    # location locally, the easiest way is to not specify the source here, but
-    # to just add something like
-    #
-    # cp -r $RECIPE_DIR/../src .
-    # cd src
-    # ...
-    #
-    # in build.sh (and similarly in bld.bat). This assumes the source is
-    # shipped alongside the recipe in src.
+    ###########################################################################
+    # Note, the source section is optional.  If you want to specify a source  #
+    # location locally, the easiest way is to not specify the source here,    #
+    # but to just add something like                                          #
+    #                                                                         #
+    # cp -r $RECIPE_DIR/../src .                                              #
+    # cd src                                                                  #
+    # ...                                                                     #
+    #                                                                         #
+    # in build.sh (and similarly in bld.bat). This assumes the source is      #
+    # shipped alongside the recipe in src.                                    #
+    ###########################################################################
 
     build:
       # The build number should be incremented for new builds of the same version
       number: 1       # (defaults to 0)
-      string: abc     # (defaults to default conda build string plus the build number)
+      string: abc     # (defaults to default conda build string plus the build
+                      # number)
                       # The build string cannot contain a dash '-' character
 
       # Optional Python entry points
       entry_points:
-        # This creates an entry point named bsdiff4 that calls bsdiff4.cli.main_bsdiff4()
+        # This creates an entry point named bsdiff4 that calls
+        # bsdiff4.cli.main_bsdiff4()
         - bsdiff4 = bsdiff4.cli:main_bsdiff4
         - bspatch4 = bsdiff4.cli:main_bspatch4
 
-      # If osx_is_app is set, entry points will use python.app instead of python in Mac OS X
+      # If osx_is_app is set, entry points will use python.app instead of
+      # python in Mac OS X
       osx_is_app: yes # (defaults to no)
-
-      # Whether binary files should be made relocatable (using
-      # install_name_tool on OS X or patchelf on Linux). See the "making
-      # packages relocatable" section below for more information on this.
-      binary_relocation: false # (defaults to true)
 
       # See the Features section below for more information on features
 
@@ -142,24 +144,36 @@ All the metadata in the recipe is specified in the ``meta.yaml`` file. All secti
       # different scripts for different platforms.
       script: python setup.py install
 
-      # Files that should have the placeholder prefix
-      # (/opt/anaconda1anaconda2anaconda3) replaced with the install prefix at
-      # installation.  Note that conda build does this automatically for the
-      # build prefix. See also the Relocatable section below.
-      has_prefix_files:
-        - bin/file1
-        - lib/file2
+      #########################################################################
+      # binary_relocation, has_prefix_files, binary_has_prefix_files, and     #
+      # detect_binary_files_with_prefix may be required to relocate files     #
+      # from the build environment to the installation environment.  See      #
+      # "Making Packages Relocatable" below.                                  #
+      #########################################################################
 
-      # Binary files that should have their build prefix replaced with the
-      # install prefix at installation time.  Due to the way this works, the
-      # install prefix cannot be longer than the build prefix.  It is
-      # recommended to build against a very long prefix. The easiest way to do
-      # this is to install miniconda into a very long path.  Future versions
-      # of conda build may do this automatically. See also the Relocatable
-      # section below.
+      # Whether binary files should be made relocatable using install_name_tool
+      # on OS X or patchelf on Linux.
+      binary_relocation: false # (defaults to true)
+
+      # Binary files may contain the build prefix and need it replaced with the
+      # install prefix at installation time.  Conda can automatically identify
+      # and register such files:
+      detect_binary_files_with_prefix: true # (defaults to false)
+      # or you may elect to specify such files individually:
       binary_has_prefix_files:
         - bin/binaryfile1
         - lib/binaryfile2
+
+      # Text files (containing no NULL bytes) may contain the build prefix and
+      # need it replaced with the install prefix at installation time.  Conda
+      # will automatically register such files.  Binary files that contain the
+      # build prefix are generally handled differently (see
+      # binary_has_prefix_files or detect_binary_files_with_prefix), but there
+      # may be cases where such a binary file needs to be treated as an
+      # ordinary text file, in which case they need to be identified:
+      has_prefix_files:
+        - bin/file1
+        - lib/file2
 
     # the build and runtime requirements. Dependencies of these requirements
     # are included automatically.
@@ -560,29 +574,33 @@ relocatable.  Relocatable means that the package can be installed into any
 prefix.  Otherwise, the package would only be usable in the same environment
 in which it was built.
 
-Conda build does the following things automatically to make packages relocatable:
+Conda build does the following things automatically to make packages
+relocatable:
 
 - Binary object files are converted to use relative paths using
   ``install_name_tool`` on Mac OS X and ``patchelf`` on Linux.
 
-- The build prefix is replaced in any text (non-binary) file with the prefix
-  placeholder, ``/opt/anaconda1anaconda2anaconda3``, and the file is added to
-  the ``has_prefix`` file in the package metadata.  When conda installs the
-  package, the placeholder prefix is replaced with the install prefix in all
-  files in ``info/has_prefix``.  See :ref:`package_metadata` for more
+- Any text file (containing no NULL bytes) containing the build prefix or the
+  placeholder prefix ``/opt/anaconda1anaconda2anaconda3`` is registered in the
+  ``info/has_prefix`` file in the package metadata.  When conda installs the
+  package, any files in ``info/has_prefix`` will have the registered prefix
+  replaced with the install prefix.  See :ref:`package_metadata` for more
   information.
 
-- You can manually add text files to ``has_prefix`` by listing them in
-  ``build/has_prefix_files`` in the meta.yaml (see above).  The files listed
-  here should have the placeholder prefix
-  (``/opt/anaconda1anaconda2anaconda3``).
+- Any binary file containing the build prefix can automatically be registered
+  in ``info/has_prefix`` using ``build/detect_binary_files_with_prefix`` in
+  ``meta.yaml``.  Alternatively, individual binary files can be registered by
+  listing them in ``build/binary_has_prefix_files`` in meta.yaml.  The
+  registered files will have their build prefix replaced with the install
+  prefix at install time.  This works by padding the install prefix with null
+  terminators, such that the length of the binary file remains the same.  The
+  build prefix must therefore be long enough to accommodate any reasonable
+  installation prefix. Whenever the ``build/binary_has_prefix_files`` list is
+  not empty or ``build/detect_binary_files_with_prefix`` is set, conda will pad
+  the build prefix (appending ``_placehold``\'s to the end of the build
+  directory name) to 80 characters.
 
-- You can manually add binary files to ``has_prefix`` by listing them in
-  ``build/binary_has_prefix_files`` in the meta.yaml (see above).  The files
-  listed here will have their build prefix replaced with the install prefix at
-  install time.  This works by padding the build prefix with null terminators,
-  so that the length of the binary file remains the same.  Due to this, the
-  install prefix must be shorter than the build prefix.  When
-  ``binary_has_prefix_files`` is used, conda will automatically build against
-  a prefix that 100 characters long (by adding ``_``\'s to the end of the build
-  directory name).
+- There may be cases where conda identified a file as binary, but it needs to
+  have the build prefix replaced as if it were text (no padding with null
+  terminators). Such files can be listed in ``build/has_prefix_files`` in
+  ``meta.yaml``.

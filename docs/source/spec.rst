@@ -90,15 +90,17 @@ in ``info/files`` should always be ``/``, even on Windows.  This matches the
 directory delimiter used in the tarball.
 
 ``info/has_prefix``: This optional file lists all files that contain a
-placeholder for the install prefix, which upon install is replaced by the real
-install prefix.
+hard-coded build prefix or placeholder prefix, which needs to be replaced by
+the install prefix at installation time. Note that due to the way the binary
+replacement works, the placeholder prefix must be longer than the install
+prefix.
 
 Each line of this file should either be a path, in which case it is considered
-a text file with the default placeholder,
-``/opt/anaconda1anaconda2anaconda3``, or a space separate list of
-``placeholder``, ``mode``, ``path``, where ``placeholder`` is the placeholder
-prefix, ``mode`` is either ``text`` or ``binary``, and ``path`` is the
-relative path of the file to be updated. For instance
+a text file with the default placeholder, ``/opt/anaconda1anaconda2anaconda3``,
+or a space-separated list of ``placeholder``, ``mode``, ``path``, where
+``placeholder`` is the build or placeholder prefix, ``mode`` is either ``text``
+or ``binary``, and ``path`` is the relative path of the file to be updated. For
+instance, on Linux or OS X
 
 ::
 
@@ -106,12 +108,21 @@ relative path of the file to be updated. For instance
    /Users/username/anaconda/envs/_build binary bin/binary
    /Users/username/anaconda/envs/_build text share/text
 
-Note that due to the way the binary replacement works, the placeholder prefix
-must be longer than the install prefix.
+or on Windows
 
-The directory delimiter for the path must always be ``/``, even on
-Windows. The placeholder can use ``\`` or ``/`` on Windows; the replacement
-prefix will match the delimiter used in the placeholder.
+::
+
+  "Scripts/script1.py"
+  "C:\Users\username\anaconda\envs\_build" text "Scripts/script2.bat"
+  "C:/Users/username/anaconda/envs/_build" binary "Scripts/binary"
+
+Note the directory delimiter for the relative ``path`` must always be ``/``,
+even on Windows. The placeholder may contain either ``\`` or ``/`` on Windows;
+the replacement prefix will match the delimiter used in the placeholder. (The
+default placeholder ``/opt/anaconda1anaconda2anaconda3`` is an exception, being
+replaced with the install prefix using the native path delimiter.) On Windows,
+the ``placeholder`` and ``path`` always appear in "quotes" to support paths
+with spaces.
 
 ``info/no_softlink``: This optional file lists all files which cannot
 be soft-linked into environments (and are copied instead).
