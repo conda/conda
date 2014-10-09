@@ -64,7 +64,7 @@ sections are optional except for package/name and package/version.
 
     source:
       # The source section specifies where the source code of the package is
-      # comign from, it may be coming from a source tarball like:
+      # coming from, it may be coming from a source tarball like:
       fn: bsdiff-1.1.14.tar.gz
       url: https://pypi.python.org/packages/source/b/bsdiff4/bsdiff4-1.1.4.tar.gz
       md5: 29f6089290505fc1a852e176bd276c43
@@ -85,18 +85,18 @@ sections are optional except for package/name and package/version.
       patches:
         - my.patch    # the patch file is expected to be found in the recipe
 
-    ###########################################################################
-    # Note, the source section is optional.  If you want to specify a source  #
-    # location locally, the easiest way is to not specify the source here,    #
-    # but to just add something like                                          #
-    #                                                                         #
-    # cp -r $RECIPE_DIR/../src .                                              #
-    # cd src                                                                  #
-    # ...                                                                     #
-    #                                                                         #
-    # in build.sh (and similarly in bld.bat). This assumes the source is      #
-    # shipped alongside the recipe in src.                                    #
-    ###########################################################################
+      #########################################################################
+      # Note, the source section is optional. If you want to specify a source #
+      # location locally, the easiest way is to not specify the source here,  #
+      # but to just add something like                                        #
+      #                                                                       #
+      # cp -r $RECIPE_DIR/../src .                                            #
+      # cd src                                                                #
+      # ...                                                                   #
+      #                                                                       #
+      # in build.sh (and similarly in bld.bat). This assumes the source is    #
+      # shipped alongside the recipe in src.                                  #
+      #########################################################################
 
     build:
       # The build number should be incremented for new builds of the same version
