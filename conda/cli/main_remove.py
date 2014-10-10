@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-import sys
+from os.path import join
 
 import argparse
 from argparse import RawDescriptionHelpFormatter
@@ -179,6 +179,8 @@ def execute(args, parser):
             plan.execute_actions(actions, index, verbose=not args.quiet)
     else:
         plan.execute_actions(actions, index, verbose=not args.quiet)
+        with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+            f.write('# remove specs: %s\n' % specs)
 
     if args.all:
         rm_rf(prefix)
