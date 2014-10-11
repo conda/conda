@@ -359,20 +359,15 @@ def read_no_link(info_dir):
 
 # Should this be an API function?
 def symlink_conda(prefix, root_dir):
-    root_conda = join(root_dir, 'bin', 'conda')
-    root_activate = join(root_dir, 'bin', 'activate')
-    root_deactivate = join(root_dir, 'bin', 'deactivate')
-    prefix_conda = join(prefix, 'bin', 'conda')
-    prefix_activate = join(prefix, 'bin', 'activate')
-    prefix_deactivate = join(prefix, 'bin', 'deactivate')
     if not os.path.exists(join(prefix, 'bin')):
         os.makedirs(join(prefix, 'bin'))
-    if not os.path.exists(prefix_conda):
-        os.symlink(root_conda, prefix_conda)
-    if not os.path.exists(prefix_activate):
-        os.symlink(root_activate, prefix_activate)
-    if not os.path.exists(prefix_deactivate):
-        os.symlink(root_deactivate, prefix_deactivate)
+    for filename in ['conda', 'activate', 'deactivate']:
+        root_path = join(root_dir, 'bin', filename)
+        prefix_path = join(prefix, 'bin', filename)
+        if not os.path.exists(root_path):
+            raise FileNotFoundError(root_path)
+        if not os.path.exists(prefix_path):
+            os.symlink(root_path, prefix_path)
 
 # ========================== begin API functions =========================
 
