@@ -231,14 +231,14 @@ def plan_from_actions(actions):
     for op in op_order:
         if op not in actions:
             continue
-        if not actions[op]:
-            continue
         if '_' not in op:
             res.append('PRINT %sing packages ...' % op.capitalize())
         if op in progress_cmds:
             res.append('PROGRESS %d' % len(actions[op]))
         for arg in actions[op]:
             res.append('%s %s' % (op, arg))
+        if not actions[op]:
+            res.append(op)
     return res
 
 def extracted_where(dist):
@@ -425,7 +425,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
         actions = ensure_linked_actions(smh, prefix)
 
     if actions[LINK] and sys.platform != 'win32':
-        actions[SYMLINK_CONDA] = [config.root_dir]
+        actions[SYMLINK_CONDA] = []
 
     for dist in sorted(linked):
         name = install.name_dist(dist)
@@ -531,7 +531,10 @@ def cmds_from_plan(plan):
         line = line.strip()
         if not line or line.startswith('#'):
             continue
-        res.append(line.split(None, 1))
+        cmd_arg = line.split(None, 1)
+        if len(cmd_arg) == 1:
+            cmd_arg.append([])
+        res.append(cmd_arg)
     return res
 
 def execute_plan(plan, index=None, verbose=False):
@@ -570,7 +573,10 @@ def execute_plan(plan, index=None, verbose=False):
         elif cmd == UNLINK:
             install.unlink(prefix, arg)
         elif cmd == SYMLINK_CONDA:
-            install.symlink_conda(prefix, arg)
+            if arg:
+                raise ValueError(
+                    "Did not expect argument for %r: %r" % (cmd, arg))
+            install.symlink_conda(prefix=prefix)
         else:
             raise Exception("Did not expect command: %r" % cmd)
 

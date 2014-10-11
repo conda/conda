@@ -38,6 +38,10 @@ import tarfile
 import traceback
 import logging
 import shlex
+try:  # Python >= 3.3
+    from shutil import which
+except ImportError:  # Python >= 2.4, < 3.3 (where we prefer shutil.which)
+    from distutils.spawn import find_executable as which
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -358,16 +362,19 @@ def read_no_link(info_dir):
     return res
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir):
+def symlink_conda(prefix):
     if not os.path.exists(join(prefix, 'bin')):
         os.makedirs(join(prefix, 'bin'))
-    for filename in ['conda', 'activate', 'deactivate']:
-        root_path = join(root_dir, 'bin', filename)
-        prefix_path = join(prefix, 'bin', filename)
-        if not os.path.exists(root_path):
-            raise FileNotFoundError(root_path)
+    for executable in ['conda', 'activate', 'deactivate']:
+        root_path = which(executable)
+        if root_path is None:
+            raise FileNotFoundError(executable)
+        real_root_path = os.path.realpath(root_path)
+        prefix_path = join(prefix, 'bin', executable)
+        if not os.path.exists(real_root_path):
+            raise FileNotFoundError(real_root_path)
         if not os.path.exists(prefix_path):
-            os.symlink(root_path, prefix_path)
+            os.symlink(real_root_path, prefix_path)
 
 # ========================== begin API functions =========================
 

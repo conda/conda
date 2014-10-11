@@ -96,7 +96,7 @@ def main():
         binpath = binpath_from_arg(sys.argv[2])
         # Make sure an env always has the conda symlink
         try:
-            conda.install.symlink_conda(join(binpath, '..'), conda.config.root_dir)
+            conda.install.symlink_conda(prefix=join(binpath, '..'))
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
