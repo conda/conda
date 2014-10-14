@@ -30,7 +30,7 @@ def add_parser_prefix(p):
 
 def add_parser_yes(p):
     p.add_argument(
-        "--yes",
+        "-y", "--yes",
         action = "store_true",
         help = "do not ask for confirmation",
     )
