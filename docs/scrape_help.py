@@ -74,7 +74,9 @@ def generate_html(command):
 
 
 def main():
-    for command in conda_commands():
+    commands = sys.argv[1:] or conda_commands()
+
+    for command in commands:
         generate_man(command)
 
 
