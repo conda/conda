@@ -97,7 +97,14 @@ def generate_html(command):
     print("Generating html for conda %s" % command)
     # Use abspath so that it always has a path separator
     man = Popen(['man', abspath(join(manpath, 'conda-%s.1' % command))], stdout=PIPE)
-    htmlpage = check_output(['man2html'], stdin=man.stdout)
+    htmlpage = check_output([
+        'man2html',
+        '-bare', # Don't use HTML, HEAD, or BODY tags
+        'title', 'conda-%s' % command,
+        '-topm', '0', # No top margin
+        '-botm', '0', # No bottom margin
+        ],
+        stdin=man.stdout)
 
     with open(join(manpath, 'conda-%s.html' % command), 'w') as f:
         f.write(htmlpage)
