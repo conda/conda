@@ -14,7 +14,7 @@ from conda.cli import common, install
 descr = "Update conda packages."
 example = """
 examples:
-    conda update -p ~/anaconda/envs/myenv scipy
+    conda update -n myenv scipy
 
 """
 
