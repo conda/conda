@@ -257,8 +257,6 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     if sys.platform == 'win32' and cmd == 'python':
         # python is located one directory up on Windows
         cmd = join(binpath, '..', cmd)
-    else:
-        cmd = join(binpath, cmd)
 
     args = shlex.split(cmd)
     if additional_args:
