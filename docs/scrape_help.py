@@ -5,7 +5,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from subprocess import check_output
+from subprocess import check_output, PIPE, Popen
 from os.path import join, dirname, abspath, isdir
 from os import makedirs, chdir, pathsep
 from collections import OrderedDict
@@ -70,9 +70,9 @@ def man_replacements():
         ])
     return r
 
+manpath = join(dirname(__file__), 'build', 'man')
+
 def generate_man(command):
-    chdir(abspath(dirname(__file__)))
-    manpath = join('build', 'man')
     if not isdir(manpath):
         makedirs(manpath)
     conda_version = check_output(['conda', '--version'])
@@ -94,7 +94,13 @@ def generate_man(command):
         f.write(manpage)
 
 def generate_html(command):
-    pass
+    print("Generating html for conda %s" % command)
+    # Use abspath so that it always has a path separator
+    man = Popen(['man', abspath(join(manpath, 'conda-%s.1' % command))], stdout=PIPE)
+    htmlpage = check_output(['man2html'], stdin=man.stdout)
+
+    with open(join(manpath, 'conda-%s.html' % command), 'w') as f:
+        f.write(htmlpage)
 
 
 def main():
@@ -102,7 +108,7 @@ def main():
 
     for command in commands:
         generate_man(command)
-
+        generate_html(command)
 
 if __name__ == '__main__':
     sys.exit(main())
