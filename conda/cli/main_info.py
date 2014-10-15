@@ -48,7 +48,7 @@ def configure_parser(sub_parsers):
         'packages',
         action = "store",
         nargs = '*',
-        help = "display information about packages or files",
+        help = "display information about packages",
     )
     p.set_defaults(func=execute)
 
