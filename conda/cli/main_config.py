@@ -21,7 +21,6 @@ config command.  Writes to the user .condarc file (%s) by default.
 
 example = """
 examples:
-
     conda config --get channels --system
 
     conda config --add channels http://conda.binstar.org/foo
