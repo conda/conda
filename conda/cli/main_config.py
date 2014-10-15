@@ -87,8 +87,8 @@ def configure_parser(sub_parsers):
         "--system",
         action = "store_true",
         help = """\
-write to the system .condarc file at {system}. Otherwise writes to the user
-        config file at {user}.""".format(system=config.sys_rc_path,
+write to the system .condarc file ({system}). Otherwise writes to the user
+        config file ({user}).""".format(system=config.sys_rc_path,
                                         user=config.user_rc_path),
         )
     location.add_argument(
@@ -96,7 +96,7 @@ write to the system .condarc file at {system}. Otherwise writes to the user
         action = "store",
         help = """\
 write to the given file. Otherwise writes to the user config file
-        at {user}.""".format(user=config.user_rc_path),
+         ({user}).""".format(user=config.user_rc_path),
         )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
