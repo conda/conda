@@ -7,8 +7,11 @@
 
 from subprocess import check_output
 from os.path import join, dirname, abspath, isdir
-from os import makedirs, chdir
+from os import makedirs, chdir, pathsep
+from collections import OrderedDict
+
 import sys
+import json
 
 def conda_help(cache=[]):
     if cache:
@@ -50,6 +53,23 @@ def external_commands():
                 commands.append(line.split()[0])
     return commands
 
+def man_replacements():
+    # XXX: We should use conda-api for this, but it's currently annoying to set the
+    # root prefix with.
+    info = json.loads(check_output(['conda', 'info', '--json']))
+    # We need to use an ordered dict because the root prefix should be
+    # replaced last, since it is typically a substring of the default prefix
+    r = OrderedDict([
+        (info['default_prefix'], r'default prefix'),
+        (pathsep.join(info['envs_dirs']), r'envs dirs'),
+        # For whatever reason help2man won't italicize these on its own
+        (info['rc_path'], r'\fI\,user .condarc path\/\fP'),
+        # Note this requires at conda > 3.7.1
+        (info['sys_rc_path'], r'\fI\,system .condarc path\/\fP'),
+        (info['root_prefix'], r'root prefix'),
+        ])
+    return r
+
 def generate_man(command):
     chdir(abspath(dirname(__file__)))
     manpath = join('build', 'man')
@@ -57,7 +77,7 @@ def generate_man(command):
         makedirs(manpath)
     conda_version = check_output(['conda', '--version'])
     print("Generating manpage for conda %s" % command)
-    check_output([
+    manpage = check_output([
         'help2man',
         '--name', 'conda %s' % command,
         '--section', '1',
@@ -65,11 +85,15 @@ def generate_man(command):
         '--version-string', conda_version,
         '--no-info',
         'conda %s' % command,
-        '-o', join(manpath, 'conda-%s.1' % command)
         ])
 
+    replacements = man_replacements()
+    for text in replacements:
+        manpage = manpage.replace(text, replacements[text])
+    with open(join(manpath, 'conda-%s.1' % command), 'w') as f:
+        f.write(manpage)
+
 def generate_html(command):
-    # Make sure to replace hard-coded paths
     pass
 
 
