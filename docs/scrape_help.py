@@ -19,7 +19,7 @@ def str_check_output(*args, **kwargs):
 def conda_help(cache=[]):
     if cache:
         return cache[0]
-    cache.append(check_output(['conda', '--help']))
+    cache.append(str_check_output(['conda', '--help']))
     return cache[0]
 
 def conda_commands():
