@@ -13,6 +13,9 @@ from collections import OrderedDict
 import sys
 import json
 
+def str_check_output(*args, **kwargs):
+    return check_output(*args, **kwargs).decode('utf-8')
+
 def conda_help(cache=[]):
     if cache:
         return cache[0]
@@ -56,18 +59,19 @@ def external_commands():
 def man_replacements():
     # XXX: We should use conda-api for this, but it's currently annoying to set the
     # root prefix with.
-    info = json.loads(check_output(['conda', 'info', '--json']))
+    info = json.loads(str_check_output(['conda', 'info', '--json']))
     # We need to use an ordered dict because the root prefix should be
     # replaced last, since it is typically a substring of the default prefix
     r = OrderedDict([
-        (info['default_prefix'], r'default prefix'),
-        (pathsep.join(info['envs_dirs']), r'envs dirs'),
+        (info['default_prefix'].encode('utf-8'), rb'default prefix'),
+        (pathsep.join(info['envs_dirs']).encode('utf-8'), rb'envs dirs'),
         # For whatever reason help2man won't italicize these on its own
-        (info['rc_path'], r'\fI\,user .condarc path\/\fP'),
+        (info['rc_path'].encode('utf-8'), rb'\fI\,user .condarc path\/\fP'),
         # Note this requires at conda > 3.7.1
-        (info['sys_rc_path'], r'\fI\,system .condarc path\/\fP'),
-        (info['root_prefix'], r'root prefix'),
+        (info['sys_rc_path'].encode('utf-8'), rb'\fI\,system .condarc path\/\fP'),
+        (info['root_prefix'].encode('utf-8'), rb'root prefix'),
         ])
+
     return r
 
 manpath = join(dirname(__file__), 'build', 'man')
@@ -90,7 +94,7 @@ def generate_man(command):
     replacements = man_replacements()
     for text in replacements:
         manpage = manpage.replace(text, replacements[text])
-    with open(join(manpath, 'conda-%s.1' % command), 'w') as f:
+    with open(join(manpath, 'conda-%s.1' % command), 'wb') as f:
         f.write(manpage)
 
 def generate_html(command):
@@ -106,7 +110,7 @@ def generate_html(command):
         ],
         stdin=man.stdout)
 
-    with open(join(manpath, 'conda-%s.html' % command), 'w') as f:
+    with open(join(manpath, 'conda-%s.html' % command), 'wb') as f:
         f.write(htmlpage)
 
 
