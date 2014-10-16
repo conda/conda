@@ -13,6 +13,22 @@ from collections import OrderedDict
 import sys
 import json
 
+
+manpath = join(dirname(__file__), 'build', 'man')
+if not isdir(manpath):
+    makedirs(manpath)
+rstpath = join(dirname(__file__), 'source', 'commands')
+if not isdir(rstpath):
+    makedirs(rstpath)
+
+RST_HEADER = """
+conda %s
+=======================
+
+.. raw:: html
+
+"""
+
 def str_check_output(*args, **kwargs):
     return check_output(*args, **kwargs).decode('utf-8')
 
@@ -74,11 +90,7 @@ def man_replacements():
 
     return r
 
-manpath = join(dirname(__file__), 'build', 'man')
-
 def generate_man(command):
-    if not isdir(manpath):
-        makedirs(manpath)
     conda_version = check_output(['conda', '--version'])
     print("Generating manpage for conda %s" % command)
     manpage = check_output([
@@ -114,12 +126,25 @@ def generate_html(command):
         f.write(htmlpage)
 
 
+def write_rst(command):
+    print("Generating rst for conda %s" % command)
+    with open(join(manpath, 'conda-%s.html' % command), 'r') as f:
+        html = f.read()
+
+    with open(join(rstpath, 'conda-%s.rst' % command), 'w') as f:
+        f.write(RST_HEADER % command)
+        for line in html.splitlines():
+            f.write('   ')
+            f.write(line)
+            f.write('\n')
+
 def main():
     commands = sys.argv[1:] or conda_commands()
 
     for command in commands:
         generate_man(command)
         generate_html(command)
+        write_rst(command)
 
 if __name__ == '__main__':
     sys.exit(main())
