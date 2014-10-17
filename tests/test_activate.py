@@ -12,6 +12,9 @@ from tests.helpers import run_in
 def assert_equals(a, b):
     assert a == b, "%r != %r" % (a, b)
 
+def assert_in(a, b):
+    assert a in b, "%r cannot be found in %r" % (a, b)
+
 # Only run these tests for commands that are installed.
 
 shells = []
@@ -151,8 +154,8 @@ def test_activate_test1():
                 assert_equals(stdout,
                     '{envs}\\test1;{envs}\\test1\\Scripts;{PATH}\n'.format(envs=envs,PATH=PATH))
             else:
-                assert stdout == envs + "/test1/bin:" + PATH + "\n"
-                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+                assert_equals(stdout, envs + "/test1/bin:" + PATH + "\n")
+                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
 
 def test_activate_test1_test2():
     for shell in shells:
@@ -172,8 +175,8 @@ def test_activate_test1_test2():
                     'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
                     'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == envs + "/test2/bin:" + PATH + "\n"
-                assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
+                assert_equals(stdout, envs + "/test2/bin:" + PATH + "\n")
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
 
 def test_activate_test3():
     for shell in shells:
@@ -185,11 +188,11 @@ def test_activate_test3():
             """).format(envs=envs, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == "%s\n" % ROOTPATH
+            assert_equals(stdout, "%s\n" % ROOTPATH)
             if platform == 'win':
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
 def test_activate_test1_test3():
     for shell in shells:
@@ -207,8 +210,8 @@ def test_activate_test1_test3():
                     "{envs}{slash}test1;{envs}{slash}test1{slash}Scripts;{PATH}\n".format(envs=envs, slash=slash,PATH=PATH))
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == envs + "/test1/bin:" + PATH + "\n"
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stdout, envs + "/test1/bin:" + PATH + "\n")
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
 
 def test_deactivate():
@@ -221,8 +224,8 @@ def test_deactivate():
             """).format(envs=envs, deactivate=deactivate, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == "%s\n" % ROOTPATH
-            assert stderr == 'Error: No environment to deactivate\n'
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'Error: No environment to deactivate\n')
 
 
 def test_activate_test1_deactivate():
@@ -236,12 +239,12 @@ def test_activate_test1_deactivate():
             """).format(envs=envs, deactivate=deactivate, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == "%s\n" % ROOTPATH
+            assert_equals(stdout, "%s\n" % ROOTPATH)
             if platform == 'win':
                 assert_equals(stderr,
                     'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
 
 def test_wrong_args():
     for shell in shells:
@@ -253,8 +256,8 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == "%s\n" % ROOTPATH
-            assert stderr == 'Error: no environment provided.\n'
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'Error: no environment provided.\n')
 
             commands = (command_setup + """
             {source} {activate} two args
@@ -262,8 +265,8 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == ROOTPATH + "\n"
-            assert stderr == 'Error: did not expect more than one argument.\n'
+            assert_equals(stdout, ROOTPATH + "\n")
+            assert_equals(stderr, 'Error: did not expect more than one argument.\n')
 
             commands = (command_setup + """
             {source} {deactivate} test
@@ -271,8 +274,8 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == "%s\n" % ROOTPATH
-            assert stderr == 'Error: too many arguments.\n'
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'Error: too many arguments.\n')
 
             commands = (command_setup + """
             {source} {deactivate} {envs}{slash}test
@@ -280,8 +283,8 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate, slash=slash, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == "%s\n" % ROOTPATH
-            assert stderr == 'Error: too many arguments.\n'
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'Error: too many arguments.\n')
 
 
 def test_activate_help():
@@ -295,20 +298,20 @@ def test_activate_help():
                 """).format(envs=envs, activate=activate, slash=slash)
 
                 stdout, stderr = run_in(commands, shell)
-                assert stdout == '\n'
-                assert "activate must be sourced" in stderr
-                assert "Usage: source activate ENV" in stderr
+                assert_equals(stdout, '\n')
+                assert_in("activate must be sourced", stderr)
+                assert_in("Usage: source activate ENV", stderr)
 
             commands = (command_setup + """
             {source} {activate} --help
             """).format(envs=envs, activate=activate, source=source_setup)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == ''
+            assert_equals(stdout, '')
             if platform == "win":
-                assert "Usage: activate ENV" in stderr
+                assert_in("Usage: activate ENV", stderr)
             else:
-                assert "Usage: source activate ENV" in stderr
+                assert_in("Usage: source activate ENV", stderr)
 
             if not platform == 'win':
                 commands = (command_setup + """
@@ -316,20 +319,20 @@ def test_activate_help():
                 """).format(envs=envs, deactivate=deactivate)
 
                 stdout, stderr = run_in(commands, shell)
-                assert stdout == ''
-                assert "deactivate must be sourced" in stderr
-                assert "Usage: source deactivate" in stderr
+                assert_equals(stdout, '')
+                assert_in("deactivate must be sourced", stderr)
+                assert_in("Usage: source deactivate", stderr)
 
             commands = (command_setup + """
             {source} {deactivate} --help
             """).format(envs=envs, deactivate=deactivate, source=source_setup)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == ''
+            assert_equals(stdout, '')
             if platform == 'win':
-                assert "Usage: deactivate" in stderr
+                assert_in("Usage: deactivate", stderr)
             else:
-                assert "Usage: source deactivate" in stderr
+                assert_in("Usage: source deactivate", stderr)
 
 def test_activate_symlinking():
     for shell in shells:
@@ -342,9 +345,9 @@ def test_activate_symlinking():
             stdout, stderr = run_in(commands, shell)
             assert stdout != '\n'
             if platform == 'win':
-                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}\\test1, {envs}\\test1\\Scripts to PATH\n'.format(envs=envs, syspath=", ".join(syspath_list))
+                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}\\test1, {envs}\\test1\\Scripts to PATH\n'.format(envs=envs, syspath=", ".join(syspath_list)))
             else:
-                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
             for f in ['conda', 'activate', 'deactivate']:
                 if platform == 'win':
                     # TODO: fix checks for Windows
@@ -372,7 +375,7 @@ def test_activate_symlinking():
                     """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
                     stdout, stderr = run_in(commands, shell)
                     assert stdout != '\n'
-                    assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test3/bin to PATH\n'.format(envs=envs, syspath=syspath)
+                    assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test3/bin to PATH\n'.format(envs=envs, syspath=syspath))
 
                     # Make sure it stays the same
                     for f in ['conda', 'activate', 'deactivate']:
@@ -394,12 +397,12 @@ def test_activate_symlinking():
                     """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
 
                     stdout, stderr = run_in(commands, shell)
-                    assert stdout == (
+                    assert_equals(stdout, (
                         '{ROOTPATH}\n' # PATH
                         '\n'           # CONDA_DEFAULT_ENV
-                        ).format(ROOTPATH=ROOTPATH)
-                    assert stderr == ('Cannot activate environment {envs}/test4, '
-                    'do not have write access to write conda symlink\n').format(envs=envs)
+                        ).format(ROOTPATH=ROOTPATH))
+                    assert_equals(stderr, ('Cannot activate environment {envs}/test4, '
+                        'do not have write access to write conda symlink\n').format(envs=envs))
 
                 finally:
                     # Change the permissions back so that we can delete the directory
@@ -420,8 +423,8 @@ def test_PS1():
                 assert_equals(stdout, "[{envs}{slash}test1] $P$G\n".format(envs=envs, slash=slash))
                 assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}{slash}test1, {envs}{slash}test1{slash}Scripts to PATH\n'.format(envs=envs, slash=slash, syspath=", ".join(syspath_list)))
             else:
-                assert stdout == '({envs}/test1)$\n'.format(envs=envs)
-                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+                assert_equals(stdout, '({envs}/test1)$\n'.format(envs=envs))
+                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -436,8 +439,8 @@ def test_PS1():
                     'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
                     'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '({envs}/test2)$\n'.format(envs=envs)
-                assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
+                assert_equals(stdout, '({envs}/test2)$\n'.format(envs=envs))
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
@@ -449,8 +452,8 @@ def test_PS1():
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -463,8 +466,8 @@ def test_PS1():
                 assert_equals(stdout, "[{envs}{slash}test1] $P$G\n".format(envs=envs,slash=slash))
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '({envs}/test1)$\n'.format(envs=envs)
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stdout, '({envs}/test1)$\n'.format(envs=envs))
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {deactivate}
@@ -476,8 +479,8 @@ def test_PS1():
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: No environment to deactivate\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: No environment to deactivate\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: No environment to deactivate\n')
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -490,8 +493,8 @@ def test_PS1():
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate}
@@ -503,7 +506,7 @@ def test_PS1():
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
             else:
-                assert stdout == '$\n'
+                assert_equals(stdout, '$\n')
 
             commands = (command_setup + """
             {source} {activate} two args
@@ -515,8 +518,8 @@ def test_PS1():
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: did not expect more than one argument.\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: did not expect more than one argument.\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: did not expect more than one argument.\n')
 
             commands = (command_setup + """
             {source} {deactivate} test
@@ -528,7 +531,7 @@ def test_PS1():
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
             else:
-                assert stdout == '$\n'
+                assert_equals(stdout, '$\n')
 
             commands = (command_setup + """
             {source} {deactivate} {envs}{slash}test
@@ -540,7 +543,7 @@ def test_PS1():
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
             else:
-                assert stdout == '$\n'
+                assert_equals(stdout, '$\n')
 
 def test_PS1_no_changeps1():
     for shell in shells:
@@ -563,8 +566,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}{slash}test1, {envs}{slash}test1{slash}Scripts to PATH\n'.format(envs=envs, slash=slash, syspath=", ".join(syspath_list)))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
 
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -579,8 +582,8 @@ changeps1: no
                     'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
                     'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
 
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test3
@@ -592,8 +595,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -606,8 +609,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + condarc + """
             {source} {deactivate}
@@ -619,8 +622,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: No environment to deactivate\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: No environment to deactivate\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: No environment to deactivate\n')
 
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -633,8 +636,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stdout == '$\n'
-                assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
 
             commands = (command_setup + condarc + """
             {source} {activate}
@@ -646,8 +649,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: no environment provided.\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: no environment provided.\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: no environment provided.\n')
 
             commands = (command_setup + condarc + """
             {source} {activate} two args
@@ -659,8 +662,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: did not expect more than one argument.\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: did not expect more than one argument.\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: did not expect more than one argument.\n')
 
             commands = (command_setup + condarc + """
             {source} {deactivate} test
@@ -672,8 +675,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: too many arguments.\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: too many arguments.\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: too many arguments.\n')
 
             commands = (command_setup + condarc + """
             {source} {deactivate} {envs}{slash}test
@@ -685,8 +688,8 @@ changeps1: no
                 assert_equals(stdout, "$P$G\n")
                 assert_equals(stderr, 'Error: too many arguments.\n')
             else:
-                assert stdout == '$\n'
-                assert stderr == 'Error: too many arguments.\n'
+                assert_equals(stdout, '$\n')
+                assert_equals(stderr, 'Error: too many arguments.\n')
 
 def test_CONDA_DEFAULT_ENV():
     for shell in shells:
@@ -718,7 +721,7 @@ def test_CONDA_DEFAULT_ENV():
                     'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
                     'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
@@ -730,7 +733,7 @@ def test_CONDA_DEFAULT_ENV():
             if platform == 'win':
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -743,7 +746,7 @@ def test_CONDA_DEFAULT_ENV():
             if platform == 'win':
                 assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
-                assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
+                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {deactivate}
@@ -765,7 +768,7 @@ def test_CONDA_DEFAULT_ENV():
             if platform == 'win':
                 assert_equals(stderr, 'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
             else:
-                assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
+                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate}
@@ -809,14 +812,13 @@ def test_CONDA_DEFAULT_ENV():
             # """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup)
             #
             # stdout, stderr = run_in(commands, shell)
-            # assert stdout == 'root'
-            # assert stderr == 'Error: too many arguments.\n'
+            # assert_equals(stdout, 'root')
+            # assert_equals(stderr, 'Error: too many arguments.\n')
 
 # TODO:
 # - Test activating an env by name
 # - Test activating "root"
 # - Test activating "root" and then deactivating
 # - Check 'symlinking' on Windows
-# - remove asserts with assert_equals
 # - Make test code platform-independent by constructing expected paths outputs
 # - Clean up activate.bat and deactivate.bat
