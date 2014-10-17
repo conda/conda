@@ -1,0 +1,18 @@
+package:
+  name: conda-docs-deps
+  version: 1.0
+
+requirements:
+  run:
+    - python
+    - perl
+    - sphinx
+    - numpydoc
+    - continuum-sphinx-theme
+    - help2man
+    - man2html
+
+test:
+  commands:
+    # Just to make sure it installs
+    - echo
