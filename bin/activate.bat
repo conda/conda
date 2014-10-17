@@ -42,15 +42,12 @@ if %ERRORLEVEL% EQU 1 (
 )
 
 REM Deactivate a previous activation if it is live
-FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..deactivate') DO set NEWPATH=%%i
-set PATH=%NEWPATH%
-:skipdeactivate
+FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..deactivate') DO set PATH=%%i
 
-set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
-set CONDA_NEW_ENV=
-set NEWPATH=
-FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..activate %CONDA_DEFAULT_ENV%') DO set NEWPATH=%%i
-set PATH=%NEWPATH%
+REM Activate the new environment
+FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..activate %CONDA_NEW_ENV%') DO set PATH=%%i
 
 for /F %%C IN ('"%CONDAFOUND%" ..changeps1') DO set CHANGEPS1=%%C
-if "%CHANGEPS1%" == "1" set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
+if "%CHANGEPS1%" == "1" set PROMPT=[%CONDA_NEW_ENV%] $P$G
+
+set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
