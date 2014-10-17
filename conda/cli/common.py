@@ -91,7 +91,7 @@ def add_parser_use_index_cache(p):
         help = "use cache of channel index files",
     )
 
-def add_parser_install(p):
+def add_parser_install(p, default_to_python=False):
     add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
@@ -132,12 +132,17 @@ def add_parser_install(p):
         action="store_true",
         default=False,
         help="Use an alternate algorithm to generate an unsatisfiable hint")
+    packages_kwargs = {
+        'metavar': 'package_spec',
+        'action': 'store',
+        'nargs': '*',
+        'help': 'package versions to install into conda environment',
+    }
+    if default_to_python:
+        packages_kwargs['default'] = ['python', ]
     p.add_argument(
         'packages',
-        metavar = 'package_spec',
-        action = "store",
-        nargs = '*',
-        help = "package versions to install into conda environment",
+        **packages_kwargs
     )
 
 def add_parser_use_local(p):
