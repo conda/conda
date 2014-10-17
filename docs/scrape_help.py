@@ -126,12 +126,17 @@ def generate_html(command):
         f.write(htmlpage)
 
 
-def write_rst(command):
+def write_rst(command, sep=None):
     print("Generating rst for conda %s" % command)
     with open(join(manpath, 'conda-%s.html' % command), 'r') as f:
         html = f.read()
 
-    with open(join(rstpath, 'conda-%s.rst' % command), 'w') as f:
+    rp = rstpath
+    if sep:
+        rp = join(rp, sep)
+    if not isdir(rp):
+        makedirs(rp)
+    with open(join(rp, 'conda-%s.rst' % command), 'w') as f:
         f.write(RST_HEADER % command)
         for line in html.splitlines():
             f.write('   ')
@@ -139,12 +144,17 @@ def write_rst(command):
             f.write('\n')
 
 def main():
-    commands = sys.argv[1:] or conda_commands()
+    core_commands = conda_commands()
+    build_commands = external_commands()
 
+    commands = sys.argv[1:] or core_commands + build_commands
     for command in commands:
         generate_man(command)
         generate_html(command)
+    for command in [c for c in core_commands if c in commands]:
         write_rst(command)
+    for command in [c for c in build_commands if c in commands]:
+        write_rst(command, sep='build')
 
 if __name__ == '__main__':
     sys.exit(main())
