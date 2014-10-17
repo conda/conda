@@ -1,6 +1,6 @@
 package:
   name: conda-docs-deps
-  version: 1.0
+  version: 2.0
 
 requirements:
   run:
@@ -11,6 +11,7 @@ requirements:
     - continuum-sphinx-theme
     - help2man
     - man2html
+    - futures # [py2k]
 
 test:
   commands:

@@ -10,6 +10,8 @@ from os.path import join, dirname, abspath, isdir
 from os import makedirs, chdir, pathsep
 from collections import OrderedDict
 
+from concurrent.futures import ThreadPoolExecutor
+
 import sys
 import json
 
@@ -92,7 +94,7 @@ def man_replacements():
 
 def generate_man(command):
     conda_version = check_output(['conda', '--version'])
-    print("Generating manpage for conda %s" % command)
+
     manpage = check_output([
         'help2man',
         '--name', 'conda %s' % command,
@@ -109,8 +111,9 @@ def generate_man(command):
     with open(join(manpath, 'conda-%s.1' % command), 'wb') as f:
         f.write(manpage)
 
+    print("Generated manpage for conda %s" % command)
+
 def generate_html(command):
-    print("Generating html for conda %s" % command)
     # Use abspath so that it always has a path separator
     man = Popen(['man', abspath(join(manpath, 'conda-%s.1' % command))], stdout=PIPE)
     htmlpage = check_output([
@@ -124,10 +127,10 @@ def generate_html(command):
 
     with open(join(manpath, 'conda-%s.html' % command), 'wb') as f:
         f.write(htmlpage)
+    print("Generated html for conda %s" % command)
 
 
 def write_rst(command, sep=None):
-    print("Generating rst for conda %s" % command)
     with open(join(manpath, 'conda-%s.html' % command), 'r') as f:
         html = f.read()
 
@@ -142,15 +145,21 @@ def write_rst(command, sep=None):
             f.write('   ')
             f.write(line)
             f.write('\n')
+    print("Generated rst for conda %s" % command)
 
 def main():
     core_commands = conda_commands()
     build_commands = external_commands()
 
     commands = sys.argv[1:] or core_commands + build_commands
-    for command in commands:
+
+    def gen_command(command):
         generate_man(command)
         generate_html(command)
+
+    with ThreadPoolExecutor(len(commands)) as executor:
+        for command in commands:
+            executor.submit(gen_command, command)
     for command in [c for c in core_commands if c in commands]:
         write_rst(command)
     for command in [c for c in build_commands if c in commands]:
