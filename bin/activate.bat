@@ -1,4 +1,5 @@
 @echo off
+setlocal
 
 set CONDA_NEW_ENV=%1
 set CONDA_NEW_ENV=%CONDA_NEW_ENV:"=%
@@ -50,4 +51,4 @@ FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..activate %CONDA_NEW_ENV%') DO set PAT
 for /F %%C IN ('"%CONDAFOUND%" ..changeps1') DO set CHANGEPS1=%%C
 if "%CHANGEPS1%" == "1" set PROMPT=[%CONDA_NEW_ENV%] $P$G
 
-set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
+endlocal & set PROMPT=%PROMPT%& set PATH=%PATH%& set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
