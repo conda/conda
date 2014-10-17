@@ -24,7 +24,9 @@ if not isdir(rstpath):
     makedirs(rstpath)
 
 RST_HEADER = """
-conda %s
+.. _{command}_ref:
+
+conda {command}
 =======================
 
 .. raw:: html
@@ -141,7 +143,7 @@ def write_rst(command, sep=None):
     if not isdir(rp):
         makedirs(rp)
     with open(join(rp, 'conda-%s.rst' % command), 'w') as f:
-        f.write(RST_HEADER % command)
+        f.write(RST_HEADER.format(command=command))
         for line in html.splitlines():
             f.write('   ')
             f.write(line)
