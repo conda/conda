@@ -198,7 +198,8 @@ def install(args, parser, command='install'):
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
     else:
-        common.check_specs(prefix, specs, json=args.json)
+        common.check_specs(prefix, specs, json=args.json,
+                           create=(command == 'create'))
 
     if args.use_local:
         from conda.fetch import fetch_index
