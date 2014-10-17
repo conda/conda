@@ -95,9 +95,9 @@ write to the system .condarc file ({system}). Otherwise writes to the user
         "--file",
         action="store",
         help="""\
-write to the given file. Otherwise writes to the user config file or \
-the file path given by the 'CONDARC' environment variable.
-        (%(default)s)""",
+write to the given file. Otherwise writes to the user config file ({user}) or
+the file path given by the 'CONDARC' environment variable, if it is set.
+        (%(default)s)""".format(user=config.user_rc_path),
         default=os.environ.get('CONDARC', config.user_rc_path)
         )
 
