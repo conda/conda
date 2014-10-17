@@ -2,22 +2,30 @@
 Command Reference
 =================
 
-``conda`` provides many commands for querying and searching the package database, or Anaconda environments, as well as for common and advanced package management tasks.
+Conda provides many commands for managing packages and environments.  The
+following pages have help for each command. The help for a command can also be
+accessed from the command line with the ``--help`` flag, like
+
+.. code-block:: bash
+
+   conda install --help
 
 Contents:
 
 .. toctree::
+   :glob:
    :maxdepth: 2
 
-   commands/build
-   commands/config
-   commands/create
-   commands/index
-   commands/info
-   commands/install
-   commands/list
-   commands/package
-   commands/remove
-   commands/search_
-   commands/skeleton
-   commands/update
+   commands/*
+
+conda-build commands
+====================
+
+The following commands are part of the ``conda-build`` package, which can be
+installed with ``conda install conda-build``.
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+
+   commands/build/*
