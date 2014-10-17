@@ -157,9 +157,11 @@ def main():
         generate_man(command)
         generate_html(command)
 
-    with ThreadPoolExecutor(len(commands)) as executor:
-        for command in commands:
-            executor.submit(gen_command, command)
+    # with ThreadPoolExecutor(len(commands)) as executor:
+    #     for command in commands:
+    #         executor.submit(gen_command, command)
+    for command in commands:
+        gen_command(command)
     for command in [c for c in core_commands if c in commands]:
         write_rst(command)
     for command in [c for c in build_commands if c in commands]:
