@@ -32,35 +32,29 @@ REM No conda, no dice
 
 SET CONDAFOUND=
 for %%X in (conda.exe) do (set CONDAFOUND=%%~$PATH:X)
+if not defined CONDAFOUND for %%X in (conda.bat) do (set CONDAFOUND=%%~$PATH:X)
 if defined CONDAFOUND goto runcondasecretcommand
     echo "cannot find conda to test for the environment %CONDA_NEW_ENV%"
     exit /b 1
 
 :runcondasecretcommand
 REM Run secret conda ..checkenv command
-conda ..checkenv %CONDA_NEW_ENV%
+call "%CONDAFOUND%" ..checkenv %CONDA_NEW_ENV%
 REM EQU 0 means 0 or above on Windows ;(
 if %ERRORLEVEL% EQU 1 (
     exit /b 1
 )
 
 REM Deactivate a previous activation if it is live
-if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
-    REM This search/replace removes the previous env from the path
-    (echo Deactivating environment "%CONDA_DEFAULT_ENV%"...) 1>&2
-    set NEWPATH=
-    FOR /F "delims=" %%i IN ('conda ..deactivate') DO set NEWPATH=%%i
-    set PATH=%NEWPATH%
-    set CONDA_DEFAULT_ENV=
-    set CONDACTIVATE_PATH=
+FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..deactivate') DO set NEWPATH=%%i
+set PATH=%NEWPATH%
 :skipdeactivate
 
 set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
 set CONDA_NEW_ENV=
-(echo Activating environment "%CONDA_DEFAULT_ENV%"...) 1>&2
 set NEWPATH=
-FOR /F "delims=" %%i IN ('conda ..activate %CONDA_DEFAULT_ENV%') DO set NEWPATH=%%i
+FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..activate %CONDA_DEFAULT_ENV%') DO set NEWPATH=%%i
 set PATH=%NEWPATH%
 
-for /F %%C IN ('conda ..changeps1') DO set CHANGEPS1=%%C
+for /F %%C IN ('"%CONDAFOUND%" ..changeps1') DO set CHANGEPS1=%%C
 if "%CHANGEPS1%" == "1" set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G

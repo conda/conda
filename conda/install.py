@@ -376,10 +376,7 @@ def read_no_link(info_dir):
 def symlink_conda(prefix, root_dir):
     if on_win:
         where = 'Scripts'
-        if on_win_xp:
-            symlink_fn = win_conda_bat_redirect
-        else:
-            symlink_fn = win_soft_link
+        symlink_fn = win_conda_bat_redirect
     else:
         where = 'bin'
         symlink_fn = os.symlink

@@ -24,23 +24,16 @@ REM No conda, no dice
 
 SET CONDAFOUND=
 for %%X in (conda.exe) do (set CONDAFOUND=%%~$PATH:X)
+if not defined CONDAFOUND for %%X in (conda.bat) do (set CONDAFOUND=%%~$PATH:X)
 if defined CONDAFOUND goto runcondasecretcommand
     echo "cannot find conda to test for the environment %CONDA_NEW_ENV%"
     exit /b 1
 
 :runcondasecretcommand
-REM Deactivate a previous activation if it is live
-if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
-    REM This search/replace removes the previous env from the path
-    (echo Deactivating environment "%CONDA_DEFAULT_ENV%"...) 1>&2
-    set NEWPATH=
-    FOR /F "delims=" %%i IN ('conda ..deactivate') DO set NEWPATH=%%i
-    set PATH=%NEWPATH%
-    set CONDA_DEFAULT_ENV=
-    set CONDACTIVATE_PATH=
-    goto resetprompt
-:skipdeactivate
-(echo Error: No environment to deactivate) 1>&2
+set NEWPATH=
+FOR /F "delims=" %%i IN ('conda ..activateroot') DO set PATH=%%i
+set CONDA_DEFAULT_ENV=
+set CONDACTIVATE_PATH=
 
 :resetprompt
 set PROMPT=$P$G
