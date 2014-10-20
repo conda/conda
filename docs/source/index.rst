@@ -73,8 +73,7 @@ Finally, we check the version of Numpy again
 User Guide
 ----------
 .. toctree::
-   :maxdepth: 1
-   :titlesonly:
+   :maxdepth: 2
 
    intro
    examples
