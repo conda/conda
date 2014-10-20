@@ -10,8 +10,8 @@ not appear to be, e.g., a Python package that gives ImportError.
 
 There are a few possible causes of this issue:
 
-Make sure you are in the right conda environment.
--------------------------------------------------
+Resolution: Make sure you are in the right conda environment.
+-------------------------------------------------------------
 
 ``conda info`` will tell you what environment is currently active (under
 "default environment"). You can verify that you are using the Python from the
@@ -22,8 +22,8 @@ correct environment by running
    import sys
    print(sys.prefix)
 
-For Python packages, make sure you do not have ``PYTHONPATH`` or ``PYTHONHOME`` set.
-------------------------------------------------------------------------------------
+Resolution: For Python packages, make sure you do not have ``PYTHONPATH`` or ``PYTHONHOME`` set.
+------------------------------------------------------------------------------------------------
 
 The command ``conda info -a`` will show you the values of these environment
 variables.
@@ -40,8 +40,8 @@ PYTHONPATH``. To unset them permanently, check for lines in the files
 ``~/.zshrc`` if you use zsh, or the file output by ``$PROFILE`` if you use
 PowerShell on Windows.
 
-For Python packages, remove any site-specific directories.
-----------------------------------------------------------
+Resolution: For Python packages, remove any site-specific directories.
+----------------------------------------------------------------------
 
 Another possibility for Python are so-called site-specific files. These
 typically live in ``~/.local`` on Unix. The full description of where
@@ -50,8 +50,8 @@ site-specific packages can be found is in `PEP 370
 Python may try importing packages from this directory, which can cause
 issues. The recommended fix is to remove the site-specific directory.
 
-For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on Mac OS X.
---------------------------------------------------------------------------------------------------------------------
+Resolution: For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on Mac OS X.
+--------------------------------------------------------------------------------------------------------------------------------
 
 These act similarly to ``PYTHONPATH`` for Python. If they are set, they can
 cause libraries to be loaded from locations other than the Conda
@@ -60,8 +60,8 @@ variables, so it is recommended to unset them if they are set, unless you know
 what you are doing. ``conda info -a`` will show what these are set to (on the
 relevant operating system).
 
-Occasionally, an installed package will become corrupted.
----------------------------------------------------------
+Resolution: Occasionally, an installed package will become corrupted.
+---------------------------------------------------------------------
 
 Conda works by unpacking the packages in the pkgs directory and then hard
 linking them to the environment. Sometimes these get corrupted somehow,
@@ -82,8 +82,8 @@ the ``-f`` flag to ``conda install`` (``--force``) implies ``--no-deps``, so
 Issue: pkg_resources.DistributionNotFound: conda==3.6.1-6-gb31b0d4-dirty
 ========================================================================
 
-Force reinstall conda
----------------------
+Resolution: Force reinstall conda
+---------------------------------
 
 A useful way to work off the development version of conda is to run ``python
 setup.py develop`` on a checkout of the `conda git repository
@@ -104,8 +104,8 @@ not a git checkout (the version should not include any hashes).
 Issue: ``ValueError unknown locale: UTF-8`` on Mac OS X
 =======================================================
 
-Uncheck "set locale environment variables on startup" setting in Terminal settings
-----------------------------------------------------------------------------------
+Resolution: Uncheck "set locale environment variables on startup" setting in Terminal settings
+----------------------------------------------------------------------------------------------
 
 This is a bug in the OS X Terminal app that only shows up in certain locales
 (country/language combinations). Open Terminal in /Applications/Utilities and
