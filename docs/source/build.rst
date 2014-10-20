@@ -392,6 +392,10 @@ On non-Windows (Linux and Mac OS X), we have:
     - Path to ``pkgconfig`` directory.
   * - ``HOME``
     - Standard ``$HOME`` environment variable.
+  * - ``INCLUDE_PATH``
+    - ``<build prefix>/include``
+  * - ``LIBRARY_PATH``
+    - ``<build prefix>/lib``
 
 On Mac OS X, we have:
 
