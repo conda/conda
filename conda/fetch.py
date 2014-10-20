@@ -175,6 +175,7 @@ def add_username_and_pass_to_url(url, username, passwd):
     urlparts[1] = username + ':' + passwd
     return unparse_url(urlparts)
 
+@memoized
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
     passwd = getpass.getpass("Password:")
