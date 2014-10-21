@@ -17,6 +17,7 @@ from os.path import basename, dirname, isdir, join
 import sys
 import getpass
 import warnings
+from functools import wraps
 
 from conda import config
 from conda.utils import memoized
@@ -52,10 +53,21 @@ def add_http_value_to_dict(u, http_key, d, dict_key):
     if value:
         d[dict_key] = value
 
+# We need a decorator so that the dot gets printed *after* the repodata is fetched
+class dotlog_on_return(object):
+    def __init__(self, msg):
+        self.msg = msg
 
+    def __call__(self, f):
+        @wraps(f)
+        def func(*args, **kwargs):
+            res = f(*args, **kwargs)
+            dotlog.debug("%s args %s kwargs %s" % (self.msg, args, kwargs))
+            return res
+        return func
+
+@dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    dotlog.debug("fetching repodata: %s ..." % url)
-
     if not config.ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
@@ -163,6 +175,7 @@ def add_username_and_pass_to_url(url, username, passwd):
     urlparts[1] = username + ':' + passwd
     return unparse_url(urlparts)
 
+@memoized
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
     passwd = getpass.getpass("Password:")

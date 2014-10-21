@@ -22,6 +22,7 @@ config command.  Writes to the user .condarc file (%s) by default.
 example = """
 examples:
     conda config --get channels --system
+
     conda config --add channels http://conda.binstar.org/foo
 """
 
@@ -84,18 +85,20 @@ def configure_parser(sub_parsers):
     location = p.add_mutually_exclusive_group()
     location.add_argument(
         "--system",
-        action = "store_true",
-        help = """\
+        action="store_true",
+        help="""\
 write to the system .condarc file ({system}). Otherwise writes to the user
         config file ({user}).""".format(system=config.sys_rc_path,
                                         user=config.user_rc_path),
         )
     location.add_argument(
         "--file",
-        action = "store",
-        help = """\
-write to the given file. Otherwise writes to the user config file
-        ({user}).""".format(user=config.user_rc_path),
+        action="store",
+        help="""\
+write to the given file. Otherwise writes to the user config file ({user}) or
+the file path given by the 'CONDARC' environment variable, if it is set.
+        (%(default)s)""".format(user=config.user_rc_path),
+        default=os.environ.get('CONDARC', config.user_rc_path)
         )
 
     # XXX: Does this really have to be mutually exclusive. I think the below

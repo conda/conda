@@ -1,10 +1,27 @@
-2014-XX-XX   3.7.1:
+...
+-------------------
+  * only show the binstar install message once
+  * print the fetching repodata dot after the repodata is fetched
+  * write the install and remove specs to the history file
+  * add '-y' as an alias to '--yes'
+  * the `--file` option to conda config now defaults to
+    os.environ.get('CONDARC')
+  * some improvements to documentation (--help output)
+  * include the sys_rc_path in conda info --json
+  * cache the proxy username and password
+  * avoid warning about conda in pscheck
+
+2014-10-07   3.7.1:
 -------------------
   * improve error message for forgetting to use source with activate and
     deactivate, see issue #601
   * don't allow to remove the current environment, see issue #639
   * don't fail if binstar_client can't be imported for other reasons,
     see issue #925
+  * allow spaces to be contained in conda run
+  * only show the conda install binstar hint if binstar is not installed
+  * conda info package_spec now gives detailed info on packages. conda info
+    path has been removed, as it is duplicated by conda package -w path.
 
 
 2014-09-19   3.7.0:

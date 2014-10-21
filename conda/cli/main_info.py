@@ -48,7 +48,7 @@ def configure_parser(sub_parsers):
         'packages',
         action = "store",
         nargs = '*',
-        help = "display information about packages or files",
+        help = "display information about packages",
     )
     p.set_defaults(func=execute)
 
@@ -184,6 +184,7 @@ def execute(args, parser):
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path,
+                     sys_rc_path=config.sys_rc_path,
                      is_foreign=bool(config.foreign),
                      envs=[],
                      python_version='.'.join(map(str, sys.version_info)),
