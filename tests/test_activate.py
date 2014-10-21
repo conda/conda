@@ -1,7 +1,7 @@
 from __future__ import print_function, absolute_import
 
 import os
-from os.path import dirname, join
+from os.path import dirname, join, pathsep
 import shutil
 import stat
 
@@ -137,6 +137,16 @@ else:
     nul = '2>/dev/null'
     set_var = ''
 
+
+def _envpaths(env_root, env_name):
+    if platform == 'win':
+        return [env_root + slash + env_name,
+                env_root + slash + env_name + slash + 'Scripts'
+               ]
+    else:
+        return [env_root + slash + env_name + slash + 'bin']
+
+
 def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -148,14 +158,11 @@ def test_activate_test1():
                         activate=activate, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            if platform == 'win':
-                assert_equals(stderr,
-                    'discarding {syspath} from PATH\nprepending {envs}{slash}test1, {envs}{slash}test1{slash}Scripts to PATH\n'.format(envs=envs, slash=slash, syspath=', '.join(syspath_list)))
-                assert_equals(stdout,
-                    '{envs}\\test1;{envs}\\test1\\Scripts;{PATH}\n'.format(envs=envs,PATH=PATH))
-            else:
-                assert_equals(stdout, envs + "/test1/bin:" + PATH + "\n")
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
+            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + '\n')
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths} to PATH\n'\
+                    .format(envpaths=", ".join(_envpaths(envs, 'test1')),
+                            syspath=', '.join(syspath_list)))
+
 
 def test_activate_test1_test2():
     for shell in shells:
@@ -165,18 +172,15 @@ def test_activate_test1_test2():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test2
             {printpath}
-            """).format(envs=envs, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate,
+                    nul=nul, slash=slash, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            if platform == 'win':
-                assert_equals(stdout,
-                    "{envs}{slash}test2;{envs}{slash}test2{slash}Scripts;{PATH}\n".format(envs=envs, slash=slash,PATH=PATH))
-                assert_equals(stderr,
-                    'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
-                    'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stdout, envs + "/test2/bin:" + PATH + "\n")
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
+            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test2')) + os.path.pathsep + PATH + "\n")
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
+                .format(envpaths1=", ".join(_envpaths(envs, 'test1')),
+                        envpaths2=", ".join(_envpaths(envs, 'test2'))))
+
 
 def test_activate_test3():
     for shell in shells:
@@ -185,14 +189,13 @@ def test_activate_test3():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
             {printpath}
-            """).format(envs=envs, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate,
+                    nul=nul, slash=slash, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
-            if platform == 'win':
-                assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
+            assert_equals(stderr, 'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
+
 
 def test_activate_test1_test3():
     for shell in shells:
@@ -202,16 +205,12 @@ def test_activate_test1_test3():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test3
             {printpath}
-            """).format(envs=envs, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, nul=nul,
+                    slash=slash, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            if platform == 'win':
-                assert_equals(stdout,
-                    "{envs}{slash}test1;{envs}{slash}test1{slash}Scripts;{PATH}\n".format(envs=envs, slash=slash,PATH=PATH))
-                assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stdout, envs + "/test1/bin:" + PATH + "\n")
-                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
+            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + "\n")
+            assert_equals(stderr, 'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
 
 def test_deactivate():
@@ -240,11 +239,9 @@ def test_activate_test1_deactivate():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
-            if platform == 'win':
-                assert_equals(stderr,
-                    'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
+                .format(envpaths1=", ".join(_envpaths(envs, 'test1'))))
+
 
 def test_wrong_args():
     for shell in shells:
@@ -344,10 +341,10 @@ def test_activate_symlinking():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout != '\n'
-            if platform == 'win':
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}\\test1, {envs}\\test1\\Scripts to PATH\n'.format(envs=envs, syspath=", ".join(syspath_list)))
-            else:
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
+                    .format(syspath=', '.join(syspath_list),
+                            envpaths1=', '.join(_envpaths(envs, 'test1'))))
+
             for f in ['conda', 'activate', 'deactivate']:
                 if platform == 'win':
                     # TODO: fix checks for Windows
@@ -419,12 +416,13 @@ def test_PS1():
             """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
+                    .format(syspath=', '.join(syspath_list),
+                            envpaths1=', '.join(_envpaths(envs, 'test1'))))
             if platform == 'win':
                 assert_equals(stdout, "[{envs}{slash}test1] $P$G\n".format(envs=envs, slash=slash))
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}{slash}test1, {envs}{slash}test1{slash}Scripts to PATH\n'.format(envs=envs, slash=slash, syspath=", ".join(syspath_list)))
             else:
                 assert_equals(stdout, '({envs}/test1)$\n'.format(envs=envs))
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -433,14 +431,13 @@ def test_PS1():
             """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
+                    .format(envpaths1=', '.join(_envpaths(envs, 'test1')),
+                            envpaths2=', '.join(_envpaths(envs, 'test2'))))
             if platform == 'win':
                 assert_equals(stdout, "[{envs}{slash}test2] $P$G\n".format(envs=envs, slash=slash))
-                assert_equals(stderr,
-                    'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
-                    'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
             else:
                 assert_equals(stdout, '({envs}/test2)$\n'.format(envs=envs))
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
@@ -448,12 +445,11 @@ def test_PS1():
             """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'Error: no such directory: {envpath3}\n'.format(envpath3=_envpaths(envs, 'test3')[0]))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -462,12 +458,11 @@ def test_PS1():
             """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'Error: no such directory: {envpath3}\n'.format(envpath3=_envpaths(envs, 'test3')[0]))
             if platform == 'win':
                 assert_equals(stdout, "[{envs}{slash}test1] $P$G\n".format(envs=envs,slash=slash))
-                assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
             else:
                 assert_equals(stdout, '({envs}/test1)$\n'.format(envs=envs))
-                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {deactivate}
@@ -475,12 +470,11 @@ def test_PS1():
             """).format(envs=envs, deactivate=deactivate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'Error: No environment to deactivate\n')
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr, 'Error: No environment to deactivate\n')
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'Error: No environment to deactivate\n')
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -489,12 +483,12 @@ def test_PS1():
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
+                    .format(envpaths1=', '.join(_envpaths(envs, 'test1'))))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr, 'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
 
             commands = (command_setup + """
             {source} {activate}
@@ -514,12 +508,11 @@ def test_PS1():
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'Error: did not expect more than one argument.\n')
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr, 'Error: did not expect more than one argument.\n')
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'Error: did not expect more than one argument.\n')
 
             commands = (command_setup + """
             {source} {deactivate} test
@@ -562,12 +555,13 @@ changeps1: no
             """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
+                    .format(envpaths1=', '.join(_envpaths(envs, 'test1')),
+                            syspath=', '.join(syspath_list)))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}{slash}test1, {envs}{slash}test1{slash}Scripts to PATH\n'.format(envs=envs, slash=slash, syspath=", ".join(syspath_list)))
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
 
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -576,14 +570,13 @@ changeps1: no
             """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
+                    .format(envpaths1=', '.join(_envpaths(envs, 'test1')),
+                            envpaths2=', '.join(_envpaths(envs, 'test2'))))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr,
-                    'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
-                    'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
 
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test3
@@ -730,10 +723,7 @@ def test_CONDA_DEFAULT_ENV():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
-            if platform == 'win':
-                assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
+            assert_equals(stderr, 'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -743,10 +733,7 @@ def test_CONDA_DEFAULT_ENV():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '{envs}{slash}test1\n'.format(envs=envs, slash=slash))
-            if platform == 'win':
-                assert_equals(stderr, 'Error: no such directory: {envs}{slash}test3\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stderr, 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs))
+            assert_equals(stderr, 'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
             commands = (command_setup + """
             {source} {deactivate}
@@ -765,10 +752,8 @@ def test_CONDA_DEFAULT_ENV():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
-            if platform == 'win':
-                assert_equals(stderr, 'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
+                    .format(envpaths1=', '.join(_envpaths(envs, 'test1'))))
 
             commands = (command_setup + """
             {source} {activate}
@@ -821,4 +806,3 @@ def test_CONDA_DEFAULT_ENV():
 # - Test activating "root" and then deactivating
 # - Check 'symlinking' on Windows
 # - Make test code platform-independent by constructing expected paths outputs
-# - Clean up activate.bat and deactivate.bat
