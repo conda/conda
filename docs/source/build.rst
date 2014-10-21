@@ -364,6 +364,9 @@ Windows (``bld.bat``) during the build process:
     - Python's site-packages location
   * - ``PY_VER``
     - Python version building against
+  * - ``CPU_COUNT``
+    - Number of CPUs on the system, as reported by
+      ``multiprocessing.cpu_count()``
 
 When building "unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
