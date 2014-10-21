@@ -144,7 +144,7 @@ sections are optional except for package/name and package/version.
 
       # A list of globs for files that should not be linked (soft or
       # hard). They will always be copied.
-      no_softlink:
+      no_link:
         - bin/*.py # Don't link any .py files in bin/
 
       # Used instead of build.sh or bld.bat. For short build scripts, this can
