@@ -418,6 +418,8 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True, minima
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        return plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        actions = plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        plan.display_actions(actions, index)
+        return actions
     finally:
         ci.rm_rf(prefix)
