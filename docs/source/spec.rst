@@ -124,8 +124,8 @@ replaced with the install prefix using the native path delimiter.) On Windows,
 the ``placeholder`` and ``path`` always appear in "quotes" to support paths
 with spaces.
 
-``info/no_softlink``: This optional file lists all files which cannot
-be soft-linked into environments (and are copied instead).
+``info/no_link``: This optional file lists all files which cannot be linked
+(either soft or hard) into environments, and are copied instead.
 
 
 Link and unlink scripts:

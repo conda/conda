@@ -142,11 +142,10 @@ sections are optional except for package/name and package/version.
       # that use setuptools specific features.
       preserve_egg_dir: yes # (default no)
 
-      # A regular expression describing files to not install using soft
-      # links. If hard links are not possible and this is set, the package
-      # will be installed via copying. By default all files are considered
-      # safe for soft linking.
-      no_softlink: (bin/path1\.py|bin/path2) # Don't softlink bin/path1.py or bin/path2
+      # A list of globs for files that should not be linked (soft or
+      # hard). They will always be copied.
+      no_softlink:
+        - bin/*.py # Don't link any .py files in bin/
 
       # Used instead of build.sh or bld.bat. For short build scripts, this can
       # be more convenient. You may need to use selectors (see below) to use
