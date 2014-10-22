@@ -3,6 +3,9 @@
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    >&2 echo "Error: activate must be sourced. Run 'source activate envname'
+instead of 'activate envname'.
+"
     "$(dirname "$0")/conda" ..activate -h
     exit 1
 fi

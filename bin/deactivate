@@ -3,6 +3,9 @@
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
+instead of 'deactivate'.
+"
     "$(dirname $0)/conda" ..deactivate -h
     exit 1
 fi

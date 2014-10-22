@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
+import shlex
 import shutil
 import subprocess
 from collections import defaultdict
@@ -42,7 +43,7 @@ def rel_path(prefix, path):
     return res
 
 
-def walk_prefix(prefix):
+def walk_prefix(prefix, ignore_predefined_files=True):
     """
     Return the set of all files in a given prefix directory.
     """
@@ -55,15 +56,17 @@ def walk_prefix(prefix):
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
     for fn in os.listdir(prefix):
-        if fn in ignore:
-            continue
+        if ignore_predefined_files:
+            if fn in ignore:
+                continue
         if isfile(join(prefix, fn)):
             res.add(fn)
             continue
         for root, dirs, files in os.walk(join(prefix, fn)):
             for fn2 in files:
-                if root == join(prefix, 'bin') and fn2 in binignore:
-                    continue
+                if ignore_predefined_files:
+                    if root == join(prefix, 'bin') and fn2 in binignore:
+                        continue
                 res.add(rel_path(prefix, join(root, fn2)))
             for dn in dirs:
                 path = join(root, dn)
@@ -130,14 +133,16 @@ def touch_nonadmin(prefix):
             fo.write('')
 
 
-def clone_env(prefix1, prefix2, verbose=True):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False):
     """
     clone existing prefix1 into new prefix2
     """
     untracked_files = untracked(prefix1)
     dists = discard_conda(install.linked(prefix1))
-    print('Packages: %d' % len(dists))
-    print('Files: %d' % len(untracked_files))
+
+    if verbose:
+        print('Packages: %d' % len(dists))
+        print('Files: %d' % len(untracked_files))
 
     for f in untracked_files:
         src = join(prefix1, f)
@@ -166,7 +171,9 @@ def clone_env(prefix1, prefix2, verbose=True):
         shutil.copystat(src, dst)
 
     actions = ensure_linked_actions(dists, prefix2)
-    execute_actions(actions, index=get_index(), verbose=verbose)
+    execute_actions(actions, index=get_index(), verbose=not quiet)
+
+    return actions, untracked_files
 
 
 def install_local_packages(prefix, paths, verbose=False):
@@ -193,21 +200,29 @@ def install_local_packages(prefix, paths, verbose=False):
     execute_actions(actions, verbose=verbose)
 
 
-def launch(fn, prefix=config.root_dir, additional_args=None):
+def environment_for_conda_environment(prefix=config.root_dir):
+    # prepend the bin directory to the path
+    fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
+    binpath = fmt % abspath(prefix)
+    path = r'%s;%s' if sys.platform == 'win32' else '%s:%s'
+    path = path % (binpath, os.getenv('PATH'))
+    env = {'PATH': path}
+    # copy existing environment variables, but not anything with PATH in it
+    for k, v in iteritems(os.environ):
+        if k != 'PATH':
+            env[k] = v
+    return binpath, env
+
+
+def launch(fn, prefix=config.root_dir, additional_args=None, background=False):
     info = install.is_linked(prefix, fn[:-8])
     if info is None:
         return None
 
     if not info.get('type') == 'app':
-        raise Exception('Not an application: %s' % fn)
+        raise TypeError('Not an application: %s' % fn)
 
-    # prepend the bin directory to the path
-    fmt = r'%s\Scripts;%s' if sys.platform == 'win32' else '%s/bin:%s'
-    env = {'PATH': fmt % (abspath(prefix), os.getenv('PATH'))}
-    # copy existing environment variables, but not anything with PATH in it
-    for k, v in iteritems(os.environ):
-        if 'PATH' not in k:
-            env[k] = v
+    binpath, env = environment_for_conda_environment(prefix)
     # allow updating environment variables from metadata
     if 'app_env' in info:
         env.update(info['app_env'])
@@ -223,7 +238,71 @@ def launch(fn, prefix=config.root_dir, additional_args=None):
     cwd = abspath(expanduser('~'))
     if additional_args:
         args.extend(additional_args)
-    return subprocess.Popen(args, cwd=cwd , env=env)
+    if sys.platform == 'win32' and background:
+        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
+
+
+def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
+                           inherit=True):
+    """Runs ``cmd`` in the specified environment.
+
+    ``inherit`` specifies whether the child inherits stdio handles (for JSON
+    output, we don't want to trample this process's stdout).
+    """
+    binpath, env = environment_for_conda_environment(prefix)
+
+    if sys.platform == 'win32' and cmd == 'python':
+        # python is located one directory up on Windows
+        cmd = join(binpath, '..', cmd)
+    else:
+        cmd = join(binpath, cmd)
+
+    args = shlex.split(cmd)
+    if additional_args:
+        args.extend(additional_args)
+
+    if inherit:
+        stdin, stdout, stderr = None, None, None
+    else:
+        stdin, stdout, stderr = subprocess.PIPE, subprocess.PIPE, subprocess.PIPE
+
+    if sys.platform == 'win32' and not inherit:
+        return subprocess.Popen(args, env=env, close_fds=False,
+                                stdin=stdin, stdout=stdout, stderr=stderr,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        return subprocess.Popen(args, env=env, close_fds=False,
+                                stdin=stdin, stdout=stdout, stderr=stderr)
+
+
+def make_icon_url(info):
+    if 'channel' in info and 'icon' in info:
+        base_url = dirname(info['channel'].rstrip('/'))
+        icon_fn = info['icon']
+        #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+        #if isfile(icon_cache_path):
+        #    return url_path(icon_cache_path)
+        return '%s/icons/%s' % (base_url, icon_fn)
+    return ''
+
+
+def list_prefixes():
+    # Lists all the prefixes that conda knows about.
+    for envs_dir in config.envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        for dn in sorted(os.listdir(envs_dir)):
+            if dn.startswith('.'):
+                continue
+            prefix = join(envs_dir, dn)
+            if isdir(prefix):
+                prefix = join(envs_dir, dn)
+                yield prefix
+
+    yield config.root_dir
 
 
 if __name__ == '__main__':

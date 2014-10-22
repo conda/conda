@@ -13,7 +13,8 @@ from difflib import get_close_matches
 
 from conda.cli.find_commands import find_commands
 
-build_commands = {'build', 'index', 'skeleton', 'package'}
+build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
+    'pipbuild', 'develop', 'convert'}
 
 class ArgumentParser(argparse.ArgumentParser):
     def _get_action_from_name(self, name):
@@ -49,7 +50,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
                 if m:
                     cmd = m.group(1)
-                    executable = find_executable(cmd)
+                    executable = find_executable('conda-' + cmd)
                     if not executable:
                         if cmd in build_commands:
                             sys.exit("""\
@@ -66,10 +67,15 @@ Error: You need to install conda-build in order to use the 'conda %s'
                                 for s in close:
                                     message += '    %s' % s
                             sys.exit(message)
-                    args = [find_executable(cmd)]
+                    args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
-                    sys.exit(subprocess.call(args))
-
+                    try:
+                        p = subprocess.Popen(args)
+                        p.communicate()
+                    except KeyboardInterrupt:
+                        p.wait()
+                    finally:
+                        sys.exit(p.returncode)
         super(ArgumentParser, self).error(message)
 
     def print_help(self):

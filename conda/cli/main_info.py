@@ -6,8 +6,12 @@
 
 from __future__ import print_function, division, absolute_import
 
+import re
 import sys
-from os.path import isfile
+import os
+from os import listdir
+from os.path import isfile, exists, expanduser, join
+from collections import defaultdict, OrderedDict
 
 from conda.cli import common
 
@@ -41,11 +45,10 @@ def configure_parser(sub_parsers):
         help = "list environment variables",
     )
     p.add_argument(
-        'args',
-        metavar = 'args',
+        'packages',
         action = "store",
         nargs = '*',
-        help = "display information about packages or files",
+        help = "display information about packages",
     )
     p.set_defaults(func=execute)
 
@@ -62,36 +65,118 @@ def show_pkg_info(name):
         for pkg in sorted(r.get_pkgs(MatchSpec(name))):
             print('    %-15s %15s  %s' % (
                     pkg.version,
-                    r.index[pkg.fn]['build'],
+                    pkg.build,
                     common.disp_features(r.features(pkg.fn))))
     else:
-        print('    not available on channels')
+        print('    not available')
     # TODO
 
+python_re = re.compile('python\d\.\d')
+
+def get_user_site():
+    site_dirs = []
+    if sys.platform != 'win32':
+        if exists(expanduser('~/.local/lib')):
+            for path in listdir(expanduser('~/.local/lib/')):
+                if python_re.match(path):
+                    site_dirs.append("~/.local/lib/%s" % path)
+    else:
+        if 'APPDATA' not in os.environ:
+            return site_dirs
+        APPDATA = os.environ['APPDATA']
+        if exists(join(APPDATA, 'Python')):
+            site_dirs = [join(APPDATA, 'Python', i) for i in
+                listdir(join(APPDATA, 'PYTHON'))]
+    return site_dirs
+
+
+def pretty_package(pkg):
+    import conda.config as config
+    from conda.utils import human_bytes
+    from conda.api import app_is_installed
+
+    d = OrderedDict([
+        ('file name', pkg.fn),
+        ('name', pkg.name),
+        ('version', pkg.version),
+        ('build number', pkg.build_number),
+        ('build string', pkg.build),
+        ('channel', config.canonical_channel_name(pkg.channel)),
+        ('size', human_bytes(pkg.info['size'])),
+        ])
+    rest = pkg.info.copy()
+    for key in sorted(rest):
+        if key in ['build', 'depends', 'requires', 'channel', 'name',
+            'version', 'build_number', 'size']:
+            continue
+        d[key] = rest[key]
+
+
+    print()
+    header = "%s %s %s" % (d['name'], d['version'], d['build string'])
+    print(header)
+    print('-'*len(header))
+    for key in d:
+        print("%-12s: %s" % (key, d[key]))
+    print("installed environments:")
+    for env in app_is_installed(pkg.fn):
+        print('    %s' % env)
+    print('dependencies:')
+    for dep in pkg.info['depends']:
+        print('    %s' % dep)
 
 def execute(args, parser):
-    if args.args:
-        for arg in args.args:
-            if isfile(arg):
-                from conda.misc import which_package
-                path = arg
-                for dist in which_package(path):
-                    print('%-50s  %s' % (path, dist))
-            else:
-                show_pkg_info(arg)
-        return
-
     import os
-    from os.path import basename, dirname, isdir, join
+    from os.path import basename, dirname
 
     import conda
     import conda.config as config
+    import conda.misc as misc
+    from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
+    from conda.api import get_index, get_package_versions
+
+    if args.packages:
+        if args.json:
+            results = defaultdict(list)
+            for arg in args.packages:
+                for pkg in get_package_versions(arg):
+                    results[arg].append(pkg._asdict())
+            common.stdout_json(results)
+            return
+        index = get_index()
+        r = Resolve(index)
+        specs = map(common.arg2spec, args.packages)
+
+        for spec in specs:
+            versions = r.get_pkgs(MatchSpec(spec))
+            for pkg in versions:
+                pretty_package(pkg)
+
+        return
 
     options = 'envs', 'system', 'license'
 
+    try:
+        import requests
+        requests_version = requests.__version__
+    except ImportError:
+        requests_version = "could not import"
+    except Exception as e:
+        requests_version = "Error %s" % e
+
+    try:
+        import conda_build
+    except ImportError:
+        conda_build_version = "not installed"
+    except Exception as e:
+        conda_build_version = "Error %s" % e
+    else:
+        conda_build_version = conda_build.__version__
+
     info_dict = dict(platform=config.subdir,
                      conda_version=conda.__version__,
+                     conda_build_version=conda_build_version,
                      root_prefix=config.root_dir,
                      root_writable=config.root_writable,
                      pkgs_dirs=config.pkgs_dirs,
@@ -99,17 +184,22 @@ def execute(args, parser):
                      default_prefix=config.default_prefix,
                      channels=config.get_channel_urls(),
                      rc_path=config.rc_path,
+                     sys_rc_path=config.sys_rc_path,
                      is_foreign=bool(config.foreign),
                      envs=[],
                      python_version='.'.join(map(str, sys.version_info)),
+                     requests_version=requests_version,
     )
 
     if args.all or args.json:
         for option in options:
             setattr(args, option, True)
 
+    info_dict['channels_disp'] = [config.hide_binstar_tokens(c) for c in
+        info_dict['channels']]
+
     if args.all or all(not getattr(args, opt) for opt in options):
-        for key in 'pkgs_dirs', 'envs_dirs', 'channels':
+        for key in 'pkgs_dirs', 'envs_dirs', 'channels_disp':
             info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
                                'read only')
@@ -118,20 +208,23 @@ Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
+  conda-build version : %(conda_build_version)s
        python version : %(python_version)s
+     requests version : %(requests_version)s
      root environment : %(root_prefix)s  (%(_rtwro)s)
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
-         channel URLs : %(_channels)s
+         channel URLs : %(_channels_disp)s
           config file : %(rc_path)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
         if not is_initialized():
             print("""\
 # NOTE:
-#     root directory '%s' uninitalized,
-#     use 'conda init' to initialize.""" % config.root_dir)
+#     root directory '%s' is uninitialized""" % config.root_dir)
+
+    del info_dict['channels_disp']
 
     if args.envs:
         common.handle_envs_list(args, info_dict['envs'])
@@ -144,7 +237,15 @@ Current conda install:
         print("sys.executable: %s" % sys.executable)
         print("conda location: %s" % dirname(conda.__file__))
         for cmd in sorted(set(find_commands() + ['build'])):
-            print("conda-%s: %s" % (cmd, find_executable(cmd)))
+            print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
+        print("user site dirs: ", end='')
+        site_dirs = get_user_site()
+        if site_dirs:
+            print(site_dirs[0])
+        else:
+            print()
+        for site_dir in site_dirs[1:]:
+            print('                %s' % site_dir)
         print()
 
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
@@ -163,7 +264,7 @@ Current conda install:
             show_info()
         except ImportError:
             print("""\
-WARNING: could import _license.show_info
+WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
 

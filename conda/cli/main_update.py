@@ -14,7 +14,7 @@ from conda.cli import common, install
 descr = "Update conda packages."
 example = """
 examples:
-    conda update -p ~/anaconda/envs/myenv scipy
+    conda update -n myenv scipy
 
 """
 
@@ -27,6 +27,7 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     common.add_parser_install(p)
+    common.add_parser_json(p)
     p.add_argument(
         "--all",
         action="store_true",

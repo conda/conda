@@ -28,6 +28,7 @@ if PY3:
     import configparser
     from io import StringIO
     import urllib.parse as urlparse
+    from urllib.parse import quote as urllib_quote
     from itertools import zip_longest
     from math import log2, ceil
     from shlex import quote
@@ -36,6 +37,7 @@ else:
     import ConfigParser as configparser
     from cStringIO import StringIO
     import urlparse
+    from urllib import quote as urllib_quote
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
@@ -155,3 +157,47 @@ def get_http_value(u, key):
         return u.headers.get(key)
     else:
         return u.info().getheader(key)
+
+def with_metaclass(meta, *bases):
+    """
+    Create a base class with a metaclass.
+
+    For example, if you have the metaclass
+
+    >>> class Meta(type):
+    ...     pass
+
+    Use this as the metaclass by doing
+
+    >>> from sympy.core.compatibility import with_metaclass
+    >>> class MyClass(with_metaclass(Meta, object)):
+    ...     pass
+
+    This is equivalent to the Python 2::
+
+        class MyClass(object):
+            __metaclass__ = Meta
+
+    or Python 3::
+
+        class MyClass(object, metaclass=Meta):
+            pass
+
+    That is, the first argument is the metaclass, and the remaining arguments
+    are the base classes. Note that if the base class is just ``object``, you
+    may omit it.
+
+    >>> MyClass.__mro__
+    (<class 'MyClass'>, <... 'object'>)
+    >>> type(MyClass)
+    <class 'Meta'>
+
+    """
+    class metaclass(meta):
+        __call__ = type.__call__
+        __init__ = type.__init__
+        def __new__(cls, name, this_bases, d):
+            if this_bases is None:
+                return type.__new__(cls, name, (), d)
+            return meta(name, bases, d)
+    return metaclass("NewBase", None, {})

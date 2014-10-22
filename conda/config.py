@@ -10,14 +10,15 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, dirname, expanduser, isfile, isdir, join
+from os.path import abspath, expanduser, isfile, isdir, join
+import re
 
 from conda.compat import urlparse
-from conda.utils import try_write
+from conda.utils import try_write, memoized
 
 
 log = logging.getLogger(__name__)
-
+stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
 
@@ -54,7 +55,10 @@ rc_list_keys = [
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
 
+ADD_BINSTAR_TOKEN = True
+
 rc_bool_keys = [
+    'add_binstar_token',
     'always_yes',
     'allow_softlinks',
     'changeps1',
@@ -62,17 +66,20 @@ rc_bool_keys = [
     'binstar_upload',
     'binstar_personal',
     'show_channel_urls',
+    'allow_other_channels',
+    'ssl_verify',
     ]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
     'root_dir',
-    'channel_alias'
+    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
+
 def get_rc_path():
     path = os.getenv('CONDARC')
     if path == ' ':
@@ -98,11 +105,13 @@ def load_condarc(path):
     return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
+sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
 
 # ----- local directories -----
 
-# root_dir should only be used for testing, which is why don't mention it in the
-# documentation, to avoid confusion (it can really mess up a lot of things)
+# root_dir should only be used for testing, which is why don't mention it in
+# the documentation, to avoid confusion (it can really mess up a lot of
+# things)
 root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
                                         rc.get('root_dir', sys.prefix))))
 root_writable = try_write(root_dir)
@@ -161,6 +170,11 @@ else:
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
 
 def get_default_urls():
+    if isfile(sys_rc_path):
+        sys_rc = load_condarc(sys_rc_path)
+        if 'default_channels' in sys_rc:
+            return sys_rc['default_channels']
+
     return ['http://repo.continuum.io/pkgs/free',
             'http://repo.continuum.io/pkgs/pro']
 
@@ -172,20 +186,57 @@ def get_rc_urls():
 def is_url(url):
     return urlparse.urlparse(url).scheme != ""
 
+@memoized
+def binstar_channel_alias(channel_alias):
+    if rc.get('add_binstar_token', ADD_BINSTAR_TOKEN):
+        try:
+            from binstar_client.utils import get_binstar
+            bs = get_binstar()
+            channel_alias = bs.domain.replace("api", "conda")
+            if not channel_alias.endswith('/'):
+                channel_alias += '/'
+            if bs.token:
+                channel_alias += 't/%s/' % bs.token
+        except ImportError:
+            log.debug("Could not import binstar")
+            pass
+        except Exception as e:
+            stderrlog.info("Warning: could not import binstar_client (%s)" %
+                e)
+    return channel_alias
+
+channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
+    channel_alias = sys_rc['channel_alias']
+
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+    (re.escape(channel_alias)))
+
+def hide_binstar_tokens(url):
+    return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
+
+def remove_binstar_tokens(url):
+    return BINSTAR_TOKEN_PAT.sub(r'\1', url)
+
 def normalize_urls(urls, platform=None):
+    channel_alias = binstar_channel_alias(rc.get('channel_alias',
+        DEFAULT_CHANNEL_ALIAS))
+
     platform = platform or subdir
     newurls = []
     for url in urls:
         if url == "defaults":
-            newurls.extend(normalize_urls(get_default_urls(), platform=platform))
+            newurls.extend(normalize_urls(get_default_urls(),
+                                          platform=platform))
         elif url == "system":
             if not rc_path:
-                newurls.extend(normalize_urls(get_default_urls(), platform=platform))
+                newurls.extend(normalize_urls(get_default_urls(),
+                                              platform=platform))
             else:
-                newurls.extend(normalize_urls(get_rc_urls(), platform=platform))
+                newurls.extend(normalize_urls(get_rc_urls(),
+                                              platform=platform))
         elif not is_url(url):
-            moreurls = normalize_urls([rc.get('channel_alias',
-                DEFAULT_CHANNEL_ALIAS)+url], platform=platform)
+            moreurls = normalize_urls([channel_alias+url], platform=platform)
             newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
@@ -206,24 +257,50 @@ def get_channel_urls(platform=None):
 
     return normalize_urls(base_urls, platform=platform)
 
-def canonical_channel_name(channel):
+def canonical_channel_name(channel, hide=True):
     if channel is None:
         return '<unknown>'
-    channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+    channel = remove_binstar_tokens(channel)
     if channel.startswith(channel_alias):
-        return channel.split(channel_alias, 1)[1].split('/')[0]
+        end = channel.split(channel_alias, 1)[1]
+        url = end.split('/')[0]
+        if url == 't' and len(end.split('/')) >= 3:
+            url = end.split('/')[2]
+        if hide:
+            url = hide_binstar_tokens(url)
+        return url
     elif any(channel.startswith(i) for i in get_default_urls()):
         return 'defaults'
     elif channel.startswith('http://filer/'):
         return 'filer'
     else:
+        if hide:
+            return hide_binstar_tokens(channel)
         return channel
+
+# ----- allowed channels -----
+
+def get_allowed_channels():
+    if not isfile(sys_rc_path):
+        return None
+    if sys_rc.get('allow_other_channels', True):
+        return None
+    if 'channels' in sys_rc:
+        base_urls = sys_rc['channels']
+    else:
+        base_urls = get_default_urls()
+    return normalize_urls(base_urls)
+
+allowed_channels = get_allowed_channels()
 
 # ----- proxy -----
 
 def get_proxy_servers():
     res = rc.get('proxy_servers')
-    if res is None or isinstance(res, dict):
+    if res is None:
+        import requests
+        return requests.utils.getproxies()
+    if isinstance(res, dict):
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
 
@@ -250,6 +327,7 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
+ssl_verify = bool(rc.get('ssl_verify', True))
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:

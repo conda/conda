@@ -6,9 +6,14 @@
 
 from __future__ import print_function, division, absolute_import
 
+from os.path import join
+
+import argparse
 from argparse import RawDescriptionHelpFormatter
 
+from conda import config
 from conda.cli import common
+from conda.console import json_progress_bars
 
 
 help = "Remove a list of packages from a specified conda environment."
@@ -32,6 +37,7 @@ def configure_parser(sub_parsers):
         epilog = example,
     )
     common.add_parser_yes(p)
+    common.add_parser_json(p)
     p.add_argument(
         "--all",
         action = "store_true",
@@ -42,9 +48,18 @@ def configure_parser(sub_parsers):
         action = "store_true",
         help = "remove features (instead of packages)",
     )
+    common.add_parser_no_pin(p)
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
+    common.add_parser_use_index_cache(p)
+    common.add_parser_use_local(p)
+    p.add_argument(
+        "--force-pscheck",
+        action = "store_true",
+        help = ("force removal (when package process is running)"
+                if config.platform == 'win' else argparse.SUPPRESS)
+    )
     p.add_argument(
         'package_names',
         metavar = 'package_name',
@@ -59,30 +74,55 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
-    from conda.api import get_index
     from conda.cli import pscheck
     from conda.install import rm_rf, linked
+    from conda import config
 
     if not (args.all or args.package_names):
-        sys.exit('Error: no package names supplied,\n'
-                 '       try "conda remove -h" for more details')
+        common.error_and_exit('no package names supplied,\n'
+                              '       try "conda remove -h" for more details',
+                              json=args.json,
+                              error_type="ValueError")
 
     prefix = common.get_prefix(args)
-    common.check_write('remove', prefix)
-
-    index = None
+    if args.all and prefix == config.default_prefix:
+        common.error_and_exit("cannot remove current environment. deactivate and run conda remove again")
+    common.check_write('remove', prefix, json=args.json)
+    common.ensure_override_channels_requires_channel(args, json=args.json)
+    channel_urls = args.channel or ()
+    if args.use_local:
+        from conda.fetch import fetch_index
+        from conda.utils import url_path
+        try:
+            from conda_build.config import croot
+        except ImportError:
+            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
+                                  " to use the --use-local option",
+                                  json=args.json,
+                                  error_type="RuntimeError")
+        # remove the cache such that a refetch is made,
+        # this is necessary because we add the local build repo URL
+        fetch_index.cache = {}
+        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
+                                      prepend=not args.override_channels,
+                                      use_cache=args.use_index_cache,
+                                      json=args.json)
+    else:
+        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
+                                      args.override_channels,
+                                      use_cache=args.use_index_cache,
+                                      json=args.json)
+    specs = None
     if args.features:
-        common.ensure_override_channels_requires_channel(args)
-        channel_urls = args.channel or ()
-        index = get_index(channel_urls=channel_urls,
-                          prepend=not args.override_channels)
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
 
     elif args.all:
         if plan.is_root_prefix(prefix):
-            sys.exit('Error: cannot remove root environment,\n'
-                     '       add -n NAME or -p PREFIX option')
+            common.error_and_exit('cannot remove root environment,\n'
+                                  '       add -n NAME or -p PREFIX option',
+                                  json=args.json,
+                                  error_type="CantRemoveRoot")
 
         actions = {plan.PREFIX: prefix,
                    plan.UNLINK: sorted(linked(prefix))}
@@ -91,25 +131,64 @@ def execute(args, parser):
         specs = common.specs_from_args(args.package_names)
         if (plan.is_root_prefix(prefix) and
             common.names_in_specs(common.root_no_rm, specs)):
-            sys.exit('Error: cannot remove %s from root environment' %
-                     ', '.join(common.root_no_rm))
-        actions = plan.remove_actions(prefix, specs)
+            common.error_and_exit('cannot remove %s from root environment' %
+                                  ', '.join(common.root_no_rm),
+                                  json=args.json,
+                                  error_type="CantRemoveFromRoot")
+        actions = plan.remove_actions(prefix, specs, index=index, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
         if args.all:
             rm_rf(prefix)
+
+            if args.json:
+                common.stdout_json({
+                    'success': True,
+                    'actions': actions
+                })
             return
-        sys.exit('Error: no packages found to remove from '
-                 'environment: %s' % prefix)
+        common.error_and_exit('no packages found to remove from '
+                              'environment: %s' % prefix,
+                              json=args.json,
+                              error_type="PackageNotInstalled")
 
-    print()
-    print("Package plan for package removal in environment %s:" % prefix)
-    plan.display_actions(actions, index)
+    if not args.json:
+        print()
+        print("Package plan for package removal in environment %s:" % prefix)
+        plan.display_actions(actions, index)
 
-    if not pscheck.main(args):
-        common.confirm_yn(args)
+    if args.json and args.dry_run:
+        common.stdout_json({
+            'success': True,
+            'dry_run': True,
+            'actions': actions
+        })
+        return
 
-    plan.execute_actions(actions, index, verbose=not args.quiet)
+    if not args.json:
+        if not pscheck.main(args):
+            common.confirm_yn(args)
+    elif (sys.platform == 'win32' and not args.force_pscheck and
+          not pscheck.check_processes(verbose=False)):
+        common.error_and_exit("Cannot continue removal while processes "
+                              "from packages are running without --force-pscheck.",
+                              json=True,
+                              error_type="ProcessesStillRunning")
+
+    if args.json and not args.quiet:
+        with json_progress_bars():
+            plan.execute_actions(actions, index, verbose=not args.quiet)
+    else:
+        plan.execute_actions(actions, index, verbose=not args.quiet)
+        if specs:
+            with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                f.write('# remove specs: %s\n' % specs)
 
     if args.all:
         rm_rf(prefix)
+
+    if args.json:
+        common.stdout_json({
+            'success': True,
+            'actions': actions
+        })

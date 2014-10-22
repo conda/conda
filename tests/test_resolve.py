@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
 
-from .helpers import raises
+from tests.helpers import raises
 
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -125,6 +125,9 @@ class TestSolve(unittest.TestCase):
                           'zlib-1.2.7-0.tar.bz2'])
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7']), None)
+
+    def test_explicitNone(self):
+        self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
 
     def test_empty(self):
         self.assertEqual(r.solve([]), [])
@@ -287,9 +290,9 @@ def test_generate_eq():
     #   coefficients.
     # - the same versions of the same package (e.g., different build strings)
     #   should have the same coefficients.
-    # - a package that only has one version should not appear, as it will have
-    #   a 0 coefficient. The same is true of the latest version of a package.
-    # The actual order may be arbitrary, so we compare sets
+    # - a package that only has one version should not appear, unless
+    #   include=True as it will have a 0 coefficient. The same is true of the
+    #   latest version of a package.
     assert e == [
         (0, '_license-1.1-py27_0.tar.bz2'),
         (0, 'anaconda-1.5.0-np16py26_0.tar.bz2'),
@@ -696,6 +699,22 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
     }
+    index2['anotherpackage-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage 1.1'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage 1.1'],
+        'version': '1.0',
+    }
+    index2['anotherpackage-2.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage'],
+        'version': '2.0',
+    }
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('mypackage'))) == {
@@ -770,7 +789,33 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(RuntimeError, lambda: r.solve(['mypackage 1.0']))
+    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.0']))
+
+    assert r.solve(['anotherpackage 1.0']) == [
+        'anotherpackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+    assert r.solve(['anotherpackage']) == [
+        'anotherpackage-2.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
 
     # This time, the latest version is messed up
     index3 = index.copy()
@@ -789,6 +834,22 @@ def test_nonexistent_deps():
         'name': 'mypackage',
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
+    }
+    index3['anotherpackage-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage 1.0'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage 1.0'],
+        'version': '1.0',
+    }
+    index3['anotherpackage-2.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['nose', 'mypackage'],
+        'name': 'anotherpackage',
+        'requires': ['nose', 'mypackage'],
+        'version': '2.0',
     }
     r = Resolve(index3)
 
@@ -837,7 +898,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     }
 
-    assert raises(RuntimeError, lambda: r.get_dists(['mypackage'], max_only=True))
+    assert raises(NoPackagesFound, lambda: r.get_dists(['mypackage'], max_only=True))
 
     assert r.solve(['mypackage']) == r.solve(['mypackage 1.0']) == [
         'mypackage-1.0-py33_0.tar.bz2',
@@ -851,6 +912,69 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
     assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.1']))
+
+
+    assert r.solve(['anotherpackage 1.0']) == [
+        'anotherpackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+    # If recursive checking is working correctly, this will give
+    # anotherpackage 2.0, not anotherpackage 1.0
+    assert r.solve(['anotherpackage']) == [
+        'anotherpackage-2.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
+        'nose-1.3.0-py33_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-3.3.2-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+def test_circular_dependencies():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = {
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    }
+    index2['package2-1.0-0.tar.bz2'] = {
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package1'],
+        'name': 'package2',
+        'requires': ['package1'],
+        'version': '1.0',
+    }
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        'package1-1.0-0.tar.bz2',
+    }
+    assert set(r.get_dists(['package1']).keys()) == {
+        'package1-1.0-0.tar.bz2',
+        'package2-1.0-0.tar.bz2',
+    }
+    assert r.solve(['package1']) == r.solve(['package2']) == \
+        r.solve(['package1', 'package2']) == [
+        'package1-1.0-0.tar.bz2',
+        'package2-1.0-0.tar.bz2',
+    ]
+
 
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
@@ -943,3 +1067,79 @@ def test_no_features():
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
             ]]
+
+    index2 = index.copy()
+    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = \
+        {
+            "build": "np16py27_0",
+            "build_number": 0,
+            "depends": [
+              "dateutil",
+              "numpy 1.6*",
+              "python 2.7*",
+              "pytz"
+            ],
+            "name": "pandas",
+            "requires": [
+              "dateutil 1.5",
+              "numpy 1.6",
+              "python 2.7",
+              "pytz"
+            ],
+            "version": "0.12.0"
+        }
+    # Make it want to choose the pro version by having it be newer.
+    index2["numpy-1.6.2-py27_p5.tar.bz2"] = \
+        {
+            "build": "py27_p5",
+            "build_number": 5,
+            "depends": [
+              "mkl-rt 11.0",
+              "python 2.7*"
+            ],
+            "features": "mkl",
+            "name": "numpy",
+            "pub_date": "2013-04-29",
+            "requires": [
+              "mkl-rt 11.0",
+              "python 2.7"
+            ],
+            "version": "1.6.2"
+        }
+
+    r2 = Resolve(index2)
+
+    # This should not pick any mkl packages (the difference here is that none
+    # of the specs directly have mkl versions)
+    assert r2.solve2(['pandas 0.12.0 np16py27_0', 'python 2.7*'], set(),
+        returnall=True) == [[
+            'dateutil-2.1-py27_1.tar.bz2',
+            'numpy-1.6.2-py27_4.tar.bz2',
+            'openssl-1.0.1c-0.tar.bz2',
+            'pandas-0.12.0-np16py27_0.tar.bz2',
+            'python-2.7.5-0.tar.bz2',
+            'pytz-2013b-py27_0.tar.bz2',
+            'readline-6.2-0.tar.bz2',
+            'six-1.3.0-py27_0.tar.bz2',
+            'sqlite-3.7.13-0.tar.bz2',
+            'system-5.8-1.tar.bz2',
+            'tk-8.5.13-0.tar.bz2',
+            'zlib-1.2.7-0.tar.bz2',
+            ]]
+
+    assert r2.solve2(['pandas 0.12.0 np16py27_0', 'python 2.7*'], f_mkl,
+        returnall=True)[0] == [[
+            'dateutil-2.1-py27_1.tar.bz2',
+            'mkl-rt-11.0-p0.tar.bz2',           # This
+            'numpy-1.6.2-py27_p5.tar.bz2',      # and this are different.
+            'openssl-1.0.1c-0.tar.bz2',
+            'pandas-0.12.0-np16py27_0.tar.bz2',
+            'python-2.7.5-0.tar.bz2',
+            'pytz-2013b-py27_0.tar.bz2',
+            'readline-6.2-0.tar.bz2',
+            'six-1.3.0-py27_0.tar.bz2',
+            'sqlite-3.7.13-0.tar.bz2',
+            'system-5.8-1.tar.bz2',
+            'tk-8.5.13-0.tar.bz2',
+            'zlib-1.2.7-0.tar.bz2',
+            ]][0]
