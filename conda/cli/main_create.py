@@ -31,7 +31,7 @@ def configure_parser(sub_parsers):
         help = help,
         epilog  = example,
     )
-    common.add_parser_install(p)
+    common.add_parser_install(p, default_to_python=True)
     common.add_parser_json(p)
     p.add_argument(
         "--clone",
