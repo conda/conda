@@ -71,15 +71,16 @@ else:
 # Make sure the subprocess activate calls this python
 if platform == 'win':
     syspath_list = [root_dir, join(root_dir, 'Scripts')]
-    syspath = ';'.join(syspath_list)
+    syspath = pathsep.join(syspath_list)
     PATH = "C:\\Windows\\system32"
-    ROOTPATH = syspath + ';' + PATH
+    ROOTPATH = syspath + pathsep + PATH
 else:
-    syspath = join(root_dir, 'bin')
+    syspath_list = [join(root_dir, 'bin')]
+    syspath = pathsep.join(syspath_list)
     # dirname, which is used in the activate script, is typically installed in
     # /usr/bin (not sure if it has to be)
-    PATH = ':'.join(['/bin', '/usr/bin'])
-    ROOTPATH = syspath + ':' + PATH
+    PATH = pathsep.join(['/bin', '/usr/bin'])
+    ROOTPATH = syspath + pathsep + PATH
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
 CONDA_ENTRY_POINT="""\
