@@ -458,4 +458,5 @@ def handle_envs_list(acc, output=True):
         if prefix != config.root_dir:
             acc.append(prefix)
 
-    print()
+    if output:
+        print()
