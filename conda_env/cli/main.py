@@ -1,46 +1,24 @@
 from __future__ import print_function, division, absolute_import
 import argparse
-from argparse import RawDescriptionHelpFormatter
 import sys
 
-from conda.cli import common
+from conda.cli.main import args_func
+
+from . import main_list
 
 
-description = """
-Handles interacting with Conda environments.
-"""
-
-example = """
-examples:
-    conda env list
-    conda env list --json
-"""
-
-
-def configure_parser():
+def create_parser():
     p = argparse.ArgumentParser()
     sub_parsers = p.add_subparsers()
 
-    l = sub_parsers.add_parser(
-        'list',
-        formatter_class=RawDescriptionHelpFormatter,
-        description=description,
-        help=description,
-        epilog=example,
-    )
-
-    common.add_parser_json(l)
-
+    main_list.configure_parser(sub_parsers)
     return p
 
 
 def main():
-    args = configure_parser().parse_args()
-    info_dict = {'envs': []}
-    common.handle_envs_list(info_dict['envs'], not args.json)
-
-    if args.json:
-        common.stdout_json(info_dict)
+    parser = create_parser()
+    args = parser.parse_args()
+    return args_func(args, parser)
 
 
 if __name__ == '__main__':
