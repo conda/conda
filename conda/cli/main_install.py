@@ -14,7 +14,7 @@ from conda.cli import common, install
 help = "Install a list of packages into a specified conda environment."
 descr = help + """
 The arguments may be packages specifications (e.g. bitarray=0.8),
-or explicit conda packages filesnames (e.g. lxml-3.2.0-py27_0.tar.bz2) which
+or explicit conda packages filenames (e.g. ./lxml-3.2.0-py27_0.tar.bz2) which
 must exist on the local filesystem.  The two types of arguments cannot be
 mixed and the latter implies the --force and --no-deps options.
 """
@@ -39,6 +39,7 @@ def configure_parser(sub_parsers):
         metavar = 'REVISION',
     )
     common.add_parser_install(p)
+    common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 def execute(args, parser):

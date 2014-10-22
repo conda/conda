@@ -4,9 +4,11 @@ import re
 import os
 import sys
 import argparse
+import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
 
 import conda.config as config
+from conda import console
 
 
 def add_parser_prefix(p):
@@ -28,7 +30,7 @@ def add_parser_prefix(p):
 
 def add_parser_yes(p):
     p.add_argument(
-        "--yes",
+        "-y", "--yes",
         action = "store_true",
         help = "do not ask for confirmation",
     )
@@ -73,12 +75,12 @@ def add_parser_channels(p):
 
 def add_parser_known(p):
     p.add_argument(
-        "--known",
-        action="store_false",
-        default=True,
+        "--unknown",
+        action="store_true",
+        default=False,
         dest='unknown',
-        help="only use index metadata from the known remote channels, and not "
-             "the local package cache (which are from unknown channels)",
+        help="use index metadata from the local package cache "
+             "(which are from unknown channels)",
     )
 
 def add_parser_use_index_cache(p):
@@ -98,6 +100,12 @@ def add_parser_install(p):
                "implies --no-deps",
     )
     p.add_argument(
+        "--force-pscheck",
+        action = "store_true",
+        help = ("force removal (when package process is running)"
+                if config.platform == 'win' else argparse.SUPPRESS)
+    )
+    p.add_argument(
         "--file",
         action = "store",
         help = "read package versions from FILE",
@@ -114,15 +122,16 @@ def add_parser_install(p):
         help = "create prefix directory if necessary",
     )
     add_parser_use_index_cache(p)
-    p.add_argument(
-        "--use-local",
-        action="store_true",
-        default=False,
-        help = "use locally built packages",
-    )
+    add_parser_use_local(p)
+    add_parser_no_pin(p)
     add_parser_channels(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
+    p.add_argument(
+        "--alt-hint",
+        action="store_true",
+        default=False,
+        help="Use an alternate algorithm to generate an unsatisfiable hint")
     p.add_argument(
         'packages',
         metavar = 'package_spec',
@@ -131,13 +140,32 @@ def add_parser_install(p):
         help = "package versions to install into conda environment",
     )
 
+def add_parser_use_local(p):
+    p.add_argument(
+        "--use-local",
+        action="store_true",
+        default=False,
+        help = "use locally built packages",
+    )
 
-def ensure_override_channels_requires_channel(args, dashc=True):
-    if args.override_channels and not args.channel:
+
+def add_parser_no_pin(p):
+    p.add_argument(
+        "--no-pin",
+        action="store_false",
+        default=True,
+        dest='pinned',
+        help="don't use pinned packages",
+    )
+
+def ensure_override_channels_requires_channel(args, dashc=True, json=False):
+    if args.override_channels and not (args.channel or args.use_local):
         if dashc:
-            sys.exit('Error: --override-channels requires -c/--channel')
+            error_and_exit('--override-channels requires -c/--channel or --use-local', json=json,
+                           error_type="ValueError")
         else:
-            sys.exit('Error: --override-channels requires --channel')
+            error_and_exit('--override-channels requires --channel or --use-local', json=json,
+                           error_type="ValueError")
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
@@ -190,8 +218,10 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
 
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
-        sys.exit('Error: either -n NAME or -p PREFIX option required,\n'
-                 '       try "conda %s -h" for more details' % command)
+        error_and_exit('either -n NAME or -p PREFIX option required,\n'
+                       '       try "conda %s -h" for more details' % command,
+                       json=getattr(args, 'json', False),
+                       error_type="ValueError")
 
 def find_prefix_name(name):
     if name == config.root_env_name:
@@ -204,6 +234,11 @@ def find_prefix_name(name):
 
 def get_prefix(args, search=True):
     if args.name:
+        if '/' in args.name:
+            error_and_exit("'/' not allowed in environment name: %s" %
+                           args.name,
+                           json=getattr(args, 'json', False),
+                           error_type="ValueError")
         if args.name == config.root_env_name:
             return config.root_dir
         if search:
@@ -229,22 +264,26 @@ def name_prefix(prefix):
         return config.root_env_name
     return basename(prefix)
 
-def check_write(command, prefix):
+def check_write(command, prefix, json=False):
     if inroot_notwritable(prefix):
         from conda.cli.help import root_read_only
 
-        root_read_only(command, prefix)
+        root_read_only(command, prefix, json=json)
 
 # -------------------------------------------------------------------------
 
-def arg2spec(arg):
+def arg2spec(arg, json=False):
     spec = spec_from_line(arg)
     if spec is None:
-        sys.exit('Error: Invalid package specification: %s' % arg)
+        error_and_exit('Invalid package specification: %s' % arg,
+                       json=json,
+                       error_type="ValueError")
     parts = spec.split()
     name = parts[0]
     if name in config.disallow:
-        sys.exit("Error: specification '%s' is disallowed" % name)
+        error_and_exit("specification '%s' is disallowed" % name,
+                       json=json,
+                       error_type="ValueError")
     if len(parts) == 2:
         ver = parts[1]
         if not ver.startswith(('=', '>', '<', '!')):
@@ -255,8 +294,8 @@ def arg2spec(arg):
     return spec
 
 
-def specs_from_args(args):
-    return [arg2spec(arg) for arg in args]
+def specs_from_args(args, json=False):
+    return [arg2spec(arg, json=json) for arg in args]
 
 
 spec_pat = re.compile(r'''
@@ -282,7 +321,7 @@ def spec_from_line(line):
         return name
 
 
-def specs_from_url(url):
+def specs_from_url(url, json=False):
     from conda.fetch import TmpDownload
 
     with TmpDownload(url, verbose=False) as path:
@@ -294,11 +333,14 @@ def specs_from_url(url):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
-                    sys.exit("Error: could not parse '%s' in: %s" %
-                             (line, url))
+                    error_and_exit("could not parse '%s' in: %s" %
+                                   (line, url), json=json,
+                                   error_type="ValueError")
                 specs.append(spec)
         except IOError:
-            sys.exit('Error: cannot open file: %s' % path)
+            error_and_exit('cannot open file: %s' % path,
+                           json=json,
+                           error_type="IOError")
     return specs
 
 
@@ -306,16 +348,20 @@ def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
-def check_specs(prefix, specs):
+def check_specs(prefix, specs, json=False):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        sys.exit('Error: too few arguments, must supply command line '
-                 'package specs or --file')
+        error_and_exit('too few arguments, must supply command line '
+                       'package specs or --file',
+                       json=json,
+                       error_type="ValueError")
 
     if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
-        sys.exit("Error: Package 'conda' may only be installed in the "
-                 "root environment")
+        error_and_exit("Package 'conda' may only be installed in the "
+                       "root environment",
+                       json=json,
+                       error_type="ValueError")
 
 
 def disp_features(features):
@@ -331,10 +377,70 @@ def stdout_json(d):
     json.dump(d, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write('\n')
 
+
+def error_and_exit(message, json=False, newline=False, error_text=True,
+                   error_type=None):
+    if json:
+        stdout_json(dict(error=message, error_type=error_type))
+        sys.exit(1)
+    else:
+        if newline:
+            print()
+
+        if error_text:
+            sys.exit("Error: " + message)
+        else:
+            sys.exit(message)
+
+
+def exception_and_exit(exc, **kwargs):
+    if 'error_type' not in kwargs:
+        kwargs['error_type'] = exc.__class__.__name__
+    error_and_exit('; '.join(exc.args), **kwargs)
+
+
+def get_index_trap(*args, **kwargs):
+    """
+    Retrieves the package index, but traps exceptions and reports them as
+    JSON if necessary.
+    """
+    from conda.api import get_index
+
+    if 'json' in kwargs:
+        json = kwargs['json']
+        del kwargs['json']
+    else:
+        json = False
+
+    try:
+        return get_index(*args, **kwargs)
+    except BaseException as e:
+        if json:
+            exception_and_exit(e, json=json)
+        else:
+            raise
+
+
+@contextlib.contextmanager
+def json_progress_bars(json=False):
+    if json:
+        with console.json_progress_bars():
+            yield
+    else:
+        yield
+
+
+def stdout_json_success(success=True, **kwargs):
+    result = { 'success': success }
+    result.update(kwargs)
+    stdout_json(result)
+
 root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'
 
 
 def handle_envs_list(args, acc):
+    from conda import misc
+
     if not args.json:
         print("# conda environments:")
         print("#")
@@ -347,16 +453,9 @@ def handle_envs_list(args, acc):
         if not args.json:
             print(fmt % (name, default, prefix))
 
-    for envs_dir in config.envs_dirs:
-        if not isdir(envs_dir):
-            continue
-        for dn in sorted(os.listdir(envs_dir)):
-            if dn.startswith('.'):
-                continue
-            prefix = join(envs_dir, dn)
-            if isdir(prefix):
-                prefix = join(envs_dir, dn)
-                disp_env(prefix)
-                acc.append(prefix)
-    disp_env(config.root_dir)
+    for prefix in misc.list_prefixes():
+        disp_env(prefix)
+        if prefix != config.root_dir:
+            acc.append(prefix)
+
     print()

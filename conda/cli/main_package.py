@@ -18,8 +18,16 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     p.add_argument(
         '-w', "--which",
-        action = "store_true",
+        metavar = "PATH",
+        nargs = '+',
+        action = "store",
         help = "given some PATH print which conda package the file came from",
+    )
+    p.add_argument(
+        '-L', "--ls-files",
+        metavar = 'PKG-NAME',
+        action  = "store",
+        help    = "list all files belonging to specified package",
     )
     p.add_argument(
         '-r', "--reset",
@@ -49,14 +57,58 @@ def configure_parser(sub_parsers):
         default = 0,
         help    = "package build number of the created package",
     )
-    p.add_argument(
-        'path',
-        metavar = 'PATH',
-        action = "store",
-        nargs = '*',
-    )
     p.set_defaults(func=execute)
 
+def list_package_files(pkg_name=None):
+    import os
+    import re
+    import conda.config as config
+    from conda.misc import walk_prefix
+
+    pkgs_dirs = config.pkgs_dirs[0]
+    all_dir_names = []
+    pattern = re.compile(pkg_name, re.I)
+
+    print('\nINFO: The location for available packages: %s' % (pkgs_dirs))
+
+    for dir in os.listdir(pkgs_dirs):
+        ignore_dirs = [ '_cache-0.0-x0', 'cache' ]
+
+        if dir in ignore_dirs:
+            continue
+
+        if not os.path.isfile(pkgs_dirs+"/"+dir):
+            match = pattern.match(dir)
+
+            if match:
+                all_dir_names.append(dir)
+
+    num_of_all_dir_names = len(all_dir_names)
+    dir_num_width = len(str(num_of_all_dir_names))
+
+    if num_of_all_dir_names == 0:
+        print("\n\tWARN: There is NO '%s' package.\n" % (pkg_name))
+        return 1
+    elif num_of_all_dir_names >= 2:
+        print("\n\tWARN: Ambiguous package name ('%s'), choose one name from below list:\n" % (pkg_name))
+
+        num = 0
+        for dir in all_dir_names:
+            num += 1
+            print("\t[ {num:>{width}} / {total} ]: {dir}".format(num=num, width=dir_num_width, total=num_of_all_dir_names, dir=dir))
+        print("")
+        return 1
+
+    full_pkg_name = all_dir_names[0]
+
+    print("INFO: All files belonging to '%s' package:\n" % (full_pkg_name))
+
+    pkg_dir = pkgs_dirs+"/"+full_pkg_name
+
+    ret = walk_prefix(pkg_dir, ignore_predefined_files=False)
+
+    for item in ret:
+        print(pkg_dir+"/"+item)
 
 def execute(args, parser):
     import sys
@@ -70,13 +122,16 @@ def execute(args, parser):
     if args.which:
         from conda.misc import which_package
 
-        for path in args.path:
+        for path in args.which:
             for dist in which_package(path):
                 print('%-50s  %s' % (path, dist))
         return
 
-    if args.path:
-        sys.exit("Error: no positional arguments expected.")
+    if args.ls_files:
+        if list_package_files(args.ls_files) == 1:
+            sys.exit(1)
+        else:
+            return
 
     print('# prefix:', prefix)
 

@@ -5,10 +5,16 @@ import re
 import sys
 import time
 from os.path import isdir, isfile, join
+import warnings
 
 from conda import install
 
 
+class CondaHistoryException(Exception):
+    pass
+
+class CondaHistoryWarning(Warning):
+    pass
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
@@ -66,7 +72,12 @@ class History(object):
         update the history file (creating a new one if necessary)
         """
         self.init_log_file()
-        last = self.get_state()
+        try:
+            last = self.get_state()
+        except CondaHistoryException as e:
+            warnings.warn("Error in %s: %s" % (self.path, e),
+                CondaHistoryWarning)
+            return
         curr = set(install.linked(self.prefix))
         if last == curr:
             return
@@ -109,7 +120,7 @@ class History(object):
                     elif s.startswith('+'):
                         cur.add(s[1:])
                     else:
-                        raise Exception('Did not expect: %s' % s)
+                        raise CondaHistoryException('Did not expect: %s' % s)
             res.append((dt, cur.copy()))
         return res
 
@@ -131,6 +142,54 @@ class History(object):
             for line in pretty_content(content):
                 print('    %s' % line)
             print()
+
+    def object_log(self):
+        result = []
+        for i, (date, content) in enumerate(self.parse()):
+            # Based on Mateusz's code; provides more details about the
+            # history event
+            event = {
+                'date': date,
+                'rev': i,
+                'install': [],
+                'remove': [],
+                'upgrade': [],
+                'downgrade': []
+            }
+            added = {}
+            removed = {}
+            if is_diff(content):
+                for pkg in content:
+                    name, version, build = pkg[1:].rsplit('-', 2)
+                    if pkg.startswith('+'):
+                        added[name.lower()] = (version, build)
+                    elif pkg.startswith('-'):
+                        removed[name.lower()] = (version, build)
+
+                changed = set(added) & set(removed)
+                for name in sorted(changed):
+                    old = removed[name]
+                    new = added[name]
+                    details = {
+                        'old': '-'.join((name,) + old),
+                        'new': '-'.join((name,) + new)
+                    }
+
+                    if new > old:
+                        event['upgrade'].append(details)
+                    else:
+                        event['downgrade'].append(details)
+
+                for name in sorted(set(removed) - changed):
+                    event['remove'].append('-'.join((name,) + removed[name]))
+
+                for name in sorted(set(added) - changed):
+                    event['install'].append('-'.join((name,) + added[name]))
+            else:
+                for pkg in sorted(content):
+                    event['install'].append(pkg)
+            result.append(event)
+        return result
 
     def write_dists(self, dists):
         if not isdir(self.meta_dir):

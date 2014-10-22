@@ -42,6 +42,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 import argparse
 
+from conda.cli import common
 from conda.cli import conda_argparse
 from conda.cli import main_bundle
 from conda.cli import main_create
@@ -52,6 +53,7 @@ from conda.cli import main_install
 from conda.cli import main_list
 from conda.cli import main_remove
 from conda.cli import main_package
+from conda.cli import main_run
 from conda.cli import main_search
 from conda.cli import main_update
 from conda.cli import main_config
@@ -134,6 +136,11 @@ In short:
         action = "store_true",
         help = argparse.SUPPRESS,
     )
+    p.add_argument(
+        "--json",
+        action = "store_true",
+        help = argparse.SUPPRESS,
+    )
     sub_parsers = p.add_subparsers(
         metavar = 'command',
         dest = 'cmd',
@@ -147,6 +154,7 @@ In short:
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
+    main_run.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
     main_init.configure_parser(sub_parsers)
     main_clean.configure_parser(sub_parsers)
@@ -165,23 +173,42 @@ In short:
 
     args = p.parse_args()
 
+    if getattr(args, 'json', False):
+        # Silence logging info to avoid interfering with JSON output
+        import logging
+        for logger in logging.Logger.manager.loggerDict:
+            if logger not in ('fetch', 'progress'):
+                logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
+
     if args.debug:
+        logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
     if (not main_init.is_initialized() and
         'init' not in sys.argv and 'info' not in sys.argv):
-        sys.exit("""Error: conda is not initialized yet, try: conda init
-# Note that initializing conda is not the recommended way for setting up your
+        if hasattr(args, 'name') and hasattr(args, 'prefix'):
+            import conda.config as config
+            if common.get_prefix(args) == config.root_dir:
+                sys.exit("""\
+Error: This installation of conda is not initialized. Use 'conda create -n
+envname' to create a conda environment and 'source activate envname' to
+activate it.
+
+# Note that pip installing conda is not the recommended way for setting up your
 # system.  The recommended way for setting up a conda system is by installing
 # Miniconda, see: http://repo.continuum.io/miniconda/index.html""")
 
+    args_func(args, p)
+
+def args_func(args, p):
+    use_json = getattr(args, 'json', False)
     try:
         args.func(args, p)
     except RuntimeError as e:
-        sys.exit("Error: %s" % e)
+        common.error_and_exit(str(e), json=use_json)
     except Exception as e:
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-            print("""\
+            message = """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 
@@ -189,27 +216,13 @@ following traceback to the conda GitHub issue tracker at:
 
 Include the output of the command 'conda info' in your report.
 
-""")
+"""
+            if use_json:
+                import traceback
+                common.error_and_exit(message + traceback.format_exc(),
+                                      error_type="UnexpectedError", json=True)
+            print(message)
         raise  # as if we did not catch it
-
-# The above raise was:
-#
-#exc_info = sys.exc_info()
-#raise exc_info[1], None, exc_info[2]
-#
-# But that syntax is not supported in py3k. Simply
-# reraising (without argument!) should do the same. Try this:
-#
-# def foo():
-#     bar()
-# def bar():
-#     1/0
-# try:
-#     foo()
-# except Exception as e:
-#     #raise e  # does not show traceback
-#     raise  # Shows traceback as if we had not caught it
-
 
 if __name__ == '__main__':
     main()
