@@ -296,7 +296,7 @@ def test_activate_help():
                 """).format(envs=envs, activate=activate, slash=slash)
 
                 stdout, stderr = run_in(commands, shell)
-                assert_equals(stdout, '\n')
+                assert_equals(stdout, '')
                 assert_in("activate must be sourced", stderr)
                 assert_in("Usage: source activate ENV", stderr)
 
@@ -370,7 +370,8 @@ def test_activate_symlinking():
                     ln -s {conda} {envs}/test3/bin/conda
                     chmod 555 {envs}/test3/bin
                     {source} {activate} {envs}/test3
-                    """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
+                    """).format(envs=envs, activate=activate, deactivate=deactivate,
+                            conda=conda, source=source_setup)
                     stdout, stderr = run_in(commands, shell)
                     assert stdout != '\n'
                     assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test3/bin to PATH\n'.format(envs=envs, syspath=syspath))
@@ -392,7 +393,8 @@ def test_activate_symlinking():
                     {source} {activate} {envs}/test4
                     echo $PATH
                     echo $CONDA_DEFAULT_ENV
-                    """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
+                    """).format(envs=envs, activate=activate, deactivate=deactivate,
+                            conda=conda, source=source_setup)
 
                     stdout, stderr = run_in(commands, shell)
                     assert_equals(stdout, (
