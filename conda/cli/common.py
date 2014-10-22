@@ -475,6 +475,5 @@ def deprecated_json_kwarg(func):
         if 'json' in kwargs:
             json = kwargs.pop('json')
             kwargs['output'] = not json
-            print("output == %s" % kwargs['output'])
         return func(*args, **kwargs)
     return inner
