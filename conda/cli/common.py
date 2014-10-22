@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+from functools import wraps
 import re
 import os
 import sys
@@ -460,3 +461,20 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
+
+
+def deprecated_json_kwarg(func):
+    """
+    Maps deprecated json kwarg to output=!json
+
+    This is for backwards compatibility.  We should eventually log a
+    warning when `json is not None` and fix all of those warnings.
+    """
+    @wraps(func)
+    def inner(*args, **kwargs):
+        if 'json' in kwargs:
+            json = kwargs.pop('json')
+            kwargs['output'] = not json
+            print("output == %s" % kwargs['output'])
+        return func(*args, **kwargs)
+    return inner
