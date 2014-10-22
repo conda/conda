@@ -227,7 +227,7 @@ Current conda install:
     del info_dict['channels_disp']
 
     if args.envs:
-        common.handle_envs_list(args, info_dict['envs'])
+        common.handle_envs_list(info_dict['envs'], not args.json)
 
     if args.system and not args.json:
         from conda.cli.find_commands import find_commands, find_executable
