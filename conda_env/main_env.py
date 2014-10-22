@@ -37,7 +37,7 @@ def configure_parser():
 def main():
     args = configure_parser().parse_args()
     info_dict = {'envs': []}
-    common.handle_envs_list(args, info_dict['envs'])
+    common.handle_envs_list(info_dict['envs'], not args.json)
 
     if args.json:
         common.stdout_json(info_dict)
