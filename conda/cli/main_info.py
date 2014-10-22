@@ -227,23 +227,7 @@ Current conda install:
     del info_dict['channels_disp']
 
     if args.envs:
-        if not args.json:
-            print("# conda environments:")
-            print("#")
-        def disp_env(prefix):
-            fmt = '%-20s  %s  %s'
-            default = '*' if prefix == config.default_prefix else ' '
-            name = (config.root_env_name if prefix == config.root_dir else
-                    basename(prefix))
-            if not args.json:
-                print(fmt % (name, default, prefix))
-
-        for prefix in misc.list_prefixes():
-            disp_env(prefix)
-            if prefix != config.root_dir:
-                info_dict['envs'].append(prefix)
-
-        print()
+        common.handle_envs_list(info_dict['envs'], not args.json)
 
     if args.system and not args.json:
         from conda.cli.find_commands import find_commands, find_executable
