@@ -1,4 +1,5 @@
 from argparse import RawDescriptionHelpFormatter
+from collections import OrderedDict
 from os.path import join
 import subprocess
 import sys
@@ -42,6 +43,45 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+def conda_installer(prefix, specs, args):
+    # TODO: do we need this?
+    common.check_specs(prefix, specs, json=args.json)
+
+    # TODO: support all various ways this happens
+    index = common.get_index_trap()
+    actions = plan.install_actions(prefix, index, specs)
+    if plan.nothing_to_do(actions):
+        sys.stderr.write('# TODO handle more gracefully')
+        sys.exit(-1)
+
+    with common.json_progress_bars(json=args.json and not args.quiet):
+        try:
+            plan.execute_actions(actions, index, verbose=not args.quiet)
+        except RuntimeError as e:
+            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                error_type = "AlreadyLocked"
+            else:
+                error_type = "RuntimeError"
+            common.exception_and_exit(e, error_type=error_type, json=args.json)
+        except SystemExit as e:
+            common.exception_and_exit(e, json=args.json)
+
+
+def pip_installer(prefix, specs, args):
+    pip_cmd = main_list.pip_args(prefix) + ['install', ] + specs
+    process = subprocess.Popen(pip_cmd, universal_newlines=True)
+    process.communicate()
+
+
+# TODO Make this something that is an external package that uses some
+#      sort of entry-point like code so you can install external
+#      handlers.
+INSTALLERS = {
+    'conda': conda_installer,
+    'pip': pip_installer,
+}
+
+
 def execute(args, parser):
     command = 'create'
     common.ensure_name_or_prefix(args, command)
@@ -52,7 +92,7 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
-    specs = {'conda': []}
+    specs = OrderedDict([('conda', [])])
 
     with open(args.file, 'rb') as fp:
         data = yaml.load(fp)
@@ -62,36 +102,12 @@ def execute(args, parser):
         else:
             specs['conda'].append(common.spec_from_line(line))
 
-    # TODO: do we need this?
-    common.check_specs(prefix, specs['conda'], json=args.json)
+    # import pdb; pdb.set_trace()
+    for installer_type, specs in specs.items():
+        if installer_type not in INSTALLERS:
+            raise Exception("Unable to install {}".format(installer_type))
 
-    # TODO: support all various ways this happens
-    index = common.get_index_trap()
-    actions = plan.install_actions(prefix, index, specs['conda'])
-    if plan.nothing_to_do(actions):
-        sys.stderr.write('# TODO handle more gracefully')
-        sys.exit(-1)
-
-    with common.json_progress_bars(json=args.json and not args.quiet):
-        try:
-            plan.execute_actions(actions, index, verbose=not args.quiet)
-            if not (command == 'update' and args.all):
-                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                    f.write('# %s specs: %s\n' % (command, specs))
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                error_type = "AlreadyLocked"
-            else:
-                error_type = "RuntimeError"
-            common.exception_and_exit(e, error_type=error_type, json=args.json)
-        except SystemExit as e:
-            common.exception_and_exit(e, json=args.json)
-
-    # TODO this code should live elsewhere
-    # TODO make this extensible
-    pip_cmd = main_list.pip_args(prefix) + ['install', ] + specs['pip']
-    process = subprocess.Popen(pip_cmd, universal_newlines=True)
-    process.communicate()
+        INSTALLERS[installer_type](prefix, specs, args)
 
     touch_nonadmin(prefix)
     if not args.json:
