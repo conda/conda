@@ -43,6 +43,6 @@ def execute(args, parser):
     pip_pkgs = sorted(installed - conda_pkgs)
 
     dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
-    dependencies.append({'pip': ['='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
+    dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
     print(yaml.dump({'dependencies': dependencies}, default_flow_style=False))
