@@ -1,6 +1,5 @@
 from argparse import RawDescriptionHelpFormatter
 from collections import OrderedDict
-from os.path import join
 import subprocess
 import sys
 import yaml
@@ -102,7 +101,6 @@ def execute(args, parser):
         else:
             specs['conda'].append(common.spec_from_line(line))
 
-    # import pdb; pdb.set_trace()
     for installer_type, specs in specs.items():
         if installer_type not in INSTALLERS:
             raise Exception("Unable to install {}".format(installer_type))
