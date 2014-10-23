@@ -10,7 +10,7 @@ from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
 
 description = """
-Export a given environment
+Create an environment based on an environment file
 """
 
 example = """
