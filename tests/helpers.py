@@ -24,7 +24,7 @@ def raises(exception, func, string=None):
 
 def run_in(command, shell='bash'):
     if shell == 'cmd.exe':
-        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', delete=False)
+        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
         cmd_script.write(command)
         cmd_script.close()
         p = subprocess.Popen([shell, '/d', '/c', cmd_script.name],
