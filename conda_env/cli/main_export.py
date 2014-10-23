@@ -1,5 +1,6 @@
 from argparse import RawDescriptionHelpFormatter
 from copy import copy
+import sys
 
 import yaml
 
@@ -29,6 +30,12 @@ def configure_parser(sub_parsers):
 
     common.add_parser_prefix(p)
 
+    p.add_argument(
+        '-f', '--file',
+        default=None,
+        required=False
+    )
+
     p.set_defaults(func=execute)
 
 
@@ -45,4 +52,11 @@ def execute(args, parser):
     dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
     dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
-    print(yaml.dump({'dependencies': dependencies}, default_flow_style=False))
+    data = {
+        'dependencies': dependencies,
+    }
+    if args.file is None:
+        fp = sys.stdout
+    else:
+        fp = open(args.file, 'wb')
+    yaml.dump(data, default_flow_style=False, stream=fp)
