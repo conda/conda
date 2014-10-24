@@ -10,7 +10,9 @@ def install(prefix, specs, args, data):
     common.check_specs(prefix, specs, json=args.json)
 
     # TODO: support all various ways this happens
-    index = common.get_index_trap()
+    index = common.get_index_trap(
+        channel_urls=data.get('channels', ())
+    )
     actions = plan.install_actions(prefix, index, specs)
     if plan.nothing_to_do(actions):
         sys.stderr.write('# TODO handle more gracefully')
