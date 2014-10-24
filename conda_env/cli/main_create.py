@@ -66,7 +66,7 @@ def execute(args, parser):
     for installer_type, specs in specs.items():
         try:
             installer = get_installer(installer_type)
-            installer.install(prefix, specs, args)
+            installer.install(prefix, specs, args, data)
         except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
