@@ -4,7 +4,7 @@ import subprocess
 from conda.cli import main_list
 
 
-def install(prefix, specs, args):
+def install(prefix, specs, args, data):
     pip_cmd = main_list.pip_args(prefix) + ['install', ] + specs
     process = subprocess.Popen(pip_cmd, universal_newlines=True)
     process.communicate()

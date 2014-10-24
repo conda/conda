@@ -5,7 +5,7 @@ from conda.cli import common
 from conda import plan
 
 
-def install(prefix, specs, args):
+def install(prefix, specs, args, data):
     # TODO: do we need this?
     common.check_specs(prefix, specs, json=args.json)
 
