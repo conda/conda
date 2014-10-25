@@ -42,6 +42,12 @@ def execute(args, parser):
     from conda.install import linked, rm_rf
 
     prefix = common.get_prefix(args)
+    if plan.is_root_prefix(prefix):
+        common.error_and_exit('cannot remove root environment,\n'
+                              '       add -n NAME or -p PREFIX option',
+                              json=args.json,
+                              error_type="CantRemoveRoot")
+
     if prefix == config.default_prefix:
         common.error_and_exit(textwrap.dedent(
             """
@@ -54,11 +60,6 @@ def execute(args, parser):
     # TODO Why do we need an index for removing packages?
     index = common.get_index_trap(json=args.json)
 
-    if plan.is_root_prefix(prefix):
-        common.error_and_exit('cannot remove root environment,\n'
-                              '       add -n NAME or -p PREFIX option',
-                              json=args.json,
-                              error_type="CantRemoveRoot")
 
     actions = {
         plan.PREFIX: prefix,
