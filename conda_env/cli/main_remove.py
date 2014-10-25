@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 from argparse import RawDescriptionHelpFormatter
+from os.path import basename
 import textwrap
 
 from conda.cli import common
@@ -49,12 +50,19 @@ def execute(args, parser):
                               error_type="CantRemoveRoot")
 
     if prefix == config.default_prefix:
+        # FIXME The way the "name" is determined now is handled by
+        #       looking at the basename of the prefix.  This is brittle
+        #       and underlines a use-case for an Environment object that
+        #       is capable of providing a name attribute.
         common.error_and_exit(textwrap.dedent(
             """
             Conda cannot remove the current environment.
 
-            Please deactivate and run conda env remove again.
-            """
+            Please deactivate and run conda env remove again with the name
+            specified.
+
+                conda env remove --name %s
+            """ % basename(prefix)
         ).lstrip())
 
     # TODO Why do we need an index for removing packages?
