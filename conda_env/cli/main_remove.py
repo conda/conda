@@ -66,15 +66,15 @@ def execute(args, parser):
     }
 
     if plan.nothing_to_do(actions):
-        if args.all:
-            rm_rf(prefix)
+        # TODO Should this automatically remove even *before* confirmation?
+        rm_rf(prefix)
 
-            if args.json:
-                common.stdout_json({
-                    'success': True,
-                    'actions': actions
-                })
-            return
+        if args.json:
+            common.stdout_json({
+                'success': True,
+                'actions': actions
+            })
+        return
 
     if args.json and args.dry_run:
         common.stdout_json({
