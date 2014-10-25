@@ -67,6 +67,8 @@ def execute(args, parser):
 
     if plan.nothing_to_do(actions):
         # TODO Should this automatically remove even *before* confirmation?
+        # TODO Should this display an error when removing something that
+        #      doesn't exist?
         rm_rf(prefix)
 
         if args.json:
