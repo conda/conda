@@ -7,6 +7,7 @@ from conda.cli.main import args_func
 from . import main_create
 from . import main_export
 from . import main_list
+from . import main_remove
 
 
 def create_parser():
@@ -16,6 +17,7 @@ def create_parser():
     main_create.configure_parser(sub_parsers)
     main_export.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
+    main_remove.configure_parser(sub_parsers)
     return p
 
 
