@@ -240,6 +240,7 @@ def normalize_urls(urls, platform=None):
             newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
+            newurls.append('%s/noarch/' % url.rstrip('/'))
     return newurls
 
 def get_channel_urls(platform=None):
