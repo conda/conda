@@ -1,3 +1,16 @@
+...
+-------------------
+  * only show the binstar install message once
+  * print the fetching repodata dot after the repodata is fetched
+  * write the install and remove specs to the history file
+  * add '-y' as an alias to '--yes'
+  * the `--file` option to conda config now defaults to
+    os.environ.get('CONDARC')
+  * some improvements to documentation (--help output)
+  * include the sys_rc_path in conda info --json
+  * cache the proxy username and password
+  * avoid warning about conda in pscheck
+
 2014-10-07   3.7.1:
 -------------------
   * improve error message for forgetting to use source with activate and
