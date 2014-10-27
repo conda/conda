@@ -5,7 +5,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from subprocess import check_output, PIPE, Popen
+from subprocess import check_output, PIPE, Popen, STDOUT
 from os.path import join, dirname, abspath, isdir
 from os import makedirs, pathsep
 from collections import OrderedDict
@@ -96,7 +96,7 @@ def man_replacements():
     return r
 
 def generate_man(command):
-    conda_version = check_output(['conda', '--version'])
+    conda_version = check_output(['conda', '--version'], stderr=STDOUT)
 
     manpage = check_output([
         'help2man',
