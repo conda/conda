@@ -7,7 +7,7 @@
 
 from subprocess import check_output, PIPE, Popen
 from os.path import join, dirname, abspath, isdir
-from os import makedirs, chdir, pathsep
+from os import makedirs, pathsep
 from collections import OrderedDict
 
 from concurrent.futures import ThreadPoolExecutor
@@ -83,14 +83,14 @@ def man_replacements():
     # We need to use an ordered dict because the root prefix should be
     # replaced last, since it is typically a substring of the default prefix
     r = OrderedDict([
-        (info['default_prefix'].encode('utf-8'), rb'default prefix'),
-        (pathsep.join(info['envs_dirs']).encode('utf-8'), rb'envs dirs'),
+        (info['default_prefix'].encode('utf-8'), b'default prefix'),
+        (pathsep.join(info['envs_dirs']).encode('utf-8'), b'envs dirs'),
         # For whatever reason help2man won't italicize these on its own
-        (info['rc_path'].encode('utf-8'), rb'\fI\,user .condarc path\/\fP'),
+        (info['rc_path'].encode('utf-8'), b'\\fI\\,user .condarc path\\/\\fP'),
         # Note this requires at conda > 3.7.1
         # Workaround for earlier versions in Travis CI. Remove when 3.7.2 is released.
-        (info.get('sys_rc_path', '/home/travis/miniconda.condarc').encode('utf-8'), rb'\fI\,system .condarc path\/\fP'),
-        (info['root_prefix'].encode('utf-8'), rb'root prefix'),
+        (info.get('sys_rc_path', '/home/travis/miniconda.condarc').encode('utf-8'), b'\\fI\\,system .condarc path\\/\\fP'),
+        (info['root_prefix'].encode('utf-8'), b'root prefix'),
         ])
 
     return r
