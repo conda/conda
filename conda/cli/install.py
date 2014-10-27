@@ -391,8 +391,9 @@ environment does not exist: %s
     with common.json_progress_bars(json=args.json and not args.quiet):
         try:
             plan.execute_actions(actions, index, verbose=not args.quiet)
-            with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                f.write('# %s specs: %s\n' % (command, specs))
+            if not (command == 'update' and args.all):
+                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                    f.write('# %s specs: %s\n' % (command, specs))
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
                 error_type = "AlreadyLocked"
@@ -417,6 +418,8 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True, minima
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        return plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        actions = plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        plan.display_actions(actions, index)
+        return actions
     finally:
         ci.rm_rf(prefix)

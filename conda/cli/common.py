@@ -436,3 +436,27 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'
+
+
+def handle_envs_list(acc, output=True):
+    from conda import misc
+
+    if output:
+        print("# conda environments:")
+        print("#")
+
+    def disp_env(prefix):
+        fmt = '%-20s  %s  %s'
+        default = '*' if prefix == config.default_prefix else ' '
+        name = (config.root_env_name if prefix == config.root_dir else
+                basename(prefix))
+        if output:
+            print(fmt % (name, default, prefix))
+
+    for prefix in misc.list_prefixes():
+        disp_env(prefix)
+        if prefix != config.root_dir:
+            acc.append(prefix)
+
+    if output:
+        print()
