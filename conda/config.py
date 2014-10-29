@@ -120,7 +120,8 @@ root_env_name = 'root'
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
     if not root_writable:
-        lst.insert(0, '~/envs')
+        # ~/envs for backwards compatibility
+        lst = ['~/.conda/envs', '~/envs'] + lst
     return lst
 
 def _pathsep_env(name):
