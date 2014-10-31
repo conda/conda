@@ -7,9 +7,11 @@
   * the `--file` option to conda config now defaults to
     os.environ.get('CONDARC')
   * some improvements to documentation (--help output)
-  * include the sys_rc_path in conda info --json
+  * add user_rc_path and sys_rc_path to conda info --json
   * cache the proxy username and password
   * avoid warning about conda in pscheck
+  * make ~/.conda/envs the first user envs dir
+
 
 2014-10-07   3.7.1:
 -------------------
