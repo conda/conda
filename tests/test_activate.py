@@ -7,6 +7,7 @@ import stat
 
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
+from conda.cli.activate import pathlist_to_str
 from tests.helpers import run_in
 
 def assert_equals(a, b):
@@ -161,8 +162,8 @@ def test_activate_test1():
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + '\n')
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths} to PATH\n'\
-                    .format(envpaths=", ".join(_envpaths(envs, 'test1')),
-                            syspath=', '.join(syspath_list)))
+                    .format(envpaths=pathlist_to_str(_envpaths(envs, 'test1')),
+                            syspath=pathlist_to_str(syspath_list)))
 
 
 def test_activate_test1_test2():
@@ -179,8 +180,8 @@ def test_activate_test1_test2():
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, pathsep.join(_envpaths(envs, 'test2')) + os.path.pathsep + PATH + "\n")
             assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
-                .format(envpaths1=", ".join(_envpaths(envs, 'test1')),
-                        envpaths2=", ".join(_envpaths(envs, 'test2'))))
+                .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
+                        envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
 
 
 def test_activate_test3():
@@ -241,7 +242,7 @@ def test_activate_test1_deactivate():
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
-                .format(envpaths1=", ".join(_envpaths(envs, 'test1'))))
+                .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
 
 def test_wrong_args():
@@ -343,8 +344,8 @@ def test_activate_symlinking():
             stdout, stderr = run_in(commands, shell)
             assert stdout != '\n'
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
-                    .format(syspath=', '.join(syspath_list),
-                            envpaths1=', '.join(_envpaths(envs, 'test1'))))
+                    .format(syspath=pathlist_to_str(syspath_list),
+                            envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
             for f in ['conda', 'activate', 'deactivate']:
                 if platform == 'win':
@@ -420,8 +421,8 @@ def test_PS1():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
-                    .format(syspath=', '.join(syspath_list),
-                            envpaths1=', '.join(_envpaths(envs, 'test1'))))
+                    .format(syspath=pathlist_to_str(syspath_list),
+                            envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
             if platform == 'win':
                 assert_equals(stdout, "[{envs}{slash}test1] $P$G\n".format(envs=envs, slash=slash))
             else:
@@ -435,8 +436,8 @@ def test_PS1():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
-                    .format(envpaths1=', '.join(_envpaths(envs, 'test1')),
-                            envpaths2=', '.join(_envpaths(envs, 'test2'))))
+                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
+                            envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
             if platform == 'win':
                 assert_equals(stdout, "[{envs}{slash}test2] $P$G\n".format(envs=envs, slash=slash))
             else:
@@ -487,7 +488,7 @@ def test_PS1():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
-                    .format(envpaths1=', '.join(_envpaths(envs, 'test1'))))
+                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
             else:
@@ -559,8 +560,8 @@ changeps1: no
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
-                    .format(envpaths1=', '.join(_envpaths(envs, 'test1')),
-                            syspath=', '.join(syspath_list)))
+                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
+                            syspath=pathlist_to_str(syspath_list)))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
             else:
@@ -574,8 +575,8 @@ changeps1: no
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
-                    .format(envpaths1=', '.join(_envpaths(envs, 'test1')),
-                            envpaths2=', '.join(_envpaths(envs, 'test2'))))
+                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
+                            envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
             else:
@@ -628,12 +629,11 @@ changeps1: no
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
 
             stdout, stderr = run_in(commands, shell)
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
             if platform == 'win':
                 assert_equals(stdout, "$P$G\n")
-                assert_equals(stderr, 'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash))
             else:
                 assert_equals(stdout, '$\n')
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs))
 
             commands = (command_setup + condarc + """
             {source} {activate}
@@ -698,11 +698,7 @@ def test_CONDA_DEFAULT_ENV():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '{envs}{slash}test1\n'.format(envs=envs, slash=slash))
-            if platform == 'win':
-                assert_equals(stderr,
-                    'discarding {syspath} from PATH\nprepending {envs}{slash}test1, {envs}{slash}test1{slash}Scripts to PATH\n'.format(envs=envs, slash=slash, syspath=", ".join(syspath_list)))
-            else:
-                assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath))
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')), syspath=pathlist_to_str(syspath_list)))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1 {nul}
@@ -712,12 +708,9 @@ def test_CONDA_DEFAULT_ENV():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '{envs}{slash}test2\n'.format(envs=envs, slash=slash))
-            if platform == 'win':
-                assert_equals(stderr,
-                    'discarding {envs}{slash}test1, {envs}{slash}test1{slash}Scripts from PATH\n'.format(envs=envs, slash=slash) +
-                    'prepending {envs}{slash}test2, {envs}{slash}test2{slash}Scripts to PATH\n'.format(envs=envs, slash=slash))
-            else:
-                assert_equals(stderr, 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs))
+            assert_equals(stderr,
+                'discarding {envpaths1} from PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))) +
+                'prepending {envpaths2} to PATH\n'.format(envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
 
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
@@ -756,7 +749,7 @@ def test_CONDA_DEFAULT_ENV():
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
             assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
-                    .format(envpaths1=', '.join(_envpaths(envs, 'test1'))))
+                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
             commands = (command_setup + """
             {source} {activate}

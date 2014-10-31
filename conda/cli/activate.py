@@ -44,6 +44,15 @@ def binpath_from_arg(arg):
             sys.exit("Error: no such directory: %s" % p)
     return path
 
+
+def pathlist_to_str(paths):
+    """
+    Format a path list, e.g., of bin paths to be added or removed,
+    for user-friendly output.
+    """
+    return ' and '.join(paths)
+
+
 def main():
     if '-h' in sys.argv or '--help' in sys.argv:
         help()
@@ -57,7 +66,7 @@ def main():
             sys.exit("Error: did not expect more than one argument")
 
         paths = binpath
-        sys.stderr.write("prepending %s to PATH\n" % ', '.join(binpath))
+        sys.stderr.write("prepending %s to PATH\n" % pathlist_to_str(binpath))
 
     elif sys.argv[1] == '..deactivate':
         if len(sys.argv) != 2:
@@ -69,7 +78,7 @@ def main():
             print(os.environ['PATH'])
             raise
         paths = []
-        sys.stderr.write("discarding %s from PATH\n" % ', '.join(binpath))
+        sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
 
     elif sys.argv[1] == '..activateroot':
         if len(sys.argv) != 2:
@@ -91,7 +100,7 @@ def main():
             if r not in os.getenv('PATH').split(os.pathsep):
                 #paths = rootpath
                 paths.append(r)
-        sys.stderr.write("discarding %s from PATH\n" % ', '.join(binpath))
+        sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:
