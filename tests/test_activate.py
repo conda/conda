@@ -43,7 +43,7 @@ if platform == 'win':
         shutil.copy2(deactivate, join(envs, 'Scripts', 'deactivate.bat'))
         with open(join(envs, 'Scripts', 'conda-script.py'), 'w') as f:
             f.write(CONDA_ENTRY_POINT.format(syspath=syspath))
-        shutil.copy2(join(dirname(dirname(__file__)), 'bin', 'conda.exe'),
+        shutil.copy2(join(root_dir, 'Scripts', 'conda.exe'),
             join(envs, 'Scripts', 'conda.exe'))
         return (join(envs, 'Scripts', 'activate.bat'),
                 join(envs, 'Scripts', 'deactivate.bat'),
