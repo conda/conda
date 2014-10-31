@@ -86,11 +86,11 @@ def man_replacements():
         (info['default_prefix'].encode('utf-8'), b'default prefix'),
         (pathsep.join(info['envs_dirs']).encode('utf-8'), b'envs dirs'),
         # For whatever reason help2man won't italicize these on its own
-        (info['rc_path'].encode('utf-8'), b'\\fI\\,user .condarc path\\/\\fP'),
-        # Note this requires at conda > 3.7.1
-        # Workaround for earlier versions in Travis CI. Remove when 3.7.2 is released.
-        (info.get('sys_rc_path', '/home/travis/miniconda.condarc').encode('utf-8'), b'\\fI\\,system .condarc path\\/\\fP'),
-        (info['root_prefix'].encode('utf-8'), b'root prefix'),
+        # Note these require conda > 3.7.1
+        (info['user_rc_path'].encode('utf-8'), rb'\fI\,user .condarc path\/\fP'),
+        (info['sys_rc_path'].encode('utf-8'), rb'\fI\,system .condarc path\/\fP'),
+
+        (info['root_prefix'].encode('utf-8'), rb'root prefix'),
         ])
 
     return r
