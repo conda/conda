@@ -1,4 +1,4 @@
-...
+2014-10-31   3.7.2:
 -------------------
   * only show the binstar install message once
   * print the fetching repodata dot after the repodata is fetched
