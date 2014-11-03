@@ -1,0 +1,4 @@
+channels:
+  - javascript
+dependencies:
+  - nodejs
