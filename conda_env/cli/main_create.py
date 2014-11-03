@@ -18,7 +18,10 @@ Create an environment based on an environment file
 
 example = """
 examples:
-    conda env create --name=foo --file=env.yml
+    conda env create
+    conda env create -n=foo
+    conda env create -f=/path/to/environment.yml
+    conda env create --name=foo --file=environment.yml
 """
 
 
@@ -39,8 +42,10 @@ def configure_parser(sub_parsers):
     )
 
     p.add_argument(
-        '--file',
-        required=True
+        '-f', '--file',
+        action='store',
+        help='environment definition (default: environment.yml)',
+        default='environment.yml',
     )
     p.add_argument(
         '-q', '--quiet',
@@ -51,6 +56,15 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    if not os.path.exists(args.file):
+        msg = 'Unable to locate environment file: %s\n\n' % args.file
+        msg += "\n".join(textwrap.wrap(textwrap.dedent("""
+            Please verify that the above file is present and that you have
+            permission read the file's contents.  Note, you can specify the
+            file to use by explictly adding --file=/path/to/file when calling
+            conda env create.""").lstrip()))
+
+        common.error_and_exit(msg, json=args.json)
     with open(args.file, 'rb') as fp:
         data = yaml.load(fp)
 
