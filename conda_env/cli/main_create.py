@@ -1,9 +1,11 @@
 from argparse import RawDescriptionHelpFormatter
 from collections import OrderedDict
+import os
 import textwrap
 import sys
 import yaml
 
+from conda import config
 from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
@@ -29,7 +31,12 @@ def configure_parser(sub_parsers):
         epilog=example,
     )
 
-    common.add_parser_prefix(p)
+    p.add_argument(
+        '-n', '--name',
+        action='store',
+        help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
+        default=None,
+    )
 
     p.add_argument(
         '--file',
@@ -44,8 +51,23 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    command = 'create'
-    common.ensure_name_or_prefix(args, command)
+    with open(args.file, 'rb') as fp:
+        data = yaml.load(fp)
+
+    if not args.name:
+        if not 'name' in data:
+            # TODO It would be nice to be able to format this more cleanly
+            common.error_and_exit(
+                'An environment name is required.\n\n'
+                'You can either specify one directly with --name or you can add\n'
+                'a name property to your %s file.' % args.file,
+                json=args.json
+            )
+        # Note: stubbing out the args object as all of the
+        # conda.cli.common code thinks that name will always
+        # be specified.
+        args.name = data['name']
+
     prefix = common.get_prefix(args, search=False)
     cli_install.check_prefix(prefix, json=args.json)
 
@@ -55,8 +77,6 @@ def execute(args, parser):
 
     specs = OrderedDict([('conda', [])])
 
-    with open(args.file, 'rb') as fp:
-        data = yaml.load(fp)
     for line in data['dependencies']:
         if type(line) is dict:
             specs.update(line)
