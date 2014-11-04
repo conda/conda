@@ -39,9 +39,9 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    install_local_packages(prefix, paths, verbose=verbose)
-
+    depends = install_local_packages(prefix, paths, verbose=verbose)
     shutil.rmtree(tmp_dir)
+    return depends
 
 
 def check_prefix(prefix, json=False):
@@ -265,22 +265,24 @@ def install(args, parser, command='install'):
             return
 
     # handle tar file containing conda packages
+    num_files = sum(s.endswith('.tar.bz2') for s in args.packages)
+    if num_files and num_files < len(args.packages):
+        common.error_and_exit(
+            "cannot mix specifications with conda package filenames",
+            json=args.json,
+            error_type="ValueError")
+
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not args.quiet)
-            return
+            depends = install_tar(prefix, tar_path, verbose=not args.quiet)
+            specs = list(set(depends))
 
-    # handle explicit installs of conda packages
-    if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
+    if num_files and num_files == len(args.packages):
         from conda.misc import install_local_packages
-        install_local_packages(prefix, args.packages, verbose=not args.quiet)
-        return
-
-    if any(s.endswith('.tar.bz2') for s in args.packages):
-        common.error_and_exit("cannot mix specifications with conda package filenames",
-                              json=args.json,
-                              error_type="ValueError")
+        depends = install_local_packages(prefix, args.packages,
+                                         verbose=not args.quiet)
+        specs = list(set(depends))
 
     if args.force:
         args.no_deps = True
