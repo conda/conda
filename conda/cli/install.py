@@ -265,24 +265,24 @@ def install(args, parser, command='install'):
             return
 
     # handle tar file containing conda packages
-    num_files = sum(s.endswith('.tar.bz2') for s in args.packages)
-    if num_files and num_files < len(args.packages):
-        common.error_and_exit(
-            "cannot mix specifications with conda package filenames",
-            json=args.json,
-            error_type="ValueError")
+    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
+    if num_cp:
+        if num_cp == len(args.packages):
+            from conda.misc import install_local_packages
+            depends = install_local_packages(prefix, args.packages,
+                                             verbose=not args.quiet)
+            specs = list(set(depends))
+        else:
+            common.error_and_exit(
+                "cannot mix specifications with conda package filenames",
+                json=args.json,
+                error_type="ValueError")
 
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
             depends = install_tar(prefix, tar_path, verbose=not args.quiet)
             specs = list(set(depends))
-
-    if num_files and num_files == len(args.packages):
-        from conda.misc import install_local_packages
-        depends = install_local_packages(prefix, args.packages,
-                                         verbose=not args.quiet)
-        specs = list(set(depends))
 
     if args.force:
         args.no_deps = True
