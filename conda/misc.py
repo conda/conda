@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
+import json
 import shlex
 import shutil
 import subprocess
@@ -178,26 +179,45 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
 
 def install_local_packages(prefix, paths, verbose=False):
     # copy packages to pkgs dir
+    pkgs_dir = config.pkgs_dirs[0]
     dists = []
     for src_path in paths:
         assert src_path.endswith('.tar.bz2')
         fn = basename(src_path)
         dists.append(fn[:-8])
-        dst_path = join(config.pkgs_dirs[0], fn)
+        dst_path = join(pkgs_dir, fn)
         if abspath(src_path) == abspath(dst_path):
             continue
         shutil.copyfile(src_path, dst_path)
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
+    actions['op_order'] = RM_EXTRACTED, EXTRACT
     for dist in dists:
         actions[RM_EXTRACTED].append(dist)
         actions[EXTRACT].append(dist)
+    execute_actions(actions, verbose=verbose)
+
+    depends = []
+    for dist in dists:
+        print('dist: %r' % dist)
+        try:
+            with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
+                meta = json.load(fi)
+            depends.extend(meta['depends'])
+        except (IOError, KeyError):
+            continue
+    print('depends: %r' % depends)
+
+    actions = defaultdict(list)
+    actions['PREFIX'] = prefix
+    actions['op_order'] = UNLINK, LINK
+    for dist in dists:
         if install.is_linked(prefix, dist):
             actions[UNLINK].append(dist)
         actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
+    return depends
 
 
 def environment_for_conda_environment(prefix=config.root_dir):
