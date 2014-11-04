@@ -272,6 +272,7 @@ def install(args, parser, command='install'):
             depends = install_local_packages(prefix, args.packages,
                                              verbose=not args.quiet)
             specs = list(set(depends))
+            args.unknown = True
         else:
             common.error_and_exit(
                 "cannot mix specifications with conda package filenames",
@@ -283,6 +284,7 @@ def install(args, parser, command='install'):
         if tar_path.endswith('.tar'):
             depends = install_tar(prefix, tar_path, verbose=not args.quiet)
             specs = list(set(depends))
+            args.unknown = True
 
     if args.force:
         args.no_deps = True

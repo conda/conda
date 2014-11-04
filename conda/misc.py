@@ -192,10 +192,13 @@ def install_local_packages(prefix, paths, verbose=False):
 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    actions['op_order'] = RM_EXTRACTED, EXTRACT
+    actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
     for dist in dists:
         actions[RM_EXTRACTED].append(dist)
         actions[EXTRACT].append(dist)
+        if install.is_linked(prefix, dist):
+            actions[UNLINK].append(dist)
+        actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
 
     depends = []
@@ -208,15 +211,6 @@ def install_local_packages(prefix, paths, verbose=False):
         except (IOError, KeyError):
             continue
     print('depends: %r' % depends)
-
-    actions = defaultdict(list)
-    actions['PREFIX'] = prefix
-    actions['op_order'] = UNLINK, LINK
-    for dist in dists:
-        if install.is_linked(prefix, dist):
-            actions[UNLINK].append(dist)
-        actions[LINK].append(dist)
-    execute_actions(actions, verbose=verbose)
     return depends
 
 
