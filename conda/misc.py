@@ -203,7 +203,6 @@ def install_local_packages(prefix, paths, verbose=False):
 
     depends = []
     for dist in dists:
-        print('dist: %r' % dist)
         try:
             with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
                 meta = json.load(fi)
