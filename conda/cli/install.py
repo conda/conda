@@ -200,6 +200,27 @@ def install(args, parser, command='install'):
     else:
         common.check_specs(prefix, specs, json=args.json)
 
+    # handle tar file containing conda packages
+    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
+    if num_cp:
+        if num_cp == len(args.packages):
+            from conda.misc import install_local_packages
+            depends = install_local_packages(prefix, args.packages,
+                                             verbose=not args.quiet)
+            specs = list(set(depends))
+            args.unknown = True
+        else:
+            common.error_and_exit(
+                "cannot mix specifications with conda package filenames",
+                json=args.json,
+                error_type="ValueError")
+    if len(args.packages) == 1:
+        tar_path = args.packages[0]
+        if tar_path.endswith('.tar'):
+            depends = install_tar(prefix, tar_path, verbose=not args.quiet)
+            specs = list(set(depends))
+            args.unknown = True
+
     if args.use_local:
         from conda.fetch import fetch_index
         from conda.utils import url_path
@@ -263,28 +284,6 @@ def install(args, parser, command='install'):
             else:
                 common.stdout_json_success(message='All requested packages already installed.')
             return
-
-    # handle tar file containing conda packages
-    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
-    if num_cp:
-        if num_cp == len(args.packages):
-            from conda.misc import install_local_packages
-            depends = install_local_packages(prefix, args.packages,
-                                             verbose=not args.quiet)
-            specs = list(set(depends))
-            args.unknown = True
-        else:
-            common.error_and_exit(
-                "cannot mix specifications with conda package filenames",
-                json=args.json,
-                error_type="ValueError")
-
-    if len(args.packages) == 1:
-        tar_path = args.packages[0]
-        if tar_path.endswith('.tar'):
-            depends = install_tar(prefix, tar_path, verbose=not args.quiet)
-            specs = list(set(depends))
-            args.unknown = True
 
     if args.force:
         args.no_deps = True
