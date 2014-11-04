@@ -379,8 +379,8 @@ def symlink_conda(prefix, root_dir):
 def try_hard_link(pkgs_dir, prefix, dist):
     src = join(pkgs_dir, dist, 'info', 'index.json')
     dst = join(prefix, '.tmp-%s' % dist)
-    assert isfile(src)
-    assert not isfile(dst)
+    assert isfile(src), src
+    assert not isfile(dst), dst
     if not isdir(prefix):
         os.makedirs(prefix)
     try:
