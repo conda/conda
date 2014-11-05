@@ -45,7 +45,7 @@ def add_parser_json(p):
     p.add_argument(
         "--json",
         action = "store_true",
-        help = argparse.SUPPRESS,
+        help = "report all output as json. Suitable for using conda programmatically."
     )
 
 

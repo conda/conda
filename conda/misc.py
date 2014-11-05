@@ -134,6 +134,17 @@ def touch_nonadmin(prefix):
             fo.write('')
 
 
+def append_env(prefix):
+    dir_path = abspath(expanduser('~/.conda'))
+    try:
+        if not isdir(dir_path):
+            os.mkdir(dir_path)
+        with open(join(dir_path, 'environments.txt'), 'a') as f:
+            f.write('%s\n' % prefix)
+    except IOError:
+        pass
+
+
 def clone_env(prefix1, prefix2, verbose=True, quiet=False):
     """
     clone existing prefix1 into new prefix2

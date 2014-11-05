@@ -16,11 +16,11 @@ from difflib import get_close_matches
 
 import conda.config as config
 import conda.plan as plan
+import conda.misc as misc
 from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
 from conda.cli.find_commands import find_executable
-from conda.misc import touch_nonadmin
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
 
@@ -163,7 +163,8 @@ def install(args, parser, command='install'):
                                   json=args.json,
                                   error_type="ValueError")
         clone(args.clone, prefix, json=args.json, quiet=args.quiet)
-        touch_nonadmin(prefix)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
         return
@@ -407,7 +408,8 @@ environment does not exist: %s
             common.exception_and_exit(e, json=args.json)
 
     if newenv:
-        touch_nonadmin(prefix)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
 
