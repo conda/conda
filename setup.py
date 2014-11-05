@@ -1,27 +1,16 @@
 #!/usr/bin/env python
 import sys
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-
-import versioneer
+from setuptools import setup
 
 
 if sys.version_info[:2] < (2, 7):
     sys.exit("conda is only meant for Python 2.7, with experimental support "
              "for python 3.  current version: %d.%d" % sys.version_info[:2])
 
-versioneer.versionfile_source = 'conda_env/_version.py'
-versioneer.versionfile_build = 'conda_env/_version.py'
-versioneer.tag_prefix = ''
-versioneer.parentdir_prefix = 'conda-env-'
-
 setup(
     name="conda-env",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    version="1.0.0alpha",
     author="Continuum Analytics, Inc.",
     author_email="travis.swicegood@continuum.io",
     url="https://github.com/tswicegood/conda-build",
