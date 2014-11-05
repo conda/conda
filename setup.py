@@ -40,12 +40,13 @@ else:
     kwds['scripts'].append('bin/conda')
 
 
+from conda.constants import CMD_ENTRY_POINT
 cmds = [
     'bundle', 'clean', 'config', 'create', 'help', 'info', 'init', 'install',
     'list', 'package', 'remove', 'run', 'search', 'update',
 ]
 internal_entry_point = lambda a: '{0} = conda.cli.main_{0}'.format(a)
-kwds['entry_points']['conda.cmds'] = [internal_entry_point(a) for a in cmds]
+kwds['entry_points'][CMD_ENTRY_POINT] = [internal_entry_point(a) for a in cmds]
 
 if add_activate:
     if sys.platform == 'win32':

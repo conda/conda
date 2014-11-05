@@ -45,6 +45,7 @@ from pkg_resources import iter_entry_points
 
 from conda.cli import common
 from conda.cli import conda_argparse
+from conda.constants import CMD_ENTRY_POINT
 
 
 def main():
@@ -134,7 +135,7 @@ In short:
         dest = 'cmd',
     )
 
-    for cmd in iter_entry_points('conda.cmds'):
+    for cmd in iter_entry_points(CMD_ENTRY_POINT):
         cmd_module = cmd.load()
         getattr(cmd_module, 'configure_parser')(sub_parsers)
 
