@@ -41,23 +41,11 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import argparse
+from pkg_resources import iter_entry_points
 
 from conda.cli import common
 from conda.cli import conda_argparse
-from conda.cli import main_bundle
-from conda.cli import main_create
-from conda.cli import main_help
-from conda.cli import main_init
-from conda.cli import main_info
-from conda.cli import main_install
-from conda.cli import main_list
-from conda.cli import main_remove
-from conda.cli import main_package
-from conda.cli import main_run
-from conda.cli import main_search
-from conda.cli import main_update
-from conda.cli import main_config
-from conda.cli import main_clean
+
 
 def main():
     if len(sys.argv) > 1:
@@ -146,20 +134,9 @@ In short:
         dest = 'cmd',
     )
 
-    main_info.configure_parser(sub_parsers)
-    main_help.configure_parser(sub_parsers)
-    main_list.configure_parser(sub_parsers)
-    main_search.configure_parser(sub_parsers)
-    main_create.configure_parser(sub_parsers)
-    main_install.configure_parser(sub_parsers)
-    main_update.configure_parser(sub_parsers)
-    main_remove.configure_parser(sub_parsers)
-    main_run.configure_parser(sub_parsers)
-    main_config.configure_parser(sub_parsers)
-    main_init.configure_parser(sub_parsers)
-    main_clean.configure_parser(sub_parsers)
-    main_package.configure_parser(sub_parsers)
-    main_bundle.configure_parser(sub_parsers)
+    for cmd in iter_entry_points('conda.cmds'):
+        cmd_module = cmd.load()
+        getattr(cmd_module, 'configure_parser')(sub_parsers)
 
     try:
         import argcomplete
@@ -184,6 +161,8 @@ In short:
         logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
+    # TODO Move this command into another module that's not the CLI script
+    from . import main_init
     if (not main_init.is_initialized() and
         'init' not in sys.argv and 'info' not in sys.argv):
         if hasattr(args, 'name') and hasattr(args, 'prefix'):
