@@ -3,6 +3,7 @@
   * conda install from a local conda package (or a tar fill which
     contains conda packages), will now also install the dependencies
     listed by the installed packages.
+  * add SOURCE_DIR environment variable in pre-link subprocess
 
 
 2014-10-31   3.7.2:
