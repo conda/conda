@@ -1,9 +1,10 @@
-2014-11-XX   3.7.3:
+2014-11-05   3.7.3:
 -------------------
   * conda install from a local conda package (or a tar fill which
     contains conda packages), will now also install the dependencies
     listed by the installed packages.
   * add SOURCE_DIR environment variable in pre-link subprocess
+  * record all created environments in ~/.conda/environments.txt
 
 
 2014-10-31   3.7.2:
