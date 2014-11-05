@@ -26,7 +26,11 @@ setup(
     ],
     description="tools for interacting with conda environments",
     long_description=open('README.rst').read(),
-    packages=['conda_env'],
+    packages=[
+        'conda_env',
+        'conda_env.cli',
+        'conda_env.installers',
+    ],
     scripts=[
         'bin/conda-env',
     ],
