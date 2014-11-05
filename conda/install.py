@@ -330,7 +330,10 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         args = ['/bin/bash', path]
     env = os.environ
     env['PREFIX'] = env_prefix or prefix
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = str(dist).rsplit('-', 2)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
+                str(dist).rsplit('-', 2)
+    if action == 'pre-link':
+        env['SOURCE_DIR'] = prefix
     try:
         subprocess.check_call(args, env=env)
     except subprocess.CalledProcessError:
