@@ -1,3 +1,10 @@
+2014-11-XX   3.7.3:
+-------------------
+  * conda install from a local conda package (or a tar fill which
+    contains conda packages), will now also install the dependencies
+    listed by the installed packages.
+
+
 2014-10-31   3.7.2:
 -------------------
   * only show the binstar install message once
