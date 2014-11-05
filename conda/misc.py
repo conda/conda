@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
+import json
 import shlex
 import shutil
 import subprocess
@@ -178,12 +179,13 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
 
 def install_local_packages(prefix, paths, verbose=False):
     # copy packages to pkgs dir
+    pkgs_dir = config.pkgs_dirs[0]
     dists = []
     for src_path in paths:
         assert src_path.endswith('.tar.bz2')
         fn = basename(src_path)
         dists.append(fn[:-8])
-        dst_path = join(config.pkgs_dirs[0], fn)
+        dst_path = join(pkgs_dir, fn)
         if abspath(src_path) == abspath(dst_path):
             continue
         shutil.copyfile(src_path, dst_path)
@@ -198,6 +200,17 @@ def install_local_packages(prefix, paths, verbose=False):
             actions[UNLINK].append(dist)
         actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
+
+    depends = []
+    for dist in dists:
+        try:
+            with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
+                meta = json.load(fi)
+            depends.extend(meta['depends'])
+        except (IOError, KeyError):
+            continue
+    print('depends: %r' % depends)
+    return depends
 
 
 def environment_for_conda_environment(prefix=config.root_dir):
