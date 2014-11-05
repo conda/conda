@@ -80,7 +80,8 @@ def add_parser_known(p):
         default=False,
         dest='unknown',
         help="use index metadata from the local package cache "
-             "(which are from unknown channels)",
+             "(which are from unknown channels) (installing local packages "
+             "directly implies this option)",
     )
 
 def add_parser_use_index_cache(p):
