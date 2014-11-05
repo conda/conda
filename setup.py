@@ -47,6 +47,5 @@ setup(
             'pip = conda_env.installers.pip',
         ],
     },
-    install_requires=['conda'],
     package_data={},
 )
