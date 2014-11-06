@@ -245,6 +245,36 @@ def test_activate_test1_deactivate():
                 .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
 
+def test_activate_root():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = _write_entry_points(envs)
+            commands = (command_setup + """
+            {source} {activate} root
+            {printpath}
+            """).format(envs=envs, activate=activate, source=source_setup, printpath=printpath)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'Error: No environment to deactivate\n')
+
+
+def test_activate_test1_root():
+    for shell in shells:
+        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+            activate, deactivate, conda = _write_entry_points(envs)
+            commands = (command_setup + """
+            {source} {activate} {envs}{slash}test1 {nul}
+            {source} {activate} root
+            {printpath}
+            """).format(envs=envs, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
+                .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
+
+
 def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
