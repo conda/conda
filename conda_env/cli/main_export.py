@@ -2,6 +2,7 @@ from argparse import RawDescriptionHelpFormatter
 from copy import copy
 import os
 import sys
+import textwrap
 
 import yaml
 
@@ -47,6 +48,20 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    if not args.name:
+        # Note, this is a hack fofr get_prefix that assumes argparse results
+        # TODO Refactor common.get_prefix
+        name = os.environ.get('CONDA_DEFAULT_ENV', False)
+        if not name:
+            msg = "Unable to determine environment\n\n"
+            msg += textwrap.dedent("""
+                Please re-run this command with one of the following options:
+
+                * Provide an environment name via --name or -n
+                * Re-run this command inside an activated conda environment.""").lstrip()
+            # TODO Add json support
+            common.error_and_exit(msg, json=False)
+        args.name = name
     prefix = common.get_prefix(args)
 
     installed = install.linked(prefix)
@@ -61,6 +76,7 @@ def execute(args, parser):
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
     data = {
+        'name': args.name,
         'dependencies': dependencies,
     }
     if args.file is None:
