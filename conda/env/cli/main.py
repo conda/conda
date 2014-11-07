@@ -3,32 +3,50 @@ import argparse
 import os
 import sys
 
-from ...cli.main import args_func
-
 from . import main_create
 from . import main_export
 from . import main_list
 from . import main_remove
 from . import main_update
 
+import sys
 
-def create_parser():
-    p = argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers()
+CMDS = {
+    'create': main_create,
+    'export': main_export,
+    'list': main_list,
+    'remove': main_remove,
+    'update': main_update,
+}
 
-    main_create.configure_parser(sub_parsers)
-    main_export.configure_parser(sub_parsers)
-    main_list.configure_parser(sub_parsers)
-    main_remove.configure_parser(sub_parsers)
-    main_update.configure_parser(sub_parsers)
+
+# TODO: This should be somewhere in conda.cli
+def show_help_on_empty_command(cmd):
+    args = sys.argv[1:]
+    if cmd not in args:
+        return  # Only set default if help
+    if len(args) == 1 and args[0] == cmd:
+        sys.argv.append('--help')
+
+
+def configure_parser(main_sub_parsers):
+    p = main_sub_parsers.add_parser(
+        'env',
+        help='Commands for interacting with Conda environments',
+    )
+    sub_parsers = p.add_subparsers(
+        title='conda env',
+        description='commands for interacting with conda env',
+        dest='env_subcommand',
+    )
+
+    for a in CMDS.values():
+        a.configure_parser(sub_parsers)
+
+    p.set_defaults(func=execute)
+    show_help_on_empty_command('env')
     return p
 
 
-def main():
-    parser = create_parser()
-    args = parser.parse_args()
-    return args_func(args, parser)
-
-
-if __name__ == '__main__':
-    sys.exit(main())
+def execute(args, parser):
+    return CMDS[args.env_subcommand].execute(args, parser)
