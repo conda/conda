@@ -1,6 +1,8 @@
 from argparse import RawDescriptionHelpFormatter
 from copy import copy
+import os
 import sys
+import textwrap
 
 import yaml
 
@@ -29,7 +31,12 @@ def configure_parser(sub_parsers):
         epilog=example,
     )
 
-    common.add_parser_prefix(p)
+    p.add_argument(
+        '-n', '--name',
+        action='store',
+        help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
+        default=None,
+    )
 
     p.add_argument(
         '-f', '--file',
@@ -40,7 +47,22 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+# TODO Make this aware of channels that were used to install packages
 def execute(args, parser):
+    if not args.name:
+        # Note, this is a hack fofr get_prefix that assumes argparse results
+        # TODO Refactor common.get_prefix
+        name = os.environ.get('CONDA_DEFAULT_ENV', False)
+        if not name:
+            msg = "Unable to determine environment\n\n"
+            msg += textwrap.dedent("""
+                Please re-run this command with one of the following options:
+
+                * Provide an environment name via --name or -n
+                * Re-run this command inside an activated conda environment.""").lstrip()
+            # TODO Add json support
+            common.error_and_exit(msg, json=False)
+        args.name = name
     prefix = common.get_prefix(args)
 
     installed = install.linked(prefix)
@@ -51,9 +73,11 @@ def execute(args, parser):
     pip_pkgs = sorted(installed - conda_pkgs)
 
     dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
-    dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
+    if len(pip_pkgs) > 0:
+        dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
     data = {
+        'name': args.name,
         'dependencies': dependencies,
     }
     if args.file is None:
