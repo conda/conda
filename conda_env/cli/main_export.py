@@ -47,6 +47,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+# TODO Make this aware of channels that were used to install packages
 def execute(args, parser):
     if not args.name:
         # Note, this is a hack fofr get_prefix that assumes argparse results
