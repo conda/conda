@@ -6,6 +6,7 @@ import yaml
 
 from conda.cli import common
 from conda.cli import main_list
+from conda import config
 from conda import install
 
 description = """
