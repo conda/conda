@@ -1,5 +1,6 @@
 from argparse import RawDescriptionHelpFormatter
 from copy import copy
+import os
 import sys
 
 import yaml
@@ -29,7 +30,12 @@ def configure_parser(sub_parsers):
         epilog=example,
     )
 
-    common.add_parser_prefix(p)
+    p.add_argument(
+        '-n', '--name',
+        action='store',
+        help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
+        default=None,
+    )
 
     p.add_argument(
         '-f', '--file',
