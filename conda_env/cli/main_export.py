@@ -57,7 +57,8 @@ def execute(args, parser):
     pip_pkgs = sorted(installed - conda_pkgs)
 
     dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
-    dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
+    if len(pip_pkgs) > 0:
+        dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
     data = {
         'dependencies': dependencies,
