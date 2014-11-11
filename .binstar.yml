@@ -1,0 +1,15 @@
+package: conda-env
+user: tswicegood
+
+platform:
+  # - linux-32
+  - linux-64
+  - osx-64
+
+engine:
+  - python=2
+
+script:
+  - conda build ./conda.recipe/
+
+build_targets: conda
