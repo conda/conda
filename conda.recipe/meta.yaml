@@ -18,5 +18,13 @@ requirements:
     - python
     - setuptools
 
+test:
+  commands:
+    - conda env -h
+    - conda env list -h
+    - conda env create -h
+    - conda env export -h
+    - conda env remove -h
+
 about:
   home: https://github.com/conda/conda-env/
