@@ -59,12 +59,13 @@ from conda.cli import main_update
 from conda.cli import main_config
 from conda.cli import main_clean
 from conda.cli import dot_activate
+from conda.cli import dot_deactivate
 
 
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..deactivate', '..activateroot', '..checkenv'):
+        if argv1 in ('..activateroot', '..checkenv'):
             import conda.cli.activate as activate
             activate.main()
             return
@@ -165,6 +166,7 @@ In short:
 
     # TODO group these under an internal commands
     dot_activate.configure_parser(sub_parsers)
+    dot_deactivate.configure_parser(sub_parsers)
 
     try:
         import argcomplete
