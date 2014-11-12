@@ -1,2 +1,2 @@
 conda/_version.py export-subst
-*.py    diff=python
+*.py    diff=python eol=lf
