@@ -58,11 +58,13 @@ from conda.cli import main_search
 from conda.cli import main_update
 from conda.cli import main_config
 from conda.cli import main_clean
+from conda.cli import dot_activate
+
 
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..activate', '..deactivate', '..activateroot', '..checkenv'):
+        if argv1 in ('..deactivate', '..activateroot', '..checkenv'):
             import conda.cli.activate as activate
             activate.main()
             return
@@ -160,6 +162,9 @@ In short:
     main_clean.configure_parser(sub_parsers)
     main_package.configure_parser(sub_parsers)
     main_bundle.configure_parser(sub_parsers)
+
+    # TODO group these under an internal commands
+    dot_activate.configure_parser(sub_parsers)
 
     try:
         import argcomplete
