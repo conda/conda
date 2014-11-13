@@ -4,8 +4,7 @@ import sys
 from os.path import join
 
 from conda import config, install
-# TODO Move this to its new home once its found
-from conda.cli.activate import binpath_from_arg
+from conda.envs import utils
 
 
 NO_WRITE_ACCESS = 80
@@ -20,7 +19,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    binpath = binpath_from_arg(args.environment)
+    binpath = utils.binpath_from_arg(args.environment)
     # Make sure an env always has the conda symlink
     try:
         install.symlink_conda(join(binpath, '..'), config.root_dir)

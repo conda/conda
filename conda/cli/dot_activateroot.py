@@ -3,8 +3,6 @@ import sys
 import os
 
 from conda import config
-# TODO Move this to its new home once its found
-from conda.cli.activate import binpath_from_arg
 from conda.envs import utils
 
 
@@ -17,8 +15,8 @@ def execute(args, parser):
     if 'CONDA_DEFAULT_ENV' not in os.environ:
         sys.exit("Error: No environment to deactivate")
     try:
-        binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
-        rootpath = binpath_from_arg(config.root_env_name)
+        binpath = utils.binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
+        rootpath = utils.binpath_from_arg(config.root_env_name)
     except SystemExit:
         # TODO How does it get to this state?
         print(os.environ['PATH'])
