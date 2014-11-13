@@ -8,7 +8,7 @@ build:
   preserve_egg_dir: yes
 
 source:
-  git_url: ../
+  git_url: ..
 
 requirements:
   build:
