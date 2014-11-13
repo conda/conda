@@ -113,6 +113,9 @@ def main():
             sys.exit("Error: no environment provided.")
         if len(sys.argv) > 3:
             sys.exit("Error: did not expect more than one argument.")
+        if sys.argv[2] == 'root':
+            # no need to check root env and try to install a symlink there
+            sys.exit(0)
         binpath = binpath_from_arg(sys.argv[2])
         # Make sure an env always has the conda symlink
         try:

@@ -257,7 +257,7 @@ def test_activate_root():
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {syspath} to PATH\n'\
-                .format(syspath=syspath))
+                .format(syspath=pathlist_to_str(syspath_list)))
 
             commands = (command_setup + """
             {source} {activate} root
@@ -268,7 +268,7 @@ def test_activate_root():
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {syspath} to PATH\n'\
-                .format(syspath=syspath))
+                .format(syspath=pathlist_to_str(syspath_list)))
 
 
 def test_activate_test1_root():
@@ -285,7 +285,7 @@ def test_activate_test1_root():
             assert_equals(stdout, "%s\n" % ROOTPATH)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {syspath} to PATH\n'\
                 .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
-                    syspath=syspath))
+                    syspath=pathlist_to_str(syspath_list)))
 
 
 def test_wrong_args():
@@ -307,7 +307,7 @@ def test_wrong_args():
             """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ROOTPATH + "\n")
+            assert_equals(stdout, "%s\n" % ROOTPATH)
             assert_equals(stderr, 'Error: did not expect more than one argument.\n')
 
             commands = (command_setup + """

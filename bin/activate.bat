@@ -30,17 +30,11 @@ REM No conda, no dice
 SET CONDAFOUND=
 for %%X in (conda.exe) do (set CONDAFOUND=%%~$PATH:X)
 if not defined CONDAFOUND for %%X in (conda.bat) do (set CONDAFOUND=%%~$PATH:X)
-if defined CONDAFOUND goto condacheckenv
+if defined CONDAFOUND goto runcondasecretcommand
     echo "cannot find conda to test for the environment %CONDA_NEW_ENV%"
     exit /b 1
 
-:condacheckenv
-REM Check if 'root' should be activated ( === deactivate all )
-if not "%CONDA_NEW_ENV%" == "root" goto skipactivateroot
-FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..activateroot') DO set PATH=%%i
-goto skipactivateother
-
-:skipactivateroot
+:runcondasecretcommand
 REM Run secret conda ..checkenv command
 call "%CONDAFOUND%" ..checkenv %CONDA_NEW_ENV%
 REM EQU 0 means 0 or above on Windows ;(
@@ -56,7 +50,5 @@ FOR /F "delims=" %%i IN ('"%CONDAFOUND%" ..activate %CONDA_NEW_ENV%') DO set PAT
 
 for /F %%C IN ('"%CONDAFOUND%" ..changeps1') DO set CHANGEPS1=%%C
 if "%CHANGEPS1%" == "1" set PROMPT=[%CONDA_NEW_ENV%] $P$G
-
-:skipactivateother
 
 endlocal & set PROMPT=%PROMPT%& set PATH=%PATH%& set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
