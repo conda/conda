@@ -3,12 +3,14 @@ package:
   version: 1.1.0
 
 build:
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
-  string: {{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}
+  number: 100
+  # TODO Re-enable this once conda-build and/or binstar-build plays nicely
+  # number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+  # string: {{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}
   preserve_egg_dir: yes
 
-source:
-  git_url: ..
+# source:
+#   git_url: ..
 
 requirements:
   build:
