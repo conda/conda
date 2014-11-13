@@ -140,6 +140,16 @@ else:
     set_var = ''
 
 
+_format_vars = {
+    'nul': nul,
+    'printpath': printpath,
+    'printdefaultenv': printdefaultenv,
+    'printps1': printps1,
+    'set_var': set_var,
+    'slash': slash,
+    'source': source_setup,
+}
+
 def _envpaths(env_root, env_name):
     if platform == 'win':
         return [env_root + slash + env_name,
@@ -156,8 +166,7 @@ def test_activate_test1():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1
             {printpath}
-            """).format(source=source_setup, slash=slash, envs=envs,
-                        activate=activate, printpath=printpath)
+            """).format(activate=activate, envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + '\n')
@@ -174,8 +183,7 @@ def test_activate_test1_test2():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test2
             {printpath}
-            """).format(envs=envs, activate=activate,
-                    nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, pathsep.join(_envpaths(envs, 'test2')) + os.path.pathsep + PATH + "\n")
@@ -191,8 +199,7 @@ def test_activate_test3():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
             {printpath}
-            """).format(envs=envs, activate=activate,
-                    nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -207,8 +214,7 @@ def test_activate_test1_test3():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test3
             {printpath}
-            """).format(envs=envs, activate=activate, nul=nul,
-                    slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + "\n")
@@ -222,7 +228,7 @@ def test_deactivate():
             commands = (command_setup + """
             {source} {deactivate}
             {printpath}
-            """).format(envs=envs, deactivate=deactivate, source=source_setup, printpath=printpath)
+            """).format(envs=envs, deactivate=deactivate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -237,7 +243,7 @@ def test_activate_test1_deactivate():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {deactivate}
             {printpath}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -252,7 +258,7 @@ def test_activate_root():
             commands = (command_setup + """
             {source} {activate} root
             {printpath}
-            """).format(envs=envs, activate=activate, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -263,7 +269,7 @@ def test_activate_root():
             {source} {activate} root
             {source} {deactivate}
             {printpath}
-            """).format(envs=envs, activate=activate, deactivate=deactivate, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, deactivate=deactivate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -279,7 +285,7 @@ def test_activate_test1_root():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} root
             {printpath}
-            """).format(envs=envs, activate=activate, nul=nul, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -295,7 +301,7 @@ def test_wrong_args():
             commands = (command_setup + """
             {source} {activate}
             {printpath}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -304,7 +310,7 @@ def test_wrong_args():
             commands = (command_setup + """
             {source} {activate} two args
             {printpath}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -313,7 +319,7 @@ def test_wrong_args():
             commands = (command_setup + """
             {source} {deactivate} test
             {printpath}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printpath=printpath)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -322,7 +328,7 @@ def test_wrong_args():
             commands = (command_setup + """
             {source} {deactivate} {envs}{slash}test
             {printpath}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, slash=slash, source=source_setup, printpath=printpath)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
@@ -337,7 +343,7 @@ def test_activate_help():
             if not platform == 'win':
                 commands = (command_setup + """
                 {activate} {envs}{slash}test1
-                """).format(envs=envs, activate=activate, slash=slash)
+                """).format(envs=envs, activate=activate, **_format_vars)
 
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '')
@@ -346,7 +352,7 @@ def test_activate_help():
 
             commands = (command_setup + """
             {source} {activate} --help
-            """).format(envs=envs, activate=activate, source=source_setup)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '')
@@ -367,7 +373,7 @@ def test_activate_help():
 
             commands = (command_setup + """
             {source} {deactivate} --help
-            """).format(envs=envs, deactivate=deactivate, source=source_setup)
+            """).format(envs=envs, deactivate=deactivate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '')
@@ -382,7 +388,7 @@ def test_activate_symlinking():
             activate, deactivate, conda = _write_entry_points(envs)
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert stdout != '\n'
@@ -415,7 +421,7 @@ def test_activate_symlinking():
                     chmod 555 {envs}/test3/bin
                     {source} {activate} {envs}/test3
                     """).format(envs=envs, activate=activate, deactivate=deactivate,
-                            conda=conda, source=source_setup)
+                            conda=conda, **_format_vars)
                     stdout, stderr = run_in(commands, shell)
                     assert stdout != '\n'
                     assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envs}/test3/bin to PATH\n'.format(envs=envs, syspath=syspath))
@@ -438,7 +444,7 @@ def test_activate_symlinking():
                     echo $PATH
                     echo $CONDA_DEFAULT_ENV
                     """).format(envs=envs, activate=activate, deactivate=deactivate,
-                            conda=conda, source=source_setup)
+                            **_format_vars)
 
                     stdout, stderr = run_in(commands, shell)
                     assert_equals(stdout, (
@@ -460,7 +466,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
@@ -475,7 +481,7 @@ def test_PS1():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test2
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
@@ -489,7 +495,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: no such directory: {envpath3}\n'.format(envpath3=_envpaths(envs, 'test3')[0]))
@@ -502,7 +508,7 @@ def test_PS1():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test3
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: no such directory: {envpath3}\n'.format(envpath3=_envpaths(envs, 'test3')[0]))
@@ -514,7 +520,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {deactivate}
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, deactivate=deactivate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: No environment to deactivate\n')
@@ -527,7 +533,7 @@ def test_PS1():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {deactivate}
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
@@ -540,7 +546,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {activate}
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: no environment provided.\n')
@@ -552,7 +558,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {activate} two args
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: did not expect more than one argument.\n')
@@ -564,7 +570,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {deactivate} test
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: too many arguments.\n')
@@ -576,7 +582,7 @@ def test_PS1():
             commands = (command_setup + """
             {source} {deactivate} {envs}{slash}test
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'Error: too many arguments.\n')
@@ -599,7 +605,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test1
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
@@ -614,7 +620,7 @@ changeps1: no
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test2
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
@@ -628,7 +634,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {activate} {envs}{slash}test3
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -642,7 +648,7 @@ changeps1: no
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test3
             {printps1}
-            """).format(envs=envs, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -655,7 +661,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {deactivate}
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, deactivate=deactivate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -669,7 +675,7 @@ changeps1: no
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {deactivate}
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var, nul=nul)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stderr, 'discarding {envpaths1} from PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
@@ -681,7 +687,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {activate}
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -694,7 +700,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {activate} two args
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -707,7 +713,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {deactivate} test
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printps1=printps1, set_var=set_var, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -720,7 +726,7 @@ changeps1: no
             commands = (command_setup + condarc + """
             {source} {deactivate} {envs}{slash}test
             {printps1}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, slash=slash, printps1=printps1, set_var=set_var)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             if platform == 'win':
@@ -737,7 +743,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test1
             {printdefaultenv}
-            """).format(envs=envs, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, slash=slash)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '{envs}{slash}test1\n'.format(envs=envs, slash=slash))
@@ -747,7 +753,7 @@ def test_CONDA_DEFAULT_ENV():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test2
             {printdefaultenv}
-            """).format(envs=envs, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul, slash=slash)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '{envs}{slash}test2\n'.format(envs=envs, slash=slash))
@@ -758,7 +764,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {activate} {envs}{slash}test3
             {printdefaultenv}
-            """).format(envs=envs, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, slash=slash)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -768,7 +774,7 @@ def test_CONDA_DEFAULT_ENV():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {activate} {envs}{slash}test3
             {printdefaultenv}
-            """).format(envs=envs, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul, slash=slash)
+            """).format(envs=envs, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '{envs}{slash}test1\n'.format(envs=envs, slash=slash))
@@ -777,7 +783,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {deactivate}
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, source=source_setup, printdefaultenv=printdefaultenv)
+            """).format(envs=envs, deactivate=deactivate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -787,7 +793,7 @@ def test_CONDA_DEFAULT_ENV():
             {source} {activate} {envs}{slash}test1 {nul}
             {source} {deactivate}
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul, slash=slash)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -797,7 +803,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {activate}
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -806,7 +812,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {activate} two args
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -815,7 +821,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {deactivate} test
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -824,7 +830,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {deactivate} {envs}/test
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
@@ -833,7 +839,7 @@ def test_CONDA_DEFAULT_ENV():
             commands = (command_setup + """
             {source} {activate} root {nul}
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, 'root\n')
@@ -843,7 +849,7 @@ def test_CONDA_DEFAULT_ENV():
             {source} {activate} root {nul}
             {source} {deactivate} {nul}
             {printdefaultenv}
-            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul)
+            """).format(envs=envs, deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '\n')
