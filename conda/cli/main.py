@@ -60,16 +60,13 @@ from conda.cli import main_config
 from conda.cli import main_clean
 from conda.cli import dot_activate
 from conda.cli import dot_activateroot
+from conda.cli import dot_checkenv
 from conda.cli import dot_deactivate
 
 
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..checkenv', ):
-            import conda.cli.activate as activate
-            activate.main()
-            return
         if argv1 in ('..changeps1'):
             import conda.cli.misc as misc
             misc.main()
@@ -168,6 +165,7 @@ In short:
     # TODO group these under an internal commands
     dot_activate.configure_parser(sub_parsers)
     dot_activateroot.configure_parser(sub_parsers)
+    dot_checkenv.configure_parser(sub_parsers)
     dot_deactivate.configure_parser(sub_parsers)
 
     try:
