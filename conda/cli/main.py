@@ -62,6 +62,7 @@ from conda.cli import dot_activate
 from conda.cli import dot_activateroot
 from conda.cli import dot_checkenv
 from conda.cli import dot_deactivate
+from conda.cli import dot_sourcehelp
 
 
 def main():
@@ -167,6 +168,7 @@ In short:
     dot_activateroot.configure_parser(sub_parsers)
     dot_checkenv.configure_parser(sub_parsers)
     dot_deactivate.configure_parser(sub_parsers)
+    dot_sourcehelp.configure_parser(sub_parsers)
 
     try:
         import argcomplete

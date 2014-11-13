@@ -6,7 +6,7 @@ if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
 "
-    "$(dirname $0)/conda" ..deactivate -h
+    "$(dirname $0)/conda" ..sourcehelp --deactivate
     exit 1
 fi
 

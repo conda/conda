@@ -6,7 +6,7 @@ if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     >&2 echo "Error: activate must be sourced. Run 'source activate envname'
 instead of 'activate envname'.
 "
-    "$(dirname "$0")/conda" ..activate -h
+    "$(dirname "$0")/conda" ..sourcehelp
     exit 1
 fi
 
@@ -26,7 +26,7 @@ get_abs_filename() {
     echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
-if "$_THIS_DIR/conda" ..checkenv "$@"; then
+if "$_THIS_DIR/conda" ..checkenv "$@" 2>/dev/null; then
     _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate)
     export PATH=$_NEW_PATH
     if (( $("$_THIS_DIR/conda" ..changeps1) )); then
@@ -36,6 +36,7 @@ if "$_THIS_DIR/conda" ..checkenv "$@"; then
         fi
     fi
 else
+    "$_THIS_DIR/conda" ..sourcehelp
     return 1
 fi
 
