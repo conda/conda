@@ -83,7 +83,7 @@ def test_activate_test1():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == envs + "/test1/bin:" + PATH
+            assert stdout.split(os.path.pathsep)[0] == envs + "/test1/bin"
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
 def test_activate_test1_test2():
@@ -97,7 +97,7 @@ def test_activate_test1_test2():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == envs + "/test2/bin:" + PATH
+            assert stdout.split(os.path.pathsep)[0] == envs + "/test2/bin"
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
 def test_activate_test3():
@@ -124,7 +124,7 @@ def test_activate_test1_test3():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == envs + "/test1/bin:" + PATH
+            assert stdout.split(os.path.pathsep)[0] == envs + "/test1/bin"
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
 

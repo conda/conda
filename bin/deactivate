@@ -20,6 +20,25 @@ else
     return 1
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
+_NUM_OF_ARGS="$#"
+
+# TODO Find a better way to do this that works on both bash and zsh
+case "$1" in
+"-h")
+    "$_THIS_DIR/conda" ..sourcehelp --deactivate
+    return -1
+    ;;
+"--help")
+    "$_THIS_DIR/conda" ..sourcehelp --deactivate
+    return -1
+    ;;
+esac
+
+
+if [[ $_NUM_OF_ARGS -gt 0 ]]; then
+    >&2 echo "Error: too many arguments."
+    return 1
+fi
 
 _NEW_PATH=$("$_THIS_DIR/conda" ..activateroot "$@")
 if (( $? == 0 )); then

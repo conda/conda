@@ -31,4 +31,4 @@ def execute(args, parser):
         rootpath = ""
 
     sys.stderr.write("discarding %s from PATH\n" % binpath)
-    print(utils.path_string(""))
+    print(utils.path_string(excluded=[binpath, ]))

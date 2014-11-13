@@ -9,6 +9,9 @@ from conda.cli.common import find_prefix_name
 import conda.config
 import conda.install
 
+NO_SUCH_DIRECTORY = 70
+NO_SUCH_ENVIRONMENT = 75
+
 def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
@@ -30,14 +33,14 @@ def prefix_from_arg(arg):
         return abspath(arg)
     prefix = find_prefix_name(arg)
     if prefix is None:
-        sys.exit('Error: could not find environment: %s' % arg)
+        sys.exit(NO_SUCH_ENVIRONMENT)
     return prefix
 
 
 def binpath_from_arg(arg):
     path = join(prefix_from_arg(arg), 'bin')
     if not isdir(path):
-        sys.exit("Error: no such directory: %s" % path)
+        sys.exit(NO_SUCH_DIRECTORY)
     return path
 
 def main():

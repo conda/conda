@@ -8,8 +8,7 @@ from conda import config, install
 from conda.cli.activate import binpath_from_arg
 
 
-NO_WRITE_ACCESS = ("Cannot activate environment {}, do not have write access "
-                   "to write conda symlink")
+NO_WRITE_ACCESS = 80
 
 
 def configure_parser(sub_parsers):
@@ -27,6 +26,6 @@ def execute(args, parser):
         install.symlink_conda(join(binpath, '..'), config.root_dir)
     except (IOError, OSError) as e:
         if e.errno == errno.EPERM or e.errno == errno.EACCES:
-            sys.exit(NO_WRITE_ACCESS.format(args.environment))
+            sys.exit(NO_WRITE_ACCESS)
         raise
     sys.exit(0)

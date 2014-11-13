@@ -1,4 +1,7 @@
 #!/bin/bash
+NO_SUCH_DIRECTORY=70
+NO_SUCH_ENVIRONMENT=75
+NO_WRITE_ACCESS=80
 
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
@@ -26,7 +29,21 @@ get_abs_filename() {
     echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
-if "$_THIS_DIR/conda" ..checkenv "$@" 2>/dev/null; then
+# TODO Find a better way to do this that works on both bash and zsh
+case "$1" in
+"-h")
+    "$_THIS_DIR/conda" ..sourcehelp
+    return -1
+    ;;
+"--help")
+    "$_THIS_DIR/conda" ..sourcehelp
+    return -1
+    ;;
+esac
+
+"$_THIS_DIR/conda" ..checkenv "$@" 2> /dev/null
+_EXIT_CODE="$?"
+if [[ $_EXIT_CODE -eq 0 ]]; then
     _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate)
     export PATH=$_NEW_PATH
     if (( $("$_THIS_DIR/conda" ..changeps1) )); then
@@ -36,8 +53,24 @@ if "$_THIS_DIR/conda" ..checkenv "$@" 2>/dev/null; then
         fi
     fi
 else
-    "$_THIS_DIR/conda" ..sourcehelp
-    return 1
+    if [[ "$#" -lt 1 ]]; then
+        >&2 echo "Error: no environment provided."
+        _EXIT_CODE=1
+    elif [[ "$#" -gt 1 ]]; then
+        >&2 echo "Error: did not expect more than one argument."
+        _EXIT_CODE=1
+    elif [[ $_EXIT_CODE -eq $NO_SUCH_DIRECTORY ]]; then
+        # TODO: Remove "bin" -- not really relevant here
+        >&2 echo "Error: no such directory: $(get_abs_filename "$@")/bin"
+    elif [[ $_EXIT_CODE -eq $NO_SUCH_ENVIRONMENT ]]; then
+        >&2 echo "Error: no such environment: $@"
+    elif [[ $_EXIT_CODE -eq $NO_WRITE_ACCESS ]]; then
+        >&2 echo "Cannot activate environment $@, do not have write access to write conda symlink"
+    else
+        "$_THIS_DIR/conda" ..sourcehelp
+        return 1
+    fi
+    return $_EXIT_CODE
 fi
 
 _NEW_PATH=$("$_THIS_DIR/conda" ..activate "$@")
