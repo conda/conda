@@ -256,7 +256,19 @@ def test_activate_root():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, 'Error: No environment to deactivate\n')
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {syspath} to PATH\n'\
+                .format(syspath=syspath))
+
+            commands = (command_setup + """
+            {source} {activate} root
+            {source} {deactivate}
+            {printpath}
+            """).format(envs=envs, activate=activate, deactivate=deactivate, source=source_setup, printpath=printpath)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, "%s\n" % ROOTPATH)
+            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {syspath} to PATH\n'\
+                .format(syspath=syspath))
 
 
 def test_activate_test1_root():
@@ -271,8 +283,9 @@ def test_activate_test1_root():
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
-                .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
+            assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {syspath} to PATH\n'\
+                .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
+                    syspath=syspath))
 
 
 def test_wrong_args():
@@ -817,18 +830,25 @@ def test_CONDA_DEFAULT_ENV():
             assert_equals(stdout, '\n')
             assert_equals(stderr, 'Error: too many arguments.\n')
 
-            # commands = (command_setup + """
-            # {source} {activate} root
-            # printf "$CONDA_DEFAULT_ENV"
-            # """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup)
-            #
-            # stdout, stderr = run_in(commands, shell)
-            # assert_equals(stdout, 'root')
-            # assert_equals(stderr, 'Error: too many arguments.\n')
+            commands = (command_setup + """
+            {source} {activate} root {nul}
+            {printdefaultenv}
+            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, 'root\n')
+            assert_equals(stderr, '')
+
+            commands = (command_setup + """
+            {source} {activate} root {nul}
+            {source} {deactivate} {nul}
+            {printdefaultenv}
+            """).format(envs=envs, deactivate=deactivate, activate=activate, source=source_setup, printdefaultenv=printdefaultenv, nul=nul)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, '\n')
+            assert_equals(stderr, '')
 
 # TODO:
 # - Test activating an env by name
-# - Test activating "root"
-# - Test activating "root" and then deactivating
 # - Check 'symlinking' on Windows
-# - Make test code platform-independent by constructing expected paths outputs

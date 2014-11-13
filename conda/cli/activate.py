@@ -98,9 +98,15 @@ def main():
         paths = []
         for r in rootpath:
             if r not in os.getenv('PATH').split(os.pathsep):
-                #paths = rootpath
                 paths.append(r)
-        sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
+            # we prevent rootpath from getting dropped if `root` is activated
+            # and then `deactivate` is called. we fall back to normal
+            # activate/deactivate behaviour which always results in having
+            # the root environment in the PATH
+            elif rootpath == binpath:
+                paths.append(r)
+        if rootpath != binpath:
+            sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:
