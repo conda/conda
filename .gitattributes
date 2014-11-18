@@ -1,2 +1,3 @@
 conda/_version.py export-subst
 *.py    diff=python eol=lf
+*.bat	eol=crlf
