@@ -8,10 +8,10 @@
 import sys
 import os
 
-try:
+if 'develop' in sys.argv:
     from setuptools import setup
     using_setuptools = True
-except ImportError:
+else:
     from distutils.core import setup
     using_setuptools = False
 
