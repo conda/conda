@@ -11,9 +11,12 @@ import os
 if 'develop' in sys.argv:
     from setuptools import setup
     using_setuptools = True
+    print("Using setuptools")
 else:
     from distutils.core import setup
     using_setuptools = False
+    print("Not using setuptools")
+
 
 add_activate = True
 
