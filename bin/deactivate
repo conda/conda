@@ -29,6 +29,9 @@ else
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
 # Load common functions
+get_dirname() {
+    echo "$(cd "$(dirname "$1")" && pwd)"
+}
 source "$(get_dirname ${_ABS_SCRIPT_LOCATION})/_conda-functions"
 
 run_scripts "deactivate"
