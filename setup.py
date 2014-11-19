@@ -51,7 +51,11 @@ if add_activate:
     if sys.platform == 'win32':
         kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])
     else:
-        kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
+        kwds['scripts'].extend([
+            'bin/activate',
+            'bin/deactivate',
+            'bin/_conda-env-scripts',
+        ])
 
 setup(
     name = "conda",
