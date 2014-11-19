@@ -28,14 +28,8 @@ else
     return 1
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
-
-# TODO Remove duplication from activate
-run_scripts() {
-    _PREFIX="$(echo $(echo $PATH | awk -F ':' '{print $1}')/..)"
-    _CONDA_D="${_PREFIX}/etc/conda/$1.d"
-    "$(get_dirname ${_ABS_SCRIPT_LOCATION})/_conda-env-scripts" $_CONDA_D
-}
-
+# Load common functions
+source "$(get_dirname ${_ABS_SCRIPT_LOCATION})/_conda-functions"
 
 run_scripts "deactivate"
 

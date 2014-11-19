@@ -54,7 +54,7 @@ if add_activate:
         kwds['scripts'].extend([
             'bin/activate',
             'bin/deactivate',
-            'bin/_conda-env-scripts',
+            'bin/_conda-functions',
         ])
 
 setup(
