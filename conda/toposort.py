@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 from functools import reduce as _reduce
 import logging
 
@@ -61,7 +63,7 @@ items in the preceding sets.
             value = next(t)
             yield value
         except ValueError as err:
-            log.warn(err.message)
+            log.warn(err.args[0])
             if not data:
                 return
 
