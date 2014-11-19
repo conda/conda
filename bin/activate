@@ -32,16 +32,6 @@ _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
 # Load common functions
 source "$(get_dirname ${_ABS_SCRIPT_LOCATION})/_conda-functions"
 
-
-# http://stackoverflow.com/a/21188136/161801
-get_dirname() {
-    echo "$(cd "$(dirname "$1")" && pwd)"
-}
-
-get_abs_filename() {
-    echo "$(get_dirname "$1")/$(basename "$1")"
-}
-
 if "$_THIS_DIR/conda" ..checkenv "$@"; then
     # Ensure we deactivate any scripts from the old env
     run_scripts "deactivate"
