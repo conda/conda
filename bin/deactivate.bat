@@ -12,6 +12,13 @@ if "%1" == "" goto skipmissingarg
     exit /b 1
 :skipmissingarg
 
+REM Run any deactivate scripts
+if not exist %ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d goto nodeactivate
+    pushd %ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d
+    for %%g in (*.bat) do call "%%g"
+    popd
+:nodeactivate
+
 REM Deactivate a previous activation if it is live
 if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     REM This search/replace removes the previous env from the path
