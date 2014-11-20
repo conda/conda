@@ -12,8 +12,8 @@ setup(
     name="conda-env",
     version="1.2.0alpha",
     author="Continuum Analytics, Inc.",
-    author_email="travis.swicegood@continuum.io",
-    url="https://github.com/tswicegood/conda-build",
+    author_email="support@continuum.io",
+    url="https://github.com/conda/conda-env",
     license="BSD",
     classifiers=[
         "Development Status :: 4 - Beta",
