@@ -1,25 +1,16 @@
 @echo off
+for /f "delims=" %%a in ('conda info --root') do @set root=%%a
 
-for /f "delims=" %%i in ("%~dp0..\envs") do (
-    set ANACONDA_ENVS=%%~fi
-)
-
-if "%1" == "" goto skipmissingarg
-    echo Usage: deactivate
+if exists "%root%\Scripts\env-deactivate.bat" goto deactivate
+    echo You must install conda-env before using environments. Please
+    echo run the following command before proceeding:
     echo.
-    echo Deactivates previously activated Conda
-    echo environment.
-    exit /b 1
-:skipmissingarg
+    echo     conda install -c conda conda-env
+    echo.
+    goto done
 
-REM Deactivate a previous activation if it is live
-if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
-    REM This search/replace removes the previous env from the path
-    echo Deactivating environment "%CONDA_DEFAULT_ENV%"...
-    set CONDACTIVATE_PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;
-    call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
-    set CONDA_DEFAULT_ENV=
-    set CONDACTIVATE_PATH=
-:skipdeactivate
+:deactivate
+    set args=%*
+    call %root%\Scripts\env-deactivate.bat %args%
 
-set PROMPT=$P$G
+:done
