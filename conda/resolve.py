@@ -440,15 +440,7 @@ class Resolve(object):
         digraph = {}
 
         for key, value in must_have.items():
-
             depends = lookup(value)
-
-            # FIXME: this should not be necessary
-            # While the toposort sort will still work with a cyclic graph
-            # We should make a point of sanitizing the index
-            if key == 'python':
-                depends.discard('pip')
-
             digraph[key] = depends
 
         sorted_keys = toposort(digraph)
