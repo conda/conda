@@ -49,7 +49,7 @@ def pop_key(data):
     Pop an item from the graph that has the fewest dependencies in the case of a tie
     The winners will be sorted alphabetically  
     '''
-    items = sorted(data.items(), key=lambda (k, v): (len(v), k))
+    items = sorted(data.items(), key=lambda item: (len(item[1]), item[0]))
     key = items[0][0]
 
     data.pop(key)
