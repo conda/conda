@@ -4,10 +4,9 @@ for /f "delims=" %%i in ("%~dp0..\envs") do (
     set ANACONDA_ENVS=%%~fi
 )
 
-set CONDA_NEW_ENV=%1
-set CONDA_NEW_ENV=%CONDA_NEW_ENV:"=%
+set CONDA_NEW_ENV=%~1
 
-if "%2" == "" goto skiptoomanyargs
+if "%~2" == "" goto skiptoomanyargs
     echo ERROR: Too many arguments provided
     goto usage
 :skiptoomanyargs
