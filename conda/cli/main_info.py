@@ -50,6 +50,11 @@ def configure_parser(sub_parsers):
         nargs = '*',
         help = "display information about packages",
     )
+    p.add_argument(
+        '--root',
+        action='store_true',
+        help='display root environment path',
+    )
     p.set_defaults(func=execute)
 
 
@@ -135,6 +140,13 @@ def execute(args, parser):
     from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
     from conda.api import get_index, get_package_versions
+
+    if args.root:
+        if args.json:
+            common.stdout_json({'root_prefix': config.root_dir})
+        else:
+            print(config.root_dir)
+        return
 
     if args.packages:
         if args.json:
