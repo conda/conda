@@ -1,0 +1,7 @@
+#!/bin/bash
+>&2 echo "You must install conda-env before using environments.  Please"
+>&2 echo "run the folllowing command before proceeding:"
+>&2 echo ""
+>&2 echo "    conda install -c conda conda-env"
+>&2 echo ""
+return 1
