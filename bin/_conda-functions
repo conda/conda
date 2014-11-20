@@ -1,0 +1,13 @@
+#!/bin/bash
+run_scripts() {
+    _PREFIX="$(echo $(echo $PATH | awk -F ':' '{print $1}')/..)"
+    _CONDA_D="${_PREFIX}/etc/conda/$1.d"
+    if [[ -d $_CONDA_D ]]; then
+        for f in $_CONDA_D/*.sh; do source $f; done
+    fi
+}
+
+# http://stackoverflow.com/a/21188136/161801
+get_abs_filename() {
+    echo "$(get_dirname "$1")/$(basename "$1")"
+}
