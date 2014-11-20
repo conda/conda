@@ -44,6 +44,21 @@ items in the preceding sets.
         msg = 'Cyclic dependencies exist among these items: {}'
         raise ValueError(msg.format(' -> '.join(repr(x) for x in data.keys())))
 
+def pop_key(data):
+    '''
+    Pop an item from the graph that has the fewest dependencies in the case of a tie
+    The winners will be sorted alphabetically  
+    '''
+    items = sorted(data.items(), key=lambda (k, v): (len(v), k))
+    key = items[0][0]
+
+    data.pop(key)
+
+    for dep in data.values():
+        dep.discard(key)
+
+    return key
+
 def _safe_toposort(data):
     """Dependencies are expressed as a dictionary whose keys are items
 and whose values are a set of dependent items. Output is a list of
@@ -64,14 +79,11 @@ items in the preceding sets.
             yield value
         except ValueError as err:
             log.warn(err.args[0])
+
             if not data:
                 return
 
-            key, _ = data.popitem()
-            yield key
-
-            for dep in data.values():
-                dep.discard(key)
+            yield pop_key(data)
 
             t = _toposort(data)
 

@@ -1,7 +1,17 @@
 import unittest
-from conda.toposort import toposort
+from conda.toposort import toposort, pop_key
 
 class TopoSortTests(unittest.TestCase):
+
+    def test_pop_key(self):
+        key = pop_key({'a':{'b', 'c'}, 'b':{'c'}})
+        self.assertEqual(key, 'b')
+
+        key = pop_key({'a':{'b'}, 'b':{'c', 'a'}})
+        self.assertEqual(key, 'a')
+
+        key = pop_key({'a':{'b'}, 'b':{'a'}})
+        self.assertEqual(key, 'a')
 
     def test_simple(self):
         data = {'a':'bc', 'b':'c'}
