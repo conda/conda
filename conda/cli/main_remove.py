@@ -16,37 +16,37 @@ from conda.cli import common
 from conda.console import json_progress_bars
 
 
-help = "Remove a list of packages from a specified conda environment."
+help = "%s a list of packages from a specified conda environment."
 descr = help + """
 Normally, only the specified package is removed, and not the packages
 which may depend on the package.  Hence this command should be used
-with caution.
+with caution.  Note that conda uninstall is an alias for conda remove
 """
 example = """
 examples:
-    conda remove -n myenv scipy
+    conda %s -n myenv scipy
 
 """
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='remove'):
     p = sub_parsers.add_parser(
-        'remove',
+        name,
         formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = help,
-        epilog = example,
+        description = descr % name,
+        help = help % name,
+        epilog = example % name,
     )
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
         "--all",
         action = "store_true",
-        help = "remove all packages, i.e. the entire environment",
+        help = "%s all packages, i.e. the entire environment" % name,
     )
     p.add_argument(
         "--features",
         action = "store_true",
-        help = "remove features (instead of packages)",
+        help = "%s features (instead of packages)" % name,
     )
     common.add_parser_no_pin(p)
     common.add_parser_channels(p)
@@ -65,7 +65,7 @@ def configure_parser(sub_parsers):
         metavar = 'package_name',
         action = "store",
         nargs = '*',
-        help = "package names to remove from environment",
+        help = "package names to %s from environment" % name,
     )
     p.set_defaults(func=execute)
 

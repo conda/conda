@@ -11,9 +11,12 @@ import os
 if 'develop' in sys.argv:
     from setuptools import setup
     using_setuptools = True
+    print("Using setuptools")
 else:
     from distutils.core import setup
     using_setuptools = False
+    print("Not using setuptools")
+
 
 add_activate = True
 
@@ -46,7 +49,7 @@ else:
 
 if add_activate:
     if sys.platform == 'win32':
-        kwds['scripts'].extend(['bin/activate.bat', 'bin/deactivate.bat'])
+        kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])
     else:
         kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
 
