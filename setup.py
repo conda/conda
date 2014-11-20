@@ -10,7 +10,7 @@ if sys.version_info[:2] < (2, 7):
 
 setup(
     name="conda-env",
-    version="1.1.0",
+    version="1.2.0alpha",
     author="Continuum Analytics, Inc.",
     author_email="travis.swicegood@continuum.io",
     url="https://github.com/tswicegood/conda-build",
