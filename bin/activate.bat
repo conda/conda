@@ -1,7 +1,7 @@
 @echo off
 for /f "delims=" %%a in ('conda info --root') do @set root=%%a
 
-if exists "%root%\Scripts\env-activate.bat" goto activate
+if exist "%root%\Scripts\env-activate.bat" goto activate
     echo You must install conda-env before using environments. Please
     echo run the following command before proceeding:
     echo.
