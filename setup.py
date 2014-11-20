@@ -8,6 +8,18 @@ if sys.version_info[:2] < (2, 7):
     sys.exit("conda is only meant for Python 2.7, with experimental support "
              "for python 3.  current version: %d.%d" % sys.version_info[:2])
 
+if sys.platform == 'win32':
+    scripts = [
+        'bin\\env-activate.bat',
+        'bin\\env-deactivate.bat',
+    ]
+else:
+    scripts = [
+        'bin/env-activate',
+        'bin/env-deactivate',
+        'bin/_conda-functions',
+    ]
+
 setup(
     name="conda-env",
     version="1.2.0alpha",
@@ -33,7 +45,7 @@ setup(
     ],
     scripts=[
         'bin/conda-env',
-    ],
+    ] + scripts,
     entry_points={
         'conda.env.installers': [
             'conda = conda_env.installers.conda',
