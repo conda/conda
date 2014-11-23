@@ -1,6 +1,12 @@
 import random
 import unittest
 
+try:
+    import mock
+    skip_mocked = False
+except ImportError:
+    skip_mocked = True
+
 from conda import pip
 
 
@@ -27,3 +33,19 @@ class PipPackageTestCase(unittest.TestCase):
         expected = 'baz ({path})-{version}-<pip>'.format(path=path,
                                                          version=version)
         self.assertEqual(expected, str(p))
+
+
+class installed_test(unittest.TestCase):
+    @unittest.skipIf(skip_mocked, 'install mock to test')
+    # TODO brittle test -- shows code that needs refactoring
+    def test_stops_on_exception(self):
+        with mock.patch.object(pip, 'subprocess') as subprocess:
+            subprocess.check_output = mock.Mock(side_effect=[Exception(), ])
+            with mock.patch.object(pip, 'pip_args') as pip_args:
+                # make sure that installed doesn't bail early
+                pip_args.return_value = ['pip', 'list']
+
+                for pkg in pip.installed('/some/prefix'):
+                    self.fail('should never get here')
+
+            self.assertEqual(1, subprocess.check_output.call_count)
