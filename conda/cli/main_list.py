@@ -83,7 +83,8 @@ def pip_args(prefix):
         return None
 
 
-def add_pip_installed(prefix, installed, json=False):
+@common.deprecated_json_kwarg
+def add_pip_installed(prefix, installed, output=True):
     args = pip_args(prefix)
     if args is None:
         return
@@ -93,7 +94,7 @@ def add_pip_installed(prefix, installed, json=False):
                                 args, universal_newlines=True).split('\n')
     except Exception as e:
         # Any error should just be ignored
-        if not json:
+        if output:
             print("# Warning: subprocess call to pip failed")
         return
 
@@ -108,7 +109,7 @@ def add_pip_installed(prefix, installed, json=False):
             continue
         m = pat.match(line)
         if m is None:
-            if not json:
+            if output:
                 print('Could not extract name and version from: %r' % line)
             continue
         name, version = m.groups()
@@ -168,16 +169,17 @@ def list_packages(prefix, installed, regex=None, format='human'):
     return res, result
 
 
-def print_packages(prefix, regex=None, format='human', piplist=False, json=False):
+@common.deprecated_json_kwarg
+def print_packages(prefix, regex=None, format='human', piplist=False, output=True):
     if not isdir(prefix):
         common.error_and_exit("""\
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before listing its packages.""" % prefix,
-                              json=json,
+                              json=(not output),
                               error_type="NoEnvironmentFound")
 
-    if not json:
+    if output:
         if format == 'human':
             print('# packages in environment at %s:' % prefix)
             print('#')
@@ -186,13 +188,13 @@ Error: environment does not exist: %s
 
     installed = install.linked(prefix)
     if piplist and config.use_pip and format == 'human':
-        add_pip_installed(prefix, installed, json=json)
+        add_pip_installed(prefix, installed, output=output)
 
-    exitcode, output = list_packages(prefix, installed, regex, format=format)
-    if not json:
-        print('\n'.join(output))
+    exitcode, package_list = list_packages(prefix, installed, regex, format=format)
+    if output:
+        print('\n'.join(package_list))
     else:
-        common.stdout_json(output)
+        common.stdout_json(package_list)
     sys.exit(exitcode)
 
 
@@ -224,4 +226,5 @@ def execute(args, parser):
     if args.json:
         format = 'canonical'
 
-    print_packages(prefix, args.regex, format, piplist=args.pip, json=args.json)
+    print_packages(prefix, args.regex, format, piplist=args.pip,
+                   json=args.json)
