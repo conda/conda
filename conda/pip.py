@@ -25,13 +25,18 @@ def pip_args(prefix):
         return None
 
 
-# TODO: Refactor internals into a function that returns a list of pip
-#       installed packages instead of modifying installed
-def add_pip_installed(prefix, installed, json=None, output=True):
-    # Here for backwards compatibility
-    if type(json) is bool:
-        output = not json
+class PipPackage(dict):
+    def __str__(self):
+        if 'path' in self:
+            return '%s (%s)-%s-<pip>' % (
+                self['name'],
+                self['path'],
+                self['version']
+            )
+        return '%s-%s-<pip>' % (self['name'], self['version'])
 
+
+def installed(prefix, output=True):
     args = pip_args(prefix)
     if args is None:
         return
@@ -49,7 +54,6 @@ def add_pip_installed(prefix, installed, json=None, output=True):
     # For every package in pipinst that is not already represented
     # in installed append a fake name to installed with 'pip'
     # as the build string
-    conda_names = {d.rsplit('-', 2)[0] for d in installed}
     pat = re.compile('([\w.-]+)\s+\((.+)\)')
     for line in pipinst:
         line = line.strip()
@@ -62,6 +66,10 @@ def add_pip_installed(prefix, installed, json=None, output=True):
             continue
         name, version = m.groups()
         name = name.lower()
+        kwargs = {
+            'name': name,
+            'version': version,
+        }
         if ', ' in version:
             # Packages installed with setup.py develop will include a path in
             # the version. They should be included here, even if they are
@@ -72,6 +80,23 @@ def add_pip_installed(prefix, installed, json=None, output=True):
             version, path = version.split(', ')
             # We do this because the code below uses rsplit('-', 2)
             version = version.replace('-', ' ')
-            installed.add('%s (%s)-%s-<pip>' % (name, path, version))
-        elif name not in conda_names:
-            installed.add('%s-%s-<pip>' % (name, version))
+            kwargs.update({
+                'path': path,
+                'version': version,
+            })
+        yield PipPackage(**kwargs)
+
+
+def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
+    # Defer to json for backwards compatibility
+    if type(json) is bool:
+        output = not json
+
+    # TODO Refactor so installed is a real list of objects/dicts
+    #      instead of strings allowing for direct comparison
+    conda_names = {d.rsplit('-', 2)[0] for d in installed_pkgs}
+
+    for pip_pkg in installed(prefix, output=output):
+        if not 'path' in pip_pkg or not pip_pkg['name'] in conda_names:
+            continue
+        installed_pkgs.add(str(pip_pkg))
