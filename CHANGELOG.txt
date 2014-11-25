@@ -4,6 +4,7 @@
   * add conda uninstall as alias for conda remove
   * add conda info --root
   * add conda.pip module
+  * fix CONDARC pointing to non-existing file, closes issue #961
 
 
 2014-11-05   3.7.3:
