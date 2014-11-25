@@ -22,7 +22,7 @@ else:
 
 setup(
     name="conda-env",
-    version="1.2.0",
+    version="1.2.1",
     author="Continuum Analytics, Inc.",
     author_email="support@continuum.io",
     url="https://github.com/conda/conda-env",
