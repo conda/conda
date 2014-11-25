@@ -1,8 +1,32 @@
 from __future__ import print_function, division, absolute_import
 import argparse
+import os
 import sys
 
-from conda.cli.main import args_func
+try:
+    from conda.cli.main import args_func
+except ImportError as e:
+    if 'CONDA_DEFAULT_ENV' in os.environ:
+        sys.stderr.write("""
+There was an error importing conda.
+
+It appears this was caused by installing conda-env into a conda
+environment.  Like conda, conda-env needs to be installed into your
+root conda/Anaconda environment.
+
+Please deactivate your current environment, then re-install conda-env
+using this command:
+
+    conda install -c conda conda-env
+
+If you are seeing this error and have not installed conda-env into an
+environment, please open a bug report at:
+    https://github.com/conda/conda-env
+
+""".lstrip())
+        sys.exit(-1)
+    else:
+        raise e
 
 from . import main_create
 from . import main_export
