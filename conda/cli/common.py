@@ -124,6 +124,7 @@ def add_parser_install(p):
     )
     add_parser_use_index_cache(p)
     add_parser_use_local(p)
+    add_parser_offline(p)
     add_parser_no_pin(p)
     add_parser_channels(p)
     add_parser_prefix(p)
@@ -147,6 +148,14 @@ def add_parser_use_local(p):
         action="store_true",
         default=False,
         help = "use locally built packages",
+    )
+
+def add_parser_offline(p):
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        default=False,
+        help="offline mode, don't connect to internet",
     )
 
 
