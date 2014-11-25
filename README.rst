@@ -4,6 +4,15 @@ conda-env
 
 Provides the `conda env` interface to Conda environments.
 
+Installing
+----------
+
+To install `conda env` with conda, run the following command in your root environment: 
+
+.. code-block:: bash
+
+    $ conda install -c conda conda-env
+
 
 Usage
 -----
