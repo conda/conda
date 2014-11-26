@@ -383,7 +383,10 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().split('\n') if i and not i.strip().startswith('#')]
 
-def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False):
+def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False,
+    use_instaled=True):
+    if not use_instaled:
+        raise NotImplementedError("not using use_installed is not implemented")
     r = Resolve(index)
     linked = install.linked(prefix)
 
@@ -396,13 +399,19 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
         # TODO: Improve error messages here
 
     must_have = {}
+    mustnt_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
                       config.track_features, minimal_hint=minimal_hint):
         dist = fn[:-8]
         name = install.name_dist(dist)
-        if only_names and name not in only_names:
-            continue
-        must_have[name] = dist
+        if name.startswith('remove '):
+            name = name.split('remove ', 1)[1]
+            dist = dist.split('remove ', 1)[1]
+            mustnt_have[name] = dist
+        else:
+            if only_names and name not in only_names:
+                continue
+            must_have[name] = dist
 
     if is_root_prefix(prefix):
         if install.on_win:
@@ -427,9 +436,14 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     if actions[LINK] and sys.platform != 'win32':
         actions[SYMLINK_CONDA] = [config.root_dir]
 
-    for dist in sorted(linked):
-        name = install.name_dist(dist)
-        if name in must_have and dist != must_have[name]:
+    if not use_instaled:
+        for dist in sorted(linked):
+            name = install.name_dist(dist)
+            if name in must_have and dist != must_have[name]:
+                actions[UNLINK].append(dist)
+    else:
+        for name in sorted(mustnt_have):
+            dist = mustnt_have[name]
             actions[UNLINK].append(dist)
 
     return actions

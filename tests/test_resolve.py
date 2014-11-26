@@ -283,7 +283,7 @@ def test_generate_eq():
         v[fn] = i + 1
         w[i + 1] = fn
 
-    eq, max_rhs = r.generate_version_eq(v, dists, include0=True)
+    eq, max_rhs = r.generate_version_eq(v, dists, (), include0=True)
     e = [(i, w[j]) for i, j in eq]
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
@@ -608,7 +608,7 @@ def test_generate_eq():
 
     assert max_rhs == 20 + 4 + 2 + 2 + 1
 
-    eq, max_rhs = r.generate_version_eq(v, dists)
+    eq, max_rhs = r.generate_version_eq(v, dists, ())
     assert all(i > 0 for i, _ in eq)
     e = [(i, w[j]) for i, j in eq]
 
