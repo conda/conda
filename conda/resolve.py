@@ -14,6 +14,7 @@ from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset)
 from conda.console import setup_handlers
 from conda import config
+from conda.toposort import toposort
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -226,7 +227,7 @@ class Resolve(object):
 
     def __init__(self, index):
         self.index = index
-        self.groups = defaultdict(list) # map name to list of filenames
+        self.groups = defaultdict(list)  # map name to list of filenames
         for fn, info in iteritems(index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
@@ -266,7 +267,7 @@ class Resolve(object):
             ret = []
             for pkg in pkgs:
                 try:
-                    if (pkg.name, pkg.norm_version, pkg.build_number) ==\
+                    if (pkg.name, pkg.norm_version, pkg.build_number) == \
                        (maxpkg.name, maxpkg.norm_version, maxpkg.build_number):
                         ret.append(pkg)
                 except TypeError:
@@ -315,7 +316,7 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
-        groups = defaultdict(list) # map name to list of filenames
+        groups = defaultdict(list)  # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
@@ -381,7 +382,7 @@ class Resolve(object):
             yield tuple(clause)
 
     def generate_version_eq(self, v, dists, include0=False):
-        groups = defaultdict(list) # map name to list of filenames
+        groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
 
@@ -430,8 +431,33 @@ class Resolve(object):
 
         return dists
 
+    def graph_sort(self, must_have):
+
+        def lookup(value):
+            index_data = self.index.get('%s.tar.bz2' % value, {})
+            return {item.split(' ', 1)[0] for item in index_data.get('depends', [])}
+
+        digraph = {}
+
+        for key, value in must_have.items():
+            depends = lookup(value)
+            digraph[key] = depends
+
+        sorted_keys = toposort(digraph)
+
+        must_have = must_have.copy()
+        # Take all of the items in the sorted keys
+        # Don't fail if the key does not exist
+        result = [must_have.pop(key) for key in sorted_keys if key in must_have]
+
+        # Take any key that were not sorted
+        result.extend(must_have.values())
+
+        return result
+
     def solve2(self, specs, features, guess=True, alg='BDD',
         returnall=False, minimal_hint=False, unsat_only=False):
+
         log.debug("Solving for %s" % str(specs))
         log.debug("Using alg %s" % alg)
 
@@ -447,9 +473,9 @@ class Resolve(object):
             # couldn't be found.
             pass
         else:
-            v = {} # map fn to variable number
-            w = {} # map variable number to fn
-            i = -1 # in case the loop doesn't run
+            v = {}  # map fn to variable number
+            w = {}  # map variable number to fn
+            i = -1  # in case the loop doesn't run
             for i, fn in enumerate(sorted(dists)):
                 v[fn] = i + 1
                 w[i + 1] = fn
@@ -467,9 +493,9 @@ class Resolve(object):
 
         dists = self.get_dists(specs)
 
-        v = {} # map fn to variable number
-        w = {} # map variable number to fn
-        i = -1 # in case the loop doesn't run
+        v = {}  # map fn to variable number
+        w = {}  # map variable number to fn
+        i = -1  # in case the loop doesn't run
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
@@ -520,7 +546,7 @@ class Resolve(object):
                 constraints = set([])
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses | constraints, N=m+1)
+        solutions = min_sat(clauses | constraints, N=m + 1)
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
