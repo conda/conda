@@ -1,6 +1,12 @@
 from collections import OrderedDict
 import random
 import unittest
+import yaml
+
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from conda_env import env
 
@@ -76,3 +82,40 @@ class EnvironmentTestCase(unittest.TestCase):
         random_channels = (random.randint(100, 200), random)
         e = env.Environment(channels=random_channels)
         self.assertEqual(e.channels, random_channels)
+
+    def test_to_dict_returns_dictionary_of_data(self):
+        random_name = 'random{}'.format(random.randint(100, 200))
+        e = env.Environment(
+            name=random_name,
+            channels=['javascript'],
+            raw_dependencies=['nodejs']
+        )
+
+        expected = {
+            'name': random_name,
+            'channels': ['javascript'],
+            'raw_dependencies': ['nodejs']
+        }
+        self.assertEqual(e.to_dict(), expected)
+
+    def test_to_dict_returns_just_name_if_only_thing_present(self):
+        e = env.Environment(name='simple')
+        expected = {'name': 'simple'}
+        self.assertEqual(e.to_dict(), expected)
+
+    def test_to_yaml_returns_yaml_parseable_string(self):
+        random_name = 'random{}'.format(random.randint(100, 200))
+        e = env.Environment(
+            name=random_name,
+            channels=['javascript'],
+            raw_dependencies=['nodejs']
+        )
+
+        expected = {
+            'name': random_name,
+            'channels': ['javascript'],
+            'dependencies': ['nodejs']
+        }
+
+        actual = yaml.load(StringIO(e.to_yaml()))
+        self.assertEqual(expected, actual)
