@@ -32,7 +32,7 @@ init:
   - C:\Miniconda\Scripts\conda config --set always_yes yes
   # We need to do this first as other commands may not work with older versions of conda.
   - C:\Miniconda\Scripts\conda update conda
-  - C:\Miniconda\Scripts\conda install pytest requests --quiet
+  - C:\Miniconda\Scripts\conda install pytest requests setuptools --quiet
 
 install:
   - C:\Miniconda\python.exe setup.py install
