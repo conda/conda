@@ -250,7 +250,7 @@ def install(args, parser, command='install'):
                                       offline=args.offline)
 
     # Don't update packages that are already up-to-date
-    if command == 'update' and not args.all:
+    if command == 'update' and not (args.all or args.force):
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
