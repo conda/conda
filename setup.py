@@ -49,6 +49,11 @@ cmds = [
 internal_entry_point = lambda a: '{0} = conda.cli.main_{0}'.format(a)
 kwds['entry_points'][CMD_ENTRY_POINT] = [internal_entry_point(a) for a in cmds]
 
+# Add any aliases
+kwds['entry_points'][CMD_ENTRY_POINT] += [
+    'uninstall = conda.cli.main_remove'
+]
+
 if add_activate:
     if sys.platform == 'win32':
         kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])

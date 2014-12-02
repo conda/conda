@@ -17,9 +17,9 @@ descr = ("Initialize conda into a regular environment (when conda was "
          "installed as a Python package, e.g. using pip). (DEPRECATED)")
 
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='init'):
     p = sub_parsers.add_parser(
-        'init',
+        name,
         description = descr,
         help = descr,
     )

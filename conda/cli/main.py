@@ -137,7 +137,7 @@ In short:
 
     for cmd in iter_entry_points(CMD_ENTRY_POINT):
         cmd_module = cmd.load()
-        cmd_module.configure_parser(sub_parsers)
+        cmd_module.configure_parser(sub_parsers, name=cmd.name)
 
     try:
         import argcomplete

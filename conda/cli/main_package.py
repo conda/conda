@@ -12,8 +12,8 @@ from conda.cli import common
 descr = "Low-level conda package utility. (EXPERIMENTAL)"
 
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('package', description=descr, help=descr)
+def configure_parser(sub_parsers, name='package'):
+    p = sub_parsers.add_parser(name, description=descr, help=descr)
 
     common.add_parser_prefix(p)
     p.add_argument(

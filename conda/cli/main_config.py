@@ -129,9 +129,9 @@ class BoolOrListKey(object):
         for i in config.rc_bool_keys:
             yield i
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='config'):
     p = sub_parsers.add_parser(
-        'config',
+        name,
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,

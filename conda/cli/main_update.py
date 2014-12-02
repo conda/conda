@@ -18,9 +18,9 @@ examples:
 
 """
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='update'):
     p = sub_parsers.add_parser(
-        'update',
+        name,
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,

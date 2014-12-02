@@ -8,8 +8,8 @@ from __future__ import print_function, division, absolute_import
 
 descr = "Displays a list of available conda commands and their help strings."
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('help',
+def configure_parser(sub_parsers, name='help'):
+    p = sub_parsers.add_parser(name,
                                description = descr,
                                help = descr)
     p.add_argument(

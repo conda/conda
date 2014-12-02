@@ -7,9 +7,9 @@ from argparse import RawDescriptionHelpFormatter
 descr = 'Create or extract a "bundle package" (EXPERIMENTAL)'
 
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='bundle'):
     p = sub_parsers.add_parser(
-        'bundle',
+        name,
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,
