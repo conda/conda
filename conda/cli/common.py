@@ -406,7 +406,7 @@ def error_and_exit(message, json=False, newline=False, error_text=True,
 def exception_and_exit(exc, **kwargs):
     if 'error_type' not in kwargs:
         kwargs['error_type'] = exc.__class__.__name__
-    error_and_exit('; '.join(exc.args), **kwargs)
+    error_and_exit('; '.join(map(str, exc.args)), **kwargs)
 
 
 def get_index_trap(*args, **kwargs):
