@@ -239,15 +239,18 @@ def install(args, parser, command='install'):
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
     else:
-        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels,
+        index = common.get_index_trap(channel_urls=channel_urls,
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown, json=args.json)
+                                      unknown=args.unknown,
+                                      json=args.json,
+                                      offline=args.offline)
 
     # Don't update packages that are already up-to-date
-    if command == 'update' and not args.all:
+    if command == 'update' and not (args.all or args.force):
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
