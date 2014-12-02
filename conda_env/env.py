@@ -47,12 +47,15 @@ class Environment(object):
             d['raw_dependencies'] = self.raw_dependencies
         return d
 
-    def to_yaml(self):
+    def to_yaml(self, stream=None):
         d = self.to_dict()
         if 'raw_dependencies' in d:
             d['dependencies'] = d['raw_dependencies']
             del d['raw_dependencies']
-        return unicode(yaml.dump(d))
+        if stream is None:
+            return unicode(yaml.dump(d))
+        else:
+            yaml.dump(d, stream=stream)
 
     def parse(self):
         if not self.raw_dependencies:
