@@ -54,6 +54,7 @@ def configure_parser(sub_parsers, name='remove'):
     common.add_parser_quiet(p)
     common.add_parser_use_index_cache(p)
     common.add_parser_use_local(p)
+    common.add_parser_offline(p)
     p.add_argument(
         "--force-pscheck",
         action = "store_true",
@@ -106,12 +107,14 @@ def execute(args, parser):
         index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
     else:
-        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels,
+        index = common.get_index_trap(channel_urls=channel_urls,
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
     specs = None
     if args.features:
         features = set(args.package_names)

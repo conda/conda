@@ -89,14 +89,14 @@ def display_actions(actions, index):
     Packages = {}
     linktypes = {}
     for arg in actions.get(LINK, []):
-        dist, pkgs_dir, lt =  split_linkarg(arg)
+        dist, pkgs_dir, lt = split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][1] = ver + '-' + build
         Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
         linktypes[pkg] = lt
         features[pkg][1] = index[dist + '.tar.bz2'].get('features', '')
     for arg in actions.get(UNLINK, []):
-        dist, pkgs_dir, lt =  split_linkarg(arg)
+        dist, pkgs_dir, lt = split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
         # If the package is not in the index (e.g., an installed
@@ -163,14 +163,14 @@ def display_actions(actions, index):
             downgraded.add(pkg)
 
     arrow = ' --> '
-    lead = ' '*4
+    lead = ' ' * 4
 
     def format(s, pkg):
         channel = ['', '']
         for i in range(2):
             if packages[pkg][i]:
                 channel[i] = config.canonical_channel_name(Packages[pkg + '-' + packages[pkg][i]].channel)
-        return lead + s.format(pkg=pkg+':', vers=packages[pkg],
+        return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
             channel=channel, features=features[pkg])
 
     if new:
@@ -333,8 +333,8 @@ def add_defaults_to_specs(r, linked, specs):
     names_linked = {install.name_dist(dist): dist for dist in linked}
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
-    for name, def_ver in [('python', config.default_python),]:
-                         #('numpy', config.default_numpy)]:
+    for name, def_ver in [('python', config.default_python), ]:
+                         # ('numpy', config.default_numpy)]:
         ms = names_ms.get(name)
         if ms and ms.strictness > 1:
             # if any of the specifications mention the Python/Numpy version,
@@ -384,6 +384,7 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().split('\n') if i and not i.strip().startswith('#')]
 
 def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False):
+
     r = Resolve(index)
     linked = install.linked(prefix)
 
@@ -418,7 +419,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
             sys.exit("Error: 'conda' can only be installed into "
                      "root environment")
 
-    smh = sorted(must_have.values())
+    smh = r.graph_sort(must_have)
+
     if force:
         actions = force_linked_actions(smh, index, prefix)
     else:
