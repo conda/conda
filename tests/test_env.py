@@ -8,6 +8,12 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+try:
+    import mock
+    skip_mocked_tests = False
+except ImportError:
+    skip_mocked_tests = True
+
 from conda_env import env
 
 from . import utils
@@ -119,3 +125,38 @@ class EnvironmentTestCase(unittest.TestCase):
 
         actual = yaml.load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
+
+    @unittest.skipIf(skip_mocked_tests, 'install mock to run test')
+    def test_to_yaml_takes_stream(self):
+        random_name = 'random{}'.format(random.randint(100, 200))
+        e = env.Environment(
+            name=random_name,
+            channels=['javascript'],
+            raw_dependencies=['nodejs']
+        )
+
+        s = mock.Mock()
+        e.to_yaml(stream=s)
+
+        expected_calls = [
+            mock.call(u'channels'),
+            mock.call(u':'),
+            mock.call(u' ['),
+            mock.call(u'javascript'),
+            mock.call(u']'),
+            mock.call(u'\n'),
+            mock.call(u'dependencies'),
+            mock.call(u':'),
+            mock.call(u' ['),
+            mock.call(u'nodejs'),
+            mock.call(u']'),
+            mock.call(u'\n'),
+            mock.call(u'name'),
+            mock.call(u':'),
+            mock.call(u' '),
+            mock.call(u'%s' % random_name),
+            mock.call(u'\n'),
+        ]
+        self.assertEqual(len(expected_calls), len(s.write.call_args_list))
+        for i in range(len(expected_calls)):
+            self.assertEqual(expected_calls[i], s.write.call_args_list[i])
