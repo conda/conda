@@ -1,6 +1,7 @@
 2014-XX-XX   3.7.4:
 -------------------
-  * add --offline option to install, create, update and remove commands
+  * add --offline option to install, create, update and remove commands, and
+    also add ability to set "offline: True" in condarc file
   * add conda uninstall as alias for conda remove
   * add conda info --root
   * add conda.pip module
