@@ -39,6 +39,21 @@ class Environment(object):
             self.parse()
         return self._dependencies
 
+    def to_dict(self):
+        d = {'name': self.name}
+        if self.channels:
+            d['channels'] = self.channels
+        if self.raw_dependencies:
+            d['raw_dependencies'] = self.raw_dependencies
+        return d
+
+    def to_yaml(self):
+        d = self.to_dict()
+        if 'raw_dependencies' in d:
+            d['dependencies'] = d['raw_dependencies']
+            del d['raw_dependencies']
+        return unicode(yaml.dump(d))
+
     def parse(self):
         if not self.raw_dependencies:
             self._dependencies = []
