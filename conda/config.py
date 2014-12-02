@@ -94,14 +94,13 @@ def get_rc_path():
 rc_path = get_rc_path()
 
 def load_condarc(path):
-    if not path:
+    if not path or not isfile(path):
         return {}
     try:
         import yaml
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file: %s)' % path)
-
     return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
@@ -180,6 +179,8 @@ def get_default_urls():
             'http://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
+    if rc.get('channels') is None:
+        return []
     if 'system' in rc['channels']:
         raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']

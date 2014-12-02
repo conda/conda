@@ -113,7 +113,7 @@ In short:
     import conda
 
     p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing environments and packages.'
+        description='conda is a tool for managing and deploying applications, environments and packages.'
     )
     p.add_argument(
         '-V', '--version',

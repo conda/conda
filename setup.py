@@ -11,6 +11,7 @@ import os
 from setuptools import setup
 using_setuptools = True
 
+
 add_activate = True
 
 import versioneer
@@ -50,7 +51,7 @@ kwds['entry_points'][CMD_ENTRY_POINT] = [internal_entry_point(a) for a in cmds]
 
 if add_activate:
     if sys.platform == 'win32':
-        kwds['scripts'].extend(['bin/activate.bat', 'bin/deactivate.bat'])
+        kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])
     else:
         kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
 
