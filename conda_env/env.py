@@ -53,12 +53,14 @@ def from_file(filename):
     if 'dependencies' in data:
         data['raw_dependencies'] = data['dependencies']
         del data['dependencies']
-    return Environment(**data)
+    return Environment(filename=filename, **data)
 
 
 class Environment(object):
-    def __init__(self, name=None, channels=None, raw_dependencies=None):
+    def __init__(self, name=None, filename=None, channels=None,
+                 raw_dependencies=None):
         self.name = name
+        self.filename = filename
         self._dependencies = None
         self._parsed = False
 
