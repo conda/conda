@@ -259,3 +259,53 @@ class load_from_directory_TestCase(unittest.TestCase):
         with self.assertRaises(exceptions.EnvironmentFileNotFound) as e:
             env.load_from_directory('/path/to/unknown/env-spec')
         self.assertEqual(e.exception.filename, 'environment.yml')
+
+
+class LoadEnvFromFileAndSaveTestCase(unittest.TestCase):
+    env_path = utils.support_file(os.path.join('saved-env', 'environment.yml'))
+
+    def setUp(self):
+        with open(self.env_path, "rb") as fp:
+            self.original_file_contents = fp.read()
+        self.env = env.load_from_directory(self.env_path)
+
+    def tearDown(self):
+        with open(self.env_path, "wb") as fp:
+            fp.write(self.original_file_contents)
+
+    def test_expected_default_conditions(self):
+        self.assertEqual(1, len(self.env.dependencies['conda']))
+
+    def test(self):
+        self.env.add_dependency('numpy')
+        self.env.save()
+
+        e = env.load_from_directory(self.env_path)
+        self.assertEqual(2, len(e.dependencies['conda']))
+        self.assert_('numpy' in e.dependencies['conda'])
+
+
+class EnvironmentSaveTestCase(unittest.TestCase):
+    env_file = utils.support_file('saved.yml')
+
+    def tearDown(self):
+        if os.path.exists(self.env_file):
+            os.unlink(self.env_file)
+
+    def test_creates_file_on_save(self):
+        self.assertFalse(os.path.exists(self.env_file), msg='sanity check')
+
+        e = env.Environment(filename=self.env_file, name='simple')
+        e.save()
+
+        self.assertTrue(os.path.exists(self.env_file))
+
+    def _test_saves_yaml_representation_of_file(self):
+        e = env.Environment(filename=self.env_file, name='simple')
+        e.save()
+
+        with open(self.env_file, "rb") as fp:
+            actual = fp.read()
+
+        self.assert_(len(actual) > 0, msg='sanity check')
+        self.assertEqual(e.to_yaml(), actual)
