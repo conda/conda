@@ -96,7 +96,7 @@ class Environment(object):
             d['dependencies'] = d['raw_dependencies']
             del d['raw_dependencies']
         if stream is None:
-            return unicode(yaml.dump(d))
+            return unicode(yaml.dump(d, default_flow_style=False))
         else:
             yaml.dump(d, default_flow_style=False, stream=stream)
 
