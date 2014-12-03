@@ -3,12 +3,8 @@ import os
 import sys
 import textwrap
 
-import yaml
-
 from conda.cli import common
-from conda.cli import main_list
 from conda import config
-from conda import install
 
 from ..env import from_environment
 
