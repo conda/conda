@@ -75,4 +75,3 @@ def execute(args, parser):
     else:
         fp = open(args.file, 'wb')
     env.to_yaml(stream=fp)
-    # yaml.dump(data, default_flow_style=False, stream=fp)
