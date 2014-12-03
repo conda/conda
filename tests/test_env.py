@@ -179,7 +179,7 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_can_add_dependencies_to_environment(self):
         e = get_simple_environment()
-        e.add_dependency('bar')
+        e.dependencies.add('bar')
 
         s = FakeStream()
         e.to_yaml(stream=s)
@@ -196,7 +196,7 @@ class EnvironmentTestCase(unittest.TestCase):
     def test_dependencies_update_after_adding(self):
         e = get_simple_environment()
         self.assert_(not 'bar' in e.dependencies['conda'])
-        e.add_dependency('bar')
+        e.dependencies.add('bar')
         self.assert_('bar' in e.dependencies['conda'])
 
 
@@ -268,7 +268,7 @@ class LoadEnvFromFileAndSaveTestCase(unittest.TestCase):
         self.assertEqual(1, len(self.env.dependencies['conda']))
 
     def test(self):
-        self.env.add_dependency('numpy')
+        self.env.dependencies.add('numpy')
         self.env.save()
 
         e = env.load_from_directory(self.env_path)

@@ -87,9 +87,6 @@ class Environment(object):
             channels = []
         self.channels = channels
 
-    def add_dependency(self, package_name):
-        self.dependencies.add(package_name)
-
     def to_dict(self):
         d = yaml.dict([('name', self.name)])
         if self.channels:
