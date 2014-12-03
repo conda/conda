@@ -60,6 +60,10 @@ class Environment(object):
             self.parse()
         return self._dependencies
 
+    def add_dependency(self, package_name):
+        self.raw_dependencies.append(package_name)
+        self._dependencies = None
+
     def to_dict(self):
         d = yaml.dict([('name', self.name)])
         if self.channels:
