@@ -112,3 +112,7 @@ class Environment(object):
                 self._dependencies.update(line)
             else:
                 self._dependencies['conda'].append(common.spec_from_line(line))
+
+    def save(self):
+        with open(self.filename, "wb") as fp:
+            self.to_yaml(stream=fp)
