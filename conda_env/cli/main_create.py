@@ -10,8 +10,9 @@ from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
 
+from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
-from .. import exceptions, from_file
+from .. import exceptions
 
 description = """
 Create an environment based on an environment file
