@@ -6,6 +6,10 @@
   * add conda info --root
   * add conda.pip module
   * fix CONDARC pointing to non-existing file, closes issue #961
+  * make update -f work if the package is already up-to-date
+  * fix possible TypeError when printing an error message
+  * link packages in topologically sorted order (so that pre-link scripts can
+    assume that the dependencies are installed)
 
 
 2014-11-05   3.7.3:
