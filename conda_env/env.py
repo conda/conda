@@ -53,6 +53,7 @@ def from_file(filename):
     return Environment(filename=filename, **data)
 
 
+# TODO test explicitly
 class Dependencies(OrderedDict):
     def __init__(self, raw, *args, **kwargs):
         super(Dependencies, self).__init__(*args, **kwargs)
@@ -71,6 +72,7 @@ class Dependencies(OrderedDict):
             else:
                 self['conda'].append(common.spec_from_line(line))
 
+    # TODO only append when it's not already present
     def add(self, package_name):
         self.raw.append(package_name)
         self.parse()
