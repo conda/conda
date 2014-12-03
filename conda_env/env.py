@@ -55,7 +55,7 @@ class Environment(object):
         if stream is None:
             return unicode(yaml.dump(d))
         else:
-            yaml.dump(d, stream=stream)
+            yaml.dump(d, default_flow_style=False, stream=stream)
 
     def parse(self):
         if not self.raw_dependencies:
