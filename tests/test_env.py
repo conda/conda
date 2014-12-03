@@ -145,6 +145,26 @@ class EnvironmentTestCase(unittest.TestCase):
         actual = yaml.load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
+    def test_to_yaml_returns_proper_yaml(self):
+        random_name = 'random{}'.format(random.randint(100, 200))
+        e = env.Environment(
+            name=random_name,
+            channels=['javascript'],
+            raw_dependencies=['nodejs']
+        )
+
+        expected = '\n'.join([
+            "name: %s" % random_name,
+            "channels:",
+            "- javascript",
+            "dependencies:",
+            "- nodejs",
+            ""
+        ])
+
+        actual = e.to_yaml()
+        self.assertEqual(expected, actual)
+
     def test_to_yaml_takes_stream(self):
         random_name = 'random{}'.format(random.randint(100, 200))
         e = env.Environment(
