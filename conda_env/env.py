@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 from collections import OrderedDict
 from copy import copy
 import os
-import yaml
 
 # TODO This should never have to import from conda.cli
 from conda.cli import common
@@ -10,6 +9,7 @@ from conda.cli import main_list
 from conda import install
 
 from . import exceptions
+from . import yaml
 
 
 # TODO This should lean more on conda instead of divining it from the outside
@@ -61,7 +61,7 @@ class Environment(object):
         return self._dependencies
 
     def to_dict(self):
-        d = {'name': self.name}
+        d = yaml.dict([('name', self.name)])
         if self.channels:
             d['channels'] = self.channels
         if self.raw_dependencies:
