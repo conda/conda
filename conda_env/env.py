@@ -12,6 +12,22 @@ from . import exceptions
 from . import yaml
 
 
+def load_from_directory(directory):
+    """Load and return an ``Environment`` from a given ``directory``"""
+    files = ['environment.yml', 'environment.yaml']
+    while True:
+        for f in files:
+            try:
+                return from_file(os.path.join(directory, f))
+            except exceptions.EnvironmentFileNotFound:
+                pass
+        old_directory = directory
+        directory = os.path.dirname(directory)
+        if directory == old_directory:
+            break
+    raise exceptions.EnvironmentFileNotFound(files[0])
+
+
 # TODO This should lean more on conda instead of divining it from the outside
 # TODO tests!!!
 def from_environment(name, prefix):

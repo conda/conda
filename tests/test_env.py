@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import os
 import random
 import textwrap
 import unittest
@@ -10,6 +11,7 @@ except ImportError:
     from StringIO import StringIO
 
 from conda_env import env
+from conda_env import exceptions
 
 from . import utils
 
@@ -171,3 +173,55 @@ class EnvironmentTestCase(unittest.TestCase):
         self.assert_(not 'bar' in e.dependencies['conda'])
         e.add_dependency('bar')
         self.assert_('bar' in e.dependencies['conda'])
+
+
+class DirectoryTestCase(unittest.TestCase):
+    directory = utils.support_file('example')
+
+    def setUp(self):
+        self.original_working_dir = os.getcwd()
+        self.env = env.load_from_directory(self.directory)
+
+    def tearDown(self):
+        os.chdir(self.original_working_dir)
+
+    def test_returns_env_object(self):
+        self.assertIsInstance(self.env, env.Environment)
+
+    def test_has_expected_name(self):
+        self.assertEqual('test', self.env.name)
+
+    def test_has_dependencies(self):
+        self.assertEqual(1, len(self.env.dependencies['conda']))
+        self.assert_('numpy' in self.env.dependencies['conda'])
+
+
+class load_from_directory_example_TestCase(DirectoryTestCase):
+    directory = utils.support_file('example')
+
+
+class load_from_directory_example_yaml_TestCase(DirectoryTestCase):
+    directory = utils.support_file('example-yaml')
+
+
+class load_from_directory_recursive_TestCase(DirectoryTestCase):
+    directory = utils.support_file('foo/bar')
+
+
+class load_from_directory_recursive_two_TestCase(DirectoryTestCase):
+    directory = utils.support_file('foo/bar/baz')
+
+
+class load_from_directory_trailing_slash_TestCase(DirectoryTestCase):
+    directory = utils.support_file('foo/bar/baz/')
+
+
+class load_from_directory_TestCase(unittest.TestCase):
+    def test_raises_when_unable_to_find(self):
+        with self.assertRaises(exceptions.EnvironmentFileNotFound):
+            env.load_from_directory('/path/to/unknown/env-spec')
+
+    def test_raised_exception_has_environment_yml_as_file(self):
+        with self.assertRaises(exceptions.EnvironmentFileNotFound) as e:
+            env.load_from_directory('/path/to/unknown/env-spec')
+        self.assertEqual(e.exception.filename, 'environment.yml')
