@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import random
+import textwrap
 import unittest
 import yaml
 
@@ -11,6 +12,14 @@ except ImportError:
 from conda_env import env
 
 from . import utils
+
+
+class FakeStream(object):
+    def __init__(self):
+        self.output = ''
+
+    def write(self, chunk):
+        self.output += chunk
 
 
 def get_simple_environment():
@@ -128,13 +137,6 @@ class EnvironmentTestCase(unittest.TestCase):
             raw_dependencies=['nodejs']
         )
 
-        class FakeStream(object):
-            def __init__(self):
-                self.output = ''
-
-            def write(self, chunk):
-                self.output += chunk
-
         s = FakeStream()
         e.to_yaml(stream=s)
 
@@ -147,3 +149,25 @@ class EnvironmentTestCase(unittest.TestCase):
             '',
         ])
         self.assertEqual(expected, s.output)
+
+    def test_can_add_dependencies_to_environment(self):
+        e = get_simple_environment()
+        e.add_dependency('bar')
+
+        s = FakeStream()
+        e.to_yaml(stream=s)
+
+        expected = "\n".join([
+            'name: nlp',
+            'dependencies:',
+            '- nltk',
+            '- bar',
+            ''
+        ])
+        self.assertEqual(expected, s.output)
+
+    def test_dependencies_update_after_adding(self):
+        e = get_simple_environment()
+        self.assert_(not 'bar' in e.dependencies['conda'])
+        e.add_dependency('bar')
+        self.assert_('bar' in e.dependencies['conda'])
