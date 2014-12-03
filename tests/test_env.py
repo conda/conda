@@ -33,6 +33,10 @@ class from_file_TestCase(unittest.TestCase):
         e = get_simple_environment()
         self.assertIsInstance(e, env.Environment)
 
+    def test_retains_full_filename(self):
+        e = get_simple_environment()
+        self.assertEqual(utils.support_file('simple.yml'), e.filename)
+
     def test_with_pip(self):
         e = env.from_file(utils.support_file('with-pip.yml'))
         self.assert_('pip' in e.dependencies)
@@ -41,6 +45,16 @@ class from_file_TestCase(unittest.TestCase):
 
 
 class EnvironmentTestCase(unittest.TestCase):
+    def test_has_empty_filename_by_default(self):
+        e = env.Environment()
+        self.assertEqual(e.filename, None)
+
+    def test_has_filename_if_provided(self):
+        r = random.randint(100, 200)
+        random_filename = '/path/to/random/environment-{}.yml'.format(r)
+        e = env.Environment(filename=random_filename)
+        self.assertEqual(e.filename, random_filename)
+
     def test_has_empty_name_by_default(self):
         e = env.Environment()
         self.assertEqual(e.name, None)
