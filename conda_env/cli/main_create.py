@@ -1,9 +1,7 @@
 from argparse import RawDescriptionHelpFormatter
-from collections import OrderedDict
 import os
 import textwrap
 import sys
-import yaml
 
 from conda import config
 from conda.cli import common
