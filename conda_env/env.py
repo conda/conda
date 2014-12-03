@@ -1,11 +1,32 @@
 from __future__ import absolute_import, print_function
 from collections import OrderedDict
+from copy import copy
 import os
 import yaml
 
+# TODO This should never have to import from conda.cli
 from conda.cli import common
+from conda.cli import main_list
+from conda import install
 
 from . import exceptions
+
+
+# TODO This should lean more on conda instead of divining it from the outside
+# TODO tests!!!
+def from_environment(name, prefix):
+    installed = install.linked(prefix)
+    conda_pkgs = copy(installed)
+    # json=True hides the output, data is added to installed
+    main_list.add_pip_installed(prefix, installed, json=True)
+
+    pip_pkgs = sorted(installed - conda_pkgs)
+
+    dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
+    if len(pip_pkgs) > 0:
+        dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
+
+    return Environment(name=name, raw_dependencies=dependencies)
 
 
 def from_file(filename):

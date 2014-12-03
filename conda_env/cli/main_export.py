@@ -1,5 +1,4 @@
 from argparse import RawDescriptionHelpFormatter
-from copy import copy
 import os
 import sys
 import textwrap
@@ -10,6 +9,8 @@ from conda.cli import common
 from conda.cli import main_list
 from conda import config
 from conda import install
+
+from ..env import from_environment
 
 description = """
 Export a given environment
@@ -63,25 +64,15 @@ def execute(args, parser):
             # TODO Add json support
             common.error_and_exit(msg, json=False)
         args.name = name
+    else:
+        name = args.name
     prefix = common.get_prefix(args)
 
-    installed = install.linked(prefix)
-    conda_pkgs = copy(installed)
-    # json=True hides the output, data is added to installed
-    main_list.add_pip_installed(prefix, installed, json=True)
+    env = from_environment(name, prefix)
 
-    pip_pkgs = sorted(installed - conda_pkgs)
-
-    dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
-    if len(pip_pkgs) > 0:
-        dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
-
-    data = {
-        'name': args.name,
-        'dependencies': dependencies,
-    }
     if args.file is None:
         fp = sys.stdout
     else:
         fp = open(args.file, 'wb')
-    yaml.dump(data, default_flow_style=False, stream=fp)
+    env.to_yaml(stream=fp)
+    # yaml.dump(data, default_flow_style=False, stream=fp)
