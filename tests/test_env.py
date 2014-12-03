@@ -139,11 +139,11 @@ class EnvironmentTestCase(unittest.TestCase):
         e.to_yaml(stream=s)
 
         expected = "\n".join([
+            'name: %s' % random_name,
             'channels:',
             '- javascript',
             'dependencies:',
             '- nodejs',
-            'name: %s' % random_name,
             '',
         ])
         self.assertEqual(expected, s.output)
