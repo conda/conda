@@ -135,28 +135,22 @@ class EnvironmentTestCase(unittest.TestCase):
             raw_dependencies=['nodejs']
         )
 
-        s = mock.Mock()
+        class FakeStream(object):
+            def __init__(self):
+                self.output = ''
+
+            def write(self, chunk):
+                self.output += chunk
+
+        s = FakeStream()
         e.to_yaml(stream=s)
 
-        expected_calls = [
-            mock.call(u'channels'),
-            mock.call(u':'),
-            mock.call(u' ['),
-            mock.call(u'javascript'),
-            mock.call(u']'),
-            mock.call(u'\n'),
-            mock.call(u'dependencies'),
-            mock.call(u':'),
-            mock.call(u' ['),
-            mock.call(u'nodejs'),
-            mock.call(u']'),
-            mock.call(u'\n'),
-            mock.call(u'name'),
-            mock.call(u':'),
-            mock.call(u' '),
-            mock.call(u'%s' % random_name),
-            mock.call(u'\n'),
-        ]
-        self.assertEqual(len(expected_calls), len(s.write.call_args_list))
-        for i in range(len(expected_calls)):
-            self.assertEqual(expected_calls[i], s.write.call_args_list[i])
+        expected = "\n".join([
+            'channels:',
+            '- javascript',
+            'dependencies:',
+            '- nodejs',
+            'name: %s' % random_name,
+            '',
+        ])
+        self.assertEqual(expected, s.output)
