@@ -8,12 +8,6 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-try:
-    import mock
-    skip_mocked_tests = False
-except ImportError:
-    skip_mocked_tests = True
-
 from conda_env import env
 
 from . import utils
@@ -126,7 +120,6 @@ class EnvironmentTestCase(unittest.TestCase):
         actual = yaml.load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
-    @unittest.skipIf(skip_mocked_tests, 'install mock to run test')
     def test_to_yaml_takes_stream(self):
         random_name = 'random{}'.format(random.randint(100, 200))
         e = env.Environment(
