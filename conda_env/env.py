@@ -42,7 +42,7 @@ def from_environment(name, prefix):
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
-    return Environment(name=name, raw_dependencies=dependencies)
+    return Environment(name=name, dependencies=dependencies)
 
 
 def from_file(filename):
@@ -50,68 +50,60 @@ def from_file(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
     with open(filename, 'rb') as fp:
         data = yaml.load(fp)
-    if 'dependencies' in data:
-        data['raw_dependencies'] = data['dependencies']
-        del data['dependencies']
     return Environment(filename=filename, **data)
+
+
+class Dependencies(OrderedDict):
+    def __init__(self, raw, *args, **kwargs):
+        super(Dependencies, self).__init__(*args, **kwargs)
+        self.raw = raw
+        self.parse()
+
+    def parse(self):
+        if not self.raw:
+            return
+
+        self.update({'conda': []})
+
+        for line in self.raw:
+            if type(line) is dict:
+                self.update(line)
+            else:
+                self['conda'].append(common.spec_from_line(line))
+
+    def add(self, package_name):
+        self.raw.append(package_name)
+        self.parse()
 
 
 class Environment(object):
     def __init__(self, name=None, filename=None, channels=None,
-                 raw_dependencies=None):
+                 dependencies=None):
         self.name = name
         self.filename = filename
-        self._dependencies = None
-        self._parsed = False
-
-        if raw_dependencies is None:
-            raw_dependencies = {}
-        self.raw_dependencies = raw_dependencies
+        self.dependencies = Dependencies(dependencies)
 
         if channels is None:
             channels = []
         self.channels = channels
 
-    @property
-    def dependencies(self):
-        if self._dependencies is None:
-            self.parse()
-        return self._dependencies
-
     def add_dependency(self, package_name):
-        self.raw_dependencies.append(package_name)
-        self._dependencies = None
+        self.dependencies.add(package_name)
 
     def to_dict(self):
         d = yaml.dict([('name', self.name)])
         if self.channels:
             d['channels'] = self.channels
-        if self.raw_dependencies:
-            d['raw_dependencies'] = self.raw_dependencies
+        if self.dependencies:
+            d['dependencies'] = self.dependencies.raw
         return d
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        if 'raw_dependencies' in d:
-            d['dependencies'] = d['raw_dependencies']
-            del d['raw_dependencies']
         if stream is None:
             return unicode(yaml.dump(d, default_flow_style=False))
         else:
             yaml.dump(d, default_flow_style=False, stream=stream)
-
-    def parse(self):
-        if not self.raw_dependencies:
-            self._dependencies = []
-            return
-
-        self._dependencies = OrderedDict([('conda', [])])
-
-        for line in self.raw_dependencies:
-            if type(line) is dict:
-                self._dependencies.update(line)
-            else:
-                self._dependencies['conda'].append(common.spec_from_line(line))
 
     def save(self):
         with open(self.filename, "wb") as fp:

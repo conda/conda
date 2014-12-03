@@ -66,31 +66,22 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_dependencies_are_empty_by_default(self):
         e = env.Environment()
-        self.assertEqual(e.dependencies, [])
+        self.assertEqual(0, len(e.dependencies))
 
-    def test_has_raw_dependencies(self):
-        e = get_simple_environment()
-        self.assertEqual(e.raw_dependencies, ['nltk'])
-
-    def test_raw_dependencies_default_to_empty_dict(self):
-        e = env.Environment()
-        self.assertIsInstance(e.raw_dependencies, dict)
-        self.assertEqual(e.raw_dependencies, {})
-
-    def test_parses_dependencies_from_raw_dependencies(self):
+    def test_parses_dependencies_from_raw_file(self):
         e = get_simple_environment()
         expected = OrderedDict([('conda', ['nltk'])])
         self.assertEqual(e.dependencies, expected)
 
-    def test_builds_spec_from_line_raw_dependencies(self):
+    def test_builds_spec_from_line_raw_dependency(self):
         # TODO Refactor this inside conda to not be a raw string
-        e = env.Environment(raw_dependencies=['nltk=3.0.0=np18py27'])
+        e = env.Environment(dependencies=['nltk=3.0.0=np18py27'])
         expected = OrderedDict([('conda', ['nltk 3.0.0 np18py27'])])
         self.assertEqual(e.dependencies, expected)
 
     def test_other_tips_of_dependencies_are_supported(self):
         e = env.Environment(
-            raw_dependencies=['nltk', {'pip': ['foo', 'bar']}]
+            dependencies=['nltk', {'pip': ['foo', 'bar']}]
         )
         expected = OrderedDict([
             ('conda', ['nltk']),
@@ -113,13 +104,13 @@ class EnvironmentTestCase(unittest.TestCase):
         e = env.Environment(
             name=random_name,
             channels=['javascript'],
-            raw_dependencies=['nodejs']
+            dependencies=['nodejs']
         )
 
         expected = {
             'name': random_name,
             'channels': ['javascript'],
-            'raw_dependencies': ['nodejs']
+            'dependencies': ['nodejs']
         }
         self.assertEqual(e.to_dict(), expected)
 
@@ -133,7 +124,7 @@ class EnvironmentTestCase(unittest.TestCase):
         e = env.Environment(
             name=random_name,
             channels=['javascript'],
-            raw_dependencies=['nodejs']
+            dependencies=['nodejs']
         )
 
         expected = {
@@ -150,7 +141,7 @@ class EnvironmentTestCase(unittest.TestCase):
         e = env.Environment(
             name=random_name,
             channels=['javascript'],
-            raw_dependencies=['nodejs']
+            dependencies=['nodejs']
         )
 
         expected = '\n'.join([
@@ -170,7 +161,7 @@ class EnvironmentTestCase(unittest.TestCase):
         e = env.Environment(
             name=random_name,
             channels=['javascript'],
-            raw_dependencies=['nodejs']
+            dependencies=['nodejs']
         )
 
         s = FakeStream()
