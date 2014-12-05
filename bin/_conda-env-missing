@@ -4,4 +4,6 @@
 >&2 echo ""
 >&2 echo "    conda install -c conda conda-env"
 >&2 echo ""
+>&2 echo "For more information, please visit: https://github.com/conda/conda-env"
+>&2 echo ""
 return 1
