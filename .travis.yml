@@ -22,6 +22,7 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
+  - conda update conda
   - conda install -c conda pytest requests conda-env
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
