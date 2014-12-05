@@ -10,11 +10,12 @@ platform:
 
 engine:
   - python=2
-  # - python=3
-env:
-  - CONDA_PY=27
-  - CONDA_PY=33
-  - CONDA_PY=34
+  - python=3.3
+  - python=3.4
+# env:
+#   - CONDA_PY=27
+#   - CONDA_PY=33
+#   - CONDA_PY=34
 
 # Can't test on binstar because it needs to be installed in root
 script:
