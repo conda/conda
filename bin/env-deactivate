@@ -2,7 +2,7 @@
 
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
-if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+if [[ -n $BASH_VERSION ]] && [[ "$(basename $0)" == "deactivate" ]]; then
     >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
 "
