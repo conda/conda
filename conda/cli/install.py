@@ -322,6 +322,13 @@ environment does not exist: %s
         else:
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+            if args.copy:
+                new_link = []
+                for pkg in actions["LINK"]:
+                    dist, pkgs_dir, lt = plan.split_linkarg(pkg)
+                    lt = ci.LINK_COPY
+                    new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
+                actions["LINK"] = new_link
     except NoPackagesFound as e:
         error_message = e.args[0]
 
