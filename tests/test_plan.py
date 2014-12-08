@@ -8,6 +8,7 @@ from conda.config import default_python, pkgs_dirs
 import conda.config
 from conda.install import LINK_HARD
 import conda.plan as plan
+import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
 
@@ -29,7 +30,7 @@ class TestMisc(unittest.TestCase):
             ('w3-1.2-0 /opt/pkgs 1', ('w3-1.2-0', '/opt/pkgs', 1)),
             (' w3-1.2-0  /opt/pkgs  1  ', ('w3-1.2-0', '/opt/pkgs', 1)),
             (r'w3-1.2-0 C:\A B\pkgs 2', ('w3-1.2-0', r'C:\A B\pkgs', 2))]:
-            self.assertEqual(plan.split_linkarg(arg), res)
+            self.assertEqual(inst.split_linkarg(arg), res)
 
 
 class TestAddDeaultsToSpec(unittest.TestCase):
@@ -43,18 +44,18 @@ class TestAddDeaultsToSpec(unittest.TestCase):
     def test_1(self):
         self.linked = solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         for specs, added in [
-            (['python 3*'],  []),
-            (['python'],     ['python 2.7*']),
-            (['scipy'],      ['python 2.7*']),
+            (['python 3*'], []),
+            (['python'], ['python 2.7*']),
+            (['scipy'], ['python 2.7*']),
             ]:
             self.check(specs, added)
 
     def test_2(self):
         self.linked = solve(['anaconda 1.5.0', 'python 2.6*', 'numpy 1.6*'])
         for specs, added in [
-            (['python'],     ['python 2.6*']),
-            (['numpy'],      ['python 2.6*']),
-            (['pandas'],     ['python 2.6*']),
+            (['python'], ['python 2.6*']),
+            (['numpy'], ['python 2.6*']),
+            (['pandas'], ['python 2.6*']),
             # however, this would then be unsatisfiable
             (['python 3*', 'numpy'], []),
             ]:
@@ -63,9 +64,9 @@ class TestAddDeaultsToSpec(unittest.TestCase):
     def test_3(self):
         self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
         for specs, added in [
-            (['python'],     ['python 3.3*']),
-            (['numpy'],      ['python 3.3*']),
-            (['scipy'],      ['python 3.3*']),
+            (['python'], ['python 3.3*']),
+            (['numpy'], ['python 3.3*']),
+            (['scipy'], ['python 3.3*']),
             ]:
             self.check(specs, added)
 
@@ -73,10 +74,10 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         self.linked = []
         ps = ['python 2.7*'] if default_python == '2.7' else []
         for specs, added in [
-            (['python'],     ps),
-            (['numpy'],      ps),
-            (['scipy'],      ps),
-            (['anaconda'],   ps),
+            (['python'], ps),
+            (['numpy'], ps),
+            (['scipy'], ps),
+            (['anaconda'], ps),
             (['anaconda 1.5.0 np17py27_0'], []),
             (['sympy 0.7.2 py27_0'], []),
             (['scipy 0.12.0 np16py27_0'], []),
