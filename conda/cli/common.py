@@ -92,6 +92,13 @@ def add_parser_use_index_cache(p):
         help = "use cache of channel index files",
     )
 
+def add_parser_copy(p):
+    p.add_argument(
+        '--copy',
+        action="store_true",
+        help="Install all packages using copies instead of hard- or soft-linking."
+        )
+
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
@@ -129,6 +136,7 @@ def add_parser_install(p):
     add_parser_channels(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
+    add_parser_copy(p)
     p.add_argument(
         "--alt-hint",
         action="store_true",
