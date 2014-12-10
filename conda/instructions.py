@@ -3,6 +3,7 @@ import re
 
 from conda import config
 from conda import install
+from conda.exceptions import InvaidInstruction
 from conda.fetch import fetch_pkg
 
 
@@ -105,10 +106,6 @@ commands = {
 }
 
 
-class InvaidInstruction(Exception):
-    pass
-
-
 def execute_instructions(plan, index=None, verbose=False):
     if verbose:
         from conda.console import setup_verbose_handlers
@@ -127,9 +124,7 @@ def execute_instructions(plan, index=None, verbose=False):
         cmd = commands.get(instruction)
 
         if cmd is None:
-            raise InvaidInstruction(
-                "No handler for instruction: %r" % instruction
-            )
+            raise InvaidInstruction(instruction)
 
         cmd(state, *args)
 
