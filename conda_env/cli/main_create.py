@@ -1,16 +1,16 @@
 from argparse import RawDescriptionHelpFormatter
-from collections import OrderedDict
 import os
 import textwrap
 import sys
-import yaml
 
 from conda import config
 from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
 
+from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
+from .. import exceptions
 
 description = """
 Create an environment based on an environment file
@@ -56,8 +56,10 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    if not os.path.exists(args.file):
-        msg = 'Unable to locate environment file: %s\n\n' % args.file
+    try:
+        env = from_file(args.file)
+    except exceptions.EnvironmentFileNotFound as e:
+        msg = 'Unable to locate environment file: %s\n\n' % e.filename
         msg += "\n".join(textwrap.wrap(textwrap.dedent("""
             Please verify that the above file is present and that you have
             permission read the file's contents.  Note, you can specify the
@@ -65,11 +67,9 @@ def execute(args, parser):
             conda env create.""").lstrip()))
 
         common.error_and_exit(msg, json=args.json)
-    with open(args.file, 'rb') as fp:
-        data = yaml.load(fp)
 
     if not args.name:
-        if not 'name' in data:
+        if not env.name:
             # TODO It would be nice to be able to format this more cleanly
             common.error_and_exit(
                 'An environment name is required.\n\n'
@@ -80,7 +80,7 @@ def execute(args, parser):
         # Note: stubbing out the args object as all of the
         # conda.cli.common code thinks that name will always
         # be specified.
-        args.name = data['name']
+        args.name = env.name
 
     prefix = common.get_prefix(args, search=False)
     cli_install.check_prefix(prefix, json=args.json)
@@ -89,18 +89,10 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
-    specs = OrderedDict([('conda', [])])
-
-    for line in data['dependencies']:
-        if type(line) is dict:
-            specs.update(line)
-        else:
-            specs['conda'].append(common.spec_from_line(line))
-
-    for installer_type, specs in specs.items():
+    for installer_type, specs in env.dependencies.items():
         try:
             installer = get_installer(installer_type)
-            installer.install(prefix, specs, args, data)
+            installer.install(prefix, specs, args, env)
         except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
