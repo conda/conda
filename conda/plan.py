@@ -10,7 +10,6 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import re
 import sys
 import os
 from logging import getLogger
@@ -487,51 +486,10 @@ def revert_actions(prefix, revision=-1):
     return actions
 
 # ---------------------------- EXECUTION --------------------------
-
-def cmds_from_plan(plan):
-    res = []
-    for line in plan:
-        log.debug(' %s' % line)
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        res.append(line.split(None, 1))
-    return res
-
-def execute_plan(plan, index=None, verbose=False):
-    if verbose:
-        from conda.console import setup_verbose_handlers
-        setup_verbose_handlers()
-
-    # set default prefix
-
-    cmds = cmds_from_plan(plan)
-
-    state = {'i': None, 'prefix': config.root_dir, 'index':index}
-
-    for instruction, arg in cmds:
-        if state['i'] is not None and instruction in inst.progress_cmds:
-            state['i'] += 1
-            getLogger('progress.update').info((install.name_dist(arg), state['i']))
-
-        cmd = inst.commands.get(instruction)
-
-        if cmd is None:
-            raise Exception("Did not expect command: %r" % cmd)
-
-        cmd(state, arg)
-
-        if state['i'] is not None and cmd in inst.progress_cmds and state['maxval'] == state['i']:
-            state['i'] = None
-            getLogger('progress.stop').info(None)
-
-    install.messages(state['prefix'])
-
-
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
     with History(actions[inst.PREFIX]):
-        execute_plan(plan, index, verbose)
+        inst.execute_instructions(plan, index, verbose)
 
 
 if __name__ == '__main__':

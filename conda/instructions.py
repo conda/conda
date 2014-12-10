@@ -1,8 +1,12 @@
 from logging import getLogger
-from conda.fetch import fetch_pkg
-from conda import install
-from conda import config
 import re
+
+from conda import config
+from conda import install
+from conda.fetch import fetch_pkg
+
+
+log = getLogger(__name__)
 
 # op codes
 FETCH = 'FETCH'
@@ -87,3 +91,38 @@ commands = {
             UNLINK: UNLINK_CMD,
             SYMLINK_CONDA: SYMLINK_CONDA_CMD,
        }
+
+
+class InvaidInstruction(Exception):
+    pass
+
+
+
+def execute_instructions(plan, index=None, verbose=False):
+    if verbose:
+        from conda.console import setup_verbose_handlers
+        setup_verbose_handlers()
+
+    state = {'i': None, 'prefix': config.root_dir, 'index':index}
+
+    for instruction, args in plan:
+
+        log.debug(' %s%r' % (instruction, args))
+
+        if state['i'] is not None and instruction in progress_cmds:
+            state['i'] += 1
+            getLogger('progress.update').info((args[0], state['i']))
+
+        cmd = commands.get(instruction)
+
+        if cmd is None:
+            raise InvaidInstruction("No handler for instruction: %r" % instruction)
+
+        cmd(state, *args)
+
+        if state['i'] is not None and cmd in progress_cmds and state['maxval'] == state['i']:
+            state['i'] = None
+            getLogger('progress.stop').info(None)
+
+    install.messages(state['prefix'])
+
