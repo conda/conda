@@ -328,7 +328,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                     if md5:
                         h.update(chunk)
                     n += len(chunk)
-                    if size:
+                    if size and 0 <= n <= size:
                         getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee
