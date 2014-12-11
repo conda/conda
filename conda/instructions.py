@@ -113,20 +113,20 @@ def execute_instructions(plan, index=None, verbose=False):
 
     state = {'i': None, 'prefix': config.root_dir, 'index': index}
 
-    for instruction, args in plan:
+    for instruction, arg in plan:
 
-        log.debug(' %s%r' % (instruction, args))
+        log.debug(' %s(%r)' % (instruction, arg))
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((args[0], state['i']))
+            getLogger('progress.update').info((arg, state['i']))
 
         cmd = commands.get(instruction)
 
         if cmd is None:
             raise InvalidInstruction(instruction)
 
-        cmd(state, *args)
+        cmd(state, arg)
 
         if (state['i'] is not None and cmd in progress_cmds
                 and state['maxval'] == state['i']):

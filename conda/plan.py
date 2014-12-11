@@ -181,8 +181,8 @@ def plan_from_actions(actions):
         op_order = inst.action_codes
 
     assert inst.PREFIX in actions and actions[inst.PREFIX]
-    res = ['# plan',
-           'PREFIX %s' % actions[inst.PREFIX]]
+    res = [
+           ('PREFIX', '%s' % actions[inst.PREFIX])]
 
     if sys.platform == 'win32':
         # Always link/unlink menuinst first on windows in case a subsequent
@@ -193,7 +193,7 @@ def plan_from_actions(actions):
                 pkgs = []
                 for pkg in actions[op]:
                     if 'menuinst' in pkg:
-                        res.append('%s %s' % (op, pkg))
+                        res.append((op, pkg))
                     else:
                         pkgs.append(pkg)
                 actions[op] = pkgs
@@ -204,11 +204,11 @@ def plan_from_actions(actions):
         if not actions[op]:
             continue
         if '_' not in op:
-            res.append('PRINT %sing packages ...' % op.capitalize())
+            res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
         if op in inst.progress_cmds:
-            res.append('PROGRESS %d' % len(actions[op]))
+            res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
-            res.append('%s %s' % (op, arg))
+            res.append((op, arg))
     return res
 
 def extracted_where(dist):
