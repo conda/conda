@@ -34,7 +34,8 @@ class TestExecutePlan(unittest.TestCase):
 
         index = {'This is an index': True}
 
-        def simple_cmd(state, expect, x):
+        def simple_cmd(state, arg):
+            expect, x = arg
             state.setdefault('x', 1)
             self.assertEqual(state['x'], expect)
             state['x'] = x
