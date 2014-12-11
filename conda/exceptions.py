@@ -2,7 +2,7 @@ class CondaException(Exception):
     pass
 
 
-class InvaidInstruction(CondaException):
+class InvalidInstruction(CondaException):
     def __init__(self, instruction, *args, **kwargs):
         msg = "No handler for instruction: %r" % instruction
-        super(InvaidInstruction, self).__init__(msg, *args, **kwargs)
+        super(InvalidInstruction, self).__init__(msg, *args, **kwargs)
