@@ -17,4 +17,4 @@ class InvalidExceptionTestCase(unittest.TestCase):
         random_instruction = random.randint(100, 200)
         e = exceptions.InvalidInstruction(random_instruction)
         expected = "No handler for instruction: %s" % random_instruction
-        self.assertEqual(expected, e.message)
+        self.assertEqual(expected, str(e))
