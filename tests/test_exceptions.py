@@ -7,14 +7,14 @@ from conda import exceptions
 class InvalidExceptionTestCase(unittest.TestCase):
     def test_requires_an_instruction(self):
         with self.assertRaises(TypeError):
-            exceptions.InvaidInstruction()
+            exceptions.InvalidInstruction()
 
     def test_extends_from_conda_exception(self):
-        e = exceptions.InvaidInstruction("foo")
+        e = exceptions.InvalidInstruction("foo")
         self.assertIsInstance(e, exceptions.CondaException)
 
     def test_creates_message_with_instruction_name(self):
         random_instruction = random.randint(100, 200)
-        e = exceptions.InvaidInstruction(random_instruction)
+        e = exceptions.InvalidInstruction(random_instruction)
         expected = "No handler for instruction: %s" % random_instruction
         self.assertEqual(expected, e.message)

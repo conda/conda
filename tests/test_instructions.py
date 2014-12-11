@@ -1,4 +1,5 @@
-from conda.instructions import execute_instructions, InvaidInstruction, commands
+from conda import exceptions
+from conda.instructions import execute_instructions, commands
 import unittest
 
 
@@ -9,7 +10,7 @@ class TestExecutePlan(unittest.TestCase):
 
         plan = [('DOES_NOT_EXIST', ())]
 
-        with self.assertRaises(InvaidInstruction):
+        with self.assertRaises(exceptions.InvalidInstruction):
             execute_instructions(plan, index, verbose=False)
 
     def test_simple_instruction(self):
