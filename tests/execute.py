@@ -1,9 +1,9 @@
 import logging
 from optparse import OptionParser
 
-from conda.instructions import execute_instructions
+from conda.plan import execute_plan
 from conda.api import get_index
-import yaml
+
 
 def main():
     p = OptionParser(
@@ -20,9 +20,7 @@ def main():
     if len(args) != 1:
         p.error('exactly one argument required')
 
-    plan = yaml.load(open(args[0]))
-    print plan
-    execute_instructions(plan, get_index(), not opts.quiet)
+    execute_plan(open(args[0]), get_index(), not opts.quiet)
 
 
 if __name__ == '__main__':
