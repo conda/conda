@@ -106,7 +106,19 @@ commands = {
 }
 
 
-def execute_instructions(plan, index=None, verbose=False):
+def execute_instructions(plan, index=None, verbose=False, _commands=None):
+    """
+    Execute the instructions in the plan
+    
+    :param plan: A list of (instruction, arg) tuples
+    :param index: The meta-data index
+    :param verbose: verbose output
+    :param _commands: (For testing only) dict mapping an instruction to executable if None
+    then the default commands will be used 
+    """
+    if _commands is None:
+        _commands = commands
+
     if verbose:
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
@@ -120,8 +132,7 @@ def execute_instructions(plan, index=None, verbose=False):
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
             getLogger('progress.update').info((arg, state['i']))
-
-        cmd = commands.get(instruction)
+        cmd = _commands.get(instruction)
 
         if cmd is None:
             raise InvalidInstruction(instruction)
