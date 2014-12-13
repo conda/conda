@@ -166,6 +166,11 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         install.on_win = original
 
     @contextmanager
+    def generate_mock_subprocess(self):
+        with patch.object(install, 'subprocess') as subprocess:
+            yield subprocess
+
+    @contextmanager
     def generate_mocks(self, islink=True, isfile=True, isdir=True, on_win=False):
         with self.generate_mock_islink(islink) as mock_islink:
             with self.generate_mock_isfile(isfile) as mock_isfile:
@@ -175,15 +180,17 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
                             with self.generate_mock_sleep() as mock_sleep:
                                 with self.generate_mock_log() as mock_log:
                                     with self.generate_mock_on_win(on_win):
-                                        yield {
-                                            'islink': mock_islink,
-                                            'isfile': mock_isfile,
-                                            'isdir': mock_isdir,
-                                            'unlink': mock_unlink,
-                                            'rmtree': mock_rmtree,
-                                            'sleep': mock_sleep,
-                                            'log': mock_log,
-                                        }
+                                        with self.generate_mock_subprocess() as subprocess:
+                                            yield {
+                                                'islink': mock_islink,
+                                                'isfile': mock_isfile,
+                                                'isdir': mock_isdir,
+                                                'unlink': mock_unlink,
+                                                'rmtree': mock_rmtree,
+                                                'sleep': mock_sleep,
+                                                'log': mock_log,
+                                                'subprocess': subprocess,
+                                            }
 
     def generate_directory_mocks(self, on_win=False):
         return self.generate_mocks(islink=False, isfile=False, isdir=True,
@@ -320,6 +327,16 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mock.call(random_path, onerror=install._remove_readonly)
         ]
         mocks['rmtree'].assert_has_calls(expected_call_list)
+
+    def test_dispatch_to_subprocess_on_error(self):
+        with self.generate_directory_mocks(on_win=True) as mocks:
+            mocks['rmtree'].side_effect = OSError
+            some_path = generate_random_path()
+            install.rm_rf(some_path)
+        check_call = mocks['subprocess'].check_call
+
+        expected_arg = ['cmd', '/c', 'rd', '/s', '/q', some_path]
+        check_call.assert_called_with(expected_arg)
 
 if __name__ == '__main__':
     unittest.main()
