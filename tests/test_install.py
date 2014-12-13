@@ -7,12 +7,17 @@ except ImportError:
 from contextlib import contextmanager
 import random
 import shutil
+import stat
 import tempfile
 import unittest
 from os.path import join
 
 from conda import install
 from conda.install import PaddingError, binary_replace, update_prefix
+
+
+def generate_random_path():
+    return '/some/path/to/file%s' % random.randint(100, 200)
 
 
 class TestBinaryReplace(unittest.TestCase):
@@ -88,6 +93,35 @@ class FileTests(unittest.TestCase):
             )
 
 
+class remove_readonly_TestCase(unittest.TestCase):
+    def test_takes_three_args(self):
+        with self.assertRaises(TypeError):
+            install._remove_readonly()
+
+        with self.assertRaises(TypeError):
+            install._remove_readonly(True)
+
+        with self.assertRaises(TypeError):
+            install._remove_readonly(True, True)
+
+        with self.assertRaises(TypeError):
+            install._remove_readonly(True, True, True, True)
+
+    def test_calls_os_chmod(self):
+        some_path = generate_random_path()
+        with patch.object(install.os, 'chmod') as chmod:
+            install._remove_readonly(mock.Mock(), some_path, {})
+        chmod.assert_called_with(some_path, stat.S_IWRITE)
+
+    def test_calls_func(self):
+        some_path = generate_random_path()
+        func = mock.Mock()
+        with patch.object(install.os, 'chmod'):
+            install._remove_readonly(func, some_path, {})
+        func.assert_called_with(some_path)
+
+
+
 class rm_rf_file_and_link_TestCase(unittest.TestCase):
     @contextmanager
     def generate_mock_islink(self, value):
@@ -160,7 +194,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
 
     @property
     def generate_random_path(self):
-        return '/some/path/to/file%s' % random.randint(100, 200)
+        return generate_random_path()
 
     def test_calls_islink(self):
         with self.generate_mocks() as mocks:
