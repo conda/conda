@@ -166,17 +166,15 @@ def rm_rf(path, max_retries=5):
                     try:
                         shutil.rmtree(path, onerror=_remove_readonly)
                         return
-                    except OSError:
-                #     except OSError as e1:
-                #         msg += "Retry with onerror failed (%s)\n" % e1
+                    except OSError as e1:
+                        msg += "Retry with onerror failed (%s)\n" % e1
                         pass
 
                     try:
                         subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
                         return
-                    except subprocess.CalledProcessError:
-                #     except subprocess.CalledProcessError as e2:
-                #         msg += '%s\n' % e2
+                    except subprocess.CalledProcessError as e2:
+                        msg += '%s\n' % e2
                         pass
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
