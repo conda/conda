@@ -1,8 +1,17 @@
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+    from mock import patch
+
+from contextlib import contextmanager
+import random
 import shutil
 import tempfile
 import unittest
 from os.path import join
 
+from conda import install
 from conda.install import PaddingError, binary_replace, update_prefix
 
 
@@ -77,6 +86,70 @@ class FileTests(unittest.TestCase):
                 data,
                 b'\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0'
             )
+
+
+class rm_rf_file_and_link_TestCase(unittest.TestCase):
+    @contextmanager
+    def generate_mock_islink(self, value):
+        with patch.object(install, 'islink', return_value=value) as islink:
+            yield islink
+
+    @contextmanager
+    def generate_mock_isfile(self, value):
+        with patch.object(install, 'isfile', return_value=value) as isfile:
+            yield isfile
+
+    @contextmanager
+    def generate_mock_unlink(self):
+        with patch.object(install.os, 'unlink') as unlink:
+            yield unlink
+
+    @contextmanager
+    def generate_mocks(self, islink=True, isfile=True):
+        with self.generate_mock_islink(islink) as mock_islink:
+            with self.generate_mock_isfile(isfile) as mock_isfile:
+                with self.generate_mock_unlink() as mock_unlink:
+                    yield {
+                        'islink': mock_islink,
+                        'isfile': mock_isfile,
+                        'unlink': mock_unlink,
+                    }
+
+    def test_calls_islink(self):
+        with self.generate_mocks() as mocks:
+            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            install.rm_rf(some_path)
+        mocks['islink'].assert_called_with(some_path)
+
+    def test_calls_unlink_on_true_islink(self):
+        with self.generate_mocks() as mocks:
+            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            install.rm_rf(some_path)
+        mocks['unlink'].assert_called_with(some_path)
+
+    def test_does_not_call_isfile_if_islink_is_true(self):
+        with self.generate_mocks() as mocks:
+            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            install.rm_rf(some_path)
+        self.assertFalse(mocks['isfile'].called)
+
+    def test_calls_isfile_with_path(self):
+        with self.generate_mocks(islink=False, isfile=True) as mocks:
+            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            install.rm_rf(some_path)
+        mocks['isfile'].assert_called_with(some_path)
+
+    def test_calls_unlink_on_false_islink_and_true_isfile(self):
+        with self.generate_mocks(islink=False, isfile=True) as mocks:
+            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            install.rm_rf(some_path)
+        mocks['unlink'].assert_called_with(some_path)
+
+    def test_does_not_call_unlink_on_false_values(self):
+        with self.generate_mocks(islink=False, isfile=False) as mocks:
+            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            install.rm_rf(some_path)
+        self.assertFalse(mocks['unlink'].called)
 
 
 if __name__ == '__main__':
