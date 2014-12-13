@@ -11,12 +11,12 @@ class TestBinaryReplace(unittest.TestCase):
     def test_simple(self):
         self.assertEqual(
             binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
-                           b'xxxbbbbbxyz\x00zz')
+            b'xxxbbbbbxyz\x00zz')
 
     def test_shorter(self):
         self.assertEqual(
             binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbb'),
-                           b'xxxbbbbxyz\x00\x00zz')
+            b'xxxbbbbxyz\x00\x00zz')
 
     def test_too_long(self):
         self.assertRaises(PaddingError, binary_replace,
@@ -24,12 +24,12 @@ class TestBinaryReplace(unittest.TestCase):
 
     def test_no_extra(self):
         self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
-                                        b'bbbbb\x00')
+                         b'bbbbb\x00')
 
     def test_two(self):
         self.assertEqual(
             binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa', b'bbbbb'),
-                           b'bbbbb\x001234bbbbbcc\x00\x00')
+            b'bbbbb\x001234bbbbbcc\x00\x00')
 
     def test_spaces(self):
         self.assertEqual(
@@ -45,6 +45,7 @@ class TestBinaryReplace(unittest.TestCase):
             b'bbbcbbb\x00\x00\x00')
         self.assertRaises(PaddingError, binary_replace,
                           b'aaaacaaaa\x00', b'aaaa', b'bbbbb')
+
 
 class FileTests(unittest.TestCase):
 
@@ -72,8 +73,10 @@ class FileTests(unittest.TestCase):
                       placeholder='/some-placeholder', mode='binary')
         with open(self.tmpfname, 'rb') as fi:
             data = fi.read()
-            self.assertEqual(data,
-                      b'\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0')
+            self.assertEqual(
+                data,
+                b'\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0'
+            )
 
 
 if __name__ == '__main__':
