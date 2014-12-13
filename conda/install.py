@@ -163,14 +163,17 @@ def rm_rf(path, max_retries=5):
             except OSError as e:
                 msg = "Unable to delete %s\n%s\n" % (path, e)
                 if on_win:
-                    shutil.rmtree(path, onerror=_remove_readonly)
-                    return
+                    try:
+                        shutil.rmtree(path, onerror=_remove_readonly)
+                        return
+                    except OSError:
+                        pass
                 #     except OSError as e1:
                 #         msg += "Retry with onerror failed (%s)\n" % e1
 
                 #     try:
-                #         subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
-                #         return
+                    subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
+                    return
                 #     except subprocess.CalledProcessError as e2:
                 #         msg += '%s\n' % e2
                 log.debug(msg + "Retrying after %s seconds..." % i)
