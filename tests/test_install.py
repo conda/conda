@@ -115,19 +115,26 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield rmtree
 
     @contextmanager
+    def generate_mock_sleep(self):
+        with patch.object(install.time, 'sleep') as sleep:
+            yield sleep
+
+    @contextmanager
     def generate_mocks(self, islink=True, isfile=True, isdir=True):
         with self.generate_mock_islink(islink) as mock_islink:
             with self.generate_mock_isfile(isfile) as mock_isfile:
                 with self.generate_mock_isdir(isdir) as mock_isdir:
                     with self.generate_mock_unlink() as mock_unlink:
                         with self.generate_mock_rmtree() as mock_rmtree:
-                            yield {
-                                'islink': mock_islink,
-                                'isfile': mock_isfile,
-                                'isdir': mock_isdir,
-                                'unlink': mock_unlink,
-                                'rmtree': mock_rmtree,
-                            }
+                            with self.generate_mock_sleep() as mock_sleep:
+                                yield {
+                                    'islink': mock_islink,
+                                    'isfile': mock_isfile,
+                                    'isdir': mock_isdir,
+                                    'unlink': mock_unlink,
+                                    'rmtree': mock_rmtree,
+                                    'sleep': mock_sleep
+                                }
 
     def generate_directory_mocks(self):
         return self.generate_mocks(islink=False, isfile=False, isdir=True)
@@ -224,6 +231,15 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             install.rm_rf(some_path)
         self.assertEqual(3, mocks['rmtree'].call_count)
 
+    def test_pauses_for_same_number_of_seconds_as_max_retries(self):
+        with self.generate_directory_mocks() as mocks:
+            mocks['rmtree'].side_effect = OSError
+            max_retries = random.randint(1, 10)
+            with self.assertRaises(OSError):
+                install.rm_rf(self.generate_random_path, max_retries=max_retries)
+
+        expected = [mock.call(i) for i in range(max_retries)]
+        mocks['sleep'].assert_has_calls(expected)
 
 if __name__ == '__main__':
     unittest.main()
