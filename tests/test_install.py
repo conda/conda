@@ -95,6 +95,11 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield islink
 
     @contextmanager
+    def generate_mock_isdir(self, value):
+        with patch.object(install, 'isdir', return_value=value) as isdir:
+            yield isdir
+
+    @contextmanager
     def generate_mock_isfile(self, value):
         with patch.object(install, 'isfile', return_value=value) as isfile:
             yield isfile
@@ -105,51 +110,119 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield unlink
 
     @contextmanager
-    def generate_mocks(self, islink=True, isfile=True):
+    def generate_mock_rmtree(self):
+        with patch.object(install.shutil, 'rmtree') as rmtree:
+            yield rmtree
+
+    @contextmanager
+    def generate_mocks(self, islink=True, isfile=True, isdir=True):
         with self.generate_mock_islink(islink) as mock_islink:
             with self.generate_mock_isfile(isfile) as mock_isfile:
-                with self.generate_mock_unlink() as mock_unlink:
-                    yield {
-                        'islink': mock_islink,
-                        'isfile': mock_isfile,
-                        'unlink': mock_unlink,
-                    }
+                with self.generate_mock_isdir(isdir) as mock_isdir:
+                    with self.generate_mock_unlink() as mock_unlink:
+                        with self.generate_mock_rmtree() as mock_rmtree:
+                            yield {
+                                'islink': mock_islink,
+                                'isfile': mock_isfile,
+                                'isdir': mock_isdir,
+                                'unlink': mock_unlink,
+                                'rmtree': mock_rmtree,
+                            }
+
+    def generate_directory_mocks(self):
+        return self.generate_mocks(islink=False, isfile=False, isdir=True)
+
+    def generate_all_false_mocks(self):
+        return self.generate_mocks(False, False, False)
+
+    @property
+    def generate_random_path(self):
+        return '/some/path/to/file%s' % random.randint(100, 200)
 
     def test_calls_islink(self):
         with self.generate_mocks() as mocks:
-            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['islink'].assert_called_with(some_path)
 
     def test_calls_unlink_on_true_islink(self):
         with self.generate_mocks() as mocks:
-            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
     def test_does_not_call_isfile_if_islink_is_true(self):
         with self.generate_mocks() as mocks:
-            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            some_path = self.generate_random_path
             install.rm_rf(some_path)
         self.assertFalse(mocks['isfile'].called)
 
     def test_calls_isfile_with_path(self):
         with self.generate_mocks(islink=False, isfile=True) as mocks:
-            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['isfile'].assert_called_with(some_path)
 
     def test_calls_unlink_on_false_islink_and_true_isfile(self):
         with self.generate_mocks(islink=False, isfile=True) as mocks:
-            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
     def test_does_not_call_unlink_on_false_values(self):
         with self.generate_mocks(islink=False, isfile=False) as mocks:
-            some_path = '/some/path/to/file%s' % random.randint(100, 200)
+            some_path = self.generate_random_path
             install.rm_rf(some_path)
         self.assertFalse(mocks['unlink'].called)
+
+    def test_does_not_call_shutil_on_false_isdir(self):
+        with self.generate_all_false_mocks() as mocks:
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        self.assertFalse(mocks['rmtree'].called)
+
+    def test_calls_rmtree_at_least_once_on_isdir_true(self):
+        with self.generate_directory_mocks() as mocks:
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        mocks['rmtree'].assert_called_with(some_path)
+
+    def test_calls_rmtree_only_once_on_success(self):
+        with self.generate_directory_mocks() as mocks:
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        self.assertEqual(1, mocks['rmtree'].call_count)
+
+    def test_raises_final_exception_if_it_cant_remove(self):
+        with self.generate_directory_mocks() as mocks:
+            mocks['rmtree'].side_effect = OSError
+            some_path = self.generate_random_path
+            with self.assertRaises(OSError):
+                install.rm_rf(some_path)
+
+    def test_retries_six_times_to_ensure_it_cant_really_remove(self):
+        with self.generate_directory_mocks() as mocks:
+            mocks['rmtree'].side_effect = OSError
+            some_path = self.generate_random_path
+            with self.assertRaises(OSError):
+                install.rm_rf(some_path)
+        self.assertEqual(6, mocks['rmtree'].call_count)
+
+    def test_retries_as_many_as_max_retries_plus_one(self):
+        max_retries = random.randint(7, 10)
+        with self.generate_directory_mocks() as mocks:
+            mocks['rmtree'].side_effect = OSError
+            some_path = self.generate_random_path
+            with self.assertRaises(OSError):
+                install.rm_rf(some_path, max_retries=max_retries)
+        self.assertEqual(max_retries + 1, mocks['rmtree'].call_count)
+
+    def test_stops_retrying_after_success(self):
+        with self.generate_directory_mocks() as mocks:
+            mocks['rmtree'].side_effect = [OSError, OSError, None]
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        self.assertEqual(3, mocks['rmtree'].call_count)
 
 
 if __name__ == '__main__':
