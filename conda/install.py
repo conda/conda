@@ -137,9 +137,8 @@ def _link(src, dst, linktype=LINK_HARD):
 
 # TODO Test
 def _remove_readonly(func, path, excinfo):
-    pass
-    # os.chmod(path, stat.S_IWRITE)
-    # func(path)
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 
 def rm_rf(path, max_retries=5):
