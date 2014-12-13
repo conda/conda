@@ -120,6 +120,11 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield sleep
 
     @contextmanager
+    def generate_mock_log(self):
+        with patch.object(install, 'log') as log:
+            yield log
+
+    @contextmanager
     def generate_mocks(self, islink=True, isfile=True, isdir=True):
         with self.generate_mock_islink(islink) as mock_islink:
             with self.generate_mock_isfile(isfile) as mock_isfile:
@@ -127,14 +132,16 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
                     with self.generate_mock_unlink() as mock_unlink:
                         with self.generate_mock_rmtree() as mock_rmtree:
                             with self.generate_mock_sleep() as mock_sleep:
-                                yield {
-                                    'islink': mock_islink,
-                                    'isfile': mock_isfile,
-                                    'isdir': mock_isdir,
-                                    'unlink': mock_unlink,
-                                    'rmtree': mock_rmtree,
-                                    'sleep': mock_sleep
-                                }
+                                with self.generate_mock_log() as mock_log:
+                                    yield {
+                                        'islink': mock_islink,
+                                        'isfile': mock_isfile,
+                                        'isdir': mock_isdir,
+                                        'unlink': mock_unlink,
+                                        'rmtree': mock_rmtree,
+                                        'sleep': mock_sleep,
+                                        'log': mock_log,
+                                    }
 
     def generate_directory_mocks(self):
         return self.generate_mocks(islink=False, isfile=False, isdir=True)
@@ -240,6 +247,24 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
 
         expected = [mock.call(i) for i in range(max_retries)]
         mocks['sleep'].assert_has_calls(expected)
+
+    def test_logs_messages_generated_for_each_retry(self):
+        with self.generate_directory_mocks() as mocks:
+            random_path = self.generate_random_path
+            mocks['rmtree'].side_effect = OSError(random_path)
+            max_retries = random.randint(1, 10)
+            with self.assertRaises(OSError):
+                install.rm_rf(random_path, max_retries=max_retries)
+
+        log_template = "\n".join([
+            "Unable to delete %s" % random_path,
+            "%s" % OSError(random_path),
+            "Retrying after %d seconds...",
+        ])
+
+        expected_call_list = [mock.call(log_template % i)
+                              for i in range(max_retries)]
+        mocks['log'].debug.assert_has_calls(expected_call_list)
 
 if __name__ == '__main__':
     unittest.main()
