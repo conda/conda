@@ -135,7 +135,6 @@ def _link(src, dst, linktype=LINK_HARD):
         raise Exception("Did not expect linktype=%r" % linktype)
 
 
-# TODO Test
 def _remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
