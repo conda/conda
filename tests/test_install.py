@@ -328,6 +328,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mock.call(random_path, onerror=install._remove_readonly)
         ]
         mocks['rmtree'].assert_has_calls(expected_call_list)
+        self.assertEqual(2, mocks['rmtree'].call_count)
 
     def test_dispatch_to_subprocess_on_error_on_windows(self):
         with self.generate_directory_mocks(on_win=True) as mocks:
