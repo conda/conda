@@ -125,7 +125,14 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield log
 
     @contextmanager
-    def generate_mocks(self, islink=True, isfile=True, isdir=True):
+    def generate_mock_on_win(self, value):
+        original = install.on_win
+        install.on_win = value
+        yield
+        install.on_win = original
+
+    @contextmanager
+    def generate_mocks(self, islink=True, isfile=True, isdir=True, on_win=False):
         with self.generate_mock_islink(islink) as mock_islink:
             with self.generate_mock_isfile(isfile) as mock_isfile:
                 with self.generate_mock_isdir(isdir) as mock_isdir:
@@ -133,18 +140,20 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
                         with self.generate_mock_rmtree() as mock_rmtree:
                             with self.generate_mock_sleep() as mock_sleep:
                                 with self.generate_mock_log() as mock_log:
-                                    yield {
-                                        'islink': mock_islink,
-                                        'isfile': mock_isfile,
-                                        'isdir': mock_isdir,
-                                        'unlink': mock_unlink,
-                                        'rmtree': mock_rmtree,
-                                        'sleep': mock_sleep,
-                                        'log': mock_log,
-                                    }
+                                    with self.generate_mock_on_win(on_win):
+                                        yield {
+                                            'islink': mock_islink,
+                                            'isfile': mock_isfile,
+                                            'isdir': mock_isdir,
+                                            'unlink': mock_unlink,
+                                            'rmtree': mock_rmtree,
+                                            'sleep': mock_sleep,
+                                            'log': mock_log,
+                                        }
 
-    def generate_directory_mocks(self):
-        return self.generate_mocks(islink=False, isfile=False, isdir=True)
+    def generate_directory_mocks(self, on_win=False):
+        return self.generate_mocks(islink=False, isfile=False, isdir=True,
+                                   on_win=on_win)
 
     def generate_all_false_mocks(self):
         return self.generate_mocks(False, False, False)
@@ -265,6 +274,18 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         expected_call_list = [mock.call(log_template % i)
                               for i in range(max_retries)]
         mocks['log'].debug.assert_has_calls(expected_call_list)
+
+    def test_tries_extra_kwarg_on_windows(self):
+        with self.generate_directory_mocks(on_win=True) as mocks:
+            random_path = self.generate_random_path
+            mocks['rmtree'].side_effect = [OSError, None]
+            install.rm_rf(random_path)
+
+        expected_call_list = [
+            mock.call(random_path),
+            mock.call(random_path, onerror=install._remove_readonly)
+        ]
+        mocks['rmtree'].assert_has_calls(expected_call_list)
 
 if __name__ == '__main__':
     unittest.main()
