@@ -339,7 +339,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         expected_arg = ['cmd', '/c', 'rd', '/s', '/q', some_path]
         check_call.assert_called_with(expected_arg)
 
-    def test_continues_calling_until_max_tries_on_called_process_errors(self):
+    def test_continues_calling_until_max_tries_on_called_process_errors_on_windows(self):
         max_retries = random.randint(6, 10)
         with self.generate_directory_mocks(on_win=True) as mocks:
             mocks['rmtree'].side_effect = OSError
@@ -349,6 +349,27 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
 
         self.assertEqual((max_retries * 2) + 1, mocks['rmtree'].call_count)
         self.assertEqual(max_retries, mocks['check_call'].call_count)
+
+    def test_include_onerror_failed_in_log_message_on_windows(self):
+        with self.generate_directory_mocks(on_win=True) as mocks:
+            random_path = self.generate_random_path
+            mocks['rmtree'].side_effect = OSError(random_path)
+            mocks['check_call'].side_effect = subprocess.CalledProcessError(1, "cmd")
+            max_retries = random.randint(1, 10)
+            with self.assertRaises(OSError):
+                install.rm_rf(random_path, max_retries=max_retries)
+
+        log_template = "\n".join([
+            "Unable to delete %s" % random_path,
+            "%s" % OSError(random_path),
+            "Retry with onerror failed (%s)" % OSError(random_path),
+            "%s" % mocks['check_call'].side_effect,
+            "Retrying after %d seconds...",
+        ])
+
+        expected_call_list = [mock.call(log_template % i)
+                              for i in range(max_retries)]
+        mocks['log'].debug.assert_has_calls(expected_call_list)
 
 
 if __name__ == '__main__':
