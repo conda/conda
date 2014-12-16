@@ -44,7 +44,7 @@ file with this as the contents:
 
 .. code-block:: yaml
 
-    name: numpy
+    name: stats
     dependencies:
       - numpy
       - pandas
