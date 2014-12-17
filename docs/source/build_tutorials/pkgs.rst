@@ -57,7 +57,7 @@ Once Conda is installed, relaunch a terminal window and confirm that:
 
     $ conda info
 
-finds the executable where you have just installed it. If you did add Anaconda
+finds the executable where you have just installed it. If you did not add Anaconda
 or Miniconda to your PATH (the default option) you will have to supply its
 path explicitly.
 
