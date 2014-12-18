@@ -10,7 +10,9 @@
   * fix possible TypeError when printing an error message
   * link packages in topologically sorted order (so that pre-link scripts can
     assume that the dependencies are installed)
-
+  * add --copy flag to install
+  * prevent the progressbar from crashing conda when fetching in some
+    situations
 
 2014-11-05   3.7.3:
 -------------------
