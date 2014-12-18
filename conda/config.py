@@ -114,7 +114,7 @@ sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
 # things)
 
 
-expanded_user_path = lambda s: abspath(expanded_user_path(s))
+expanded_user_path = lambda s: abspath(expanduser(s))
 
 
 def possible_root_dirs():
