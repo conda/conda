@@ -133,7 +133,7 @@ def possible_root_dirs():
             ['/opt', 'anaconda', ],
         ]
 
-    return [expanded_user_path(os.path.join(a)) for a in dirs]
+    return [expanded_user_path(os.path.join(*a)) for a in dirs]
 
 
 def determine_root_dir(compatibility=True):
