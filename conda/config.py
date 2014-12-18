@@ -136,7 +136,7 @@ def possible_root_dirs():
     return [expanded_user_path(os.path.join(a)) for a in dirs]
 
 
-def determine_root_dir():
+def determine_root_dir(compatibility=True):
     if 'CONDA_ROOT' in os.environ:
         return expanded_user_path(os.environ['CONDA_ROOT'])
 
@@ -152,7 +152,7 @@ def determine_root_dir():
     # all else failed, fall back to the sys.prefix -- this should be
     # deprecated with a proper warning but is included here for non-
     # standard installation paths.
-    return sys.prefix
+    return sys.prefix if compatibility else possible_default_paths[0]
 
 
 root_dir = determine_root_dir()
