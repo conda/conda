@@ -17,8 +17,8 @@ from os.path import (abspath, basename, dirname, expanduser, exists,
 from conda import config
 from conda import install
 from conda.api import get_index
-from conda.plan import (RM_EXTRACTED, EXTRACT, UNLINK, LINK,
-                        ensure_linked_actions, execute_actions)
+from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from conda.plan import ensure_linked_actions, execute_actions
 from conda.compat import iteritems
 
 
@@ -83,7 +83,7 @@ def untracked(prefix, exclude_self_build=False):
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or
-                     (sys.platform=='darwin' and path.endswith('.DS_Store')) or
+                     (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
                      (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
@@ -175,7 +175,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
             s = data.decode('utf-8')
             s = s.replace(prefix1, prefix2)
             data = s.encode('utf-8')
-        except UnicodeDecodeError: # data is binary
+        except UnicodeDecodeError:  # data is binary
             pass
 
         with open(dst, 'wb') as fo:
@@ -306,8 +306,8 @@ def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
         base_url = dirname(info['channel'].rstrip('/'))
         icon_fn = info['icon']
-        #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-        #if isfile(icon_cache_path):
+        # icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+        # if isfile(icon_cache_path):
         #    return url_path(icon_cache_path)
         return '%s/icons/%s' % (base_url, icon_fn)
     return ''
