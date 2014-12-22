@@ -1,9 +1,6 @@
-try:
-    from unittest import mock
-    from unittest.mock import patch
-except ImportError:
-    import mock
-    from mock import patch
+from .decorators import skip_if_no_mock
+from .helpers import mock
+patch = mock.patch if mock else None
 
 from contextlib import contextmanager
 import random
@@ -109,12 +106,14 @@ class remove_readonly_TestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             install._remove_readonly(True, True, True, True)
 
+    @skip_if_no_mock
     def test_calls_os_chmod(self):
         some_path = generate_random_path()
         with patch.object(install.os, 'chmod') as chmod:
             install._remove_readonly(mock.Mock(), some_path, {})
         chmod.assert_called_with(some_path, stat.S_IWRITE)
 
+    @skip_if_no_mock
     def test_calls_func(self):
         some_path = generate_random_path()
         func = mock.Mock()
@@ -205,60 +204,70 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     def generate_random_path(self):
         return generate_random_path()
 
+    @skip_if_no_mock
     def test_calls_islink(self):
         with self.generate_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['islink'].assert_called_with(some_path)
 
+    @skip_if_no_mock
     def test_calls_unlink_on_true_islink(self):
         with self.generate_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
+    @skip_if_no_mock
     def test_does_not_call_isfile_if_islink_is_true(self):
         with self.generate_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         self.assertFalse(mocks['isfile'].called)
 
+    @skip_if_no_mock
     def test_calls_isfile_with_path(self):
         with self.generate_mocks(islink=False, isfile=True) as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['isfile'].assert_called_with(some_path)
 
+    @skip_if_no_mock
     def test_calls_unlink_on_false_islink_and_true_isfile(self):
         with self.generate_mocks(islink=False, isfile=True) as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
+    @skip_if_no_mock
     def test_does_not_call_unlink_on_false_values(self):
         with self.generate_mocks(islink=False, isfile=False) as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         self.assertFalse(mocks['unlink'].called)
 
+    @skip_if_no_mock
     def test_does_not_call_shutil_on_false_isdir(self):
         with self.generate_all_false_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         self.assertFalse(mocks['rmtree'].called)
 
+    @skip_if_no_mock
     def test_calls_rmtree_at_least_once_on_isdir_true(self):
         with self.generate_directory_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['rmtree'].assert_called_with(some_path)
 
+    @skip_if_no_mock
     def test_calls_rmtree_only_once_on_success(self):
         with self.generate_directory_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         self.assertEqual(1, mocks['rmtree'].call_count)
 
+    @skip_if_no_mock
     def test_raises_final_exception_if_it_cant_remove(self):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = OSError
@@ -266,6 +275,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             with self.assertRaises(OSError):
                 install.rm_rf(some_path)
 
+    @skip_if_no_mock
     def test_retries_six_times_to_ensure_it_cant_really_remove(self):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = OSError
@@ -274,6 +284,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
                 install.rm_rf(some_path)
         self.assertEqual(6, mocks['rmtree'].call_count)
 
+    @skip_if_no_mock
     def test_retries_as_many_as_max_retries_plus_one(self):
         max_retries = random.randint(7, 10)
         with self.generate_directory_mocks() as mocks:
@@ -283,6 +294,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
                 install.rm_rf(some_path, max_retries=max_retries)
         self.assertEqual(max_retries + 1, mocks['rmtree'].call_count)
 
+    @skip_if_no_mock
     def test_stops_retrying_after_success(self):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = [OSError, OSError, None]
@@ -290,6 +302,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             install.rm_rf(some_path)
         self.assertEqual(3, mocks['rmtree'].call_count)
 
+    @skip_if_no_mock
     def test_pauses_for_same_number_of_seconds_as_max_retries(self):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = OSError
@@ -300,6 +313,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         expected = [mock.call(i) for i in range(max_retries)]
         mocks['sleep'].assert_has_calls(expected)
 
+    @skip_if_no_mock
     def test_logs_messages_generated_for_each_retry(self):
         with self.generate_directory_mocks() as mocks:
             random_path = self.generate_random_path
@@ -318,6 +332,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
                               for i in range(max_retries)]
         mocks['log'].debug.assert_has_calls(expected_call_list)
 
+    @skip_if_no_mock
     def test_tries_extra_kwarg_on_windows(self):
         with self.generate_directory_mocks(on_win=True) as mocks:
             random_path = self.generate_random_path
@@ -331,6 +346,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         mocks['rmtree'].assert_has_calls(expected_call_list)
         self.assertEqual(2, mocks['rmtree'].call_count)
 
+    @skip_if_no_mock
     def test_dispatch_to_subprocess_on_error_on_windows(self):
         with self.generate_directory_mocks(on_win=True) as mocks:
             mocks['rmtree'].side_effect = OSError
@@ -340,6 +356,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         expected_arg = ['cmd', '/c', 'rd', '/s', '/q', some_path]
         check_call.assert_called_with(expected_arg)
 
+    @skip_if_no_mock
     def test_continues_calling_until_max_tries_on_called_process_errors_on_windows(self):
         max_retries = random.randint(6, 10)
         with self.generate_directory_mocks(on_win=True) as mocks:
@@ -351,6 +368,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         self.assertEqual((max_retries * 2) + 1, mocks['rmtree'].call_count)
         self.assertEqual(max_retries, mocks['check_call'].call_count)
 
+    @skip_if_no_mock
     def test_include_onerror_failed_in_log_message_on_windows(self):
         with self.generate_directory_mocks(on_win=True) as mocks:
             random_path = self.generate_random_path
