@@ -1,11 +1,8 @@
 import random
 import unittest
 
-try:
-    import mock
-    skip_mocked = False
-except ImportError:
-    skip_mocked = True
+from .helpers import mock
+from .decorators import skip_if_no_mock
 
 from conda import pip
 
@@ -36,7 +33,7 @@ class PipPackageTestCase(unittest.TestCase):
 
 
 class installed_test(unittest.TestCase):
-    @unittest.skipIf(skip_mocked, 'install mock to test')
+    @skip_if_no_mock
     # TODO brittle test -- shows code that needs refactoring
     def test_stops_on_exception(self):
         with mock.patch.object(pip, 'subprocess') as subprocess:
