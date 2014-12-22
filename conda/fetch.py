@@ -327,8 +327,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                         raise RuntimeError("Failed to write to %r." % pp)
                     if md5:
                         h.update(chunk)
-                    n += len(chunk)
-                    if size:
+                    # update n with actual bytes read
+                    n = resp.raw.tell()
+                    if size and 0 <= n <= size:
                         getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee

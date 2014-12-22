@@ -126,7 +126,7 @@ In short:
     import conda
 
     p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing environments and packages.'
+        description='conda is a tool for managing and deploying applications, environments and packages.'
     )
     p.add_argument(
         '-V', '--version',
@@ -156,6 +156,7 @@ In short:
     main_install.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
+    main_remove.configure_parser(sub_parsers, name='uninstall')
     main_run.configure_parser(sub_parsers)
     main_config.configure_parser(sub_parsers)
     main_init.configure_parser(sub_parsers)

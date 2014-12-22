@@ -70,6 +70,7 @@ Error: You need to install conda-build in order to use the 'conda %s'
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
                     try:
+                        p = 1
                         p = subprocess.Popen(args)
                         p.communicate()
                     except KeyboardInterrupt:
