@@ -22,6 +22,7 @@ from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
 from conda import instructions as inst
+from conda.exceptions import CondaException
 log = getLogger(__name__)
 
 # For backwards compatibility
@@ -496,6 +497,30 @@ def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
     with History(actions[inst.PREFIX]):
         inst.execute_instructions(plan, index, verbose)
+
+def update_old_plan(old_plan):
+    """
+    Update an old plan object to work with 
+    `conda.instructions.execute_instructions`
+    """
+    plan = []
+    for line in old_plan:
+        if line.startswith('#'):
+            continue
+        if ' ' not in line:
+            raise CondaException("The instruction '%s' takes at least one argument" % line)
+
+        instruction, arg = line.split(' ', 1)
+        plan.append((instruction, arg))
+    return plan
+
+def execute_plan(old_plan, index=None, verbose=False):
+    """
+    Deprecated: This should `conda.instructions.execute_instructions` instead
+    """
+    plan = update_old_plan(old_plan)
+    inst.execute_instructions(plan, index, verbose)
+
 
 
 if __name__ == '__main__':
