@@ -199,7 +199,8 @@ def install(args, parser, command='install'):
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
     else:
-        common.check_specs(prefix, specs, json=args.json)
+        common.check_specs(prefix, specs, json=args.json,
+                           create=(command == 'create'))
 
     # handle tar file containing conda packages
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
