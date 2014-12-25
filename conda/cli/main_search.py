@@ -35,9 +35,9 @@ class Platforms(object):
         for i in ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']:
             yield i
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='search'):
     p = sub_parsers.add_parser(
-        'search',
+        name,
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,

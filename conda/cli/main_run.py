@@ -13,8 +13,8 @@ from conda.cli import common
 
 descr = "Launches an application installed with Conda."
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('run',
+def configure_parser(sub_parsers, name='run'):
+    p = sub_parsers.add_parser(name,
                                description = descr,
                                help = descr)
     common.add_parser_prefix(p)

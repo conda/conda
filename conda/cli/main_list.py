@@ -24,9 +24,9 @@ descr = "List linked packages in a conda environment."
 
 log = logging.getLogger(__name__)
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='list'):
     p = sub_parsers.add_parser(
-        'list',
+        name,
         description = descr,
         help = descr,
     )

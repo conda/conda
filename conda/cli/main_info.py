@@ -19,8 +19,8 @@ from conda.cli import common
 help = "Display information about current conda install."
 
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('info',
+def configure_parser(sub_parsers, name='info'):
+    p = sub_parsers.add_parser(name,
                                description = help,
                                help = help)
     common.add_parser_json(p)

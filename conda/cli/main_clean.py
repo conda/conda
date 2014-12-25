@@ -24,9 +24,9 @@ examples:
     conda clean --tarballs
 """
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers, name='clean'):
     p = sub_parsers.add_parser(
-        'clean',
+        name,
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,

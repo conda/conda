@@ -8,14 +8,8 @@
 import sys
 import os
 
-if 'develop' in sys.argv:
-    from setuptools import setup
-    using_setuptools = True
-    print("Using setuptools")
-else:
-    from distutils.core import setup
-    using_setuptools = False
-    print("Not using setuptools")
+from setuptools import setup
+using_setuptools = True
 
 
 add_activate = True
@@ -40,12 +34,25 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
-kwds = {'scripts': []}
-if sys.platform == 'win32' and using_setuptools:
-    kwds['entry_points'] = dict(console_scripts =
-                                        ["conda = conda.cli.main:main"])
+kwds = {'scripts': [], 'entry_points': {}}
+if sys.platform == 'win32':
+    kwds['entry_points']['console_scripts'] = ["conda = conda.cli.main:main", ]
 else:
     kwds['scripts'].append('bin/conda')
+
+
+from conda.constants import CMD_ENTRY_POINT
+cmds = [
+    'bundle', 'clean', 'config', 'create', 'help', 'info', 'init', 'install',
+    'list', 'package', 'remove', 'run', 'search', 'update',
+]
+internal_entry_point = lambda a: '{0} = conda.cli.main_{0}'.format(a)
+kwds['entry_points'][CMD_ENTRY_POINT] = [internal_entry_point(a) for a in cmds]
+
+# Add any aliases
+kwds['entry_points'][CMD_ENTRY_POINT] += [
+    'uninstall = conda.cli.main_remove'
+]
 
 if add_activate:
     if sys.platform == 'win32':
