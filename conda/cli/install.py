@@ -199,7 +199,8 @@ def install(args, parser, command='install'):
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
     else:
-        common.check_specs(prefix, specs, json=args.json)
+        common.check_specs(prefix, specs, json=args.json,
+                           create=(command == 'create'))
 
     # handle tar file containing conda packages
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
@@ -239,15 +240,18 @@ def install(args, parser, command='install'):
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
     else:
-        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels,
+        index = common.get_index_trap(channel_urls=channel_urls,
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown, json=args.json)
+                                      unknown=args.unknown,
+                                      json=args.json,
+                                      offline=args.offline)
 
     # Don't update packages that are already up-to-date
-    if command == 'update' and not args.all:
+    if command == 'update' and not (args.all or args.force):
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
@@ -319,6 +323,13 @@ environment does not exist: %s
         else:
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+            if args.copy:
+                new_link = []
+                for pkg in actions["LINK"]:
+                    dist, pkgs_dir, lt = plan.split_linkarg(pkg)
+                    lt = ci.LINK_COPY
+                    new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
+                actions["LINK"] = new_link
     except NoPackagesFound as e:
         error_message = e.args[0]
 
