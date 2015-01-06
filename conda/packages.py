@@ -4,10 +4,15 @@ except ImportError:
     from UserDict import UserDict
 import yaml
 
+from . import exceptions
+
 
 def from_file(filename):
-    with open(filename, "rb") as f:
-        return Package(**yaml.load(f))
+    try:
+        with open(filename, "rb") as f:
+            return Package(**yaml.load(f))
+    except IOError:
+        raise exceptions.FileNotFound()
 
 
 class Package(UserDict, object):
