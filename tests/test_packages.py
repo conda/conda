@@ -23,6 +23,13 @@ class PackageTestCase(unittest.TestCase):
         p = packages.Package(name="foobar")
         self.assertEqual([], p["depends"])
 
+    def test_allows_depends_to_come_through(self):
+        expected = ["foo 1.2.3", "bar 1.2.%s" % random.randint(100, 200)]
+        p = packages.Package(depends=expected)
+        self.assertIn(expected[0], p["depends"])
+        self.assertIn(expected[1], p["depends"])
+
+
 
 class from_file_TestCase(unittest.TestCase):
     def test_raises_exception_on_file_not_found(self):
