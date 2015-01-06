@@ -185,6 +185,9 @@ def install(args, parser, command='install'):
         specs.extend(common.specs_from_url(args.file, json=args.json))
     elif getattr(args, 'all', False):
         linked = ci.linked(prefix)
+        if not linked:
+            common.error_and_exit("There are no packages installed in the "
+                "prefix %s" % prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
             if name in getattr(args, '_skip', []):

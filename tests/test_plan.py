@@ -13,6 +13,7 @@ from conda.plan import display_actions
 from conda.resolve import Resolve
 
 from tests.helpers import captured
+from conda.exceptions import CondaException
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
@@ -809,6 +810,42 @@ The following packages will be DOWNGRADED:
     tk: 8.5.13-1 <unknown> --> 8.5.13-0 <unknown>
 
 """
+
+class TestDepricatedExecutePlan(unittest.TestCase):
+
+    def test_update_old_plan(self):
+        old_plan = ['# plan', 'INSTRUCTION arg']
+        new_plan = plan.update_old_plan(old_plan)
+
+        expected = [('INSTRUCTION', 'arg')]
+        self.assertEqual(new_plan, expected)
+
+        with self.assertRaises(CondaException):
+            plan.update_old_plan(['INVALID'])
+
+    def test_execute_plan(self):
+        initial_commands = inst.commands
+
+        def set_commands(cmds):
+            inst.commands = cmds
+        self.addCleanup(lambda : set_commands(initial_commands))
+
+        def INSTRUCTION_CMD(state, arg):
+            INSTRUCTION_CMD.called = True
+            INSTRUCTION_CMD.arg = arg
+
+
+        set_commands({'INSTRUCTION': INSTRUCTION_CMD})
+
+        old_plan = ['# plan', 'INSTRUCTION arg']
+
+        plan.execute_plan(old_plan)
+
+
+        self.assertTrue(INSTRUCTION_CMD.called)
+        self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
+
+
 
 class PlanFromActionsTests(unittest.TestCase):
     py_ver = ''.join(str(x) for x in sys.version_info[:2])
