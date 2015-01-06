@@ -236,7 +236,7 @@ Allowed channels are:
                 except IOError:
                     continue
                 if 'depends' not in meta:
-                    continue
+                    meta['depends'] = []
                 log.debug("adding cached pkg to index: %s" % fn)
                 index[fn] = meta
 
