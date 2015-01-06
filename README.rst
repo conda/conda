@@ -29,6 +29,7 @@ All of the usage is documented via the ``--help`` flag.
         export              Export a given environment
         list                List the Conda environments
         remove              Remove an environment
+        update              Updates the current environment based on environment file
 
     optional arguments:
       -h, --help            show this help message and exit
