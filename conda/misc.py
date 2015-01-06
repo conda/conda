@@ -228,8 +228,7 @@ def environment_for_conda_environment(prefix=config.root_dir):
     # prepend the bin directory to the path
     fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
     binpath = fmt % abspath(prefix)
-    path = r'%s;%s' if sys.platform == 'win32' else '%s:%s'
-    path = path % (binpath, os.getenv('PATH'))
+    path = os.path.pathsep.join([binpath, os.getenv('PATH')])
     env = {'PATH': path}
     # copy existing environment variables, but not anything with PATH in it
     for k, v in iteritems(os.environ):
@@ -281,8 +280,6 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     if sys.platform == 'win32' and cmd == 'python':
         # python is located one directory up on Windows
         cmd = join(binpath, '..', cmd)
-    else:
-        cmd = join(binpath, cmd)
 
     args = shlex.split(cmd)
     if additional_args:
