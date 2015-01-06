@@ -19,6 +19,8 @@ import getpass
 import warnings
 from functools import wraps
 
+from . import exceptions
+from . import packages
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
@@ -230,12 +232,10 @@ Allowed channels are:
                 fn = dn + '.tar.bz2'
                 if fn in index:
                     continue
+                filename = join(pkgs_dir, dn, 'info', 'index.json')
                 try:
-                    with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
-                        meta = json.load(fi)
-                except IOError:
-                    continue
-                if 'depends' not in meta:
+                    meta = packages.from_file(filename)
+                except exceptions.FileNotFound:
                     continue
                 log.debug("adding cached pkg to index: %s" % fn)
                 index[fn] = meta
