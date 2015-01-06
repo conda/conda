@@ -154,6 +154,7 @@ class MatchSpec(object):
         return self.spec
 
 
+# TODO Refactor into `conda.packages.Package` object
 class Package(object):
     """
     The only purpose of this class is to provide package objects which
