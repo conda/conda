@@ -24,7 +24,7 @@ install:
   - conda config --set always_yes yes
   - bin/conda install --force --no-deps conda requests
   - conda --version
-  - conda install pytest requests
+  - conda install pytest requests mock
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
