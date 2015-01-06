@@ -6,6 +6,14 @@ import sys
 import os
 import json
 
+try:
+    from unittest import mock
+except ImportError:
+    try:
+        import mock
+    except ImportError:
+        mock = None
+
 from contextlib import contextmanager
 
 import conda.cli as cli
