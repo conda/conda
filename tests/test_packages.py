@@ -30,7 +30,6 @@ class PackageTestCase(unittest.TestCase):
         self.assertIn(expected[1], p["depends"])
 
 
-
 class from_file_TestCase(unittest.TestCase):
     def test_raises_exception_on_file_not_found(self):
         with self.assertRaises(exceptions.FileNotFound):
