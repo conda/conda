@@ -7,8 +7,16 @@
 from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
+import os
+import sys
 
 from conda.cli import common, install
+try:
+    from conda_env.env import load_from_directory
+    from conda_env import exceptions
+    conda_env_installed = True
+except ImportError:
+    conda_env_installed = False
 
 
 help = "Install a list of packages into a specified conda environment."
@@ -40,7 +48,28 @@ def configure_parser(sub_parsers):
     )
     common.add_parser_install(p)
     common.add_parser_json(p)
+
+    if conda_env_installed:
+        p.add_argument(
+            '--save',
+            action='store_true',
+            help='add dependency to environment.yml file',
+        )
+
     p.set_defaults(func=execute)
+
 
 def execute(args, parser):
     install.install(args, parser, 'install')
+    if conda_env_installed and args.save:
+        try:
+            env = load_from_directory(os.getcwd())
+            for pkg in args.packages:
+                env.dependencies.add(pkg)
+            env.save()
+        except exceptions.EnvironmentFileNotFound:
+            if not args.json:
+                sys.stderr.write(
+                    "WARNING: Unable to find environment.yml file. "
+                    "Skipping save.\n"
+                )
