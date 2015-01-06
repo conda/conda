@@ -135,6 +135,11 @@ def _link(src, dst, linktype=LINK_HARD):
         raise Exception("Did not expect linktype=%r" % linktype)
 
 
+def _remove_readonly(func, path, excinfo):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
 def rm_rf(path, max_retries=5):
     """
     Completely delete path
@@ -158,10 +163,7 @@ def rm_rf(path, max_retries=5):
                 msg = "Unable to delete %s\n%s\n" % (path, e)
                 if on_win:
                     try:
-                        def remove_readonly(func, path, excinfo):
-                            os.chmod(path, stat.S_IWRITE)
-                            func(path)
-                        shutil.rmtree(path, onerror=remove_readonly)
+                        shutil.rmtree(path, onerror=_remove_readonly)
                         return
                     except OSError as e1:
                         msg += "Retry with onerror failed (%s)\n" % e1
