@@ -11,6 +11,11 @@ from contextlib import contextmanager
 import conda.cli as cli
 from conda.compat import StringIO
 
+
+def support_file(name):
+    return os.path.join(os.path.dirname(__file__), "support", name)
+
+
 def raises(exception, func, string=None):
     try:
         a = func()
