@@ -1,0 +1,4 @@
+#!/bin/bash
+conda update --name root --yes --quiet conda-build
+conda install --yes setuptools
+CONDA_DEFAULT_ENV='' python setup.py develop

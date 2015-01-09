@@ -21,8 +21,6 @@ script:
   - conda build ./conda.recipe/
 
 install:
-  - conda update --name root --yes --quiet conda-build
-  - conda install --yes setuptools
-  - python setup.py develop  # The ultimate dogfood. :-)
+  - ./.binstar-setup
 
 build_targets: conda
