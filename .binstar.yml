@@ -21,6 +21,6 @@ script:
   - conda build ./conda.recipe/
 
 install:
-  - sudo ./.binstar-setup
+  - ./.binstar-setup
 
 build_targets: conda
