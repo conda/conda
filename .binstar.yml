@@ -2,16 +2,16 @@ package: conda
 user: conda
 
 platform:
-  - linux-32
+  # - linux-32
   - linux-64
-  - win-32
-  - win-64
+  # - win-32
+  # - win-64
   # - osx-64
 
 engine:
   - python=2
-  - python=3.3
-  - python=3.4
+  # - python=3.3
+  # - python=3.4
 env:
   - CONDA_BUILD_TEST=1
   # Always kill the environment and work with root
