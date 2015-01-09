@@ -392,7 +392,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
                 del must_have[name]
     else:
         # discard conda from other environments
-        if 'conda' in must_have:
+        if 'conda' in must_have and not config.TEST_INSTALL:
             sys.exit("Error: 'conda' can only be installed into "
                      "root environment")
 
@@ -500,7 +500,7 @@ def execute_actions(actions, index=None, verbose=False):
 
 def update_old_plan(old_plan):
     """
-    Update an old plan object to work with 
+    Update an old plan object to work with
     `conda.instructions.execute_instructions`
     """
     plan = []
