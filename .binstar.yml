@@ -14,7 +14,7 @@ engine:
   # - python=3.4
 env:
   # Always kill the environment and work with root
-  - CONDA_BUILD_TEST=1 CONDA_DEFAULT_ENV=''
+  - CONDA_BUILD_TEST=1
 
 # Can't test on binstar because it needs to be installed in root
 script:
