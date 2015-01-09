@@ -13,6 +13,10 @@ engine:
   - python=3.3
   - python=3.4
 
+# Required for Windows installation
+env:
+  - CONDA_DEFAULT_ENV=''
+
 # Can't test on binstar because it needs to be installed in root
 script:
   - conda build --no-test ./conda.recipe/
