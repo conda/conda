@@ -21,5 +21,6 @@ script:
 
 install:
   - conda update --name root --yes --quiet conda-build
+  - CONDA_DEFAULT_ENV= python setup.py develop  # The ultimate dogfood. :-)
 
 build_targets: conda
