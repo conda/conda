@@ -12,15 +12,9 @@ engine:
   - python=2
   # - python=3.3
   # - python=3.4
-env:
-  # Always kill the environment and work with root
-  - CONDA_BUILD_TEST=1
 
 # Can't test on binstar because it needs to be installed in root
 script:
-  - ./bin/conda build ./conda.recipe/
-
-install:
-  - ./.binstar-setup
+  - conda build --no-test ./conda.recipe/
 
 build_targets: conda
