@@ -17,4 +17,7 @@ engine:
 script:
   - conda build --no-test ./conda.recipe/
 
+install:
+  - conda update --name root --yes --quiet conda-build
+
 build_targets: conda
