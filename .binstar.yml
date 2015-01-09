@@ -22,6 +22,7 @@ script:
 
 install:
   - conda update --name root --yes --quiet conda-build
+  - conda install --name root --yes setuptools
   - python setup.py develop  # The ultimate dogfood. :-)
 
 build_targets: conda
