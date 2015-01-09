@@ -388,9 +388,7 @@ def check_specs(prefix, specs, json=False, create=False):
                        json=json,
                        error_type="ValueError")
 
-    # TODO remove test check after conda allows installation anywhere
-    if (not config.TEST_INSTALL and (not is_root_prefix(prefix)
-                                     and names_in_specs(['conda'], specs))):
+    if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
         error_and_exit("Package 'conda' may only be installed in the "
                        "root environment",
                        json=json,

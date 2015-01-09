@@ -36,8 +36,6 @@ else:
     subdir = '%s-%d' % (platform, bits)
     arch_name = {64: 'x86_64', 32: 'x86'}[bits]
 
-TEST_INSTALL = 'CONDA_BUILD_TEST' in os.environ
-
 # ----- rc file -----
 
 # This is used by conda config to check which keys are allowed in the config
