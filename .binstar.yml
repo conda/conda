@@ -14,6 +14,8 @@ engine:
   - python=3.4
 env:
   - CONDA_BUILD_TEST=1
+  # Always kill the environment and work with root
+  - CONDA_DEFAULT_ENV=
 
 # Can't test on binstar because it needs to be installed in root
 script:
@@ -21,6 +23,6 @@ script:
 
 install:
   - conda update --name root --yes --quiet conda-build
-  - CONDA_DEFAULT_ENV= python setup.py develop  # The ultimate dogfood. :-)
+  - python setup.py develop  # The ultimate dogfood. :-)
 
 build_targets: conda
