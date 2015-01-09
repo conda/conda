@@ -18,7 +18,7 @@ env:
 
 # Can't test on binstar because it needs to be installed in root
 script:
-  - conda build ./conda.recipe/
+  - ./bin/conda build ./conda.recipe/
 
 install:
   - ./.binstar-setup
