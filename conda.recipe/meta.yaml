@@ -10,6 +10,14 @@ build:
   string: py{{ environ.get('PY_VER').replace('.', '') }}_{{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}
 {% endif %}
 
+  # These are present when the new environment is created
+  # so we have to exempt them from the list of initial files
+  # for conda-build to realize they should be included.
+  always_include_files:
+    - bin/activate
+    - bin/deactivate
+    - bin/conda
+
 source:
   git_url: ../
 
