@@ -205,7 +205,7 @@ Allowed channels are:
         with concurrent.futures.ThreadPoolExecutor(10) as executor:
             future_to_url = OrderedDict([(executor.submit(fetch_repodata, url, use_cache=use_cache,
                 session=session), url) for url in reversed(channel_urls)])
-            for future in concurrent.futures.as_completed(future_to_url):
+            for future in future_to_url:
                 url = future_to_url[future]
                 repodatas.append((url, future.result()))
     except ImportError:
