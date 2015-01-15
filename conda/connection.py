@@ -57,7 +57,9 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        self.proxies = get_proxy_servers()
+        proxies = get_proxy_servers()
+        if proxies:
+            self.proxies = proxies
 
         # Configure retries
         if retries:
