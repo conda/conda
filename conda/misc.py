@@ -220,7 +220,6 @@ def install_local_packages(prefix, paths, verbose=False):
             depends.extend(meta['depends'])
         except (IOError, KeyError):
             continue
-    print('depends: %r' % depends)
     return depends
 
 
