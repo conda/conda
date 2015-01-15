@@ -1,3 +1,7 @@
+...................
+-------------------
+  * load the channel urls in the correct order when using concurrent.futures
+
 2014-12-18   3.7.4:
 -------------------
   * add --offline option to install, create, update and remove commands, and
