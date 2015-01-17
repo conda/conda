@@ -403,7 +403,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     else:
         actions = ensure_linked_actions(smh, prefix)
 
-    if actions[inst.LINK] and sys.platform != 'win32':
+    if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [config.root_dir]
 
     for dist in sorted(linked):
