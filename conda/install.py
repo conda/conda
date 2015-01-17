@@ -342,6 +342,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return False
     return True
 
+
 def read_url(pkgs_dir, dist):
     try:
         data = open(join(pkgs_dir, 'urls.txt')).read()
@@ -352,6 +353,14 @@ def read_url(pkgs_dir, dist):
     except IOError:
         pass
     return None
+
+
+def read_icondata(pkgs_dir):
+    import base64
+
+    data = open(join(pkgs_dir, 'info', 'icon.png'), 'rb').read()
+    return base64.b64encode(data)
+
 
 def read_no_link(info_dir):
     res = set()
@@ -557,6 +566,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                              'type': link_name_map.get(linktype)}
         if 'channel' in meta_dict:
             meta_dict['channel'] = remove_binstar_tokens(meta_dict['channel'])
+        if 'icon' in meta_dict:
+            meta_dict['icondata'] = read_icondata(source_dir)
 
         create_meta(prefix, dist, info_dir, meta_dict)
 
