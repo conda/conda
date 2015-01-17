@@ -355,12 +355,15 @@ def read_url(pkgs_dir, dist):
     return None
 
 
-def read_icondata(pkgs_dir):
+def read_icondata(source_dir):
     import base64
 
-    data = open(join(pkgs_dir, 'info', 'icon.png'), 'rb').read()
-    return base64.b64encode(data)
-
+    try:
+        data = open(join(source_dir, 'info', 'icon.png'), 'rb').read()
+        return base64.b64encode(data)
+    except IOError:
+        pass
+    return None
 
 def read_no_link(info_dir):
     res = set()
