@@ -136,12 +136,12 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
 def url_to_S3_info(url):
     """
-    Convert a file: URL to a path.
+    Convert a S3 url to a tuple of bucket and key
     """
-    assert url.startswith('s3:'), (
+    parsed_url = requests.packages.urllib3.util.url.parse_url(url)
+    assert parsed_url.scheme == 's3', (
         "You can only use s3: urls (not %r)" % url)
-    path = url[len('s3:'):].lstrip('/')
-    bucket, key = path.split('/', 1)
+    bucket, key = parsed_url.host, parsed_url.path
     return bucket, key
 
 
