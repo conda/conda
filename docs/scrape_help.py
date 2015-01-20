@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import sys
 import json
-
+import re
 
 manpath = join(dirname(__file__), 'build', 'man')
 if not isdir(manpath):
@@ -42,7 +42,11 @@ def conda_help(cache=[]):
     cache.append(str_check_output(['conda', '--help']))
     return cache[0]
 
+def conda_command_help(command):
+    return str_check_output(['conda'] + command.split() + ['--help'])
+
 def conda_commands():
+    print("Getting list of core commands")
     help = conda_help()
     commands = []
     start = False
@@ -60,6 +64,7 @@ def conda_commands():
     return commands
 
 def external_commands():
+    print("Getting list of external commands")
     help = conda_help()
     commands = []
     start = False
@@ -74,6 +79,24 @@ def external_commands():
                 break
             if line[4] != ' ':
                 commands.append(line.split()[0])
+
+    # TODO: Parallelize this
+    print("Getting list of external subcommands")
+    subcommands_re = re.compile(r'\s*\{(.*)\}\s*')
+    # Check for subcommands (like conda skeleton pypi)
+    for command in commands:
+        help = conda_command_help(command)
+        start = False
+        for line in help.splitlines():
+            if line.strip() == "positional arguments:":
+                start = True
+                continue
+            if start:
+                m = subcommands_re.match(line)
+                if m:
+                    commands.extend(['%s %s' % (command, i) for i in
+                        m.group(1).split(',')])
+                break
     return commands
 
 def man_replacements():
@@ -111,30 +134,33 @@ def generate_man(command):
     replacements = man_replacements()
     for text in replacements:
         manpage = manpage.replace(text, replacements[text])
-    with open(join(manpath, 'conda-%s.1' % command), 'wb') as f:
+    with open(join(manpath, 'conda-%s.1' % command.replace(' ', '-')), 'wb') as f:
         f.write(manpage)
 
     print("Generated manpage for conda %s" % command)
 
 def generate_html(command):
+    command_file = command.replace(' ', '-')
+
     # Use abspath so that it always has a path separator
-    man = Popen(['man', abspath(join(manpath, 'conda-%s.1' % command))], stdout=PIPE)
+    man = Popen(['man', abspath(join(manpath, 'conda-%s.1' % command_file))], stdout=PIPE)
     htmlpage = check_output([
         'man2html',
         '-bare', # Don't use HTML, HEAD, or BODY tags
-        'title', 'conda-%s' % command,
+        'title', 'conda-%s' % command_file,
         '-topm', '0', # No top margin
         '-botm', '0', # No bottom margin
         ],
         stdin=man.stdout)
 
-    with open(join(manpath, 'conda-%s.html' % command), 'wb') as f:
+    with open(join(manpath, 'conda-%s.html' % command_file), 'wb') as f:
         f.write(htmlpage)
     print("Generated html for conda %s" % command)
 
 
 def write_rst(command, sep=None):
-    with open(join(manpath, 'conda-%s.html' % command), 'r') as f:
+    command_file = command.replace(' ', '-')
+    with open(join(manpath, 'conda-%s.html' % command_file), 'r') as f:
         html = f.read()
 
     rp = rstpath
@@ -142,7 +168,7 @@ def write_rst(command, sep=None):
         rp = join(rp, sep)
     if not isdir(rp):
         makedirs(rp)
-    with open(join(rp, 'conda-%s.rst' % command), 'w') as f:
+    with open(join(rp, 'conda-%s.rst' % command_file), 'w') as f:
         f.write(RST_HEADER.format(command=command))
         for line in html.splitlines():
             f.write('   ')
