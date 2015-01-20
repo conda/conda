@@ -311,7 +311,7 @@ def test_PS1():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == '({envs}/test1)$'.format(envs=envs)
+            assert stdout == '(test1)$'
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
             commands = (command_setup + """
@@ -321,7 +321,7 @@ def test_PS1():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == '({envs}/test2)$'.format(envs=envs)
+            assert stdout == '(test2)$'
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
             commands = (command_setup + """
@@ -340,7 +340,7 @@ def test_PS1():
             """).format(envs=envs, activate=activate)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout == '({envs}/test1)$'.format(envs=envs)
+            assert stdout == '(test1)$'
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
             commands = (command_setup + """
