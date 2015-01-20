@@ -51,5 +51,5 @@ Update a package                        ``pip install --upgrade $PACKAGE_NAME`` 
 
 .. Show what files a package has installed ``pip show --files $PACKAGE_NAME``  not possible
 .. Print details on an individual package ``pip show $PACKAGE_NAME``  not possible
-.. List available environments   not possible   ``conda info -e`` 
+.. List available environments   not possible   ``conda info -e``
 .. #user will want to pass that through ``tail -n +3 | awk '{print $1;}'``
