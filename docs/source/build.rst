@@ -156,7 +156,7 @@ sections are optional except for package/name and package/version.
       # currently only works on Linux.  The default is lib/
       rpaths:
         - lib/
-        - lib64/
+        - lib/R/lib/
 
       #########################################################################
       # binary_relocation, has_prefix_files, binary_has_prefix_files, and     #
