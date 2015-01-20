@@ -152,6 +152,12 @@ sections are optional except for package/name and package/version.
       # different scripts for different platforms.
       script: python setup.py install
 
+      # Set which RPATHs are used when making executables relocatable. This
+      # currently only works on Linux.  The default is lib/
+      rpaths:
+        - lib/
+        - lib64/
+
       #########################################################################
       # binary_relocation, has_prefix_files, binary_has_prefix_files, and     #
       # detect_binary_files_with_prefix may be required to relocate files     #
