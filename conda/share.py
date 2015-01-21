@@ -17,6 +17,7 @@ from conda.misc import untracked
 from conda.resolve import MatchSpec
 import conda.install as install
 import conda.plan as plan
+import conda.instructions as inst
 
 from conda.packup import create_conda_pkg
 
@@ -55,12 +56,12 @@ def old_create_bundle(prefix):
     command.
     """
     info = dict(
-        name = 'share',
-        build = '0',
-        build_number = 0,
-        platform = config.platform,
-        arch = config.arch_name,
-        depends = get_requires(prefix),
+        name='share',
+        build='0',
+        build_number=0,
+        platform=config.platform,
+        arch=config.arch_name,
+        depends=get_requires(prefix),
     )
     tmp_dir = tempfile.mkdtemp()
     tmp_path = join(tmp_dir, 'share.tar.bz2')
@@ -91,7 +92,7 @@ def old_clone_bundle(path, prefix):
     pkgs_dir = config.pkgs_dirs[0]
     if not install.is_extracted(pkgs_dir, dist):
         shutil.copyfile(path, join(pkgs_dir, dist + '.tar.bz2'))
-        plan.execute_plan(['%s %s' % (plan.EXTRACT, dist)])
+        inst.execute_instructions([(inst.EXTRACT, (dist,))])
     assert install.is_extracted(pkgs_dir, dist)
 
     with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
