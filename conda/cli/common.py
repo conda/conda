@@ -6,6 +6,7 @@ import sys
 import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
+import textwrap
 
 import conda.config as config
 from conda import console
@@ -92,6 +93,13 @@ def add_parser_use_index_cache(p):
         help = "use cache of channel index files",
     )
 
+def add_parser_copy(p):
+    p.add_argument(
+        '--copy',
+        action="store_true",
+        help="Install all packages using copies instead of hard- or soft-linking."
+        )
+
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
@@ -129,6 +137,7 @@ def add_parser_install(p):
     add_parser_channels(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
+    add_parser_copy(p)
     p.add_argument(
         "--alt-hint",
         action="store_true",
@@ -358,12 +367,24 @@ def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
-def check_specs(prefix, specs, json=False):
+def check_specs(prefix, specs, json=False, create=False):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        error_and_exit('too few arguments, must supply command line '
-                       'package specs or --file',
+        msg = ('too few arguments, must supply command line '
+               'package specs or --file')
+        if create:
+            msg += textwrap.dedent("""
+
+                You can specify one or more default packages to install when creating
+                an environment.  Doing so allows you to call conda create without
+                explicitly providing any package names.
+
+                To set the provided packages, call conda config like this:
+
+                    conda config --add create_default_packages PACKAGE_NAME
+            """)
+        error_and_exit(msg,
                        json=json,
                        error_type="ValueError")
 

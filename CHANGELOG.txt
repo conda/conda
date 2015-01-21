@@ -1,10 +1,25 @@
-2014-XX-XX   3.7.4:
+...................
 -------------------
-  * add --offline option to install, create, update and remove commands
+  * load the channel urls in the correct order when using concurrent.futures
+  * add optional 'icondata' key to json files in conda-meta directory, which
+    contain the base64 encoded png file or the icon
+
+
+2014-12-18   3.7.4:
+-------------------
+  * add --offline option to install, create, update and remove commands, and
+    also add ability to set "offline: True" in condarc file
   * add conda uninstall as alias for conda remove
   * add conda info --root
   * add conda.pip module
   * fix CONDARC pointing to non-existing file, closes issue #961
+  * make update -f work if the package is already up-to-date
+  * fix possible TypeError when printing an error message
+  * link packages in topologically sorted order (so that pre-link scripts can
+    assume that the dependencies are installed)
+  * add --copy flag to install
+  * prevent the progressbar from crashing conda when fetching in some
+    situations
 
 
 2014-11-05   3.7.3:

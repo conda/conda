@@ -8,10 +8,12 @@ from conda.config import default_python, pkgs_dirs
 import conda.config
 from conda.install import LINK_HARD
 import conda.plan as plan
+import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
 
 from tests.helpers import captured
+from conda.exceptions import CondaException
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
@@ -29,7 +31,7 @@ class TestMisc(unittest.TestCase):
             ('w3-1.2-0 /opt/pkgs 1', ('w3-1.2-0', '/opt/pkgs', 1)),
             (' w3-1.2-0  /opt/pkgs  1  ', ('w3-1.2-0', '/opt/pkgs', 1)),
             (r'w3-1.2-0 C:\A B\pkgs 2', ('w3-1.2-0', r'C:\A B\pkgs', 2))]:
-            self.assertEqual(plan.split_linkarg(arg), res)
+            self.assertEqual(inst.split_linkarg(arg), res)
 
 
 class TestAddDeaultsToSpec(unittest.TestCase):
@@ -43,18 +45,18 @@ class TestAddDeaultsToSpec(unittest.TestCase):
     def test_1(self):
         self.linked = solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         for specs, added in [
-            (['python 3*'],  []),
-            (['python'],     ['python 2.7*']),
-            (['scipy'],      ['python 2.7*']),
+            (['python 3*'], []),
+            (['python'], ['python 2.7*']),
+            (['scipy'], ['python 2.7*']),
             ]:
             self.check(specs, added)
 
     def test_2(self):
         self.linked = solve(['anaconda 1.5.0', 'python 2.6*', 'numpy 1.6*'])
         for specs, added in [
-            (['python'],     ['python 2.6*']),
-            (['numpy'],      ['python 2.6*']),
-            (['pandas'],     ['python 2.6*']),
+            (['python'], ['python 2.6*']),
+            (['numpy'], ['python 2.6*']),
+            (['pandas'], ['python 2.6*']),
             # however, this would then be unsatisfiable
             (['python 3*', 'numpy'], []),
             ]:
@@ -63,9 +65,9 @@ class TestAddDeaultsToSpec(unittest.TestCase):
     def test_3(self):
         self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
         for specs, added in [
-            (['python'],     ['python 3.3*']),
-            (['numpy'],      ['python 3.3*']),
-            (['scipy'],      ['python 3.3*']),
+            (['python'], ['python 3.3*']),
+            (['numpy'], ['python 3.3*']),
+            (['scipy'], ['python 3.3*']),
             ]:
             self.check(specs, added)
 
@@ -73,10 +75,10 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         self.linked = []
         ps = ['python 2.7*'] if default_python == '2.7' else []
         for specs, added in [
-            (['python'],     ps),
-            (['numpy'],      ps),
-            (['scipy'],      ps),
-            (['anaconda'],   ps),
+            (['python'], ps),
+            (['numpy'], ps),
+            (['scipy'], ps),
+            (['anaconda'], ps),
             (['anaconda 1.5.0 np17py27_0'], []),
             (['sympy 0.7.2 py27_0'], []),
             (['scipy 0.12.0 np16py27_0'], []),
@@ -809,64 +811,70 @@ The following packages will be DOWNGRADED:
 
 """
 
-def test_plan_menuinst_first():
-    if sys.platform != 'win32':
-        return
+class TestDepricatedExecutePlan(unittest.TestCase):
 
+    def test_update_old_plan(self):
+        old_plan = ['# plan', 'INSTRUCTION arg']
+        new_plan = plan.update_old_plan(old_plan)
+
+        expected = [('INSTRUCTION', 'arg')]
+        self.assertEqual(new_plan, expected)
+
+        with self.assertRaises(CondaException):
+            plan.update_old_plan(['INVALID'])
+
+    def test_execute_plan(self):
+        initial_commands = inst.commands
+
+        def set_commands(cmds):
+            inst.commands = cmds
+        self.addCleanup(lambda : set_commands(initial_commands))
+
+        def INSTRUCTION_CMD(state, arg):
+            INSTRUCTION_CMD.called = True
+            INSTRUCTION_CMD.arg = arg
+
+
+        set_commands({'INSTRUCTION': INSTRUCTION_CMD})
+
+        old_plan = ['# plan', 'INSTRUCTION arg']
+
+        plan.execute_plan(old_plan)
+
+
+        self.assertTrue(INSTRUCTION_CMD.called)
+        self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
+
+
+
+class PlanFromActionsTests(unittest.TestCase):
     py_ver = ''.join(str(x) for x in sys.version_info[:2])
-    menuinst = 'menuinst-1.0.3-py%s_0.tar.bz2' % py_ver
-    ipython = 'ipython-2.1.0-py%s_2.tar.bz2' % py_ver
-    actions = {
-        'PREFIX': conda.config.default_prefix,
-        'LINK': [ipython, menuinst],
-        'UNLINK': [ipython, menuinst]
-    }
 
-    conda_plan = plan.plan_from_actions(actions)
-    assert conda_plan[2] == 'UNLINK %s' % menuinst
-    assert conda_plan[3] == 'LINK %s' % menuinst
+    def test_plan_link_menuinst(self):
 
-    actions = {
-        'PREFIX': conda.config.default_prefix,
-        'LINK': [ipython, menuinst],
-        'FETCH': [menuinst],
-        'UNLINK': [ipython, menuinst]
-    }
-
-    conda_plan = plan.plan_from_actions(actions)
-    assert conda_plan[2] == 'UNLINK %s' % menuinst
-    assert conda_plan[3] == 'FETCH %s' % menuinst
-    assert conda_plan[4] == 'LINK %s' % menuinst
-
-    actions = {
-        'PREFIX': conda.config.default_prefix,
-        'LINK': [ipython, menuinst],
-        'FETCH': [menuinst],
-        'EXTRACT': [menuinst],
-        'UNLINK': [ipython, menuinst]
-    }
-
-    conda_plan = plan.plan_from_actions(actions)
-    assert conda_plan[2] == 'UNLINK %s' % menuinst
-    assert conda_plan[3] == 'FETCH %s' % menuinst
-    assert conda_plan[4] == 'EXTRACT %s' % menuinst
-    assert conda_plan[5] == 'LINK %s' % menuinst
-
-    if py_ver == '27':
-        # Old menuinst versions weren't packaged for Python 3
-        menuinst_old = 'menuinst-1.0.0-py27_0.tar.bz2'
-        menuinst_new = 'menuinst-1.0.3-py27_0.tar.bz2'
-
+        menuinst = 'menuinst'
+        ipython = 'ipython'
         actions = {
-            'PREFIX': conda.config.default_prefix,
-            'LINK': [menuinst_new],
-            'FETCH': [menuinst_new],
-            'EXTRACT': [menuinst_new],
-            'UNLINK': [menuinst_old]
+            'PREFIX': 'aprefix',
+            'LINK': [ipython, menuinst],
         }
 
         conda_plan = plan.plan_from_actions(actions)
-        assert conda_plan[2] == 'UNLINK %s' % menuinst_old
-        assert conda_plan[3] == 'FETCH %s' % menuinst_new
-        assert conda_plan[4] == 'EXTRACT %s' % menuinst_new
-        assert conda_plan[5] == 'LINK %s' % menuinst_new
+
+        expected_plan = [
+            ('PREFIX', 'aprefix'),
+            ('PRINT', 'Linking packages ...'),
+            ('PROGRESS', '2'),
+            ('LINK', ipython),
+            ('LINK', menuinst),
+        ]
+
+        if sys.platform == 'win32':
+            # menuinst should be linked first
+            last_two = expected_plan[-2:]
+            expected_plan[-2:] = last_two[::-1]
+
+        self.assertEqual(expected_plan, conda_plan)
+
+if __name__ == '__main__':
+    unittest.main()

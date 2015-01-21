@@ -267,8 +267,8 @@ class ProgressBar(object):
         if value is not None and value is not UnknownLength:
             if (self.maxval is not UnknownLength
                 and not 0 <= value <= self.maxval):
-
-                raise ValueError('Value out of range')
+                # maxval was reported incorrectly. warn?
+                value = self.maxval
 
             self.currval = value
 

@@ -63,6 +63,7 @@ rc_bool_keys = [
     'allow_softlinks',
     'changeps1',
     'use_pip',
+    'offline',
     'binstar_upload',
     'binstar_personal',
     'show_channel_urls',
@@ -244,20 +245,26 @@ def normalize_urls(urls, platform=None):
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
     return newurls
 
+offline = bool(rc.get('offline', False))
+
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
         if os.getenv('CIO_TEST') == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
+        return normalize_urls(base_urls, platform=platform)
 
-    elif 'channels' not in rc:
+    if 'channels' not in rc:
         base_urls = get_default_urls()
 
     else:
         base_urls = get_rc_urls()
 
-    return normalize_urls(base_urls, platform=platform)
+    res = normalize_urls(base_urls, platform=platform)
+    if offline:
+        res = [url for url in res if url.startswith('file:')]
+    return res
 
 def canonical_channel_name(channel, hide=True):
     if channel is None:

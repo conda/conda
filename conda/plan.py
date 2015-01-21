@@ -10,7 +10,6 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import re
 import sys
 import os
 from logging import getLogger
@@ -19,26 +18,18 @@ from os.path import abspath, isfile, join, exists
 
 from conda import config
 from conda import install
-from conda.fetch import fetch_pkg
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
-
+from conda import instructions as inst
+from conda.exceptions import CondaException
 log = getLogger(__name__)
 
-# op codes
-FETCH = 'FETCH'
-EXTRACT = 'EXTRACT'
-UNLINK = 'UNLINK'
-LINK = 'LINK'
-RM_EXTRACTED = 'RM_EXTRACTED'
-RM_FETCHED = 'RM_FETCHED'
-PREFIX = 'PREFIX'
-PRINT = 'PRINT'
-PROGRESS = 'PROGRESS'
-SYMLINK_CONDA = 'SYMLINK_CONDA'
+# For backwards compatibility
+from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
+                                RM_FETCHED, PREFIX, PRINT, PROGRESS,
+                                SYMLINK_CONDA)
 
-progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -50,23 +41,12 @@ def print_dists(dists_extras):
             line += extra
         print(line)
 
-def split_linkarg(arg):
-    "Return tuple(dist, pkgs_dir, linktype)"
-    pat = re.compile(r'\s*(\S+)(?:\s+(.+?)\s+(\d+))?\s*$')
-    m = pat.match(arg)
-    dist, pkgs_dir, linktype = m.groups()
-    if pkgs_dir is None:
-        pkgs_dir = config.pkgs_dirs[0]
-    if linktype is None:
-        linktype = install.LINK_HARD
-    return dist, pkgs_dir, int(linktype)
-
 def display_actions(actions, index):
-    if actions.get(FETCH):
+    if actions.get(inst.FETCH):
         print("\nThe following packages will be downloaded:\n")
 
         disp_lst = []
-        for dist in actions[FETCH]:
+        for dist in actions[inst.FETCH]:
             info = index[dist + '.tar.bz2']
             extra = '%15s' % human_bytes(info['size'])
             if config.show_channel_urls:
@@ -75,11 +55,11 @@ def display_actions(actions, index):
             disp_lst.append((dist, extra))
         print_dists(disp_lst)
 
-        if index and len(actions[FETCH]) > 1:
+        if index and len(actions[inst.FETCH]) > 1:
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" %
                   human_bytes(sum(index[dist + '.tar.bz2']['size']
-                                  for dist in actions[FETCH])))
+                                  for dist in actions[inst.FETCH])))
 
     # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
@@ -88,15 +68,15 @@ def display_actions(actions, index):
     # This assumes each package will appear in LINK no more than once.
     Packages = {}
     linktypes = {}
-    for arg in actions.get(LINK, []):
-        dist, pkgs_dir, lt = split_linkarg(arg)
+    for arg in actions.get(inst.LINK, []):
+        dist, pkgs_dir, lt = inst.split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][1] = ver + '-' + build
         Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
         linktypes[pkg] = lt
         features[pkg][1] = index[dist + '.tar.bz2'].get('features', '')
-    for arg in actions.get(UNLINK, []):
-        dist, pkgs_dir, lt = split_linkarg(arg)
+    for arg in actions.get(inst.UNLINK, []):
+        dist, pkgs_dir, lt = inst.split_linkarg(arg)
         pkg, ver, build = dist.rsplit('-', 2)
         packages[pkg][0] = ver + '-' + build
         # If the package is not in the index (e.g., an installed
@@ -195,11 +175,8 @@ def display_actions(actions, index):
 
     print()
 
-# the order matters here, don't change it
-action_codes = FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED, RM_FETCHED
-
 def nothing_to_do(actions):
-    for op in action_codes:
+    for op in inst.action_codes:
         if actions.get(op):
             return False
     return True
@@ -208,22 +185,22 @@ def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
     else:
-        op_order = action_codes
+        op_order = inst.action_codes
 
-    assert PREFIX in actions and actions[PREFIX]
-    res = ['# plan',
-           'PREFIX %s' % actions[PREFIX]]
+    assert inst.PREFIX in actions and actions[inst.PREFIX]
+    res = [
+           ('PREFIX', '%s' % actions[inst.PREFIX])]
 
     if sys.platform == 'win32':
         # Always link/unlink menuinst first on windows in case a subsequent
         # package tries to import it to create/remove a shortcut
 
-        for op in (UNLINK, FETCH, EXTRACT, LINK):
+        for op in (inst.UNLINK, inst.FETCH, inst.EXTRACT, inst.LINK):
             if op in actions:
                 pkgs = []
                 for pkg in actions[op]:
                     if 'menuinst' in pkg:
-                        res.append('%s %s' % (op, pkg))
+                        res.append((op, pkg))
                     else:
                         pkgs.append(pkg)
                 actions[op] = pkgs
@@ -234,11 +211,11 @@ def plan_from_actions(actions):
         if not actions[op]:
             continue
         if '_' not in op:
-            res.append('PRINT %sing packages ...' % op.capitalize())
-        if op in progress_cmds:
-            res.append('PROGRESS %d' % len(actions[op]))
+            res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
+        if op in inst.progress_cmds:
+            res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
-            res.append('%s %s' % (op, arg))
+            res.append((op, arg))
     return res
 
 def extracted_where(dist):
@@ -249,7 +226,7 @@ def extracted_where(dist):
 
 def ensure_linked_actions(dists, prefix):
     actions = defaultdict(list)
-    actions[PREFIX] = prefix
+    actions[inst.PREFIX] = prefix
     for dist in dists:
         if install.is_linked(prefix, dist):
             continue
@@ -262,7 +239,7 @@ def ensure_linked_actions(dists, prefix):
                 lt = (install.LINK_SOFT if (config.allow_softlinks and
                                             sys.platform != 'win32') else
                       install.LINK_COPY)
-            actions[LINK].append('%s %s %d' % (dist, extracted_in, lt))
+            actions[inst.LINK].append('%s %s %d' % (dist, extracted_in, lt))
         else:
             # Make a guess from the first pkgs dir, which is where it will be
             # extracted
@@ -276,43 +253,43 @@ def ensure_linked_actions(dists, prefix):
                     lt = (install.LINK_SOFT if (config.allow_softlinks and
                                             sys.platform != 'win32') else
                       install.LINK_COPY)
-                actions[LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
+                actions[inst.LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
             except (OSError, IOError):
-                actions[LINK].append(dist)
+                actions[inst.LINK].append(dist)
             finally:
                 try:
                     install.rm_rf(join(config.pkgs_dirs[0], dist))
                 except (OSError, IOError):
                     pass
 
-            actions[EXTRACT].append(dist)
+            actions[inst.EXTRACT].append(dist)
             if install.is_fetched(config.pkgs_dirs[0], dist):
                 continue
-            actions[FETCH].append(dist)
+            actions[inst.FETCH].append(dist)
     return actions
 
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
-    actions[PREFIX] = prefix
-    actions['op_order'] = (RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT,
-                           UNLINK, LINK)
+    actions[inst.PREFIX] = prefix
+    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED, inst.EXTRACT,
+                           inst.UNLINK, inst.LINK)
     for dist in dists:
         fn = dist + '.tar.bz2'
         pkg_path = join(config.pkgs_dirs[0], fn)
         if isfile(pkg_path):
             try:
                 if md5_file(pkg_path) != index[fn]['md5']:
-                    actions[RM_FETCHED].append(dist)
-                    actions[FETCH].append(dist)
+                    actions[inst.RM_FETCHED].append(dist)
+                    actions[inst.FETCH].append(dist)
             except KeyError:
                 sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
         else:
-            actions[FETCH].append(dist)
-        actions[RM_EXTRACTED].append(dist)
-        actions[EXTRACT].append(dist)
+            actions[inst.FETCH].append(dist)
+        actions[inst.RM_EXTRACTED].append(dist)
+        actions[inst.EXTRACT].append(dist)
         if isfile(join(prefix, 'conda-meta', dist + '.json')):
-            actions[UNLINK].append(dist)
-        actions[LINK].append(dist)
+            actions[inst.UNLINK].append(dist)
+        actions[inst.LINK].append(dist)
     return actions
 
 # -------------------------------------------------------------------
@@ -426,13 +403,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     else:
         actions = ensure_linked_actions(smh, prefix)
 
-    if actions[LINK] and sys.platform != 'win32':
-        actions[SYMLINK_CONDA] = [config.root_dir]
+    if actions[inst.LINK] and sys.platform != 'win32':
+        actions[inst.SYMLINK_CONDA] = [config.root_dir]
 
     for dist in sorted(linked):
         name = install.name_dist(dist)
         if name in must_have and dist != must_have[name]:
-            actions[UNLINK].append(dist)
+            actions[inst.UNLINK].append(dist)
 
     return actions
 
@@ -450,7 +427,7 @@ def remove_actions(prefix, specs, index=None, pinned=True):
     pinned_specs = get_pinned_specs(prefix)
 
     actions = defaultdict(list)
-    actions[PREFIX] = prefix
+    actions[inst.PREFIX] = prefix
     for dist in sorted(linked):
         fn = dist + '.tar.bz2'
         if any(ms.match(fn) for ms in mss):
@@ -458,7 +435,7 @@ def remove_actions(prefix, specs, index=None, pinned=True):
     pinned_specs):
                 raise RuntimeError("Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
 
-            actions[UNLINK].append(dist)
+            actions[inst.UNLINK].append(dist)
             if r and fn in index and r.track_features(fn):
                 features_actions = remove_features_actions(prefix, index, r.track_features(fn))
                 for action in features_actions:
@@ -477,7 +454,7 @@ def remove_features_actions(prefix, index, features):
     r = Resolve(index)
 
     actions = defaultdict(list)
-    actions[PREFIX] = prefix
+    actions[inst.PREFIX] = prefix
     _linked = [d + '.tar.bz2' for d in linked]
     to_link = []
     for dist in sorted(linked):
@@ -485,9 +462,9 @@ def remove_features_actions(prefix, index, features):
         if fn not in index:
             continue
         if r.track_features(fn).intersection(features):
-            actions[UNLINK].append(dist)
+            actions[inst.UNLINK].append(dist)
         if r.features(fn).intersection(features):
-            actions[UNLINK].append(dist)
+            actions[inst.UNLINK].append(dist)
             subst = r.find_substitute(_linked, features, fn)
             if subst:
                 to_link.append(subst[:-8])
@@ -511,82 +488,39 @@ def revert_actions(prefix, revision=-1):
 
     actions = ensure_linked_actions(state, prefix)
     for dist in curr - state:
-        actions[UNLINK].append(dist)
+        actions[inst.UNLINK].append(dist)
 
     return actions
 
 # ---------------------------- EXECUTION --------------------------
-
-def fetch(index, dist):
-    assert index is not None
-    fn = dist + '.tar.bz2'
-    fetch_pkg(index[fn])
-
-def link(prefix, arg, index=None):
-    dist, pkgs_dir, lt = split_linkarg(arg)
-    install.link(pkgs_dir, prefix, dist, lt, index=index)
-
-def cmds_from_plan(plan):
-    res = []
-    for line in plan:
-        log.debug(' %s' % line)
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        res.append(line.split(None, 1))
-    return res
-
-def execute_plan(plan, index=None, verbose=False):
-    if verbose:
-        from conda.console import setup_verbose_handlers
-        setup_verbose_handlers()
-
-    # set default prefix
-    prefix = config.root_dir
-    i = None
-    cmds = cmds_from_plan(plan)
-
-    for cmd, arg in cmds:
-        if i is not None and cmd in progress_cmds:
-            i += 1
-            getLogger('progress.update').info((install.name_dist(arg), i))
-
-        if cmd == PREFIX:
-            prefix = arg
-        elif cmd == PRINT:
-            getLogger('print').info(arg)
-        elif cmd == FETCH:
-            fetch(index, arg)
-        elif cmd == PROGRESS:
-            i = 0
-            maxval = int(arg)
-            getLogger('progress.start').info(maxval)
-        elif cmd == EXTRACT:
-            install.extract(config.pkgs_dirs[0], arg)
-        elif cmd == RM_EXTRACTED:
-            install.rm_extracted(config.pkgs_dirs[0], arg)
-        elif cmd == RM_FETCHED:
-            install.rm_fetched(config.pkgs_dirs[0], arg)
-        elif cmd == LINK:
-            link(prefix, arg, index=index)
-        elif cmd == UNLINK:
-            install.unlink(prefix, arg)
-        elif cmd == SYMLINK_CONDA:
-            install.symlink_conda(prefix, arg)
-        else:
-            raise Exception("Did not expect command: %r" % cmd)
-
-        if i is not None and cmd in progress_cmds and maxval == i:
-            i = None
-            getLogger('progress.stop').info(None)
-
-    install.messages(prefix)
-
-
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    with History(actions[PREFIX]):
-        execute_plan(plan, index, verbose)
+    with History(actions[inst.PREFIX]):
+        inst.execute_instructions(plan, index, verbose)
+
+def update_old_plan(old_plan):
+    """
+    Update an old plan object to work with 
+    `conda.instructions.execute_instructions`
+    """
+    plan = []
+    for line in old_plan:
+        if line.startswith('#'):
+            continue
+        if ' ' not in line:
+            raise CondaException("The instruction '%s' takes at least one argument" % line)
+
+        instruction, arg = line.split(' ', 1)
+        plan.append((instruction, arg))
+    return plan
+
+def execute_plan(old_plan, index=None, verbose=False):
+    """
+    Deprecated: This should `conda.instructions.execute_instructions` instead
+    """
+    plan = update_old_plan(old_plan)
+    inst.execute_instructions(plan, index, verbose)
+
 
 
 if __name__ == '__main__':

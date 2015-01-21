@@ -185,6 +185,9 @@ def install(args, parser, command='install'):
         specs.extend(common.specs_from_url(args.file, json=args.json))
     elif getattr(args, 'all', False):
         linked = ci.linked(prefix)
+        if not linked:
+            common.error_and_exit("There are no packages installed in the "
+                "prefix %s" % prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
             if name in getattr(args, '_skip', []):
@@ -199,7 +202,8 @@ def install(args, parser, command='install'):
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
     else:
-        common.check_specs(prefix, specs, json=args.json)
+        common.check_specs(prefix, specs, json=args.json,
+                           create=(command == 'create'))
 
     # handle tar file containing conda packages
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
@@ -322,6 +326,13 @@ environment does not exist: %s
         else:
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+            if args.copy:
+                new_link = []
+                for pkg in actions["LINK"]:
+                    dist, pkgs_dir, lt = plan.split_linkarg(pkg)
+                    lt = ci.LINK_COPY
+                    new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
+                actions["LINK"] = new_link
     except NoPackagesFound as e:
         error_message = e.args[0]
 
