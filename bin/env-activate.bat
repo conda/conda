@@ -20,7 +20,7 @@ if not "%CONDA_NEW_ENV%" == "" goto skipmissingarg
     exit /b 1
 :skipmissingarg
 
-if exist "%ANACONDA_ENVS%\%CONDA_NEW_ENV%\Python.exe" goto skipmissingenv
+if exist "%ANACONDA_ENVS%\%CONDA_NEW_ENV%\conda-meta" goto skipmissingenv
     echo No environment named "%CONDA_NEW_ENV%" exists in %ANACONDA_ENVS%
     set CONDA_NEW_ENV=
     exit /b 1
