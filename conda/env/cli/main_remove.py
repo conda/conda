@@ -3,7 +3,7 @@ from argparse import RawDescriptionHelpFormatter
 from os.path import basename
 import textwrap
 
-from conda.cli import common
+from ...cli import common
 
 _help = "Remove an environment"
 _description = _help + """

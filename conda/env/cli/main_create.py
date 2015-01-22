@@ -3,10 +3,10 @@ import os
 import textwrap
 import sys
 
-from conda import config
-from conda.cli import common
-from conda.cli import install as cli_install
-from conda.misc import touch_nonadmin
+from ... import config
+from ...cli import common
+from ...cli import install as cli_install
+from ...misc import touch_nonadmin
 
 from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
@@ -108,4 +108,3 @@ def execute(args, parser):
     touch_nonadmin(prefix)
     if not args.json:
         cli_install.print_activate(args.name if args.name else prefix)
-

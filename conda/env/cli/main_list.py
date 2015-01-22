@@ -1,6 +1,6 @@
 from argparse import RawDescriptionHelpFormatter
 
-from conda.cli import common
+from ...cli import common
 
 description = """
 List the Conda environments

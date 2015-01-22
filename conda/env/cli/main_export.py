@@ -3,8 +3,8 @@ import os
 import sys
 import textwrap
 
-from conda.cli import common
-from conda import config
+from ...cli import common
+from ... import config
 
 from ..env import from_environment
 

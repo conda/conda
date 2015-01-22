@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import subprocess
 
-from conda.cli import main_list
+from ...cli import main_list
 
 
 def install(prefix, specs, args, env):

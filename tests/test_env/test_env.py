@@ -10,8 +10,8 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-from conda_env import env
-from conda_env import exceptions
+from conda.env import env
+from conda.env import exceptions
 
 from . import utils
 

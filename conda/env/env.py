@@ -4,9 +4,9 @@ from copy import copy
 import os
 
 # TODO This should never have to import from conda.cli
-from conda.cli import common
-from conda.cli import main_list
-from conda import install
+from ..cli import common
+from ..cli import main_list
+from .. import install
 
 from . import exceptions
 from . import yaml
