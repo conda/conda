@@ -8,15 +8,8 @@
 import sys
 import os
 
-if 'develop' in sys.argv:
-    from setuptools import setup
-    using_setuptools = True
-    print("Using setuptools")
-else:
-    from distutils.core import setup
-    using_setuptools = False
-    print("Not using setuptools")
-
+from setuptools import setup
+using_setuptools = True
 
 add_activate = True
 
@@ -41,11 +34,15 @@ versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
 kwds = {'scripts': []}
-if sys.platform == 'win32' and using_setuptools:
-    kwds['entry_points'] = dict(console_scripts =
-                                        ["conda = conda.cli.main:main"])
-else:
-    kwds['scripts'].append('bin/conda')
+kwds['entry_points'] = {
+    'console_scripts': [
+        'conda = conda.cli.main:main',
+    ],
+    'conda.env.installers': [
+        'conda = conda.env.installers.conda',
+        'pip = conda.env.installers.pip',
+    ],
+}
 
 if add_activate:
     if sys.platform == 'win32':
