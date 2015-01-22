@@ -2,7 +2,9 @@
 
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
-if [[ -n $BASH_VERSION ]] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+# Also note that errors are ignored as `activate foo` doesn't generate a bad
+# value for $0 which would cause errors.
+if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
     >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
 "
@@ -20,6 +22,21 @@ else
     return 1
 fi
 _THIS_DIR=$(dirname "$_SCRIPT_LOCATION")
+# Provide a symlink-resovled script location
+_ABS_SCRIPT_LOCATION=$_SCRIPT_LOCATION
+while [ -h "$_ABS_SCRIPT_LOCATION" ]; do
+    _DIR="$( cd -P "$(dirname $_ABS_SCRIPT_LOCATION)" && pwd )"
+    _ABS_SCRIPT_LOCATION="$(readlink "$_ABS_SCRIPT_LOCATION")"
+    [[ $_ABS_SCRIPT_LOCATION != /* ]] && _ABS_SCRIPT_LOCATION="$_DIR/$_ABS_SCRIPT_LOCATION"
+done
+
+# Load common functions
+get_dirname() {
+    echo "$(cd "$(dirname "$1")" && pwd)"
+}
+source "$(get_dirname ${_ABS_SCRIPT_LOCATION})/_conda-functions"
+
+run_scripts "deactivate"
 
 _NEW_PATH=$("$_THIS_DIR/conda" ..activateroot "$@")
 if (( $? == 0 )); then
