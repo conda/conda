@@ -109,12 +109,12 @@ commands = {
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
     """
     Execute the instructions in the plan
-    
+
     :param plan: A list of (instruction, arg) tuples
     :param index: The meta-data index
     :param verbose: verbose output
     :param _commands: (For testing only) dict mapping an instruction to executable if None
-    then the default commands will be used 
+    then the default commands will be used
     """
     if _commands is None:
         _commands = commands

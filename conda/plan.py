@@ -500,7 +500,7 @@ def execute_actions(actions, index=None, verbose=False):
 
 def update_old_plan(old_plan):
     """
-    Update an old plan object to work with 
+    Update an old plan object to work with
     `conda.instructions.execute_instructions`
     """
     plan = []
