@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Ensure that this script is sourced, not executed
-# Note that if the script was executed, we're running inside bash!
-if [[ -n $BASH_VERSION ]] && [[ "$(basename $0)" == "activate" ]]; then
+# Also note that errors are ignored as `activate foo` doesn't generate a bad
+# value for $0 which would cause errors.
+if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "activate" ]]; then
     >&2 echo "Error: activate must be sourced. Run 'source activate envname'
 instead of 'activate envname'.
 "
