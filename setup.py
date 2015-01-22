@@ -46,11 +46,5 @@ setup(
     scripts=[
         'bin/conda-env',
     ] + scripts,
-    entry_points={
-        'conda.env.installers': [
-            'conda = conda_env.installers.conda',
-            'pip = conda_env.installers.pip',
-        ],
-    },
     package_data={},
 )
