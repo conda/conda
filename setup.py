@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 import sys
 
+if 'develop' in sys.argv:
+    from setuptools import setup
+    using_setuptools = True
+else:
+    from distutils.core import setup
+    using_setuptools = False
+
 from setuptools import setup
 
 
@@ -22,7 +29,7 @@ else:
 
 setup(
     name="conda-env",
-    version="1.4.2",
+    version="2.0.0",
     author="Continuum Analytics, Inc.",
     author_email="support@continuum.io",
     url="https://github.com/conda/conda-env",
@@ -46,11 +53,5 @@ setup(
     scripts=[
         'bin/conda-env',
     ] + scripts,
-    entry_points={
-        'conda.env.installers': [
-            'conda = conda_env.installers.conda',
-            'pip = conda_env.installers.pip',
-        ],
-    },
     package_data={},
 )
