@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 import sys
 
+if 'develop' in sys.argv:
+    from setuptools import setup
+    using_setuptools = True
+else:
+    from distutils.core import setup
+    using_setuptools = False
+
 from setuptools import setup
 
 
