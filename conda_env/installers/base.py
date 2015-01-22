@@ -1,3 +1,4 @@
+import importlib
 ENTRY_POINT = 'conda_env.installers'
 
 
@@ -9,6 +10,6 @@ class InvalidInstaller(Exception):
 
 def get_installer(name):
     try:
-        return __import__(ENTRY_POINT + '.' + name)
+        return importlib.import_module(ENTRY_POINT + '.' + name)
     except ImportError:
         raise InvalidInstaller(name)
