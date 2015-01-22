@@ -1,5 +1,7 @@
 2015-01-22   3.8.0:
 -------------------
+  * load the channel urls in the correct order when using concurrent.futures
+  * remove a debug print statement
   * move active script into conda-env, which is now a new dependency
   * load the channel urls in the correct order when using concurrent.futures
   * add optional 'icondata' key to json files in conda-meta directory, which
