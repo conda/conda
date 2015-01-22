@@ -1,0 +1,57 @@
+from __future__ import print_function, division, absolute_import
+import argparse
+import os
+import sys
+
+try:
+    from conda.cli.main import args_func
+except ImportError as e:
+    if 'CONDA_DEFAULT_ENV' in os.environ:
+        sys.stderr.write("""
+There was an error importing conda.
+
+It appears this was caused by installing conda-env into a conda
+environment.  Like conda, conda-env needs to be installed into your
+root conda/Anaconda environment.
+
+Please deactivate your current environment, then re-install conda-env
+using this command:
+
+    conda install -c conda conda-env
+
+If you are seeing this error and have not installed conda-env into an
+environment, please open a bug report at:
+    https://github.com/conda/conda-env
+
+""".lstrip())
+        sys.exit(-1)
+    else:
+        raise e
+
+from . import main_create
+from . import main_export
+from . import main_list
+from . import main_remove
+from . import main_update
+
+
+def create_parser():
+    p = argparse.ArgumentParser()
+    sub_parsers = p.add_subparsers()
+
+    main_create.configure_parser(sub_parsers)
+    main_export.configure_parser(sub_parsers)
+    main_list.configure_parser(sub_parsers)
+    main_remove.configure_parser(sub_parsers)
+    main_update.configure_parser(sub_parsers)
+    return p
+
+
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+    return args_func(args, parser)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
