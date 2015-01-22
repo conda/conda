@@ -16,7 +16,6 @@ requirements:
     - setuptools
   run:
     - python
-    - setuptools
 
 test:
   commands:

@@ -1,6 +1,4 @@
-import pkg_resources
-
-ENTRY_POINT = 'conda.env.installers'
+ENTRY_POINT = 'conda_env.installers'
 
 
 class InvalidInstaller(Exception):
@@ -10,8 +8,7 @@ class InvalidInstaller(Exception):
 
 
 def get_installer(name):
-    for entry_point in pkg_resources.iter_entry_points(ENTRY_POINT):
-        if entry_point.name == name:
-            return entry_point.load()
-
-    raise InvalidInstaller(name)
+    try:
+        return __import__(ENTRY_POINT + '.' + name)
+    except ImportError:
+        raise InvalidInstaller(name)
