@@ -360,7 +360,7 @@ def read_icondata(source_dir):
 
     try:
         data = open(join(source_dir, 'info', 'icon.png'), 'rb').read()
-        return base64.b64encode(data)
+        return base64.b64encode(data).decode('utf-8')
     except IOError:
         pass
     return None
