@@ -1,3 +1,5 @@
+  * add conda clean --source-cache to clean the conda build source caches
+
 2015-01-23   3.8.1:
 -------------------
   * add missing utf-8 decoding, fixes Python 3 bug when icondata to json file
