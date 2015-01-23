@@ -340,8 +340,8 @@ def execute(args, parser):
                 verbose=not args.json)
 
     if args.source_cache:
-        json_result = find_source_cache()
-        rm_source_cache(args, **json_result)
+        json_result['source_cache'] = find_source_cache()
+        rm_source_cache(args, **json_result['source_cache'])
 
     if not (args.lock or args.tarballs or args.index_cache or args.packages or
         args.source_cache):
