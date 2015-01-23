@@ -1,3 +1,8 @@
+2015-01-23   3.8.1:
+-------------------
+  * add missing utf-8 decoding, fixes Python 3 bug when icondata to json file
+
+
 2015-01-22   3.8.0:
 -------------------
   * move active script into conda-env, which is now a new dependency
