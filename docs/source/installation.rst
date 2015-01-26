@@ -2,11 +2,11 @@
 Installation
 ============
 
-Conda is part of the Anaconda Python distribution which can be downloaded `here
+Conda is part of the Anaconda Python distribution which can be downloaded from the `Continuum store
 <https://store.continuum.io/cshop/anaconda/>`_.
 
 Conda can also be installed as a stand-alone packages known as *Miniconda*. Installers for Linux, OSX and Windows are
-available `here <http://conda.pydata.org/miniconda.html#miniconda>`_.
+available on `the Conda site <http://conda.pydata.org/miniconda.html#miniconda>`_.
 
 
 Silent installation
@@ -15,12 +15,12 @@ Silent installation
 Silent installation of Miniconda can be used for deployment or testing or building services such as Travis CI and
 Appveyor.
 
-The lastest version of the Miniconda installer can be found `here <http://repo.continuum.io/miniconda/>`_. In any case,
-an out of date installation can be updated with a simple:
+The lastest version of the Miniconda installer can be found `in the repo <http://repo.continuum.io/miniconda/>`_. In any
+case, an out of date installation can be updated with a simple:
 
-.. code-block:: bash
+.. code-block:: console
 
-   conda update conda
+    conda update conda
 
 
 Windows
@@ -40,7 +40,7 @@ quotation marks.
 
 The following command installs Miniconda for all users without registering Python as the system's default:
 
-.. code-block:: bash
+.. code-block:: bat
 
     Miniconda-3.7.3-Windows-x86_64.exe /InstallationType=AllUsers /RegisterPython=0 \
         /S /D=C:\Program Files\Miniconda3
