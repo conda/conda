@@ -174,7 +174,7 @@ def add_parser_no_pin(p):
         action="store_false",
         default=True,
         dest='pinned',
-        help="don't use pinned packages",
+        help="ignore pinned file",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
