@@ -84,8 +84,18 @@ def external_commands():
     print("Getting list of external subcommands")
     subcommands_re = re.compile(r'\s*\{(.*)\}\s*')
     # Check for subcommands (like conda skeleton pypi)
-    for command in commands:
-        help = conda_command_help(command)
+    command_help = {}
+
+    def get_help(command):
+        command_help[command] = conda_command_help(command)
+        print("Checked for subcommand help for %s" % command)
+
+    with ThreadPoolExecutor(len(commands)) as executor:
+        # list() is needed for force exceptions to be raised
+        list(executor.map(get_help, commands))
+
+    for command in command_help:
+        help = command_help[command]
         start = False
         for line in help.splitlines():
             if line.strip() == "positional arguments:":
