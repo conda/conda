@@ -2,10 +2,11 @@
 Installation
 ============
 
-Conda is part of the Anaconda Python distribution which can be downloaded from the `Continuum store
+Conda is part of the Anaconda Python distribution which can be downloaded from `here
 <https://store.continuum.io/cshop/anaconda/>`_.
 
-Conda can also be installed as a stand-alone packages known as *Miniconda*. Installers for Linux, OSX and Windows are
+Conda can also be installed as a stand-alone packages known as
+*Miniconda*. Installers for Linux, OS X and Windows are
 available on `the Conda site <http://conda.pydata.org/miniconda.html#miniconda>`_.
 
 
@@ -55,6 +56,9 @@ bash installer. The following arguments are supported:
 - ``-b``, batch mode
 - ``-p``, installation prefix/path
 - ``-f``, force installation even if prefix ``-p`` already exists
+
+Batch mode assumes that you agree to the license agreement, and it does not
+edit the .bashrc or .bash_profile files.
 
 A complete example:
 
