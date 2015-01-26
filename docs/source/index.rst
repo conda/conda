@@ -15,12 +15,6 @@ create new conda environments, and install and update packages into existing
 conda environments.
 
 
-Installation
-------------
-
-conda is a part of the Anaconda distribution which can be downloaded `here <https://store.continuum.io/cshop/anaconda/>`_.
-
-
 Getting Started
 ---------------
 
@@ -76,6 +70,7 @@ User Guide
    :maxdepth: 2
 
    intro
+   installation
    examples
    faq
    troubleshooting
