@@ -5,6 +5,7 @@
     conda is installed into a directory with spaces
   * fix conda install --copy
 
+
 2015-01-23   3.8.1:
 -------------------
   * add missing utf-8 decoding, fixes Python 3 bug when icondata to json file
