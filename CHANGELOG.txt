@@ -3,7 +3,7 @@
   * add conda clean --source-cache to clean the conda build source caches
   * add missing quotes in (de)activate.bat, fixes problem in Windows when
     conda is installed into a directory with spaces
-
+  * fix conda install --copy
 
 2015-01-23   3.8.1:
 -------------------
