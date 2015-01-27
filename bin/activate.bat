@@ -15,6 +15,6 @@ if exist "%root%\Scripts\env-activate.bat" goto activate
 
 :activate
     set args=%*
-    call %root%\Scripts\env-activate.bat %args%
+    call "%root%\Scripts\env-activate.bat" %args%
 
 :done

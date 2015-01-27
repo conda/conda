@@ -14,6 +14,6 @@ if exist "%root%\Scripts\env-deactivate.bat" goto deactivate
 
 :deactivate
     set args=%*
-    call %root%\Scripts\env-deactivate.bat %args%
+    call "%root%\Scripts\env-deactivate.bat" %args%
 
 :done
