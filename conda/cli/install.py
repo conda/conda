@@ -16,6 +16,7 @@ from difflib import get_close_matches
 
 import conda.config as config
 import conda.plan as plan
+import conda.instructions as inst
 import conda.misc as misc
 from conda.api import get_index
 from conda.cli import pscheck
@@ -329,7 +330,7 @@ environment does not exist: %s
             if args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
-                    dist, pkgs_dir, lt = plan.split_linkarg(pkg)
+                    dist, pkgs_dir, lt = inst.split_linkarg(pkg)
                     lt = ci.LINK_COPY
                     new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
                 actions["LINK"] = new_link
