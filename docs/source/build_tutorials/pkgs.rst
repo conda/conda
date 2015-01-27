@@ -170,6 +170,19 @@ with the ``--use-local`` flag.
 
    $ conda install --use-local pyinstrument
 
+Building packages for other platforms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Once a package is built for the current platform with ``conda build``,
+you can convert it for use on other platforms with the ``conda convert`` command
+and a ``-p`` platform specifier from ``{osx-64,linux-32,linux-64,win-32,win-64,all}``.
+
+.. code-block:: bash
+
+   $ conda convert -p all ~/miniconda/conda-bld/linux-64/pyinstrument-0.12_py270.tar.bz2 -o outputdir/
+
+These converted packages can then also be individually uploaded to Binstar.
+
+
 Writing the meta.yaml by hand
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
