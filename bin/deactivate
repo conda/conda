@@ -1,5 +1,5 @@
 #!/bin/bash
-ROOT_PREFIX=$(conda info --json  | grep root_prefix | awk -F ':' '{print $2}' | awk -F '"' '{print $2}')
+ROOT_PREFIX=$(conda info --root)
 if [[ -a "${ROOT_PREFIX}/bin/env-deactivate" ]]; then
     source "${ROOT_PREFIX}/bin/env-deactivate" $@
 else
