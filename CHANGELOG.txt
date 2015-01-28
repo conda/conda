@@ -1,3 +1,8 @@
+2015-01-28   3.8.3:
+-------------------
+  * simplified how ROOT_PREFIX is obtained in (de)activate
+
+
 2015-01-27   3.8.2:
 -------------------
   * add conda clean --source-cache to clean the conda build source caches
