@@ -158,6 +158,13 @@ sections are optional except for package/name and package/version.
         - lib/
         - lib/R/lib/
 
+      # Force files to always be included, even if they are already in the
+      # environment from the build dependencies. This is needed, for instance,
+      # to create a recipe for conda itself.
+      always_include_files:
+        - bin/file1
+        - bin/file2
+
       #########################################################################
       # binary_relocation, has_prefix_files, binary_has_prefix_files, and     #
       # detect_binary_files_with_prefix may be required to relocate files     #
