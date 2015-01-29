@@ -1,4 +1,4 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -125,7 +125,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             return None
 
         elif (e.response.status_code == 401 and config.rc.get('channel_alias',
-            config.DEFAULT_CHANNEL_ALIAS) in url):
+                        config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to binstar again with "
