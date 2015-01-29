@@ -17,13 +17,71 @@ from conda.cli import common
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
 config command.  Writes to the user .condarc file (%s) by default.
+
+See http://conda.pydata.org/docs/config.html for details on all the options
+that can go in .condarc.
+
+List keys, like
+
+  $ cat .condarc
+  $ key:
+  $   - a
+  $   - b
+
+are modified with the --add and --remove options. For example
+
+    conda config --add key c
+
+on the above configuration would prepend the key 'c', giving
+
+    key:
+      - c
+      - a
+      - b
+
+Note that the key 'channels' implicitly contains the key 'defaults' if it is
+not configured.
+
+Boolean keys, like
+
+    key: true
+
+are modified with --set and removed with --remove-key. For example
+
+    conda config --set key false
+
+gives
+
+    key: false
+
+Note that in YAML, yes, YES, on, true, True, and TRUE are all valid ways to
+spell "true", and no, NO, off, false, False, and FALSE, are all valid ways to
+spell "false".
+
+The .condarc file is YAML, and any valid YAML syntax is allowed.  However,
+this command uses a specialized YAML parser that tries to maintain structure
+and comments, which may not recognize all kinds of syntax. The --force flag
+can be used to write using the YAML parser, which will remove any structure
+and comments from the file.  Currently, the --force flag is required to use
+--remove or --remove-key.
+
 """ % config.user_rc_path
 
+# Note, the formatting of this is designed to work well with help2man
 example = """
-examples:
+Examples:
+
+Get the channels defined in the system .condarc:
+
     conda config --get channels --system
 
-    conda config --add channels http://conda.binstar.org/foo
+Add the 'foo' Binstar channel:
+
+    conda config --add channels foo
+
+Enable the 'show_channel_urls' option:
+
+    conda config --set show_channel_urls yes
 """
 
 class CouldntParse(NotImplementedError):

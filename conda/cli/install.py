@@ -16,11 +16,12 @@ from difflib import get_close_matches
 
 import conda.config as config
 import conda.plan as plan
+import conda.instructions as inst
+import conda.misc as misc
 from conda.api import get_index
 from conda.cli import pscheck
 from conda.cli import common
 from conda.cli.find_commands import find_executable
-from conda.misc import touch_nonadmin
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
 
@@ -39,9 +40,9 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    install_local_packages(prefix, paths, verbose=verbose)
-
+    depends = install_local_packages(prefix, paths, verbose=verbose)
     shutil.rmtree(tmp_dir)
+    return depends
 
 
 def check_prefix(prefix, json=False):
@@ -163,7 +164,8 @@ def install(args, parser, command='install'):
                                   json=args.json,
                                   error_type="ValueError")
         clone(args.clone, prefix, json=args.json, quiet=args.quiet)
-        touch_nonadmin(prefix)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
         return
@@ -184,6 +186,9 @@ def install(args, parser, command='install'):
         specs.extend(common.specs_from_url(args.file, json=args.json))
     elif getattr(args, 'all', False):
         linked = ci.linked(prefix)
+        if not linked:
+            common.error_and_exit("There are no packages installed in the "
+                "prefix %s" % prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
             if name in getattr(args, '_skip', []):
@@ -198,7 +203,29 @@ def install(args, parser, command='install'):
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
     else:
-        common.check_specs(prefix, specs, json=args.json)
+        common.check_specs(prefix, specs, json=args.json,
+                           create=(command == 'create'))
+
+    # handle tar file containing conda packages
+    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
+    if num_cp:
+        if num_cp == len(args.packages):
+            from conda.misc import install_local_packages
+            depends = install_local_packages(prefix, args.packages,
+                                             verbose=not args.quiet)
+            specs = list(set(depends))
+            args.unknown = True
+        else:
+            common.error_and_exit(
+                "cannot mix specifications with conda package filenames",
+                json=args.json,
+                error_type="ValueError")
+    if len(args.packages) == 1:
+        tar_path = args.packages[0]
+        if tar_path.endswith('.tar'):
+            depends = install_tar(prefix, tar_path, verbose=not args.quiet)
+            specs = list(set(depends))
+            args.unknown = True
 
     if args.use_local:
         from conda.fetch import fetch_index
@@ -217,15 +244,18 @@ def install(args, parser, command='install'):
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
     else:
-        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels,
+        index = common.get_index_trap(channel_urls=channel_urls,
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown, json=args.json)
+                                      unknown=args.unknown,
+                                      json=args.json,
+                                      offline=args.offline)
 
     # Don't update packages that are already up-to-date
-    if command == 'update' and not args.all:
+    if command == 'update' and not (args.all or args.force):
         r = Resolve(index)
         orig_packages = args.packages[:]
         for name in orig_packages:
@@ -264,24 +294,6 @@ def install(args, parser, command='install'):
                 common.stdout_json_success(message='All requested packages already installed.')
             return
 
-    # handle tar file containing conda packages
-    if len(args.packages) == 1:
-        tar_path = args.packages[0]
-        if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not args.quiet)
-            return
-
-    # handle explicit installs of conda packages
-    if args.packages and all(s.endswith('.tar.bz2') for s in args.packages):
-        from conda.misc import install_local_packages
-        install_local_packages(prefix, args.packages, verbose=not args.quiet)
-        return
-
-    if any(s.endswith('.tar.bz2') for s in args.packages):
-        common.error_and_exit("cannot mix specifications with conda package filenames",
-                              json=args.json,
-                              error_type="ValueError")
-
     if args.force:
         args.no_deps = True
 
@@ -315,6 +327,13 @@ environment does not exist: %s
         else:
             actions = plan.install_actions(prefix, index, specs, force=args.force,
                                            only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+            if args.copy:
+                new_link = []
+                for pkg in actions["LINK"]:
+                    dist, pkgs_dir, lt = inst.split_linkarg(pkg)
+                    lt = ci.LINK_COPY
+                    new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
+                actions["LINK"] = new_link
     except NoPackagesFound as e:
         error_message = e.args[0]
 
@@ -404,7 +423,8 @@ environment does not exist: %s
             common.exception_and_exit(e, json=args.json)
 
     if newenv:
-        touch_nonadmin(prefix)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
 

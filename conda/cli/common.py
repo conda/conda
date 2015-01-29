@@ -6,6 +6,7 @@ import sys
 import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
+import textwrap
 
 import conda.config as config
 from conda import console
@@ -45,7 +46,7 @@ def add_parser_json(p):
     p.add_argument(
         "--json",
         action = "store_true",
-        help = argparse.SUPPRESS,
+        help = "report all output as json. Suitable for using conda programmatically."
     )
 
 
@@ -80,7 +81,8 @@ def add_parser_known(p):
         default=False,
         dest='unknown',
         help="use index metadata from the local package cache "
-             "(which are from unknown channels)",
+             "(which are from unknown channels) (installing local packages "
+             "directly implies this option)",
     )
 
 def add_parser_use_index_cache(p):
@@ -90,6 +92,13 @@ def add_parser_use_index_cache(p):
         default=False,
         help = "use cache of channel index files",
     )
+
+def add_parser_copy(p):
+    p.add_argument(
+        '--copy',
+        action="store_true",
+        help="Install all packages using copies instead of hard- or soft-linking."
+        )
 
 def add_parser_install(p):
     add_parser_yes(p)
@@ -123,10 +132,12 @@ def add_parser_install(p):
     )
     add_parser_use_index_cache(p)
     add_parser_use_local(p)
+    add_parser_offline(p)
     add_parser_no_pin(p)
     add_parser_channels(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
+    add_parser_copy(p)
     p.add_argument(
         "--alt-hint",
         action="store_true",
@@ -148,6 +159,14 @@ def add_parser_use_local(p):
         help = "use locally built packages",
     )
 
+def add_parser_offline(p):
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        default=False,
+        help="offline mode, don't connect to internet",
+    )
+
 
 def add_parser_no_pin(p):
     p.add_argument(
@@ -155,7 +174,7 @@ def add_parser_no_pin(p):
         action="store_false",
         default=True,
         dest='pinned',
-        help="don't use pinned packages",
+        help="ignore pinned file",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
@@ -348,12 +367,24 @@ def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
-def check_specs(prefix, specs, json=False):
+def check_specs(prefix, specs, json=False, create=False):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        error_and_exit('too few arguments, must supply command line '
-                       'package specs or --file',
+        msg = ('too few arguments, must supply command line '
+               'package specs or --file')
+        if create:
+            msg += textwrap.dedent("""
+
+                You can specify one or more default packages to install when creating
+                an environment.  Doing so allows you to call conda create without
+                explicitly providing any package names.
+
+                To set the provided packages, call conda config like this:
+
+                    conda config --add create_default_packages PACKAGE_NAME
+            """)
+        error_and_exit(msg,
                        json=json,
                        error_type="ValueError")
 
@@ -396,7 +427,7 @@ def error_and_exit(message, json=False, newline=False, error_text=True,
 def exception_and_exit(exc, **kwargs):
     if 'error_type' not in kwargs:
         kwargs['error_type'] = exc.__class__.__name__
-    error_and_exit('; '.join(exc.args), **kwargs)
+    error_and_exit('; '.join(map(str, exc.args)), **kwargs)
 
 
 def get_index_trap(*args, **kwargs):
