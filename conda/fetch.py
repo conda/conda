@@ -115,7 +115,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
                 msg = ('Could not find Binstar user %s' %
-                   config.remove_binstar_tokens(url).split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
+                   config.remove_binstar_tokens(url).split(
+                        config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
                 if url.endswith('/noarch/'): # noarch directory might not exist
                     return None
@@ -131,7 +132,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 "'binstar login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
-            return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
+            return fetch_repodata(config.remove_binstar_tokens(url),
+                                  cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
 
         else:
             msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
