@@ -111,6 +111,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
+
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
                 msg = ('Could not find Binstar user %s' %
@@ -119,6 +120,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 if url.endswith('/noarch/'): # noarch directory might not exist
                     return None
                 msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+        elif e.response.status_code == 403 and url.endswith('/noarch/'):
+            return None
+
         elif (e.response.status_code == 401 and config.rc.get('channel_alias',
             config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
@@ -128,8 +132,10 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
+
         else:
             msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
+
         log.debug(msg)
         raise RuntimeError(msg)
 
@@ -225,6 +231,7 @@ Allowed channels are:
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
+
     stdoutlog.info('\n')
     if unknown:
         for pkgs_dir in config.pkgs_dirs:
