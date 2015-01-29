@@ -63,6 +63,7 @@ rc_bool_keys = [
     'allow_softlinks',
     'changeps1',
     'use_pip',
+    'offline',
     'binstar_upload',
     'binstar_personal',
     'show_channel_urls',
@@ -94,14 +95,13 @@ def get_rc_path():
 rc_path = get_rc_path()
 
 def load_condarc(path):
-    if not path:
+    if not path or not isfile(path):
         return {}
     try:
         import yaml
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file: %s)' % path)
-
     return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
@@ -120,7 +120,8 @@ root_env_name = 'root'
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
     if not root_writable:
-        lst.insert(0, '~/envs')
+        # ~/envs for backwards compatibility
+        lst = ['~/.conda/envs', '~/envs'] + lst
     return lst
 
 def _pathsep_env(name):
@@ -179,6 +180,8 @@ def get_default_urls():
             'http://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
+    if rc.get('channels') is None:
+        return []
     if 'system' in rc['channels']:
         raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']
@@ -243,20 +246,26 @@ def normalize_urls(urls, platform=None):
             newurls.append('%s/noarch/' % url.rstrip('/'))
     return newurls
 
+offline = bool(rc.get('offline', False))
+
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
         if os.getenv('CIO_TEST') == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
+        return normalize_urls(base_urls, platform=platform)
 
-    elif 'channels' not in rc:
+    if 'channels' not in rc:
         base_urls = get_default_urls()
 
     else:
         base_urls = get_rc_urls()
 
-    return normalize_urls(base_urls, platform=platform)
+    res = normalize_urls(base_urls, platform=platform)
+    if offline:
+        res = [url for url in res if url.startswith('file:')]
+    return res
 
 def canonical_channel_name(channel, hide=True):
     if channel is None:

@@ -203,16 +203,18 @@ Allowed channels are:
 
         repodatas = []
         with concurrent.futures.ThreadPoolExecutor(10) as executor:
-            future_to_url = OrderedDict([(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                session=session), url) for url in reversed(channel_urls)])
-            for future in concurrent.futures.as_completed(future_to_url):
+            future_to_url = OrderedDict([(executor.submit(
+                            fetch_repodata, url, use_cache=use_cache,
+                            session=session), url)
+                                         for url in reversed(channel_urls)])
+            for future in future_to_url:
                 url = future_to_url[future]
                 repodatas.append((url, future.result()))
     except ImportError:
         # concurrent.futures is only available in Python 3
         repodatas = map(lambda url: (url, fetch_repodata(url,
-                 use_cache=use_cache, session=session)),
-        reversed(channel_urls))
+                                     use_cache=use_cache, session=session)),
+                        reversed(channel_urls))
 
     for url, repodata in repodatas:
         if repodata is None:
@@ -236,7 +238,7 @@ Allowed channels are:
                 except IOError:
                     continue
                 if 'depends' not in meta:
-                    continue
+                    meta['depends'] = []
                 log.debug("adding cached pkg to index: %s" % fn)
                 index[fn] = meta
 
@@ -327,8 +329,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                         raise RuntimeError("Failed to write to %r." % pp)
                     if md5:
                         h.update(chunk)
-                    n += len(chunk)
-                    if size:
+                    # update n with actual bytes read
+                    n = resp.raw.tell()
+                    if size and 0 <= n <= size:
                         getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee

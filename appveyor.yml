@@ -30,7 +30,9 @@ init:
   - cmd: C:\Miniconda.exe /S /D=C:\Miniconda
   - ps: ls C:\Miniconda/Scripts
   - C:\Miniconda\Scripts\conda config --set always_yes yes
-  - C:\Miniconda\Scripts\conda install pytest requests --quiet
+  # We need to do this first as other commands may not work with older versions of conda.
+  - C:\Miniconda\Scripts\conda update conda
+  - C:\Miniconda\Scripts\conda install -c conda pytest requests conda-env --quiet
 
 install:
   - C:\Miniconda\python.exe setup.py install
