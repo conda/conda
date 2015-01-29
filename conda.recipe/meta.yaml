@@ -1,0 +1,42 @@
+package:
+  name: conda
+  version: 3.7.4
+
+build:
+{% if 'CONDA_RELEASE' in environ %}
+  number: {{ environ.get('CONDA_BUILD_NUMBER', 0) }}
+{% else %}
+  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+  string: py{{ environ.get('PY_VER').replace('.', '') }}_{{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}
+{% endif %}
+
+  # These are present when the new environment is created
+  # so we have to exempt them from the list of initial files
+  # for conda-build to realize they should be included.
+  always_include_files:
+    - bin/activate
+    - bin/deactivate
+    - bin/conda
+
+source:
+  git_url: ../
+
+requirements:
+  build:
+    - python
+  run:
+    - python
+    - pycosat
+    - pyyaml
+    - requests
+
+test:
+  commands:
+    - conda --version
+    - conda info
+  imports:
+    - conda
+
+about:
+  home: http://conda.pydata.org/
+  license: BSD

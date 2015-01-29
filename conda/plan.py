@@ -391,7 +391,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
                 del must_have[name]
     else:
         # discard conda from other environments
-        if 'conda' in must_have:
+        if 'conda' in must_have and not config.TEST_INSTALL:
             sys.exit("Error: 'conda' can only be installed into "
                      "root environment")
 

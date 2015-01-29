@@ -1,0 +1,27 @@
+package: conda
+user: conda
+
+platform:
+  # - linux-32
+  # - linux-64
+  # - win-32
+  - win-64
+  # - osx-64
+
+engine:
+  - python=2
+  # - python=3.3
+  # - python=3.4
+
+# Required for Windows installation
+env:
+  - CONDA_DEFAULT_ENV=''
+
+# Can't test on binstar because it needs to be installed in root
+script:
+  - conda build --no-test ./conda.recipe/
+
+install:
+  - conda update --channel conda/c/dev --name root --yes --quiet conda-build
+
+build_targets: conda
