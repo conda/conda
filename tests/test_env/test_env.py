@@ -21,7 +21,7 @@ class FakeStream(object):
         self.output = ''
 
     def write(self, chunk):
-        self.output += chunk
+        self.output += chunk.decode("utf-8")
 
 
 def get_simple_environment():

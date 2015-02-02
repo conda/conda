@@ -6,6 +6,7 @@ import os
 # TODO This should never have to import from conda.cli
 from ..cli import common
 from ..cli import main_list
+from .. import compat
 from .. import install
 
 from . import exceptions
@@ -99,10 +100,10 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
+        out = yaml.dump(d, default_flow_style=False)
         if stream is None:
-            return unicode(yaml.dump(d, default_flow_style=False))
-        else:
-            yaml.dump(d, default_flow_style=False, stream=stream)
+            return out
+        stream.write(compat.b(out, "utf-8"))
 
     def save(self):
         with open(self.filename, "wb") as fp:
