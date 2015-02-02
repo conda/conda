@@ -50,11 +50,16 @@ def add_parser_json(p):
     )
 
 
+def isatty():
+    return not hasattr(sys.stdout, 'isatty') or sys.stdout.isatty()
+
 def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
         action = "store_true",
-        help = "do not display progress bar",
+        help = """do not display progress bar. Defaults to true if the terminal
+    is not a TTY (e.g., a pipe).""",
+        default=not isatty(),
     )
 
 def add_parser_channels(p):
