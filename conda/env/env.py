@@ -102,7 +102,7 @@ class Environment(object):
         d = self.to_dict()
         out = yaml.dump(d, default_flow_style=False)
         if stream is None:
-            return out
+            return compat.u(out)
         stream.write(compat.b(out, "utf-8"))
 
     def save(self):
