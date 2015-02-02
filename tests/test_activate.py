@@ -35,9 +35,11 @@ def _write_entry_points(envs):
     """
     activate = join(dirname(dirname(__file__)), 'bin', 'activate')
     deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
+    functions = join(dirname(dirname(__file__)), 'bin', '_conda-functions')
     os.makedirs(join(envs, 'bin'))
     shutil.copy2(activate, join(envs, 'bin', 'activate'))
     shutil.copy2(deactivate, join(envs, 'bin', 'deactivate'))
+    shutil.copy2(functions, join(envs, 'bin', '_conda-functions'))
     with open(join(envs, 'bin', 'conda'), 'w') as f:
         f.write(CONDA_ENTRY_POINT.format(syspath=syspath))
     os.chmod(join(envs, 'bin', 'conda'), 0o755)
