@@ -8,10 +8,6 @@ from ...cli import common
 from ...cli import install as cli_install
 from ...misc import touch_nonadmin
 
-from ..env import from_file
-from ..installers.base import get_installer, InvalidInstaller
-from .. import exceptions
-
 description = """
 Update the current environment based on environment file
 """
@@ -55,6 +51,10 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    from ..env import from_file
+    from ..installers.base import get_installer, InvalidInstaller
+    from .. import exceptions
+
     try:
         env = from_file(args.file)
     except exceptions.EnvironmentFileNotFound as e:

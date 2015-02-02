@@ -6,7 +6,6 @@ import textwrap
 from ...cli import common
 from ... import config
 
-from ..env import from_environment
 
 description = """
 Export a given environment
@@ -46,6 +45,8 @@ def configure_parser(sub_parsers):
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args, parser):
+    from ..env import from_environment
+
     if not args.name:
         # Note, this is a hack fofr get_prefix that assumes argparse results
         # TODO Refactor common.get_prefix

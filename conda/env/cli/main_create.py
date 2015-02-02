@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
@@ -7,10 +8,6 @@ from ... import config
 from ...cli import common
 from ...cli import install as cli_install
 from ...misc import touch_nonadmin
-
-from ..env import from_file
-from ..installers.base import get_installer, InvalidInstaller
-from .. import exceptions
 
 description = """
 Create an environment based on an environment file
@@ -56,6 +53,11 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    # Wait to load until executed to avoid circular import
+    from ..env import from_file
+    from ..installers.base import get_installer, InvalidInstaller
+    from .. import exceptions
+
     try:
         env = from_file(args.file)
     except exceptions.EnvironmentFileNotFound as e:
