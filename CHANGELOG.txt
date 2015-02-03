@@ -1,3 +1,9 @@
+2015-02-03   3.8.4:
+-------------------
+  * copy (de)activate scripts from conda-env
+  * Add noarch (sub) directory support
+
+
 2015-01-28   3.8.3:
 -------------------
   * simplified how ROOT_PREFIX is obtained in (de)activate
