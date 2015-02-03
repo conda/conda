@@ -24,7 +24,6 @@ else:
     scripts = [
         'bin/env-activate',
         'bin/env-deactivate',
-        'bin/_conda-functions',
     ]
 
 setup(
