@@ -1,7 +1,12 @@
 #!/bin/bash
+
 ROOT_PREFIX=$(conda info --root)
-if [[ -a "${ROOT_PREFIX}/bin/env-activate" ]]; then
-    source "${ROOT_PREFIX}/bin/env-activate" $@
+ACTIVATE_SCRIPT="${ROOT_PREFIX}/bin/env-activate"
+
+if [[ -a "${ACTIVATE_SCRIPT}" ]]; then
+    # Pass the activate script as the first argument - allowing the script
+    # to know its own filename.
+    source "${ACTIVATE_SCRIPT}" "${ACTIVATE_SCRIPT}" "$@"
 else
     source "${ROOT_PREFIX}/bin/_conda-env-missing"
 fi

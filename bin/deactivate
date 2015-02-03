@@ -1,7 +1,12 @@
 #!/bin/bash
+
 ROOT_PREFIX=$(conda info --root)
-if [[ -a "${ROOT_PREFIX}/bin/env-deactivate" ]]; then
-    source "${ROOT_PREFIX}/bin/env-deactivate" $@
+DEACTIVATE_SCRIPT="${ROOT_PREFIX}/bin/env-activate"
+
+if [[ -a "${DEACTIVATE_SCRIPT}" ]]; then
+    # Pass the deactivate script as the first argument - allowing the script
+    # to know its own filename.
+    source "${DEACTIVATE_SCRIPT}" "${DEACTIVATE_SCRIPT}" "$@"
 else
     source "${ROOT_PREFIX}/bin/_conda-env-missing"
 fi

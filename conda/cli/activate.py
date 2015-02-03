@@ -44,19 +44,24 @@ def main():
     if '-h' in sys.argv or '--help' in sys.argv:
         help()
 
-    if sys.argv[1] == '..activate':
-        if len(sys.argv) == 2:
+    # Strip out the leading path to the env-activate script (first argument
+    # after the command).
+    argv = sys.argv[:]
+    argv = argv[:2] + argv[3:]
+
+    if argv[1] == '..activate':
+        if len(argv) == 2:
             sys.exit("Error: no environment provided.")
-        elif len(sys.argv) == 3:
-            binpath = binpath_from_arg(sys.argv[2])
+        elif len(argv) == 3:
+            binpath = binpath_from_arg(argv[2])
         else:
             sys.exit("Error: did not expect more than one argument")
 
         paths = [binpath]
         sys.stderr.write("prepending %s to PATH\n" % binpath)
 
-    elif sys.argv[1] == '..deactivate':
-        if len(sys.argv) != 2:
+    elif argv[1] == '..deactivate':
+        if len(argv) != 2:
             sys.exit("Error: too many arguments.")
 
         try:
@@ -67,8 +72,8 @@ def main():
         paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
-    elif sys.argv[1] == '..activateroot':
-        if len(sys.argv) != 2:
+    elif argv[1] == '..activateroot':
+        if len(argv) != 2:
             sys.exit("Error: too many arguments.")
 
         if 'CONDA_DEFAULT_ENV' not in os.environ:
@@ -88,18 +93,18 @@ def main():
             paths = []
         sys.stderr.write("discarding %s from PATH\n" % binpath)
 
-    elif sys.argv[1] == '..checkenv':
-        if len(sys.argv) < 3:
+    elif argv[1] == '..checkenv':
+        if len(argv) < 3:
             sys.exit("Error: no environment provided.")
-        if len(sys.argv) > 3:
+        if len(argv) > 3:
             sys.exit("Error: did not expect more than one argument.")
-        binpath = binpath_from_arg(sys.argv[2])
+        binpath = binpath_from_arg(argv[2])
         # Make sure an env always has the conda symlink
         try:
             conda.install.symlink_conda(join(binpath, '..'), conda.config.root_dir)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
+                sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(argv[2]))
             raise
         sys.exit(0)
 
