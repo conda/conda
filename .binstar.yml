@@ -21,4 +21,7 @@ engine:
 script:
   - conda build --no-test ./conda.recipe/
 
+install:
+  - conda install --name root jinja2
+
 build_targets: conda
