@@ -1,4 +1,4 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -111,23 +111,34 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
+
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
                 msg = ('Could not find Binstar user %s' %
-                   config.remove_binstar_tokens(url).split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
+                   config.remove_binstar_tokens(url).split(
+                        config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
+                if url.endswith('/noarch/'): # noarch directory might not exist
+                    return None
                 msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+        elif e.response.status_code == 403 and url.endswith('/noarch/'):
+            return None
+
         elif (e.response.status_code == 401 and config.rc.get('channel_alias',
-            config.DEFAULT_CHANNEL_ALIAS) in url):
+                        config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to binstar again with "
                 "'binstar login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
-            return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
+            return fetch_repodata(config.remove_binstar_tokens(url),
+                                  cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
+
         else:
             msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
+
         log.debug(msg)
         raise RuntimeError(msg)
 
@@ -223,6 +234,7 @@ Allowed channels are:
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
+
     stdoutlog.info('\n')
     if unknown:
         for pkgs_dir in config.pkgs_dirs:

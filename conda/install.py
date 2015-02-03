@@ -564,7 +564,12 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         meta_dict['url'] = read_url(pkgs_dir, dist)
         if meta_dict['url']:
             meta_dict['url'] = remove_binstar_tokens(meta_dict['url'])
-        meta_dict['files'] = files
+        try:
+            alt_files_path = join(prefix, 'conda-meta', dist + '.files')
+            meta_dict['files'] = list(yield_lines(alt_files_path))
+            os.unlink(alt_files_path)
+        except IOError:
+            meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,
                              'type': link_name_map.get(linktype)}
         if 'channel' in meta_dict:
