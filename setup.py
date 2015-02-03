@@ -24,12 +24,11 @@ else:
     scripts = [
         'bin/env-activate',
         'bin/env-deactivate',
-        'bin/_conda-functions',
     ]
 
 setup(
     name="conda-env",
-    version="2.0.1",
+    version="2.0.2",
     author="Continuum Analytics, Inc.",
     author_email="support@continuum.io",
     url="https://github.com/conda/conda-env",
