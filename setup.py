@@ -51,11 +51,7 @@ if add_activate:
     if sys.platform == 'win32':
         kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])
     else:
-        kwds['scripts'].extend([
-            'bin/activate',
-            'bin/deactivate',
-            'bin/_conda-env-missing',
-        ])
+        kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
 
 setup(
     name = "conda",
@@ -77,7 +73,8 @@ setup(
     ],
     description = "package management tool",
     long_description = open('README.rst').read(),
-    packages = ['conda', 'conda.cli', 'conda.progressbar'],
+    packages = ['conda', 'conda.cli', 'conda.progressbar',
+                'conda.env', 'conda.env.cli', 'conda.env.installers', ],
     install_requires = ['pycosat', 'pyyaml', 'requests'],
     **kwds
 )

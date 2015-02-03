@@ -201,3 +201,18 @@ def with_metaclass(meta, *bases):
                 return type.__new__(cls, name, (), d)
             return meta(name, bases, d)
     return metaclass("NewBase", None, {})
+
+
+def b(some_str, encoding="utf-8"):
+    try:
+        return bytes(some_str, encoding=encoding)
+    except TypeError:
+        # Handle Python2 support, where encoding is valid
+        return some_str
+
+
+def u(some_str):
+    if PY3:
+        return some_str
+    else:
+        return unicode(some_str)
