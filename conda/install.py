@@ -38,6 +38,7 @@ import tarfile
 import traceback
 import logging
 import shlex
+from glob import glob
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
@@ -287,8 +288,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
-    with open(join(meta_dir, dist + '.json'), 'w') as fo:
-        json.dump(meta, fo, indent=2, sort_keys=True)
+    shutil.copytree(info_dir, join(meta_dir, dist))
 
 
 def mk_menus(prefix, files, remove=False):
@@ -474,7 +474,11 @@ def linked(prefix):
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         return set()
-    return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
+    acc = []
+    for pkg_file in glob(join(meta_dir, '*', 'index.json')):
+        acc.append(os.path.basename(os.path.dirname(pkg_file)))
+    # TODO do we need to actually make this a set?
+    return set(acc)
 
 
 def is_linked(prefix, dist):
@@ -482,7 +486,7 @@ def is_linked(prefix, dist):
     Return the install meta-data for a linked package in a prefix, or None
     if the package is not linked in the prefix.
     """
-    meta_path = join(prefix, 'conda-meta', dist + '.json')
+    meta_path = join(prefix, 'conda-meta', dist, 'index.json')
     try:
         with open(meta_path) as fi:
             return json.load(fi)
@@ -594,14 +598,14 @@ def unlink(prefix, dist):
     with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
-        meta_path = join(prefix, 'conda-meta', dist + '.json')
-        with open(meta_path) as fi:
-            meta = json.load(fi)
+        meta_path = join(prefix, 'conda-meta', dist)
 
-        mk_menus(prefix, meta['files'], remove=True)
+        with open(join(meta_path, 'files'), 'rb') as f:
+            files = [str(a) for a in f.readlines()]
+        mk_menus(prefix, files, remove=True)
         dst_dirs1 = set()
 
-        for f in meta['files']:
+        for f in files:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
             try:
@@ -610,7 +614,7 @@ def unlink(prefix, dist):
                 log.debug("could not remove file: '%s'" % dst)
 
         # remove the meta-file last
-        os.unlink(meta_path)
+        shutil.rmtree(meta_path)
 
         dst_dirs2 = set()
         for path in dst_dirs1:

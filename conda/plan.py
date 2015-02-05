@@ -287,7 +287,7 @@ def force_linked_actions(dists, index, prefix):
             actions[inst.FETCH].append(dist)
         actions[inst.RM_EXTRACTED].append(dist)
         actions[inst.EXTRACT].append(dist)
-        if isfile(join(prefix, 'conda-meta', dist + '.json')):
+        if isfile(join(prefix, 'conda-meta', dist, 'index.json')):
             actions[inst.UNLINK].append(dist)
         actions[inst.LINK].append(dist)
     return actions

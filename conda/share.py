@@ -108,4 +108,5 @@ def old_clone_bundle(path, prefix):
     index = get_index()
     plan.execute_actions(actions, index, verbose=False)
 
-    os.unlink(join(prefix, 'conda-meta', dist + '.json'))
+    # FIXME this might not work in weird edge cases on Windows
+    shutil.rmtree(join(prefix, 'conda-meta', dist))
