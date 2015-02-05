@@ -1,6 +1,6 @@
 package:
   name: conda-env
-  version: 2.0.2
+  version: 2.1alpha.0
 
 build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
