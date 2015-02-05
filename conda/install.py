@@ -489,6 +489,16 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
+def delete_trash(prefix):
+    from conda import config
+
+    for env_dir in config.envs_dir:
+        trash_dir = join(env_dir, '.trash')
+        try:
+            rm_rf(trash_dir)
+        except OSError:
+            log.debug("Could not delete the trash dir %s" % trash_dir)
+
 def move_to_trash(prefix, f):
     from conda import config
 
