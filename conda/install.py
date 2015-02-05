@@ -606,7 +606,7 @@ def unlink(prefix, dist):
             dst_dirs1.add(dirname(dst))
             try:
                 os.unlink(dst)
-            except OSError: # file might not exist
+            except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
 
         # remove the meta-file last
