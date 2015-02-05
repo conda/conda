@@ -506,6 +506,7 @@ def move_to_trash(prefix, f):
         trash_dir = join(env_dir, '.trash')
         try:
             os.makedirs(join(trash_dir, dirname(f)))
+            # TODO: What if the file exists?
             shutil.move(join(prefix, f), join(trash_dir, f))
         except OSError:
             log.debug("Could not move %s to %s" % (f, trash_dir))
