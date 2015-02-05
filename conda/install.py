@@ -500,19 +500,31 @@ def delete_trash(prefix):
         except OSError as e:
             log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
-def move_to_trash(prefix, f):
+def move_to_trash(prefix, f, tempdir=None):
+    """
+    Move a file f from prefix to the trash
+
+    tempdir should be the name of the directory in the trash
+    """
     from conda import config
 
     for env_dir in config.envs_dirs:
-        trash_dir = join(env_dir, '.trash')
+        trash_dir = join(env_dir, '.trash', tempdir)
+
+        if tempdir is None:
+            import tempfile
+            trash_dir = tempfile.mkdtemp(dir=trash_dir)
+        else:
+            trash_dir = join(trash_dir, tempdir)
+
         try:
             try:
                 os.makedirs(join(trash_dir, dirname(f)))
             except OSError as e1:
                 if e1.errno != errno.EEXIST:
                     raise
-            # TODO: What if the file exists?
             shutil.move(join(prefix, f), join(trash_dir, f))
+
         except OSError as e:
             log.debug("Could not move %s to %s (%s)" % (f, trash_dir, e))
         else:
