@@ -31,22 +31,22 @@ examples:
 def configure_parser(sub_parsers, name='remove'):
     p = sub_parsers.add_parser(
         name,
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr % name,
-        help = help % name,
-        epilog = example % name,
+        formatter_class=RawDescriptionHelpFormatter,
+        description=descr % name,
+        help=help % name,
+        epilog=example % name,
     )
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
         "--all",
-        action = "store_true",
-        help = "%s all packages, i.e. the entire environment" % name,
+        action="store_true",
+        help="%s all packages, i.e. the entire environment" % name,
     )
     p.add_argument(
         "--features",
-        action = "store_true",
-        help = "%s features (instead of packages)" % name,
+        action="store_true",
+        help="%s features (instead of packages)" % name,
     )
     common.add_parser_no_pin(p)
     common.add_parser_channels(p)
@@ -57,16 +57,16 @@ def configure_parser(sub_parsers, name='remove'):
     common.add_parser_offline(p)
     p.add_argument(
         "--force-pscheck",
-        action = "store_true",
-        help = ("force removal (when package process is running)"
+        action="store_true",
+        help=("force removal (when package process is running)"
                 if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         'package_names',
-        metavar = 'package_name',
-        action = "store",
-        nargs = '*',
-        help = "package names to %s from environment" % name,
+        metavar='package_name',
+        action="store",
+        nargs='*',
+        help="package names to %s from environment" % name,
     )
     p.set_defaults(func=execute)
 
@@ -75,6 +75,7 @@ def execute(args, parser):
     import sys
 
     import conda.plan as plan
+    import conda.instructions as inst
     from conda.cli import pscheck
     from conda.install import rm_rf, linked
     from conda import config
@@ -127,8 +128,8 @@ def execute(args, parser):
                                   json=args.json,
                                   error_type="CantRemoveRoot")
 
-        actions = {plan.PREFIX: prefix,
-                   plan.UNLINK: sorted(linked(prefix))}
+        actions = {inst.PREFIX: prefix,
+                   inst.UNLINK: sorted(linked(prefix))}
 
     else:
         specs = common.specs_from_args(args.package_names)

@@ -9,11 +9,13 @@ from argparse import RawDescriptionHelpFormatter
 import os
 import sys
 
-from os.path import join, getsize
+from os.path import join, getsize, isdir
+from os import lstat, walk, listdir
 
 from conda.cli import common
 import conda.config as config
 from conda.utils import human_bytes
+from conda.install import rm_rf
 
 descr = """
 Remove unused packages and caches
@@ -56,6 +58,11 @@ def configure_parser(sub_parsers):
         help="""remove unused cached packages. Warning: this does not check
     for symlinked packages.""",
     )
+    p.add_argument(
+        '-s', '--source-cache',
+        action='store_true',
+        help="""remove files from the source cache of conda build""",
+    )
     p.set_defaults(func=execute)
 
 
@@ -67,9 +74,10 @@ def find_lock():
     lock_dirs = config.pkgs_dirs
     lock_dirs += [config.root_dir]
     for envs_dir in config.envs_dirs:
-        for fn in os.listdir(envs_dir):
-            if os.path.isdir(join(envs_dir, fn)):
-                lock_dirs.append(join(envs_dir, fn))
+        if os.path.exists(envs_dir):
+            for fn in os.listdir(envs_dir):
+                if os.path.isdir(join(envs_dir, fn)):
+                    lock_dirs.append(join(envs_dir, fn))
 
     try:
         from conda_build.config import croot
@@ -148,9 +156,6 @@ def rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=True):
 def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
-    from os.path import join, isdir
-    from os import lstat, walk, listdir
-
     pkgs_dir = config.pkgs_dirs[0]
     warnings = []
 
@@ -197,8 +202,6 @@ def find_pkgs():
 
 def rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
             verbose=True):
-    from conda.install import rm_rf
-
     if verbose:
         print('Cache location: %s' % pkgs_dir)
         for fn, exception in warnings:
@@ -236,6 +239,67 @@ def rm_index_cache():
 
     rm_rf(join(config.pkgs_dirs[0], 'cache'))
 
+def find_source_cache():
+    try:
+        import conda_build.source
+    except ImportError:
+        return {
+            'warnings': ["conda-build is not installed; could not clean source cache"],
+            'cache_dirs': [],
+            'cache_sizes': {},
+            'total_size': 0,
+        }
+
+    cache_dirs = {
+        'source cache': conda_build.source.SRC_CACHE,
+        'git cache': conda_build.source.GIT_CACHE,
+        'hg cache': conda_build.source.HG_CACHE,
+        'svn cache': conda_build.source.SVN_CACHE,
+    }
+
+    sizes = {}
+    totalsize = 0
+    for cache_type, cache_dir in cache_dirs.items():
+        dirsize = 0
+        for root, d, files in walk(cache_dir):
+            for fn in files:
+                size = lstat(join(root, fn)).st_size
+                totalsize += size
+                dirsize += size
+        sizes[cache_type] = dirsize
+
+    return {
+        'warnings': [],
+        'cache_dirs': cache_dirs,
+        'cache_sizes': sizes,
+        'total_size': totalsize,
+        }
+
+
+def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
+    verbose = not args.json
+    if warnings:
+        if verbose:
+            for warning in warnings:
+                print(warning, file=sys.stderr)
+        return
+
+    for cache_type in cache_dirs:
+        print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
+        print("%-40s %10s" % ("Size:",
+            human_bytes(cache_sizes[cache_type])))
+        print()
+
+    print("%-40s %10s" % ("Total:", human_bytes(total_size)))
+
+    if not args.json:
+        common.confirm_yn(args)
+    if args.json and args.dry_run:
+        return
+
+    for dir in cache_dirs.values():
+        print("Removing %s" % dir)
+        rm_rf(dir)
 
 def execute(args, parser):
     json_result = {
@@ -248,6 +312,7 @@ def execute(args, parser):
             'files': locks
         }
         rm_lock(locks, verbose=not args.json)
+
     if args.tarballs:
         pkgs_dir, rmlist, totalsize = find_tarballs()
         json_result['tarballs'] = {
@@ -256,11 +321,13 @@ def execute(args, parser):
             'total_size': totalsize
         }
         rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=not args.json)
+
     if args.index_cache:
         json_result['index_cache'] = {
             'files': [join(config.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
+
     if args.packages:
         pkgs_dir, rmlist, warnings, totalsize, pkgsizes = find_pkgs()
         json_result['packages'] = {
@@ -272,9 +339,15 @@ def execute(args, parser):
         }
         rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
                 verbose=not args.json)
-    if not (args.lock or args.tarballs or args.index_cache or args.packages):
+
+    if args.source_cache:
+        json_result['source_cache'] = find_source_cache()
+        rm_source_cache(args, **json_result['source_cache'])
+
+    if not (args.lock or args.tarballs or args.index_cache or args.packages or
+        args.source_cache):
         common.error_and_exit(
-            "One of {--lock, --tarballs, --index-cache, --packages} required",
+            "One of {--lock, --tarballs, --index-cache, --packages, --source-cache} required",
             error_type="ValueError")
 
     if args.json:

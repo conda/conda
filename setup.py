@@ -30,7 +30,7 @@ try:
     if os.environ['CONDA_DEFAULT_ENV']:
         # Try to prevent accidentally installing conda into a non-root conda environment
         sys.exit("You appear to be in a non-root conda environment. Conda is only "
-            "supported in a non-root environment. Deactivate and try again. If believe "
+            "supported in the root environment. Deactivate and try again. If believe "
             "this message is in error, run CONDA_DEFAULT_ENV='' python setup.py.")
 except KeyError:
     pass
@@ -51,7 +51,10 @@ if add_activate:
     if sys.platform == 'win32':
         kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])
     else:
-        kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
+        kwds['scripts'].extend([
+            'bin/activate',
+            'bin/deactivate',
+        ])
 
 setup(
     name = "conda",

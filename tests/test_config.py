@@ -73,21 +73,31 @@ class TestConfig(unittest.TestCase):
         for channel in config.normalize_urls(['defaults', 'system',
             'https://binstar.org/username', 'file:///Users/username/repo',
             'username']):
-            assert channel.endswith('/%s/' % current_platform)
+            assert (channel.endswith('/%s/' % current_platform) or
+                    channel.endswith('/noarch/'))
         self.assertEqual(config.normalize_urls([
             'defaults', 'system', 'https://conda.binstar.org/username',
             'file:///Users/username/repo', 'username'
             ], 'osx-64'),
             [
                 'http://repo.continuum.io/pkgs/free/osx-64/',
+                'http://repo.continuum.io/pkgs/free/noarch/',
                 'http://repo.continuum.io/pkgs/pro/osx-64/',
+                'http://repo.continuum.io/pkgs/pro/noarch/',
                 'https://your.repo/binstar_username/osx-64/',
+                'https://your.repo/binstar_username/noarch/',
                 'http://some.custom/channel/osx-64/',
+                'http://some.custom/channel/noarch/',
                 'http://repo.continuum.io/pkgs/free/osx-64/',
+                'http://repo.continuum.io/pkgs/free/noarch/',
                 'http://repo.continuum.io/pkgs/pro/osx-64/',
+                'http://repo.continuum.io/pkgs/pro/noarch/',
                 'https://conda.binstar.org/username/osx-64/',
+                'https://conda.binstar.org/username/noarch/',
                 'file:///Users/username/repo/osx-64/',
+                'file:///Users/username/repo/noarch/',
                 'https://your.repo/username/osx-64/',
+                'https://your.repo/username/noarch/',
                 ])
 
 test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')

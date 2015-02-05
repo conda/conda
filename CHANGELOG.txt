@@ -1,4 +1,37 @@
-2014-XX-XX   3.7.4:
+2015-02-03   3.8.4:
+-------------------
+  * copy (de)activate scripts from conda-env
+  * Add noarch (sub) directory support
+
+
+2015-01-28   3.8.3:
+-------------------
+  * simplified how ROOT_PREFIX is obtained in (de)activate
+
+
+2015-01-27   3.8.2:
+-------------------
+  * add conda clean --source-cache to clean the conda build source caches
+  * add missing quotes in (de)activate.bat, fixes problem in Windows when
+    conda is installed into a directory with spaces
+  * fix conda install --copy
+
+
+2015-01-23   3.8.1:
+-------------------
+  * add missing utf-8 decoding, fixes Python 3 bug when icondata to json file
+
+
+2015-01-22   3.8.0:
+-------------------
+  * move active script into conda-env, which is now a new dependency
+  * load the channel urls in the correct order when using concurrent.futures
+  * add optional 'icondata' key to json files in conda-meta directory, which
+    contain the base64 encoded png file or the icon
+  * remove a debug print statement
+
+
+2014-12-18   3.7.4:
 -------------------
   * add --offline option to install, create, update and remove commands, and
     also add ability to set "offline: True" in condarc file
@@ -13,6 +46,7 @@
   * add --copy flag to install
   * prevent the progressbar from crashing conda when fetching in some
     situations
+
 
 2014-11-05   3.7.3:
 -------------------

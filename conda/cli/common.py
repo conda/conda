@@ -6,6 +6,7 @@ import sys
 import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
+import textwrap
 
 import conda.config as config
 from conda import console
@@ -173,7 +174,7 @@ def add_parser_no_pin(p):
         action="store_false",
         default=True,
         dest='pinned',
-        help="don't use pinned packages",
+        help="ignore pinned file",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
@@ -366,12 +367,24 @@ def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
-def check_specs(prefix, specs, json=False):
+def check_specs(prefix, specs, json=False, create=False):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        error_and_exit('too few arguments, must supply command line '
-                       'package specs or --file',
+        msg = ('too few arguments, must supply command line '
+               'package specs or --file')
+        if create:
+            msg += textwrap.dedent("""
+
+                You can specify one or more default packages to install when creating
+                an environment.  Doing so allows you to call conda create without
+                explicitly providing any package names.
+
+                To set the provided packages, call conda config like this:
+
+                    conda config --add create_default_packages PACKAGE_NAME
+            """)
+        error_and_exit(msg,
                        json=json,
                        error_type="ValueError")
 
