@@ -1,3 +1,8 @@
+2015-02-XX   3.8.5:
+-------------------
+  * allow conda to be installed into environments which start with _
+
+
 2015-02-03   3.8.4:
 -------------------
   * copy (de)activate scripts from conda-env
