@@ -489,6 +489,21 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
+def move_to_trash(prefix, f):
+    from conda import config
+
+    for env_dir in config.envs_dirs:
+        trash_dir = join(env_dir, '.trash')
+        try:
+            os.makedirs(join(trash_dir, dirname(f)))
+            shutil.move(join(prefix, f), join(trash_dir, f))
+        except OSError:
+            log.debug("Could not move %s to %s" % (f, trash_dir))
+        else:
+            return True
+
+    log.debug("Could not move %s to trash" % f)
+    return False
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
