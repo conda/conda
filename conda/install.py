@@ -644,6 +644,12 @@ def unlink(prefix, dist):
                 os.unlink(dst)
             except OSError: # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
+                if on_win:
+                    try:
+                        move_to_trash(prefix, f)
+                    except ImportError:
+                        # This shouldn't be an issue in the installer anyway
+                        pass
 
         # remove the meta-file last
         os.unlink(meta_path)
