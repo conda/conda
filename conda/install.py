@@ -496,8 +496,8 @@ def delete_trash(prefix):
         trash_dir = join(env_dir, '.trash')
         try:
             rm_rf(trash_dir)
-        except OSError:
-            log.debug("Could not delete the trash dir %s" % trash_dir)
+        except OSError as e:
+            log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
 def move_to_trash(prefix, f):
     from conda import config
@@ -508,8 +508,8 @@ def move_to_trash(prefix, f):
             os.makedirs(join(trash_dir, dirname(f)))
             # TODO: What if the file exists?
             shutil.move(join(prefix, f), join(trash_dir, f))
-        except OSError:
-            log.debug("Could not move %s to %s" % (f, trash_dir))
+        except OSError as e:
+            log.debug("Could not move %s to %s (%s)" % (f, trash_dir, e))
         else:
             return True
 
