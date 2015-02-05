@@ -492,7 +492,7 @@ def is_linked(prefix, dist):
 def delete_trash(prefix):
     from conda import config
 
-    for env_dir in config.envs_dir:
+    for env_dir in config.envs_dirs:
         trash_dir = join(env_dir, '.trash')
         try:
             rm_rf(trash_dir)
@@ -524,6 +524,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     if on_win:
         # Try deleting the trash every time we link something.
         delete_trash(prefix)
+
 
     index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
