@@ -30,6 +30,7 @@ from __future__ import print_function, division, absolute_import
 import time
 import os
 import json
+import errno
 import shutil
 import stat
 import sys
@@ -505,7 +506,11 @@ def move_to_trash(prefix, f):
     for env_dir in config.envs_dirs:
         trash_dir = join(env_dir, '.trash')
         try:
-            os.makedirs(join(trash_dir, dirname(f)))
+            try:
+                os.makedirs(join(trash_dir, dirname(f)))
+            except OSError as e1:
+                if e1.errno != errno.EEXIST:
+                    raise
             # TODO: What if the file exists?
             shutil.move(join(prefix, f), join(trash_dir, f))
         except OSError as e:
