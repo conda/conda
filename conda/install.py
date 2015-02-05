@@ -542,6 +542,13 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
+                    if on_win:
+                        try:
+                            move_to_trash(prefix, f)
+                        except ImportError:
+                            # This shouldn't be an issue in the installer anyway
+                            pass
+
             lt = linktype
             if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
