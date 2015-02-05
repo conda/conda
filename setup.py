@@ -14,13 +14,13 @@ if sys.version_info[:2] < (2, 7):
 
 if sys.platform == 'win32':
     scripts = [
-        'bin\\env-activate.bat',
-        'bin\\env-deactivate.bat',
+        'bin\\activate.bat',
+        'bin\\deactivate.bat',
     ]
 else:
     scripts = [
-        'bin/env-activate',
-        'bin/env-deactivate',
+        'bin/activate',
+        'bin/deactivate',
     ]
 
 setup(
