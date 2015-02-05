@@ -290,6 +290,23 @@ def create_meta(prefix, dist, info_dir, extra_info):
         os.makedirs(meta_dir)
     shutil.copytree(info_dir, join(meta_dir, dist))
 
+    if 'files' in extra_info:
+        with open(join(meta_dir, dist, 'files'), 'wb') as fp:
+            # FIXME figure out how to do a py2/3 compat write
+            for f in extra_info['files']:
+                fp.write(bytes(f, encoding='utf-8') + b'\n')
+            del extra_info['files']
+
+    env_file = join(meta_dir, 'environment.json')
+    if os.path.exists(env_file):
+        with open(env_file, 'rb') as f:
+            env_data = json.loads(f.read().decode('utf-8'))
+    else:
+        env_data = {}
+    env_data[dist] = extra_info
+    with open(env_file, 'wb') as f:
+        d = json.dumps(env_data)
+        f.write(bytes(d, encoding='utf-8'))
 
 def mk_menus(prefix, files, remove=False):
     if abspath(prefix) != abspath(sys.prefix):
@@ -488,6 +505,8 @@ def is_linked(prefix, dist):
     """
     meta_path = join(prefix, 'conda-meta', dist, 'index.json')
     try:
+        # FIXME needs to return a Package object that is prefix aware so it can
+        #       pull things such as channel.
         with open(meta_path) as fi:
             return json.load(fi)
     except IOError:
@@ -568,6 +587,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         meta_dict['url'] = read_url(pkgs_dir, dist)
         if meta_dict['url']:
             meta_dict['url'] = remove_binstar_tokens(meta_dict['url'])
+
+        # FIXME need to understand what's happening here and address it
         try:
             alt_files_path = join(prefix, 'conda-meta', dist + '.files')
             meta_dict['files'] = list(yield_lines(alt_files_path))
@@ -578,8 +599,6 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                              'type': link_name_map.get(linktype)}
         if 'channel' in meta_dict:
             meta_dict['channel'] = remove_binstar_tokens(meta_dict['channel'])
-        if 'icon' in meta_dict:
-            meta_dict['icondata'] = read_icondata(source_dir)
 
         create_meta(prefix, dist, info_dir, meta_dict)
 
