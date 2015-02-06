@@ -64,10 +64,10 @@ us figure out how to process your code:
 * [Create a fork](https://github.com/conda/conda-env/fork)
 * Create a branch with your change off of `develop`.  Follow these naming
   conventions for naming your branches:
-** `feature/{{ feature name }}` <-- new features
-** `fix/{{ issue number or general bug description }}` <-- fixes to the code
-** `refactor/{{ refactor name / description }}` <-- general cleanup /
-     refactoring
+  * `feature/{{ feature name }}` <-- new features
+  * `fix/{{ issue number or general bug description }}` <-- fixes to the code
+  * `refactor/{{ refactor name / description }}` <-- general cleanup /
+      refactoring
 * Commit your changes to your branch.  Changes with extensive unit tests are
   given priority because they simplify the process of verifying the code.
 * Open a pull request against the `develop` branch
