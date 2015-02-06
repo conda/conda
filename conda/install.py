@@ -509,7 +509,7 @@ def move_to_trash(prefix, f, tempdir=None):
     from conda import config
 
     for env_dir in config.envs_dirs:
-        trash_dir = join(env_dir, '.trash', tempdir)
+        trash_dir = join(env_dir, '.trash')
 
         if tempdir is None:
             import tempfile
