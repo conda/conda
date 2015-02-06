@@ -511,6 +511,12 @@ def move_to_trash(prefix, f, tempdir=None):
     for env_dir in config.envs_dirs:
         trash_dir = join(env_dir, '.trash')
 
+        try:
+            os.makedirs(trash_dir)
+        except OSError as e1:
+            if e1.errno != errno.EEXIST:
+                continue
+
         if tempdir is None:
             import tempfile
             trash_dir = tempfile.mkdtemp(dir=trash_dir)
@@ -522,7 +528,7 @@ def move_to_trash(prefix, f, tempdir=None):
                 os.makedirs(join(trash_dir, dirname(f)))
             except OSError as e1:
                 if e1.errno != errno.EEXIST:
-                    raise
+                    continue
             shutil.move(join(prefix, f), join(trash_dir, f))
 
         except OSError as e:
