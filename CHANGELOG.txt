@@ -1,5 +1,6 @@
 2015-02-XX   3.8.5:
 -------------------
+  * remove (de)activation scripts from conda, those are now in conda-env
   * allow conda to be installed into environments which start with _
 
 
