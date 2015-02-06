@@ -8,22 +8,19 @@ else:
     from distutils.core import setup
     using_setuptools = False
 
-from setuptools import setup
-
-
 if sys.version_info[:2] < (2, 7):
     sys.exit("conda is only meant for Python 2.7, with experimental support "
              "for python 3.  current version: %d.%d" % sys.version_info[:2])
 
 if sys.platform == 'win32':
     scripts = [
-        'bin\\env-activate.bat',
-        'bin\\env-deactivate.bat',
+        'bin\\activate.bat',
+        'bin\\deactivate.bat',
     ]
 else:
     scripts = [
-        'bin/env-activate',
-        'bin/env-deactivate',
+        'bin/activate',
+        'bin/deactivate',
     ]
 
 setup(
