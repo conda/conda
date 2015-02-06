@@ -169,11 +169,14 @@ def rm_rf(path, max_retries=5):
                     except OSError as e1:
                         msg += "Retry with onerror failed (%s)\n" % e1
 
-                    try:
-                        subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
+
+                    p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    (stdout, stderr) = p.communicate()
+                    if p.returncode != 0:
+                        msg += '%s\n%s\n' % (stdout, stderr)
+                    else:
                         return
-                    except subprocess.CalledProcessError as e2:
-                        msg += '%s\n' % e2
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
