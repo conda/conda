@@ -515,13 +515,16 @@ class Resolve(object):
 
         if not solution:
             if guess:
-                stderrlog.info('\nError: Unsatisfiable package '
-                    'specifications.\nGenerating hint: \n')
                 if minimal_hint:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: \n')
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
                 else:
-                    sys.exit(self.guess_bad_solve(specs, features))
+                    if len(specs) <= 10: # TODO: Add a way to override this
+                        stderrlog.info('\nError: Unsatisfiable package '
+                            'specifications.\nGenerating hint: \n')
+                        sys.exit(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if unsat_only:
@@ -590,6 +593,7 @@ class Resolve(object):
         found = False
         if len(specs) > 10:
             stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
+
         for i in range(len(specs), 0, -1):
             if found:
                 logging.getLogger('progress.stop').info(None)
