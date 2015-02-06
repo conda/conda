@@ -170,9 +170,7 @@ def rm_rf(path, max_retries=5):
                         msg += "Retry with onerror failed (%s)\n" % e1
 
                     try:
-                        # TODO: Log this output
-                        subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
                         return
                     except subprocess.CalledProcessError as e2:
                         msg += '%s\n' % e2
