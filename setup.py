@@ -18,8 +18,6 @@ else:
     print("Not using setuptools")
 
 
-add_activate = True
-
 import versioneer
 
 
@@ -47,14 +45,6 @@ if sys.platform == 'win32' and using_setuptools:
 else:
     kwds['scripts'].append('bin/conda')
 
-if add_activate:
-    if sys.platform == 'win32':
-        kwds['scripts'].extend(['bin\\activate.bat', 'bin\\deactivate.bat'])
-    else:
-        kwds['scripts'].extend([
-            'bin/activate',
-            'bin/deactivate',
-        ])
 
 setup(
     name = "conda",
