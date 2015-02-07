@@ -291,22 +291,20 @@ def create_meta(prefix, dist, info_dir, extra_info):
     shutil.copytree(info_dir, join(meta_dir, dist))
 
     if 'files' in extra_info:
-        with open(join(meta_dir, dist, 'files'), 'wb') as fp:
-            # FIXME figure out how to do a py2/3 compat write
+        with open(join(meta_dir, dist, 'files'), 'w') as fp:
             for f in extra_info['files']:
-                fp.write(('%s\n' % f).encode('utf-8'))
+                fp.write(('%s\n' % f))
             del extra_info['files']
 
     env_file = join(meta_dir, 'environment.json')
     if os.path.exists(env_file):
-        with open(env_file, 'rb') as f:
-            env_data = json.loads(f.read().decode('utf-8'))
+        with open(env_file, 'r') as f:
+            env_data = json.load(f)
     else:
         env_data = {}
     env_data[dist] = extra_info
-    with open(env_file, 'wb') as f:
-        d = json.dumps(env_data)
-        f.write(bytes(d, encoding='utf-8'))
+    with open(env_file, 'w') as f:
+        json.dump(env_data, f, indent=2, sort_keys=True)
 
 def mk_menus(prefix, files, remove=False):
     if abspath(prefix) != abspath(sys.prefix):
