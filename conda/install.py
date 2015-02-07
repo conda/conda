@@ -294,7 +294,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
         with open(join(meta_dir, dist, 'files'), 'wb') as fp:
             # FIXME figure out how to do a py2/3 compat write
             for f in extra_info['files']:
-                fp.write(bytes(f, encoding='utf-8') + b'\n')
+                fp.write(('%s\n' % f).encode('utf-8'))
             del extra_info['files']
 
     env_file = join(meta_dir, 'environment.json')
