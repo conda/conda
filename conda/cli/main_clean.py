@@ -74,9 +74,10 @@ def find_lock():
     lock_dirs = config.pkgs_dirs
     lock_dirs += [config.root_dir]
     for envs_dir in config.envs_dirs:
-        for fn in os.listdir(envs_dir):
-            if os.path.isdir(join(envs_dir, fn)):
-                lock_dirs.append(join(envs_dir, fn))
+        if os.path.exists(envs_dir):
+            for fn in os.listdir(envs_dir):
+                if os.path.isdir(join(envs_dir, fn)):
+                    lock_dirs.append(join(envs_dir, fn))
 
     try:
         from conda_build.config import croot

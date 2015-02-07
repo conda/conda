@@ -14,7 +14,7 @@ import sys
 import os
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, isfile, join, exists
+from os.path import abspath, basename, isfile, join, exists
 
 from conda import config
 from conda import install
@@ -389,8 +389,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
         for name in config.foreign:
             if name in must_have:
                 del must_have[name]
+    elif basename(prefix).startswith('_'):
+        # anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
     else:
-        # discard conda from other environments
+        # disallow conda from being installed into all other environments
         if 'conda' in must_have:
             sys.exit("Error: 'conda' can only be installed into "
                      "root environment")

@@ -1,3 +1,15 @@
+2015-02-XX   3.8.5:
+-------------------
+  * remove (de)activation scripts from conda, those are now in conda-env
+  * allow conda to be installed into environments which start with _
+
+
+2015-02-03   3.8.4:
+-------------------
+  * copy (de)activate scripts from conda-env
+  * Add noarch (sub) directory support
+
+
 2015-01-28   3.8.3:
 -------------------
   * simplified how ROOT_PREFIX is obtained in (de)activate
