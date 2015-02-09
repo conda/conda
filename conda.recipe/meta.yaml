@@ -6,6 +6,11 @@ build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
   string: py{{ environ.get('PY_VER').replace('.', '') }}_{{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}
   preserve_egg_dir: yes
+  always_include_files:
+    - bin/activate
+    - bin/activate.bat
+    - bin/deactivate
+    - bin/deactivate.bat
 
 source:
   git_url: ../
