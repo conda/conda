@@ -197,7 +197,7 @@ def install(args, parser, command='install'):
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
             else:
-                specs.append('%s >=%s' % (name, ver))
+                specs.append('%s' % (name, ver))
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
     if command == 'install' and args.revision:
