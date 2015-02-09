@@ -4,6 +4,8 @@ import os
 from os.path import dirname, join
 import shutil
 import stat
+import subprocess
+import unittest
 
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
@@ -21,7 +23,19 @@ for shell in ['bash', 'zsh']:
         if not stderr:
             shells.append(shell)
 
+    # activate and deactivate are no longer part conda, so we can't copy them
+    # from the source tree.  They should normally be installed, so this pulls
+    # them from the path.
+    process = subprocess.Popen(['which', 'activate'], stdout=subprocess.PIPE)
+    output = process.communicate()[0]
+    activate_path = output.strip().decode('utf-8')
+    deactivate_path = join(dirname(activate_path), 'deactivate')
+
+    skip_tests = activate_path == u''
+
+
 if platform == 'win':
+    skip_tests = True
     shells = []
 
 def _write_entry_points(envs):
@@ -33,8 +47,8 @@ def _write_entry_points(envs):
     have to use a conda entry point that has the root Python hard-coded in the
     shebang line.
     """
-    activate = join(dirname(dirname(__file__)), 'bin', 'activate')
-    deactivate = join(dirname(dirname(__file__)), 'bin', 'deactivate')
+    activate = activate_path
+    deactivate = deactivate_path
     os.makedirs(join(envs, 'bin'))
     shutil.copy2(activate, join(envs, 'bin', 'activate'))
     shutil.copy2(deactivate, join(envs, 'bin', 'deactivate'))
@@ -73,6 +87,7 @@ mkdir -p {envs}/test1/bin
 mkdir -p {envs}/test2/bin
 """
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -86,6 +101,7 @@ def test_activate_test1():
             assert stdout == envs + "/test1/bin:" + PATH
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_test1_test2():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -100,6 +116,7 @@ def test_activate_test1_test2():
             assert stdout == envs + "/test2/bin:" + PATH
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -113,6 +130,7 @@ def test_activate_test3():
             assert stdout == ROOTPATH
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_test1_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -128,6 +146,7 @@ def test_activate_test1_test3():
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -142,6 +161,7 @@ def test_deactivate():
             assert stderr == 'Error: No environment to deactivate\n'
 
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_test1_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -156,6 +176,8 @@ def test_activate_test1_deactivate():
             assert stdout == ROOTPATH
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
 
+
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -196,6 +218,8 @@ def test_wrong_args():
             assert stdout == ROOTPATH
             assert stderr == 'Error: too many arguments.\n'
 
+
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -234,6 +258,7 @@ def test_activate_help():
             assert stdout == ''
             assert "Usage: source deactivate" in stderr
 
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_activate_symlinking():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -301,6 +326,8 @@ def test_activate_symlinking():
                 run_in('chmod 777 {envs}/test3/bin'.format(envs=envs), shell)
                 run_in('chmod 777 {envs}/test4/bin'.format(envs=envs), shell)
 
+
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_PS1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -398,6 +425,8 @@ def test_PS1():
             assert stdout == '$'
             assert stderr == 'Error: too many arguments.\n'
 
+
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_PS1_no_changeps1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -502,6 +531,8 @@ changeps1: no
             assert stdout == '$'
             assert stderr == 'Error: too many arguments.\n'
 
+
+@unittest.skipIf(skip_tests, "conda-env not installed on path")
 def test_CONDA_DEFAULT_ENV():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
