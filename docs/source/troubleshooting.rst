@@ -114,9 +114,9 @@ uncheck the box "Set locale environment variables on startup".
 .. image:: locale.jpg
 
 This will set your ``LANG`` environment variable to be empty. This may cause
-terminal to incorrect settings for your locale. The ``locale`` command in the
-Terminal will tell you what settings are used.  To use the correct language,
-add a line to your bash profile (typically ``~/.profile``)
+terminal use to incorrect settings for your locale. The ``locale`` command in
+the Terminal will tell you what settings are used.  To use the correct
+language, add a line to your bash profile (typically ``~/.profile``)
 
 .. code-block:: bash
 
