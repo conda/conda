@@ -434,6 +434,9 @@ On Linux, we have:
   * - ``LD_RUN_PATH``
     - ``<build prefix>/lib``
 
+Git Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
 When the source is a git repository, the following variables are defined:
 
 .. list-table::
