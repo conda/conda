@@ -460,7 +460,7 @@ so the ``git_url`` is ``../``:
 
      package:
        name: mypkg
-       version: {{ environ['GIT_DESCRIBE_TAG'] }}
+       version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
      build:
        number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
