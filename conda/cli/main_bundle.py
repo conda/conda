@@ -41,7 +41,7 @@ def configure_parser(sub_parsers):
                    )
     p.add_argument("--extra-meta",
                    action = "store",
-                   help = "path to json file with additional meta-data no",
+                   help = "path to json file with additional meta-data",
                    metavar = "PATH",
                    )
     p.add_argument("--no-env",
