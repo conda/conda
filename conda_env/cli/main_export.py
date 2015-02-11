@@ -1,3 +1,4 @@
+from __future__ import absolute_import, print_function
 from argparse import RawDescriptionHelpFormatter
 import os
 import sys
@@ -67,7 +68,7 @@ def execute(args, parser):
     env = from_environment(name, prefix)
 
     if args.file is None:
-        fp = sys.stdout
+        print(env.to_yaml())
     else:
         fp = open(args.file, 'wb')
-    env.to_yaml(stream=fp)
+        env.to_yaml(stream=fp)
