@@ -8,21 +8,19 @@ from collections import OrderedDict
 import yaml
 
 
-class UnsortableList(list):
-    def sort(self, *args, **kwargs):
-        pass
+def represent_ordereddict(dumper, data):
+    value = []
 
+    for item_key, item_value in data.items():
+        node_key = dumper.represent_data(item_key)
+        node_value = dumper.represent_data(item_value)
 
-class UnsortableOrderedDict(OrderedDict):
-    def items(self, *args, **kwargs):
-        return UnsortableList(OrderedDict.items(self, *args, **kwargs))
+        value.append((node_key, node_value))
 
+    return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
 
-yaml.add_representer(
-    UnsortableOrderedDict,
-    yaml.representer.SafeRepresenter.represent_dict
-)
+yaml.add_representer(OrderedDict, represent_ordereddict)
 
 dump = yaml.dump
 load = yaml.load
-dict = UnsortableOrderedDict
+dict = OrderedDict

@@ -8,6 +8,7 @@ from conda.cli import common
 from conda.cli import main_list
 from conda import install
 
+from . import compat
 from . import exceptions
 from . import yaml
 
@@ -99,10 +100,10 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
+        out = compat.u(yaml.dump(d, default_flow_style=False))
         if stream is None:
-            return unicode(yaml.dump(d, default_flow_style=False))
-        else:
-            yaml.dump(d, default_flow_style=False, stream=stream)
+            return out
+        stream.write(compat.b(out, encoding="utf-8"))
 
     def save(self):
         with open(self.filename, "wb") as fp:
