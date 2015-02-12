@@ -459,7 +459,6 @@ class Resolve(object):
         returnall=False, minimal_hint=False, unsat_only=False):
 
         log.debug("Solving for %s" % str(specs))
-        log.debug("Using alg %s" % alg)
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
@@ -529,6 +528,8 @@ class Resolve(object):
 
         if unsat_only:
             return True
+
+        log.debug("Using alg %s" % alg)
 
         def version_constraints(lo, hi):
             return set(generate_constraints(eq, m, [lo, hi], alg=alg))
