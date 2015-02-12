@@ -398,9 +398,9 @@ def try_hard_link(pkgs_dir, prefix, dist):
     dst = join(prefix, '.tmp-%s' % dist)
     assert isfile(src), src
     assert not isfile(dst), dst
-    if not isdir(prefix):
-        os.makedirs(prefix)
     try:
+        if not isdir(prefix):
+            os.makedirs(prefix)
         _link(src, dst, LINK_HARD)
         return True
     except OSError:

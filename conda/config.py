@@ -60,6 +60,7 @@ ADD_BINSTAR_TOKEN = True
 rc_bool_keys = [
     'add_binstar_token',
     'always_yes',
+    'always_copy',
     'allow_softlinks',
     'changeps1',
     'use_pip',
@@ -325,6 +326,7 @@ except IOError:
 # ----- misc -----
 
 always_yes = bool(rc.get('always_yes', False))
+always_copy = bool(rc.get('always_copy', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('binstar_upload', None) # None means ask

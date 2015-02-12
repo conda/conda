@@ -328,7 +328,7 @@ environment does not exist: %s
                                            only_names=only_names,
                                            pinned=args.pinned,
                                            minimal_hint=args.alt_hint)
-            if args.copy:
+            if config.always_copy or args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
                     dist, pkgs_dir, lt = inst.split_linkarg(pkg)
