@@ -13,25 +13,28 @@ from conda import console
 from conda.utils import memoize
 
 # To get tab completion from argcomplete
-class Environments(object):
+class Completer(object):
     @memoize
-    def _get_environments(self):
+    def get_items(self):
+        return self._get_items()
+
+    def __contains__(self, item):
+        # This generally isn't all possibilities, and even if it is, we want
+        # to give better error messages than argparse
+        return True
+
+    def __iter__(self):
+        return iter(self.get_items())
+
+class Environments(Completer):
+    def _get_items(self):
         res = []
         for dir in config.envs_dirs:
             res.extend(os.listdir(dir))
         return res
 
-    def __contains__(self, item):
-        # We don't want to restrict conda create, and want to give a better
-        # error message for conda install than argparse would.
-        return True
-
-    def __iter__(self):
-        return iter(self._get_environments())
-
-class Packages(object):
-    @memoize
-    def _get_packages(self):
+class Packages(Completer):
+    def _get_items(self):
         # TODO: Include -c channels included in the command line (is this
         # possible?)
         # TODO: Include .tar.bz2 files for local installs.
@@ -39,14 +42,16 @@ class Packages(object):
         index = get_index(use_cache=True)
         return [i.rsplit('-', 2)[0] for i in index]
 
-    def __contains__(self, item):
-        # There might be packages not found here, because we don't include the
-        # channels, this doesn't handle =version, and, our error message is
-        # much better.
-        return True
+class InstalledPackages(Completer):
+    def __init__(self, prefix, parsed_args, **kwargs):
+        self.prefix = prefix
+        self.parsed_args = parsed_args
 
-    def __iter__(self):
-        return iter(self._get_packages())
+    @memoize
+    def _get_items(self):
+        import conda.install
+        packages = conda.install.linked(get_prefix(self.parsed_args))
+        return [i.rsplit('-', 2)[0] for i in packages]
 
 def add_parser_prefix(p):
     npgroup = p.add_mutually_exclusive_group()
@@ -180,14 +185,28 @@ def add_parser_install(p):
         action="store_true",
         default=False,
         help="Use an alternate algorithm to generate an unsatisfiable hint")
-    p.add_argument(
-        'packages',
-        metavar = 'package_spec',
-        action = "store",
-        nargs = '*',
-        help = "package versions to install into conda environment",
-        choices=Packages(),
-    )
+
+    if 'update' in p.prog:
+        # I don't know if p.prog is the correct thing to use here but it's the
+        # only thing that seemed to contain the command name
+        p.add_argument(
+            'packages',
+            metavar = 'package_spec',
+            action = "store",
+            nargs = '*',
+            help = "package versions to install into conda environment",
+        ).completer = InstalledPackages
+    else: # create or install
+        # Same as above except the completer is not only installed packages
+        p.add_argument(
+            'packages',
+            metavar = 'package_spec',
+            action = "store",
+            nargs = '*',
+            help = "package versions to install into conda environment",
+            choices=Packages(),
+        )
+
 
 def add_parser_use_local(p):
     p.add_argument(
