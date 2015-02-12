@@ -233,26 +233,22 @@ def install(args, parser, command='install'):
         try:
             from conda_build.config import croot
         except ImportError:
-            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                                  " to use the --use-local option",
-                                  json=args.json,
-                                  error_type="RuntimeError")
+            common.error_and_exit(
+                    "you need to have 'conda-build >= 1.7.1' installed"
+                    " to use the --use-local option",
+                    json=args.json,
+                    error_type="RuntimeError")
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
-                                      json=args.json,
-                                      offline=args.offline)
-    else:
-        index = common.get_index_trap(channel_urls=channel_urls,
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
-                                      json=args.json,
-                                      offline=args.offline)
+        channel_urls = [url_path(croot)] + list(channel_urls)
+
+    index = common.get_index_trap(channel_urls=channel_urls,
+                                  prepend=not args.override_channels,
+                                  use_cache=args.use_index_cache,
+                                  unknown=args.unknown,
+                                  json=args.json,
+                                  offline=args.offline)
 
     # Don't update packages that are already up-to-date
     if command == 'update' and not (args.all or args.force):
@@ -281,7 +277,8 @@ def install(args, parser, command='install'):
                 continue
             latest = pkgs[-1]
 
-            if latest.version == vers_inst[0] and latest.build_number == build_inst[0]:
+            if (latest.version == vers_inst[0] and
+                       latest.build_number == build_inst[0]):
                 args.packages.remove(name)
         if not args.packages:
             from conda.cli.main_list import print_packages
@@ -291,7 +288,8 @@ def install(args, parser, command='install'):
                 print('# All requested packages already installed.')
                 print_packages(prefix, regex)
             else:
-                common.stdout_json_success(message='All requested packages already installed.')
+                common.stdout_json_success(
+                    message='All requested packages already installed.')
             return
 
     if args.force:
@@ -325,8 +323,11 @@ environment does not exist: %s
         if command == 'install' and args.revision:
             actions = plan.revert_actions(prefix, get_revision(args.revision))
         else:
-            actions = plan.install_actions(prefix, index, specs, force=args.force,
-                                           only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+            actions = plan.install_actions(prefix, index, specs,
+                                           force=args.force,
+                                           only_names=only_names,
+                                           pinned=args.pinned,
+                                           minimal_hint=args.alt_hint)
             if args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
@@ -354,7 +355,8 @@ environment does not exist: %s
             for pkg in e.pkgs:
                 close = get_close_matches(pkg, packages, cutoff=0.7)
                 if close:
-                    error_message += "\n\nDid you mean one of these?\n\n    %s" % (', '.join(close))
+                    error_message += ("\n\nDid you mean one of these?"
+                                      "\n\n    %s" % (', '.join(close)))
             error_message += '\n\nYou can search for this package on Binstar with'
             error_message += '\n\n    binstar search -t conda %s' % pkg
             if len(e.pkgs) > 1:
@@ -382,7 +384,8 @@ environment does not exist: %s
             print('\n# All requested packages already installed.')
             print_packages(prefix, regex)
         else:
-            common.stdout_json_success(message='All requested packages already installed.')
+            common.stdout_json_success(
+                message='All requested packages already installed.')
         return
 
     if not args.json:
@@ -399,10 +402,11 @@ environment does not exist: %s
     else:
         if (sys.platform == 'win32' and not args.force_pscheck and
             not pscheck.check_processes(verbose=False)):
-            common.error_and_exit("Cannot continue operation while processes "
-                                  "from packages are running without --force-pscheck.",
-                                  json=True,
-                                  error_type="ProcessesStillRunning")
+            common.error_and_exit(
+                    "Cannot continue operation while processes "
+                    "from packages are running without --force-pscheck.",
+                    json=True,
+                    error_type="ProcessesStillRunning")
         elif args.dry_run:
             common.stdout_json_success(actions=actions, dry_run=True)
             sys.exit(0)
@@ -432,13 +436,15 @@ environment does not exist: %s
         common.stdout_json_success(actions=actions)
 
 
-def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=False):
+def check_install(packages, platform=None, channel_urls=(), prepend=True,
+                  minimal_hint=False):
     try:
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        actions = plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        actions = plan.install_actions(prefix, index, specs, pinned=False,
+                                       minimal_hint=minimal_hint)
         plan.display_actions(actions, index)
         return actions
     finally:
