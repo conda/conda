@@ -10,7 +10,24 @@ import textwrap
 
 import conda.config as config
 from conda import console
+from conda.utils import memoize
 
+# To get tab completion from argcomplete
+class Environments(object):
+    @memoize
+    def _get_environments(self):
+        res = []
+        for dir in config.envs_dirs:
+            res.extend(os.listdir(dir))
+        return res
+
+    def __contains__(self, item):
+        # We don't want to restrict conda create, and want to give a better
+        # error message for conda install than argparse would.
+        return True
+
+    def __iter__(self):
+        return iter(self._get_environments())
 
 def add_parser_prefix(p):
     npgroup = p.add_mutually_exclusive_group()
@@ -19,6 +36,7 @@ def add_parser_prefix(p):
         action = "store",
         help = "name of environment (in %s)" %
                             os.pathsep.join(config.envs_dirs),
+        choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
