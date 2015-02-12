@@ -29,6 +29,25 @@ class Environments(object):
     def __iter__(self):
         return iter(self._get_environments())
 
+class Packages(object):
+    @memoize
+    def _get_packages(self):
+        # TODO: Include -c channels included in the command line (is this
+        # possible?)
+        # TODO: Include .tar.bz2 files for local installs.
+        from conda.api import get_index
+        index = get_index(use_cache=True)
+        return [i.rsplit('-', 2)[0] for i in index]
+
+    def __contains__(self, item):
+        # There might be packages not found here, because we don't include the
+        # channels, this doesn't handle =version, and, our error message is
+        # much better.
+        return True
+
+    def __iter__(self):
+        return iter(self._get_packages())
+
 def add_parser_prefix(p):
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
@@ -167,6 +186,7 @@ def add_parser_install(p):
         action = "store",
         nargs = '*',
         help = "package versions to install into conda environment",
+        choices=Packages(),
     )
 
 def add_parser_use_local(p):
