@@ -34,12 +34,17 @@ class Environments(Completer):
         return res
 
 class Packages(Completer):
+    def __init__(self, prefix, parsed_args, **kwargs):
+        self.prefix = prefix
+        self.parsed_args = parsed_args
+
     def _get_items(self):
-        # TODO: Include -c channels included in the command line (is this
-        # possible?)
         # TODO: Include .tar.bz2 files for local installs.
         from conda.api import get_index
-        index = get_index(use_cache=True)
+        args = self.parsed_args
+        index = get_index(channel_urls=args.channel or (), use_cache=True,
+            prepend=not args.override_channels, unknown=args.unknown,
+            offline=args.offline)
         return [i.rsplit('-', 2)[0] for i in index]
 
 class InstalledPackages(Completer):
@@ -204,8 +209,7 @@ def add_parser_install(p):
             action = "store",
             nargs = '*',
             help = "package versions to install into conda environment",
-            choices=Packages(),
-        )
+            ).completer = Packages
 
 
 def add_parser_use_local(p):
