@@ -67,7 +67,7 @@ def configure_parser(sub_parsers, name='remove'):
         action="store",
         nargs='*',
         help="package names to %s from environment" % name,
-    )
+    ).completer = common.InstalledPackages
     p.set_defaults(func=execute)
 
 
