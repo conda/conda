@@ -13,15 +13,19 @@ from conda import install
 class CondaHistoryException(Exception):
     pass
 
+
 class CondaHistoryWarning(Warning):
     pass
+
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
     fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
 
+
 def is_diff(content):
     return any(s.startswith(('-', '+')) for s in content)
+
 
 def pretty_diff(diff):
     added = {}
@@ -40,6 +44,7 @@ def pretty_diff(diff):
         yield '-%s-%s' % (name, removed[name])
     for name in sorted(set(added) - changed):
         yield '+%s-%s' % (name, added[name])
+
 
 def pretty_content(content):
     if is_diff(content):
@@ -76,7 +81,7 @@ class History(object):
             last = self.get_state()
         except CondaHistoryException as e:
             warnings.warn("Error in %s: %s" % (self.path, e),
-                CondaHistoryWarning)
+                          CondaHistoryWarning)
             return
         curr = set(install.linked(self.prefix))
         if last == curr:

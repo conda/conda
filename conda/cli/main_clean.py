@@ -18,7 +18,7 @@ from conda.utils import human_bytes
 from conda.install import rm_rf
 
 descr = """
-Remove unused packages and caches
+Remove unused packages and caches.
 """
 
 example = """
