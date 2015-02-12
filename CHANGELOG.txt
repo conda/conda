@@ -2,7 +2,8 @@
 -------------------
   * remove (de)activation scripts from conda, those are now in conda-env
   * allow conda to be installed into environments which start with _
-
+  * add argcomplete tab completion for environments with the -n flag, and for
+    package names with install, update, create, and remove
 
 2015-02-03   3.8.4:
 -------------------
