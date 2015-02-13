@@ -35,6 +35,14 @@ from . import main_remove
 from . import main_update
 
 
+# TODO: This belongs in a helper library somewhere
+# Note: This only works with `conda-env` as a sub-command.  If this gets
+# merged into conda-env, this needs to be adjusted.
+def show_help_on_empty_command():
+    if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
+        sys.argv.append('--help')
+
+
 def create_parser():
     p = argparse.ArgumentParser()
     sub_parsers = p.add_subparsers()
@@ -44,6 +52,8 @@ def create_parser():
     main_list.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
+
+    show_help_on_empty_command()
     return p
 
 
