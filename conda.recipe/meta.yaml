@@ -23,6 +23,7 @@ requirements:
 
 test:
   commands:
+    - conda env
     - conda env -h
     - conda env list -h
     - conda env create -h
