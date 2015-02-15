@@ -189,7 +189,7 @@ specification a space separated string of 1, 2 or 3 parts:
 * The second part refers to the version, and may contain special
   characters.
 
-  ``|`` means "or", e.g. ``1.0|1.`` matches either version 1.0 or 1.2
+  ``|`` means "or", e.g. ``1.0|1.2`` matches either version 1.0 or 1.2
 
   ``*`` matches zero or more characters in the version string. In terms of
   regular expressions, it is the same as ``r'.*'``.
