@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 from collections import defaultdict
-from os.path import dirname, isdir, join
+from os.path import isdir, join
 
 from conda import config
 from conda import install
