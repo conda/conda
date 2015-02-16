@@ -182,6 +182,11 @@ distinguished by the repository sub-directory they are contained in.
 Package Match Specifications
 ----------------------------
 
+Note that this is not the same as the syntax used at the command line with
+conda install (like ``conda install python=3.4``). Internally, conda
+translates the command line syntax to the spec defined below (for example,
+``python=3.4`` is translated to ``python 3.4*``).
+
 Package dependencies are specified using a match specification.  A match
 specification a space separated string of 1, 2 or 3 parts:
 
