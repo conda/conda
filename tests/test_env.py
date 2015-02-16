@@ -79,6 +79,11 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = OrderedDict([('conda', ['nltk 3.0.0 np18py27'])])
         self.assertEqual(e.dependencies, expected)
 
+    def test_args_are_wildcarded(self):
+        e = env.Environment(dependencies=['python=2.7'])
+        expected = OrderedDict([('conda', ['python 2.7*'])])
+        self.assertEqual(e.dependencies, expected)
+
     def test_other_tips_of_dependencies_are_supported(self):
         e = env.Environment(
             dependencies=['nltk', {'pip': ['foo', 'bar']}]
