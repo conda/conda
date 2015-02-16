@@ -205,9 +205,12 @@ sections are optional except for package/name and package/version.
         - python
       # Packages required to run the package. These are the dependencies that
       # will be installed automatically whenever the package is installed.
+      # Package names should be any valid conda spec (see "Specifying versions
+      # in requirements" below).
       run:
         - python
         - argparse # [py26]
+        - six >=1.8.0
 
     test:
       # files which are copied from the recipe into the (temporary) test
