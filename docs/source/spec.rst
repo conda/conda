@@ -225,7 +225,9 @@ specification a space separated string of 1, 2 or 3 parts:
 
 Remember that the version specification cannot contain spaces, as spaces are
 used to delimit the package, version, and build string in the whole match
-specification. ``python >= 2.7`` is an invalid match specification.
+specification. ``python >= 2.7`` is an invalid match
+specification. Furthermore, ``python>=2.7`` will be matched as any version of
+a package named "python>=2.7".
 
 Examples
 ~~~~~~~~
