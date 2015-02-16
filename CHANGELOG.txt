@@ -1,4 +1,4 @@
-2015-02-XX   3.9.0:
+2015-02-16   3.9.0:
 -------------------
   * remove (de)activation scripts from conda, those are now in conda-env
   * pip is now always added as a Python dependency
