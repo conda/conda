@@ -23,5 +23,6 @@ script:
 
 install:
   - conda install --name root jinja2
+  - conda update conda-build --yes
 
 build_targets: conda
