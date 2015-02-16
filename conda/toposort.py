@@ -26,7 +26,7 @@ items in the preceding sets.
     data.update({item:set() for item in extra_items_in_deps})
     while True:
 
-        ordered = set(item for item, dep in data.items() if len(dep) == 0)
+        ordered = sorted(set(item for item, dep in data.items() if len(dep) == 0))
         if not ordered:
             break
 
@@ -34,8 +34,8 @@ items in the preceding sets.
             yield item
             data.pop(item, None)
 
-        for dep in data.values():
-            dep -= ordered
+        for dep in sorted(data.values()):
+            dep -= set(ordered)
 #         data = {item: (dep - ordered)
 #                 for item, dep in data.items()
 #                     if item not in ordered}
