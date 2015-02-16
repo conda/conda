@@ -210,6 +210,12 @@ def add_unknown(index):
             log.debug("adding cached pkg to index: %s" % fn)
             index[fn] = meta
 
+def add_pip_dependency(index):
+    for info in index.itervalues():
+        if (info['name'] == 'python' and
+                    info['version'].startswith(('2.', '3.'))):
+            info['depends'].append('pip')
+
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
@@ -256,7 +262,7 @@ Allowed channels are:
     stdoutlog.info('\n')
     if unknown:
         add_unknown(index)
-
+    add_pip_dependency(index)
     return index
 
 def fetch_pkg(info, dst_dir=None, session=None):
