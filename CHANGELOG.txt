@@ -1,9 +1,11 @@
-2015-02-XX   3.8.5:
+2015-02-XX   3.9.0:
 -------------------
   * remove (de)activation scripts from conda, those are now in conda-env
+  * pip is now always added as a Python dependency
   * allow conda to be installed into environments which start with _
   * add argcomplete tab completion for environments with the -n flag, and for
     package names with install, update, create, and remove
+
 
 2015-02-03   3.8.4:
 -------------------
