@@ -71,7 +71,7 @@ class Dependencies(OrderedDict):
             if type(line) is dict:
                 self.update(line)
             else:
-                self['conda'].append(common.spec_from_line(line))
+                self['conda'].append(common.arg2spec(line))
 
     # TODO only append when it's not already present
     def add(self, package_name):
