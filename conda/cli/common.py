@@ -12,8 +12,28 @@ import conda.config as config
 from conda import console
 from conda.utils import memoize
 
-# To get tab completion from argcomplete
+
 class Completer(object):
+    """
+    Subclass this class to get tab completion from argcomplete
+
+    There are two ways to use this. One is to subclass and define `_get_items(self)`
+    to return a list of all possible completions, and put that as the choices
+    in the add_argument. If you do that, you will probably also want to set
+    metavar to something, so that the argparse help doesn't show all possible
+    choices.
+
+    Another option is to define `_get_items(self)` in the same way, but also
+    define `__init__(self, prefix, parsed_args, **kwargs)` (I'm not sure what
+    goes in kwargs).  The prefix will be the parsed arguments so far, and
+    `parsed_args` will be an argparse args object. Then use
+
+    p.add_argument('argname', ...).completer = TheSubclass
+
+    Use this second option if the set of completions depends on the command
+    line flags (e.g., the list of completed packages to install changes if -c
+    flags are used).
+    """
     @memoize
     def get_items(self):
         return self._get_items()
