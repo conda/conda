@@ -65,6 +65,7 @@ def add_parser_prefix(p):
         action = "store",
         help = "name of environment (in %s)" %
                             os.pathsep.join(config.envs_dirs),
+        metavar="ENVIRONMENT",
         choices=Environments(),
     )
     npgroup.add_argument(
