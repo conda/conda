@@ -192,6 +192,30 @@ def get_proxy_username_and_pass(scheme):
     passwd = getpass.getpass("Password:")
     return username, passwd
 
+def add_unknown(index):
+    for pkgs_dir in config.pkgs_dirs:
+        if not isdir(pkgs_dir):
+            continue
+        for dn in os.listdir(pkgs_dir):
+            fn = dn + '.tar.bz2'
+            if fn in index:
+                continue
+            try:
+                with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
+                    meta = json.load(fi)
+            except IOError:
+                continue
+            if 'depends' not in meta:
+                meta['depends'] = []
+            log.debug("adding cached pkg to index: %s" % fn)
+            index[fn] = meta
+
+def add_pip_dependency(index):
+    for info in itervalues(index):
+        if (info['name'] == 'python' and
+                    info['version'].startswith(('2.', '3.'))):
+            info['depends'].append('pip')
+
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
@@ -237,23 +261,8 @@ Allowed channels are:
 
     stdoutlog.info('\n')
     if unknown:
-        for pkgs_dir in config.pkgs_dirs:
-            if not isdir(pkgs_dir):
-                continue
-            for dn in os.listdir(pkgs_dir):
-                fn = dn + '.tar.bz2'
-                if fn in index:
-                    continue
-                try:
-                    with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
-                        meta = json.load(fi)
-                except IOError:
-                    continue
-                if 'depends' not in meta:
-                    meta['depends'] = []
-                log.debug("adding cached pkg to index: %s" % fn)
-                index[fn] = meta
-
+        add_unknown(index)
+    add_pip_dependency(index)
     return index
 
 def fetch_pkg(info, dst_dir=None, session=None):
