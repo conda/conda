@@ -211,7 +211,7 @@ def add_unknown(index):
             index[fn] = meta
 
 def add_pip_dependency(index):
-    for info in index.itervalues():
+    for info in itervalues(index):
         if (info['name'] == 'python' and
                     info['version'].startswith(('2.', '3.'))):
             info['depends'].append('pip')
