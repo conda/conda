@@ -60,3 +60,6 @@ It should complete to
 .. code-block:: bash
 
    $ conda install
+
+To get tab completion in zsh, see `conda-zsh-completion
+<https://github.com/esc/conda-zsh-completion>`_.
