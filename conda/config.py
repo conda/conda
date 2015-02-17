@@ -176,8 +176,12 @@ def get_default_urls():
         if 'default_channels' in sys_rc:
             return sys_rc['default_channels']
 
-    return ['http://repo.continuum.io/pkgs/free',
-            'http://repo.continuum.io/pkgs/pro']
+    return [
+        'http://repo.continuum.io/pkgs/free',
+        'http://repo.continuum.io/pkgs/pro',
+        'https://conda.binstar.org/conda/',
+    ]
+
 
 def get_rc_urls():
     if rc.get('channels') is None:
