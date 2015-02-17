@@ -191,13 +191,13 @@ def install(args, parser, command='install'):
                 "prefix %s" % prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
-            if name in getattr(args, '_skip', []):
+            if name in getattr(args, '_skip', ['anaconda']):
                 continue
             if name == 'python' and ver.startswith('2'):
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
             else:
-                specs.append('%s >=%s' % (name, ver))
+                specs.append('%s' % name)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
     if command == 'install' and args.revision:
@@ -346,7 +346,7 @@ environment does not exist: %s
             else:
                 # Not sure what to do here
                 pass
-            args._skip = getattr(args, '_skip', [])
+            args._skip = getattr(args, '_skip', ['anaconda'])
             args._skip.extend([i.split()[0] for i in e.pkgs])
             return install(args, parser, command=command)
         else:
