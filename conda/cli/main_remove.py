@@ -173,7 +173,7 @@ def execute(args, parser):
         if not pscheck.main(args):
             common.confirm_yn(args)
     elif (sys.platform == 'win32' and not args.force_pscheck and
-          not pscheck.check_processes(verbose=False)):
+          not pscheck.check_processes(prefix, verbose=False)):
         common.error_and_exit("Cannot continue removal while processes "
                               "from packages are running without --force-pscheck.",
                               json=True,
