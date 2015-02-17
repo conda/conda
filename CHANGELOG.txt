@@ -1,3 +1,10 @@
+2015-02-XX   3.9.1:
+-------------------
+  * pscheck: check for processes in the current environment, see #1157
+  * don't write to the history file if nothing has changed, see #1148
+  * conda update --all fixes, see #1138
+
+
 2015-02-16   3.9.0:
 -------------------
   * remove (de)activation scripts from conda, those are now in conda-env
