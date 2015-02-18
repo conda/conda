@@ -89,6 +89,7 @@ Reference Guide
 
    commands
    build-commands
+   env-commands
    spec
    travis
    bdist_conda

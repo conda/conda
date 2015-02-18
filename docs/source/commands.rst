@@ -30,6 +30,19 @@ installed with ``conda install conda-build``.
 
    commands/build/*
 
+
+conda-env commands
+==================
+
+The following commands are part of the ``conda-env`` package, which is
+installed automatically with conda.
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+
+   commands/env/*
+
 conda-pip rosetta stone
 =======================
 If you've used pip and virtualenv in the past, you can use conda to perform the operations you are used to.

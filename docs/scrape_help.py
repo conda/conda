@@ -203,7 +203,10 @@ def main():
     for command in [c for c in core_commands if c in commands]:
         write_rst(command)
     for command in [c for c in build_commands if c in commands]:
-        write_rst(command, sep='build')
+        if 'env' in command:
+            write_rst(command, sep='env')
+        else:
+            write_rst(command, sep='build')
 
 if __name__ == '__main__':
     sys.exit(main())
