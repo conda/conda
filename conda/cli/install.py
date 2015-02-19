@@ -29,6 +29,8 @@ import conda.install as ci
 def install_tar(prefix, tar_path, verbose=False):
     from conda.misc import install_local_packages
 
+    if not exists(tar_path):
+        sys.exit("File does not exist %s" % tar_path)
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tar_path, 'r')
     t.extractall(path=tmp_dir)
