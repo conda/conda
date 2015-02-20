@@ -21,11 +21,17 @@ if not "%CONDA_NEW_NAME%" == "" goto skipmissingarg
 :skipmissingarg
 
 if exist "%ANACONDA_ENVS%\%CONDA_NEW_NAME%\conda-meta" goto usenamedenv
-    echo No environment named "%CONDA_NEW_NAME%" exists in %ANACONDA_ENVS%
-    set CONDA_NEW_NAME=
-    exit /b 1
+    for /F %%i in ("%CONDA_NEW_NAME%") do set CONDA_NEW_PATH=%%~fi
+    if exist "%CONDA_NEW_PATH%\conda-meta" goto usefullpath
+        echo No environment named "%CONDA_NEW_NAME%" exists in %ANACONDA_ENVS%
+        set CONDA_NEW_NAME=
+        set CONDA_NEW_PATH=
+        exit /b 1
 :usenamedenv
     set CONDA_NEW_PATH=%ANACONDA_ENVS%\%CONDA_NEW_NAME%
+    goto skipmissingenv
+:usefullpath
+    for /F %%i in ("%CONDA_NEW_PATH%") do set CONDA_NEW_NAME=%%~ni
 :skipmissingenv
 
 REM Deactivate a previous activation if it is live
