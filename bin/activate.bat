@@ -32,27 +32,27 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     echo Deactivating environment "%CONDA_DEFAULT_ENV%"...
 
     REM Run any deactivate scripts
-    if not exist "%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d" goto nodeactivate
-        pushd "%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d"
+    if not exist "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d" goto nodeactivate
+        pushd "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d"
         for %%g in (*.bat) do call "%%g"
         popd
     :nodeactivate
 
-    set CONDACTIVATE_PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;
+    set CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;
     call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
     set CONDA_DEFAULT_ENV=
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
-set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
+set CONDA_DEFAULT_ENV=%ANACONDA_ENVS%\%CONDA_NEW_ENV%
 set CONDA_NEW_ENV=
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
-set PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;%PATH%
+set PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%PATH%
 set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
 
 REM Run any activate scripts
-if not exist "%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\activate.d" goto noactivate
-    pushd "%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\activate.d"
+if not exist "%CONDA_DEFAULT_ENV%\etc\conda\activate.d" goto noactivate
+    pushd "%CONDA_DEFAULT_ENV%\etc\conda\activate.d"
     for %%g in (*.bat) do call "%%g"
     popd
 :noactivate
