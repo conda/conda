@@ -4,14 +4,14 @@ for /f "delims=" %%i in ("%~dp0..\envs") do (
     set ANACONDA_ENVS=%%~fi
 )
 
-set CONDA_NEW_ENV=%~1
+set CONDA_NEW_NAME=%~1
 
 if "%~2" == "" goto skiptoomanyargs
     echo ERROR: Too many arguments provided
     goto usage
 :skiptoomanyargs
 
-if not "%CONDA_NEW_ENV%" == "" goto skipmissingarg
+if not "%CONDA_NEW_NAME%" == "" goto skipmissingarg
 :usage
     echo Usage: activate envname
     echo.
@@ -20,10 +20,12 @@ if not "%CONDA_NEW_ENV%" == "" goto skipmissingarg
     exit /b 1
 :skipmissingarg
 
-if exist "%ANACONDA_ENVS%\%CONDA_NEW_ENV%\conda-meta" goto skipmissingenv
-    echo No environment named "%CONDA_NEW_ENV%" exists in %ANACONDA_ENVS%
-    set CONDA_NEW_ENV=
+if exist "%ANACONDA_ENVS%\%CONDA_NEW_NAME%\conda-meta" goto usenamedenv
+    echo No environment named "%CONDA_NEW_NAME%" exists in %ANACONDA_ENVS%
+    set CONDA_NEW_NAME=
     exit /b 1
+:usenamedenv
+    set CONDA_NEW_PATH=%ANACONDA_ENVS%\%CONDA_NEW_NAME%
 :skipmissingenv
 
 REM Deactivate a previous activation if it is live
@@ -44,11 +46,12 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
-set CONDA_DEFAULT_ENV=%ANACONDA_ENVS%\%CONDA_NEW_ENV%
-set CONDA_NEW_ENV=
+set CONDA_DEFAULT_ENV=%CONDA_NEW_PATH%
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
 set PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%PATH%
-set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
+set PROMPT=[%CONDA_NEW_NAME%] $P$G
+set CONDA_NEW_NAME=
+set CONDA_NEW_PATH=
 
 REM Run any activate scripts
 if not exist "%CONDA_DEFAULT_ENV%\etc\conda\activate.d" goto noactivate
