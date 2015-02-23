@@ -343,7 +343,12 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             h = hashlib.new('md5')
         try:
             with open(pp, 'wb') as fo:
-                for chunk in resp.iter_content(2**14):
+                more = True
+                while more:
+                    # Use resp.raw so that requests doesn't decode gz files
+                    chunk  = resp.raw.read(2**14)
+                    if not chunk:
+                        more = False
                     try:
                         fo.write(chunk)
                     except IOError:
