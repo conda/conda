@@ -325,11 +325,13 @@ environment does not exist: %s
         if command == 'install' and args.revision:
             actions = plan.revert_actions(prefix, get_revision(args.revision))
         else:
-            actions = plan.install_actions(prefix, index, specs,
-                                           force=args.force,
-                                           only_names=only_names,
-                                           pinned=args.pinned,
-                                           minimal_hint=args.alt_hint)
+            with common.json_progress_bars(json=args.json and not args.quiet):
+
+                actions = plan.install_actions(prefix, index, specs,
+                                               force=args.force,
+                                               only_names=only_names,
+                                               pinned=args.pinned,
+                                               minimal_hint=args.alt_hint)
             if args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
