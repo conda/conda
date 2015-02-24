@@ -2,7 +2,14 @@
 -------------------
   * pscheck: check for processes in the current environment, see #1157
   * don't write to the history file if nothing has changed, see #1148
-  * conda update --all fixes, see #1138
+  * conda update --all installs packages without version restrictions (except
+    for Python), see #1138
+  * conda update --all ignores the anaconda metapackage, see #1138
+  * use forward slashes for file urls on Windows
+  * don't symlink conda in the root environment from activate
+  * use the correct package name in the progress bar info
+  * use json progress bars for unsatisfiable dependencies hints
+  * don't let requests decode gz files when downloaded
 
 
 2015-02-16   3.9.0:
