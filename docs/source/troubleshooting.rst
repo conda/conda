@@ -2,6 +2,25 @@
  Troubleshooting
 =================
 
+Issue:  permission denied errors during install
+===============================================
+
+umask is a command that determines the mask settings that control how file permissions are set for newly created files. If you have a very restrictive umask (such as 077), you will see "permission denied" errors. 
+
+Resolution:  set less restrictive umask before calling conda commands.
+----------------------------------------------------------------------
+
+Conda was intended as a user space tool, but often users need to use it in a global environment. One place this can go awry is with restrictive file permissions.  Conda creates links when you install files that have to be read by others on the system. 
+
+To give yourself full permissions for files and directories, but prevent the group and other users from having access, before installing set the umask to 007, install conda, then return the umask to the original setting afterwards:
+
+	umask 007
+	conda install 
+	umask 077
+
+For more information on umask, please visit `http://en.wikipedia.org/wiki/Umask <http://en.wikipedia.org/wiki/Umask>`_.
+
+
 Issue: Conda claims that a package is installed, but it appears not to be.
 ==========================================================================
 
