@@ -90,7 +90,7 @@ class CouldntParse(NotImplementedError):
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
-class BoolKey(object):
+class BoolKey(common.Completer):
     def __contains__(self, other):
         # Other is either one of the keys or the boolean
         try:
@@ -104,30 +104,19 @@ class BoolKey(object):
 
         return ret
 
-    def __iter__(self):
-        for i in config.rc_bool_keys + ['yes', 'no', 'on', 'off', 'true', 'false']:
-            yield i
+    def _get_items(self):
+        return config.rc_bool_keys + ['yes', 'no', 'on', 'off', 'true', 'false']
 
-class ListKey(object):
+class ListKey(common.Completer):
+    def _get_items(self):
+        return config.rc_list_keys
+
+class BoolOrListKey(common.Completer):
     def __contains__(self, other):
-        # We can't check the elements of the list themselves because argparse
-        # considers both parts (like conda config --add channels test would
-        # check both 'channels' and 'test')
-        return True
+        return other in self.get_items()
 
-    def __iter__(self):
-        for i in config.rc_list_keys:
-            yield i
-
-class BoolOrListKey(object):
-    def __contains__(self, other):
-        return other in config.rc_bool_keys or other in config.rc_list_keys
-
-    def __iter__(self):
-        for i in config.rc_list_keys:
-            yield i
-        for i in config.rc_bool_keys:
-            yield i
+    def _get_items(self):
+        return config.rc_list_keys + config.rc_bool_keys
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
