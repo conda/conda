@@ -14,9 +14,12 @@ Conda was intended as a user space tool, but often users need to use it in a glo
 
 To give yourself full permissions for files and directories, but prevent the group and other users from having access, before installing set the umask to 007, install conda, then return the umask to the original setting afterwards:
 
-	umask 007
-	conda install 
-	umask 077
+   .. code-block:: bash
+
+      $ umask 007
+      $ conda install
+      $ umask 077
+
 
 For more information on umask, please visit `http://en.wikipedia.org/wiki/Umask <http://en.wikipedia.org/wiki/Umask>`_.
 
