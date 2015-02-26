@@ -21,19 +21,15 @@ examples:
 
 '''
 
-class Platforms(object):
+class Platforms(common.Completer):
     """
     Tab completion for platforms
 
     There is no limitation on the platform string, except by what is in the
     repo, but we want to tab complete the most common ones.
     """
-    def __contains__(self, other):
-        return True
-
-    def __iter__(self):
-        for i in ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']:
-            yield i
+    def _get_items(self):
+        return ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
