@@ -74,11 +74,12 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         'regex',
+        metavar = 'regex',
         action  = "store",
         nargs   = "?",
         help    = "package specification or regular expression to search for "
                   "(default: display all packages)",
-    )
+    ).completer = common.Packages
     common.add_parser_offline(p)
     common.add_parser_channels(p)
     common.add_parser_json(p)
