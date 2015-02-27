@@ -79,6 +79,7 @@ def configure_parser(sub_parsers):
         help    = "package specification or regular expression to search for "
                   "(default: display all packages)",
     )
+    common.add_parser_offline(p)
     common.add_parser_channels(p)
     common.add_parser_json(p)
     common.add_parser_use_local(p)
@@ -146,12 +147,12 @@ def execute_search(args, parser):
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
-                                      json=args.json, platform=args.platform)
+                                      json=args.json, platform=args.platform, offline=args.offline)
     else:
         index = common.get_index_trap(channel_urls=channel_urls, prepend=not
                                       args.override_channels, platform=args.platform,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown, json=args.json)
+                                      unknown=args.unknown, json=args.json, offline=args.offline)
 
     r = Resolve(index)
 
