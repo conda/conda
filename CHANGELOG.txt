@@ -1,3 +1,8 @@
+...
+-------------------
+  * add --offline to conda search
+  * add tab completion for packages to conda search
+
 2015-02-24   3.9.1:
 -------------------
   * pscheck: check for processes in the current environment, see #1157
