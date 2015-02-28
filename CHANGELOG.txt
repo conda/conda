@@ -1,7 +1,9 @@
-...
+2015-...
 -------------------
   * add --offline to conda search
+  * add --names-only to conda search
   * add tab completion for packages to conda search
+
 
 2015-02-24   3.9.1:
 -------------------
