@@ -41,6 +41,11 @@ def configure_parser(sub_parsers):
     )
     common.add_parser_prefix(p)
     p.add_argument(
+        '-b', "--boundaries",
+        action = "store_true",
+        help = "add word boundaries to rexeg, ie. \\b<regex>\\b",
+    )
+    p.add_argument(
         "--canonical",
         action  = "store_true",
         help    = "output canonical names of packages only",
@@ -107,13 +112,17 @@ def execute_search(args, parser):
         if args.spec:
             ms = MatchSpec(' '.join(args.regex.split('=')))
         else:
+            regex = args.regex
+            if args.boundaries:
+                regex = r'\b%s\b' % regex
             try:
-                pat = re.compile(args.regex, re.I)
+                pat = re.compile(regex, re.I)
             except re.error as e:
-                common.error_and_exit("%r is not a valid regex pattern (exception: %s)" %
-                                      (args.regex, e),
-                                      json=args.json,
-                                      error_type="ValueError")
+                common.error_and_exit(
+                    "'%s' is not a valid regex pattern (exception: %s)" %
+                    (regex, e),
+                    json=args.json,
+                    error_type="ValueError")
 
     prefix = common.get_prefix(args)
 

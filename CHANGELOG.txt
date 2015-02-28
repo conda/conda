@@ -1,7 +1,7 @@
 2015-...
 -------------------
   * add --offline to conda search
-  * add --names-only to conda search
+  * add --names-only and --boundaries to conda search
   * add tab completion for packages to conda search
 
 
