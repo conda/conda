@@ -99,9 +99,6 @@ def execute(args, parser):
 
 def execute_search(args, parser):
     import re
-    import sys
-
-    from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
 
     pat = None
@@ -117,7 +114,6 @@ def execute_search(args, parser):
                                       (args.regex, e),
                                       json=args.json,
                                       error_type="ValueError")
-
 
     prefix = common.get_prefix(args)
 
