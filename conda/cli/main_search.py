@@ -45,6 +45,11 @@ def configure_parser(sub_parsers):
         action  = "store_true",
         help    = "output canonical names of packages only",
     )
+    p.add_argument(
+        "--names-only",
+        action  = "store_true",
+        help    = "output only package names",
+    )
     common.add_parser_known(p)
     common.add_parser_use_index_cache(p)
     p.add_argument(
@@ -167,6 +172,10 @@ def execute_search(args, parser):
         if pat and pat.search(name) is None:
             continue
         if ms and name != ms.name:
+            continue
+
+        if args.names_only:
+            print(name)
             continue
 
         if ms:
