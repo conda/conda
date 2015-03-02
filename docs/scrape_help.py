@@ -33,6 +33,17 @@ conda {command}
 
 """
 
+def run_command(*args, **kwargs):
+    p = Popen(*args, stdout=PIPE, stderr=PIPE, **kwargs)
+    out, err = p.communicate()
+    out, err = out.decode('utf-8'), err.decode('utf-8')
+    if p.returncode != 0:
+        sys.exit("%s failed with output (%r, %r), error code %s" % (' '.join(*args), out, err, p.returncode))
+    if err:
+        print("%s gave stderr output: %s" % (' '.join(*args), err))
+
+    return out
+
 def str_check_output(*args, **kwargs):
     return check_output(*args, **kwargs).decode('utf-8')
 
@@ -116,22 +127,22 @@ def man_replacements():
     # We need to use an ordered dict because the root prefix should be
     # replaced last, since it is typically a substring of the default prefix
     r = OrderedDict([
-        (info['default_prefix'].encode('utf-8'), b'default prefix'),
-        (pathsep.join(info['envs_dirs']).encode('utf-8'), b'envs dirs'),
+        (info['default_prefix'], 'default prefix'),
+        (pathsep.join(info['envs_dirs']), 'envs dirs'),
         # For whatever reason help2man won't italicize these on its own
         # Note these require conda > 3.7.1
-        (info['user_rc_path'].encode('utf-8'), rb'\fI\,user .condarc path\/\fP'),
-        (info['sys_rc_path'].encode('utf-8'), rb'\fI\,system .condarc path\/\fP'),
+        (info['user_rc_path'], r'\fI\,user .condarc path\/\fP'),
+        (info['sys_rc_path'], r'\fI\,system .condarc path\/\fP'),
 
-        (info['root_prefix'].encode('utf-8'), rb'root prefix'),
+        (info['root_prefix'], r'root prefix'),
         ])
 
     return r
 
 def generate_man(command):
-    conda_version = check_output(['conda', '--version'], stderr=STDOUT)
+    conda_version = run_command(['conda', '--version'])
 
-    manpage = check_output([
+    manpage = run_command([
         'help2man',
         '--name', 'conda %s' % command,
         '--section', '1',
@@ -144,7 +155,7 @@ def generate_man(command):
     replacements = man_replacements()
     for text in replacements:
         manpage = manpage.replace(text, replacements[text])
-    with open(join(manpath, 'conda-%s.1' % command.replace(' ', '-')), 'wb') as f:
+    with open(join(manpath, 'conda-%s.1' % command.replace(' ', '-')), 'w') as f:
         f.write(manpage)
 
     print("Generated manpage for conda %s" % command)
