@@ -207,7 +207,7 @@ def main():
         generate_man(command)
         generate_html(command)
 
-    with ThreadPoolExecutor(len(commands)) as executor:
+    with ThreadPoolExecutor(1) as executor:
         # list() is needed to force exceptions to be raised
         list(executor.map(gen_command, commands))
 
