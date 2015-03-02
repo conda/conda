@@ -28,7 +28,7 @@ try:
     if os.environ['CONDA_DEFAULT_ENV']:
         # Try to prevent accidentally installing conda into a non-root conda environment
         sys.exit("You appear to be in a non-root conda environment. Conda is only "
-            "supported in the root environment. Deactivate and try again. If believe "
+            "supported in the root environment. Deactivate and try again. If you believe "
             "this message is in error, run CONDA_DEFAULT_ENV='' python setup.py.")
 except KeyError:
     pass
