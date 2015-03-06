@@ -412,6 +412,7 @@ spec_pat = re.compile(r'''
 )?
 $                                  # end-of-line
 ''', re.VERBOSE)
+
 def spec_from_line(line):
     m = spec_pat.match(line)
     if m is None:
