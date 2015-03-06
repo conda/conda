@@ -255,7 +255,7 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
         data = fi.read()
     if mode == 'text':
         new_data = data.replace(placeholder.encode('utf-8'),
-                                new_prefix.encode('utf-8'))
+                                new_prefix)
     elif mode == 'binary':
         new_data = binary_replace(data, placeholder.encode('utf-8'),
                                   new_prefix.encode('utf-8'))
