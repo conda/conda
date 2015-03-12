@@ -41,14 +41,14 @@ def configure_parser(sub_parsers):
     )
     common.add_parser_prefix(p)
     p.add_argument(
-        '-b', "--boundaries",
-        action = "store_true",
-        help = "add word boundaries to rexeg, ie. \\b<regex>\\b",
-    )
-    p.add_argument(
         "--canonical",
         action  = "store_true",
         help    = "output canonical names of packages only",
+    )
+    p.add_argument(
+        '-f', "--full-name",
+        action = "store_true",
+        help = "only search for full name, ie. ^<regex>$",
     )
     p.add_argument(
         "--names-only",
@@ -113,8 +113,8 @@ def execute_search(args, parser):
             ms = MatchSpec(' '.join(args.regex.split('=')))
         else:
             regex = args.regex
-            if args.boundaries:
-                regex = r'\b%s\b' % regex
+            if args.full_name:
+                regex = r'^%s$' % regex
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
