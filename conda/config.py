@@ -102,10 +102,11 @@ def load_condarc(path):
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file: %s)' % path)
-    return yaml.load(open(path)) or {}
+    with open(path) as fh:
+        return yaml.load(fh) or {}
 
 rc = load_condarc(rc_path)
-sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
+sys_rc = load_condarc(sys_rc_path)
 
 # ----- local directories -----
 
@@ -118,6 +119,8 @@ root_writable = try_write(root_dir)
 root_env_name = 'root'
 
 def _default_envs_dirs():
+    if 'envs_dirs' in sys_rc:
+        return sys_rc['envs_dirs']
     lst = [join(root_dir, 'envs')]
     if not root_writable:
         # ~/envs for backwards compatibility
@@ -131,17 +134,34 @@ def _pathsep_env(name):
     res = []
     for path in x.split(os.pathsep):
         if path == 'DEFAULTS':
-            for p in rc.get('envs_dirs') or _default_envs_dirs():
+            for p in _get_env_dirs(env_var=False):
                 res.append(p)
         else:
             res.append(path)
     return res
 
-envs_dirs = [abspath(expanduser(path)) for path in (
-        _pathsep_env('CONDA_ENVS_PATH') or
-        rc.get('envs_dirs') or
-        _default_envs_dirs()
-        )]
+
+def _get_env_dirs(env_var=None):
+   def normalize_envs(envs):
+       result_envs = []
+       for env_name in envs:
+           if env_name == 'defaults':
+               result_envs.extend(normalize_envs(_default_envs_dirs()))
+           else:
+               result_envs.append(abspath(expanduser(env_name)))
+
+       return result_envs
+
+   if env_var and os.getenv(env_var):
+       environment_envs = _pathsep_env(env_var)
+   else:
+       environment_envs = []
+
+   envs = environment_envs or rc.get('envs_dirs') or _default_envs_dirs()
+   return normalize_envs(envs)
+
+envs_dirs = _get_env_dirs(env_var='CONDA_ENVS_PATH')
+
 
 def pkgs_dir_from_envs_dir(envs_dir):
     if abspath(envs_dir) == abspath(join(root_dir, 'envs')):
@@ -171,13 +191,11 @@ else:
 # Note, get_default_urls() and get_rc_urls() return unnormalized urls.
 
 def get_default_urls():
-    if isfile(sys_rc_path):
-        sys_rc = load_condarc(sys_rc_path)
-        if 'default_channels' in sys_rc:
-            return sys_rc['default_channels']
-
-    return ['http://repo.continuum.io/pkgs/free',
-            'http://repo.continuum.io/pkgs/pro']
+    if 'default_channels' in sys_rc:
+        return sys_rc['default_channels']
+    else:
+        return ['http://repo.continuum.io/pkgs/free',
+                'http://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
     if rc.get('channels') is None:
@@ -291,8 +309,6 @@ def canonical_channel_name(channel, hide=True):
 # ----- allowed channels -----
 
 def get_allowed_channels():
-    if not isfile(sys_rc_path):
-        return None
     if sys_rc.get('allow_other_channels', True):
         return None
     if 'channels' in sys_rc:
