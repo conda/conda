@@ -3,7 +3,7 @@
   * add --offline to conda search
   * add --names-only and --full-name to conda search
   * add tab completion for packages to conda search
-
+  * change default repo urls to be https
 
 2015-02-24   3.9.1:
 -------------------
