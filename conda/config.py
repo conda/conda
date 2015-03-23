@@ -252,7 +252,7 @@ def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST') == '2':
+        if os.getenv('CIO_TEST').strip() == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
         return normalize_urls(base_urls, platform=platform)
 
