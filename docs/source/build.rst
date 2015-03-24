@@ -94,18 +94,6 @@ sections are optional except for package/name and package/version.
       patches:
         - my.patch    # the patch file is expected to be found in the recipe
 
-      #########################################################################
-      # Note, the source section is optional. If you want to specify a source #
-      # location locally, the easiest way is to not specify the source here,  #
-      # but to just add something like                                        #
-      #                                                                       #
-      # cp -r $RECIPE_DIR/../src .                                            #
-      # cd src                                                                #
-      # ...                                                                   #
-      #                                                                       #
-      # in build.sh (and similarly in bld.bat). This assumes the source is    #
-      # shipped alongside the recipe in src.                                  #
-      #########################################################################
 
     build:
       # The build number should be incremented for new builds of the same version
