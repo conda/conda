@@ -381,7 +381,8 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield tuple(clause)
 
-    def generate_version_eq(self, v, dists, include0=False):
+    def generate_version_eq(self, v, dists, installed_dists, specs,
+        include0=False, update_deps=True):
         groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
@@ -390,6 +391,17 @@ class Resolve(object):
         max_rhs = 0
         for filenames in sorted(itervalues(groups)):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
+            if (not update_deps and not any(s.split()[0] == pkgs[0].name for s in specs)):
+                rearrange = True
+                for d in installed_dists:
+                    if d in pkgs:
+                        break
+                else:
+                    # It isn't already installed
+                    rearrange = False
+                if rearrange:
+                    idx = pkgs.index(d)
+                    pkgs = pkgs[:idx] + list(reversed(pkgs[idx:]))
             i = 0
             prev = pkgs[0]
             for pkg in pkgs:
@@ -469,6 +481,7 @@ class Resolve(object):
         # TODO: This won't handle packages that aren't found any more. We
         # should get this metadata directly from the package.
         installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
+
         try:
             dists = self.get_dists(specs, max_only=True)
         except NoPackagesFound:
@@ -509,7 +522,7 @@ class Resolve(object):
             if returnall:
                 return [[]]
             return []
-        eq, max_rhs = self.generate_version_eq(v, dists)
+        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists)
 
 
         # Second common case, check if it's unsatisfiable
