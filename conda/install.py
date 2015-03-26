@@ -508,7 +508,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None, target_prefix=N
         return
 
     source_dir = join(pkgs_dir, dist)
-    if not run_script(source_dir, dist, 'pre-link', prefix, target_prefix):
+    if not run_script(dist, 'pre-link', prefix, target_prefix):
         sys.exit('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
@@ -666,7 +666,7 @@ def main():
 
     p.add_option('--target-prefix',
                  default=sys.prefix,
-                 help="target prefix (defaults to %default)")
+                 help="target prefix (defaults to %(default)s)")
 
     p.add_option('-p', '--prefix',
                  action="store",
@@ -720,14 +720,14 @@ def main():
         for dist in dists:
             if opts.verbose or linktype == LINK_COPY:
                 print("linking: %s" % dist)
-            link(pkgs_dir, prefix, dist, linktype)
+            link(pkgs_dir, prefix, dist, linktype, target_prefix=target_prefix)
         messages(prefix)
 
     elif opts.extract:
         extract(pkgs_dir, dist)
 
     elif opts.link:
-        link(pkgs_dir, prefix, dist)
+        link(pkgs_dir, prefix, dist, target_prefix=target_prefix)
 
     elif opts.unlink:
         unlink(prefix, dist)
