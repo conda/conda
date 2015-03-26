@@ -455,16 +455,20 @@ class Resolve(object):
 
         return result
 
-    def solve2(self, specs, features, guess=True, alg='BDD',
+    def solve2(self, specs, features, installed=(), guess=True, alg='BDD',
         returnall=False, minimal_hint=False, unsat_only=False):
-
         log.debug("Solving for %s" % str(specs))
+        log.debug("Features: %s" % str(features))
+        log.debug("Installed: %s" % str(installed))
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
         # complicated cases that the pseudo-boolean solver does, but it's also
         # much faster when it does work.
 
+        # TODO: This won't handle packages that aren't found any more. We
+        # should get this metadata directly from the package.
+        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
         try:
             dists = self.get_dists(specs, max_only=True)
         except NoPackagesFound:
@@ -734,8 +738,7 @@ remaining packages:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features,
-                                                       minimal_hint=minimal_hint)
+            return self.explicit(specs) or self.solve2(specs, features, installed, minimal_hint=minimal_hint)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
