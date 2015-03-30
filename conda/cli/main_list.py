@@ -38,6 +38,11 @@ def configure_parser(sub_parsers):
         help = "output canonical names of packages only",
     )
     p.add_argument(
+        '-f', "--full-name",
+        action = "store_true",
+        help = "only search for full name, ie. ^<regex>$",
+    )
+    p.add_argument(
         '-e', "--export",
         action = "store_true",
         help = "output requirement string only "
@@ -140,6 +145,10 @@ Error: environment does not exist: %s
 def execute(args, parser):
     prefix = common.get_prefix(args)
 
+    regex = args.regex
+    if args.full_name:
+        regex = r'^%s$' % regex
+
     if args.revisions:
         from conda.history import History
 
@@ -165,4 +174,4 @@ def execute(args, parser):
     if args.json:
         format = 'canonical'
 
-    print_packages(prefix, args.regex, format, piplist=args.pip, json=args.json)
+    print_packages(prefix, regex, format, piplist=args.pip, json=args.json)
