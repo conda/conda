@@ -161,70 +161,72 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
-    pkgs_dir = config.pkgs_dirs[0]
     warnings = []
 
-    rmlist = []
-    pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
-        # Only include actual packages
-        isdir(join(pkgs_dir, i, 'info'))]
-    for pkg in pkgs:
-        breakit = False
-        for root, dir, files in walk(join(pkgs_dir, pkg)):
-            if breakit:
-                break
-            for fn in files:
-                try:
-                    stat = lstat(join(root, fn))
-                except OSError as e:
-                    warnings.append((fn, e))
-                    continue
-                if stat.st_nlink > 1:
-                    # print('%s is installed: %s' % (pkg, join(root, fn)))
-                    breakit = True
+    pkgs_dirs = defaultdict(list)
+    for pkgs_dir in config.pkgs_dirs:
+        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
+            # Only include actual packages
+            isdir(join(pkgs_dir, i, 'info'))]
+        for pkg in pkgs:
+            breakit = False
+            for root, dir, files in walk(join(pkgs_dir, pkg)):
+                if breakit:
                     break
-        else:
-            rmlist.append(pkg)
-
-    if not rmlist:
-        return pkgs_dir, rmlist, warnings, 0, []
+                for fn in files:
+                    try:
+                        stat = lstat(join(root, fn))
+                    except OSError as e:
+                        warnings.append((fn, e))
+                        continue
+                    if stat.st_nlink > 1:
+                        # print('%s is installed: %s' % (pkg, join(root, fn)))
+                        breakit = True
+                        break
+            else:
+                pkgs_dirs[pkgs_dir].append(pkg)
 
     totalsize = 0
-    pkgsizes = []
-    for pkg in rmlist:
-        pkgsize = 0
-        for root, dir, files in walk(join(pkgs_dir, pkg)):
-            for fn in files:
-                # We don't have to worry about counting things twice:  by
-                # definition these files all have a link count of 1!
-                size = lstat(join(root, fn)).st_size
-                totalsize += size
-                pkgsize += size
-        pkgsizes.append(pkgsize)
+    pkgsizes = defaultdict(list)
+    for pkgs_dir in pkgs_dirs:
+        for pkg in pkgs_dirs[pkgs_dir]:
+            pkgsize = 0
+            for root, dir, files in walk(join(pkgs_dir, pkg)):
+                for fn in files:
+                    # We don't have to worry about counting things twice:  by
+                    # definition these files all have a link count of 1!
+                    size = lstat(join(root, fn)).st_size
+                    totalsize += size
+                    pkgsize += size
+            pkgsizes[pkgs_dir].append(pkgsize)
 
-    return pkgs_dir, rmlist, warnings, totalsize, pkgsizes
+    return pkgs_dirs, warnings, totalsize, pkgsizes
 
 
-def rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
+def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
             verbose=True):
     if verbose:
-        print('Cache location: %s' % pkgs_dir)
-        for fn, exception in warnings:
-            print(exception)
+        for pkgs_dir in pkgs_dirs:
+            print('Cache location: %s' % pkgs_dir)
+            for fn, exception in warnings:
+                print(exception)
 
-    if not rmlist:
+    if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
             print("There are no unused packages to remove")
         return
 
     if verbose:
         print("Will remove the following packages:")
-        print()
-        maxlen = len(max(rmlist, key=lambda x: len(str(x))))
-        fmt = "%-40s %10s"
-        for pkg, pkgsize in zip(rmlist, pkgsizes):
-            print(fmt % (pkg, human_bytes(pkgsize)))
-        print('-' * (maxlen + 2 + 10))
+        for pkgs_dir in pkgs_dirs:
+            print(pkgs_dir)
+            print('-' * len(pkgs_dir))
+            print()
+            fmt = "%-40s %10s"
+            for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
+                print(fmt % (pkg, human_bytes(pkgsize)))
+            print()
+        print('-' * 51) # 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
@@ -233,10 +235,11 @@ def rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
     if args.json and args.dry_run:
         return
 
-    for pkg in rmlist:
-        if verbose:
-            print("removing %s" % pkg)
-        rm_rf(join(pkgs_dir, pkg))
+    for pkgs_dir in pkgs_dirs:
+        for pkg in pkgs_dirs[pkgs_dir]:
+            if verbose:
+                print("removing %s" % pkg)
+            rm_rf(join(pkgs_dir, pkg))
 
 
 def rm_index_cache():
@@ -336,15 +339,17 @@ def execute(args, parser):
         rm_index_cache()
 
     if args.packages:
-        pkgs_dir, rmlist, warnings, totalsize, pkgsizes = find_pkgs()
+        pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
+        first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['packages'] = {
-            'pkgs_dir': pkgs_dir,
-            'files': rmlist,
+            'pkgs_dir': first, # Backwards compatibility
+            'pkgs_dirs': dict(pkgs_dirs),
+            'files': pkgs_dirs[first], # Backwards compatibility
             'total_size': totalsize,
             'warnings': warnings,
-            'pkg_sizes': dict(zip(rmlist, pkgsizes))
+            'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
         }
-        rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
+        rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
                 verbose=not args.json)
 
     if args.source_cache:
