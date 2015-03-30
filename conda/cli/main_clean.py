@@ -8,6 +8,7 @@ from __future__ import print_function, division, absolute_import
 from argparse import RawDescriptionHelpFormatter
 import os
 import sys
+from collections import defaultdict
 
 from os.path import join, getsize, isdir
 from os import lstat, walk, listdir
@@ -102,29 +103,29 @@ def rm_lock(locks, verbose=True):
 
 
 def find_tarballs():
-    pkgs_dir = config.pkgs_dirs[0]
-
-    rmlist = []
-    for fn in os.listdir(pkgs_dir):
-        if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
-            rmlist.append(fn)
-
-    if not rmlist:
-        return pkgs_dir, rmlist, 0
+    pkgs_dirs = defaultdict(list)
+    for pkgs_dir in config.pkgs_dirs:
+        if not isdir(pkgs_dir):
+            continue
+        for fn in os.listdir(pkgs_dir):
+            if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
+                pkgs_dirs[pkgs_dir].append(fn)
 
     totalsize = 0
-    for fn in rmlist:
-        size = getsize(join(pkgs_dir, fn))
-        totalsize += size
+    for pkgs_dir in pkgs_dirs:
+        for fn in pkgs_dirs[pkgs_dir]:
+            size = getsize(join(pkgs_dir, fn))
+            totalsize += size
 
-    return pkgs_dir, rmlist, totalsize
+    return pkgs_dirs, totalsize
 
 
-def rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=True):
+def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     if verbose:
-        print('Cache location: %s' % pkgs_dir)
+        for pkgs_dir in pkgs_dirs:
+            print('Cache location: %s' % pkgs_dir)
 
-    if not rmlist:
+    if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
             print("There are no tarballs to remove")
         return
@@ -133,12 +134,15 @@ def rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=True):
         print("Will remove the following tarballs:")
         print()
 
-        maxlen = len(max(rmlist, key=lambda x: len(str(x))))
-        fmt = "%-40s %10s"
-        for fn in rmlist:
-            size = getsize(join(pkgs_dir, fn))
-            print(fmt % (fn, human_bytes(size)))
-        print('-' * (maxlen + 2 + 10))
+        for pkgs_dir in pkgs_dirs:
+            print(pkgs_dir)
+            print('-'*len(pkgs_dir))
+            fmt = "%-40s %10s"
+            for fn in pkgs_dirs[pkgs_dir]:
+                size = getsize(join(pkgs_dir, fn))
+                print(fmt % (fn, human_bytes(size)))
+            print()
+        print('-' * 51) # From 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
@@ -147,10 +151,11 @@ def rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=True):
     if args.json and args.dry_run:
         return
 
-    for fn in rmlist:
-        if verbose:
-            print("removing %s" % fn)
-        os.unlink(os.path.join(pkgs_dir, fn))
+    for pkgs_dir in pkgs_dirs:
+        for fn in pkgs_dirs[pkgs_dir]:
+            if verbose:
+                print("removing %s" % fn)
+            os.unlink(os.path.join(pkgs_dir, fn))
 
 
 def find_pkgs():
@@ -314,13 +319,15 @@ def execute(args, parser):
         rm_lock(locks, verbose=not args.json)
 
     if args.tarballs:
-        pkgs_dir, rmlist, totalsize = find_tarballs()
+        pkgs_dirs, totalsize = find_tarballs()
+        first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': pkgs_dir,
-            'files': rmlist,
+            'pkgs_dir': first, # Backwards compabitility
+            'pkgs_dirs': dict(pkgs_dirs),
+            'files': pkgs_dirs[first], # Backwards compatibility
             'total_size': totalsize
         }
-        rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=not args.json)
+        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not args.json)
 
     if args.index_cache:
         json_result['index_cache'] = {
