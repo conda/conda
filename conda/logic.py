@@ -30,7 +30,7 @@ from functools import total_ordering, partial
 from itertools import islice, chain, combinations
 import logging
 
-from conda.compat import log2, ceil
+from conda.compat import log2, ceil, range
 from conda.utils import memoize
 
 dotlog = logging.getLogger('dotupdate')
@@ -531,8 +531,11 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
             lo = mid+1
     return constraints
 
+class MaximumIterationsError(Exception):
+    pass
+
 # TODO: alg='sorter' can be faster, especially when the main algorithm is sorter
-def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
+def min_sat(clauses, max_n=1000, N=None, alg='sorter', raise_on_max_n=False):
     """
     Calculate the SAT solutions for the `clauses` for which the number of true
     literals from 1 to N is minimal.  Returned is the list of those solutions.
@@ -540,6 +543,12 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
 
     alg can be any algorithm supported by generate_constraints, or 'iterate",
     which iterates all solutions and finds the smallest.
+
+    max_n is the maximum number of iterations the algorithm will run
+    through. If raise_on_max_n=True, the function will raise
+    MaximumIterationsError if max_n solutions were found. In other words, in
+    this case, it is possible another minimal solution could be found if max_n
+    were larger.
 
     """
     log.debug("min_sat using alg: %s" % alg)
@@ -562,12 +571,16 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
             # Old versions of pycosat require lists. This conversion can be
             # very slow, though, so only do it if we need to.
             clauses = list(map(list, clauses))
-        for sol in islice(pycosat.itersolve(clauses), max_n):
+        i = -1
+        for sol, i in zip(pycosat.itersolve(clauses), range(max_n)):
             tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
             if tl < min_tl:
                 min_tl, solutions = tl, [sol]
             elif tl == min_tl:
                 solutions.append(sol)
+        log.debug("Iterate ran %s times" % (i + 1))
+        if i + 1 == max_n and raise_on_max_n:
+            raise MaximumIterationsError("min_sat ran max_n times")
         return solutions
     else:
         solution = sat(clauses)
@@ -583,6 +596,7 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
         log.debug("Using max_val %s. N=%s" % (max_val, N))
         constraints = bisect_constraints(0, min(max_val, N), clauses, func,
             evaluate_func=evaluate_func, increment=1000)
+
         return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
