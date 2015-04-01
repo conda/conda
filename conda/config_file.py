@@ -147,7 +147,8 @@ channels:
 
     for key, item in add:
         add_defaults = (key == 'channels' and ['channels', 'defaults'] not in
-            add and 'channels' not in rc_config)
+            add and 'channels' not in rc_config and 'defaults' not in
+            new_rc_config['channels'])
         add_rc_key(key, item, new_rc_text, rc_config, add_defaults=add_defaults)
         if add_defaults:
             new_rc_config['channels'].append('defaults')
