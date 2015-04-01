@@ -233,7 +233,7 @@ channels:
                 raise CouldntParse("modified yaml doesn't match what it "
                                    "should be")
 
-    if add or set:
+    if add or set_:
         if not dry_run:
             with open(rc_path, 'w') as rc:
                 rc.write('\n'.join(new_rc_text).strip('\n'))
