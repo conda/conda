@@ -10,10 +10,10 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import os
-import sys
 from copy import deepcopy
 
 import conda.config as config
+from conda.utils import memoized
 
 class CouldntParse(NotImplementedError):
     def __init__(self, reason):
@@ -30,15 +30,6 @@ class ConfigTypeError(TypeError):
 
 class ConfigKeyError(TypeError):
     pass
-
-def execute(args, parser):
-    try:
-        execute_config(args, parser)
-    except (CouldntParse, NotImplementedError) as e:
-        if args.json:
-            common.exception_and_exit(e, json=True)
-        else:
-            raise
 
 
 def write_config(rc_path, add=(), get=None, set_=(), remove=(),
@@ -152,64 +143,17 @@ channels:
 
     # Now, try to parse the condarc file.
 
-    # Just support "   key:  " for now
-    listkeyregexes = {key:re.compile(r"( *)%s *" % key)
-        for key in dict(add)
-        }
-    setkeyregexes = {key:re.compile(r"( *)%s( *):( *)" % key)
-        for key in dict(set_)
-        }
-
     new_rc_text = rc_text[:].split("\n")
 
     for key, item in add:
-        if key not in config.rc_list_keys:
-            raise ConfigValueError("key must be one of %s, not %s" %
-                                  (config.rc_list_keys, key))
-
-        if item in rc_config.get(key, []):
-            # Skip duplicates. See above
-            continue
-        added = False
-        for pos, line in enumerate(new_rc_text[:]):
-            matched = listkeyregexes[key].match(line)
-            if matched:
-                leading_space = matched.group(1)
-                # TODO: Try to guess how much farther to indent the
-                # item. Right now, it is fixed at 2 spaces.
-                new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
-                added = True
-        if not added:
-            if key in rc_config:
-                # We should have found it above
-                raise CouldntParse("existing list key couldn't be found")
-            # TODO: Try to guess the correct amount of leading space for the
-            # key. Right now it is zero.
-            new_rc_text += ['%s:' % key, '  - %s' % item]
-            if key == 'channels' and ['channels', 'defaults'] not in add:
-                # If channels key is added for the first time, make sure it
-                # includes 'defaults'
-                new_rc_text += ['  - defaults']
-                new_rc_config['channels'].append('defaults')
+        add_defaults = (key == 'channels' and ['channels', 'defaults'] not in
+            add and 'channels' not in rc_config)
+        add_rc_key(key, item, new_rc_text, rc_config, add_defaults=add_defaults)
+        if add_defaults:
+            new_rc_config['channels'].append('defaults')
 
     for key, item in set_:
-        if key not in config.rc_bool_keys:
-            raise ConfigValueError("Error key must be one of %s, not %s" %
-                                  (config.rc_bool_keys, key))
-        added = False
-        for pos, line in enumerate(new_rc_text[:]):
-            matched = setkeyregexes[key].match(line)
-            if matched:
-                leading_space = matched.group(1)
-                precol_space = matched.group(2)
-                postcol_space = matched.group(3)
-                new_rc_text[pos] = '%s%s%s:%s%s' % (leading_space, key,
-                    precol_space, postcol_space, item)
-                added = True
-        if not added:
-            if key in rc_config:
-                raise CouldntParse("existing bool key couldn't be found")
-            new_rc_text += ['%s: %s' % (key, item)]
+        set_rc_key(key, item, new_rc_text, rc_config)
 
     # These error messages propagate up to the conda config command, so we use
     # the command flags in the messages.
@@ -240,3 +184,79 @@ channels:
                 rc.write('\n')
 
     return json_result
+
+
+@memoized
+def listkeyregex(key):
+    # Just support "   key:  " for now
+    return re.compile(r"( *)%s *" % key)
+
+@memoized
+def setkeyregex(key):
+    return re.compile(r"( *)%s( *):( *)" % key)
+
+def add_rc_key(key, item, new_rc_text, rc_config, add_defaults=False):
+    """
+    Add
+
+    key:
+      - item
+
+    to new_rc_text. new_rc_text should be a list of lines of the new rc
+    file. It is modified in place. rc_config should be a yaml.load()
+    dictionary of the base config. If add_defaults is True, the key 'defaults'
+    will be appended to the key (it is recommended to set this if the key is
+    'channels' and is being added for the first time).
+
+    """
+    if key not in config.rc_list_keys:
+        raise ConfigValueError("key must be one of %s, not %s" %
+                              (config.rc_list_keys, key))
+
+    if item in rc_config.get(key, []):
+        # Skip duplicates. See above
+        return
+    added = False
+    for pos, line in enumerate(new_rc_text[:]):
+        matched = listkeyregex(key).match(line)
+        if matched:
+            leading_space = matched.group(1)
+            # TODO: Try to guess how much farther to indent the
+            # item. Right now, it is fixed at 2 spaces.
+            new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
+            added = True
+    if not added:
+        if key in rc_config:
+            # We should have found it above
+            raise CouldntParse("existing list key couldn't be found")
+        # TODO: Try to guess the correct amount of leading space for the
+        # key. Right now it is zero.
+        new_rc_text += ['%s:' % key, '  - %s' % item]
+        if add_defaults:
+            new_rc_text += ['  - defaults']
+
+def set_rc_key(key, item, new_rc_text, rc_config):
+    """
+    Set key: item in new_rc_text
+
+    new_rc_text should be a list of lines of the new rc file. It is modified
+    in place. rc_config should be a yaml.load() dictionary of the base
+    config.
+    """
+    if key not in config.rc_bool_keys:
+        raise ConfigValueError("Error key must be one of %s, not %s" %
+                              (config.rc_bool_keys, key))
+    added = False
+    for pos, line in enumerate(new_rc_text[:]):
+        matched = setkeyregex(key).match(line)
+        if matched:
+            leading_space = matched.group(1)
+            precol_space = matched.group(2)
+            postcol_space = matched.group(3)
+            new_rc_text[pos] = '%s%s%s:%s%s' % (leading_space, key,
+                precol_space, postcol_space, item)
+            added = True
+    if not added:
+        if key in rc_config:
+            raise CouldntParse("existing bool key couldn't be found")
+        new_rc_text += ['%s: %s' % (key, item)]
