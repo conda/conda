@@ -43,6 +43,11 @@ def url_path(path):
     return 'file://%s' % path
 
 
+def comma_join(items):
+    if len(items) <= 2:
+        return ' and '.join(items)
+    return ', '.join(items[:-1]) + ', and ' + items[-1]
+
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
