@@ -20,6 +20,7 @@ class CouldntParse(NotImplementedError):
         self.args = ["""Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
+        self.reason = reason
 
 
 class ConfigValueError(ValueError):
