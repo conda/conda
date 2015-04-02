@@ -197,6 +197,8 @@ class History(object):
         return result
 
     def write_dists(self, dists):
+        if not dists:
+            return
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:

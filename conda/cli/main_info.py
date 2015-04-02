@@ -208,11 +208,11 @@ def execute(args, parser):
         for option in options:
             setattr(args, option, True)
 
-    info_dict['channels_disp'] = [config.hide_binstar_tokens(c) for c in
+    info_dict['channels'] = [config.hide_binstar_tokens(c) for c in
         info_dict['channels']]
 
     if args.all or all(not getattr(args, opt) for opt in options):
-        for key in 'pkgs_dirs', 'envs_dirs', 'channels_disp':
+        for key in 'pkgs_dirs', 'envs_dirs', 'channels':
             info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
                                'read only')
@@ -228,7 +228,7 @@ Current conda install:
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
-         channel URLs : %(_channels_disp)s
+         channel URLs : %(_channels)s
           config file : %(rc_path)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
@@ -236,8 +236,6 @@ Current conda install:
             print("""\
 # NOTE:
 #     root directory '%s' is uninitialized""" % config.root_dir)
-
-    del info_dict['channels_disp']
 
     if args.envs:
         common.handle_envs_list(info_dict['envs'], not args.json)

@@ -12,8 +12,28 @@ import conda.config as config
 from conda import console
 from conda.utils import memoize
 
-# To get tab completion from argcomplete
+
 class Completer(object):
+    """
+    Subclass this class to get tab completion from argcomplete
+
+    There are two ways to use this. One is to subclass and define `_get_items(self)`
+    to return a list of all possible completions, and put that as the choices
+    in the add_argument. If you do that, you will probably also want to set
+    metavar to something, so that the argparse help doesn't show all possible
+    choices.
+
+    Another option is to define `_get_items(self)` in the same way, but also
+    define `__init__(self, prefix, parsed_args, **kwargs)` (I'm not sure what
+    goes in kwargs).  The prefix will be the parsed arguments so far, and
+    `parsed_args` will be an argparse args object. Then use
+
+    p.add_argument('argname', ...).completer = TheSubclass
+
+    Use this second option if the set of completions depends on the command
+    line flags (e.g., the list of completed packages to install changes if -c
+    flags are used).
+    """
     @memoize
     def get_items(self):
         return self._get_items()
@@ -42,9 +62,12 @@ class Packages(Completer):
         # TODO: Include .tar.bz2 files for local installs.
         from conda.api import get_index
         args = self.parsed_args
-        index = get_index(channel_urls=args.channel or (), use_cache=True,
+        call_dict = dict(channel_urls=args.channel or (), use_cache=True,
             prepend=not args.override_channels, unknown=args.unknown,
             offline=args.offline)
+        if hasattr(args, 'platform'): # in search
+            call_dict['platform'] = args.platform
+        index = get_index(**call_dict)
         return [i.rsplit('-', 2)[0] for i in index]
 
 class InstalledPackages(Completer):
@@ -65,6 +88,7 @@ def add_parser_prefix(p):
         action = "store",
         help = "name of environment (in %s)" %
                             os.pathsep.join(config.envs_dirs),
+        metavar="ENVIRONMENT",
         choices=Environments(),
     )
     npgroup.add_argument(
@@ -388,8 +412,12 @@ spec_pat = re.compile(r'''
 )?
 $                                  # end-of-line
 ''', re.VERBOSE)
+
+def strip_comment(line):
+    return line.split('#')[0].rstrip()
+
 def spec_from_line(line):
-    m = spec_pat.match(line)
+    m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
     name, cc, pc = (m.group('name').lower(), m.group('cc'), m.group('pc'))
@@ -449,11 +477,6 @@ def check_specs(prefix, specs, json=False, create=False):
                        json=json,
                        error_type="ValueError")
 
-    if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
-        error_and_exit("Package 'conda' may only be installed in the "
-                       "root environment",
-                       json=json,
-                       error_type="ValueError")
 
 
 def disp_features(features):
@@ -527,7 +550,7 @@ def stdout_json_success(success=True, **kwargs):
     result.update(kwargs)
     stdout_json(result)
 
-root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'
+root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda', 'openssl', 'requests'
 
 
 def handle_envs_list(acc, output=True):
