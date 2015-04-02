@@ -15,20 +15,23 @@ from copy import deepcopy
 import conda.config as config
 from conda.utils import memoized
 
-class CouldntParse(NotImplementedError):
+class CondaConfigError(Exception):
+    pass
+
+class CouldntParse(NotImplementedError, CondaConfigError):
     def __init__(self, reason):
         self.args = ["""Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
 
-class ConfigValueError(ValueError):
+class ConfigValueError(ValueError, CondaConfigError):
     pass
 
-class ConfigTypeError(TypeError):
+class ConfigTypeError(TypeError, CondaConfigError):
     pass
 
-class ConfigKeyError(TypeError):
+class ConfigKeyError(TypeError, CondaConfigError):
     pass
 
 

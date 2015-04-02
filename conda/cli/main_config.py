@@ -5,14 +5,12 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
 
-import re
 import os
 import sys
 from argparse import RawDescriptionHelpFormatter
-from copy import deepcopy
 
 import conda.config as config
-from conda.config_file import (write_config, ConfigKeyError, ConfigTypeError, ConfigValueError)
+from conda.config_file import write_config, CondaConfigError
 from conda.cli import common
 
 descr = """
@@ -227,7 +225,7 @@ def execute(args, parser):
     try:
         json_result = write_config(rc_path, add=args.add, get=args.get,
             set_=args.set, remove=args.remove, remove_key=args.remove_key, force=args.force)
-    except (NotImplementedError, ConfigValueError, ConfigTypeError, ConfigKeyError) as e:
+    except CondaConfigError as e:
         if args.json:
             common.exception_and_exit(e, json=True)
         else:
