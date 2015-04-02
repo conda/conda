@@ -1,5 +1,6 @@
-2015-???
--------------------
+2015-XX-XX   3.10.1:
+--------------------
+  * allow comments at the end of the line in requirement files
   * always find the solution with minimal number of packages, even if there
     are many solutions
   * handle CIO_TEST='2 '

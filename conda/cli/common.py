@@ -413,8 +413,11 @@ spec_pat = re.compile(r'''
 $                                  # end-of-line
 ''', re.VERBOSE)
 
+def strip_comment(line):
+    return line.split('#')[0].rstrip()
+
 def spec_from_line(line):
-    m = spec_pat.match(line)
+    m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
     name, cc, pc = (m.group('name').lower(), m.group('cc'), m.group('pc'))
