@@ -871,8 +871,16 @@ class PlanFromActionsTests(unittest.TestCase):
 
         if sys.platform == 'win32':
             # menuinst should be linked first
-            last_two = expected_plan[-2:]
-            expected_plan[-2:] = last_two[::-1]
+            expected_plan = [
+                ('PREFIX', 'aprefix'),
+                ('LINK', menuinst),
+                ('PRINT', 'Linking packages ...'),
+                ('PROGRESS', '1'),
+                ('LINK', ipython),
+            ]
+
+            # last_two = expected_plan[-2:]
+            # expected_plan[-2:] = last_two[::-1]
 
         self.assertEqual(expected_plan, conda_plan)
 
