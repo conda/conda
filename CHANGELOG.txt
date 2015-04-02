@@ -1,3 +1,11 @@
+2015-???
+-------------------
+  * always find the solution with minimal number of packages, even if there
+    are many solutions
+  * handle CIO_TEST='2 '
+  * hide binstar tokens in conda info --json
+  * fix logic in @memoized for unhashable args
+
 2015-03-12   3.10.0:
 --------------------
   * change default repo urls to be https
