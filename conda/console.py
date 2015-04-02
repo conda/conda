@@ -44,6 +44,9 @@ class ProgressHandler(logging.Handler):
         elif record.name == 'progress.update':
             name, n = record.msg
             progress.widgets[0] = '[%-20s]' % name
+            if n == 0:
+                # Make sure the widget gets updated
+                progress.start()
             progress.update(n)
 
         elif record.name == 'progress.stop':
