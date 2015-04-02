@@ -177,8 +177,8 @@ def get_default_urls():
         if 'default_channels' in sys_rc:
             return sys_rc['default_channels']
 
-    return ['http://repo.continuum.io/pkgs/free',
-            'http://repo.continuum.io/pkgs/pro']
+    return ['https://repo.continuum.io/pkgs/free',
+            'https://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
     if rc.get('channels') is None:
@@ -253,7 +253,7 @@ def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST') == '2':
+        if os.getenv('CIO_TEST').strip() == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
         return normalize_urls(base_urls, platform=platform)
 

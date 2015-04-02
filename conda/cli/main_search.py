@@ -21,19 +21,15 @@ examples:
 
 '''
 
-class Platforms(object):
+class Platforms(common.Completer):
     """
     Tab completion for platforms
 
     There is no limitation on the platform string, except by what is in the
     repo, but we want to tab complete the most common ones.
     """
-    def __contains__(self, other):
-        return True
-
-    def __iter__(self):
-        for i in ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']:
-            yield i
+    def _get_items(self):
+        return ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -48,6 +44,16 @@ def configure_parser(sub_parsers):
         "--canonical",
         action  = "store_true",
         help    = "output canonical names of packages only",
+    )
+    p.add_argument(
+        '-f', "--full-name",
+        action = "store_true",
+        help = "only search for full name, ie. ^<regex>$",
+    )
+    p.add_argument(
+        "--names-only",
+        action  = "store_true",
+        help    = "output only package names",
     )
     common.add_parser_known(p)
     common.add_parser_use_index_cache(p)
@@ -78,11 +84,13 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         'regex',
+        metavar = 'regex',
         action  = "store",
         nargs   = "?",
         help    = "package specification or regular expression to search for "
                   "(default: display all packages)",
-    )
+    ).completer = common.Packages
+    common.add_parser_offline(p)
     common.add_parser_channels(p)
     common.add_parser_json(p)
     common.add_parser_use_local(p)
@@ -96,9 +104,6 @@ def execute(args, parser):
 
 def execute_search(args, parser):
     import re
-    import sys
-
-    from conda.api import get_index
     from conda.resolve import MatchSpec, Resolve
 
     pat = None
@@ -107,14 +112,17 @@ def execute_search(args, parser):
         if args.spec:
             ms = MatchSpec(' '.join(args.regex.split('=')))
         else:
+            regex = args.regex
+            if args.full_name:
+                regex = r'^%s$' % regex
             try:
-                pat = re.compile(args.regex, re.I)
+                pat = re.compile(regex, re.I)
             except re.error as e:
-                common.error_and_exit("%r is not a valid regex pattern (exception: %s)" %
-                                      (args.regex, e),
-                                      json=args.json,
-                                      error_type="ValueError")
-
+                common.error_and_exit(
+                    "'%s' is not a valid regex pattern (exception: %s)" %
+                    (regex, e),
+                    json=args.json,
+                    error_type="ValueError")
 
     prefix = common.get_prefix(args)
 
@@ -150,12 +158,12 @@ def execute_search(args, parser):
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,
-                                      json=args.json, platform=args.platform)
+                                      json=args.json, platform=args.platform, offline=args.offline)
     else:
         index = common.get_index_trap(channel_urls=channel_urls, prepend=not
                                       args.override_channels, platform=args.platform,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown, json=args.json)
+                                      unknown=args.unknown, json=args.json, offline=args.offline)
 
     r = Resolve(index)
 
@@ -169,6 +177,10 @@ def execute_search(args, parser):
         if pat and pat.search(name) is None:
             continue
         if ms and name != ms.name:
+            continue
+
+        if args.names_only:
+            print(name)
             continue
 
         if ms:

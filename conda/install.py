@@ -382,13 +382,13 @@ def symlink_conda(prefix, root_dir):
     prefix_conda = join(prefix, 'bin', 'conda')
     prefix_activate = join(prefix, 'bin', 'activate')
     prefix_deactivate = join(prefix, 'bin', 'deactivate')
-    if not os.path.exists(join(prefix, 'bin')):
+    if not os.path.lexists(join(prefix, 'bin')):
         os.makedirs(join(prefix, 'bin'))
-    if not os.path.exists(prefix_conda):
+    if not os.path.lexists(prefix_conda):
         os.symlink(root_conda, prefix_conda)
-    if not os.path.exists(prefix_activate):
+    if not os.path.lexists(prefix_activate):
         os.symlink(root_activate, prefix_activate)
-    if not os.path.exists(prefix_deactivate):
+    if not os.path.lexists(prefix_deactivate):
         os.symlink(root_deactivate, prefix_deactivate)
 
 # ========================== begin API functions =========================

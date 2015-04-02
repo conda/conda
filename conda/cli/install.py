@@ -29,6 +29,8 @@ import conda.install as ci
 def install_tar(prefix, tar_path, verbose=False):
     from conda.misc import install_local_packages
 
+    if not exists(tar_path):
+        sys.exit("File does not exist: %s" % tar_path)
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tar_path, 'r')
     t.extractall(path=tmp_dir)
@@ -191,13 +193,13 @@ def install(args, parser, command='install'):
                 "prefix %s" % prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
-            if name in getattr(args, '_skip', []):
+            if name in getattr(args, '_skip', ['anaconda']):
                 continue
             if name == 'python' and ver.startswith('2'):
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
             else:
-                specs.append('%s >=%s' % (name, ver))
+                specs.append('%s' % name)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
     if command == 'install' and args.revision:
@@ -323,11 +325,13 @@ environment does not exist: %s
         if command == 'install' and args.revision:
             actions = plan.revert_actions(prefix, get_revision(args.revision))
         else:
-            actions = plan.install_actions(prefix, index, specs,
-                                           force=args.force,
-                                           only_names=only_names,
-                                           pinned=args.pinned,
-                                           minimal_hint=args.alt_hint)
+            with common.json_progress_bars(json=args.json and not args.quiet):
+
+                actions = plan.install_actions(prefix, index, specs,
+                                               force=args.force,
+                                               only_names=only_names,
+                                               pinned=args.pinned,
+                                               minimal_hint=args.alt_hint)
             if config.always_copy or args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
@@ -346,7 +350,7 @@ environment does not exist: %s
             else:
                 # Not sure what to do here
                 pass
-            args._skip = getattr(args, '_skip', [])
+            args._skip = getattr(args, '_skip', ['anaconda'])
             args._skip.extend([i.split()[0] for i in e.pkgs])
             return install(args, parser, command=command)
         else:
@@ -401,7 +405,7 @@ environment does not exist: %s
             common.confirm_yn(args)
     else:
         if (sys.platform == 'win32' and not args.force_pscheck and
-            not pscheck.check_processes(verbose=False)):
+            not pscheck.check_processes(prefix, verbose=False)):
             common.error_and_exit(
                     "Cannot continue operation while processes "
                     "from packages are running without --force-pscheck.",

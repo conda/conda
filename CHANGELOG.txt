@@ -1,9 +1,42 @@
-2015-02-XX   3.8.5:
+2015-XX-XX   3.10.1:
+--------------------
+  * allow comments at the end of the line in requirement files
+  * always find the solution with minimal number of packages, even if there
+    are many solutions
+  * handle CIO_TEST='2 '
+  * hide binstar tokens in conda info --json
+  * fix logic in @memoized for unhashable args
+
+2015-03-12   3.10.0:
+--------------------
+  * change default repo urls to be https
+  * add --offline to conda search
+  * add --names-only and --full-name to conda search
+  * add tab completion for packages to conda search
+
+
+2015-02-24   3.9.1:
+-------------------
+  * pscheck: check for processes in the current environment, see #1157
+  * don't write to the history file if nothing has changed, see #1148
+  * conda update --all installs packages without version restrictions (except
+    for Python), see #1138
+  * conda update --all ignores the anaconda metapackage, see #1138
+  * use forward slashes for file urls on Windows
+  * don't symlink conda in the root environment from activate
+  * use the correct package name in the progress bar info
+  * use json progress bars for unsatisfiable dependencies hints
+  * don't let requests decode gz files when downloaded
+
+
+2015-02-16   3.9.0:
 -------------------
   * remove (de)activation scripts from conda, those are now in conda-env
+  * pip is now always added as a Python dependency
   * allow conda to be installed into environments which start with _
   * add argcomplete tab completion for environments with the -n flag, and for
     package names with install, update, create, and remove
+
 
 2015-02-03   3.8.4:
 -------------------

@@ -39,7 +39,7 @@ def md5_file(path):
 def url_path(path):
     path = abspath(path)
     if sys.platform == 'win32':
-        path = '/' + path.replace(':', '|')
+        path = '/' + path.replace(':', '|').replace('\\', '/')
     return 'file://%s' % path
 
 
@@ -68,11 +68,18 @@ class memoized(object):
         self.func = func
         self.cache = {}
     def __call__(self, *args, **kw):
-        if not isinstance(args, collections.Hashable):
-            # uncacheable. a list, for instance.
-            # better to not cache than blow up.
-            return self.func(*args, **kw)
-        key = (args, frozenset(kw.items()))
+        newargs = []
+        for arg in args:
+            if isinstance(arg, list):
+                newargs.append(tuple(arg))
+            elif not isinstance(arg, collections.Hashable):
+                # uncacheable. a list, for instance.
+                # better to not cache than blow up.
+                return self.func(*args, **kw)
+            else:
+                newargs.append(arg)
+        newargs = tuple(newargs)
+        key = (newargs, frozenset(kw.items()))
         if key in self.cache:
             return self.cache[key]
         else:

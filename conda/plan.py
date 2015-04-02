@@ -400,7 +400,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     else:
         # disallow conda from being installed into all other environments
         if 'conda' in must_have:
-            sys.exit("Error: 'conda' can only be installed into "
+            sys.exit("Error: 'conda' can only be installed into the "
                      "root environment")
 
     smh = r.graph_sort(must_have)
@@ -410,7 +410,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     else:
         actions = ensure_linked_actions(smh, prefix)
 
-    if actions[inst.LINK] and sys.platform != 'win32':
+    if actions[inst.LINK] and sys.platform != 'win32' and prefix != config.root_dir:
         actions[inst.SYMLINK_CONDA] = [config.root_dir]
 
     for dist in sorted(linked):

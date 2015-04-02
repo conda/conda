@@ -33,6 +33,7 @@ if PY3:
     from math import log2, ceil
     from shlex import quote
     from tempfile import TemporaryDirectory
+    range = range
 else:
     import ConfigParser as configparser
     from cStringIO import StringIO
@@ -67,6 +68,7 @@ else:
     import warnings as _warnings
     import os as _os
     from tempfile import mkdtemp
+    range = xrange
 
     class TemporaryDirectory(object):
         """Create and return a temporary directory.  This has the same

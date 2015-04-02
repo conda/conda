@@ -11,7 +11,7 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -482,13 +482,17 @@ class Resolve(object):
 
             dotlog.debug("Solving using max dists only")
             clauses = set(self.gen_clauses(v, dists, specs, features))
-            solutions = min_sat(clauses)
-
-            if len(solutions) == 1:
-                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                if returnall:
-                    return [ret]
-                return ret
+            try:
+                solutions = min_sat(clauses, alg='iterate',
+                    raise_on_max_n=True)
+            except MaximumIterationsError:
+                pass
+            else:
+                if len(solutions) == 1:
+                    ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+                    if returnall:
+                        return [ret]
+                    return ret
 
         dists = self.get_dists(specs)
 
@@ -550,7 +554,11 @@ class Resolve(object):
                 constraints = set([])
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses | constraints, N=m + 1)
+        try:
+            solutions = min_sat(clauses | constraints, N=m + 1, alg='iterate',
+                raise_on_max_n=True)
+        except MaximumIterationsError:
+            solutions = min_sat(clauses | constraints, N=m + 1, alg='sorter')
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
