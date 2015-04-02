@@ -91,8 +91,8 @@ class TestExecutePlan(unittest.TestCase):
         update_logger.removeHandler(h)
         stop_logger.removeHandler(h)
 
-        expected = [('progress.update', ('ipython', 1)),
-                    ('progress.update', ('menuinst', 2)),
+        expected = [('progress.update', ('ipython', 0)),
+                    ('progress.update', ('menuinst', 1)),
                     ('progress.stop', None)
                     ]
 
