@@ -12,29 +12,31 @@ from tests.helpers import run_in
 
 # Only run these tests for commands that are installed.
 
-shells = []
-for shell in ['bash', 'zsh']:
-    try:
-        stdout, stderr = run_in('echo', shell)
-    except OSError:
-        pass
-    else:
-        if not stderr:
-            shells.append(shell)
-
-    # activate and deactivate are no longer part conda, so we can't copy them
-    # from the source tree.  They should normally be installed, so this pulls
-    # them from the path.
-    process = subprocess.Popen(['which', 'activate'], stdout=subprocess.PIPE)
-    output = process.communicate()[0]
-    activate_path = output.strip().decode('utf-8')
-    deactivate_path = join(dirname(activate_path), 'deactivate')
-
-
 
 if platform == 'win':
     skip_tests = True
     shells = []
+else:
+
+    shells = []
+    for shell in ['bash', 'zsh']:
+        try:
+            stdout, stderr = run_in('echo', shell)
+        except OSError:
+            pass
+        else:
+            if not stderr:
+                shells.append(shell)
+
+        # activate and deactivate are no longer part conda, so we can't copy them
+        # from the source tree.  They should normally be installed, so this pulls
+        # them from the path.
+        process = subprocess.Popen(['which', 'activate'], stdout=subprocess.PIPE)
+        output = process.communicate()[0]
+        activate_path = output.strip().decode('utf-8')
+        deactivate_path = join(dirname(activate_path), 'deactivate')
+
+
 
 def _write_entry_points(envs):
     """
