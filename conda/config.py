@@ -61,6 +61,7 @@ rc_bool_keys = [
     'add_binstar_token',
     'always_yes',
     'allow_softlinks',
+    'auto_add_channels',
     'changeps1',
     'use_pip',
     'offline',
@@ -324,6 +325,7 @@ except IOError:
 
 # ----- misc -----
 
+auto_add_channels = rc.get('auto_add_channels', None) # None means ask
 always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))

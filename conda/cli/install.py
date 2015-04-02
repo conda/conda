@@ -445,32 +445,37 @@ environment does not exist: %s
         common.stdout_json_success(actions=actions)
 
     if not args.quiet and not args.json and not args.dry_run:
-        new_channels = [c for c in args.channel if config.normalize_urls([c])[0] not in config.get_channel_urls()]
-        # Should we use confirm_yn here? The difference is that it will
-        # respect --yes and config.always_yes
-        fmt = {
-            'channels': utils.comma_join(list(map(repr, new_channels))),
-            'c_channel': utils.comma_join([repr('-c %s') % c for c in new_channels]),
-            'these_channels': 'this channel' if len(new_channels) == 1 else 'these channels',
-            }
-        res = common.confirm(args, filldedent("""
-        Do you want to add {channels} to your condarc file? If you do
-        not, you will need to use {c_channel} in the future to install or
-        update packages from {these_channels}.""".format(**fmt)))
-        if res == 'yes':
-            try:
-                json_result = write_config(config.rc_path, add=[('channels', c)
-                    for c in new_channels])
-            except CouldntParse as e:
-                print("Error writing config: %s" % e.reason, file=sys.stderr)
-            else:
-                for warning in json_result['warnings']:
-                    print(warning, file=sys.stderr)
-                for message in json_result['result']:
-                    print(message)
-        else:
-            print("You can use 'conda config %s' if you decide to add it later."
-                % ' '.join(['--add channels %s' % c for c in new_channels]))
+        new_channels = [c for c in args.channel if
+            config.normalize_urls([c])[0] not in config.get_channel_urls()]
+        if new_channels:
+            res = None
+            if config.auto_add_channels is None:
+                # Should we use confirm_yn here? The difference is that it will
+                # respect --yes and config.always_yes
+                fmt = {
+                    'channels': utils.comma_join(list(map(repr, new_channels))),
+                    'c_channel': utils.comma_join([repr('-c %s') % c for c in new_channels]),
+                    'these_channels': 'this channel' if len(new_channels) == 1 else 'these channels',
+                    }
+                res = common.confirm(args, filldedent("""
+                Do you want to add {channels} to your condarc file? If you do
+                not, you will need to use {c_channel} in the future to install or
+                update packages from {these_channels}.""".format(**fmt)))
+            if config.auto_add_channels is True or res == 'yes':
+                try:
+                    json_result = write_config(config.rc_path, add=[('channels', c)
+                        for c in new_channels])
+                except CouldntParse as e:
+                    print("Error writing config: %s" % e.reason, file=sys.stderr)
+                else:
+                    for warning in json_result['warnings']:
+                        print(warning, file=sys.stderr)
+                    for message in json_result['result']:
+                        print(message)
+            elif res == 'no':
+                print("You can use 'conda config %s' if you decide to add it later."
+                    % ' '.join(['--add channels %s' % c for c in new_channels]))
+                print("To disable these prompts, run 'conda config --set auto_add_channels no'.")
 
 def check_install(packages, platform=None, channel_urls=(), prepend=True,
                   minimal_hint=False):
