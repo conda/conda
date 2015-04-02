@@ -27,6 +27,12 @@ from conda.lock import Locked
 
 import requests
 
+try:
+    import yaml
+    json_loads = yaml.load
+except ImportError:
+    json_loads = json.loads
+
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
@@ -99,7 +105,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                            verify=config.ssl_verify)
         resp.raise_for_status()
         if resp.status_code != 304:
-            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+            cache = json_loads(bz2.decompress(resp.content).decode('utf-8'))
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
