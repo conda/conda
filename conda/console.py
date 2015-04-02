@@ -14,7 +14,7 @@ fetch_progress = ProgressBar(
     widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
              FileTransferSpeed()])
 
-progress = ProgressBar(widgets=['', ' ', Bar(), ' ', Percentage()])
+progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()])
 
 
 class FetchProgressHandler(logging.Handler):
