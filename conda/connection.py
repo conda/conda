@@ -16,6 +16,7 @@ import ftplib
 import cgi
 from io import BytesIO
 
+import conda
 from conda.compat import urlparse, StringIO
 from conda.config import get_proxy_servers
 
@@ -70,6 +71,9 @@ class CondaSession(requests.Session):
 
         # Enable ftp:// urls
         self.mount("ftp://", FTPAdapter())
+
+        self.headers['User-Agent'] = "conda/%s %s" % (conda.__version__, 
+                                                      self.headers['User-Agent'])
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
