@@ -1,4 +1,4 @@
-2015-XX-XX   3.10.1:
+2015-04-XX   3.10.1:
 --------------------
   * fix logic in @memoized for unhashable args
   * hide binstar tokens in conda info --json
