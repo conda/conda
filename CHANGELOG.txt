@@ -7,6 +7,8 @@
     are many solutions
   * allow comments at the end of the line in requirement files
   * don't update the progressbar until after the item is finished running
+  * add conda/version to user agent string
+
 
 2015-03-12   3.10.0:
 --------------------
