@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -72,8 +72,9 @@ class CondaSession(requests.Session):
         # Enable ftp:// urls
         self.mount("ftp://", FTPAdapter())
 
-        self.headers['User-Agent'] = "conda/%s %s" % (conda.__version__, 
-                                                      self.headers['User-Agent'])
+        self.headers['User-Agent'] = "conda/%s %s" % (
+                          conda.__version__, self.headers['User-Agent'])
+
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
@@ -107,6 +108,7 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
     def close(self):
         pass
 
+
 def url_to_path(url):
     """
     Convert a file: URL to a path.
@@ -122,6 +124,7 @@ def url_to_path(url):
     return path
 
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
+
 
 # Taken from requests-ftp
 # (https://github.com/Lukasa/requests-ftp/blob/master/requests_ftp/ftp.py)
@@ -312,6 +315,7 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         return (host, port, path)
 
+
 def data_callback_factory(variable):
     '''Returns a callback suitable for use by the FTP library. This callback
     will repeatedly save data into the variable provided to this function. This
@@ -321,6 +325,7 @@ def data_callback_factory(variable):
         return
 
     return callback
+
 
 class AuthError(Exception):
     '''Denotes an error with authentication.'''
