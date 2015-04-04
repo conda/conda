@@ -1,6 +1,7 @@
 2015-04-XX   3.10.1:
 --------------------
   * fix logic in @memoized for unhashable args
+  * restored json cache of repodata, see #1249
   * hide binstar tokens in conda info --json
   * handle CIO_TEST='2 '
   * always find the solution with minimal number of packages, even if there
