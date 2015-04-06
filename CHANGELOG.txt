@@ -1,4 +1,4 @@
-2015-04-XX   3.10.1:
+2015-04-06   3.10.1:
 --------------------
   * fix logic in @memoized for unhashable args
   * restored json cache of repodata, see #1249
@@ -8,7 +8,7 @@
     are many solutions
   * allow comments at the end of the line in requirement files
   * don't update the progressbar until after the item is finished running
-  * add conda/version to user agent string
+  * add conda/<version> to HTTP header User-Agent string
 
 
 2015-03-12   3.10.0:
