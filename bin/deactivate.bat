@@ -31,4 +31,4 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
-set PROMPT=$P$G
+set PROMPT=%CONDA_OLD_PROMPT%
