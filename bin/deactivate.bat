@@ -32,3 +32,4 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
 :skipdeactivate
 
 set PROMPT=%CONDA_OLD_PROMPT%
+set CONDA_OLD_PROMPT=
