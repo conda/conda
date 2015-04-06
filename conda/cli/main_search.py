@@ -179,7 +179,7 @@ def execute_search(args, parser):
         if ms and name != ms.name:
             continue
 
-        if args.names_only:
+        if args.names_only and not args.outdated:
             print(name)
             continue
 
@@ -202,6 +202,9 @@ def execute_search(args, parser):
                 continue
             latest = pkgs[-1]
             if latest.version == vers_inst[0]:
+                continue
+            if args.names_only:
+                print(name)
                 continue
 
         for pkg in sorted(r.get_pkgs(ms_name)):
