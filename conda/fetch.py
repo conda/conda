@@ -45,7 +45,8 @@ def create_cache_dir():
 
 
 def cache_fn_url(url):
-    return '%s.json' % hashlib.md5(url.encode('utf-8')).hexdigest()
+    md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
+    return '%s.json' % (md5[:8],)
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):
