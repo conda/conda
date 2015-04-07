@@ -48,7 +48,8 @@ set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
 set CONDA_NEW_ENV=
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
 set PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;%PATH%
-set PROMPT=[%CONDA_DEFAULT_ENV%] $P$G
+set CONDA_OLD_PROMPT=%PROMPT%
+set PROMPT=[%CONDA_DEFAULT_ENV%] %PROMPT%
 
 REM Run any activate scripts
 if not exist "%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\etc\conda\activate.d" goto noactivate
