@@ -10,6 +10,8 @@ from os.path import join
 
 import argparse
 from argparse import RawDescriptionHelpFormatter
+import errno
+import logging
 
 from conda import config
 from conda.cli import common
@@ -27,6 +29,8 @@ examples:
     conda %s -n myenv scipy
 
 """
+
+log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers, name='remove'):
     p = sub_parsers.add_parser(
@@ -185,8 +189,14 @@ def execute(args, parser):
     else:
         plan.execute_actions(actions, index, verbose=not args.quiet)
         if specs:
-            with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                f.write('# remove specs: %s\n' % specs)
+            try:
+                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                    f.write('# remove specs: %s\n' % specs)
+            except IOError as e:
+                if e.errno == errno.EACCES:
+                    log.debug("Can't write the history file")
+                else:
+                    raise
 
     if args.all:
         rm_rf(prefix)
