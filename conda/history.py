@@ -6,9 +6,12 @@ import sys
 import time
 from os.path import isdir, isfile, join
 import warnings
+import errno
+import logging
 
 from conda import install
 
+log = logging.getLogger(__name__)
 
 class CondaHistoryException(Exception):
     pass
@@ -76,17 +79,23 @@ class History(object):
         """
         update the history file (creating a new one if necessary)
         """
-        self.init_log_file()
         try:
-            last = self.get_state()
-        except CondaHistoryException as e:
-            warnings.warn("Error in %s: %s" % (self.path, e),
-                          CondaHistoryWarning)
-            return
-        curr = set(install.linked(self.prefix))
-        if last == curr:
-            return
-        self.write_changes(last, curr)
+            self.init_log_file()
+            try:
+                last = self.get_state()
+            except CondaHistoryException as e:
+                warnings.warn("Error in %s: %s" % (self.path, e),
+                              CondaHistoryWarning)
+                return
+            curr = set(install.linked(self.prefix))
+            if last == curr:
+                return
+            self.write_changes(last, curr)
+        except IOError as e:
+            if e.errno == errno.EACCES:
+                log.debug("Can't write the history file")
+            else:
+                raise
 
     def parse(self):
         """
@@ -213,7 +222,6 @@ class History(object):
                 fo.write('-%s\n' % fn)
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
-
 
 if __name__ == '__main__':
     with History(sys.prefix) as h:
