@@ -562,9 +562,12 @@ class Resolve(object):
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
-            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
-            for sol in solutions:
-                stdoutlog.info('\t' + str([w[lit] for lit in sol if 0 < lit <= m]))
+            stdoutlog.info('\nWarning: %s possible package resolutions (only showing differing packages):\n' % len(solutions))
+            pretty_solutions = [{w[lit] for lit in sol if 0 < lit <= m} for
+                sol in solutions]
+            common  = set.intersection(*pretty_solutions)
+            for sol in pretty_solutions:
+                stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
