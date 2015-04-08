@@ -1,3 +1,8 @@
+2015-XX-XX   3.10.2:
+--------------------
+  * make conda search --outdated --names-only work, fixes #1252
+
+
 2015-04-06   3.10.1:
 --------------------
   * fix logic in @memoized for unhashable args
