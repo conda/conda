@@ -600,7 +600,9 @@ def unlink(prefix, dist):
         with open(meta_path) as fi:
             meta = json.load(fi)
 
+        # TODO Refactor to if not pkg.is_writable
         if on_win and not can_open_all_files_in_prefix(prefix, meta['files']):
+            # TODO Should eventually return rather than exiting
             sys.exit(
                 "Unable to all files for updating.  Please close all running "
                 "processes and try again."
@@ -614,7 +616,7 @@ def unlink(prefix, dist):
             dst_dirs1.add(dirname(dst))
             try:
                 os.unlink(dst)
-            except OSError: # file might not exist
+            except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
 
         # remove the meta-file last
