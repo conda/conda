@@ -7,6 +7,17 @@ from functools import partial
 from os.path import abspath, isdir, join
 import os
 
+
+def can_open_all(prefix, files):
+    try:
+        for f in files:
+            fp = open(os.path.join(prefix, f), "ab")
+            fp.close()
+        return True
+    except IOError:
+        return False
+
+
 def try_write(dir_path):
     assert isdir(dir_path)
     try:
