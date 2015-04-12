@@ -9,6 +9,9 @@ import os
 
 
 def can_open(file):
+    """
+    Return True if the given ``file`` can be opened for writing
+    """
     try:
         fp = open(file, "ab")
         fp.close()
@@ -18,6 +21,9 @@ def can_open(file):
 
 
 def can_open_all(prefix, files):
+    """
+    Return True if all of the provided ``files`` can be successfully opened
+    """
     for f in files:
         if not can_open(os.path.join(prefix, f)):
             return False
