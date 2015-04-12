@@ -40,6 +40,7 @@ import logging
 import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
+from conda.utils import can_open_all_files_in_prefix
 try:
     from conda.lock import Locked
 except ImportError:
@@ -579,6 +580,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
 
         create_meta(prefix, dist, info_dir, meta_dict)
 
+
 def unlink(prefix, dist):
     '''
     Remove a package from the specified environment, it is an error if the
@@ -597,6 +599,12 @@ def unlink(prefix, dist):
         meta_path = join(prefix, 'conda-meta', dist + '.json')
         with open(meta_path) as fi:
             meta = json.load(fi)
+
+        if on_win and not can_open_all_files_in_prefix(prefix, meta['files']):
+            sys.exit(
+                "Unable to all files for updating.  Please close all running "
+                "processes and try again."
+            )
 
         mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
