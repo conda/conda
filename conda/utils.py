@@ -20,14 +20,21 @@ def can_open(file):
         return False
 
 
-def can_open_all(prefix, files):
+def can_open_all(files):
     """
-    Return True if all of the provided ``files`` can be successfully opened
+    Return True if all of the provided ``files`` can be opened
     """
     for f in files:
-        if not can_open(os.path.join(prefix, f)):
+        if not can_open(f):
             return False
     return True
+
+
+def can_open_all_files_in_prefix(prefix, files):
+    """
+    Returns True if all ``files`` at a given ``prefix`` can be opened
+    """
+    return can_open_all([os.path.join(prefix, f) for f in files])
 
 
 def try_write(dir_path):

@@ -18,6 +18,12 @@ def create_mock_open():
     return mock.patch.object(utils, "open", create=True)
 
 
+def create_mock_can_open():
+    can_open = mock.patch.object(utils, "can_open")
+    can_open.return_value = True
+    return can_open
+
+
 class can_open_TestCase(unittest.TestCase):
     def test_returns_true_if_can_open(self):
         with create_mock_open():
@@ -38,27 +44,56 @@ class can_open_TestCase(unittest.TestCase):
 
 
 class can_open_all_TestCase(unittest.TestCase):
+    def test_returns_true_if_all_files_are_openable(self):
+        with create_mock_can_open():
+            self.assertTrue(utils.can_open_all([
+                "/some/path/a",
+                "/some/path/b",
+            ]))
+
+    def test_returns_false_if_not_all_files_are_opened(self):
+        with create_mock_can_open() as can_open:
+            can_open.return_value = False
+            self.assertFalse(utils.can_open_all([
+                "/some/path/a",
+                "/some/path/b",
+            ]))
+
+    def test_only_call_can_open_as_many_times_as_needed(self):
+        with create_mock_can_open() as can_open:
+            can_open.side_effect = [True, False, True]
+            self.assertFalse(utils.can_open_all([
+                "/can/open",
+                "/cannot/open",
+                "/can/open",
+            ]))
+        self.assertEqual(can_open.call_count, 2)
+
+
+class can_open_all_files_in_prefix_TestCase(unittest.TestCase):
     def test_returns_true_on_success(self):
         with create_mock_open() as o:
-            self.assertTrue(utils.can_open_all(SOME_PREFIX, SOME_FILES))
+            self.assertTrue(utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES))
 
     def test_returns_false_if_unable_to_open_file_for_writing(self):
         with create_mock_open() as o:
             o.side_effect = IOError
-            self.assertFalse(utils.can_open_all(SOME_PREFIX, SOME_FILES))
+            self.assertFalse(utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES))
 
     def test_dispatches_to_can_can_call(self):
-        with mock.patch.object(utils, "can_open") as can_open:
-            utils.can_open_all(SOME_PREFIX, SOME_FILES)
-        self.assertTrue(can_open.called)
+        with mock.patch.object(utils, "can_open_all") as can_open_all:
+            utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES)
+        self.assertTrue(can_open_all.called)
 
     def test_tries_to_open_all_files(self):
         random_files = ['%s' % i for i in range(random.randint(10, 20))]
-        with mock.patch.object(utils, "can_open") as can_open:
-            utils.can_open_all(SOME_PREFIX, random_files)
+        with create_mock_can_open():
+            utils.can_open_all_files_in_prefix(SOME_PREFIX, random_files)
 
     def test_stops_checking_as_soon_as_the_first_file_fails(self):
-        with mock.patch.object(utils, "can_open") as can_open:
+        with create_mock_can_open() as can_open:
             can_open.side_effect = [True, False, True]
-            self.assertFalse(utils.can_open_all(SOME_PREFIX, SOME_FILES))
+            self.assertFalse(
+                utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES)
+            )
         self.assertEqual(can_open.call_count, 2)
