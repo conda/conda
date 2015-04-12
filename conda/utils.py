@@ -8,14 +8,20 @@ from os.path import abspath, isdir, join
 import os
 
 
-def can_open_all(prefix, files):
+def can_open(file):
     try:
-        for f in files:
-            fp = open(os.path.join(prefix, f), "ab")
-            fp.close()
+        fp = open(file, "ab")
+        fp.close()
         return True
     except IOError:
         return False
+
+
+def can_open_all(prefix, files):
+    for f in files:
+        if not can_open(os.path.join(prefix, f)):
+            return False
+    return True
 
 
 def try_write(dir_path):
