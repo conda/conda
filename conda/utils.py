@@ -34,7 +34,7 @@ def can_open_all_files_in_prefix(prefix, files):
     """
     Returns True if all ``files`` at a given ``prefix`` can be opened
     """
-    return can_open_all([os.path.join(prefix, f) for f in files])
+    return can_open_all((os.path.join(prefix, f) for f in files))
 
 
 def try_write(dir_path):
