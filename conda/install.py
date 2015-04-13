@@ -40,19 +40,24 @@ import logging
 import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
-from conda.utils import can_open_all_files_in_prefix
 try:
     from conda.lock import Locked
+    from conda.utils import can_open_all_files_in_prefix
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
     class Locked(object):
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             pass
+
         def __exit__(self, exc_type, exc_value, traceback):
             pass
+
+    def can_open_all_files_in_prefix(*args, **kwargs):
+        return True
 
 on_win = bool(sys.platform == 'win32')
 
