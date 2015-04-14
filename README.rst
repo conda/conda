@@ -71,11 +71,15 @@ default, you would run
 This creates an environment called ``numpy16`` with the latest version of
 the IPython notebook, NumPy 1.6, and their dependencies.
 
-We can now activate this environment. On Linux and Mac OS X, use
+We can now activate this environment, use
 
 .. code-block:: bash
 
+   # On Linux and Mac OS X
    $ source activate numpy16
+   
+   # On Windows
+   > activate numpy16
 
 This puts the bin directory of the ``numpy16`` environment in the front of the
 ``PATH``, and sets it as the default environment for all subsequent conda commands.
@@ -84,7 +88,11 @@ To go back to the root environment, use
 
 .. code-block:: bash
 
+   # On Linux and Mac OS X
    $ source deactivate
+   
+   # On Windows
+   > deactivate
 
 
 Building Your Own Packages
