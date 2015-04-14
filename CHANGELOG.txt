@@ -1,3 +1,7 @@
+2015-04-XX   3.10.2:
+--------------------
+  * fix issue where forced update on Windows could cause a package to break
+
 2015-04-06   3.10.1:
 --------------------
   * fix logic in @memoized for unhashable args
