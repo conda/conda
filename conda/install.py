@@ -609,8 +609,8 @@ def unlink(prefix, dist):
         if on_win and not can_open_all_files_in_prefix(prefix, meta['files']):
             # TODO Should eventually return rather than exiting
             sys.exit(
-                "Unable to all files for updating.  Please close all running "
-                "processes and try again."
+                "Unable to modify files for updating.  Please close all "
+                "running processes and try again."
             )
 
         mk_menus(prefix, meta['files'], remove=True)
