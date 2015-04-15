@@ -3,6 +3,7 @@
   * make conda search --outdated --names-only work, fixes #1252
   * handle the history file not having read or write permissions better
   * make multiple package resolutions warning easier to read
+  * add --full-name to conda list
 
 2015-04-06   3.10.1:
 --------------------
