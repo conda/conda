@@ -18,7 +18,8 @@ descr = (help +
          "the -n NAME or -p PREFIX option.")
 
 example = """
-examples:
+Examples:
+
     conda create -n myenv sqlite
 
 """

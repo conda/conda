@@ -8,20 +8,34 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 from os.path import isdir, join
+from argparse import RawDescriptionHelpFormatter
 
 import conda
 import conda.config as config
 
 
-descr = ("Initialize conda into a regular environment (when conda was "
-         "installed as a Python package, e.g. using pip). (DEPRECATED)")
+descr = """
+Initialize conda into a regular environment (when conda was installed as a
+Python package, e.g. using pip). (DEPRECATED)
+"""
+
+warning = """
+WARNING: conda init is deprecated. The recommended way to manage pip installed
+conda is to use pip to manage the root environment and conda to manage new
+conda environments.
+
+Note that pip installing conda is not the recommended way for setting up your
+system.  The recommended way for setting up a conda system is by installing
+Miniconda. See http://conda.pydata.org/miniconda.html."""
 
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'init',
-        description = descr,
-        help = descr,
+        description=descr,
+        epilog=warning,
+        formatter_class=RawDescriptionHelpFormatter,
+        help=descr,
     )
     p.set_defaults(func=execute)
 
@@ -64,14 +78,7 @@ def execute(args, parser):
         sys.exit('Error: conda appears to be already initalized in: %s' %
                  config.root_dir)
 
-    print("""\
-WARNING: conda init is deprecated. The recommended way to manage pip installed
-conda is to use pip to manage the root environment and conda to manage new
-conda environments.
-
-# Note that pip installing conda is not the recommended way for setting up your
-# system.  The recommended way for setting up a conda system is by installing
-# Miniconda, see: http://repo.continuum.io/miniconda/index.html""", file=sys.stderr)
+    print(warning, file=sys.stderr)
 
     print('Initializing conda into: %s' % config.root_dir)
     initialize()
