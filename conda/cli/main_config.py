@@ -27,9 +27,9 @@ that can go in .condarc.
 List keys, like
 
   $ cat .condarc
-  $ key:
-  $   - a
-  $   - b
+  key:
+    - a
+    - b
 
 are modified with the --add and --remove options. For example
 
