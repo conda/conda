@@ -38,9 +38,9 @@ def run_command(*args, **kwargs):
     out, err = p.communicate()
     out, err = out.decode('utf-8'), err.decode('utf-8')
     if p.returncode != 0:
-        print("%s failed with output (%r, %r), error code %s" % (' '.join(*args), out, err, p.returncode), file=sys.stderr)
-    if err:
-        print("%s gave stderr output: %s" % (' '.join(*args), err))
+        print("%r failed with error code %s" % (' '.join(*args), p.returncode), file=sys.stderr)
+    elif err:
+        print("%r gave stderr output: %s" % (' '.join(*args), err))
 
     return out
 
