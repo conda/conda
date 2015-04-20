@@ -18,6 +18,9 @@ descr = """
 Modify configuration values in .condarc.  This is modeled after the git
 config command.  Writes to the user .condarc file (%s) by default.
 
+""" % config.user_rc_path
+
+additional_descr = """
 See http://conda.pydata.org/docs/config.html for details on all the options
 that can go in .condarc.
 
@@ -65,7 +68,8 @@ can be used to write using the YAML parser, which will remove any structure
 and comments from the file.  Currently, the --force flag is required to use
 --remove or --remove-key.
 
-""" % config.user_rc_path
+"""
+
 
 # Note, the formatting of this is designed to work well with help2man
 example = """
@@ -124,7 +128,7 @@ def configure_parser(sub_parsers):
         formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,
-        epilog = example,
+        epilog = additional_descr + example,
         )
     common.add_parser_json(p)
 
