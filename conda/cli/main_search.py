@@ -18,7 +18,8 @@ a -, separate the search from the options with --, like 'conda search -- -h'.
 
 A * in the results means that package is installed in the current
 environment. A . means that package is not installed but is cached in the pkgs
-directory"""
+directory
+"""
 example = '''
 Examples:
 
