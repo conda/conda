@@ -31,16 +31,27 @@ Examples:
 
 """
 
+uninstall_help = "Alias for conda remove.  See conda remove --help."
 log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers, name='remove'):
-    p = sub_parsers.add_parser(
-        name,
-        formatter_class=RawDescriptionHelpFormatter,
-        description=descr % name.capitalize(),
-        help=help % name.capitalize(),
-        epilog=example % name,
-    )
+    if name == 'remove':
+        p = sub_parsers.add_parser(
+            name,
+            formatter_class=RawDescriptionHelpFormatter,
+            description=descr % name.capitalize(),
+            help=help % name.capitalize(),
+            epilog=example % name,
+        )
+    else:
+        p = sub_parsers.add_parser(
+            name,
+            formatter_class=RawDescriptionHelpFormatter,
+            description=uninstall_help,
+            help=uninstall_help,
+            epilog=example % name,
+        )
+
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
