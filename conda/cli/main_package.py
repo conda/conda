@@ -6,6 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+from argparse import RawTextHelpFormatter
+
 from conda.cli import common
 
 
@@ -13,7 +15,12 @@ descr = "Low-level conda package utility. (EXPERIMENTAL)"
 
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('package', description=descr, help=descr)
+    p = sub_parsers.add_parser(
+        'package',
+        description=descr,
+        help=descr,
+        formatter_class=RawTextHelpFormatter,
+    )
 
     common.add_parser_prefix(p)
     p.add_argument(
