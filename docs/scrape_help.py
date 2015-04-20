@@ -38,7 +38,7 @@ def run_command(*args, **kwargs):
     out, err = p.communicate()
     out, err = out.decode('utf-8'), err.decode('utf-8')
     if p.returncode != 0:
-        sys.exit("%s failed with output (%r, %r), error code %s" % (' '.join(*args), out, err, p.returncode))
+        print("%s failed with output (%r, %r), error code %s" % (' '.join(*args), out, err, p.returncode), file=sys.stderr)
     if err:
         print("%s gave stderr output: %s" % (' '.join(*args), err))
 
@@ -142,15 +142,22 @@ def man_replacements():
 def generate_man(command):
     conda_version = run_command(['conda', '--version'])
 
-    manpage = run_command([
-        'help2man',
-        '--name', 'conda %s' % command,
-        '--section', '1',
-        '--source', 'Continuum Analytics',
-        '--version-string', conda_version,
-        '--no-info',
-        'conda %s' % command,
-        ])
+    manpage = ''
+    retries = 5
+    while not manpage or retries:
+        manpage = run_command([
+            'help2man',
+            '--name', 'conda %s' % command,
+            '--section', '1',
+            '--source', 'Continuum Analytics',
+            '--version-string', conda_version,
+            '--no-info',
+            'conda %s' % command,
+            ])
+        retries -= 1
+
+    if not manpage:
+        sys.exit("Error: Could not get help for conda %s" % command)
 
     replacements = man_replacements()
     for text in replacements:
@@ -207,7 +214,7 @@ def main():
         generate_man(command)
         generate_html(command)
 
-    with ThreadPoolExecutor(1) as executor:
+    with ThreadPoolExecutor(len(commands)) as executor:
         # list() is needed to force exceptions to be raised
         list(executor.map(gen_command, commands))
 
