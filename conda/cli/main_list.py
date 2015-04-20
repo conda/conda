@@ -11,6 +11,7 @@ import sys
 import subprocess
 from os.path import isdir, isfile
 import logging
+from argparse import RawDescriptionHelpFormatter
 
 import conda.install as install
 import conda.config as config
@@ -22,13 +23,27 @@ from conda.pip import pip_args, add_pip_installed
 
 descr = "List linked packages in a conda environment."
 
+# Note, the formatting of this is designed to work well with help2man
+examples = """
+Examples:
+
+List all packages in the current environment:
+
+    conda list
+
+List all packages installed into the environment 'myenv':
+
+    conda list -n myenv
+"""
 log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'list',
-        description = descr,
-        help = descr,
+        description=descr,
+        help=descr,
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog=examples,
     )
     common.add_parser_prefix(p)
     common.add_parser_json(p)
