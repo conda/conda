@@ -6,18 +6,29 @@
 
 from __future__ import print_function, division, absolute_import
 
+from argparse import RawDescriptionHelpFormatter
+
 descr = "Displays a list of available conda commands and their help strings."
 
+example = """
+Examples:
+
+    conda help install
+"""
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('help',
-                               description = descr,
-                               help = descr)
+    p = sub_parsers.add_parser(
+        'help',
+        description=descr,
+        formatter_class=RawDescriptionHelpFormatter,
+        help=descr,
+        epilog=example,
+    )
     p.add_argument(
         'command',
-        metavar = 'COMMAND',
-        action = "store",
-        nargs = '?',
-        help = "print help information for COMMAND "
+        metavar='COMMAND',
+        action="store",
+        nargs='?',
+        help="print help information for COMMAND "
                "(same as: conda COMMAND -h)",
     )
     p.set_defaults(func=execute)
