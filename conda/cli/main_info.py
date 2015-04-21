@@ -12,17 +12,28 @@ import os
 from os import listdir
 from os.path import isfile, exists, expanduser, join
 from collections import defaultdict, OrderedDict
+from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 
 
 help = "Display information about current conda install."
 
+example = """
+
+Examples:
+
+    conda info -a
+"""
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('info',
-                               description = help,
-                               help = help)
+    p = sub_parsers.add_parser(
+        'info',
+        description=help,
+        help=help,
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog=example,
+    )
     common.add_parser_json(p)
     p.add_argument(
         '-a', "--all",

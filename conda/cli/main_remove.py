@@ -22,24 +22,36 @@ help = "%s a list of packages from a specified conda environment."
 descr = help + """
 Normally, only the specified package is removed, and not the packages
 which may depend on the package.  Hence this command should be used
-with caution.  Note that conda uninstall is an alias for conda remove
+with caution.  Note:  conda uninstall is an alias for conda remove.
 """
 example = """
-examples:
+Examples:
+
     conda %s -n myenv scipy
 
 """
 
+uninstall_help = "Alias for conda remove.  See conda remove --help."
 log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers, name='remove'):
-    p = sub_parsers.add_parser(
-        name,
-        formatter_class=RawDescriptionHelpFormatter,
-        description=descr % name,
-        help=help % name,
-        epilog=example % name,
-    )
+    if name == 'remove':
+        p = sub_parsers.add_parser(
+            name,
+            formatter_class=RawDescriptionHelpFormatter,
+            description=descr % name.capitalize(),
+            help=help % name.capitalize(),
+            epilog=example % name,
+        )
+    else:
+        p = sub_parsers.add_parser(
+            name,
+            formatter_class=RawDescriptionHelpFormatter,
+            description=uninstall_help,
+            help=uninstall_help,
+            epilog=example % name,
+        )
+
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(

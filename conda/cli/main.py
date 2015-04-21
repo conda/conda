@@ -162,6 +162,10 @@ In short:
     main_package.configure_parser(sub_parsers)
     main_bundle.configure_parser(sub_parsers)
 
+    # Add "Options:" just before the options help for the same of man2html
+    for parser in sub_parsers.choices.values():
+        parser.description += "\n\nOptions:\n"
+
     try:
         import argcomplete
         argcomplete.autocomplete(p)

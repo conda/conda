@@ -8,15 +8,26 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import logging
+from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 
 descr = "Launches an application installed with Conda."
 
+examples = """
+Examples:
+
+    conda run ipython-notebook
+"""
+
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('run',
-                               description = descr,
-                               help = descr)
+    p = sub_parsers.add_parser(
+        'run',
+        description=descr,
+        help=descr,
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog=examples,
+    )
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     common.add_parser_json(p)
