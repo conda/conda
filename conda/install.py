@@ -483,6 +483,7 @@ def linked(prefix):
     return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
 
+# FIXME Functions that begin with `is_` should return True/False
 def is_linked(prefix, dist):
     """
     Return the install meta-data for a linked package in a prefix, or None
