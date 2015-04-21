@@ -27,23 +27,25 @@ def configure_parser(sub_parsers):
         help=descr,
         formatter_class=RawDescriptionHelpFormatter,
         epilog=examples,
+        add_help=False,
     )
+    common.add_parser_help(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     common.add_parser_json(p)
     p.add_argument(
         'package',
-        metavar = 'COMMAND',
-        action = "store",
-        nargs = '?',
-        help = "package to launch"
+        metavar='COMMAND',
+        action="store",
+        nargs='?',
+        help="Package to launch."
     )
     p.add_argument(
         'arguments',
-        metavar = 'ARGUMENTS',
-        action = 'store',
-        nargs = '*',
-        help = "additional arguments to application"
+        metavar='ARGUMENTS',
+        action='store',
+        nargs='*',
+        help="Additional arguments to application."
     )
     p.set_defaults(func=execute)
 
