@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import sys
 import json
 import random
@@ -52,22 +53,50 @@ def test_add_unlink_takes_two_arguments(args):
 
 
 class add_unlink_TestCase(unittest.TestCase):
+    def generate_random_dist(self):
+        return {
+            "name": "foobar%s" % random.randint(100, 200),
+            "files": ["a", "b", "c"]
+        }
+
+    @contextmanager
+    def mock_platform(self, windows=False):
+        with mock.patch.object(plan, "sys") as sys:
+            sys.platform = "win32" if windows else "not win32"
+            yield sys
+
     def test_simply_adds_unlink_on_non_windows(self):
         actions = {}
-        dist = {"foo": "bar%s" % random.randint(100, 200)}
-        with mock.patch.object(plan, "sys") as sys:
-            sys.platform = "not win32"
+        dist = self.generate_random_dist()
+        with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertIn(inst.UNLINK, actions)
         self.assertEqual(actions[inst.UNLINK], [dist, ])
 
     def test_adds_to_existing_actions(self):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
-        dist = {"foo": "bar%s" % random.randint(100, 200)}
-        with mock.patch.object(plan, "sys") as sys:
-            sys.platform = "not win32"
+        dist = self.generate_random_dist()
+        with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertEqual(2, len(actions[inst.UNLINK]))
+
+    def test_adds_ensure_write_on_windows(self):
+        actions = {}
+        dist = self.generate_random_dist()
+        with self.mock_platform(windows=True):
+            plan.add_unlink(actions, dist)
+        self.assertIn(inst.ENSURE_WRITE, actions)
+        self.assertEqual(actions[inst.ENSURE_WRITE], [dist, ])
+
+    def test_adds_to_existing_actions(self):
+        actions = {
+            inst.UNLINK: [{"foo": "bar"}],
+            inst.ENSURE_WRITE: [{"foo": "bar"}],
+        }
+        dist = self.generate_random_dist()
+        with self.mock_platform(windows=True):
+            plan.add_unlink(actions, dist)
+        self.assertEqual(actions[inst.ENSURE_WRITE], [{"foo": "bar"}, dist])
 
 
 class TestAddDeaultsToSpec(unittest.TestCase):
