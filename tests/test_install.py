@@ -139,15 +139,19 @@ def test_ensure_write_takes_two_arguments(args):
 class ensure_write_TestCase(unittest.TestCase):
     def setUp(self):
         self.prefix = generate_random_path()
+        self.dist = "foobar-%s-0" % random.randint(100, 200)
         self.meta = {
-            "files": ["a", "b", "c", ],
+            "name": self.dist,
+            "files": ["a", "b", "c"],
         }
 
     @contextmanager
     def generate_mock_check(self, return_value=True):
         with patch.object(install, 'can_open_all_files_in_prefix') as mocked:
             mocked.return_value = return_value
-            yield mocked
+            with patch.object(install, "load_meta") as load_meta:
+                load_meta.return_value = self.meta
+                yield mocked
 
     def test_dispatches_to_can_open_all_files(self):
         with self.generate_mock_check() as can:

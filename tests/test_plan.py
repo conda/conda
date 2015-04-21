@@ -54,10 +54,7 @@ def test_add_unlink_takes_two_arguments(args):
 
 class add_unlink_TestCase(unittest.TestCase):
     def generate_random_dist(self):
-        return {
-            "name": "foobar%s" % random.randint(100, 200),
-            "files": ["a", "b", "c"]
-        }
+        return "foobar-%s-0" % random.randint(100, 200)
 
     @contextmanager
     def mock_platform(self, windows=False):
