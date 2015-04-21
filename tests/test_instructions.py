@@ -18,6 +18,7 @@ def test_expected_operation_order():
     expected = (
         instructions.FETCH,
         instructions.EXTRACT,
+        instructions.ENSURE_WRITE,
         instructions.UNLINK,
         instructions.LINK,
         instructions.SYMLINK_CONDA,

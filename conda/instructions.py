@@ -24,8 +24,16 @@ SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
-action_codes = (FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED,
-                RM_FETCHED)
+action_codes = (
+    FETCH,
+    EXTRACT,
+    ENSURE_WRITE,
+    UNLINK,
+    LINK,
+    SYMLINK_CONDA,
+    RM_EXTRACTED,
+    RM_FETCHED,
+)
 
 
 def PREFIX_CMD(state, arg):
