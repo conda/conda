@@ -134,7 +134,7 @@ In short:
     p.add_argument(
         "--debug",
         action = "store_true",
-        help = argparse.SUPPRESS,
+        help = "Show debug output."
     )
     p.add_argument(
         "--json",
