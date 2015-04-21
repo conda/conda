@@ -42,16 +42,22 @@ from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
     from conda.lock import Locked
+    from conda.utils import can_open_all_files_in_prefix
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
     class Locked(object):
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             pass
+
         def __exit__(self, exc_type, exc_value, traceback):
             pass
+
+    def can_open_all_files_in_prefix(*args, **kwargs):
+        return True
 
 on_win = bool(sys.platform == 'win32')
 
@@ -579,6 +585,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
 
         create_meta(prefix, dist, info_dir, meta_dict)
 
+
 def unlink(prefix, dist):
     '''
     Remove a package from the specified environment, it is an error if the
@@ -598,6 +605,14 @@ def unlink(prefix, dist):
         with open(meta_path) as fi:
             meta = json.load(fi)
 
+        # TODO Refactor to if not pkg.is_writable
+        if on_win and not can_open_all_files_in_prefix(prefix, meta['files']):
+            # TODO Should eventually return rather than exiting
+            sys.exit(
+                "Unable to all files for updating.  Please close all running "
+                "processes and try again."
+            )
+
         mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
 
@@ -606,7 +621,7 @@ def unlink(prefix, dist):
             dst_dirs1.add(dirname(dst))
             try:
                 os.unlink(dst)
-            except OSError: # file might not exist
+            except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
 
         # remove the meta-file last
