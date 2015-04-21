@@ -13,6 +13,20 @@ from conda import instructions
 from conda.instructions import execute_instructions, commands, PROGRESS_CMD
 
 
+def test_expected_operation_order():
+    """Ensure expected order of operations"""
+    expected = (
+        instructions.FETCH,
+        instructions.EXTRACT,
+        instructions.UNLINK,
+        instructions.LINK,
+        instructions.SYMLINK_CONDA,
+        instructions.RM_EXTRACTED,
+        instructions.RM_FETCHED,
+    )
+    assert expected == instructions.action_codes
+
+
 class TestHandler(Handler):
     def __init__(self):
         Handler.__init__(self)
