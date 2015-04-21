@@ -651,7 +651,7 @@ def messages(prefix):
 
 def ensure_write(prefix, dist):
     meta = load_meta(prefix, dist)
-    if not can_open_all_files_in_prefix(prefix, dist['files']):
+    if not can_open_all_files_in_prefix(prefix, meta["files"]):
         # TODO Should eventually return rather than exiting
         sys.exit(
             "Unable to modify files for updating.  Please close all "

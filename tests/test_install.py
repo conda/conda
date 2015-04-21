@@ -155,7 +155,7 @@ class ensure_write_TestCase(unittest.TestCase):
 
     def test_dispatches_to_can_open_all_files(self):
         with self.generate_mock_check() as can:
-            install.ensure_write(self.prefix, self.meta)
+            install.ensure_write(self.prefix, self.dist)
         can.assert_called_with(self.prefix, self.meta['files'])
 
     def test_returns_none_on_true(self):
