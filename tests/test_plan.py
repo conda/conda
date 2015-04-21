@@ -811,7 +811,7 @@ The following packages will be DOWNGRADED:
 
 """
 
-class TestDepricatedExecutePlan(unittest.TestCase):
+class TestDeprecatedExecutePlan(unittest.TestCase):
 
     def test_update_old_plan(self):
         old_plan = ['# plan', 'INSTRUCTION arg']
