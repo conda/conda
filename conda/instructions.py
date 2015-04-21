@@ -93,8 +93,8 @@ def SYMLINK_CONDA_CMD(state, arg):
     install.symlink_conda(state['prefix'], arg)
 
 
-def ENSURE_WRITE_CMD():
-    install.ensure_write()
+def ENSURE_WRITE_CMD(state, arg):
+    install.ensure_write(state["prefix"], arg)
 
 
 # Map instruction to command (a python function)

@@ -1,4 +1,5 @@
 from logging import getLogger, Handler, DEBUG
+import random
 import types
 import unittest
 
@@ -30,10 +31,25 @@ class TestEnsureWriteCommand(unittest.TestCase):
         self.assertTrue(isinstance(commands['ENSURE_WRITE'],
                                    types.FunctionType))
 
+    def test_takes_two_args(self):
+        cmd = commands['ENSURE_WRITE']
+
+        with self.assertRaises(TypeError):
+            cmd()  # No args
+
+        with self.assertRaises(TypeError):
+            cmd("one")
+
+        with self.assertRaises(TypeError):
+            cmd("one", "two", "three")
+
     def test_ensure_dispatches_to_install_ensure_unlink(self):
+        prefix = "/some/random/prefix/%s" % random.randint(100, 200)
+        state = {"prefix": prefix}
+        dist = object()
         with mock.patch.object(instructions, 'install') as install:
-            commands['ENSURE_WRITE']()
-        self.assertTrue(install.ensure_write.called)
+            commands['ENSURE_WRITE'](state, dist)
+        install.ensure_write.assert_called_with(prefix, dist)
 
 
 class TestExecutePlan(unittest.TestCase):
