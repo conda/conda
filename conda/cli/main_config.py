@@ -20,6 +20,11 @@ config command.  Writes to the user .condarc file (%s) by default.
 
 """ % config.user_rc_path
 
+# Note, the extra whitespace in the list keys is on purpose. It's so the
+# formatting from help2man is still valid YAML (otherwise it line wraps the
+# keys like "- conda - defaults"). Technically the parser here still won't
+# recognize it because it removes the indentation, but at least it will be
+# valid.
 additional_descr = """
 See http://conda.pydata.org/docs/config.html for details on all the options
 that can go in .condarc.
@@ -28,6 +33,7 @@ List keys, like
 
   channels:
     - conda
+
     - defaults
 
 are modified with the --add and --remove options. For example
@@ -38,11 +44,13 @@ on the above configuration would prepend the key 'r', giving
 
     channels:
       - r
+
       - conda
+
       - defaults
 
-Note that the key 'channels' implicitly contains the key 'defaults' if it is
-not configured.
+Note that the key 'channels' implicitly contains the key 'defaults' if it has
+not been configured yet.
 
 Boolean keys, like
 
