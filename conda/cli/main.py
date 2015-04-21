@@ -128,8 +128,9 @@ In short:
     )
     p.add_argument(
         '-V', '--version',
-        action = 'version',
-        version = 'conda %s' % conda.__version__,
+        action='version',
+        version='conda %s' % conda.__version__,
+        help="Show the conda version number and exit."
     )
     p.add_argument(
         "--debug",
