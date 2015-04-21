@@ -26,45 +26,44 @@ that can go in .condarc.
 
 List keys, like
 
-  $ cat .condarc
-  key:
-    - a
-    - b
+  channels:
+    - conda
+    - defaults
 
 are modified with the --add and --remove options. For example
 
-    conda config --add key c
+    conda config --add channels r
 
-on the above configuration would prepend the key 'c', giving
+on the above configuration would prepend the key 'r', giving
 
-    key:
-      - c
-      - a
-      - b
+    channels:
+      - r
+      - conda
+      - defaults
 
 Note that the key 'channels' implicitly contains the key 'defaults' if it is
 not configured.
 
 Boolean keys, like
 
-    key: true
+    always_yes: true
 
 are modified with --set and removed with --remove-key. For example
 
-    conda config --set key false
+    conda config --set always_yes false
 
 gives
 
-    key: false
+    always_yes: false
 
-Note that in YAML, yes, YES, on, true, True, and TRUE are all valid ways to
-spell "true", and no, NO, off, false, False, and FALSE, are all valid ways to
-spell "false".
+Note that in YAML, "yes", "YES", "on", "true", "True", and "TRUE" are all
+valid ways to spell "true", and "no", "NO", "off", "false", "False", and
+"FALSE", are all valid ways to spell "false".
 
 The .condarc file is YAML, and any valid YAML syntax is allowed.  However,
 this command uses a specialized YAML parser that tries to maintain structure
 and comments, which may not recognize all kinds of syntax. The --force flag
-can be used to write using the YAML parser, which will remove any structure
+can be used to write using the pyyaml parser, which will remove any structure
 and comments from the file.  Currently, the --force flag is required to use
 --remove or --remove-key.
 
