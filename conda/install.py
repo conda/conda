@@ -650,7 +650,18 @@ def messages(prefix):
     finally:
         rm_rf(path)
 
+
+def ensure_write(prefix, dist):
+    if not can_open_all_files_in_prefix(prefix, dist['files']):
+        # TODO Should eventually return rather than exiting
+        sys.exit(
+            "Unable to modify files for updating.  Please close all "
+            "running processes and try again."
+        )
+
+
 # =========================== end API functions ==========================
+
 
 def main():
     from pprint import pprint

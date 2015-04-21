@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from os.path import join
 
+import pytest
+
 from conda import install
 from conda.install import PaddingError, binary_replace, update_prefix
 
@@ -122,6 +124,48 @@ class remove_readonly_TestCase(unittest.TestCase):
         with patch.object(install.os, 'chmod'):
             install._remove_readonly(func, some_path, {})
         func.assert_called_with(some_path)
+
+
+@pytest.mark.parametrize("args", [
+    (),
+    ("one", ),
+    ("one", "two", "three", ),
+])
+def test_ensure_write_takes_two_arguments(args):
+    with pytest.raises(TypeError):
+        install.ensure_write(*args)
+
+
+class ensure_write_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.prefix = generate_random_path()
+        self.meta = {
+            "files": ["a", "b", "c", ],
+        }
+
+    @contextmanager
+    def generate_mock_check(self, return_value=True):
+        with patch.object(install, 'can_open_all_files_in_prefix') as mocked:
+            mocked.return_value = return_value
+            yield mocked
+
+    def test_dispatches_to_can_open_all_files(self):
+        with self.generate_mock_check() as can:
+            install.ensure_write(self.prefix, self.meta)
+        can.assert_called_with(self.prefix, self.meta['files'])
+
+    def test_returns_none_on_true(self):
+        with self.generate_mock_check():
+            actual = install.ensure_write(self.prefix, self.meta)
+            self.assertTrue(actual is None)
+
+    def test_calls_sys_exit_if_cannot_write(self):
+        with self.generate_mock_check(return_value=False):
+            with patch.object(install, 'sys') as sys:
+                install.ensure_write(self.prefix, self.meta)
+        expected = ("Unable to modify files for updating.  Please close all "
+                    "running processes and try again.")
+        sys.exit.assert_called_with(expected)
 
 
 class rm_rf_file_and_link_TestCase(unittest.TestCase):
