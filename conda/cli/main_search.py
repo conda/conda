@@ -76,13 +76,8 @@ def configure_parser(sub_parsers):
     common.add_parser_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
-        action  = "store_true",
-        help    = "only display installed but outdated packages",
-    )
-    p.add_argument(
-        '-v', "--verbose",
-        action  = "store_true",
-        help    = "Show available packages as blocks of data",
+        action="store_true",
+        help="Only display installed but outdated packages.",
     )
     p.add_argument(
         '--platform',
