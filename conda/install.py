@@ -497,6 +497,11 @@ def is_linked(prefix, dist):
         return None
 
 
+# FIXME This should contain the implementation that loads meta, not is_linked()
+def load_meta(prefix, dist):
+    return is_linked(prefix, dist)
+
+
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
     Set up a package in a specified (environment) prefix.  We assume that
@@ -645,6 +650,7 @@ def messages(prefix):
 
 
 def ensure_write(prefix, dist):
+    meta = load_meta(prefix, dist)
     if not can_open_all_files_in_prefix(prefix, dist['files']):
         # TODO Should eventually return rather than exiting
         sys.exit(
