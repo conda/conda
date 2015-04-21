@@ -22,7 +22,8 @@ Remove unused packages and caches.
 """
 
 example = """
-examples:
+Examples:
+
     conda clean --tarballs
 """
 

@@ -249,7 +249,7 @@ def add_parser_offline(p):
         "--offline",
         action="store_true",
         default=False,
-        help="offline mode, don't connect to internet",
+        help="offline mode, don't connect to the Internet",
     )
 
 

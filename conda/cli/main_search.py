@@ -14,11 +14,28 @@ from conda import config
 
 descr = """Search for packages and display their information. The input is a
 regular expression.  To perform a search with a search string that starts with
-a -, separate the search from the options with --, like 'conda search -- -h'."""
-example = '''
-examples:
-    conda search -p ~/anaconda/envs/myenv/ scipy
+a -, separate the search from the options with --, like 'conda search -- -h'.
 
+A * in the results means that package is installed in the current
+environment. A . means that package is not installed but is cached in the pkgs
+directory
+"""
+example = '''
+Examples:
+
+Search for packages with 'scikit' in the name:
+
+    conda search scikit
+
+Search for the 'python' package (but no other packages that have 'python' in
+the name):
+
+   conda search -f python
+
+Search for packages for 64-bit Linux (by default, packages for your current
+platform are shown):
+
+   conda search --platform linux-64
 '''
 
 class Platforms(common.Completer):
@@ -34,10 +51,10 @@ class Platforms(common.Completer):
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'search',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = descr,
-        epilog = example,
+        formatter_class=RawDescriptionHelpFormatter,
+        description=descr,
+        help=descr,
+        epilog=example,
     )
     common.add_parser_prefix(p)
     p.add_argument(
