@@ -149,7 +149,7 @@ def generate_man(command):
 
     manpage = ''
     retries = 5
-    while not manpage or retries:
+    while not manpage and retries:
         manpage = run_command([
             'help2man',
             '--name', 'conda %s' % command,
