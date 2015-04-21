@@ -184,6 +184,12 @@ def nothing_to_do(actions):
     return True
 
 
+def add_unlink(actions, dist):
+    if inst.UNLINK not in actions:
+        actions[inst.UNLINK] = []
+    actions[inst.UNLINK].append(dist)
+
+
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
@@ -296,7 +302,7 @@ def force_linked_actions(dists, index, prefix):
         actions[inst.RM_EXTRACTED].append(dist)
         actions[inst.EXTRACT].append(dist)
         if isfile(join(prefix, 'conda-meta', dist + '.json')):
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
         actions[inst.LINK].append(dist)
     return actions
 
@@ -426,7 +432,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     for dist in sorted(linked):
         name = install.name_dist(dist)
         if name in must_have and dist != must_have[name]:
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
 
     return actions
 
@@ -454,7 +460,7 @@ def remove_actions(prefix, specs, index=None, pinned=True):
                     "Cannot remove %s because it is pinned. Use --no-pin "
                     "to override." % dist)
 
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
             if r and fn in index and r.track_features(fn):
                 features_actions = remove_features_actions(
                     prefix, index, r.track_features(fn))
@@ -482,9 +488,9 @@ def remove_features_actions(prefix, index, features):
         if fn not in index:
             continue
         if r.track_features(fn).intersection(features):
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
         if r.features(fn).intersection(features):
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
             subst = r.find_substitute(_linked, features, fn)
             if subst:
                 to_link.append(subst[:-8])
@@ -508,7 +514,7 @@ def revert_actions(prefix, revision=-1):
 
     actions = ensure_linked_actions(state, prefix)
     for dist in curr - state:
-        actions[inst.UNLINK].append(dist)
+        add_unlink(actions, dist)
 
     return actions
 
