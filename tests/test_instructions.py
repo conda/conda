@@ -1,9 +1,16 @@
 from logging import getLogger, Handler, DEBUG
+import types
 import unittest
 
-from conda import exceptions
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
+from conda import exceptions
+from conda import instructions
 from conda.instructions import execute_instructions, commands, PROGRESS_CMD
+
 
 class TestHandler(Handler):
     def __init__(self):
@@ -13,6 +20,21 @@ class TestHandler(Handler):
 
     def handle(self, record):
         self.records.append((record.name, record.msg))
+
+
+class TestEnsureWriteCommand(unittest.TestCase):
+    def test_ensure_write_exists(self):
+        self.assertIn('ENSURE_WRITE', commands)
+
+    def test_ensure_write_command_is_a_function(self):
+        self.assertTrue(isinstance(commands['ENSURE_WRITE'],
+                                   types.FunctionType))
+
+    def test_ensure_dispatches_to_install_ensure_unlink(self):
+        with mock.patch.object(instructions, 'install') as install:
+            commands['ENSURE_WRITE']()
+        self.assertTrue(install.ensure_write.called)
+
 
 class TestExecutePlan(unittest.TestCase):
 
@@ -51,7 +73,6 @@ class TestExecutePlan(unittest.TestCase):
             self.assertEqual(state['x'], expect)
             state['x'] = x
             simple_cmd.called = True
-
 
         commands['SIMPLE'] = simple_cmd
 
