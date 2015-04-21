@@ -167,8 +167,11 @@ class ensure_write_TestCase(unittest.TestCase):
         with self.generate_mock_check(return_value=False):
             with patch.object(install, 'sys') as sys:
                 install.ensure_write(self.prefix, self.meta)
-        expected = ("Unable to modify files for updating.  Please close all "
-                    "running processes and try again.")
+        expected = (
+            "Unable to remove files for package {pkg_name}.  Please\n"
+            "close all running processes and try again.".format(
+                pkg_name=self.dist)
+        )
         sys.exit.assert_called_with(expected)
 
 

@@ -654,8 +654,9 @@ def ensure_write(prefix, dist):
     if not can_open_all_files_in_prefix(prefix, meta["files"]):
         # TODO Should eventually return rather than exiting
         sys.exit(
-            "Unable to modify files for updating.  Please close all "
-            "running processes and try again."
+            "Unable to remove files for package {pkg_name}.  Please\n"
+            "close all running processes and try again.".format(
+                pkg_name=meta["name"])
         )
 
 
