@@ -19,7 +19,8 @@ must exist on the local filesystem.  The two types of arguments cannot be
 mixed and the latter implies the --force and --no-deps options.
 """
 example = """
-examples:
+Examples:
+
     conda install -n myenv scipy
 
 """

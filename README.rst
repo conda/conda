@@ -71,11 +71,15 @@ default, you would run
 This creates an environment called ``numpy16`` with the latest version of
 the IPython notebook, NumPy 1.6, and their dependencies.
 
-We can now activate this environment. On Linux and Mac OS X, use
+We can now activate this environment, use
 
 .. code-block:: bash
 
+   # On Linux and Mac OS X
    $ source activate numpy16
+   
+   # On Windows
+   > activate numpy16
 
 This puts the bin directory of the ``numpy16`` environment in the front of the
 ``PATH``, and sets it as the default environment for all subsequent conda commands.
@@ -84,7 +88,11 @@ To go back to the root environment, use
 
 .. code-block:: bash
 
+   # On Linux and Mac OS X
    $ source deactivate
+   
+   # On Windows
+   > deactivate
 
 
 Building Your Own Packages
@@ -131,11 +139,21 @@ subscribe to the `conda mailing list
 <https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.  The source
 code and issue tracker for conda are on `GitHub <https://github.com/conda/conda>`_.
 
---------
+Contributing
+------------
 
-Contents:
+Contributions to conda are welcome. Just fork the GitHub repository and send a
+pull request.
 
-.. toctree::
-   :maxdepth: 2
+To develop on conda, the easiest way is to use ``python setup.py develop`` in your
+root conda environment. This will install a link to the local conda source
+code, so that any change you make to conda will be instantly available. To undo
+this, run ``python setup.py develop -u``.  If you are worried about breaking
+your conda installation, you can install a separate instance of `Miniconda
+<http://conda.pydata.org/miniconda.html>`_ and work off it. This is also the
+only way to test conda in both Python 2 and Python 3, as conda can only be
+installed into a root environment.
 
-   miniconda.rst
+Run the conda tests by ``conda install pytest`` and then running ``py.test``
+in the conda directory. The tests are also run by Travis CI when you make a
+pull request.

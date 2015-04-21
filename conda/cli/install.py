@@ -13,6 +13,8 @@ import tarfile
 import tempfile
 from os.path import isdir, join, basename, exists, abspath
 from difflib import get_close_matches
+import logging
+import errno
 
 import conda.config as config
 import conda.plan as plan
@@ -25,6 +27,7 @@ from conda.cli.find_commands import find_executable
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
 
+log = logging.getLogger(__name__)
 
 def install_tar(prefix, tar_path, verbose=False):
     from conda.misc import install_local_packages
@@ -419,8 +422,15 @@ environment does not exist: %s
         try:
             plan.execute_actions(actions, index, verbose=not args.quiet)
             if not (command == 'update' and args.all):
-                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                    f.write('# %s specs: %s\n' % (command, specs))
+                try:
+                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                        f.write('# %s specs: %s\n' % (command, specs))
+                except IOError as e:
+                    if e.errno == errno.EACCES:
+                        log.debug("Can't write the history file")
+                    else:
+                        raise
+
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
                 error_type = "AlreadyLocked"

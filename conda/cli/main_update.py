@@ -11,9 +11,10 @@ from argparse import RawDescriptionHelpFormatter
 from conda.cli import common, install
 
 
-descr = "Update conda packages."
+descr = "Update conda packages to the current version."
 example = """
-examples:
+Examples:
+
     conda update -n myenv scipy
 
 """
