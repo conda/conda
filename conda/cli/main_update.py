@@ -22,17 +22,19 @@ Examples:
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'update',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = descr,
-        epilog = example,
+        formatter_class=RawDescriptionHelpFormatter,
+        description=descr,
+        help=descr,
+        epilog=example,
+        add_help=False,
     )
+    common.add_parser_help(p)
     common.add_parser_install(p)
     common.add_parser_json(p)
     p.add_argument(
         "--all",
         action="store_true",
-        help="Update all installed packages in the environment",
+        help="Update all installed packages in the environment.",
     )
     p.set_defaults(func=execute)
 
