@@ -1,11 +1,14 @@
 from __future__ import print_function, division, absolute_import
 
+import logging
 import sys
 import hashlib
 import collections
 from functools import partial
 from os.path import abspath, isdir, join
 import os
+
+log = logging.getLogger(__name__)
 
 
 def can_open(file):
@@ -17,6 +20,7 @@ def can_open(file):
         fp.close()
         return True
     except IOError:
+        log.debug("Unable to open %s" % file)
         return False
 
 
