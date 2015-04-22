@@ -12,7 +12,6 @@ import os
 from os import listdir
 from os.path import isfile, exists, expanduser, join
 from collections import defaultdict, OrderedDict
-from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 
@@ -31,11 +30,8 @@ def configure_parser(sub_parsers):
         'info',
         description=help,
         help=help,
-        formatter_class=RawDescriptionHelpFormatter,
         epilog=example,
-        add_help=False,
     )
-    common.add_parser_help(p)
     common.add_parser_json(p)
     p.add_argument(
         '-a', "--all",

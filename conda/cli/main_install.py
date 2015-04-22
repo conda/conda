@@ -6,8 +6,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from argparse import RawDescriptionHelpFormatter
-
 from conda.cli import common, install
 
 
@@ -28,13 +26,10 @@ Examples:
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'install',
-        formatter_class=RawDescriptionHelpFormatter,
         description=descr,
         help=help,
         epilog=example,
-        add_help=False,
     )
-    common.add_parser_help(p)
     p.add_argument(
         "--revision",
         action="store",

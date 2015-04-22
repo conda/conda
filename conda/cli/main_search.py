@@ -9,7 +9,6 @@ from __future__ import print_function, division, absolute_import
 from conda.cli import common
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound
-from argparse import RawDescriptionHelpFormatter
 from conda import config
 
 descr = """Search for packages and display their information. The input is a
@@ -51,13 +50,10 @@ class Platforms(common.Completer):
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'search',
-        formatter_class=RawDescriptionHelpFormatter,
         description=descr,
         help=descr,
         epilog=example,
-        add_help=False,
     )
-    common.add_parser_help(p)
     common.add_parser_prefix(p)
     p.add_argument(
         "--canonical",
