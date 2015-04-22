@@ -99,6 +99,6 @@ Error: You need to install conda-build in order to use the 'conda %s'
     def print_help(self):
         super(ArgumentParser, self).print_help()
 
-        if self.prog == 'cond' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
+        if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             from conda.cli.find_commands import help
             help()
