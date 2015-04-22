@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+from functools import wraps
 import re
 import os
 import sys
@@ -7,6 +8,7 @@ import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
 import textwrap
+import warnings
 
 import conda.config as config
 from conda import console
@@ -195,8 +197,8 @@ def add_parser_install(p):
     p.add_argument(
         "--force-pscheck",
         action="store_true",
-        help=("Force removal (when package process is running)."
-                if config.platform=='win' else argparse.SUPPRESS)
+        help=("Force removal (when package process is running) (deprecated)"
+              if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         "--file",
@@ -588,3 +590,21 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
+
+
+DEPRECATED = ["force_pscheck", ]
+
+
+def deprecation_warning(func):
+    """Wraps an execute function in a deprecated args checker"""
+
+    msg = "Argument %s is no longer used"
+
+    @wraps(func)
+    def inner(args, parser):
+        for key in DEPRECATED:
+            if not hasattr(args, key):
+                continue
+            warnings.warn(msg % key.replace("_", "-"), DeprecationWarning)
+        return func(args, parser)
+    return inner
