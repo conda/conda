@@ -17,6 +17,13 @@ build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
 
 class ArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        if not kwargs.get('formatter_class'):
+            kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
+        super(ArgumentParser, self).__init__(*args, **kwargs)
+        if self.description:
+            self.description += "\n\nOptions:\n"
+
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
