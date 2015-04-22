@@ -14,6 +14,7 @@ import errno
 import logging
 
 from conda import config
+from conda import plan
 from conda.cli import common
 from conda.console import json_progress_bars
 
@@ -144,8 +145,9 @@ def execute(args, parser):
                                   json=args.json,
                                   error_type="CantRemoveRoot")
 
-        actions = {inst.PREFIX: prefix,
-                   inst.UNLINK: sorted(linked(prefix))}
+        actions = {inst.PREFIX: prefix}
+        for dist in sorted(linked(prefix)):
+            plan.add_unlink(actions, dist)
 
     else:
         specs = common.specs_from_args(args.package_names)
