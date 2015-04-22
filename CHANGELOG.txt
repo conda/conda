@@ -1,6 +1,8 @@
 2015-04-XX   3.11.0
 -------------------
   * fix issue where forced update on Windows could cause a package to break
+  * remove detection of running processes that might conflict
+  * deprecate --force-pscheck (now a no-op argument)
   * make conda search --outdated --names-only work, fixes #1252
   * handle the history file not having read or write permissions better
   * make multiple package resolutions warning easier to read
