@@ -81,68 +81,81 @@ class InstalledPackages(Completer):
         packages = conda.install.linked(get_prefix(self.parsed_args))
         return [i.rsplit('-', 2)[0] for i in packages]
 
+def add_parser_help(p):
+    """
+    So we can use consistent capitalization and periods in the help. You must
+    use the add_help=False argument to ArgumentParser or add_parser to use
+    this. Add this first to be consistent with the default argparse output.
+
+    """
+    p.add_argument(
+        '-h', '--help',
+        action=argparse._HelpAction,
+        help="Show this help message and exit.",
+    )
+
 def add_parser_prefix(p):
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
-        action = "store",
-        help = "name of environment (in %s)" %
+        action="store",
+        help="Name of environment (in %s)." %
                             os.pathsep.join(config.envs_dirs),
         metavar="ENVIRONMENT",
         choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
-        action = "store",
-        help = "full path to environment prefix (default: %s)" %
+        action="store",
+        help="Full path to environment prefix (default: %s)." %
                                            config.default_prefix,
-        metavar = 'PATH',
+        metavar='PATH',
     )
 
 
 def add_parser_yes(p):
     p.add_argument(
         "-y", "--yes",
-        action = "store_true",
-        help = "do not ask for confirmation",
+        action="store_true",
+        help="Do not ask for confirmation.",
     )
     p.add_argument(
         "--dry-run",
-        action = "store_true",
-        help = "only display what would have been done",
+        action="store_true",
+        help="Only display what would have been done.",
     )
 
 
 def add_parser_json(p):
     p.add_argument(
         "--json",
-        action = "store_true",
-        help = "report all output as json. Suitable for using conda programmatically."
+        action="store_true",
+        help="Report all output as json. Suitable for using conda programmatically."
     )
 
 
 def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
-        action = "store_true",
-        help = "do not display progress bar",
+        action="store_true",
+        help="Do not display progress bar.",
     )
 
 def add_parser_channels(p):
     p.add_argument('-c', '--channel',
-        action = "append",
-        help = """additional channel to search for packages. These are URLs searched in the order
+        action="append",
+        help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
         or channels from .condarc are searched (unless --override-channels is given).  You can use
         'defaults' to get the default packages for conda, and 'system' to get the system
         packages, which also takes .condarc into account.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.binstar.org/""" # we can't put , here; invalid syntax
+        is http://conda.binstar.org/.""" # we can't put , here; invalid syntax
     )
     p.add_argument(
         "--override-channels",
-        action = "store_true",
-        help = """Do not search default or .condarc channels.  Requires --channel.""",
+        action="store_true",
+        help="""Do not search default or .condarc channels.  Requires --channel.""",
     )
 
 def add_parser_known(p):
@@ -151,9 +164,9 @@ def add_parser_known(p):
         action="store_true",
         default=False,
         dest='unknown',
-        help="use index metadata from the local package cache "
-             "(which are from unknown channels) (installing local packages "
-             "directly implies this option)",
+        help="Use index metadata from the local package cache, "
+             "which are from unknown channels (installing local packages "
+             "directly implies this option).",
     )
 
 def add_parser_use_index_cache(p):
@@ -161,7 +174,7 @@ def add_parser_use_index_cache(p):
         "--use-index-cache",
         action="store_true",
         default=False,
-        help = "use cache of channel index files",
+        help="Use cache of channel index files.",
     )
 
 def add_parser_copy(p):
@@ -175,31 +188,31 @@ def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
-        action = "store_true",
-        help = "force install (even when package already installed), "
-               "implies --no-deps",
+        action="store_true",
+        help="Force install (even when package already installed), "
+               "implies --no-deps.",
     )
     p.add_argument(
         "--force-pscheck",
-        action = "store_true",
-        help = ("force removal (when package process is running)"
-                if config.platform == 'win' else argparse.SUPPRESS)
+        action="store_true",
+        help=("Force removal (when package process is running)."
+                if config.platform=='win' else argparse.SUPPRESS)
     )
     p.add_argument(
         "--file",
-        action = "store",
-        help = "read package versions from FILE",
+        action="store",
+        help="Read package versions from FILE.",
     )
     add_parser_known(p)
     p.add_argument(
         "--no-deps",
-        action = "store_true",
-        help = "do not install dependencies",
+        action="store_true",
+        help="Do not install dependencies.",
     )
     p.add_argument(
         '-m', "--mkdir",
-        action = "store_true",
-        help = "create prefix directory if necessary",
+        action="store_true",
+        help="Create prefix directory if necessary.",
     )
     add_parser_use_index_cache(p)
     add_parser_use_local(p)
@@ -213,27 +226,27 @@ def add_parser_install(p):
         "--alt-hint",
         action="store_true",
         default=False,
-        help="Use an alternate algorithm to generate an unsatisfiable hint")
+        help="Use an alternate algorithm to generate an unsatisfiability hint.")
 
     if 'update' in p.prog:
         # I don't know if p.prog is the correct thing to use here but it's the
         # only thing that seemed to contain the command name
         p.add_argument(
             'packages',
-            metavar = 'package_spec',
-            action = "store",
-            nargs = '*',
-            help = "package versions to install into conda environment",
-        ).completer = InstalledPackages
+            metavar='package_spec',
+            action="store",
+            nargs='*',
+            help="Package versions to install into the conda environment.",
+        ).completer=InstalledPackages
     else: # create or install
         # Same as above except the completer is not only installed packages
         p.add_argument(
             'packages',
-            metavar = 'package_spec',
-            action = "store",
-            nargs = '*',
-            help = "package versions to install into conda environment",
-            ).completer = Packages
+            metavar='package_spec',
+            action="store",
+            nargs='*',
+            help="Package versions to install into the conda environment.",
+            ).completer=Packages
 
 
 def add_parser_use_local(p):
@@ -241,7 +254,7 @@ def add_parser_use_local(p):
         "--use-local",
         action="store_true",
         default=False,
-        help = "use locally built packages",
+        help="Use locally built packages.",
     )
 
 def add_parser_offline(p):
@@ -249,7 +262,7 @@ def add_parser_offline(p):
         "--offline",
         action="store_true",
         default=False,
-        help="offline mode, don't connect to the Internet",
+        help="Offline mode, don't connect to the Internet.",
     )
 
 
@@ -259,7 +272,7 @@ def add_parser_no_pin(p):
         action="store_false",
         default=True,
         dest='pinned',
-        help="ignore pinned file",
+        help="Ignore pinned file.",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):

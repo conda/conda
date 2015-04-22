@@ -28,16 +28,18 @@ Examples:
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'install',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = help,
-        epilog = example,
+        formatter_class=RawDescriptionHelpFormatter,
+        description=descr,
+        help=help,
+        epilog=example,
+        add_help=False,
     )
+    common.add_parser_help(p)
     p.add_argument(
         "--revision",
-        action = "store",
-        help = "revert to the specified REVISION",
-        metavar = 'REVISION',
+        action="store",
+        help="Revert to the specified REVISION.",
+        metavar='REVISION',
     )
     common.add_parser_install(p)
     common.add_parser_json(p)

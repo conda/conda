@@ -8,6 +8,8 @@ from __future__ import print_function, division, absolute_import
 
 from argparse import RawDescriptionHelpFormatter
 
+from conda.cli import common
+
 descr = "Displays a list of available conda commands and their help strings."
 
 example = """
@@ -22,14 +24,16 @@ def configure_parser(sub_parsers):
         formatter_class=RawDescriptionHelpFormatter,
         help=descr,
         epilog=example,
+        add_help=False
     )
+    common.add_parser_help(p)
     p.add_argument(
         'command',
         metavar='COMMAND',
         action="store",
         nargs='?',
-        help="print help information for COMMAND "
-               "(same as: conda COMMAND -h)",
+        help="""Print help information for COMMAND (same as: conda COMMAND
+        --help).""",
     )
     p.set_defaults(func=execute)
 
