@@ -20,51 +20,58 @@ config command.  Writes to the user .condarc file (%s) by default.
 
 """ % config.user_rc_path
 
+# Note, the extra whitespace in the list keys is on purpose. It's so the
+# formatting from help2man is still valid YAML (otherwise it line wraps the
+# keys like "- conda - defaults"). Technically the parser here still won't
+# recognize it because it removes the indentation, but at least it will be
+# valid.
 additional_descr = """
 See http://conda.pydata.org/docs/config.html for details on all the options
 that can go in .condarc.
 
 List keys, like
 
-  $ cat .condarc
-  key:
-    - a
-    - b
+  channels:
+    - conda
+
+    - defaults
 
 are modified with the --add and --remove options. For example
 
-    conda config --add key c
+    conda config --add channels r
 
-on the above configuration would prepend the key 'c', giving
+on the above configuration would prepend the key 'r', giving
 
-    key:
-      - c
-      - a
-      - b
+    channels:
+      - r
 
-Note that the key 'channels' implicitly contains the key 'defaults' if it is
-not configured.
+      - conda
+
+      - defaults
+
+Note that the key 'channels' implicitly contains the key 'defaults' if it has
+not been configured yet.
 
 Boolean keys, like
 
-    key: true
+    always_yes: true
 
 are modified with --set and removed with --remove-key. For example
 
-    conda config --set key false
+    conda config --set always_yes false
 
 gives
 
-    key: false
+    always_yes: false
 
-Note that in YAML, yes, YES, on, true, True, and TRUE are all valid ways to
-spell "true", and no, NO, off, false, False, and FALSE, are all valid ways to
-spell "false".
+Note that in YAML, "yes", "YES", "on", "true", "True", and "TRUE" are all
+valid ways to spell "true", and "no", "NO", "off", "false", "False", and
+"FALSE", are all valid ways to spell "false".
 
 The .condarc file is YAML, and any valid YAML syntax is allowed.  However,
 this command uses a specialized YAML parser that tries to maintain structure
 and comments, which may not recognize all kinds of syntax. The --force flag
-can be used to write using the YAML parser, which will remove any structure
+can be used to write using the pyyaml parser, which will remove any structure
 and comments from the file.  Currently, the --force flag is required to use
 --remove or --remove-key.
 
@@ -125,11 +132,13 @@ class BoolOrListKey(common.Completer):
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = descr,
-        epilog = additional_descr + example,
+        formatter_class=RawDescriptionHelpFormatter,
+        description=descr,
+        help=descr,
+        epilog=additional_descr + example,
+        add_help=False
         )
+    common.add_parser_help(p)
     common.add_parser_json(p)
 
     # TODO: use argparse.FileType
@@ -137,75 +146,74 @@ def configure_parser(sub_parsers):
     location.add_argument(
         "--system",
         action="store_true",
-        help="""\
-write to the system .condarc file ({system}). Otherwise writes to the user
+        help="""Write to the system .condarc file ({system}). Otherwise writes to the user
         config file ({user}).""".format(system=config.sys_rc_path,
                                         user=config.user_rc_path),
         )
     location.add_argument(
         "--file",
         action="store",
-        help="""\
-write to the given file. Otherwise writes to the user config file ({user}) or
-the file path given by the 'CONDARC' environment variable, if it is set.
-        (%(default)s)""".format(user=config.user_rc_path),
+        help="""Write to the given file. Otherwise writes to the user config file ({user})
+or the file path given by the 'CONDARC' environment variable, if it is set
+(default: %(default)s).""".format(user=config.user_rc_path),
         default=os.environ.get('CONDARC', config.user_rc_path)
         )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
     # --add and --remove with the same keys will not be well-defined).
-    action = p.add_mutually_exclusive_group(required=True)
+    action=p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
-        nargs = '*',
-        action = "store",
-        help = "get the configuration value",
-        default = None,
-        metavar = ('KEY'),
+        nargs='*',
+        action="store",
+        help="Get a configuration value.",
+        default=None,
+        metavar=('KEY'),
         choices=BoolOrListKey()
         )
     action.add_argument(
         "--add",
-        nargs = 2,
-        action = "append",
-        help = """add one configuration value to a list key. The default
+        nargs=2,
+        action="append",
+        help="""Add one configuration value to a list key. The default
         behavior is to prepend.""",
-        default = [],
+        default=[],
         choices=ListKey(),
-        metavar = ('KEY', 'VALUE'),
+        metavar=('KEY', 'VALUE'),
         )
     action.add_argument(
         "--set",
-        nargs = 2,
-        action = "append",
-        help = "set a boolean key. BOOL_VALUE should be 'yes' or 'no'",
-        default = [],
+        nargs=2,
+        action="append",
+        help="""Set a boolean key. BOOL_VALUE should be a valid YAML boolean,
+        such as 'yes' or 'no'.""",
+        default=[],
         choices=BoolKey(),
-        metavar = ('KEY', 'BOOL_VALUE'),
+        metavar=('KEY', 'BOOL_VALUE'),
         )
     action.add_argument(
         "--remove",
-        nargs = 2,
-        action = "append",
-        help = """remove a configuration value from a list key. This removes
-    all instances of the value""",
-        default = [],
-        metavar = ('KEY', 'VALUE'),
+        nargs=2,
+        action="append",
+        help="""Remove a configuration value from a list key. This removes
+    all instances of the value.""",
+        default=[],
+        metavar=('KEY', 'VALUE'),
         )
     action.add_argument(
         "--remove-key",
-        nargs = 1,
-        action = "append",
-        help = """remove a configuration key (and all its values)""",
-        default = [],
-        metavar = "KEY",
+        nargs=1,
+        action="append",
+        help="""Remove a configuration key (and all its values).""",
+        default=[],
+        metavar="KEY",
         )
 
     p.add_argument(
         "-f", "--force",
-        action = "store_true",
-        help = """Write to the config file using the yaml parser.  This will
+        action="store_true",
+        help="""Write to the config file using the yaml parser.  This will
         remove any comments or structure from the file."""
         )
 

@@ -43,6 +43,7 @@ def configure_parser(sub_parsers, name='remove'):
             description=descr % name.capitalize(),
             help=help % name.capitalize(),
             epilog=example % name,
+            add_help=False,
         )
     else:
         p = sub_parsers.add_parser(
@@ -51,19 +52,20 @@ def configure_parser(sub_parsers, name='remove'):
             description=uninstall_help,
             help=uninstall_help,
             epilog=example % name,
+            add_help=False,
         )
-
+    common.add_parser_help(p)
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
         "--all",
         action="store_true",
-        help="%s all packages, i.e. the entire environment" % name,
+        help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
     p.add_argument(
         "--features",
         action="store_true",
-        help="%s features (instead of packages)" % name,
+        help="%s features (instead of packages)." % name.capitalize(),
     )
     common.add_parser_no_pin(p)
     common.add_parser_channels(p)
@@ -75,7 +77,7 @@ def configure_parser(sub_parsers, name='remove'):
     p.add_argument(
         "--force-pscheck",
         action="store_true",
-        help=("force removal (when package process is running) (deprecated)"
+        help=("Force removal (when package process is running) (deprecated)"
               if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
@@ -83,7 +85,7 @@ def configure_parser(sub_parsers, name='remove'):
         metavar='package_name',
         action="store",
         nargs='*',
-        help="package names to %s from environment" % name,
+        help="Package names to %s from the environment." % name,
     ).completer = common.InstalledPackages
     p.set_defaults(func=execute)
 

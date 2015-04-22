@@ -12,7 +12,7 @@ from argparse import RawDescriptionHelpFormatter
 
 import conda
 import conda.config as config
-
+from conda.cli import common
 
 descr = """
 Initialize conda into a regular environment (when conda was installed as a
@@ -36,7 +36,9 @@ def configure_parser(sub_parsers):
         epilog=warning,
         formatter_class=RawDescriptionHelpFormatter,
         help=descr,
+        add_help=False,
     )
+    common.add_parser_help(p)
     p.set_defaults(func=execute)
 
 
