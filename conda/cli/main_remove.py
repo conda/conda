@@ -74,8 +74,8 @@ def configure_parser(sub_parsers, name='remove'):
     p.add_argument(
         "--force-pscheck",
         action="store_true",
-        help=("force removal (when package process is running)"
-                if config.platform == 'win' else argparse.SUPPRESS)
+        help=("force removal (when package process is running) (deprecated)"
+              if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         'package_names',
@@ -87,12 +87,12 @@ def configure_parser(sub_parsers, name='remove'):
     p.set_defaults(func=execute)
 
 
+@common.deprecation_warning
 def execute(args, parser):
     import sys
 
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.cli import pscheck
     from conda.install import rm_rf, linked
     from conda import config
 
@@ -185,15 +185,6 @@ def execute(args, parser):
         })
         return
 
-    if not args.json:
-        if not pscheck.main(args):
-            common.confirm_yn(args)
-    elif (sys.platform == 'win32' and not args.force_pscheck and
-          not pscheck.check_processes(prefix, verbose=False)):
-        common.error_and_exit("Cannot continue removal while processes "
-                              "from packages are running without --force-pscheck.",
-                              json=True,
-                              error_type="ProcessesStillRunning")
 
     if args.json and not args.quiet:
         with json_progress_bars():
