@@ -490,14 +490,16 @@ def is_linked(prefix, dist):
         return None
 
 
-def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
+def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None, target_prefix=None):
     '''
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
+    if target_prefix is None:
+        target_prefix = prefix
     index = index or {}
-    log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
-              (pkgs_dir, prefix, dist, linktype))
+    log.debug('pkgs_dir=%r, prefix=%r, target_prefix=%r, dist=%r, linktype=%r' %
+              (pkgs_dir, prefix, target_prefix, dist, linktype))
     if (on_win and abspath(prefix) == abspath(sys.prefix) and
               name_dist(dist) in win_ignore_root):
         # on Windows we have the file lock problem, so don't allow
@@ -506,7 +508,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         return
 
     source_dir = join(pkgs_dir, dist)
-    if not run_script(source_dir, dist, 'pre-link', prefix):
+    if not run_script(dist, 'pre-link', prefix, target_prefix):
         sys.exit('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
@@ -542,14 +544,14 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
             try:
-                update_prefix(join(prefix, f), prefix, placeholder, mode)
+                update_prefix(join(prefix, f), target_prefix, placeholder, mode)
             except PaddingError:
                 sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
                          (placeholder, dist))
 
         mk_menus(prefix, files, remove=False)
 
-        if not run_script(prefix, dist, 'post-link'):
+        if not run_script(prefix, dist, 'post-link', target_prefix):
             sys.exit("Error: post-link failed for: %s" % dist)
 
         # Make sure the script stays standalone for the installer
@@ -662,6 +664,10 @@ def main():
                  action="store_true",
                  help="unlink a package")
 
+    p.add_option('--target-prefix',
+                 default=sys.prefix,
+                 help="target prefix (defaults to %(default)s)")
+
     p.add_option('-p', '--prefix',
                  action="store",
                  default=sys.prefix,
@@ -696,6 +702,7 @@ def main():
 
     pkgs_dir = opts.pkgs_dir
     prefix = opts.prefix
+    target_prefix = opts.target_prefix
     if opts.verbose:
         print("pkgs_dir: %r" % pkgs_dir)
         print("prefix  : %r" % prefix)
@@ -713,14 +720,14 @@ def main():
         for dist in dists:
             if opts.verbose or linktype == LINK_COPY:
                 print("linking: %s" % dist)
-            link(pkgs_dir, prefix, dist, linktype)
+            link(pkgs_dir, prefix, dist, linktype, target_prefix=target_prefix)
         messages(prefix)
 
     elif opts.extract:
         extract(pkgs_dir, dist)
 
     elif opts.link:
-        link(pkgs_dir, prefix, dist)
+        link(pkgs_dir, prefix, dist, target_prefix=target_prefix)
 
     elif opts.unlink:
         unlink(prefix, dist)
