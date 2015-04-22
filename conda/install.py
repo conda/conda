@@ -41,6 +41,7 @@ import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
+    from conda.exceptions import UnableToWriteToPackage
     from conda.lock import Locked
     from conda.utils import can_open_all_files_in_prefix
 except ImportError:
@@ -55,6 +56,9 @@ except ImportError:
 
         def __exit__(self, exc_type, exc_value, traceback):
             pass
+
+    class UnableToWriteToPackage(RuntimeError):
+        pass
 
     def can_open_all_files_in_prefix(*args, **kwargs):
         return True
@@ -652,12 +656,7 @@ def messages(prefix):
 def ensure_write(prefix, dist):
     meta = load_meta(prefix, dist)
     if not can_open_all_files_in_prefix(prefix, meta["files"]):
-        # TODO Should eventually return rather than exiting
-        sys.exit(
-            "Unable to remove files for package {pkg_name}.  Please\n"
-            "close all running processes and try again.".format(
-                pkg_name=meta["name"])
-        )
+        raise UnableToWriteToPackage(meta["name"])
 
 
 # =========================== end API functions ==========================

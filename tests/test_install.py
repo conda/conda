@@ -9,6 +9,7 @@ from os.path import join
 
 import pytest
 
+from conda import exceptions
 from conda import install
 from conda.install import PaddingError, binary_replace, update_prefix
 
@@ -163,16 +164,10 @@ class ensure_write_TestCase(unittest.TestCase):
             actual = install.ensure_write(self.prefix, self.meta)
             self.assertTrue(actual is None)
 
-    def test_calls_sys_exit_if_cannot_write(self):
+    def test_raises_correct_exception_if_unable_to_write(self):
         with self.generate_mock_check(return_value=False):
-            with patch.object(install, 'sys') as sys:
+            with self.assertRaises(exceptions.UnableToWriteToPackage):
                 install.ensure_write(self.prefix, self.meta)
-        expected = (
-            "Unable to remove files for package {pkg_name}.  Please\n"
-            "close all running processes and try again.".format(
-                pkg_name=self.dist)
-        )
-        sys.exit.assert_called_with(expected)
 
 
 class rm_rf_file_and_link_TestCase(unittest.TestCase):
