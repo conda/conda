@@ -21,7 +21,6 @@ import conda.plan as plan
 import conda.instructions as inst
 import conda.misc as misc
 from conda.api import get_index
-from conda.cli import pscheck
 from conda.cli import common
 from conda.cli.find_commands import find_executable
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
@@ -404,19 +403,10 @@ environment does not exist: %s
         common.check_write(command, prefix)
 
     if not args.json:
-        if not pscheck.main(args):
-            common.confirm_yn(args)
-    else:
-        if (sys.platform == 'win32' and not args.force_pscheck and
-            not pscheck.check_processes(prefix, verbose=False)):
-            common.error_and_exit(
-                    "Cannot continue operation while processes "
-                    "from packages are running without --force-pscheck.",
-                    json=True,
-                    error_type="ProcessesStillRunning")
-        elif args.dry_run:
-            common.stdout_json_success(actions=actions, dry_run=True)
-            sys.exit(0)
+        common.confirm_yn(args)
+    elif args.dry_run:
+        common.stdout_json_success(actions=actions, dry_run=True)
+        sys.exit(0)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         try:

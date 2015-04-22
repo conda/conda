@@ -41,6 +41,7 @@ def print_dists(dists_extras):
             line += extra
         print(line)
 
+
 def display_actions(actions, index):
     if actions.get(inst.FETCH):
         print("\nThe following packages will be downloaded:\n")
@@ -175,11 +176,23 @@ def display_actions(actions, index):
 
     print()
 
+
 def nothing_to_do(actions):
     for op in inst.action_codes:
         if actions.get(op):
             return False
     return True
+
+
+def add_unlink(actions, dist):
+    if inst.UNLINK not in actions:
+        actions[inst.UNLINK] = []
+    if sys.platform == "win32":
+        if inst.ENSURE_WRITE not in actions:
+            actions[inst.ENSURE_WRITE] = []
+        actions[inst.ENSURE_WRITE].append(dist)
+    actions[inst.UNLINK].append(dist)
+
 
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
@@ -218,11 +231,13 @@ def plan_from_actions(actions):
             res.append((op, arg))
     return res
 
+
 def extracted_where(dist):
     for pkgs_dir in config.pkgs_dirs:
         if install.is_extracted(pkgs_dir, dist):
             return pkgs_dir
     return None
+
 
 def ensure_linked_actions(dists, prefix):
     actions = defaultdict(list)
@@ -245,14 +260,16 @@ def ensure_linked_actions(dists, prefix):
             # extracted
             try:
                 os.makedirs(join(config.pkgs_dirs[0], dist, 'info'))
-                with open(join(config.pkgs_dirs[0], dist, 'info', 'index.json'), 'w'):
+                index_json = join(config.pkgs_dirs[0], dist, 'info',
+                                  'index.json')
+                with open(index_json, 'w'):
                     pass
                 if install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
                     lt = install.LINK_HARD
                 else:
                     lt = (install.LINK_SOFT if (config.allow_softlinks and
-                                            sys.platform != 'win32') else
-                      install.LINK_COPY)
+                                                sys.platform != 'win32') else
+                          install.LINK_COPY)
                 actions[inst.LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
             except (OSError, IOError):
                 actions[inst.LINK].append(dist)
@@ -268,11 +285,12 @@ def ensure_linked_actions(dists, prefix):
             actions[inst.FETCH].append(dist)
     return actions
 
+
 def force_linked_actions(dists, index, prefix):
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED, inst.EXTRACT,
-                           inst.UNLINK, inst.LINK)
+    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
+                           inst.EXTRACT, inst.UNLINK, inst.LINK)
     for dist in dists:
         fn = dist + '.tar.bz2'
         pkg_path = join(config.pkgs_dirs[0], fn)
@@ -288,18 +306,21 @@ def force_linked_actions(dists, index, prefix):
         actions[inst.RM_EXTRACTED].append(dist)
         actions[inst.EXTRACT].append(dist)
         if isfile(join(prefix, 'conda-meta', dist + '.json')):
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
         actions[inst.LINK].append(dist)
     return actions
 
 # -------------------------------------------------------------------
 
+
 def is_root_prefix(prefix):
     return abspath(prefix) == abspath(config.root_dir)
+
 
 def dist2spec3v(dist):
     name, version, unused_build = dist.rsplit('-', 2)
     return '%s %s*' % (name, version[:3])
+
 
 def add_defaults_to_specs(r, linked, specs):
     # TODO: This should use the pinning mechanism. But don't change the API:
@@ -332,7 +353,7 @@ def add_defaults_to_specs(r, linked, specs):
             continue
 
         if (any_depends_on and len(specs) >= 1 and
-                  MatchSpec(specs[0]).strictness == 3):
+                MatchSpec(specs[0]).strictness == 3):
             # if something depends on Python/Numpy, but the spec is very
             # explicit, we also don't need to add the default spec
             log.debug('H2B %s' % name)
@@ -353,6 +374,7 @@ def add_defaults_to_specs(r, linked, specs):
         specs.append('%s %s*' % (name, def_ver))
     log.debug('HF specs=%r' % specs)
 
+
 def get_pinned_specs(prefix):
     pinfile = join(prefix, 'conda-meta', 'pinned')
     if not exists(pinfile):
@@ -360,7 +382,9 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().split('\n') if i and not i.strip().startswith('#')]
 
-def install_actions(prefix, index, specs, force=False, only_names=None, pinned=True, minimal_hint=False):
+
+def install_actions(prefix, index, specs, force=False, only_names=None,
+                    pinned=True, minimal_hint=False):
     r = Resolve(index)
     linked = install.linked(prefix)
 
@@ -412,7 +436,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, pinned=T
     for dist in sorted(linked):
         name = install.name_dist(dist)
         if name in must_have and dist != must_have[name]:
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
 
     return actions
 
@@ -434,13 +458,16 @@ def remove_actions(prefix, specs, index=None, pinned=True):
     for dist in sorted(linked):
         fn = dist + '.tar.bz2'
         if any(ms.match(fn) for ms in mss):
-            if pinned and any(MatchSpec(spec).match('%s.tar.bz2' % dist) for spec in
-    pinned_specs):
-                raise RuntimeError("Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
+            if pinned and any(MatchSpec(spec).match('%s.tar.bz2' % dist)
+                              for spec in pinned_specs):
+                raise RuntimeError(
+                    "Cannot remove %s because it is pinned. Use --no-pin "
+                    "to override." % dist)
 
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
             if r and fn in index and r.track_features(fn):
-                features_actions = remove_features_actions(prefix, index, r.track_features(fn))
+                features_actions = remove_features_actions(
+                    prefix, index, r.track_features(fn))
                 for action in features_actions:
                     if isinstance(actions[action], list):
                         for item in features_actions[action]:
@@ -465,9 +492,9 @@ def remove_features_actions(prefix, index, features):
         if fn not in index:
             continue
         if r.track_features(fn).intersection(features):
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
         if r.features(fn).intersection(features):
-            actions[inst.UNLINK].append(dist)
+            add_unlink(actions, dist)
             subst = r.find_substitute(_linked, features, fn)
             if subst:
                 to_link.append(subst[:-8])
@@ -491,15 +518,18 @@ def revert_actions(prefix, revision=-1):
 
     actions = ensure_linked_actions(state, prefix)
     for dist in curr - state:
-        actions[inst.UNLINK].append(dist)
+        add_unlink(actions, dist)
 
     return actions
 
 # ---------------------------- EXECUTION --------------------------
+
+
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
     with History(actions[inst.PREFIX]):
         inst.execute_instructions(plan, index, verbose)
+
 
 def update_old_plan(old_plan):
     """
@@ -511,11 +541,14 @@ def update_old_plan(old_plan):
         if line.startswith('#'):
             continue
         if ' ' not in line:
-            raise CondaException("The instruction '%s' takes at least one argument" % line)
+            raise CondaException(
+                "The instruction '%s' takes at least one argument" % line
+            )
 
         instruction, arg = line.split(' ', 1)
         plan.append((instruction, arg))
     return plan
+
 
 def execute_plan(old_plan, index=None, verbose=False):
     """
@@ -523,7 +556,6 @@ def execute_plan(old_plan, index=None, verbose=False):
     """
     plan = update_old_plan(old_plan)
     inst.execute_instructions(plan, index, verbose)
-
 
 
 if __name__ == '__main__':

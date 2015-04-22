@@ -12,6 +12,7 @@ log = getLogger(__name__)
 # op codes
 FETCH = 'FETCH'
 EXTRACT = 'EXTRACT'
+ENSURE_WRITE = 'ENSURE_WRITE'
 UNLINK = 'UNLINK'
 LINK = 'LINK'
 RM_EXTRACTED = 'RM_EXTRACTED'
@@ -23,8 +24,16 @@ SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
-action_codes = (FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED,
-                RM_FETCHED)
+action_codes = (
+    FETCH,
+    EXTRACT,
+    ENSURE_WRITE,
+    UNLINK,
+    LINK,
+    SYMLINK_CONDA,
+    RM_EXTRACTED,
+    RM_FETCHED,
+)
 
 
 def PREFIX_CMD(state, arg):
@@ -91,6 +100,11 @@ def UNLINK_CMD(state, arg):
 def SYMLINK_CONDA_CMD(state, arg):
     install.symlink_conda(state['prefix'], arg)
 
+
+def ENSURE_WRITE_CMD(state, arg):
+    install.ensure_write(state["prefix"], arg)
+
+
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,
@@ -103,6 +117,7 @@ commands = {
     LINK: LINK_CMD,
     UNLINK: UNLINK_CMD,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
+    ENSURE_WRITE: ENSURE_WRITE_CMD,
 }
 
 
