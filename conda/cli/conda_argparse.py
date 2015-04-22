@@ -12,6 +12,7 @@ import argparse
 from difflib import get_close_matches
 
 from conda.cli.find_commands import find_commands
+from conda.cli import common
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
@@ -20,7 +21,16 @@ class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         if not kwargs.get('formatter_class'):
             kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
+        if 'add_help' not in kwargs:
+            add_custom_help = True
+            kwargs['add_help'] = False
+        else:
+            add_custom_help = False
         super(ArgumentParser, self).__init__(*args, **kwargs)
+
+        if add_custom_help:
+            common.add_parser_help(self)
+
         if self.description:
             self.description += "\n\nOptions:\n"
 
