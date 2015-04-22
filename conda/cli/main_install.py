@@ -43,5 +43,7 @@ def configure_parser(sub_parsers):
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
+
+@common.deprecation_warning
 def execute(args, parser):
     install.install(args, parser, 'install')
