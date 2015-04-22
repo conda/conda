@@ -1,5 +1,5 @@
-2015-04-XX   3.11.0
--------------------
+2015-04-22   3.11.0:
+--------------------
   * fix issue where forced update on Windows could cause a package to break
   * remove detection of running processes that might conflict
   * deprecate --force-pscheck (now a no-op argument)
@@ -8,6 +8,7 @@
   * make multiple package resolutions warning easier to read
   * add --full-name to conda list
   * improvements to command help
+
 
 2015-04-06   3.10.1:
 --------------------
