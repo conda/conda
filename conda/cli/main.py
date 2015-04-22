@@ -128,13 +128,14 @@ In short:
     )
     p.add_argument(
         '-V', '--version',
-        action = 'version',
-        version = 'conda %s' % conda.__version__,
+        action='version',
+        version='conda %s' % conda.__version__,
+        help="Show the conda version number and exit."
     )
     p.add_argument(
         "--debug",
         action = "store_true",
-        help = argparse.SUPPRESS,
+        help = "Show debug output."
     )
     p.add_argument(
         "--json",
