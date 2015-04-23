@@ -3,6 +3,8 @@ import json
 import unittest
 from os.path import dirname, join
 
+import pytest
+
 from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
 
 from tests.helpers import raises
@@ -232,6 +234,8 @@ class TestFindSubstitute(unittest.TestCase):
             self.assertTrue(old in installed)
             self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
+
+@pytest.mark.slow
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     for alg in ['sorter', 'BDD']: #, 'BDD_recursive']:
