@@ -11,6 +11,7 @@ from conda.misc import touch_nonadmin
 from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
 from .. import exceptions
+from conda_env.utils import binstar_uilts
 
 description = """
 Create an environment based on an environment file
@@ -22,6 +23,7 @@ examples:
     conda env create -n=foo
     conda env create -f=/path/to/environment.yml
     conda env create --name=foo --file=environment.yml
+    conda env create --name=foo --binstar=username/foo
 """
 
 
@@ -48,6 +50,10 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
     p.add_argument(
+        '--binstar',
+        help='remote environment definition hosted on binstar.org',
+    )
+    p.add_argument(
         '-q', '--quiet',
         default=False,
     )
@@ -56,6 +62,15 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    if args.binstar:
+
+        if binstar_uilts is None:
+            common.error_and_exit('The binstar command line client is required '
+                                  'to be installed to use the --binstar option',
+                                  json=args.json)
+        # Fetch file from binstar and write to args.file
+        binstar_uilts.download_environment_file(args.binstar, args.file, args.json)
+
     try:
         env = from_file(args.file)
     except exceptions.EnvironmentFileNotFound as e:
