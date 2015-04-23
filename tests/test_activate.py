@@ -6,6 +6,8 @@ import shutil
 import stat
 import subprocess
 
+import pytest
+
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from tests.helpers import run_in
@@ -87,6 +89,8 @@ mkdir -p {envs}/test1/bin
 mkdir -p {envs}/test2/bin
 """
 
+
+@pytest.mark.slow
 def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -100,6 +104,8 @@ def test_activate_test1():
             assert stdout == envs + "/test1/bin:" + PATH
             assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
 
+
+@pytest.mark.slow
 def test_activate_test1_test2():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -114,6 +120,8 @@ def test_activate_test1_test2():
             assert stdout == envs + "/test2/bin:" + PATH
             assert stderr == 'discarding {envs}/test1/bin from PATH\nprepending {envs}/test2/bin to PATH\n'.format(envs=envs)
 
+
+@pytest.mark.slow
 def test_activate_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -127,6 +135,8 @@ def test_activate_test3():
             assert stdout == ROOTPATH
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
+
+@pytest.mark.slow
 def test_activate_test1_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -142,6 +152,7 @@ def test_activate_test1_test3():
             assert stderr == 'Error: no such directory: {envs}/test3/bin\n'.format(envs=envs)
 
 
+@pytest.mark.slow
 def test_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -156,6 +167,7 @@ def test_deactivate():
             assert stderr == 'Error: No environment to deactivate\n'
 
 
+@pytest.mark.slow
 def test_activate_test1_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -171,6 +183,7 @@ def test_activate_test1_deactivate():
             assert stderr == 'discarding {envs}/test1/bin from PATH\n'.format(envs=envs)
 
 
+@pytest.mark.slow
 def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -212,6 +225,7 @@ def test_wrong_args():
             assert stderr == 'Error: too many arguments.\n'
 
 
+@pytest.mark.slow
 def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -250,6 +264,8 @@ def test_activate_help():
             assert stdout == ''
             assert "Usage: source deactivate" in stderr
 
+
+@pytest.mark.slow
 def test_activate_symlinking():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -318,6 +334,7 @@ def test_activate_symlinking():
                 run_in('chmod 777 {envs}/test4/bin'.format(envs=envs), shell)
 
 
+@pytest.mark.slow
 def test_PS1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -416,6 +433,7 @@ def test_PS1():
             assert stderr == 'Error: too many arguments.\n'
 
 
+@pytest.mark.slow
 def test_PS1_no_changeps1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -521,6 +539,7 @@ changeps1: no
             assert stderr == 'Error: too many arguments.\n'
 
 
+@pytest.mark.slow
 def test_CONDA_DEFAULT_ENV():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
