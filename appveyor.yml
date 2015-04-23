@@ -33,7 +33,7 @@ init:
   # We need to do this first as other commands may not work with older versions of conda.
   - C:\Miniconda\Scripts\conda update conda
   - C:\Miniconda\Scripts\conda install -c conda pytest requests conda-env --quiet
-  - ps: if($env:PYTHON -eq "2.7"){C:\Miniconda\Scripts conda install ndg-httpsclient}
+  - ps: if($env:PYTHON -eq "2.7"){C:\Miniconda\Scripts\conda install ndg-httpsclient}
 
 install:
   - C:\Miniconda\python.exe setup.py install
