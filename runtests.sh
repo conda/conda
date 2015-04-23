@@ -4,5 +4,5 @@ echo
 echo "Hit Ctrl+C to stop"
 echo
 watchmedo shell-command \
-  -c "py.test -m 'not slow'" \
+  -c "py.test -m 'not slow' $@" \
   -p "*.py" -R
