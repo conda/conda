@@ -1,8 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
 from conda.cli import common
-from argparse import RawDescriptionHelpFormatter
-
 
 descr = 'Create or extract a "bundle package" (EXPERIMENTAL)'
 
@@ -10,12 +8,9 @@ descr = 'Create or extract a "bundle package" (EXPERIMENTAL)'
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'bundle',
-        formatter_class = RawDescriptionHelpFormatter,
         description = descr,
         help = descr,
-        add_help=False
     )
-    common.add_parser_help(p)
     cxgroup=p.add_mutually_exclusive_group()
     cxgroup.add_argument('-c', "--create",
                          action="store_true",

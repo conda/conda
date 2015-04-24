@@ -5,7 +5,6 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
 
-from argparse import RawDescriptionHelpFormatter
 import os
 import sys
 
@@ -30,13 +29,10 @@ Examples:
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'clean',
-        formatter_class=RawDescriptionHelpFormatter,
         description=descr,
         help=descr,
         epilog=example,
-        add_help=False
     )
-    common.add_parser_help(p)
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
