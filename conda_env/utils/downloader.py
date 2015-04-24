@@ -6,6 +6,14 @@ from conda_env.exceptions import EnvironmentFileNotDownloaded
 ENVIRONMENT_TYPE = 'env'
 
 
+def is_installed():
+    """
+    is Binstar-cli installed?
+    :return: True/False
+    """
+    return get_binstar is not None
+
+
 class Downloader(object):
     """
     Download environmnets from binstar
