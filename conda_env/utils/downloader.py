@@ -1,7 +1,7 @@
 from conda.resolve import normalized_version
 from binstar_client.utils import get_binstar
 from binstar_client import errors
-from conda_env.exceptions import EnvironmentFileNotDownloaded
+from conda_env.exceptions import EnvironmentFileNotDownloaded, EnvironmentUsernameRequired, PackageNotFound
 
 ENVIRONMENT_TYPE = 'env'
 
@@ -22,7 +22,7 @@ class Downloader(object):
         self.binstar = get_binstar()
         self.filename = filename
         self._package = None
-        self.username, self.package_name, self.version_required = self.parse(package_handle)
+        self.username, self.packagename, self.version_required = self.parse(package_handle)
 
     @staticmethod
     def parse(package_handle):
@@ -33,30 +33,19 @@ class Downloader(object):
         :param package_handle:
         :return: (username, package_name, version_requires)
         """
-        username = None
-        version_required = None
+
         if '/' in package_handle:
-            username, spec_str = package_handle.split('/', 1)
-
-        if '==' in package_handle:
-            package_name, version_required = package_handle.split('==', 1)
+            username, package_version = package_handle.split('/', 1)
         else:
-            package_name = package_handle
+            raise EnvironmentUsernameRequired()
 
-        return username, package_name, version_required
+        if '==' in package_version:
+            packagename, version = package_version.split('==', 1)
+        else:
+            version = None
+            packagename = package_version
 
-    def valid_handle(self):
-        return self.username and self.package_name
-
-    def package_present(self):
-        try:
-            self.package
-        except errors.NotFound:
-            return False
-        return True
-
-    def valid_package(self):
-        return len(self.file_data) > 0
+        return username, packagename, version
 
     def download(self):
         if self.version_required:
@@ -65,13 +54,13 @@ class Downloader(object):
             req = self._download(self.latest_version)
 
         if req is None:
-            raise EnvironmentFileNotDownloaded(self.filename)
+            raise EnvironmentFileNotDownloaded(self.username, self.packagename)
         else:
             with open(self.filename, 'w') as fd:
                 fd.write(req.raw.read())
 
     def _download(self, version):
-        return self.binstar.download(self.username, self.package_name,
+        return self.binstar.download(self.username, self.packagename,
                                      version, self.file_data[0]['basename'])
 
     @property
@@ -82,7 +71,10 @@ class Downloader(object):
     @property
     def package(self):
         if self._package is None:
-            self._package = self.binstar.package(self.username, self.package_name)
+            try:
+                self._package = self.binstar.package(self.username, self.packagename)
+            except errors.NotFound:
+                raise PackageNotFound(self.username, self.packagename)
         return self._package
 
     @property
