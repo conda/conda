@@ -19,10 +19,7 @@ def configure_parser(sub_parsers):
         'package',
         description=descr,
         help=descr,
-        formatter_class=RawTextHelpFormatter,
-        add_help=False,
     )
-    common.add_parser_help(p)
     common.add_parser_prefix(p)
     p.add_argument(
         '-w', "--which",

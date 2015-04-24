@@ -8,7 +8,6 @@ from __future__ import print_function, division, absolute_import
 import re
 import os
 import sys
-from argparse import RawDescriptionHelpFormatter
 from copy import deepcopy
 
 import conda.config as config
@@ -132,13 +131,10 @@ class BoolOrListKey(common.Completer):
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
-        formatter_class=RawDescriptionHelpFormatter,
         description=descr,
         help=descr,
         epilog=additional_descr + example,
-        add_help=False
         )
-    common.add_parser_help(p)
     common.add_parser_json(p)
 
     # TODO: use argparse.FileType

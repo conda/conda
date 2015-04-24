@@ -8,7 +8,6 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import logging
-from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 
@@ -25,11 +24,8 @@ def configure_parser(sub_parsers):
         'run',
         description=descr,
         help=descr,
-        formatter_class=RawDescriptionHelpFormatter,
         epilog=examples,
-        add_help=False,
     )
-    common.add_parser_help(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     common.add_parser_json(p)
