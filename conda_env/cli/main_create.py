@@ -10,8 +10,8 @@ from conda.misc import touch_nonadmin
 
 from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
+from conda_env.loaders import get_loader, InvalidLoader
 from .. import exceptions
-from conda_env.utils.downloader import Downloader, is_installed
 
 description = """
 Create an environment based on an environment file
@@ -50,8 +50,8 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
     p.add_argument(
-        '--binstar',
-        help='remote environment definition hosted on binstar.org',
+        '-r', '--remote',
+        help='remote environment definition',
     )
     p.add_argument(
         '-q', '--quiet',
@@ -62,29 +62,11 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    if args.binstar:
-        if not is_installed():
-            common.error_and_exit('The binstar command line client is required '
-                                  'to be installed to use the --binstar option',
-                                  json=args.json)
 
-        try:
-            downloader = Downloader(args.binstar, args.file)
-            downloader.download()
-        except exceptions.EnvironmentUsernameRequired:
-            common.error_and_exit("Username is required for binstar "
-                                  "environment specification",
-                                  json=args.json)
-        except exceptions.PackageNotFound, e:
-            common.error_and_exit(("The package %s/%s was not found on binstar. "
-                                   "(If this is a private package, you may need to be logged in to see it. "
-                                   "Run 'binstar login')" %
-                                   (e.username, e.packagename)),
-                                  json=args.json)
-        except exceptions.EnvironmentFileNotDownloaded, e:
-            common.error_and_exit(("There are no environment.yaml files in the package %s/%s" %
-                                   (e.username, e.packagename)),
-                                  json=args.json)
+    if args.remote:
+        loader = get_loader(args.remote)
+        if loader is not None:
+            loader.download(args.remote, args.file, args.json)
 
     try:
         env = from_file(args.file)
