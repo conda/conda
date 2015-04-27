@@ -1,58 +1,70 @@
 import re
-from conda.cli import common
 from conda.resolve import normalized_version
+from ..exceptions import EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded, CondaEnvException
 try:
     from binstar_client import errors
     from binstar_client.utils import get_binstar
 except ImportError:
-    get_binstar = None
+    raise CondaEnvException("Binstar not installed")
+
 
 ENVIRONMENT_TYPE = 'env'
 
 
-def can_download(handle):
-    return re.match("^(.+)/(.+)$", handle)
+def get_instance(handle):
+    return BinstarLoader(handle)
 
 
-def is_installed():
-    return get_binstar is not None
+class BinstarLoader(object):
+    def __init__(self, handle):
+        self.handle = handle
+        self.binstar = get_binstar()
+        self.package = None
 
+    def can_download(self):
+        """
+        Validates loader can download environment definition.
+        :return: True or False
+        """
+        # TODO: log information about trying to find the package in binstar.org
+        return self.valid_handle() and self.package_exists()
 
-def get(handle, filename, json):
-    username, packagename = handle.split('/', 1)
+    def get(self):
+        """
+        Validates loader can download environment definition
+        :return: yaml string
+        :exceptions: EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded
+        """
+        username, packagename = self.parse()
+        file_data = [data for data in self.package['files'] if data['type'] == ENVIRONMENT_TYPE]
+        if not len(file_data):
+            raise EnvironmentFileDoesNotExist(self.handle)
 
-    if not is_installed():
-        common.error_and_exit("The binstar client must be installed to perform this action")
+        versions = {normalized_version(d['version']): d['version'] for d in file_data}
+        latest_version = versions[max(versions)]
+        file_data = [data for data in self.package['files'] if data['version'] == latest_version]
+        req = self.binstar.download(username, packagename, latest_version, file_data[0]['basename'])
+        if req is None:
+            raise EnvironmentFileNotDownloaded(username, packagename)
 
-    binstar = get_binstar()
-    try:
-        package = binstar.package(username, packagename)
-    except errors.NotFound:
-            common.error_and_exit("The package %s/%s was not found on binstar. "
-                                  "(If this is a private package, you may need to be logged in to see it."
-                                  "Run 'binstar login')" %
-                                  (username, packagename),
-                                  json=json)
+        return req.raw.read()
 
-    file_data = [data for data in package['files'] if data['type'] == ENVIRONMENT_TYPE]
-    if not len(file_data):
-            common.error_and_exit("There are no environment.yaml files in the package %s/%s" %
-                                  (username, packagename),
-                                  json=json)
+    def valid_handle(self):
+        return re.match("^(.+)/(.+)$", self.handle)
 
-    versions = {normalized_version(d['version']):d['version'] for d in file_data}
-    latest_version = versions[max(versions)]
+    def package_exists(self):
+        """
+        Checks whether a package exists on binstar or not.
+        :return: True or False
+        """
+        username, packagename = self.parse()
+        try:
+            self.package = self.binstar.package(username, packagename)
+        except errors.NotFound:
+            pass
 
-    file_data = [data for data in package['files'] if data['version'] == latest_version]
+        return self.package is not None
 
-    req = binstar.download(username, packagename, latest_version, file_data[0]['basename'])
-
-    if req is None:
-        common.error_and_exit("An error occurred wile downloading the file %s" %
-                              file_data[0]['download_url'],
-                              json=json)
-
-    print("Successfully fetched %s/%s (wrote %s)" %
-          (username, packagename, filename))
-
-    return req.raw.read()
+    def parse(self):
+        """Parse environment definition handle"""
+        return self.handle.split('/', 1)

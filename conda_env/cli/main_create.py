@@ -23,7 +23,7 @@ examples:
     conda env create -n=foo
     conda env create -f=/path/to/environment.yml
     conda env create --name=foo --file=environment.yml
-    conda env create --name=foo --binstar=username/foo
+    conda env create vader/deathstar
 """
 
 
@@ -50,12 +50,13 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
     p.add_argument(
-        '-r', '--remote',
-        help='remote environment definition',
-    )
-    p.add_argument(
         '-q', '--quiet',
         default=False,
+    )
+    p.add_argument(
+        'handle',
+        help='environment definition\'s handle',
+        default=''
     )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
@@ -63,10 +64,13 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
 
-    if args.remote:
-        loader = get_loader(args.remote)
+    if args.handle:
+        loader = get_loader(args.handle)
         if loader is not None:
-            env = from_yaml(loader.get(args.remote, args.file, args.json))
+            env = from_yaml(loader.get())
+        else:
+            raise exceptions.LoaderNotFound(args.handle)
+
     else:
         try:
             env = from_file(args.file)
