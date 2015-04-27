@@ -10,7 +10,7 @@ from conda.misc import touch_nonadmin
 
 from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
-from conda_env.loaders import get_loader, InvalidLoader
+from ..loaders import get_loader
 from .. import exceptions
 
 description = """
