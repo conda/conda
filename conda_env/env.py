@@ -46,6 +46,12 @@ def from_environment(name, prefix):
     return Environment(name=name, dependencies=dependencies)
 
 
+def from_yaml(yamlstr):
+    """Load and return a ``Environment`` from a given ``yaml string``"""
+    data = yaml.load(yamlstr)
+    return Environment(**data)
+
+
 def from_file(filename):
     if not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)

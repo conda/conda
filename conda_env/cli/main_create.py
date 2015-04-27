@@ -8,7 +8,7 @@ from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
 
-from ..env import from_file
+from ..env import from_file, from_yaml
 from ..installers.base import get_installer, InvalidInstaller
 from ..loaders import get_loader
 from .. import exceptions
@@ -66,19 +66,19 @@ def execute(args, parser):
     if args.remote:
         loader = get_loader(args.remote)
         if loader is not None:
-            loader.download(args.remote, args.file, args.json)
+            env = from_yaml(loader.get(args.remote, args.file, args.json))
+    else:
+        try:
+            env = from_file(args.file)
+        except exceptions.EnvironmentFileNotFound as e:
+            msg = 'Unable to locate environment file: %s\n\n' % e.filename
+            msg += "\n".join(textwrap.wrap(textwrap.dedent("""
+                Please verify that the above file is present and that you have
+                permission read the file's contents.  Note, you can specify the
+                file to use by explictly adding --file=/path/to/file when calling
+                conda env create.""").lstrip()))
 
-    try:
-        env = from_file(args.file)
-    except exceptions.EnvironmentFileNotFound as e:
-        msg = 'Unable to locate environment file: %s\n\n' % e.filename
-        msg += "\n".join(textwrap.wrap(textwrap.dedent("""
-            Please verify that the above file is present and that you have
-            permission read the file's contents.  Note, you can specify the
-            file to use by explictly adding --file=/path/to/file when calling
-            conda env create.""").lstrip()))
-
-        common.error_and_exit(msg, json=args.json)
+            common.error_and_exit(msg, json=args.json)
 
     if not args.name:
         if not env.name:
@@ -120,4 +120,3 @@ def execute(args, parser):
     touch_nonadmin(prefix)
     if not args.json:
         cli_install.print_activate(args.name if args.name else prefix)
-
