@@ -20,6 +20,7 @@ class BinstarLoader(object):
         self.handle = handle
         self.binstar = get_binstar()
         self.package = None
+        self.quiet = False
 
     def can_download(self):
         """
@@ -47,6 +48,7 @@ class BinstarLoader(object):
         if req is None:
             raise EnvironmentFileNotDownloaded(username, packagename)
 
+        self.info("Successfully fetched {} from Binstar.org".format(self.handle))
         return req.raw.read()
 
     def valid_handle(self):
@@ -61,10 +63,17 @@ class BinstarLoader(object):
         try:
             self.package = self.binstar.package(username, packagename)
         except errors.NotFound:
-            pass
+            self.info("{} was not found on Binstar.org.\n"
+                      "You may need to be logged in. Try running:\n"
+                      "    binstar login"
+                      "".format(self.handle))
 
         return self.package is not None
 
     def parse(self):
         """Parse environment definition handle"""
         return self.handle.split('/', 1)
+
+    def info(self, msg):
+        if not self.quiet:
+            print(msg)
