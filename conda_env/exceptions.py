@@ -9,6 +9,13 @@ class EnvironmentFileNotFound(CondaEnvException):
         super(EnvironmentFileNotFound, self).__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileDoesNotExist(CondaEnvException):
+    def __init__(self, handle, *args, **kwargs):
+        self.handle = handle
+        msg = "{} does not have an environment definition".format(handle)
+        super(EnvironmentFileDoesNotExist, self).__init__(msg, *args, **kwargs)
+
+
 class EnvironmentFileNotDownloaded(CondaEnvException):
     def __init__(self, username, packagename, *args, **kwargs):
         msg = '{}/{} file not downloaded'.format(username, packagename)
@@ -29,3 +36,9 @@ class PackageNotFound(CondaEnvException):
         self.username = username
         self.packagename = packagename
         super(PackageNotFound, self).__init__(msg, *args, **kwargs)
+
+
+class LoaderNotFound(CondaEnvException):
+    def __init__(self, handle, *args, **kwargs):
+        msg = '{} coudn\'t be processed'.format(handle)
+        super(LoaderNotFound, self).__init__(msg, *args, **kwargs)
