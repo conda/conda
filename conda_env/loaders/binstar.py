@@ -18,7 +18,7 @@ def is_installed():
     return get_binstar is not None
 
 
-def download(handle, filename, json):
+def get(handle, filename, json):
     username, packagename = handle.split('/', 1)
 
     if not is_installed():
@@ -52,8 +52,7 @@ def download(handle, filename, json):
                               file_data[0]['download_url'],
                               json=json)
 
-    with open(filename, 'w') as fd:
-        fd.write(req.raw.read())
-
     print("Successfully fetched %s/%s (wrote %s)" %
           (username, packagename, filename))
+
+    return req.raw.read()
