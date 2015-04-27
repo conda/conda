@@ -46,9 +46,11 @@ def from_environment(name, prefix):
     return Environment(name=name, dependencies=dependencies)
 
 
-def from_yaml(yamlstr):
+def from_yaml(yamlstr, name=None):
     """Load and return a ``Environment`` from a given ``yaml string``"""
     data = yaml.load(yamlstr)
+    if name is not None:
+        data['name'] = name
     return Environment(**data)
 
 
