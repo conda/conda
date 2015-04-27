@@ -21,6 +21,8 @@ class BinstarLoader(object):
         self.binstar = get_binstar()
         self.package = None
         self.quiet = False
+        self._username = None
+        self._packagename = None
 
     def can_download(self):
         """
@@ -36,7 +38,6 @@ class BinstarLoader(object):
         :return: yaml string
         :exceptions: EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded
         """
-        username, packagename = self.parse()
         file_data = [data for data in self.package['files'] if data['type'] == ENVIRONMENT_TYPE]
         if not len(file_data):
             raise EnvironmentFileDoesNotExist(self.handle)
@@ -44,9 +45,9 @@ class BinstarLoader(object):
         versions = {normalized_version(d['version']): d['version'] for d in file_data}
         latest_version = versions[max(versions)]
         file_data = [data for data in self.package['files'] if data['version'] == latest_version]
-        req = self.binstar.download(username, packagename, latest_version, file_data[0]['basename'])
+        req = self.binstar.download(self.username, self.packagename, latest_version, file_data[0]['basename'])
         if req is None:
-            raise EnvironmentFileNotDownloaded(username, packagename)
+            raise EnvironmentFileNotDownloaded(self.username, self.packagename)
 
         self.info("Successfully fetched {} from Binstar.org".format(self.handle))
         return req.raw.read()
@@ -59,9 +60,8 @@ class BinstarLoader(object):
         Checks whether a package exists on binstar or not.
         :return: True or False
         """
-        username, packagename = self.parse()
         try:
-            self.package = self.binstar.package(username, packagename)
+            self.package = self.binstar.package(self.username, self.packagename)
         except errors.NotFound:
             self.info("{} was not found on Binstar.org.\n"
                       "You may need to be logged in. Try running:\n"
@@ -69,6 +69,18 @@ class BinstarLoader(object):
                       "".format(self.handle))
 
         return self.package is not None
+
+    @property
+    def username(self):
+        if self._username is None:
+            self._username = self.parse()[0]
+        return self._username
+
+    @property
+    def packagename(self):
+        if self._packagename is None:
+            self._packagename = self.parse()[1]
+        return self._packagename
 
     def parse(self):
         """Parse environment definition handle"""
