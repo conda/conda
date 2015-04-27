@@ -520,14 +520,13 @@ class Resolve(object):
             if guess:
                 if minimal_hint:
                     stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating hint: \n')
+                        'specifications.\nGenerating minimal hint: \n')
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
                 else:
-                    if len(specs) <= 10: # TODO: Add a way to override this
-                        stderrlog.info('\nError: Unsatisfiable package '
-                            'specifications.\nGenerating hint: \n')
-                        sys.exit(self.guess_bad_solve(specs, features))
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: \n')
+                    sys.exit(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if unsat_only:
@@ -597,47 +596,27 @@ class Resolve(object):
         # TODO: Check features as well
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
-        # Don't show the dots in normal mode but do show the dotlog messages
-        # with --debug
+
+        # Don't show the dots from solve2 in normal mode but do show the
+        # dotlog messages with --debug
         dotlog.setLevel(logging.WARN)
-        hint = []
-        # Try to find the largest satisfiable subset
-        found = False
-        if len(specs) > 10:
-            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
 
-        for i in range(len(specs), 0, -1):
-            if found:
-                logging.getLogger('progress.stop').info(None)
-                break
+        def sat(specs):
+            try:
+                self.solve2(specs, features, guess=False, unsat_only=True)
+            except RuntimeError:
+                return False
+            return True
 
-            # Too lazy to compute closed form expression
-            ncombs = len(list(combinations(specs, i)))
-            logging.getLogger('progress.start').info(ncombs)
-            for j, comb in enumerate(combinations(specs, i), 1):
-                try:
-                    logging.getLogger('progress.update').info(('%s/%s' % (j,
-                        ncombs), j))
-                    self.solve2(comb, features, guess=False, unsat_only=True)
-                except RuntimeError:
-                    pass
-                else:
-                    rem = set(specs) - set(comb)
-                    rem.discard('conda')
-                    if len(rem) == 1:
-                        hint.append("%s" % rem.pop())
-                    else:
-                        hint.append("%s" % ' and '.join(rem))
-
-                    found = True
+        hint = minimal_unsatisfiable_subset(specs, sat=sat, log=True)
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("\nHint: %s has a conflict with the remaining packages" %
-                    hint[0])
+            # TODO: Generate a hint from the dependencies.
+            return (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
+                "info {0}')").format(hint[0].split()[0]))
         return ("""
-Hint: the following combinations of packages create a conflict with the
-remaining packages:
+Hint: the following packages conflict with each other:
   - %s""" % '\n  - '.join(hint))
 
     def explicit(self, specs):
