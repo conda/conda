@@ -1,13 +1,7 @@
 import importlib
-from ..exceptions import CondaEnvException
+from ..exceptions import CondaEnvException, LoaderNotFound, InvalidLoader
 ENTRY_POINT = 'conda_env.loaders'
 LOADERS = ['binstar']
-
-
-class InvalidLoader(Exception):
-    def __init__(self, name):
-        msg = 'Unable to load installer for {}'.format(name)
-        super(InvalidLoader, self).__init__(msg)
 
 
 def get_loader(handle):
@@ -23,3 +17,5 @@ def get_loader(handle):
 
         except CondaEnvException, e:
             print e.message
+
+    raise LoaderNotFound(handle)
