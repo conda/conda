@@ -67,7 +67,7 @@ def execute(args, parser):
     if args.handle:
         loader = get_loader(args.handle)
         if loader is not None:
-            env = from_yaml(loader.get())
+            env = from_yaml(loader.get(), args.name)
         else:
             raise exceptions.LoaderNotFound(args.handle)
 
