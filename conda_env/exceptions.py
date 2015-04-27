@@ -32,3 +32,10 @@ class LoaderNotFound(CondaEnvRuntimeError):
     def __init__(self, handle, *args, **kwargs):
         msg = '{} coudn\'t be processed'.format(handle)
         super(LoaderNotFound, self).__init__(msg, *args, **kwargs)
+
+
+class InvalidLoader(Exception):
+    def __init__(self, name):
+        msg = 'Unable to load installer for {}'.format(name)
+        super(InvalidLoader, self).__init__(msg)
+
