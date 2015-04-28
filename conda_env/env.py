@@ -59,8 +59,7 @@ def from_file(filename):
     if not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
     with open(filename, 'rb') as fp:
-        data = yaml.load(fp)
-    return Environment(filename=filename, **data)
+        return from_yaml(fp.read(), filename=filename)
 
 
 # TODO test explicitly
