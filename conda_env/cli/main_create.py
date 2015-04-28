@@ -10,7 +10,7 @@ from conda.misc import touch_nonadmin
 
 from ..env import from_file, from_yaml
 from ..installers.base import get_installer, InvalidInstaller
-from ..loaders import get_loader
+from ..specs import all_specs
 from .. import exceptions
 
 description = """
@@ -71,10 +71,12 @@ def execute(args, parser):
             name = args.old_name
             print("`--name` is deprecated. Use:\n"
                   "  conda env create {}".format(args.old_name))
-        loader = get_loader(name)
-        if loader is not None:
-            env = from_yaml(loader.get())
-            args.name = env.name
+
+        for Spec in all_specs:
+            spec = Spec(name)
+            if spec.can_process():
+                env = from_yaml(spec.environment)
+                args.name = env.name
 
     else:
         try:
