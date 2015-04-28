@@ -35,10 +35,10 @@ class BinstarSpec(object):
         :return: True or False
         """
         # TODO: log information about trying to find the package in binstar.org
-        return self.valid_handle() and self.package
+        return self.valid_handle() and self.package is not None
 
     def valid_handle(self):
-        return re.match("^(.+)/(.+)$", self.handle)
+        return re.match("^(.+)/(.+)$", self.handle) is not None
 
     @property
     def environment(self):
