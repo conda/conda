@@ -1,13 +1,8 @@
 from argparse import RawDescriptionHelpFormatter
-import os
-import textwrap
-
-from conda import config
 from conda.cli import common
-
-from ..env import from_file
-from conda_env.utils.uploader import Uploader, is_installed
 from conda_env import exceptions
+from conda_env.utils.uploader import is_installed
+
 
 description = """
 Upload an environment to binstar
@@ -72,6 +67,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+
     """
     * Binstar-cli must be installed (verify) - Raise error if it's not
     -f = False -> Verify environment.yml or environment.yaml
@@ -87,5 +83,6 @@ def execute(args, parser):
             else: show error
             if user/project no-exists -> create and upload
     """
-    pass
 
+    if not is_installed():
+        raise exceptions.NoBinstar()
