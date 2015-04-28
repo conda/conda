@@ -627,7 +627,7 @@ def sat(clauses):
     # boolean value of False even though the clauses are not unsatisfiable)
     return solution
 
-def minimal_unsatisfiable_subset(clauses, log=False):
+def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
@@ -636,9 +636,35 @@ def minimal_unsatisfiable_subset(clauses, log=False):
     unsatisfiable.  A set of clauses may have many minimal unsatisfiable
     subsets of different sizes.
 
-    if log=True, progress bars will be displayed with the progress.
-    """
+    If log=True, progress bars will be displayed with the progress.
 
+    sat should be a function that takes a tuple of clauses and returns True if
+    the clauses are satisfiable and False if they are not.  The algorithm will
+    work with any order-reversing function (reversing the order of subset and
+    the order False < True), that is, any function where (A <= B) iff (sat(B)
+    <= sat(A)), where A <= B means A is a subset of B and False < True).
+
+    Algorithm
+    =========
+
+    Algorithm suggested from
+    http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
+    search on the clauses by splitting them in halves A and B. If A or B is
+    UNSAT, we use that and repeat. Otherwise, we recursively check A, but each
+    time we do a sat query, we include B, until we have a minimal subset A* of
+    A such that A* U B is UNSAT. Then we find a minimal subset B* of B such
+    that A* U B* is UNSAT. Then A* U B* will be a minimal unsatisfiable subset
+    of the original set of clauses.
+
+    Proof: If some proper subset C of A* U B* is UNSAT, then there is some
+    clause c in A* U B* not in C. If c is in A*, then that means (A* - {c}) U
+    B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a superset,
+    which contradicts A* being the minimal subset of A with such
+    property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B* -
+    {c} is a strict subset of B*, contradicting B* being the minimal subset of
+    B with this property.
+
+    """
     if log:
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
@@ -653,23 +679,6 @@ def minimal_unsatisfiable_subset(clauses, log=False):
     clauses = tuple(clauses)
     if sat(clauses):
         raise ValueError("Clauses are not unsatisfiable")
-
-    # Algorithm suggested from
-    # http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
-    # search on the clauses by splitting them in halves A and B. If A or B is
-    # UNSAT, we use that and repeat. Otherwise, we recursively check A, but
-    # each time we do a sat query, we include B, until we have a minimal
-    # subset A* of A such that A* U B is UNSAT. Then we find a minimal subset
-    # B* of B such that A* U B* is UNSAT. Then A* U B* will be a minimal
-    # unsatisfiable subset of the original set of clauses.
-
-    # Proof: If some proper subset C of A* U B* is UNSAT, then there is some
-    # clause c in A* U B* not in C. If c is in A*, then that means (A* - {c})
-    # U B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a
-    # superset, which contradicts A* being the minimal subset of A with such
-    # property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B*
-    # - {c} is a strict subset of B*, contradicting B* being the minimal
-    # subset of B with this property.
 
     def split(S):
         """
