@@ -20,10 +20,8 @@ Create an environment based on an environment file
 example = """
 examples:
     conda env create
-    conda env create -n=foo
-    conda env create -f=/path/to/environment.yml
-    conda env create --name=foo --file=environment.yml
     conda env create vader/deathstar
+    conda env create -f=/path/to/environment.yml
 """
 
 
@@ -35,28 +33,30 @@ def configure_parser(sub_parsers):
         help=description,
         epilog=example,
     )
-
-    p.add_argument(
-        '-n', '--name',
-        action='store',
-        help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
-        default=None,
-    )
-
     p.add_argument(
         '-f', '--file',
         action='store',
-        help='environment definition (default: environment.yml)',
+        help='environment definition file (default: environment.yml)',
         default='environment.yml',
     )
     p.add_argument(
+        '-n', '--name',
+        action='store',
+        help='environment definition [Deprecated]',
+        default=None,
+        dest='old_name'
+    )
+    p.add_argument(
         '-q', '--quiet',
+        action='store_false',
         default=False,
     )
     p.add_argument(
-        'handle',
-        help='environment definition\'s handle',
-        default=''
+        'name',
+        help='environment definition',
+        action='store',
+        default=None,
+        nargs='?'
     )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
@@ -64,10 +64,17 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
 
-    if args.handle:
-        loader = get_loader(args.handle)
+    if args.name or args.old_name:
+        if args.name is not None:
+            name = args.name
+        else:
+            name = args.old_name
+            print("`--name` is deprecated. Use:\n"
+                  "  conda env create {}".format(args.old_name))
+        loader = get_loader(name)
         if loader is not None:
-            env = from_yaml(loader.get(), name=args.name)
+            env = from_yaml(loader.get())
+            args.name = env.name
 
     else:
         try:
@@ -81,20 +88,6 @@ def execute(args, parser):
                 conda env create.""").lstrip()))
 
             common.error_and_exit(msg, json=args.json)
-
-    if not args.name:
-        if not env.name:
-            # TODO It would be nice to be able to format this more cleanly
-            common.error_and_exit(
-                'An environment name is required.\n\n'
-                'You can either specify one directly with --name or you can add\n'
-                'a name property to your %s file.' % args.file,
-                json=args.json
-            )
-        # Note: stubbing out the args object as all of the
-        # conda.cli.common code thinks that name will always
-        # be specified.
-        args.name = env.name
 
     prefix = common.get_prefix(args, search=False)
     cli_install.check_prefix(prefix, json=args.json)
