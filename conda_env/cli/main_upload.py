@@ -1,7 +1,9 @@
+import textwrap
 from argparse import RawDescriptionHelpFormatter
 from conda.cli import common
-from conda_env import exceptions
-from conda_env.utils.uploader import is_installed
+from .. import exceptions
+from ..env import from_file
+from ..utils.uploader import is_installed
 
 
 description = """
@@ -86,3 +88,16 @@ def execute(args, parser):
 
     if not is_installed():
         raise exceptions.NoBinstar()
+
+    try:
+        env = from_file(args.file)
+    except exceptions.EnvironmentFileNotFound as e:
+        msg = 'Unable to locate environment file: %s\n\n' % e.filename
+        msg += "\n".join(textwrap.wrap(textwrap.dedent("""
+            Please verify that the above file is present and that you have
+            permission read the file's contents.  Note, you can specify the
+            file to use by explictly adding --file=/path/to/file when calling
+            conda env create.""").lstrip()))
+        raise exceptions.CondaEnvRuntimeError(msg)
+
+    return env
