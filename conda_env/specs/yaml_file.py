@@ -1,9 +1,9 @@
-import os
-
 from .. import env
 
 
 class YamlFileSpec(object):
+    _environment = None
+
     def __init__(self, filename=None, name=None, **kwargs):
         self.filename = filename
         self.name = name
