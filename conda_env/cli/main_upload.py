@@ -3,7 +3,7 @@ from argparse import RawDescriptionHelpFormatter
 from conda.cli import common
 from .. import exceptions
 from ..env import from_file
-from ..utils.uploader import is_installed
+from ..utils.uploader import is_installed, Uploader
 
 
 description = """
@@ -70,13 +70,6 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
 
     """
-    * Binstar-cli must be installed (verify) - Raise error if it's not
-    -f = False -> Verify environment.yml or environment.yaml
-    -f = /path -> isFile?
-
-    -n present -> Show deprecation warning
-
-    [name] -> present
     Authorize binstar
         no-authorized: ask for credentials
         authorized:
@@ -103,7 +96,17 @@ def execute(args, parser):
         print("`--name` is deprecated. Use:\n"
               "  conda env upload {}".format(args.old_name))
 
-    name = args.name or args.old_name or env.name
+    try:
+        summary = args.summary or env.summary
+    except AttributeError:
+        summary = None
+
+    try:
+        name = args.name or args.old_name or env.name
+    except AttributeError:
+        name = None
+
+    env_data = dict(env.to_dict())
 
     if name is None:
         msg = """An environment name is required.\n
@@ -112,6 +115,10 @@ def execute(args, parser):
                  or you can add a name property to your {} file.""".lstrip().format(args.file)
         raise exceptions.CondaEnvRuntimeError(msg)
 
-    print "The name is {}".format(name)
+    print(name)
+    print(summary)
 
+    uploader = Uploader(name, args.file, summary=summary, env_data=env_data)
+    uploader.upload(args.force)
 
+    print("Done.")
