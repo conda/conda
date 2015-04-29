@@ -1,4 +1,5 @@
 from .binstar import BinstarSpec
+from .yaml_file import YamlFileSpec
 
 
 def detect(**kwargs):
@@ -9,6 +10,6 @@ def detect(**kwargs):
 
 
 all_specs = [
-    BinstarSpec,
-    # YamlFileSpec
+    # BinstarSpec,
+    YamlFileSpec
 ]

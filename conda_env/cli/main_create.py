@@ -1,17 +1,17 @@
+from __future__ import print_function
 from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
 import sys
 
-from conda import config
 from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
 
-from ..env import from_file, from_yaml
+from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
-from ..specs import all_specs
 from .. import exceptions
+from .. import specs
 
 description = """
 Create an environment based on an environment file
@@ -64,32 +64,22 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
 
-    if args.name or args.old_name:
-        if args.name is not None:
-            name = args.name
-        else:
-            name = args.old_name
-            print("`--name` is deprecated. Use:\n"
-                  "  conda env create {}".format(args.old_name))
+    name = None
+    if args.old_name:
+        print("--name is deprecated. Use the following command instead:\n"
+              "    conda env create {}".format(args.old_name), file=sys.stderr)
+        name = args.old_name
+    elif args.name:
+        name = args.name
 
-        for Spec in all_specs:
-            spec = Spec(name)
-            if spec.can_process():
-                env = from_yaml(spec.environment)
-                args.name = env.name
-
-    else:
-        try:
-            env = from_file(args.file)
-        except exceptions.EnvironmentFileNotFound as e:
-            msg = 'Unable to locate environment file: %s\n\n' % e.filename
-            msg += "\n".join(textwrap.wrap(textwrap.dedent("""
-                Please verify that the above file is present and that you have
-                permission read the file's contents.  Note, you can specify the
-                file to use by explictly adding --file=/path/to/file when calling
-                conda env create.""").lstrip()))
-
-            common.error_and_exit(msg, json=args.json)
+    try:
+        spec = specs.detect(name=name, filename=args.file,
+                            directory=os.getcwd())
+        env = spec.environment
+        # FIXME conda code currently requires args to have a name or prefix
+        args.name = env.name
+    except exceptions.EnvironmentFileNotFound as e:
+        common.error_and_exit(str(e), json=args.json)
 
     prefix = common.get_prefix(args, search=False)
     cli_install.check_prefix(prefix, json=args.json)
@@ -98,10 +88,10 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
-    for installer_type, specs in env.dependencies.items():
+    for installer_type, pkg_specs in env.dependencies.items():
         try:
             installer = get_installer(installer_type)
-            installer.install(prefix, specs, args, env)
+            installer.install(prefix, pkg_specs, args, env)
         except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
