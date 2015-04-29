@@ -23,8 +23,8 @@ class BinstarSpec(object):
     _packagename = None
     _package = None
 
-    def __init__(self, handle):
-        self.handle = handle
+    def __init__(self, **kwargs):
+        # self.handle = kwargs['handle']
         self.binstar = get_binstar()
         self.quiet = False
         self.info("Successfully fetched {} from Binstar.org".format(self.handle))
