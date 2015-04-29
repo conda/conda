@@ -14,9 +14,8 @@ example = """
 examples:
     conda env upload
     conda env upload project
-    conda env upload user/project
     conda env upload --file=/path/to/environment.yml
-    conda env upload --file=/path/to/environment.yml user/project
+    conda env upload --file=/path/to/environment.yml project
     conda env upload --force
 """
 
@@ -100,4 +99,19 @@ def execute(args, parser):
             conda env create.""").lstrip()))
         raise exceptions.CondaEnvRuntimeError(msg)
 
-    return env
+    if args.old_name:
+        print("`--name` is deprecated. Use:\n"
+              "  conda env upload {}".format(args.old_name))
+
+    name = args.name or args.old_name or env.name
+
+    if name is None:
+        msg = """An environment name is required.\n
+                 You can specify on the command line as in:
+                 \tconda env upload name
+                 or you can add a name property to your {} file.""".lstrip().format(args.file)
+        raise exceptions.CondaEnvRuntimeError(msg)
+
+    print "The name is {}".format(name)
+
+
