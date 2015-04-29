@@ -496,8 +496,8 @@ def is_linked(prefix, dist):
 def delete_trash(prefix):
     from conda import config
 
-    for env_dir in config.envs_dirs:
-        trash_dir = join(env_dir, '.trash')
+    for pkg_dir in config.pkgs_dirs:
+        trash_dir = join(pkg_dir, '.trash')
         try:
             rm_rf(trash_dir)
         except OSError as e:
@@ -511,8 +511,8 @@ def move_to_trash(prefix, f, tempdir=None):
     """
     from conda import config
 
-    for env_dir in config.envs_dirs:
-        trash_dir = join(env_dir, '.trash')
+    for pkg_dir in config.pkgs_dirs:
+        trash_dir = join(pkg_dir, '.trash')
 
         try:
             os.makedirs(trash_dir)
