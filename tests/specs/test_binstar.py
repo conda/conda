@@ -5,8 +5,9 @@ except ImportError:
     from StringIO import StringIO
 from mock import patch, MagicMock
 from binstar_client import errors
-from ..binstar import BinstarSpec, get_binstar
-from ...exceptions import EnvironmentFileDoesNotExist
+
+from conda_env.specs.binstar import BinstarSpec
+from conda_env.exceptions import EnvironmentFileDoesNotExist
 
 
 class TestBinstarSpec(unittest.TestCase):
