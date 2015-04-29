@@ -1,5 +1,8 @@
 import unittest
-from StringIO import StringIO
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
 from mock import patch, MagicMock
 from binstar_client import errors
 from ..binstar import BinstarSpec, get_binstar
