@@ -1,4 +1,4 @@
-from binstar import BinstarSpec
+from .binstar import BinstarSpec
 
 
 all_specs = [BinstarSpec]
