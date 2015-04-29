@@ -655,7 +655,8 @@ def messages(prefix):
 
 def ensure_write(prefix, dist):
     meta = load_meta(prefix, dist)
-    if not can_open_all_files_in_prefix(prefix, meta["files"]):
+    files = [a for a in meta["files"] if not a.lower().endswith("conda.exe")]
+    if not can_open_all_files_in_prefix(prefix, files):
         raise UnableToWriteToPackage(meta["name"])
 
 
