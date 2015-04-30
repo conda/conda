@@ -9,7 +9,7 @@ from os.path import abspath, isdir, join
 import os
 
 log = logging.getLogger(__name__)
-
+stderrlog = logging.getLogger('stderrlog')
 
 def can_open(file):
     """
@@ -20,7 +20,7 @@ def can_open(file):
         fp.close()
         return True
     except IOError:
-        log.info("Unable to open %s" % file)
+        stderrlog.info("Unable to open %s" % file)
         return False
 
 
