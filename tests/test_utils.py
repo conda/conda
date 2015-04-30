@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-from os.path import join
 import random
 import unittest
 try:
@@ -38,9 +36,9 @@ class can_open_TestCase(unittest.TestCase):
         random_file = "/some/path/to/a/file/%s" % random.randint(100, 200)
         with create_mock_open() as o:
             o.side_effect = IOError
-            with mock.patch.object(utils, "log") as log:
+            with mock.patch.object(utils, "stderrlog") as log:
                 utils.can_open(random_file)
-        log.debug.assert_called_with("Unable to open %s" % random_file)
+        log.info.assert_called_with("Unable to open %s\n" % random_file)
 
     def test_closes_file_handler_if_successful(self):
         with create_mock_open() as o:
@@ -80,7 +78,7 @@ class can_open_all_TestCase(unittest.TestCase):
 
 class can_open_all_files_in_prefix_TestCase(unittest.TestCase):
     def test_returns_true_on_success(self):
-        with create_mock_open() as o:
+        with create_mock_open():
             self.assertTrue(utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES))
 
     def test_returns_false_if_unable_to_open_file_for_writing(self):
