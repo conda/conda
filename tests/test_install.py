@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from copy import copy
 import random
 import shutil
 import stat
@@ -168,6 +169,13 @@ class ensure_write_TestCase(unittest.TestCase):
         with self.generate_mock_check(return_value=False):
             with self.assertRaises(exceptions.UnableToWriteToPackage):
                 install.ensure_write(self.prefix, self.meta)
+
+    def test_removes_conda_exe_for_windows(self):
+        with self.generate_mock_check() as mocked:
+            meta = copy(self.meta)
+            meta['files'].append('C:\\Someconda\\Scripts/conda.exe')
+            install.ensure_write(self.prefix, meta)
+        mocked.assert_called_with(self.prefix, ["a", "b", "c"])
 
 
 class rm_rf_file_and_link_TestCase(unittest.TestCase):
