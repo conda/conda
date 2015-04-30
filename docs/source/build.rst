@@ -73,7 +73,7 @@ sections are optional except for package/name and package/version.
 
       # or from git:
       # git_url can also be a relative path to the recipe directory
-      git_url: git@github.com:ilanschnell/bsdiff4.git
+      git_url: git@github.com/ilanschnell/bsdiff4.git
       git_tag: 1.1.4
 
       # or from hg:
