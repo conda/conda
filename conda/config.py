@@ -306,10 +306,7 @@ allowed_channels = get_allowed_channels()
 # ----- proxy -----
 
 def get_proxy_servers():
-    res = rc.get('proxy_servers')
-    if res is None:
-        import requests
-        return requests.utils.getproxies()
+    res = rc.get('proxy_servers') or {}
     if isinstance(res, dict):
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
