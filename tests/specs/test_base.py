@@ -8,6 +8,7 @@ except ImportError:
     import mock
 
 from conda_env import specs
+from conda_env.exceptions import SpecNotFound
 
 
 true_func = mock.Mock(return_value=True)
@@ -51,3 +52,20 @@ class DetectTestCase(unittest.TestCase):
             specs.detect(**random_kwargs)
         spec1.assert_called_with(**random_kwargs)
         spec2.assert_called_with(**random_kwargs)
+
+    def test_raises_exception_if_no_detection(self):
+        spec1 = generate_two_specs()[0]
+        spec1.msg = 'msg'
+        with patched_specs(spec1) as all_specs:
+            with self.assertRaises(SpecNotFound):
+                specs.detect(name="foo")
+
+    def test_has_build_msg_function(self):
+        self.assertTrue(hasattr(specs, 'build_message'))
+        self.assertIsInstance(specs.build_message, types.FunctionType)
+
+    def test_build_msg(self):
+        spec3 = mock.Mock(msg='error 3')
+        spec4 = mock.Mock(msg='error 4')
+        spec5 = mock.Mock(msg=None)
+        self.assertEqual(specs.build_message([spec3, spec4, spec5]), 'error 3\nerror 4')
