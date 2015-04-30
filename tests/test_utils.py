@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-from os.path import join
 import random
 import unittest
 try:
@@ -80,7 +78,7 @@ class can_open_all_TestCase(unittest.TestCase):
 
 class can_open_all_files_in_prefix_TestCase(unittest.TestCase):
     def test_returns_true_on_success(self):
-        with create_mock_open() as o:
+        with create_mock_open():
             self.assertTrue(utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES))
 
     def test_returns_false_if_unable_to_open_file_for_writing(self):
