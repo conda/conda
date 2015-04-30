@@ -78,7 +78,7 @@ def execute(args, parser):
         env = spec.environment
         # FIXME conda code currently requires args to have a name or prefix
         args.name = env.name
-    except exceptions.EnvironmentFileNotFound as e:
+    except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
 
     prefix = common.get_prefix(args, search=False)

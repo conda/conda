@@ -7,6 +7,7 @@ class YamlFileSpec(object):
     def __init__(self, filename=None, name=None, **kwargs):
         self.filename = filename
         self.name = name
+        self.msg = None
 
     def can_handle(self):
         self._environment = env.from_file(self.filename)

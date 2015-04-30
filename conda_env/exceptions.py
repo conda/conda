@@ -28,10 +28,9 @@ class EnvironmentFileNotDownloaded(CondaEnvRuntimeError):
         super(EnvironmentFileNotDownloaded, self).__init__(msg, *args, **kwargs)
 
 
-class LoaderNotFound(CondaEnvRuntimeError):
-    def __init__(self, handle, *args, **kwargs):
-        msg = '{} coudn\'t be processed'.format(handle)
-        super(LoaderNotFound, self).__init__(msg, *args, **kwargs)
+class SpecNotFound(CondaEnvRuntimeError):
+    def __init__(self, msg, *args, **kwargs):
+        super(SpecNotFound, self).__init__(msg, *args, **kwargs)
 
 
 class InvalidLoader(Exception):
