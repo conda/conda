@@ -36,9 +36,9 @@ class can_open_TestCase(unittest.TestCase):
         random_file = "/some/path/to/a/file/%s" % random.randint(100, 200)
         with create_mock_open() as o:
             o.side_effect = IOError
-            with mock.patch.object(utils, "log") as log:
+            with mock.patch.object(utils, "stderrlog") as log:
                 utils.can_open(random_file)
-        log.debug.assert_called_with("Unable to open %s" % random_file)
+        log.info.assert_called_with("Unable to open %s\n" % random_file)
 
     def test_closes_file_handler_if_successful(self):
         with create_mock_open() as o:
