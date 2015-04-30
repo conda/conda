@@ -20,7 +20,7 @@ def can_open(file):
         fp.close()
         return True
     except IOError:
-        stderrlog.info("Unable to open %s" % file)
+        stderrlog.info("Unable to open %s\n" % file)
         return False
 
 
