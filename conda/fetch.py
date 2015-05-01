@@ -22,7 +22,7 @@ from functools import wraps
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.compat import itervalues, get_http_value, input, urllib_quote
+from conda.compat import itervalues, input, urllib_quote
 from conda.lock import Locked
 
 import requests
@@ -45,11 +45,12 @@ def create_cache_dir():
 
 
 def cache_fn_url(url):
-    return '%s.json' % hashlib.md5(url.encode('utf-8')).hexdigest()
+    md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
+    return '%s.json' % (md5[:8],)
 
 
-def add_http_value_to_dict(u, http_key, d, dict_key):
-    value = get_http_value(u, http_key)
+def add_http_value_to_dict(resp, http_key, d, dict_key):
+    value = resp.headers.get(http_key)
     if value:
         d[dict_key] = value
 
@@ -88,7 +89,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         return cache
 
     headers = {}
-    if "_tag" in cache:
+    if "_etag" in cache:
         headers["If-None-Match"] = cache["_etag"]
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
@@ -100,6 +101,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
+            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
@@ -192,6 +195,30 @@ def get_proxy_username_and_pass(scheme):
     passwd = getpass.getpass("Password:")
     return username, passwd
 
+def add_unknown(index):
+    for pkgs_dir in config.pkgs_dirs:
+        if not isdir(pkgs_dir):
+            continue
+        for dn in os.listdir(pkgs_dir):
+            fn = dn + '.tar.bz2'
+            if fn in index:
+                continue
+            try:
+                with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
+                    meta = json.load(fi)
+            except IOError:
+                continue
+            if 'depends' not in meta:
+                meta['depends'] = []
+            log.debug("adding cached pkg to index: %s" % fn)
+            index[fn] = meta
+
+def add_pip_dependency(index):
+    for info in itervalues(index):
+        if (info['name'] == 'python' and
+                    info['version'].startswith(('2.', '3.'))):
+            info['depends'].append('pip')
+
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
@@ -237,23 +264,8 @@ Allowed channels are:
 
     stdoutlog.info('\n')
     if unknown:
-        for pkgs_dir in config.pkgs_dirs:
-            if not isdir(pkgs_dir):
-                continue
-            for dn in os.listdir(pkgs_dir):
-                fn = dn + '.tar.bz2'
-                if fn in index:
-                    continue
-                try:
-                    with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
-                        meta = json.load(fi)
-                except IOError:
-                    continue
-                if 'depends' not in meta:
-                    meta['depends'] = []
-                log.debug("adding cached pkg to index: %s" % fn)
-                index[fn] = meta
-
+        add_unknown(index)
+    add_pip_dependency(index)
     return index
 
 def fetch_pkg(info, dst_dir=None, session=None):
@@ -334,7 +346,12 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             h = hashlib.new('md5')
         try:
             with open(pp, 'wb') as fo:
-                for chunk in resp.iter_content(2**14):
+                more = True
+                while more:
+                    # Use resp.raw so that requests doesn't decode gz files
+                    chunk  = resp.raw.read(2**14)
+                    if not chunk:
+                        more = False
                     try:
                         fo.write(chunk)
                     except IOError:

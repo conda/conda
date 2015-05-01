@@ -9,6 +9,8 @@ import unittest
 from os.path import dirname, join, exists
 import yaml
 
+import pytest
+
 import conda.config as config
 
 from tests.helpers import run_conda_command
@@ -106,6 +108,8 @@ def _read_test_condarc():
         return f.read()
 
 # Tests for the conda config command
+# FIXME This shoiuld be multiple individual tests
+@pytest.mark.slow
 def test_config_command_basics():
 
     try:
@@ -164,6 +168,9 @@ always_yes: yes
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_get():
     try:
         # Test --get
@@ -258,6 +265,9 @@ channel_alias: http://alpha.conda.binstar.org
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_parser():
     try:
         # Now test the YAML "parser"
@@ -427,6 +437,9 @@ disallow:
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_remove_force():
     try:
         # Finally, test --remove, --remove-key, and --force (right now
@@ -470,6 +483,9 @@ def test_config_command_remove_force():
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_bad_args():
     try:
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',

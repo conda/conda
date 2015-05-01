@@ -1,8 +1,5 @@
-from .decorators import skip_if_no_mock
-from .helpers import mock
-patch = mock.patch if mock else None
-
 from contextlib import contextmanager
+from copy import copy
 import random
 import shutil
 import stat
@@ -11,8 +8,16 @@ import tempfile
 import unittest
 from os.path import join
 
+import pytest
+
+from conda import exceptions
 from conda import install
 from conda.install import PaddingError, binary_replace, update_prefix
+
+from .decorators import skip_if_no_mock
+from .helpers import mock
+
+patch = mock.patch if mock else None
 
 
 def generate_random_path():
@@ -41,7 +46,8 @@ class TestBinaryReplace(unittest.TestCase):
 
     def test_two(self):
         self.assertEqual(
-            binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa', b'bbbbb'),
+            binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa',
+                           b'bbbbb'),
             b'bbbbb\x001234bbbbbcc\x00\x00')
 
     def test_spaces(self):
@@ -121,6 +127,55 @@ class remove_readonly_TestCase(unittest.TestCase):
             install._remove_readonly(func, some_path, {})
         func.assert_called_with(some_path)
 
+
+@pytest.mark.parametrize("args", [
+    (),
+    ("one", ),
+    ("one", "two", "three", ),
+])
+def test_ensure_write_takes_two_arguments(args):
+    with pytest.raises(TypeError):
+        install.ensure_write(*args)
+
+
+class ensure_write_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.prefix = generate_random_path()
+        self.dist = "foobar-%s-0" % random.randint(100, 200)
+        self.meta = {
+            "name": self.dist,
+            "files": ["a", "b", "c"],
+        }
+
+    @contextmanager
+    def generate_mock_check(self, return_value=True):
+        with patch.object(install, 'can_open_all_files_in_prefix') as mocked:
+            mocked.return_value = return_value
+            with patch.object(install, "load_meta") as load_meta:
+                load_meta.return_value = self.meta
+                yield mocked
+
+    def test_dispatches_to_can_open_all_files(self):
+        with self.generate_mock_check() as can:
+            install.ensure_write(self.prefix, self.dist)
+        can.assert_called_with(self.prefix, self.meta['files'])
+
+    def test_returns_none_on_true(self):
+        with self.generate_mock_check():
+            actual = install.ensure_write(self.prefix, self.meta)
+            self.assertTrue(actual is None)
+
+    def test_raises_correct_exception_if_unable_to_write(self):
+        with self.generate_mock_check(return_value=False):
+            with self.assertRaises(exceptions.UnableToWriteToPackage):
+                install.ensure_write(self.prefix, self.meta)
+
+    def test_removes_conda_exe_for_windows(self):
+        with self.generate_mock_check() as mocked:
+            meta = copy(self.meta)
+            meta['files'].append('C:\\Someconda\\Scripts/conda.exe')
+            install.ensure_write(self.prefix, meta)
+        mocked.assert_called_with(self.prefix, ["a", "b", "c"])
 
 
 class rm_rf_file_and_link_TestCase(unittest.TestCase):
@@ -308,7 +363,8 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
-                install.rm_rf(self.generate_random_path, max_retries=max_retries)
+                install.rm_rf(self.generate_random_path,
+                              max_retries=max_retries)
 
         expected = [mock.call(i) for i in range(max_retries)]
         mocks['sleep'].assert_has_calls(expected)
@@ -357,11 +413,12 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         check_call.assert_called_with(expected_arg)
 
     @skip_if_no_mock
-    def test_continues_calling_until_max_tries_on_called_process_errors_on_windows(self):
+    def test_calls_until_max_tries_on_called_process_errors_on_windows(self):
         max_retries = random.randint(6, 10)
         with self.generate_directory_mocks(on_win=True) as mocks:
             mocks['rmtree'].side_effect = OSError
-            mocks['check_call'].side_effect = subprocess.CalledProcessError(1, "cmd")
+            mocks['check_call'].side_effect = subprocess.CalledProcessError(
+                1, "cmd")
             with self.assertRaises(OSError):
                 install.rm_rf(generate_random_path(), max_retries=max_retries)
 
@@ -373,7 +430,8 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks(on_win=True) as mocks:
             random_path = self.generate_random_path
             mocks['rmtree'].side_effect = OSError(random_path)
-            mocks['check_call'].side_effect = subprocess.CalledProcessError(1, "cmd")
+            mocks['check_call'].side_effect = subprocess.CalledProcessError(
+                1, "cmd")
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
                 install.rm_rf(random_path, max_retries=max_retries)

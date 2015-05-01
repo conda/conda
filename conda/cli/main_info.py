@@ -18,42 +18,51 @@ from conda.cli import common
 
 help = "Display information about current conda install."
 
+example = """
+
+Examples:
+
+    conda info -a
+"""
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('info',
-                               description = help,
-                               help = help)
+    p = sub_parsers.add_parser(
+        'info',
+        description=help,
+        help=help,
+        epilog=example,
+    )
     common.add_parser_json(p)
     p.add_argument(
         '-a', "--all",
-        action  = "store_true",
-        help    = "show all information, (environments, license, and system "
-                  "information")
+        action="store_true",
+        help="Show all information, (environments, license, and system "
+                  "information.")
     p.add_argument(
         '-e', "--envs",
-        action  = "store_true",
-        help    = "list all known conda environments",
+        action="store_true",
+        help="List all known conda environments.",
     )
     p.add_argument(
         '-l', "--license",
-        action  = "store_true",
-        help    = "display information about local conda licenses list",
+        action="store_true",
+        help="Display information about the local conda licenses list.",
     )
     p.add_argument(
         '-s', "--system",
-        action = "store_true",
-        help = "list environment variables",
+        action="store_true",
+        help="List environment variables.",
     )
     p.add_argument(
         'packages',
-        action = "store",
-        nargs = '*',
-        help = "display information about packages",
+        action="store",
+        nargs='*',
+        help="Display information about packages.",
     )
     p.add_argument(
         '--root',
         action='store_true',
-        help='display root environment path',
+        help='Display root environment path.',
     )
     p.set_defaults(func=execute)
 
@@ -208,11 +217,11 @@ def execute(args, parser):
         for option in options:
             setattr(args, option, True)
 
-    info_dict['channels_disp'] = [config.hide_binstar_tokens(c) for c in
+    info_dict['channels'] = [config.hide_binstar_tokens(c) for c in
         info_dict['channels']]
 
     if args.all or all(not getattr(args, opt) for opt in options):
-        for key in 'pkgs_dirs', 'envs_dirs', 'channels_disp':
+        for key in 'pkgs_dirs', 'envs_dirs', 'channels':
             info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
                                'read only')
@@ -228,7 +237,7 @@ Current conda install:
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
-         channel URLs : %(_channels_disp)s
+         channel URLs : %(_channels)s
           config file : %(rc_path)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
@@ -236,8 +245,6 @@ Current conda install:
             print("""\
 # NOTE:
 #     root directory '%s' is uninitialized""" % config.root_dir)
-
-    del info_dict['channels_disp']
 
     if args.envs:
         common.handle_envs_list(info_dict['envs'], not args.json)
