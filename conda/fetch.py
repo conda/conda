@@ -24,6 +24,7 @@ from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
 from conda.compat import itervalues, input, urllib_quote
 from conda.lock import Locked
+from conda.verify_sig import verify_repodata
 
 import requests
 
@@ -257,6 +258,8 @@ Allowed channels are:
     for url, repodata in repodatas:
         if repodata is None:
             continue
+        if verify_repodata(repodata) == 'INVALID':
+            sys.exit("Error: Signature for %s is invalid." % url)
         new_index = repodata['packages']
         for info in itervalues(new_index):
             info['channel'] = url
