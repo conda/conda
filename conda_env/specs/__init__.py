@@ -21,5 +21,4 @@ def detect(**kwargs):
 
 
 def build_message(specs):
-    print [s.msg for s in specs if s is not None]
     return "\n".join([s.msg for s in specs if s.msg is not None])
