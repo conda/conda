@@ -42,17 +42,27 @@ import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
+    from conda.exceptions import UnableToWriteToPackage
     from conda.lock import Locked
+    from conda.utils import can_open_all_files_in_prefix
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
     class Locked(object):
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             pass
+
         def __exit__(self, exc_type, exc_value, traceback):
             pass
+
+    class UnableToWriteToPackage(RuntimeError):
+        pass
+
+    def can_open_all_files_in_prefix(*args, **kwargs):
+        return True
 
 on_win = bool(sys.platform == 'win32')
 
@@ -386,13 +396,13 @@ def symlink_conda(prefix, root_dir):
     prefix_conda = join(prefix, 'bin', 'conda')
     prefix_activate = join(prefix, 'bin', 'activate')
     prefix_deactivate = join(prefix, 'bin', 'deactivate')
-    if not os.path.exists(join(prefix, 'bin')):
+    if not os.path.lexists(join(prefix, 'bin')):
         os.makedirs(join(prefix, 'bin'))
-    if not os.path.exists(prefix_conda):
+    if not os.path.lexists(prefix_conda):
         os.symlink(root_conda, prefix_conda)
-    if not os.path.exists(prefix_activate):
+    if not os.path.lexists(prefix_activate):
         os.symlink(root_activate, prefix_activate)
-    if not os.path.exists(prefix_deactivate):
+    if not os.path.lexists(prefix_deactivate):
         os.symlink(root_deactivate, prefix_deactivate)
 
 # ========================== begin API functions =========================
@@ -481,6 +491,7 @@ def linked(prefix):
     return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
 
+# FIXME Functions that begin with `is_` should return True/False
 def is_linked(prefix, dist):
     """
     Return the install meta-data for a linked package in a prefix, or None
@@ -541,6 +552,11 @@ def move_to_trash(prefix, f, tempdir=None):
 
     log.debug("Could not move %s to trash" % f)
     return False
+
+# FIXME This should contain the implementation that loads meta, not is_linked()
+def load_meta(prefix, dist):
+    return is_linked(prefix, dist)
+
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
@@ -643,6 +659,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
 
         create_meta(prefix, dist, info_dir, meta_dict)
 
+
 def unlink(prefix, dist):
     '''
     Remove a package from the specified environment, it is an error if the
@@ -670,7 +687,7 @@ def unlink(prefix, dist):
             dst_dirs1.add(dirname(dst))
             try:
                 os.unlink(dst)
-            except OSError: # file might not exist
+            except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
                 if on_win:
                     try:
@@ -705,7 +722,16 @@ def messages(prefix):
     finally:
         rm_rf(path)
 
+
+def ensure_write(prefix, dist):
+    meta = load_meta(prefix, dist)
+    files = [a for a in meta["files"] if not a.lower().endswith("conda.exe")]
+    if not can_open_all_files_in_prefix(prefix, files):
+        raise UnableToWriteToPackage(meta["name"])
+
+
 # =========================== end API functions ==========================
+
 
 def main():
     from pprint import pprint

@@ -26,7 +26,7 @@ items in the preceding sets.
     data.update({item:set() for item in extra_items_in_deps})
     while True:
 
-        ordered = set(item for item, dep in data.items() if len(dep) == 0)
+        ordered = sorted(set(item for item, dep in data.items() if len(dep) == 0))
         if not ordered:
             break
 
@@ -34,8 +34,8 @@ items in the preceding sets.
             yield item
             data.pop(item, None)
 
-        for dep in data.values():
-            dep -= ordered
+        for dep in sorted(data.values()):
+            dep -= set(ordered)
 #         data = {item: (dep - ordered)
 #                 for item, dep in data.items()
 #                     if item not in ordered}
@@ -63,7 +63,7 @@ def _safe_toposort(data):
     """Dependencies are expressed as a dictionary whose keys are items
 and whose values are a set of dependent items. Output is a list of
 sets in topological order. The first set consists of items with no
-dependences, each subsequent set consists of items that depend upon
+dependencies, each subsequent set consists of items that depend upon
 items in the preceding sets.
 """
 
@@ -78,7 +78,7 @@ items in the preceding sets.
             value = next(t)
             yield value
         except ValueError as err:
-            log.warn(err.args[0])
+            log.debug(err.args[0])
 
             if not data:
                 return
@@ -100,5 +100,3 @@ def toposort(data, safe=True):
         return list(_safe_toposort(data))
     else:
         return list(_toposort(data))
-
-
