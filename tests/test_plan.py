@@ -85,7 +85,7 @@ class add_unlink_TestCase(unittest.TestCase):
         self.assertIn(inst.ENSURE_WRITE, actions)
         self.assertEqual(actions[inst.ENSURE_WRITE], [dist, ])
 
-    def test_adds_to_existing_actions(self):
+    def test_adds_to_existing_actions2(self):
         actions = {
             inst.UNLINK: [{"foo": "bar"}],
             inst.ENSURE_WRITE: [{"foo": "bar"}],
