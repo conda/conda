@@ -6,14 +6,12 @@ except ImportError:
 
 from conda_env import env
 from conda_env.specs.yaml_file import YamlFileSpec
-from conda_env.exceptions import EnvironmentFileNotFound
 
 
 class TestYAMLFile(unittest.TestCase):
     def test_no_environment_file(self):
         spec = YamlFileSpec(name=None, filename='not-a-file')
-        with self.assertRaises(EnvironmentFileNotFound):
-            spec.can_handle()
+        self.assertEqual(spec.can_handle(), False)
 
     def test_environment_file_exist(self):
         with mock.patch.object(env, 'from_file', return_value={}):
