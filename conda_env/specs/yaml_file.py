@@ -1,4 +1,5 @@
 from .. import env
+from ..exceptions import EnvironmentFileNotFound
 
 
 class YamlFileSpec(object):
@@ -10,8 +11,12 @@ class YamlFileSpec(object):
         self.msg = None
 
     def can_handle(self):
-        self._environment = env.from_file(self.filename)
-        return True
+        try:
+            self._environment = env.from_file(self.filename)
+            return True
+        except EnvironmentFileNotFound, e:
+            self.msg = e.message
+            return False
 
     @property
     def environment(self):
