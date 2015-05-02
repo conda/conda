@@ -329,7 +329,10 @@ Environment variables set during the build process
 --------------------------------------------------
 
 The following environment variables are set, both on Unix (``build.sh``) and on
-Windows (``bld.bat``) during the build process:
+Windows (``bld.bat``) during the build process.
+(By default, these are the only variables available to your build script --
+no variables are inherited from the environment in which you invoked ``conda build``.
+See :ref:`inherited-env-vars` to override this behavior.)
 
 .. list-table::
 
@@ -474,6 +477,28 @@ command that is run, and the ``-e`` makes it exit whenever a command in the
 script returns nonzero exit status).  You can revert this in the script if you
 need to by using the ``set`` command.
 
+.. _inherited-env-vars:
+
+Inherited Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the build environment does not inherit any variables from the
+environment in which you invoked ``conda build``. You can choose to inherit
+specific environment variables by adding them to ``meta.yaml``:
+
+.. code-block:: yaml
+
+     build:
+       script_env:
+        - TMPDIR
+        - LD_LIBRARY_PATH # [linux]
+        - DYLD_LIBRARY_PATH # [osx]
+
+.. note::
+
+   Inheriting environment variables like this can make it difficult for others
+   to reproduce binaries from source with your recipe. This feature should be 
+   used with caution or avoided altogether.
 
 .. _build-envs:
 
