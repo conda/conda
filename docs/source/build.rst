@@ -433,7 +433,7 @@ On Mac OS X, we have:
   * - ``LDFLAGS``
     - Same as ``CFLAGS``.
   * - ``MACOSX_DEPLOYMENT_TARGET``
-    - Same as the Anaconda Python. Currently ``10.5``.
+    - Same as the Anaconda Python. Currently ``10.6``.
 
 On Linux, we have:
 
