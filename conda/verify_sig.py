@@ -16,6 +16,18 @@ O4NaRivYsorIPxK37QIDAQAB
 """)
 
 
+def sig2ascii(i):
+    ret = []
+    while i:
+        i, r = divmod(i, 256)
+        ret.append(r)
+    if PY3:
+        s = bytes(n for n in ret[::-1])
+    else:
+        s = ''.join(chr(n) for n in ret[::-1])
+    return base64.b64encode(s).decode('utf-8')
+
+
 def ascii2sig(s):
     res = 0
     for c in base64.b64decode(s):
