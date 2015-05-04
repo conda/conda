@@ -331,8 +331,9 @@ Environment variables set during the build process
 The following environment variables are set, both on Unix (``build.sh``) and on
 Windows (``bld.bat``) during the build process.
 (By default, these are the only variables available to your build script --
-no variables are inherited from the environment in which you invoked ``conda build``.
-See :ref:`inherited-env-vars` to override this behavior.)
+unless otherwise noted, no variables are inherited from the shell environment
+in which you invoked ``conda build``. See :ref:`inherited-env-vars` to
+override this behavior.)
 
 .. list-table::
 
@@ -371,9 +372,20 @@ See :ref:`inherited-env-vars` to override this behavior.)
     - Python's site-packages location
   * - ``PY_VER``
     - Python version building against
+  * - ``R``
+    - Path to R executable in build prefix (note that R is only
+      installed in the build prefix when it is listed as a build requirement).
   * - ``CPU_COUNT``
     - Number of CPUs on the system, as reported by
       ``multiprocessing.cpu_count()``
+  * - ``LANG``
+    - Inherited from your shell environment.
+  * - ``HTTP_PROXY``
+    - Inherited from your shell environment.
+  * - ``HTTPS_PROXY``
+    - Inherited from your shell environment.
+  * - ``PATH``
+    - Inherited from your shell environment, and augmented with ``$PREFIX/bin``
 
 When building "unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
@@ -392,6 +404,8 @@ defined in Windows:
     - ``<build prefix>\Library\lib``
   * - ``SCRIPTS``
     - ``<build prefix>\Scripts``
+  * - ``CYGWIN_PREFIX``
+    - Same as ``PREFIX``, but as a unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
 
 On non-Windows (Linux and Mac OS X), we have:
 
@@ -482,9 +496,9 @@ need to by using the ``set`` command.
 Inherited Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the build environment does not inherit any variables from the
+Other than those mentioned above, no variables are inherited from the
 environment in which you invoked ``conda build``. You can choose to inherit
-specific environment variables by adding them to ``meta.yaml``:
+additional environment variables by adding them to ``meta.yaml``:
 
 .. code-block:: yaml
 
@@ -535,6 +549,8 @@ Environment variables are set in these scripts:
      - The version of the package.
    * - ``PKG_BUILDNUM``
      - The build number of the package.
+   * - ``RECIPE_DIR``
+     - Path to the recipe files.
 
 No output is shown from the build script, but it may write to
 ``$PREFIX/.messages.txt``, which is shown after conda completes all actions.
