@@ -12,6 +12,7 @@ import pytest
 
 from conda import exceptions
 from conda import install
+from conda import utils
 from conda.install import PaddingError, binary_replace, update_prefix
 
 from .decorators import skip_if_no_mock
@@ -126,56 +127,6 @@ class remove_readonly_TestCase(unittest.TestCase):
         with patch.object(install.os, 'chmod'):
             install._remove_readonly(func, some_path, {})
         func.assert_called_with(some_path)
-
-
-@pytest.mark.parametrize("args", [
-    (),
-    ("one", ),
-    ("one", "two", "three", ),
-])
-def test_ensure_write_takes_two_arguments(args):
-    with pytest.raises(TypeError):
-        install.ensure_write(*args)
-
-
-class ensure_write_TestCase(unittest.TestCase):
-    def setUp(self):
-        self.prefix = generate_random_path()
-        self.dist = "foobar-%s-0" % random.randint(100, 200)
-        self.meta = {
-            "name": self.dist,
-            "files": ["a", "b", "c"],
-        }
-
-    @contextmanager
-    def generate_mock_check(self, return_value=True):
-        with patch.object(install, 'can_open_all_files_in_prefix') as mocked:
-            mocked.return_value = return_value
-            with patch.object(install, "load_meta") as load_meta:
-                load_meta.return_value = self.meta
-                yield mocked
-
-    def test_dispatches_to_can_open_all_files(self):
-        with self.generate_mock_check() as can:
-            install.ensure_write(self.prefix, self.dist)
-        can.assert_called_with(self.prefix, self.meta['files'])
-
-    def test_returns_none_on_true(self):
-        with self.generate_mock_check():
-            actual = install.ensure_write(self.prefix, self.meta)
-            self.assertTrue(actual is None)
-
-    def test_raises_correct_exception_if_unable_to_write(self):
-        with self.generate_mock_check(return_value=False):
-            with self.assertRaises(exceptions.UnableToWriteToPackage):
-                install.ensure_write(self.prefix, self.meta)
-
-    def test_removes_conda_exe_for_windows(self):
-        with self.generate_mock_check() as mocked:
-            meta = copy(self.meta)
-            meta['files'].append('C:\\Someconda\\Scripts/conda.exe')
-            install.ensure_write(self.prefix, meta)
-        mocked.assert_called_with(self.prefix, ["a", "b", "c"])
 
 
 class rm_rf_file_and_link_TestCase(unittest.TestCase):
