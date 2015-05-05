@@ -681,6 +681,7 @@ def unlink(prefix, dist):
                 log.debug("could not remove file: '%s'" % dst)
                 if on_win:
                     try:
+                        log.debug("moving to trash")
                         move_to_trash(prefix, f)
                     except ImportError:
                         # This shouldn't be an issue in the installer anyway
