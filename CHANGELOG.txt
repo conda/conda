@@ -12,7 +12,7 @@
     argparse.ArgumentParser to conform to the conda help guidelines (e.g., all
     help messages should be capitalized with periods, and the options should
     be preceded by "Options:" for the sake of help2man).
-
+  * add confirmation dialog to conda remove. Fixes conda remove --dry-run.
 
 2015-04-22   3.11.0:
 --------------------
