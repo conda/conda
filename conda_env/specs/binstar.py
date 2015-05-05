@@ -13,8 +13,9 @@ ENVIRONMENT_TYPE = 'env'
 class BinstarSpec(object):
     """
     spec = BinstarSpec('darth/deathstar')
-    spec.can_process() # => True / False
+    spec.can_handle() # => True / False
     spec.environment # => YAML string
+    spec.msg # => Error messages
     :raises: EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded
     """
 
@@ -22,35 +23,57 @@ class BinstarSpec(object):
     _username = None
     _packagename = None
     _package = None
+    _file_data = None
+    msg = None
 
-    def __init__(self, handle=None, **kwargs):
-        self.handle = handle
+    def __init__(self, filename=None, name=None, **kwargs):
+        self.filename = filename
+        self.name = name
         self.binstar = get_binstar()
         self.quiet = False
-        self.info("Successfully fetched {} from Binstar.org".format(self.handle))
+        # self.info("Successfully fetched {} from Binstar.org".format(self.handle))
 
-    def can_process(self):
+    def can_handle(self):
         """
         Validates loader can process environment definition.
         :return: True or False
         """
         # TODO: log information about trying to find the package in binstar.org
-        return self.valid_handle() and self.package is not None
+        return self.valid_name() and self.package is not None and self.valid_package()
 
-    def valid_handle(self):
-        return re.match("^(.+)/(.+)$", self.handle) is not None
+    def valid_name(self):
+        """
+        Validates name
+        :return: True or False
+        """
+        if re.match("^(.+)/(.+)$", str(self.name)) is not None:
+            return True
+        elif self.name is None:
+            self.msg = "Can't process without a name"
+        else:
+            self.msg = "Invalid name, try the format: user/package"
+        return False
+
+    def valid_package(self):
+        """
+        Returns True if package has an environment file
+        :return: True or False
+        """
+        return len(self.file_data) > 0
+
+    @property
+    def file_data(self):
+        if self._file_data is None:
+            self._file_data = [data for data in self.package['files'] if data['type'] == ENVIRONMENT_TYPE]
+        return self._file_data
 
     @property
     def environment(self):
         """
-        :raises: EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded
+        :raises: EnvironmentFileNotDownloaded
         """
         if self._environment is None:
-            file_data = [data for data in self.package['files'] if data['type'] == ENVIRONMENT_TYPE]
-            if not len(file_data):
-                raise EnvironmentFileDoesNotExist(self.handle)
-
-            versions = {normalized_version(d['version']): d['version'] for d in file_data}
+            versions = {normalized_version(d['version']): d['version'] for d in self.file_data}
             latest_version = versions[max(versions)]
             file_data = [data for data in self.package['files'] if data['version'] == latest_version]
             req = self.binstar.download(self.username, self.packagename, latest_version, file_data[0]['basename'])
@@ -65,10 +88,9 @@ class BinstarSpec(object):
             try:
                 self._package = self.binstar.package(self.username, self.packagename)
             except errors.NotFound:
-                self.info("{} was not found on Binstar.org.\n"
-                          "You may need to be logged in. Try running:\n"
-                          "    binstar login"
-                          "".format(self.handle))
+                self.msg = "{} was not found on Binstar.org.\n"\
+                           "You may need to be logged in. Try running:\n"\
+                           "    binstar login".format(self.name)
         return self._package
 
     @property
@@ -85,8 +107,4 @@ class BinstarSpec(object):
 
     def parse(self):
         """Parse environment definition handle"""
-        return self.handle.split('/', 1)
-
-    def info(self, msg):
-        if not self.quiet:
-            print(msg)
+        return self.name.split('/', 1)
