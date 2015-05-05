@@ -1,5 +1,6 @@
 import re
 from conda.resolve import normalized_version
+from .. import env
 from ..exceptions import EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded, CondaEnvException
 try:
     from binstar_client import errors
@@ -80,7 +81,7 @@ class BinstarSpec(object):
             if req is None:
                 raise EnvironmentFileNotDownloaded(self.username, self.packagename)
             self._environment = req.raw.read()
-        return self._environment
+        return env.from_yaml(self._environment)
 
     @property
     def package(self):

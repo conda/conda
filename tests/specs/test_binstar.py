@@ -8,7 +8,7 @@ from mock import patch, MagicMock
 from binstar_client import errors
 
 from conda_env.specs.binstar import BinstarSpec
-from conda_env.exceptions import EnvironmentFileDoesNotExist
+from conda_env.env import Environment
 
 
 class TestBinstarSpec(unittest.TestCase):
@@ -49,7 +49,10 @@ class TestBinstarSpec(unittest.TestCase):
         fake_package = {
             'files': [{'type': 'env', 'version': '1', 'basename': 'environment.yml'}]
         }
-        fake_req = MagicMock(raw=StringIO())
+        yml = StringIO()
+        yml.write(u"name: env")
+        yml.seek(0)
+        fake_req = MagicMock(raw=yml)
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)
@@ -57,7 +60,7 @@ class TestBinstarSpec(unittest.TestCase):
             get_binstar_mock.return_value = binstar
 
             spec = BinstarSpec(name='darth/env-file')
-            self.assertEqual(spec.environment, '')
+            self.assertIsInstance(spec.environment, Environment)
 
 
 if __name__ == '__main__':
