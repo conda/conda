@@ -190,6 +190,9 @@ def execute(args, parser):
         return
 
 
+    if not args.json:
+        common.confirm_yn(args)
+
     if args.json and not args.quiet:
         with json_progress_bars():
             plan.execute_actions(actions, index, verbose=not args.quiet)
