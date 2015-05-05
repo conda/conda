@@ -4,7 +4,7 @@ from ..exceptions import SpecNotFound
 
 
 all_specs = [
-    # BinstarSpec,
+    BinstarSpec,
     YamlFileSpec
 ]
 

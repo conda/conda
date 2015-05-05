@@ -1,3 +1,4 @@
+import types
 import unittest
 try:
     from io import StringIO
@@ -11,19 +12,29 @@ from conda_env.exceptions import EnvironmentFileDoesNotExist
 
 
 class TestBinstarSpec(unittest.TestCase):
-    def test_invalid_handler(self):
-        spec = BinstarSpec('invalid')
-        self.assertEqual(spec.valid_handle(), False)
-        self.assertEqual(spec.can_process(), False)
+    def test_has_can_handle_method(self):
+        spec = BinstarSpec()
+        self.assertTrue(hasattr(spec, 'can_handle'))
+        self.assertIsInstance(spec.can_handle, types.MethodType)
+
+    def test_name_not_present(self):
+        spec = BinstarSpec(filename='filename')
+        self.assertEqual(spec.can_handle(), False)
+        self.assertEqual(spec.msg, "Can't process without a name")
+
+    def test_invalid_name(self):
+        spec = BinstarSpec(name='invalid-name')
+        self.assertEqual(spec.can_handle(), False)
+        self.assertEqual(spec.msg, "Invalid name, try the format: user/package")
 
     def test_package_not_exist(self):
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
             package = MagicMock(side_effect=errors.NotFound('msg'))
             binstar = MagicMock(package=package)
             get_binstar_mock.return_value = binstar
-            spec = BinstarSpec('darth/no-exist')
+            spec = BinstarSpec(name='darth/no-exist')
             self.assertEqual(spec.package, None)
-            self.assertEqual(spec.can_process(), False)
+            self.assertEqual(spec.can_handle(), False)
 
     def test_package_without_environment_file(self):
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
@@ -32,8 +43,7 @@ class TestBinstarSpec(unittest.TestCase):
             get_binstar_mock.return_value = binstar
             spec = BinstarSpec('darth/no-env-file')
 
-            with self.assertRaises(EnvironmentFileDoesNotExist):
-                spec.environment
+            self.assertEqual(spec.can_handle(), False)
 
     def test_download_environment(self):
         fake_package = {
@@ -46,7 +56,7 @@ class TestBinstarSpec(unittest.TestCase):
             binstar = MagicMock(package=package, download=downloader)
             get_binstar_mock.return_value = binstar
 
-            spec = BinstarSpec('darth/no-env-file')
+            spec = BinstarSpec(name='darth/env-file')
             self.assertEqual(spec.environment, '')
 
 
