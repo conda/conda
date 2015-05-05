@@ -503,7 +503,7 @@ def delete_trash(prefix):
         trash_dir = join(pkg_dir, '.trash')
         try:
             log.debug("Trying to delete the trash dir %s" % trash_dir)
-            rm_rf(trash_dir)
+            rm_rf(trash_dir, max_retries=1)
         except OSError as e:
             log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
