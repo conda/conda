@@ -2,7 +2,7 @@
 --------------------
   * correctly allow conda to update itself
   * print which file leads to the "unable to remove file" error on Windows
-  * add support for the no_proxy environment variable
+  * add support for the no_proxy environment variable, #1171
   * add a much faster hint generation for unsatisfiable packages, which is now
     always enabled (previously it would not run if there were more than ten
     specs). The new hint only gives one set of conflicting packages, rather
