@@ -680,7 +680,7 @@ def unlink(prefix, dist):
                 os.unlink(dst)
             except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
-                if on_win:
+                if on_win and os.path.exists(join(prefix, f)):
                     try:
                         log.debug("moving to trash")
                         move_to_trash(prefix, f)
