@@ -42,9 +42,7 @@ import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
-    from conda.exceptions import UnableToWriteToPackage
     from conda.lock import Locked
-    from conda.utils import can_open_all_files_in_prefix
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
@@ -57,12 +55,6 @@ except ImportError:
 
         def __exit__(self, exc_type, exc_value, traceback):
             pass
-
-    class UnableToWriteToPackage(RuntimeError):
-        pass
-
-    def can_open_all_files_in_prefix(*args, **kwargs):
-        return True
 
 on_win = bool(sys.platform == 'win32')
 
@@ -490,7 +482,6 @@ def linked(prefix):
         return set()
     return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
-
 # FIXME Functions that begin with `is_` should return True/False
 def is_linked(prefix, dist):
     """
@@ -556,7 +547,6 @@ def move_to_trash(prefix, f, tempdir=None):
 # FIXME This should contain the implementation that loads meta, not is_linked()
 def load_meta(prefix, dist):
     return is_linked(prefix, dist)
-
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
@@ -721,13 +711,6 @@ def messages(prefix):
         pass
     finally:
         rm_rf(path)
-
-
-def ensure_write(prefix, dist):
-    meta = load_meta(prefix, dist)
-    files = [a for a in meta["files"] if not a.lower().endswith("conda.exe")]
-    if not can_open_all_files_in_prefix(prefix, files):
-        raise UnableToWriteToPackage(meta["name"])
 
 
 # =========================== end API functions ==========================
