@@ -65,7 +65,6 @@ rc_bool_keys = [
     'use_pip',
     'offline',
     'binstar_upload',
-    'binstar_personal',
     'show_channel_urls',
     'allow_other_channels',
     'ssl_verify',
@@ -325,7 +324,6 @@ always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('binstar_upload', None) # None means ask
-binstar_personal = bool(rc.get('binstar_personal', True))
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded
