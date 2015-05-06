@@ -509,6 +509,9 @@ additional environment variables by adding them to ``meta.yaml``:
         - LD_LIBRARY_PATH # [linux]
         - DYLD_LIBRARY_PATH # [osx]
 
+If an inherited variable was missing from your shell environment, it will be 
+assigned the value `<UNDEFINED>`.
+
 .. note::
 
    Inheriting environment variables like this can make it difficult for others
