@@ -510,7 +510,7 @@ additional environment variables by adding them to ``meta.yaml``:
         - DYLD_LIBRARY_PATH # [osx]
 
 If an inherited variable was missing from your shell environment, it will be 
-assigned the value `<UNDEFINED>`.
+assigned the value ``<UNDEFINED>``.
 
 .. note::
 
