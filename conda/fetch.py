@@ -283,6 +283,15 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    if 1: # verify
+        fn2 = fn + '.sig'
+        url = info['channel'] + fn2
+        log.debug("url=%r" % url)
+        path2 = join(dst_dir, fn2)
+        download(url, path2, session=session)
+        with open(path2) as fi:
+            sig = fi.read().strip()
+        verify_keys(path, sig)
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
