@@ -65,6 +65,12 @@ class Uploader(object):
             self._username = self.user['login']
         return self._username
 
+    def authorized(self):
+        try:
+            return self.user is not None
+        except errors.Unauthorized:
+            return False
+
     def upload(self, force=False):
         """
         Prepares and uploads env file
