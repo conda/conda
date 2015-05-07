@@ -6,10 +6,10 @@ try:
 except ImportError:
     get_binstar = None
 from binstar_client import errors
-from binstar_client.commands.login import interactive_login
 
 
 ENVIRONMENT_TYPE = 'env'
+PACKAGE_VERSION = '1.0'
 
 # TODO: refactor binstar so that individual arguments are passed in instead of an arg object
 binstar_args = namedtuple('binstar_args', ['site', 'token'])
@@ -32,7 +32,7 @@ class Uploader(object):
     * Upload environment.yml
     """
 
-    user = None
+    _user = None
 
     def __init__(self, packagename, env_file, summary=None, env_data={}):
         self.packagename = packagename
@@ -41,10 +41,18 @@ class Uploader(object):
         self.env_data = env_data
 
         self.binstar = get_binstar()
-        self.user = self.ensure_loggedin()
         self.basename = os.path.basename(env_file)
         self.username = self.user['login']
-        self.version = '1.0'
+
+    @property
+    def user(self):
+        if self._user is None:
+            self._user = self.binstar.user()
+        return self._user
+
+    @property
+    def version(self):
+        return PACKAGE_VERSION
 
     def upload(self, force=False):
         """
@@ -58,19 +66,6 @@ class Uploader(object):
                                        distribution_type=ENVIRONMENT_TYPE, attrs=self.env_data)
         else:
             raise exceptions.AlreadyExist()
-
-    def ensure_loggedin(self):
-        try:
-            return self.binstar.user()
-        except errors.Unauthorized:
-            print('The action you are performing requires authentication, '
-                  'please sign in to binstar:')
-            interactive_login(binstar_args(None, None))
-            # TODO: refactor binstar to make this easier e.g `binstar.reload_token() or binstar.ensure_login()`
-            # In binstar cli the binstar object is re-created.
-            self.binstar.token = get_binstar().token
-            self.binstar._session.headers.update({'Authorization': 'token %s' % self.binstar.token})
-            return self.binstar.user()
 
     def is_ready(self, force):
         """

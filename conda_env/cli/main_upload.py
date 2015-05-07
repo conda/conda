@@ -69,15 +69,6 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
 
-    """
-    Authorize binstar
-        no-authorized: ask for credentials
-        authorized:
-            if user/project exists and -f flag, overwrite
-            else: show error
-            if user/project no-exists -> create and upload
-    """
-
     if not is_installed():
         raise exceptions.NoBinstar()
 
@@ -104,21 +95,13 @@ def execute(args, parser):
     try:
         name = args.name or args.old_name or env.name
     except AttributeError:
-        name = None
-
-    env_data = dict(env.to_dict())
-
-    if name is None:
         msg = """An environment name is required.\n
                  You can specify on the command line as in:
                  \tconda env upload name
                  or you can add a name property to your {} file.""".lstrip().format(args.file)
         raise exceptions.CondaEnvRuntimeError(msg)
 
-    print(name)
-    print(summary)
-
-    uploader = Uploader(name, args.file, summary=summary, env_data=env_data)
+    uploader = Uploader(name, args.file, summary=summary, force=args.force, env_data=dict(env.to_dict()))
     uploader.upload(args.force)
 
     print("Done.")
