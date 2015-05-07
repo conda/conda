@@ -30,6 +30,7 @@ from __future__ import print_function, division, absolute_import
 import time
 import os
 import json
+import errno
 import shutil
 import stat
 import sys
@@ -41,9 +42,7 @@ import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 try:
-    from conda.exceptions import UnableToWriteToPackage
     from conda.lock import Locked
-    from conda.utils import can_open_all_files_in_prefix
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
@@ -56,12 +55,6 @@ except ImportError:
 
         def __exit__(self, exc_type, exc_value, traceback):
             pass
-
-    class UnableToWriteToPackage(RuntimeError):
-        pass
-
-    def can_open_all_files_in_prefix(*args, **kwargs):
-        return True
 
 on_win = bool(sys.platform == 'win32')
 
@@ -178,11 +171,15 @@ def rm_rf(path, max_retries=5):
                     except OSError as e1:
                         msg += "Retry with onerror failed (%s)\n" % e1
 
-                    try:
-                        subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
-                        return
-                    except subprocess.CalledProcessError as e2:
-                        msg += '%s\n' % e2
+                    p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    (stdout, stderr) = p.communicate()
+                    if p.returncode != 0:
+                        msg += '%s\n%s\n' % (stdout, stderr)
+                    else:
+                        if not isdir(path):
+                            return
+
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
@@ -486,7 +483,6 @@ def linked(prefix):
         return set()
     return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
-
 # FIXME Functions that begin with `is_` should return True/False
 def is_linked(prefix, dist):
     """
@@ -500,17 +496,70 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
+def delete_trash(prefix):
+    from conda import config
+
+    for pkg_dir in config.pkgs_dirs:
+        trash_dir = join(pkg_dir, '.trash')
+        try:
+            log.debug("Trying to delete the trash dir %s" % trash_dir)
+            rm_rf(trash_dir, max_retries=1)
+        except OSError as e:
+            log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
+
+def move_to_trash(prefix, f, tempdir=None):
+    """
+    Move a file f from prefix to the trash
+
+    tempdir should be the name of the directory in the trash
+    """
+    from conda import config
+
+    for pkg_dir in config.pkgs_dirs:
+        trash_dir = join(pkg_dir, '.trash')
+
+        try:
+            os.makedirs(trash_dir)
+        except OSError as e1:
+            if e1.errno != errno.EEXIST:
+                continue
+
+        if tempdir is None:
+            import tempfile
+            trash_dir = tempfile.mkdtemp(dir=trash_dir)
+        else:
+            trash_dir = join(trash_dir, tempdir)
+
+        try:
+            try:
+                os.makedirs(join(trash_dir, dirname(f)))
+            except OSError as e1:
+                if e1.errno != errno.EEXIST:
+                    continue
+            shutil.move(join(prefix, f), join(trash_dir, f))
+
+        except OSError as e:
+            log.debug("Could not move %s to %s (%s)" % (f, trash_dir, e))
+        else:
+            return True
+
+    log.debug("Could not move %s to trash" % f)
+    return False
 
 # FIXME This should contain the implementation that loads meta, not is_linked()
 def load_meta(prefix, dist):
     return is_linked(prefix, dist)
-
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
+    if on_win:
+        # Try deleting the trash every time we link something.
+        delete_trash(prefix)
+
+
     index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
@@ -543,6 +592,13 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
+                    if on_win:
+                        try:
+                            move_to_trash(prefix, f)
+                        except ImportError:
+                            # This shouldn't be an issue in the installer anyway
+                            pass
+
             lt = linktype
             if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
@@ -625,6 +681,13 @@ def unlink(prefix, dist):
                 os.unlink(dst)
             except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
+                if on_win and os.path.exists(join(prefix, f)):
+                    try:
+                        log.debug("moving to trash")
+                        move_to_trash(prefix, f)
+                    except ImportError:
+                        # This shouldn't be an issue in the installer anyway
+                        pass
 
         # remove the meta-file last
         os.unlink(meta_path)
@@ -651,13 +714,6 @@ def messages(prefix):
         pass
     finally:
         rm_rf(path)
-
-
-def ensure_write(prefix, dist):
-    meta = load_meta(prefix, dist)
-    files = [a for a in meta["files"] if not a.lower().endswith("conda.exe")]
-    if not can_open_all_files_in_prefix(prefix, files):
-        raise UnableToWriteToPackage(meta["name"])
 
 
 # =========================== end API functions ==========================
