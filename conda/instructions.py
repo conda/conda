@@ -3,7 +3,6 @@ import re
 
 from conda import config
 from conda import install
-from conda import utils
 from conda.exceptions import InvalidInstruction
 from conda.fetch import fetch_pkg
 
