@@ -33,16 +33,19 @@ class Uploader(object):
     """
 
     _user = None
+    _username = None
+    _binstar = None
 
     def __init__(self, packagename, env_file, summary=None, env_data={}):
         self.packagename = packagename
         self.file = env_file
         self.summary = summary
         self.env_data = env_data
-
-        self.binstar = get_binstar()
         self.basename = os.path.basename(env_file)
-        self.username = self.user['login']
+
+    @property
+    def version(self):
+        return PACKAGE_VERSION
 
     @property
     def user(self):
@@ -51,8 +54,16 @@ class Uploader(object):
         return self._user
 
     @property
-    def version(self):
-        return PACKAGE_VERSION
+    def binstar(self):
+        if self._binstar is None:
+            self._binstar = get_binstar()
+        return self._binstar
+
+    @property
+    def username(self):
+        if self._username is None:
+            self._username = self.user['login']
+        return self._username
 
     def upload(self, force=False):
         """
