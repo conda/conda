@@ -28,6 +28,7 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     set CONDACTIVATE_PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%;%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%\Scripts;
     call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
     set CONDA_DEFAULT_ENV=
+    set CONDA_ENV_PATH=
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
