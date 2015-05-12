@@ -1,3 +1,8 @@
+2015-XX-XX   3.13.0:
+--------------------
+  * avoid the Windows file lock by moving files to a trash directory, #1133
+
+
 2015-05-05   3.12.0:
 --------------------
   * correctly allow conda to update itself
