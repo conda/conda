@@ -187,10 +187,6 @@ def nothing_to_do(actions):
 def add_unlink(actions, dist):
     if inst.UNLINK not in actions:
         actions[inst.UNLINK] = []
-    if sys.platform == "win32":
-        if inst.ENSURE_WRITE not in actions:
-            actions[inst.ENSURE_WRITE] = []
-        actions[inst.ENSURE_WRITE].append(dist)
     actions[inst.UNLINK].append(dist)
 
 
