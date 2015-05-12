@@ -284,6 +284,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if 1: # verify
+        from signature import verify_keys
         fn2 = fn + '.sig'
         url = info['channel'] + fn2
         log.debug("url=%r" % url)
