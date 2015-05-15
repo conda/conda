@@ -77,24 +77,6 @@ class add_unlink_TestCase(unittest.TestCase):
             plan.add_unlink(actions, dist)
         self.assertEqual(2, len(actions[inst.UNLINK]))
 
-    def test_adds_ensure_write_on_windows(self):
-        actions = {}
-        dist = self.generate_random_dist()
-        with self.mock_platform(windows=True):
-            plan.add_unlink(actions, dist)
-        self.assertIn(inst.ENSURE_WRITE, actions)
-        self.assertEqual(actions[inst.ENSURE_WRITE], [dist, ])
-
-    def test_adds_to_existing_actions(self):
-        actions = {
-            inst.UNLINK: [{"foo": "bar"}],
-            inst.ENSURE_WRITE: [{"foo": "bar"}],
-        }
-        dist = self.generate_random_dist()
-        with self.mock_platform(windows=True):
-            plan.add_unlink(actions, dist)
-        self.assertEqual(actions[inst.ENSURE_WRITE], [{"foo": "bar"}, dist])
-
 
 class TestAddDeaultsToSpec(unittest.TestCase):
     # tests for plan.add_defaults_to_specs(r, linked, specs)
