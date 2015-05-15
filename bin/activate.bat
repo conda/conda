@@ -44,6 +44,7 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
     set CONDACTIVATE_PATH=
 :skipdeactivate
 
+set CONDA_ENV_PATH=%ANACONDA_ENVS%\%CONDA_DEFAULT_ENV%
 set CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%
 set CONDA_NEW_ENV=
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
