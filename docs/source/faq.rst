@@ -30,7 +30,7 @@ General questions
 #. What is anaconda?
 
    *Anaconda* is a meta package for *conda*. This meta package contains all standard
-   packages (like *scipy*, *numpy*, *zlib* etc.) provided by developers from ``Continuum Analytics``.
+   packages (like *scipy*, *numpy*, *zlib* etc.) provided by developers from Continuum Analytics.
 
 .. _getting-help:
 
