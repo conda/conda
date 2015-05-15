@@ -39,8 +39,15 @@ conda {command}
 """
 
 def run_command(*args, **kwargs):
-    p = Popen(*args, stdout=PIPE, stderr=PIPE, **kwargs)
+    include_stderr = kwargs.pop('include_stderr', False)
+    if include_stderr:
+        stderr_pipe = STDOUT
+    else:
+        stderr_pipe = PIPE
+    p = Popen(*args, stdout=PIPE, stderr=stderr_pipe, **kwargs)
     out, err = p.communicate()
+    if err is None:
+        err = b''
     out, err = out.decode('utf-8'), err.decode('utf-8')
     if p.returncode != 0:
         print("%r failed with error code %s" % (' '.join(map(quote, args[0])), p.returncode), file=sys.stderr)
@@ -145,7 +152,7 @@ def man_replacements():
     return r
 
 def generate_man(command):
-    conda_version = run_command(['conda', '--version'])
+    conda_version = run_command(['conda', '--version'], include_stderr=True)
 
     manpage = ''
     retries = 5
