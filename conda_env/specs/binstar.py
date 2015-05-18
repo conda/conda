@@ -1,12 +1,12 @@
 import re
 from conda.resolve import normalized_version
 from .. import env
-from ..exceptions import EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded, CondaEnvException
+from ..exceptions import EnvironmentFileNotDownloaded, CondaEnvException
 try:
     from binstar_client import errors
     from binstar_client.utils import get_binstar
 except ImportError:
-    raise CondaEnvException("Binstar not installed")
+    get_binstar = None
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
@@ -28,12 +28,13 @@ class BinstarSpec(object):
     _file_data = None
     msg = None
 
-    def __init__(self, filename=None, name=None, **kwargs):
-        self.filename = filename
+    def __init__(self, name=None, **kwargs):
         self.name = name
-        self.binstar = get_binstar()
         self.quiet = False
-        # self.info("Successfully fetched {} from Binstar.org".format(self.handle))
+        if get_binstar is not None:
+            self.binstar = get_binstar()
+        else:
+            self.binstar = None
 
     def can_handle(self):
         """
@@ -41,7 +42,12 @@ class BinstarSpec(object):
         :return: True or False
         """
         # TODO: log information about trying to find the package in binstar.org
-        return self.valid_name() and self.package is not None and self.valid_package()
+        if self.valid_name():
+            if self.binstar is None:
+                self.msg = "Please install binstar"
+                return False
+            return self.package is not None and self.valid_package()
+        return False
 
     def valid_name(self):
         """
