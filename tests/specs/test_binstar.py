@@ -7,6 +7,7 @@ except ImportError:
 from mock import patch, MagicMock
 from binstar_client import errors
 
+from conda_env.specs import binstar
 from conda_env.specs.binstar import BinstarSpec
 from conda_env.env import Environment
 
@@ -61,6 +62,12 @@ class TestBinstarSpec(unittest.TestCase):
 
             spec = BinstarSpec(name='darth/env-file')
             self.assertIsInstance(spec.environment, Environment)
+
+    def test_binstar_not_installed(self):
+        spec = BinstarSpec(name='user/package')
+        spec.binstar = None
+        self.assertFalse(spec.can_handle())
+        self.assertEqual(spec.msg, 'Please install binstar')
 
 
 if __name__ == '__main__':
