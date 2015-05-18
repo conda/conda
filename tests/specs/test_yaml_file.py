@@ -1,4 +1,5 @@
 import unittest
+import random
 try:
     from unittest import mock
 except ImportError:
@@ -19,6 +20,14 @@ class TestYAMLFile(unittest.TestCase):
             self.assertTrue(spec.can_handle())
 
     def test_get_environment(self):
-        with mock.patch.object(env, 'from_file', return_value={}):
+        r = random.randint(100, 200)
+        with mock.patch.object(env, 'from_file', return_value=r):
             spec = YamlFileSpec(name=None, filename='environment.yaml')
-            self.assertIsInstance(spec.environment, dict)
+            self.assertEqual(spec.environment, r)
+
+    def test_filename(self):
+        filename = "filename_{}".format(random.randint(100, 200))
+        with mock.patch.object(env, 'from_file') as from_file:
+            spec = YamlFileSpec(filename=filename)
+            spec.environment
+        from_file.assert_called_with(filename)
