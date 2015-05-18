@@ -5,9 +5,8 @@ from ..exceptions import EnvironmentFileNotFound
 class YamlFileSpec(object):
     _environment = None
 
-    def __init__(self, filename=None, name=None, **kwargs):
+    def __init__(self, filename=None, **kwargs):
         self.filename = filename
-        self.name = name
         self.msg = None
 
     def can_handle(self):
