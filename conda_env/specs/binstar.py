@@ -9,6 +9,7 @@ except ImportError:
     raise CondaEnvException("Binstar not installed")
 
 ENVIRONMENT_TYPE = 'env'
+# TODO: isolate binstar related code into conda_env.utils.binstar
 
 
 class BinstarSpec(object):
