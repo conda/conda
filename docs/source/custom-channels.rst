@@ -4,8 +4,8 @@
 
 
 Channels are the path that conda takes to look for packages, and the easiest
- way to use and manage custom channels is to use a private or public repository
- on `Binstar <https://binstar.org/>`_.   If you designate your Binstar.org 
+way to use and manage custom channels is to use a private or public repository
+on `Binstar <https://binstar.org/>`_.   If you designate your Binstar.org 
 repository as private, then only you, and those you grant access, can access 
 your private repository. 
 
@@ -51,7 +51,7 @@ Example:
 The ‘conda index’ command is part of the conda-build package. If you have not yet used 
 conda build, begin by installing conda build:
 
- .. code::
+.. code::
 
    conda install conda-build
 
