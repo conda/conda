@@ -36,11 +36,11 @@ class Uploader(object):
     _username = None
     _binstar = None
 
-    def __init__(self, packagename, env_file, summary=None, env_data={}):
+    def __init__(self, packagename, env_file, **kwargs):
         self.packagename = packagename
         self.file = env_file
-        self.summary = summary
-        self.env_data = env_data
+        self.summary = kwargs.get('summary')
+        self.env_data = kwargs.get('env_data')
         self.basename = os.path.basename(env_file)
 
     @property
