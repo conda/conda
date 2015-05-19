@@ -82,7 +82,7 @@ Building a Conda Recipe
 =======================
 
 If you support official conda packages for your project, you may want to use
-``conda build`` in Travis, so that the building of your recipe is tested as
+``conda build`` in Travis, so the building of your recipe is tested as
 well.  We recommend that you include the conda recipe in the same directory
 as your source code. Then replace the following:
 
