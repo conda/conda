@@ -2,13 +2,13 @@
  Using Conda with Travis CI
 ============================
 
-Using conda with `Travis CI <https://travis-ci.org/>`_ is often a preferable
-alternative, as the Debian repos provided by Travis often do not include
-versions of Python packages for all versions of Python, or may not be updated
-fast enough.  `pip` installing such packages may also be undesirable, as this
-can take a while, eating up a large chunk of the 50 minutes that Travis allows
-for each build.  Using conda also lets you test the building of conda recipes
-on Travis.
+If you are already using Travis CI, using conda is a preferable alternative 
+to using apt-get and pip to install packages. The Debian repos provided 
+by Travis may not include versions of Python packages for all versions 
+of Python, or may not be updated as quickly. Pip installing such packages 
+may also be undesirable, as this can take a while, eating up a large chunk 
+of the 50 minutes that Travis allows for each build. Using conda also lets 
+you test the building of conda recipes on Travis.
 
 Conda is cross-platform, so it can be used for anything, not just Python, but
 the following guide shows how to use it to test a Python package on Travis CI.
@@ -16,11 +16,13 @@ the following guide shows how to use it to test a Python package on Travis CI.
 The .travis.yml
 ===============
 
-We assume here that you are already familiar with the `basic configuration for
-Travis <http://docs.travis-ci.com/user/languages/python/#Examples>`_.  The
+The
 following shows how to modify ``.travis.yml`` to use `Miniconda
 <http://conda.pydata.org/miniconda.html>`_ for a project that supports Python
 2.6, 2.7, 3.3, and 3.4.
+
+NOTE: Please see the Travis CI website for information about the `basic configuration for
+Travis <http://docs.travis-ci.com/user/languages/python/#Examples>`_.  
 
 .. code-block:: yaml
 
@@ -61,8 +63,8 @@ following shows how to modify ``.travis.yml`` to use `Miniconda
 Additional Steps
 ================
 
-If you need to support a package that doesn't have official Continuum builds,
-you may need to build it yourself, and add it to a Binstar channel. You can
+If you wish to support a package that doesn't have official Continuum builds,
+you can build it yourself, and add it to a Binstar channel. You can
 then add
 
 .. code-block:: yaml
@@ -81,8 +83,8 @@ Building a Conda Recipe
 
 If you support official conda packages for your project, you may want to use
 ``conda build`` in Travis, so that the building of your recipe is tested as
-well.  It is suggested to include the conda recipe along side your source
-code. You would then replace
+well.  We recommend that you include the conda recipe in the same directory
+as your source code. Then replace the following:
 
 .. code-block:: yaml
 
@@ -98,7 +100,9 @@ with
 AppVeyor
 ========
 
-Another option is `AppVeyor <http://www.appveyor.com/>`_, a continuous build
-service for Windows built on Azure.  An example project for building conda
-packages on AppVeyor is at
+An alternative to using Travis CI with conda is `AppVeyor <http://www.appveyor.com/>`_, a continuous build
+service for Windows built on Azure.  
+
+You can see an example project for building conda packages on AppVeyor located at
 https://github.com/rmcgibbo/python-appveyor-conda-example.
+
