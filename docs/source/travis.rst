@@ -2,12 +2,12 @@
  Using Conda with Travis CI
 ============================
 
-If you are already using Travis CI, using conda is a preferable alternative 
-to using apt-get and pip to install packages. The Debian repos provided 
-by Travis may not include versions of Python packages for all versions 
-of Python, or may not be updated as quickly. Pip installing such packages 
-may also be undesirable, as this can take a while, eating up a large chunk 
-of the 50 minutes that Travis allows for each build. Using conda also lets 
+If you are already using Travis CI, using conda is a preferable alternative
+to using apt-get and pip to install packages. The Debian repos provided
+by Travis may not include versions of Python packages for all versions
+of Python, or may not be updated as quickly. Pip installing such packages
+may also be undesirable, as this can take a while, eating up a large chunk
+of the 50 minutes that Travis allows for each build. Using conda also lets
 you test the building of conda recipes on Travis.
 
 Conda is cross-platform, so it can be used for anything, not just Python, but
@@ -22,7 +22,7 @@ following shows how to modify ``.travis.yml`` to use `Miniconda
 2.6, 2.7, 3.3, and 3.4.
 
 NOTE: Please see the Travis CI website for information about the `basic configuration for
-Travis <http://docs.travis-ci.com/user/languages/python/#Examples>`_.  
+Travis <http://docs.travis-ci.com/user/languages/python/#Examples>`_.
 
 .. code-block:: yaml
 
@@ -35,14 +35,12 @@ Travis <http://docs.travis-ci.com/user/languages/python/#Examples>`_.
      - "3.4"
    install:
      - sudo apt-get update
-     # You may want to periodically update this, although the conda update
-     # conda line below will keep everything up-to-date.  We do this
-     # conditionally because it saves us some downloading if the version is
-     # the same.
+     # We do this conditionally because it saves us some downloading if the
+     # version is the same.
      - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-         wget http://repo.continuum.io/miniconda/Miniconda-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+         wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
        else
-         wget http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
        fi
      - bash miniconda.sh -b -p $HOME/miniconda
      - export PATH="$HOME/miniconda/bin:$PATH"
@@ -101,8 +99,7 @@ AppVeyor
 ========
 
 An alternative to using Travis CI with conda is `AppVeyor <http://www.appveyor.com/>`_, a continuous build
-service for Windows built on Azure.  
+service for Windows built on Azure.
 
 You can see an example project for building conda packages on AppVeyor located at
 https://github.com/rmcgibbo/python-appveyor-conda-example.
-
