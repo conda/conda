@@ -52,7 +52,10 @@ class Environments(Completer):
     def _get_items(self):
         res = []
         for dir in config.envs_dirs:
-            res.extend(os.listdir(dir))
+            try:
+                res.extend(os.listdir(dir))
+            except OSError:
+                pass
         return res
 
 class Packages(Completer):
