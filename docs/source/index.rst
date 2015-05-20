@@ -93,6 +93,7 @@ User Guide
    examples
    faq
    troubleshooting
+   glossary
    config
    build
    build_tutorials
