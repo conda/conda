@@ -15,21 +15,21 @@ Building conda packages summary
 This tutorial includes the following:
 
 #. :ref:`before-you-start`
-#. :ref:`What is a conda package?`
-#. :ref:`About conda build recipe`
-#. :ref:`Find and edit a similar recipe meta.yaml file`
-#. :ref:`Manually write a new meta.yaml file` 
-#. :ref:`Write the build script files build.sh and bld.bat`
-#. :ref:`Build and install on your local computer`
-#. :ref:`Optional: Convert package for use on all platforms`
-#. :ref:`Optional: Upload new packages to Binstar.org`
-#. :ref:`More resources`
+#. :ref:`what-is-a-conda-package`
+#. :ref:`about-conda-build-recipe`
+#. :ref:`edit-similar-recipe`
+#. :ref:`edit-meta-yaml` 
+#. :ref:`build-sh-bld-bat`
+#. :ref:`build-and-install`
+#. :ref:`convert`
+#. :ref:`binstar`
+#. :ref:`more-resources`
 
 
 .. _before-you-start:
 
-#. Before you start
-=================
+Before you start
+----------------
 
 You should already have conda and conda-build by downloading and installing Miniconda or Anaconda. 
 Conda-build is not automatically installed, so let's do that now. 
@@ -42,8 +42,10 @@ All users install conda-build:
 
 Now you are ready to start building your own conda package.
 
-2. What is a conda package?
----------------------------
+.. _what-is-a-conda-package:
+
+What is a conda package?
+------------------------
 
 A conda package is a package that can be installed using the ``conda install [packagename]`` command.
 
@@ -56,8 +58,10 @@ directory. Installing the files of a conda package into an environment can be th
 directory to an environment, then downloading and extracting the zip file and its dependencies - all with 
 the single ``conda install [packagename]`` command.
 
-3. About conda build recipe
----------------------------
+.. _about-conda-build-recipe:
+
+About conda build recipe
+------------------------
 
 Building a package requires a recipe. A conda build recipe is flat directory which contains the following files:
 
@@ -77,8 +81,10 @@ NOTE: When you use the conda skeleton command, the first three files (``meta.yam
 are automatically generated for you. See the previous tutorial `Intro to building conda packages <http://conda.pydata.org/docs/build_tutorials/pkgs.html>`_ 
 for more information. 
 
-4. Edit a similar conda recipe
-------------------------------
+.. _edit-similar-recipe:
+
+Edit a similar conda recipe
+---------------------------
 
 Now we will create a recipe for the same package that we did in the first tutorial, Pyinstrument. But this 
 time we will find a similar recipe from from the conda-recipes repo on Github, and manually edit  the values 
@@ -177,9 +183,10 @@ More info about the meta.yaml file
 See more information about all the possible values that can go in the meta.yaml file on the 
 `conda build recipe reference <http://conda.pydata.org/docs/build.html/>`_  page.
 
+.. _edit-meta-yaml:
 
-5. Manually edit the file meta.yaml 
------------------------------------
+Manually edit the file meta.yaml 
+--------------------------------
 
 This time instead of removing and replacing text, we will manually create a new ``metal.yaml`` file. If you 
 want to keep your file from Step 4 above so you can look at it later, rename it something like ``meta-step4.yaml.``
@@ -224,8 +231,10 @@ information. A blank sample meta.yaml follows to make it easier to match up the 
 When you are finished, save the file in the same pyinstrument directory as ``meta.yaml``. Check your work against 
 the results in Section 4 above.
 
-6. Write the build script files build.sh and bld.bat
-----------------------------------------------------
+.. _build-sh-bld-bat:
+
+Write the build script files build.sh and bld.bat
+-------------------------------------------------
 
 The other two files you need for a build  are 
 
@@ -268,8 +277,10 @@ More information on environment variables
 
 For more information on build files, see `Conda Build Recipe Reference <http://conda.pydata.org/docs/build.html/>`_ 
 
-7. Build and install
---------------------
+.. _build-and-install:
+
+Build and install
+-----------------
 
 Now that you have your three new build files ready, you are ready to create your new package with 
 ``conda build``, and install the package on your local computer. 
@@ -299,8 +310,10 @@ Now install your newly-built program on your local computer by using the use-loc
 
 We know that Pyinstrument installed successfully if there are no error messages.
 
-8. Convert package for use on all platforms
-------------------------------------------------------
+.. _convert:
+
+Convert package for use on all platforms
+----------------------------------------
 
 Now that you have built a package for your current platform with conda build, you can convert it for use on 
 other platforms. This is why you made the two build files, ``build.sh`` and ``bld.bat`` for all platforms.
@@ -314,9 +327,10 @@ Use the conda convert command with a platform specifier from the list
 
 Note: change your path and filename to the exact path and filename you saved in Step 7. 
 
+.. _binstar:
 
-9. Optional: Upload new packages to Binstar.org
-------------------------------------------------
+Optional: Upload new packages to Binstar.org
+--------------------------------------------
 
 After converting your files for use on other platforms, you may choose to upload your files to Binstar. 
 It only takes a minute to do if you have a free Binstar.org account. 
@@ -342,8 +356,10 @@ NOTE: Change your path and filename to the exact path and filename you saved in 
 TIP: To save time, you can set conda to always automatically upload a successful build to Binstar 
 with the command: ``conda config --set binstar_upload yes``
 
-10. More resources
-------------------
+.. _more-resources:
+
+More resources
+--------------
 
 Conda build recipe reference: `http://conda.pydata.org/docs/build.html <http://conda.pydata.org/docs/build.html/>`_ 
 
