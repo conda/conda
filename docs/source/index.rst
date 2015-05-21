@@ -114,6 +114,7 @@ Reference Guide
    spec
    travis
    bdist_conda
+   license
 
 Presentations & Blog Posts
 --------------------------
