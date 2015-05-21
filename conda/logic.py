@@ -732,6 +732,5 @@ def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
     d = 0
     start(L)
     ret = minimal_unsat(clauses)
-    # Commented out because it hides the progress
-    # stop()
+    stop()
     return ret
