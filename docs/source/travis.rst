@@ -13,11 +13,11 @@ you test the building of conda recipes on Travis.
 Conda is cross-platform, so it can be used for anything, not just Python, but
 the following guide shows how to use it to test a Python package on Travis CI.
 
-The .travis.yml
-===============
+The .travis.yml file
+====================
 
 The
-following shows how to modify ``.travis.yml`` to use `Miniconda
+following shows how to modify the ``.travis.yml`` file to use `Miniconda
 <http://conda.pydata.org/miniconda.html>`_ for a project that supports Python
 2.6, 2.7, 3.3, and 3.4.
 
@@ -72,9 +72,6 @@ then add
 to the install steps in ``.travis.yml`` so that it finds the packages on that
 channel.
 
-For more information on building conda packages, see the :doc:`build` docs and
-the example recipes in the `conda-recipes repo
-<https://github.com/conda/conda-recipes>`_.
 
 Building a Conda Recipe
 =======================
@@ -94,6 +91,10 @@ with
 
    - conda build your-conda-recipe
    - conda install your-package --use-local
+   
+For more information on building conda packages, see the `conda build <http://conda.pydata.org/docs/build.html>`_ section
+and the example recipes in the `conda-recipes repo <https://github.com/conda/conda-recipes>`_.
+
 
 AppVeyor
 ========
