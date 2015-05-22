@@ -91,6 +91,7 @@ User Guide
    intro
    quick-install
    installation
+   test-drive
    examples
    faq
    troubleshooting
