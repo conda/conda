@@ -48,9 +48,7 @@ Table of Contents
    quick-install
    installation
    test-drive
-   examples
-   faq
-   troubleshooting
+   get-more-help
    glossary
    config
    build
