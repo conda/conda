@@ -1,5 +1,5 @@
 ========================
- general conda commands
+ General conda commands
 ========================
 
 The following commands are part of conda.
