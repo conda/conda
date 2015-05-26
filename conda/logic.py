@@ -30,7 +30,7 @@ from functools import total_ordering, partial
 from itertools import islice, chain, combinations
 import logging
 
-from conda.compat import log2, ceil, range
+from conda.compat import log2, ceil, range, zip
 from conda.utils import memoize
 
 dotlog = logging.getLogger('dotupdate')
