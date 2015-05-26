@@ -34,6 +34,7 @@ if PY3:
     from shlex import quote
     from tempfile import TemporaryDirectory
     range = range
+    zip = zip
 else:
     import ConfigParser as configparser
     from cStringIO import StringIO
@@ -69,6 +70,7 @@ else:
     import os as _os
     from tempfile import mkdtemp
     range = xrange
+    from itertools import izip as zip
 
     class TemporaryDirectory(object):
         """Create and return a temporary directory.  This has the same
