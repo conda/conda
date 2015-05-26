@@ -66,8 +66,9 @@ Reference Guide
    :maxdepth: 2
 
    commands
-   build-commands
+   general-commands
    env-commands
+   build-commands
    spec
    travis
    bdist_conda
