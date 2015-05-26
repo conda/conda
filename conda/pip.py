@@ -43,7 +43,8 @@ def installed(prefix, output=True):
     args.append('list')
     try:
         pipinst = subprocess.check_output(
-            args, universal_newlines=True
+            args, universal_newlines=True,
+            stderr=subprocess.DEVNULL
         ).split('\n')
     except Exception:
         # Any error should just be ignored
