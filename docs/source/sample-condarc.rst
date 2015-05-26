@@ -1,8 +1,8 @@
-===================
-Sample condarc file
-===================
+====================
+Sample .condarc file
+====================
 
-.. code-block:: none
+.. code-block:: yaml
 
   # This is a sample .condarc file. It adds the r binstar channel and enables
   # the show_channel_urls option.
