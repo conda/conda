@@ -155,7 +155,7 @@ def add_parser_channels(p):
         'defaults' to get the default packages for conda, and 'system' to get the system
         packages, which also takes .condarc into account.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.binstar.org/.""" # we can't put , here; invalid syntax
+        is http://conda.anaconda.org/.""" # we can't put , here; invalid syntax
     )
     p.add_argument(
         "--override-channels",
