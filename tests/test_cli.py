@@ -233,8 +233,8 @@ class TestJson(unittest.TestCase):
             capture_json_with_argv('conda', 'search', '--unknown', '--json'),
             capture_json_with_argv('conda', 'search', '--use-index-cache', '--json'),
             capture_json_with_argv('conda', 'search', '--outdated', '--json'),
-            capture_json_with_argv('conda', 'search', '-c', 'https://conda.binstar.org/asmeurer', '--json'),
-            capture_json_with_argv('conda', 'search', '-c', 'https://conda.binstar.org/asmeurer', '--override-channels', '--json'),
+            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/asmeurer', '--json'),
+            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/asmeurer', '--override-channels', '--json'),
             capture_json_with_argv('conda', 'search', '--platform', 'win-32', '--json'),):
             self.assertIsInstance(res, dict)
 
