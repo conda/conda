@@ -45,9 +45,9 @@ True.
 If allow_other_channels is set to false, only those channels explicitly specified in the administrative 
 .condarc file are allowed:
 
-.. code::
+.. code-block:: yaml
 
-   allow_other_channels: False
+  allow_other_channels: False
 
 When set to true or not specified, then each user will have access to the default channels and to any 
 channels that the user specifies in their local .condarc file. If the user specifies other channels, the 
@@ -64,9 +64,9 @@ SSL verification
 By default ssl verification is used. This can be turned off, but this disables the connection’s normal 
 security, and is not recommended. The default is True.
 
-.. code::
+.. code-block:: yaml
 
-   ssl_verify: False
+  ssl_verify: False
 
 
 .. _Offline_mode_only:
@@ -76,9 +76,9 @@ Offline mode only
 
 Offline mode filters out all channels URLs which do not start with 'file:'. The default is False.
 
-.. code::
+.. code-block:: yaml
 
-   offline: True
+  offline: True
 
 .. _`Channel_alias`:
 
@@ -87,9 +87,9 @@ Channel alias
 
 Alias for non-url channels used with the -c or --channel flag. The default is ``https://conda.binstar.org/``
 
-.. code::
+.. code-block:: yaml
 
-   channel_alias: https://your.repo/
+  channel_alias: https://your.repo/
 
 .. _Disallow_installation_of_specific_packages:
 
@@ -98,10 +98,10 @@ Disallow installation of specific packages
 
 Package specifications to disallow installing. The default is to allow all packages.
 
-.. code::
+.. code-block:: yaml
 
-   disallow:
-   - anaconda
+  disallow:
+    - anaconda
 
 .. _Add_binstar_token_to_automatically_see_private_packages_on_binstar.org:
 
@@ -114,9 +114,9 @@ install binstar') to automatically add the token to the channel urls.
 
 The default is True.
 
-.. code::
+.. code-block:: yaml
 
-   add_binstar_token: False
+  add_binstar_token: False
    
 NOTE: Even when set to True, this is enabled only if the binstar command line client is installed and you 
 are logged in ``binstar login``
@@ -133,11 +133,11 @@ For each ``envs`` here, ``envs/pkgs`` will be used as the pkgs cache, except for
 in the root directory, for which the normal``root_dir/pkgs`` is used. The ``CONDA_ENVS_PATH`` environment 
 variable will overwrite this configuration file setting. 
 
-.. code::
+.. code-block:: yaml
 
-   envs_dirs:
-   - ~/my-envs
-   - /opt/anaconda/envs
+  envs_dirs:
+    - ~/my-envs
+    - /opt/anaconda/envs
    
 
 * **Linux, Mac:** ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
@@ -157,26 +157,26 @@ access the channels allowed by the administrator.
 The system configuration file must be located in the top-level conda installation directory. So first we 
 check to see the path where conda is located: 
 
-.. code::
+.. code-block:: bash
 
-   which conda
-   /tmp/miniconda/bin/conda
+  which conda
+  /tmp/miniconda/bin/conda
 
 Now we can look at the contents of the .condarc file located in the administrator's directory:
 
-.. code::
+.. code-block:: bash
 
-   cat /tmp/miniconda/.condarc
+  cat /tmp/miniconda/.condarc
 
 This administrative .condarc file sets allow_other_channels to false, and specifies that users may 
 download packages from only the ‘admin’ channel:
 
-.. code::
+.. code-block:: none
 
-   cat /tmp/miniconda/.condarc
-   allow_other_channels : false
-   channel_alias: https://conda.binstar.org/
-   channels:
+  cat /tmp/miniconda/.condarc
+  allow_other_channels : false
+  channel_alias: https://conda.binstar.org/
+  channels:
     - admin
 
 Because ``allow_other_channels`` is false and the channel ‘defaults’ are not explicitly specified, users 
@@ -188,11 +188,11 @@ Note: The admin channel can also be expressed as https://conda.binstar.org/admin
 
 Let’s check to see where the user’s conda install is located: 
 
-.. code::
+.. code-block:: bash
 
-   conda info
-   Current conda install:
-   . . .
+  conda info
+  Current conda install:
+  . . .
          channel URLs : http://repo.continuum.io/pkgs/free/osx-64/
                         http://repo.continuum.io/pkgs/pro/osx-64/
           config file : /Users/gergely/.condarc
@@ -203,9 +203,9 @@ listed as channel URLs.
 
 Now let’s look at the contents of the administrative .condarc file located in that directory:
 
-.. code::
+.. code-block:: none
 
-   cat ~/.condarc
+  cat ~/.condarc
   channels:
     - defaults
 
@@ -215,7 +215,7 @@ But the administrator config file has blocked default channels by specifying tha
 allowed. If this user attempts to search for  a package in the default channels, they will see a 
 message telling them what channels are allowed:
 
-.. code::
+.. code-block:: bash
 
    conda search flask
    Fetching package metadata:
@@ -228,10 +228,10 @@ This error message tells the user to add the “admin” channel to their config
 Conclusion: The user must edit their local .condarc configuration file to access the package 
 through the admin channel:
 
-.. code::
+.. code-block:: yaml
 
-   channels:
-   - admin
+  channels:
+    - admin
 
 Now the user can search for packages in the allowed admin channel.
 
