@@ -53,7 +53,7 @@ rc_list_keys = [
     'envs_dirs'
     ]
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
 ADD_BINSTAR_TOKEN = True
 

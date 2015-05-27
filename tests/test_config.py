@@ -69,16 +69,16 @@ class TestConfig(unittest.TestCase):
 
     def test_normalize_urls(self):
         current_platform = config.subdir
-        assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.binstar.org/'
+        assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
 
         for channel in config.normalize_urls(['defaults', 'system',
-            'https://binstar.org/username', 'file:///Users/username/repo',
+            'https://anaconda.org/username', 'file:///Users/username/repo',
             'username']):
             assert (channel.endswith('/%s/' % current_platform) or
                     channel.endswith('/noarch/'))
         self.assertEqual(config.normalize_urls([
-            'defaults', 'system', 'https://conda.binstar.org/username',
+            'defaults', 'system', 'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 'username'
             ], 'osx-64'),
             [
@@ -94,8 +94,8 @@ class TestConfig(unittest.TestCase):
                 'http://repo.continuum.io/pkgs/free/noarch/',
                 'http://repo.continuum.io/pkgs/pro/osx-64/',
                 'http://repo.continuum.io/pkgs/pro/noarch/',
-                'https://conda.binstar.org/username/osx-64/',
-                'https://conda.binstar.org/username/noarch/',
+                'https://conda.anaconda.org/username/osx-64/',
+                'https://conda.anaconda.org/username/noarch/',
                 'file:///Users/username/repo/osx-64/',
                 'file:///Users/username/repo/noarch/',
                 'https://your.repo/username/osx-64/',
