@@ -222,7 +222,7 @@ def remove_binstar_tokens(url):
 
 def normalize_urls(urls, platform=None):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
-        DEFAULT_CHANNEL_ALIAS))
+                                                 DEFAULT_CHANNEL_ALIAS))
 
     platform = platform or subdir
     newurls = []
@@ -257,7 +257,6 @@ def get_channel_urls(platform=None):
 
     if 'channels' not in rc:
         base_urls = get_default_urls()
-
     else:
         base_urls = get_rc_urls()
 
