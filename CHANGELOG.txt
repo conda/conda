@@ -1,6 +1,7 @@
-2015-XX-XX   3.13.0:
+2015-05-XX   3.13.0:
 --------------------
   * avoid the Windows file lock by moving files to a trash directory, #1133
+  * rename binstar.org -> anaconda.org, see #1348
 
 
 2015-05-05   3.12.0:
