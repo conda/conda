@@ -23,6 +23,8 @@ Anaconda requirements
 
 300 MB to download Anaconda plus another 300 to install it. 
 
+NOTE: You do NOT need root privileges to install Anaconda if you select a user writable install location.
+
 Install instructions
 --------------------
 
