@@ -3,7 +3,7 @@
 ========================================================================
 
 Administrators who wish to restrict what programs users can install may do so with a system configuration file, 
-or .condarc that follows the simple `YAML syntax <http://docs.ansible.com/YAMLSyntax.html/>`_. The system 
+or .condarc that follows the simple `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_. The system 
 configuration file overrides any  .condarc configuration files installed by the user.
 
 By default, conda and all packages it installs, including Anaconda, are installed locally with a user-specific 
@@ -21,7 +21,7 @@ root environment prefix displayed by “conda info”. See example below.
 The following settings are commonly used in a system configuration file, although they may also be used in a 
 user configuration file.  All user configuration settings may also be used in a system configuration file. 
 
-See also: `Conda configuration file <http://conda.pydata.org/docs/config.html/>`_.
+See also: :doc:`Conda configuration file <config>`_.
 
 System configuration settings
 =============================
