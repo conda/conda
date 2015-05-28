@@ -1,91 +1,148 @@
-======================
- setup.py bdist_conda
-======================
+=========================
+Building Python packages
+=========================
+With setup.py bdist_conda
+==========================
 
-You can build a conda package for a Python library using ``python setup.py
-bdist_conda``.   ``python`` in this case must be the Python where conda is
-installed, as ``bdist_conda`` uses ``conda-build``.
+You can use conda build to build packages for Python to install rather than 
+conda, by using ``setup.py bdist_conda``. This is a “quick and dirty” way to 
+build packages without using a recipe, but it has limitations. The script 
+is limited to the Python version used in the build. And it is not as 
+reproducible as using a recipe. We recommend using a recipe with conda 
+build. 
 
-``bdist_conda`` will use the metadata provided to the ``setup()`` function.
+NOTE: If you use Setuptools, you must first import Setuptools and then 
+import ``distutils.command.bdist_conda``, because Setuptools monkeypatches 
+``distutils.dist.Distribution``.
 
-In addition, several options to ``setup()`` are supported.
+Setup options
+=============
 
-If you want to pass any ``bdist_conda`` specific options to ``setup()``, you
-must set ``distclass=distutils.command.bdist_conda.CondaDistribution`` in
-``setup()``.
+Options that can be passed to ``setup()`` (must include 
+``distclass=distutils.command.bdist_conda.CondaDistribution)``:
 
-.. note::
+Build number
+--------------
 
-   If you use ``setuptools``, you must import ``setuptools`` *before*
-   importing ``distutils.command.bdist_conda``, as ``setuptools``
-   monkeypatches ``distutils.dist.Distribution``.
+The number of the build. Can be overridden on the command line with the ``--buildnum`` flag. 
+Defaults to 0. 
 
-Notes
-=====
+.. code::
 
-- ``bdist_conda`` can only be installed into a root conda environment, as it
-  imports ``conda`` and ``conda_build``.
+   conda_buildnum
 
-- All metadata is gathered from the standard metadata from the ``setup()``
-  function. Metadata that is not directly supported by ``setup()`` can be
-  added using one of the options specified below.
 
-- By default, import tests are run for each subpackage specified by
-  ``packages``, and command line tests (``command --help``) are run for each
-  setuptools ``entry_points`` command.  This is done to ensure that the
-  package is built correctly. These can be disabled or changed using the
-  ``conda_import_tests`` and ``conda_command_tests`` options specified below.
+Build string
+-------------
 
-Options
-=======
+The build string. Default is generated automatically from the Python version, NumPy version 
+if relevant, and the build number, like ``py34_0``.
 
-All of the following options are optional.
+.. code::
 
-``setup()`` Options
+   conda_buildstr 
+
+Import tests
+-------------
+
+Whether to automatically run import tests. The default is True, which runs import tests for the all 
+the modules in “packages”. Also allowed are False, which runs no tests, or a list of module names to 
+be tested on import.
+
+.. code::
+
+   conda_import_tests  
+
+Command line tests
 -------------------
 
-Options that can be passed to ``setup()`` (must include
-``distclass=CondaDistribution``):
+Command line tests to run. Default is True, which runs ``command --help`` for each command in the 
+``console_scripts`` and ``gui_scripts entry_points``. Also allowed are False, which doesn’t run any 
+command tests, or a list of command tests to run.
 
-- ``conda_buildnum``: The build number. Defaults to 0. Can be overridden on
-  the command line with the ``--buildnum`` flag.
+.. code::
 
-- ``conda_buildstr``: The build string. Default is generated automatically
-  from the Python version, NumPy version if relevant, and the build number,
-  like ``py34_0``.
+   conda_command_tests 
 
-- ``conda_import_tests``: Whether to automatically run import tests. The
-  default is ``True``, which runs import tests for the all the modules in
-  "packages". Also allowed are ``False``, which runs no tests, or a list of
-  module names to be tested on import.
+Binary files relocatable
+------------------------
 
-- ``conda_command_tests``: Command line tests to run. Default is ``True``,
-  which runs ``command --help`` for each ``command`` in the
-  ``console_scripts`` and ``gui_scripts`` ``entry_points``. Also allowed are
-  ``False``, which doesn't run any command tests, or a list of command tests
-  to run.
+Whether binary files should be made relocatable (using ``install_name_tool`` on OS X or ``patchelf`` on Linux). 
+The default is True. 
 
-- ``conda_binary_relocation``: Whether binary files should be made relocatable
-  (using ``install_name_tool`` on OS X or ``patchelf`` on Linux). The default
-  is ``True``. See the :ref:`relocatable` section in the conda build
-  documentation for more information on this.
+.. code::
 
-- ``conda_preserve_egg_dir``: Whether to preserve the egg directory as
-  installed by setuptools.  The default is ``True`` if the package depends on
-  setuptools or has a setuptools ``entry_points`` other than
-  ``console_scripts`` and ``gui_scripts``.
+   conda_binary_relocation 
 
-- ``conda_features``: List of features for the package. See the
-  :ref:`features` section of the conda build documentation for more
-  information about features in conda.
+SEE ALSO:  :ref:`relocatable`  section in the conda build documentation for more information.
 
-- ``conda_track_features``: List of features that this package should track
-  (enable when installed).  See the :ref:`features` section of the conda build
-  documentation for more information about features in conda.
+Preserve egg directory
+-----------------------
+
+Whether to preserve the egg directory as installed by Setuptools. The default is True if the package depends 
+on Setuptools or has Setuptools ``entry_points`` other than ``console_scripts`` and ``gui_scripts``.
+
+.. code::
+
+   conda_preserve_egg_dir  
+
+Features
+-------------
+
+List of features for the package. 
+
+.. code::
+
+   conda_features  
+
+SEE ALSO:  :ref:`features` section of the conda build documentation for more information about 
+features in conda.
+
+.. code::
+
+   Track features
+
+List of features that this package should track (enable when installed). 
+
+.. code::
+
+   conda_track_features 
+
+SEE ALSO:  :ref:`features` section of the conda build documentation for more information about 
+features in conda.
 
 Command line options
---------------------
+=======================
 
-- ``--buildnum``: Set the build number. Defaults to the ``conda_buildnum``
-  passed to ``setup()``, or 0. Overrides any ``conda_buildnum`` passed to
-  ``setup()``.
+Build number
+-------------
+
+Set the build number. Defaults to the ``conda_buildnum`` passed to ``setup()``, or 0. Overrides any 
+``conda_buildnum`` passed to ``setup()``.
+
+.. code::
+
+   --buildnum
+
+Notes
+=======
+
+- ``bdist_conda`` must be installed into a root conda environment, as it imports ``conda`` and ``conda_build``. It is 
+included as part of the ``conda build`` package.
+
+- All metadata is gathered from the standard metadata from the ``setup()`` function. Metadata that are not 
+directly supported by ``setup()`` can be added using one of the options specified below.
+
+- By default, import tests are run for each subpackage specified by packages, and command line tests 
+``command --help`` are run for each ``setuptools entry_points`` command. This is done to ensure that the 
+package is built correctly. These can be disabled or changed using the ``conda_import_tests`` and 
+``conda_command_tests`` options specified below.
+
+- The Python version used in the build must be the same as where conda is installed, as ``bdist_conda`` 
+uses ``conda-build``.
+
+- ``bdist_conda`` uses the metadata provided to the ``setup()`` function.
+
+- If you want to pass any ``bdist_conda`` specific options to ``setup()``, in ``setup()`` you must set 
+``distclass=distutils.command.bdist_conda.CondaDistribution``.
+
