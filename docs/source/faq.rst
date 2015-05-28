@@ -3,7 +3,6 @@ Conda FAQ
 =========
 
 Table of contents:
-==================
 
 #. :ref:`general-questions`
 #. :ref:`getting-help`

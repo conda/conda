@@ -2,6 +2,17 @@
  Troubleshooting
 =================
 
+Table of contents:
+
+#. :ref:`permission-denied`
+#. :ref:`conda-claims-installed`
+#. :ref:`DistributionNotFound`
+#. :ref:`unknown-locale`
+#. :ref:`AttributeError-getproxies`
+
+
+.. _permission-denied:
+
 Issue:  permission denied errors during install
 ===============================================
 
@@ -23,6 +34,8 @@ To give yourself full permissions for files and directories, but prevent the gro
 
 For more information on umask, please visit `http://en.wikipedia.org/wiki/Umask <http://en.wikipedia.org/wiki/Umask>`_.
 
+
+.. _conda-claims-installed:
 
 Issue: Conda claims that a package is installed, but it appears not to be.
 ==========================================================================
@@ -101,6 +114,9 @@ the ``-f`` flag to ``conda install`` (``--force``) implies ``--no-deps``, so
 ``conda install -f package`` will not reinstall any of the dependencies of
 ``package``.
 
+
+.. _DistributionNotFound:
+
 Issue: pkg_resources.DistributionNotFound: conda==3.6.1-6-gb31b0d4-dirty
 ========================================================================
 
@@ -122,6 +138,9 @@ The fix is to use the ``./bin/conda`` executable in the conda git repository
 to force reinstall conda, i.e., run ``./bin/conda install -f conda``.  You can
 then verify with ``conda info`` that you have the latest version of conda, and
 not a git checkout (the version should not include any hashes).
+
+
+.. _unknown-locale:
 
 Issue: ``ValueError unknown locale: UTF-8`` on Mac OS X
 =======================================================
@@ -149,3 +168,27 @@ command ``locale -a`` will show you all the specifiers. For example, the
 language code for US English is ``en_US.UTF-8``. The locale affects what
 translations are used when they are available, and also how dates,
 currencies, and decimals are formatted.
+
+
+.. _AttributeError-getproxies:
+
+Issue: ``AttributeError`` or missing ``getproxies``
+===================================================
+
+When running a command such as ``conda update ipython``, you may get an
+``AttributeError: 'module' object has no attribute 'getproxies'``.
+
+Resolution: Update ``requests`` and be sure ``PYTHONPATH`` is not set.
+----------------------------------------------------------------------
+
+This can be caused by an old version of ``requests``, or by having the ``PYTHONPATH``
+environment variable set.
+
+``conda info -a`` will show the ``requests`` version and various environment
+variables such as ``PYTHONPATH``.
+
+The ``requests`` version can be updated with ``pip install -U requests``.
+
+On Windows ``PYTHONPATH`` can be cleared in the environment variable settings.
+On OS X and Linux it can typically be cleared by removing it from the bash
+profile and restarting the shell.

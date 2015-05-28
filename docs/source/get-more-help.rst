@@ -7,5 +7,6 @@ Get more help
 
    faq
    troubleshooting
-   conda-pip-translator
+   conda-pip-virtualenv-translator
    examples
+   support
