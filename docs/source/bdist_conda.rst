@@ -1,7 +1,7 @@
 =========================
 Building Python packages
 =========================
-With setup.py bdist_conda
+with setup.py bdist_conda
 ==========================
 
 You can use conda build to build packages for Python to install rather than 
@@ -127,22 +127,15 @@ Set the build number. Defaults to the ``conda_buildnum`` passed to ``setup()``, 
 Notes
 =======
 
-- ``bdist_conda`` must be installed into a root conda environment, as it imports ``conda`` and ``conda_build``. It is 
-included as part of the ``conda build`` package.
+- ``bdist_conda`` must be installed into a root conda environment, as it imports ``conda`` and ``conda_build``. It is included as part of the ``conda build`` package.
 
-- All metadata is gathered from the standard metadata from the ``setup()`` function. Metadata that are not 
-directly supported by ``setup()`` can be added using one of the options specified below.
+- All metadata is gathered from the standard metadata from the ``setup()`` function. Metadata that are not directly supported by ``setup()`` can be added using one of the options specified below.
 
-- By default, import tests are run for each subpackage specified by packages, and command line tests 
-``command --help`` are run for each ``setuptools entry_points`` command. This is done to ensure that the 
-package is built correctly. These can be disabled or changed using the ``conda_import_tests`` and 
-``conda_command_tests`` options specified below.
+- By default, import tests are run for each subpackage specified by packages, and command line tests ``command --help`` are run for each ``setuptools entry_points`` command. This is done to ensure that the package is built correctly. These can be disabled or changed using the ``conda_import_tests`` and ``conda_command_tests`` options specified below.
 
-- The Python version used in the build must be the same as where conda is installed, as ``bdist_conda`` 
-uses ``conda-build``.
+- The Python version used in the build must be the same as where conda is installed, as ``bdist_conda`` uses ``conda-build``.
 
 - ``bdist_conda`` uses the metadata provided to the ``setup()`` function.
 
-- If you want to pass any ``bdist_conda`` specific options to ``setup()``, in ``setup()`` you must set 
-``distclass=distutils.command.bdist_conda.CondaDistribution``.
+- If you want to pass any ``bdist_conda`` specific options to ``setup()``, in ``setup()`` you must set ``distclass=distutils.command.bdist_conda.CondaDistribution``.
 
