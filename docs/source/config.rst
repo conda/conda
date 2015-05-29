@@ -49,38 +49,12 @@ instead of internal configuration.
 For more configuration information see: http://continuum.io/blog/advanced-conda-part-1#configuration
 
 
-Contents
+.. contents::
 
-#. :ref:`general-config`
-
-    - :ref:`channel-locations`
-    - :ref:`always-yes`
-    - :ref:`show-channel-urls`
-    - :ref:`change-command-prompt`
-    - :ref:`use-pip`
-    - :ref:`conda-config-proxy`
-    - :ref:`offline-mode-only`
-
-#. :ref:`advanced-config`
-    
-    - :ref:`disallow-soft-linking`
-    - :ref:`set-a-channel-alias`
-    - :ref:`always-add-packages-by-default`
-    - :ref:`track-features`
-
-#. :ref:`conda-build-config`
-
-    - :ref:`auto-upload-conda-build-pkgs`
-    - :ref:`specify-conda-build-output-root-dir`
-
-
-.. _general-config:
 
 General configuration
 =====================
 
-
-.. _channel-locations:
 
 Channel locations
 ^^^^^^^^^^^^^^^^^
@@ -101,8 +75,6 @@ the ``channel_alias`` key as explained below. The default is just ``defaults``.
     - defaults
 
 
-.. _always-yes:
-
 Always yes
 ^^^^^^^^^^
 
@@ -113,8 +85,6 @@ as using the ``--yes`` flag at the command line. The default is ``False``.
 
   always_yes: True
 
-
-.. _show-channel-urls:
 
 Show Channel URLs
 ^^^^^^^^^^^^^^^^^
@@ -127,8 +97,6 @@ in ``conda list``. The default is ``False``.
   show_channel_urls: True
 
 
-.. _change-command-prompt:
-
 Change command prompt
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -139,8 +107,6 @@ environment. The default is ``True``.
 
   changeps1: False
 
-
-.. _use-pip:
 
 Use PIP
 ^^^^^^^
@@ -153,8 +119,6 @@ command ``conda list``. The default is ``True``.
 
   use_pip: False
 
-
-.. _conda-config-proxy:
 
 Configure conda for use behind a proxy server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -177,8 +141,6 @@ as follows: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_rese
 Note: Be careful not to use ``http`` when you mean ``https``, or ``https`` when you mean ``http``.
 
 
-.. _offline-mode-only:
-
 Offline mode only
 ^^^^^^^^^^^^^^^^^
 
@@ -190,13 +152,9 @@ default is ``False``.
   offline: True
 
 
-.. _advanced-config:
-
 Advanced configuration
 ======================
 
-
-.. _disallow-soft-linking:
 
 Disallow soft-linking
 ^^^^^^^^^^^^^^^^^^^^^
@@ -217,8 +175,6 @@ The default is ``True``.
   allow_softlinks: False
 
 
-.. _set-a-channel-alias:
-
 Set a channel alias
 ^^^^^^^^^^^^^^^^^^^
 
@@ -237,8 +193,6 @@ the same as ``conda install --channel https://yourrepo.com/jsmith <package>`` .
   channel_alias: https://your.repo/
 
 
-.. _always-add-packages-by-default:
-
 Always add packages by default
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -251,8 +205,6 @@ default is not to include any packages.
   create_default_packages:
     - ipython
 
-
-.. _track-features:
 
 Track features
 ^^^^^^^^^^^^^^
@@ -267,13 +219,9 @@ list.
     - mkl
 
 
-.. _conda-build-config:
-
 Conda build configuration
 =========================
 
-
-.. _auto-upload-conda-build-pkgs:
 
 Automatically upload conda build packages to binstar.org
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -285,8 +233,6 @@ default is ``False``.
 
   binstar_upload: True
 
-
-.. _specify-conda-build-output-root-dir:
 
 Specify conda build output root directory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
