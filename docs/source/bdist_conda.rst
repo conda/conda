@@ -15,6 +15,20 @@ NOTE: If you use Setuptools, you must first import Setuptools and then
 import ``distutils.command.bdist_conda``, because Setuptools monkeypatches 
 ``distutils.dist.Distribution``.
 
+Example: A minimal setup.py file:
+
+.. code::
+
+   from distutils.core import setup, Extension
+   import distutils.command.bdist_conda
+
+   setup(
+      name="foo",
+      version="1.0",
+      distclass=distutils.command.bdist_conda.CondaDistribution,
+      conda_buildnum=1,
+
+
 Setup options
 =============
 
@@ -29,7 +43,7 @@ Defaults to 0.
 
 .. code::
 
-   conda_buildnum
+   conda_buildnum=1
 
 
 Build string
@@ -40,7 +54,7 @@ if relevant, and the build number, like ``py34_0``.
 
 .. code::
 
-   conda_buildstr 
+   conda_buildstr=py34_0
 
 Import tests
 -------------
@@ -51,7 +65,7 @@ be tested on import.
 
 .. code::
 
-   conda_import_tests  
+   conda_import_tests=False
 
 Command line tests
 -------------------
@@ -62,7 +76,7 @@ command tests, or a list of command tests to run.
 
 .. code::
 
-   conda_command_tests 
+   conda_command_tests =False
 
 Binary files relocatable
 ------------------------
@@ -72,7 +86,7 @@ The default is True.
 
 .. code::
 
-   conda_binary_relocation 
+   conda_binary_relocation=False
 
 SEE ALSO:  :ref:`relocatable`  section in the conda build documentation for more information.
 
@@ -84,7 +98,7 @@ on Setuptools or has Setuptools ``entry_points`` other than ``console_scripts`` 
 
 .. code::
 
-   conda_preserve_egg_dir  
+   conda_preserve_egg_dir=False
 
 Features
 -------------
@@ -93,10 +107,9 @@ List of features for the package.
 
 .. code::
 
-   conda_features  
+   conda_features=['mkl'] 
 
-SEE ALSO:  :ref:`features` section of the conda build documentation for more information about 
-features in conda.
+SEE ALSO:  :ref:`features` section of the conda build documentation for more information about features in conda.
 
 .. code::
 
@@ -106,7 +119,7 @@ List of features that this package should track (enable when installed).
 
 .. code::
 
-   conda_track_features 
+   conda_track_features=['mkl'] 
 
 SEE ALSO:  :ref:`features` section of the conda build documentation for more information about 
 features in conda.
@@ -117,12 +130,11 @@ Command line options
 Build number
 -------------
 
-Set the build number. Defaults to the ``conda_buildnum`` passed to ``setup()``, or 0. Overrides any 
-``conda_buildnum`` passed to ``setup()``.
+Set the build number. Defaults to the ``conda_buildnum`` passed to ``setup()``, or 0. Overrides any ``conda_buildnum`` passed to ``setup()``.
 
 .. code::
 
-   --buildnum
+   --buildnum=1
 
 Notes
 =======
