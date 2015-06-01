@@ -18,7 +18,7 @@ import ``distutils.command.bdist_conda``, because Setuptools monkeypatches
 Example
 ---------
 
-A minimal setup.py file:
+A minimal setup.py file using setup options name and version:
 
 .. code::
 
