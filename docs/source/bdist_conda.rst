@@ -15,7 +15,10 @@ NOTE: If you use Setuptools, you must first import Setuptools and then
 import ``distutils.command.bdist_conda``, because Setuptools monkeypatches 
 ``distutils.dist.Distribution``.
 
-Example: A minimal setup.py file:
+Example
+---------
+
+A minimal setup.py file:
 
 .. code::
 
