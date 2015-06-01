@@ -25,11 +25,13 @@ A minimal setup.py file using setup options name and version:
    from distutils.core import setup, Extension
    import distutils.command.bdist_conda
 
-   setup(
+  setup(
       name="foo",
       version="1.0",
       distclass=distutils.command.bdist_conda.CondaDistribution,
       conda_buildnum=1,
+      conda_features=['mkl'],
+  )
 
 
 Setup options
@@ -79,7 +81,7 @@ command tests, or a list of command tests to run.
 
 .. code::
 
-   conda_command_tests =False
+   conda_command_tests=False
 
 Binary files relocatable
 ------------------------
