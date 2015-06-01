@@ -114,9 +114,9 @@ List of features for the package.
 
 SEE ALSO:  :ref:`features` section of the conda build documentation for more information about features in conda.
 
-.. code::
 
-   Track features
+Track features
+-----------------
 
 List of features that this package should track (enable when installed). 
 
