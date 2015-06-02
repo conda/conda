@@ -283,7 +283,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
-    if 'sig' in info:
+    if info.get('sig'):
         from conda.signature import verify
 
         fn2 = fn + '.sig'
