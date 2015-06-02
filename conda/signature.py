@@ -1,9 +1,19 @@
+import sys
 import base64
 import hashlib
+from glob import glob
+from os.path import abspath, basename, expanduser, join
 
 from conda.compat import PY3
 
 from Crypto.PublicKey import RSA
+
+
+KEYS = []
+keys_dir = abspath(expanduser('~/.conda/keys'))
+for path in glob(join(keys_dir, '*.pub')):
+    key = RSA.importKey(open(path).read())
+    KEYS.append(key)
 
 
 def sig2ascii(i):
@@ -37,14 +47,17 @@ def hash_file(path):
     return h.digest()
 
 
-def verify(path, key, sig):
-    return key.verify(hash_file(path),
-                      (ascii2sig(sig),))
-
-
 def verify_keys(path, sig):
     """
     """
+    h = hash_file(path)
+    s = ascii2sig(sig)
     for key in KEYS:
-        if verify(path, key, sig):
-            pass
+        if key.verify(h, (s,)):
+            return
+
+    sys.exit("Signature for '%s' could not be verified." % basename(path))
+
+
+if __name__ == '__main__':
+    print(KEYS)
