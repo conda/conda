@@ -45,7 +45,7 @@ def hash_file(path):
 
 def verify(path):
     """
-    Verify the file `path`, with sugnature `path`.sig, against the key
+    Verify the file `path`, with signature `path`.sig, against the key
     found under ~/.conda/keys/<key_name>.pub
     """
     try:
