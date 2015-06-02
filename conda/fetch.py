@@ -290,11 +290,8 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/') + '/') + fn2
         log.debug("url=%r" % url)
-        path2 = join(dst_dir, fn2)
-        download(url, path2, session=session)
-        with open(path2) as fi:
-            sig = fi.read().strip()
-        verify_keys(path, sig)
+        download(url, join(dst_dir, fn2), session=session)
+        verify_keys(path)
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,

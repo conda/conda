@@ -47,11 +47,12 @@ def hash_file(path):
     return h.digest()
 
 
-def verify_keys(path, sig):
+def verify_keys(path):
     """
-    Verify the file `path` with signature `sig`, against all keys found
-    under ~/.conda/keys/*.pub
+    Verify the file `path`, against all keys found under ~/.conda/keys/*.pub
     """
+    with open(path + '.sig') as fi:
+        sig = fi.read().strip()
     h = hash_file(path)
     s = ascii2sig(sig)
     for key in KEYS:
