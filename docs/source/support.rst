@@ -2,8 +2,7 @@
  Support options
 =================
 
-How to get additional help
-==========================
+There are several ways to get additional help with conda.
 
 Free support
 ============
