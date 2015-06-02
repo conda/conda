@@ -52,7 +52,7 @@ def verify(path):
         with open(path + '.sig') as fi:
             key_name, sig = fi.read().split()
     except IOError:
-        return None
+        return 'NO_SIGATURE'
     if key_name not in KEYS:
         key_path = join(KEYS_DIR, '%s.pub' % key_name)
         try:
@@ -60,4 +60,7 @@ def verify(path):
         except IOError:
             sys.exit("Error: no public key: %s" % key_path)
     key = KEYS[key_name]
-    return key.verify(hash_file(path), (ascii2sig(sig),))
+    if key.verify(hash_file(path), (ascii2sig(sig),)):
+        return 'VALID'
+    else:
+        return 'INVALID'
