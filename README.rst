@@ -69,7 +69,5 @@ Then run this from the command line:
 Your output might vary a little bit depending on whether you have the packages
 in your local package cache.
 
-You can override the name of the created channel by providing either ``-n`` or
-``--name`` and a valid environment name.  Likewise, you can explicitly provide
-an environment spec file using ``-f`` or ``--file`` and the name of the file you
-would like to use.
+You can explicitly provide an environment spec file using ``-f`` or ``--file``
+and the name of the file you would like to use.
