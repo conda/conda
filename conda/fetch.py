@@ -291,7 +291,8 @@ def fetch_pkg(info, dst_dir=None, session=None):
                info['sig'].rstrip('/') + '/') + fn2
         log.debug("url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
-        verify(path)
+        if not verify(path):
+            sys.exit("Signature for '%s' invalid." % basename(path))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
