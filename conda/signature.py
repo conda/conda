@@ -1,7 +1,6 @@
-import sys
 import base64
 import hashlib
-from os.path import abspath, basename, expanduser, join
+from os.path import abspath, expanduser, join
 
 from conda.compat import PY3
 
@@ -54,10 +53,4 @@ def verify(path):
         key_path = join(KEYS_DIR, '%s.pub' % key_name)
         KEYS[key_name] = RSA.importKey(open(key_path).read())
     key = KEYS[key_name]
-    h = hash_file(path)
-    if not key.verify(h, (ascii2sig(sig),)):
-        sys.exit("Signature for '%s' invalid." % basename(path))
-
-
-if __name__ == '__main__':
-    print(KEYS)
+    return key.verify(hash_file(path), (ascii2sig(sig),))
