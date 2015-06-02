@@ -1,3 +1,4 @@
+import sys
 import base64
 import hashlib
 from os.path import abspath, expanduser, join
@@ -47,10 +48,16 @@ def verify(path):
     Verify the file `path`, with sugnature `path`.sig, against the key
     found under ~/.conda/keys/<key_name>.pub
     """
-    with open(path + '.sig') as fi:
-        key_name, sig = fi.read().split()
+    try:
+        with open(path + '.sig') as fi:
+            key_name, sig = fi.read().split()
+    except IOError:
+        return None
     if key_name not in KEYS:
         key_path = join(KEYS_DIR, '%s.pub' % key_name)
-        KEYS[key_name] = RSA.importKey(open(key_path).read())
+        try:
+            KEYS[key_name] = RSA.importKey(open(key_path).read())
+        except IOError:
+            sys.exit("Error: no public key: %s" % key_path)
     key = KEYS[key_name]
     return key.verify(hash_file(path), (ascii2sig(sig),))
