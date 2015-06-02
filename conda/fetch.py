@@ -284,14 +284,14 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if 'sig' in info:
-        from conda.signature import verify_keys
+        from conda.signature import verify
 
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/') + '/') + fn2
         log.debug("url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
-        verify_keys(path)
+        verify(path)
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
