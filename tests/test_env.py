@@ -200,7 +200,7 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_dependencies_update_after_adding(self):
         e = get_simple_environment()
-        self.assert_(not 'bar' in e.dependencies['conda'])
+        self.assert_('bar' not in e.dependencies['conda'])
         e.dependencies.add('bar')
         self.assert_('bar' in e.dependencies['conda'])
 
