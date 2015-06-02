@@ -6,14 +6,14 @@ Conda is a cross-platform package manager and environment manager program that i
 packages and their dependencies, so you can easily set up and switch between environments on your local 
 computer.  Conda is included in all versions of **Anaconda, Anaconda Server**, and **Miniconda**.
 
-If you are in a hurry, try our two-minute `Miniconda quick install <https://conda.pydata.org/quick-install.html/>`_. 
+If you are in a hurry, try our two-minute :doc:`Miniconda quick install <quick-install>`. 
 Miniconda includes only conda, conda-build, and their dependencies so you can install cleanly and quickly.
 
 These instructions are for a full install of Anaconda, which includes conda, conda-build, and 150+ 
 open source packages. 
 
 TIP: For installation instructions using our graphical installers for Mac or PC, please see 
-the `Anaconda Install <http://docs.continuum.io/anaconda/install.html/>`_ page. 
+the `Anaconda Install <http://docs.continuum.io/anaconda/install.html>`_ page. 
 
 
 Anaconda requirements
