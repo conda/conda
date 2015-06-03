@@ -24,6 +24,8 @@ def sig2ascii(i):
     Given a positive integer `i`, return a base64 encoded string
     representation of the value.
     """
+    if i < 0:
+        raise ValueError('positive integer expected, got: %r' % i)
     ret = []
     while i:
         i, r = divmod(i, 256)
