@@ -114,7 +114,7 @@ Customization (.condarc file)
 
       $ conda config --add channels http://conda.binstar.org/mutirri
 
-#. How can I existing value Y (e.g. http://conda.binstar.org/mutirri) from key X?
+#. How can I remove existing value Y (e.g. http://conda.binstar.org/mutirri) from key X?
 
    .. code-block:: bash
 
