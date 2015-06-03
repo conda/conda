@@ -48,7 +48,6 @@ Table of Contents
    config
    build
    build_tutorials
-   admin
    custom-channels
    get-involved
    get-more-help

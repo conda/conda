@@ -149,3 +149,8 @@ A complete example:
 .. seealso::
    :doc:`travis`
 
+.. toctree::
+
+   admin
+
+

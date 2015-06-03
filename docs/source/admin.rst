@@ -1,5 +1,5 @@
 ========================================================================
- Administrative channel management for a centralized conda installation
+Centralized installation
 ========================================================================
 
 Administrators who wish to restrict what programs users can install may do so with a system configuration file, 
