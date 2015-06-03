@@ -289,7 +289,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/') + '/') + fn2
-        log.debug("url=%r" % url)
+        log.debug("signature url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
         v = verify(path)
         if v != 'VALID':
