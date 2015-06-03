@@ -5,8 +5,15 @@ from os.path import abspath, expanduser, join
 
 from conda.compat import PY3
 
-from Crypto.PublicKey import RSA
+try:
+    from Crypto.PublicKey import RSA
+except ImportError:
+    sys.exit("""\
+Error: could not import Crypto (required for signature verification).
+    Run the following command:
 
+    $ conda install -n root pycrypto
+""")
 
 KEYS = {}
 KEYS_DIR = abspath(expanduser('~/.conda/keys'))
