@@ -1,9 +1,9 @@
 import sys
 import base64
-from os.path import abspath, expanduser, join
+from os.path import abspath, expanduser, isfile, join
 
 from conda.compat import PY3
-from conda.utils import hashsum_file
+from conda.utils import sha256_file
 
 try:
     from Crypto.PublicKey import RSA
@@ -22,7 +22,7 @@ KEYS_DIR = abspath(expanduser('~/.conda/keys'))
 def sig2ascii(i):
     """
     Given a positive integer `i`, return a base64 encoded string
-    representation of the value.    
+    representation of the value.
     """
     ret = []
     while i:
@@ -47,28 +47,23 @@ def ascii2sig(s):
     return res
 
 
-def hash_file(path):
-    return hashsum_file(path, mode='sha256')
-
-
 def verify(path):
     """
     Verify the file `path`, with signature `path`.sig, against the key
-    found under ~/.conda/keys/<key_name>.pub
+    found under ~/.conda/keys/<key_name>.pub.  This function returns:
+      - True, if the signature is valid
+      - False, if the signature is invalid
+      - None, when the signature or public key is not found
     """
-    try:
-        with open(path + '.sig') as fi:
-            key_name, sig = fi.read().split()
-    except IOError:
-        return 'NO_SIGATURE'
+    sig_path = path + '.sig'
+    if not isfile(sig_path):
+        return None
+    with open(sig_path) as fi:
+        key_name, sig = fi.read().split()
     if key_name not in KEYS:
         key_path = join(KEYS_DIR, '%s.pub' % key_name)
-        try:
-            KEYS[key_name] = RSA.importKey(open(key_path).read())
-        except IOError:
-            sys.exit("Error: no public key: %s" % key_path)
+        if not isfile(key_path):
+            return None
+        KEYS[key_name] = RSA.importKey(open(key_path).read())
     key = KEYS[key_name]
-    if key.verify(hash_file(path), (ascii2sig(sig),)):
-        return 'VALID'
-    else:
-        return 'INVALID'
+    return key.verify(sha256_file(path), (ascii2sig(sig),))

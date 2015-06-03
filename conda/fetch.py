@@ -292,8 +292,12 @@ def fetch_pkg(info, dst_dir=None, session=None):
         log.debug("signature url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
         v = verify(path)
-        if v != 'VALID':
-            sys.exit("Signature for '%s': %s" % (basename(path), v))
+        if v is False:
+            sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
+        elif v is None:
+            sys.exit("Error: Cannot verify signature of: %s" % (basename(path)))
+        else:
+            assert v is True
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
