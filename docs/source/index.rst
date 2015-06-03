@@ -50,6 +50,7 @@ Table of Contents
    build_tutorials
    admin
    custom-channels
+   get-involved
    get-more-help
 
 
