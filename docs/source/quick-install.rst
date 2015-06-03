@@ -12,17 +12,15 @@ QUICK TIP: If you prefer to have the 150+ open source packages included with Ana
 
 
 Miniconda quick install requirements
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 32 or 64 bit computer, 32MB available, Linux, Macintosh or Windows.
 
 Note: If you choose to install the full Anaconda package, it requires 300+ MB for the download plus another 300+ to install it. 
 
-Install instructions
---------------------
 
-Linux Miniconda quick install 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Linux Miniconda install 
+------------------------
 
 In your browser download the Miniconda installer for Linux, then in your terminal window type the following and follow the prompts on the installer screens. If unsure about any setting, simply accept the defaults as they all can be changed later:
 
@@ -42,7 +40,7 @@ Because Miniconda is contained in one directory, uninstalling Miniconda is simpl
 
 
 Macintosh Miniconda install
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 
 In your browser download the Miniconda installer for Macintosh, then double click the .pkg file and follow the instructions on the screen. If unsure about any setting, simply accept the defaults as they all can be changed later.
 
@@ -50,7 +48,7 @@ NOTE: The install will not take effect until AFTER you close and reopen your ter
 
 **Macintosh Miniconda update**
 
-Open a terminal window, navigate to the anaconda directory, then type ``conda update conda``
+Open a terminal window, navigate to the anaconda directory, then type ``conda update conda``.
 
 **Macintosh Miniconda uninstall**
 
@@ -58,7 +56,7 @@ Because Miniconda is contained in one directory, uninstalling Miniconda is simpl
 
 
 Windows Miniconda install
-~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 In your browser download the Miniconda installer for Windows, then  double click the .exe file and follow the instructions on the screen.  If unsure about any setting, simply accept the defaults as they all can be changed later.
 
@@ -71,6 +69,7 @@ Open a terminal window with Start - Run - Command Prompt, navigate to the anacon
 **Windows Miniconda Uninstall**
 
 Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Miniconda)” and click Remove Program. 
+
 
 
 
