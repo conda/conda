@@ -114,7 +114,7 @@ Customization (.condarc file)
 
       $ conda config --add channels http://conda.binstar.org/mutirri
 
-#. How can I remove existing value Y (e.g. http://conda.binstar.org/mutirri) from key X?
+#. How can I existing value Y (e.g. http://conda.binstar.org/mutirri) from key X?
 
    .. code-block:: bash
 
@@ -179,10 +179,10 @@ Updating packages (in the root environment)
 
       $ conda update scipy
 
-#. How can I keep a package from being updated?
+#. How can I prevent a package from being updated?
 
    You can pin a package specification in an environment, which will prevent
-   it from being changed, unless the ``--no-pin`` flag is passed to conda. To
+   it from being updated, unless the ``--no-pin`` flag is passed to conda. To
    do so, add a file called ``pinned`` to the environment's ``conda-meta``
    directory with a list of specs. For example
 
@@ -194,11 +194,11 @@ Updating packages (in the root environment)
    will force numpy to stay on the 1.7 series (any version that starts with
    "1.7."), and scipy to stay at exactly version 0.13.2.
 
-   With this pinned file, ``conda update numpy`` will keep numpy at 0.7.1, and
+   With this pinned file, ``conda update numpy`` will keep numpy at 1.7.1, and
    ``conda install scipy=0.14.0`` will lead to an error. To force either of
-   these, use the ``-no-pin`` flag, like ``conda update numpy --no-pin``. The
-   way pinning works is that the pined specs are included with each conda
-   install, so subsequent commands without ``--no-pin`` will revert numpy back
+   these, use the ``--no-pin`` flag, like ``conda update numpy --no-pin``. The
+   way pinning works is that the pinned specs are included with each conda
+   install, so subsequent ``conda update`` commands without ``--no-pin`` will revert numpy back
    to the 1.7 series.
 
 .. _pkg-removing:
@@ -392,7 +392,8 @@ Installation
 
       $ conda config --add create_default_packages pip
 
-   After performing the above command you can create a new environment in the standard way (pip will be installed in all of them).
+   After performing the above command you can create new environments in the standard way (scipy 
+   will be installed in all of them).
 
 #. How can I automatically install Y package (e.g. *scipy*) during creation of any of new environment?
 
@@ -409,9 +410,8 @@ Installation
 
       $ conda config --add create_default_packages scipy=0.12.0
 
-   After performing the above command you can create a new environments in the
-   standard way (the *scipy* in 0.12.0 version will be installed in all of
-   them).
+   After performing the above command you can create new environments in the standard way 
+   (scipy version 0.12.0 will be installed in all of them).
 
 #. How can I ignore packages from automatic installation during creation of new and clean environment X (e.g. ``myenv``)?
 
@@ -486,3 +486,4 @@ Recipes
         $ conda install <path_from_root_environment_variable>/conda-bld/<your_platform>/bottle.tar.bz2
 
    This information is also shown at the end of the build process.
+
