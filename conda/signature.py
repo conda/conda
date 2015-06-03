@@ -20,6 +20,10 @@ KEYS_DIR = abspath(expanduser('~/.conda/keys'))
 
 
 def sig2ascii(i):
+    """
+    Given a positive integer `i`, return a base64 encoded string
+    representation of the value.    
+    """
     ret = []
     while i:
         i, r = divmod(i, 256)
@@ -32,6 +36,10 @@ def sig2ascii(i):
 
 
 def ascii2sig(s):
+    """
+    Given the base64 encoded string representation of an integer (returned
+    by sig2ascii), return the integer value.
+    """
     res = 0
     for c in base64.b64decode(s):
         res *= 256
@@ -43,7 +51,7 @@ def hash_file(path):
     h = hashlib.new('sha256')
     with open(path, 'rb') as fi:
         while True:
-            chunk = fi.read(262144)
+            chunk = fi.read(262144)  # process chunks of 256KB
             if not chunk:
                 break
             h.update(chunk)
