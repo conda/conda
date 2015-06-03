@@ -49,6 +49,10 @@ def ascii2sig(s):
     return res
 
 
+class SignatureError(Exception):
+    pass
+
+
 def verify(path):
     """
     Verify the file `path`, with signature `path`.sig, against the key
@@ -59,13 +63,13 @@ def verify(path):
     """
     sig_path = path + '.sig'
     if not isfile(sig_path):
-        return None
+        raise SignatureError("signature does not exist: %s" % sig_path)
     with open(sig_path) as fi:
         key_name, sig = fi.read().split()
     if key_name not in KEYS:
         key_path = join(KEYS_DIR, '%s.pub' % key_name)
         if not isfile(key_path):
-            return None
+            raise SignatureError("public key does not exist: %s" % key_path)
         KEYS[key_name] = RSA.importKey(open(key_path).read())
     key = KEYS[key_name]
     return key.verify(sha256_file(path), (ascii2sig(sig),))
