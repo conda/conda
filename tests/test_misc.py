@@ -12,6 +12,10 @@ class TestMisc(unittest.TestCase):
 
     def test_ascii2sig(self):
         self.assertEqual(sig2ascii(1234), 'BNI=')
+        self.assertRaises(ValueError, sig2ascii, -1)
+        self.assertRaises(ValueError, sig2ascii, -12345)
+        self.assertRaises(TypeError, sig2ascii, 2.0)
+        self.assertRaises(TypeError, sig2ascii, 'a')
 
     def test_sig2ascii(self):
         self.assertEqual(ascii2sig('BNI='), 1234)
