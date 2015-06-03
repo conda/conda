@@ -1,9 +1,9 @@
 import sys
 import base64
-import hashlib
 from os.path import abspath, expanduser, join
 
 from conda.compat import PY3
+from conda.utils import hashsum_file
 
 try:
     from Crypto.PublicKey import RSA
@@ -48,14 +48,7 @@ def ascii2sig(s):
 
 
 def hash_file(path):
-    h = hashlib.new('sha256')
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.digest()
+    return hashsum_file(path, mode='sha256')
 
 
 def verify(path):
