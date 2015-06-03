@@ -44,13 +44,13 @@ Table of Contents
    quick-install
    installation
    test-drive
-   get-more-help
    glossary
    config
    build
    build_tutorials
    admin
    custom-channels
+   get-more-help
 
 
 Reference Guide
