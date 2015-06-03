@@ -211,7 +211,7 @@ channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
     (re.escape(channel_alias)))
 
 def hide_binstar_tokens(url):
