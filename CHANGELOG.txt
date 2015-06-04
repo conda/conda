@@ -5,6 +5,7 @@
   * rename binstar.org -> anaconda.org, see #1348
   * speed up 'source activate' by ~40%
 
+
 2015-05-05   3.12.0:
 --------------------
   * correctly allow conda to update itself
