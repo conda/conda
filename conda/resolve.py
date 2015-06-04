@@ -401,6 +401,9 @@ class Resolve(object):
                     rearrange = False
                 if rearrange:
                     idx = pkgs.index(d)
+                    # For example, if the versions are 1.0, 2.0, 3.0, 4.0, and
+                    # 5.0, and 3.0 is installed, this prefers 3.0 > 4.0 > 5.0
+                    # > 2.0 > 1.0.
                     pkgs = [d] + list(reversed(pkgs[:idx])) + pkgs[idx+1:]
             i = 0
             prev = pkgs[0]
