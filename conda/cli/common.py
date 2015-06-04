@@ -241,7 +241,7 @@ def add_parser_install(p):
             metavar='package_spec',
             action="store",
             nargs='*',
-            help="Package versions to install into the conda environment.",
+            help="Packages to update in the conda environment.",
         ).completer=InstalledPackages
     else: # create or install
         # Same as above except the completer is not only installed packages
@@ -250,9 +250,8 @@ def add_parser_install(p):
             metavar='package_spec',
             action="store",
             nargs='*',
-            help="Package versions to install into the conda environment.",
+            help="Packages to install into the conda environment.",
             ).completer=Packages
-
 
 def add_parser_use_local(p):
     p.add_argument(
