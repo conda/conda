@@ -106,7 +106,7 @@ def execute(args, parser):
 
     if uploader.authorized():
         info = uploader.upload(args.force)
-        print("Your environment file has been uploaded to {}".format(info['url']))
+        print("Your environment file has been uploaded to {}".format(info.get('url', 'anaconda.org')))
     else:
         msg = """You are not authorized to upload a package into Binstar.org
                  Verify that you are logged in Binstar.org with:
