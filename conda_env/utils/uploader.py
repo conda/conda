@@ -3,9 +3,9 @@ from collections import namedtuple
 from .. import exceptions
 try:
     from binstar_client.utils import get_binstar
+    from binstar_client import errors
 except ImportError:
     get_binstar = None
-from binstar_client import errors
 
 
 ENVIRONMENT_TYPE = 'env'
