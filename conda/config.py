@@ -68,6 +68,7 @@ rc_bool_keys = [
     'show_channel_urls',
     'allow_other_channels',
     'ssl_verify',
+    'update_dependencies',
     ]
 
 # Not supported by conda config yet
@@ -332,6 +333,7 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 ssl_verify = bool(rc.get('ssl_verify', True))
+update_dependencies = bool(rc.get('update_dependencies', True))
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:

@@ -728,7 +728,7 @@ Hint: the following packages conflict with each other:
         self.msd_cache[fn] = d.values()
 
     def solve(self, specs, installed=None, features=None, max_only=False,
-              minimal_hint=False):
+              minimal_hint=False, update_deps=True):
         if installed is None:
             installed = []
         if features is None:
@@ -746,7 +746,8 @@ Hint: the following packages conflict with each other:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features, installed, minimal_hint=minimal_hint)
+            return self.explicit(specs) or self.solve2(specs, features,
+                installed, minimal_hint=minimal_hint, update_deps=update_deps)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
