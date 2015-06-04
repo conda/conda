@@ -269,8 +269,8 @@ channels:
         for key in args.get:
             if key not in config.rc_list_keys + config.rc_bool_keys:
                 if key not in config.rc_other:
+                    message = "unknown key %s" % key
                     if not args.json:
-                        message = "unknown key %s" % key
                         print(message, file=sys.stderr)
                     else:
                         json_warnings.append(message)
