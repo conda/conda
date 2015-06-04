@@ -105,7 +105,8 @@ def execute(args, parser):
     uploader = Uploader(name, args.file, summary=summary, force=args.force, env_data=dict(env.to_dict()))
 
     if uploader.authorized():
-        uploader.upload(args.force)
+        info = uploader.upload(args.force)
+        print("Your environment file has been uploaded to {}".format(info['url']))
     else:
         msg = """You are not authorized to upload a package into Binstar.org
                  Verify that you are logged in Binstar.org with:
