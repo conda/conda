@@ -13,26 +13,35 @@ from conda.cli import common
 
 descr = "Launches an application installed with Conda."
 
+examples = """
+Examples:
+
+    conda run ipython-notebook
+"""
+
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('run',
-                               description = descr,
-                               help = descr)
+    p = sub_parsers.add_parser(
+        'run',
+        description=descr,
+        help=descr,
+        epilog=examples,
+    )
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     common.add_parser_json(p)
     p.add_argument(
         'package',
-        metavar = 'COMMAND',
-        action = "store",
-        nargs = '?',
-        help = "package to launch"
+        metavar='COMMAND',
+        action="store",
+        nargs='?',
+        help="Package to launch."
     )
     p.add_argument(
         'arguments',
-        metavar = 'ARGUMENTS',
-        action = 'store',
-        nargs = '*',
-        help = "additional arguments to application"
+        metavar='ARGUMENTS',
+        action='store',
+        nargs='*',
+        help="Additional arguments to application."
     )
     p.set_defaults(func=execute)
 

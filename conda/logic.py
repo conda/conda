@@ -30,7 +30,7 @@ from functools import total_ordering, partial
 from itertools import islice, chain, combinations
 import logging
 
-from conda.compat import log2, ceil
+from conda.compat import log2, ceil, range, zip
 from conda.utils import memoize
 
 dotlog = logging.getLogger('dotupdate')
@@ -531,8 +531,11 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
             lo = mid+1
     return constraints
 
+class MaximumIterationsError(Exception):
+    pass
+
 # TODO: alg='sorter' can be faster, especially when the main algorithm is sorter
-def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
+def min_sat(clauses, max_n=1000, N=None, alg='sorter', raise_on_max_n=False):
     """
     Calculate the SAT solutions for the `clauses` for which the number of true
     literals from 1 to N is minimal.  Returned is the list of those solutions.
@@ -540,6 +543,12 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
 
     alg can be any algorithm supported by generate_constraints, or 'iterate",
     which iterates all solutions and finds the smallest.
+
+    max_n is the maximum number of iterations the algorithm will run
+    through. If raise_on_max_n=True, the function will raise
+    MaximumIterationsError if max_n solutions were found. In other words, in
+    this case, it is possible another minimal solution could be found if max_n
+    were larger.
 
     """
     log.debug("min_sat using alg: %s" % alg)
@@ -562,12 +571,16 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
             # Old versions of pycosat require lists. This conversion can be
             # very slow, though, so only do it if we need to.
             clauses = list(map(list, clauses))
-        for sol in islice(pycosat.itersolve(clauses), max_n):
+        i = -1
+        for sol, i in zip(pycosat.itersolve(clauses), range(max_n)):
             tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
             if tl < min_tl:
                 min_tl, solutions = tl, [sol]
             elif tl == min_tl:
                 solutions.append(sol)
+        log.debug("Iterate ran %s times" % (i + 1))
+        if i + 1 == max_n and raise_on_max_n:
+            raise MaximumIterationsError("min_sat ran max_n times")
         return solutions
     else:
         solution = sat(clauses)
@@ -583,6 +596,7 @@ def min_sat(clauses, max_n=1000, N=None, alg='iterate'):
         log.debug("Using max_val %s. N=%s" % (max_val, N))
         constraints = bisect_constraints(0, min(max_val, N), clauses, func,
             evaluate_func=evaluate_func, increment=1000)
+
         return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
 
 def sat(clauses):
@@ -613,7 +627,7 @@ def sat(clauses):
     # boolean value of False even though the clauses are not unsatisfiable)
     return solution
 
-def minimal_unsatisfiable_subset(clauses, log=False):
+def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
@@ -622,9 +636,35 @@ def minimal_unsatisfiable_subset(clauses, log=False):
     unsatisfiable.  A set of clauses may have many minimal unsatisfiable
     subsets of different sizes.
 
-    if log=True, progress bars will be displayed with the progress.
-    """
+    If log=True, progress bars will be displayed with the progress.
 
+    sat should be a function that takes a tuple of clauses and returns True if
+    the clauses are satisfiable and False if they are not.  The algorithm will
+    work with any order-reversing function (reversing the order of subset and
+    the order False < True), that is, any function where (A <= B) iff (sat(B)
+    <= sat(A)), where A <= B means A is a subset of B and False < True).
+
+    Algorithm
+    =========
+
+    Algorithm suggested from
+    http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
+    search on the clauses by splitting them in halves A and B. If A or B is
+    UNSAT, we use that and repeat. Otherwise, we recursively check A, but each
+    time we do a sat query, we include B, until we have a minimal subset A* of
+    A such that A* U B is UNSAT. Then we find a minimal subset B* of B such
+    that A* U B* is UNSAT. Then A* U B* will be a minimal unsatisfiable subset
+    of the original set of clauses.
+
+    Proof: If some proper subset C of A* U B* is UNSAT, then there is some
+    clause c in A* U B* not in C. If c is in A*, then that means (A* - {c}) U
+    B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a superset,
+    which contradicts A* being the minimal subset of A with such
+    property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B* -
+    {c} is a strict subset of B*, contradicting B* being the minimal subset of
+    B with this property.
+
+    """
     if log:
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
@@ -639,23 +679,6 @@ def minimal_unsatisfiable_subset(clauses, log=False):
     clauses = tuple(clauses)
     if sat(clauses):
         raise ValueError("Clauses are not unsatisfiable")
-
-    # Algorithm suggested from
-    # http://www.slideshare.net/pvcpvc9/lecture17-31382688. We do a binary
-    # search on the clauses by splitting them in halves A and B. If A or B is
-    # UNSAT, we use that and repeat. Otherwise, we recursively check A, but
-    # each time we do a sat query, we include B, until we have a minimal
-    # subset A* of A such that A* U B is UNSAT. Then we find a minimal subset
-    # B* of B such that A* U B* is UNSAT. Then A* U B* will be a minimal
-    # unsatisfiable subset of the original set of clauses.
-
-    # Proof: If some proper subset C of A* U B* is UNSAT, then there is some
-    # clause c in A* U B* not in C. If c is in A*, then that means (A* - {c})
-    # U B* is UNSAT, and hence (A* - {c}) U B is UNSAT, since it is a
-    # superset, which contradicts A* being the minimal subset of A with such
-    # property. Similarly, if c is in B, then A* U (B* - {c}) is UNSAT, but B*
-    # - {c} is a strict subset of B*, contradicting B* being the minimal
-    # subset of B with this property.
 
     def split(S):
         """
@@ -709,6 +732,5 @@ def minimal_unsatisfiable_subset(clauses, log=False):
     d = 0
     start(L)
     ret = minimal_unsat(clauses)
-    # Commented out because it hides the progress
-    # stop()
+    stop()
     return ret

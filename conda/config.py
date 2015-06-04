@@ -53,7 +53,7 @@ rc_list_keys = [
     'envs_dirs'
     ]
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
 ADD_BINSTAR_TOKEN = True
 
@@ -65,7 +65,6 @@ rc_bool_keys = [
     'use_pip',
     'offline',
     'binstar_upload',
-    'binstar_personal',
     'show_channel_urls',
     'allow_other_channels',
     'ssl_verify',
@@ -212,7 +211,7 @@ channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
     (re.escape(channel_alias)))
 
 def hide_binstar_tokens(url):
@@ -223,7 +222,7 @@ def remove_binstar_tokens(url):
 
 def normalize_urls(urls, platform=None):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
-        DEFAULT_CHANNEL_ALIAS))
+                                                 DEFAULT_CHANNEL_ALIAS))
 
     platform = platform or subdir
     newurls = []
@@ -258,7 +257,6 @@ def get_channel_urls(platform=None):
 
     if 'channels' not in rc:
         base_urls = get_default_urls()
-
     else:
         base_urls = get_rc_urls()
 
@@ -306,10 +304,7 @@ allowed_channels = get_allowed_channels()
 # ----- proxy -----
 
 def get_proxy_servers():
-    res = rc.get('proxy_servers')
-    if res is None:
-        import requests
-        return requests.utils.getproxies()
+    res = rc.get('proxy_servers') or {}
     if isinstance(res, dict):
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
@@ -328,7 +323,6 @@ always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('binstar_upload', None) # None means ask
-binstar_personal = bool(rc.get('binstar_personal', True))
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded
