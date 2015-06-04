@@ -44,6 +44,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '--summary',
         help='Short summary of the environment',
+        default='Environment file'
     )
     p.add_argument(
         '--force',
@@ -104,7 +105,8 @@ def execute(args, parser):
     uploader = Uploader(name, args.file, summary=summary, force=args.force, env_data=dict(env.to_dict()))
 
     if uploader.authorized():
-        uploader.upload(args.force)
+        info = uploader.upload(args.force)
+        print("Your environment file has been uploaded to {}".format(info.get('url', 'anaconda.org')))
     else:
         msg = """You are not authorized to upload a package into Binstar.org
                  Verify that you are logged in Binstar.org with:
