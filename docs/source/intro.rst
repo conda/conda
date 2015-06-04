@@ -74,5 +74,5 @@ anywhere.  However, conda has a notion of `locations` which are also
 simply directories that are known to conda, and contain environments
 within.  Conda environments created in such locations are said to
 be `known`, and can be displayed for easy reference.  Conda has a default
-system location, but additional locations may be specified (see :doc:`build/dirs` 
+system location, but additional locations may be specified (see :doc:`building/dirs` 
 and :ref:`config`, respectively, for more details).
