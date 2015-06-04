@@ -8,5 +8,6 @@ Get more help
    faq
    troubleshooting
    conda-pip-virtualenv-translator
-   examples
+   examples/examples
+   travis
    support

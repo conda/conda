@@ -1,5 +1,3 @@
-.. _search_example:
-
 Search
 ------
 

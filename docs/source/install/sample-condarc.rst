@@ -21,4 +21,4 @@ Sample .condarc file
   show_channel_urls: True
 
 
-  # See http://conda.pydata.org/docs/config.html for more information about this file.
+  # See http://conda.pydata.org/docs/install/config.html for more information about this file.

@@ -1,5 +1,3 @@
-.. _update_example:
-
 Update
 -------
 

@@ -1,5 +1,3 @@
-.. _info_example:
-
 Info
 ----
 

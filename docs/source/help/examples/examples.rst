@@ -9,6 +9,6 @@ Contents:
 .. toctree::
    :maxdepth: 7
 
-   examples/information
-   examples/basic
-   examples/advanced
+   information
+   basic
+   advanced

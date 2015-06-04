@@ -1,6 +1,3 @@
-
-.. _config:
-
 =============
 Configuration
 =============
@@ -16,7 +13,7 @@ A .condarc file may also be located in the root environment, in which case it
 overrides any in the home directory.
 
 Note: A .condarc file can also be used in an administrator-controlled
-installation to override the users’ configuration. Please see :doc:`admin`.
+installation to override the users’ configuration. Please see :doc:`central`.
 
 The conda configuration file can be used to change:
 

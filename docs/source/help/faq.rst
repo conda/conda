@@ -2,26 +2,7 @@
 Conda FAQ
 =========
 
-Table of contents:
-
-#. :ref:`general-questions`
-#. :ref:`getting-help`
-#. :ref:`searching_and_info`
-#. :ref:`customization`
-#. :ref:`pkg-installation`
-#. :ref:`pkg-updating`
-#. :ref:`pkg-removing`
-#. :ref:`env`
-
-    - :ref:`env-info`
-    - :ref:`env-creating`
-    - :ref:`env-onoff`
-    - :ref:`env-installation`
-    - :ref:`env-removing`
-
-#. :ref:`recipes`
-
-.. _general-questions:
+.. contents::
 
 General questions
 =================
@@ -30,8 +11,6 @@ General questions
 
    *Anaconda* is a meta package for *conda*. This meta package contains all standard
    packages (like *scipy*, *numpy*, *zlib* etc.) provided by developers from Continuum Analytics.
-
-.. _getting-help:
 
 Getting help
 ============
@@ -47,8 +26,6 @@ Getting help
    .. code-block:: bash
 
       $ conda create -h
-
-.. _searching_and_info:
 
 Searching & info
 ================
@@ -126,8 +103,6 @@ Customization (.condarc file)
 
       $ conda config --remove-key channels
 
-.. _pkg-installation:
-
 Package installation (in the root environment)
 ==============================================
 
@@ -154,8 +129,6 @@ Package installation (in the root environment)
    .. code-block:: bash
 
       $ conda install scipy=0.12.0 curl=7.26.0
-
-.. _pkg-updating:
 
 Updating packages (in the root environment)
 ===========================================
@@ -201,8 +174,6 @@ Updating packages (in the root environment)
    install, so subsequent ``conda update`` commands without ``--no-pin`` will revert numpy back
    to the 1.7 series.
 
-.. _pkg-removing:
-
 Removing packages (from the root environment)
 =============================================
 
@@ -218,12 +189,8 @@ Removing packages (from the root environment)
 
       $ conda remove scipy curl
 
-.. _env:
-
 Environments
 ============
-
-.. _env-info:
 
 Getting info about environments
 -------------------------------
@@ -262,8 +229,6 @@ Getting info about environments
 
         $ source activate myenv
         $ conda list scipy
-
-.. _env-creating:
 
 Creating new environments
 -------------------------
@@ -327,8 +292,6 @@ Creating new environments
         $ source activate myenv
         $ conda install scipy=0.12.0
 
-.. _env-onoff:
-
 Activating and deactivating
 ---------------------------
 
@@ -343,8 +306,6 @@ Activating and deactivating
    .. code-block:: bash
 
       $ source deactivate
-
-.. _env-installation:
 
 Installation
 ------------
@@ -419,8 +380,6 @@ Installation
 
       $ conda create --no-default-packages -n myenv python
 
-.. _env-removing:
-
 Removing
 --------
 
@@ -444,9 +403,6 @@ Removing
 
         $ conda remove -n myenv --all
 
-
-
-.. _recipes:
 
 Recipes
 =======

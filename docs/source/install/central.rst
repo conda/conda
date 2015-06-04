@@ -15,8 +15,8 @@ still preventing these users from installing unwanted packages with conda. To do
 conda and the packages, if any, in a location that is controlled by the administrator and accessible by the users. 
 
 Each user may then use the central conda installation, and with their own “user” .condarc configuration file 
-located in their home directory. The users’ configuration is limited by the second “system” .condarc file, and the path to it is the same as the 
-root environment prefix displayed by “conda info”. See example below.
+located in their home directory. The users’ configuration is limited by the second “system” .condarc 
+file, and the path to it is the same as the root environment prefix displayed by “conda info”. See example below.
 
 The following settings are commonly used in a system configuration file, although they may also be used in a 
 user configuration file.  All user configuration settings may also be used in a system configuration file. 

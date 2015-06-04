@@ -2,7 +2,7 @@
 Conda test drive
 ================
 
-To start the conda 30-minute test drive, you should have already followed our 2-minute :doc:`quick-install` guide to download, install and update Miniconda, OR have downloaded, installed and updated Anaconda or Miniconda on your own.
+To start the conda 30-minute test drive, you should have already followed our 2-minute :doc:`install/quick` guide to download, install and update Miniconda, OR have downloaded, installed and updated Anaconda or Miniconda on your own.
 NOTE: After installing, be sure you have closed and then re-opened the terminal window so the changes can take effect.
 Conda test drive milestones:
 

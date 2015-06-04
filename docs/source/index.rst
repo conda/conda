@@ -41,17 +41,14 @@ Table of Contents
    :maxdepth: 2
 
    intro
-   quick-install
-   installation
+   install/install
    test-drive
    py2or3
    glossary
-   config
    build
    build_tutorials
    custom-channels
-   get-involved
-   get-more-help
+   help/help
 
 
 Reference Guide
@@ -65,7 +62,6 @@ Reference Guide
    env-commands
    build-commands
    spec
-   travis
    bdist_conda
    license
 
