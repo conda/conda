@@ -1,4 +1,4 @@
-2015-05-XX   3.13.0:
+2015-06-04   3.13.0:
 --------------------
   * avoid the Windows file lock by moving files to a trash directory, #1133
   * handle env dirs not existing in the Environments completer
