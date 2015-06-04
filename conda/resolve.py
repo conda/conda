@@ -476,16 +476,15 @@ class Resolve(object):
         log.debug("Features: %s" % str(features))
         log.debug("Installed: %s" % str(installed))
 
-        # First try doing it the "old way", i.e., just look at the most recent
-        # version of each package from the specs. This doesn't handle the more
-        # complicated cases that the pseudo-boolean solver does, but it's also
-        # much faster when it does work.
-
         # TODO: This won't handle packages that aren't found any more. We
         # should get this metadata directly from the package.
         installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
 
         if update_deps: # This algorithm doesn't support update_deps=False
+            # First try doing it the "old way", i.e., just look at the most recent
+            # version of each package from the specs. This doesn't handle the more
+            # complicated cases that the pseudo-boolean solver does, but it's also
+            # much faster when it does work.
             try:
                 dists = self.get_dists(specs, max_only=True)
             except NoPackagesFound:
