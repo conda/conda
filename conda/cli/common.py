@@ -232,6 +232,20 @@ def add_parser_install(p):
         action="store_true",
         default=False,
         help="Use an alternate algorithm to generate an unsatisfiability hint.")
+    p.add_argument(
+        "--update-dependencies", "--update-deps",
+        action="store_true",
+        dest="update_deps",
+        default=config.update_dependencies,
+        help="Update dependencies (default: %(default)s).",
+    )
+    p.add_argument(
+        "--no-update-dependencies", "--no-update-deps",
+        action="store_false",
+        dest="update_deps",
+        default=not config.update_dependencies,
+        help="Don't update dependencies (default: %(default)s).",
+    )
 
     if 'update' in p.prog:
         # I don't know if p.prog is the correct thing to use here but it's the
