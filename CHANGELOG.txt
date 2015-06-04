@@ -3,7 +3,7 @@
   * avoid the Windows file lock by moving files to a trash directory, #1133
   * handle env dirs not existing in the Environments completer
   * rename binstar.org -> anaconda.org, see #1348
-
+  * speed up 'source activate' by ~40%
 
 2015-05-05   3.12.0:
 --------------------
