@@ -4,7 +4,7 @@ Quick Install
 
 Conda is a cross-platform package manager and environment manager program that installs, runs, and updates packages and their dependencies, so you can easily set up and switch between environments on your local computer.  Conda is included in all versions of **Anaconda, Anaconda Server**, and **Miniconda**.
 
-The fastest way to get and install conda is to download Miniconda, a bootstrap version of Anaconda that includes just conda, its dependencies, and Python. Anaconda has all that plus 150+ open source packages that install at the same time, and 250 packages that can be installed with the simple ``conda install`` command. 
+The fastest way to get and install conda is to `download Miniconda <http://conda.pydata.org/miniconda.html>`_, a mini version of Anaconda that includes just conda, its dependencies, and Python. Anaconda has all that plus 150+ open source packages that install at the same time, and 250 packages that can be installed with the simple ``conda install`` command. 
 
 You can be using Python in two minutes or less with this quick install guide - including install, update and uninstall. If you have any problems, please see the full installation instructions.
 
@@ -69,7 +69,6 @@ Open a terminal window with Start - Run - Command Prompt, navigate to the anacon
 **Windows Miniconda Uninstall**
 
 Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Miniconda)” and click Remove Program. 
-
 
 
 
