@@ -526,7 +526,7 @@ class Resolve(object):
             if returnall:
                 return [[]]
             return []
-        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists)
+        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists, specs)
 
 
         # Second common case, check if it's unsatisfiable
