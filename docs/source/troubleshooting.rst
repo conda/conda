@@ -204,10 +204,10 @@ When I run a command within a conda environment, conda does not access the corre
 Resolution:  Reactivate the environment or run ``hash -r`` (in bash) or ``rehash`` (in zsh)
 -------------------------------------------------------------------------------------------
 
-The way both bash and zsh work is that when you enter a command, the shell script
-searches the paths in ``PATH`` one by one until it finds the command. The shell script 
+The way both bash and zsh work is that when you enter a command, the shell 
+searches the paths in ``PATH`` one by one until it finds the command. The shell 
 then caches the location (this is called "hashing" in shell terminology), so that 
-when you type the command again, the shell script doesn't have to search the ``PATH`` 
+when you type the command again, the shell doesn't have to search the ``PATH`` 
 again.
 
 The problem is that before you conda installed the program, you ran the command 
