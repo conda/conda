@@ -44,6 +44,7 @@ Table of Contents
    quick-install
    installation
    test-drive
+   py2or3
    glossary
    config
    build
