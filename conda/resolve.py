@@ -391,7 +391,7 @@ class Resolve(object):
         max_rhs = 0
         for filenames in sorted(itervalues(groups)):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
-            if (not update_deps and not any(s.split()[0] == pkgs[0].name for s in specs)):
+            if (not update_deps and not any(s.split()[0] == pkgs[0].rsplit('-', 2)[0] for s in specs)):
                 rearrange = True
                 for d in installed_dists:
                     if d in pkgs:
