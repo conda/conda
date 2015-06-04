@@ -59,7 +59,8 @@ def verify(path):
     found under ~/.conda/keys/<key_name>.pub.  This function returns:
       - True, if the signature is valid
       - False, if the signature is invalid
-      - None, when the signature or public key is not found
+    It will raise a SignatureError when either the signature or the
+    public key file do not exist.
     """
     sig_path = path + '.sig'
     if not isfile(sig_path):
