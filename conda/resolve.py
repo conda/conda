@@ -401,7 +401,7 @@ class Resolve(object):
                     rearrange = False
                 if rearrange:
                     idx = pkgs.index(d)
-                    pkgs = pkgs[:idx] + list(reversed(pkgs[idx:]))
+                    pkgs = [d] + list(reversed(pkgs[:idx])) + pkgs[idx+1:]
             i = 0
             prev = pkgs[0]
             for pkg in pkgs:
