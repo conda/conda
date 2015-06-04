@@ -44,6 +44,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '--summary',
         help='Short summary of the environment',
+        default='Environment file'
     )
     p.add_argument(
         '--force',
