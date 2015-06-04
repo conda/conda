@@ -11,7 +11,9 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
+    MaximumIterationsError)
+from conda.install import load_meta
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -476,9 +478,10 @@ class Resolve(object):
         log.debug("Features: %s" % str(features))
         log.debug("Installed: %s" % str(installed))
 
-        # TODO: This won't handle packages that aren't found any more. We
-        # should get this metadata directly from the package.
-        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in installed}
+        # This won't packages that aren't in the index, but there isn't much
+        # we can do with such packages here anyway.
+        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in
+            installed if pkg in self.index}
 
         if update_deps: # This algorithm doesn't support update_deps=False
             # First try doing it the "old way", i.e., just look at the most recent
