@@ -195,22 +195,40 @@ profile and restarting the shell.
 
 .. _shell-command-location:
 
+
 Issue:  Shell commands open from wrong location
 ===============================================
 
-When I start R or another shell within a newly-installed conda virtual environment, it does not access the correct package library.
+When I run a command within a conda environment, conda does not access the correct package executable.
 
-Resolution:  Deactivate environments or do not run shell commands before a conda install.
---------------------------------------------------------------------------------------------
+Resolution:  Reactivate the environment or run ``hash -r`` (in bash) or ``rehash`` (in zsh)
+-------------------------------------------------------------------------------------------
 
-What probably happened was you started R before you conda installed it, which loaded and hashed the one in /usr/bin. Then you conda installed it, but the shell still had R hashed to /usr/bin/R.
+The way both bash and zsh work is that when you enter a command, the shell script
+searches the paths in ``PATH`` one by one until it finds the command. The shell script 
+then caches the location (this is called "hashing" in shell terminology), so that 
+when you type the command again, the shell script doesn't have to search the ``PATH`` 
+again.
 
-If you use the root environment or activate an environment, run a command from somewhere else, then conda install it and then use the previous environment again, you must run source activate or source deactivate for the path to be correct.
+The problem is that before you conda installed the program, you ran the command 
+which loaded and hashed the one in some other location on the ``PATH`` (such as
+``/usr/bin``). Then you installed the program using ``conda install``, but the 
+shell still had the old instance hashed.
 
-The way both bash and zsh work is that when you type a command, like R, it searches the paths in PATH one by one until it finds it, and then it caches the location (this is called "hashing" in shell terminology), so that when you type it again, it doesn't have to search the PATH again, it just runs it.
+When you run ``source activate``, conda automatically runs ``hash -r`` in bash and
+``rehash`` in zsh to clear the hashed commands, so conda will find things in the
+new path on the ``PATH``. But there is no way to do this when ``conda install``
+is run (the command must be run inside the shell itself, meaning either you
+have to type the command yourself or source a file that contains the command).
 
-When you run source activate, it automatically runs hash -r in bash and rehash in zsh to clear the hashed commands, so it will find things in the new path on the PATH, but there is no way to do this when a conda install is run (the command has to be run inside the shell itself, meaning either you have to type it yourself or source a file that does it).
+This is a relatively rare problem, since this will only happen if you activate
+an environment or use the root environment, run a command from somewhere else,
+then conda install a program and try to run the program again without running ``source
+activate`` or ``source deactivate``.
 
-This is a relatively rare problem, since it will only happen if you activate an environment or use the root environment, run a command from somewhere else, then conda install it and try to run it again without running ``source activate`` or ``source deactivate``. But it's worth knowing about. The command ``type command_name`` will always tell you exactly what is being run (this is better than ``which command_name``, which ignores hashed commands and searches the PATH directly), and ``hash -r`` (in bash) or ``rehash`` (in zsh) will reset the hash, or you can run ``source activate``.
+The command ``type command_name`` will always tell you exactly what is being
+run (this is better than ``which command_name``, which ignores hashed commands
+and searches the ``PATH`` directly), and ``hash -r`` (in bash) or ``rehash``
+(in zsh) will reset the hash, or you can run ``source activate``.
 
 
