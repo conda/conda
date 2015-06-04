@@ -12,11 +12,28 @@ import argparse
 from difflib import get_close_matches
 
 from conda.cli.find_commands import find_commands
+from conda.cli import common
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
 
 class ArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        if not kwargs.get('formatter_class'):
+            kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
+        if 'add_help' not in kwargs:
+            add_custom_help = True
+            kwargs['add_help'] = False
+        else:
+            add_custom_help = False
+        super(ArgumentParser, self).__init__(*args, **kwargs)
+
+        if add_custom_help:
+            common.add_parser_help(self)
+
+        if self.description:
+            self.description += "\n\nOptions:\n"
+
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
@@ -82,6 +99,6 @@ Error: You need to install conda-build in order to use the 'conda %s'
     def print_help(self):
         super(ArgumentParser, self).print_help()
 
-        if sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
+        if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             from conda.cli.find_commands import help
             help()

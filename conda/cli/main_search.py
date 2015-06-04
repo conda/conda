@@ -9,16 +9,32 @@ from __future__ import print_function, division, absolute_import
 from conda.cli import common
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound
-from argparse import RawDescriptionHelpFormatter
 from conda import config
 
 descr = """Search for packages and display their information. The input is a
 regular expression.  To perform a search with a search string that starts with
-a -, separate the search from the options with --, like 'conda search -- -h'."""
-example = '''
-examples:
-    conda search -p ~/anaconda/envs/myenv/ scipy
+a -, separate the search from the options with --, like 'conda search -- -h'.
 
+A * in the results means that package is installed in the current
+environment. A . means that package is not installed but is cached in the pkgs
+directory.
+"""
+example = '''
+Examples:
+
+Search for packages with 'scikit' in the name:
+
+    conda search scikit
+
+Search for the 'python' package (but no other packages that have 'python' in
+the name):
+
+   conda search -f python
+
+Search for packages for 64-bit Linux (by default, packages for your current
+platform are shown):
+
+   conda search --platform linux-64
 '''
 
 class Platforms(common.Completer):
@@ -34,38 +50,32 @@ class Platforms(common.Completer):
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'search',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = descr,
-        epilog = example,
+        description=descr,
+        help=descr,
+        epilog=example,
     )
     common.add_parser_prefix(p)
     p.add_argument(
         "--canonical",
-        action  = "store_true",
-        help    = "output canonical names of packages only",
+        action="store_true",
+        help="Output canonical names of packages only.",
     )
     p.add_argument(
         '-f', "--full-name",
-        action = "store_true",
-        help = "only search for full name, ie. ^<regex>$",
+        action="store_true",
+        help="Only search for full name, ie. ^<regex>$.",
     )
     p.add_argument(
         "--names-only",
-        action  = "store_true",
-        help    = "output only package names",
+        action="store_true",
+        help="Output only package names.",
     )
     common.add_parser_known(p)
     common.add_parser_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
-        action  = "store_true",
-        help    = "only display installed but outdated packages",
-    )
-    p.add_argument(
-        '-v', "--verbose",
-        action  = "store_true",
-        help    = "Show available packages as blocks of data",
+        action="store_true",
+        help="Only display installed but outdated packages.",
     )
     p.add_argument(
         '--platform',
@@ -78,17 +88,17 @@ def configure_parser(sub_parsers):
         )
     p.add_argument(
         "--spec",
-        action  = "store_true",
-        help    = "Treat regex argument as a package specification instead "
-                  "(package_name[=version[=build]])",
+        action="store_true",
+        help="""Treat the regex argument as a package specification instead
+        (package_name[=version[=build]]).""",
     )
     p.add_argument(
         'regex',
-        metavar = 'regex',
-        action  = "store",
-        nargs   = "?",
-        help    = "package specification or regular expression to search for "
-                  "(default: display all packages)",
+        metavar='regex',
+        action="store",
+        nargs="?",
+        help="""Package specification or regular expression to search for (default: display
+        all packages).""",
     ).completer = common.Packages
     common.add_parser_offline(p)
     common.add_parser_channels(p)
@@ -179,7 +189,7 @@ def execute_search(args, parser):
         if ms and name != ms.name:
             continue
 
-        if args.names_only:
+        if args.names_only and not args.outdated:
             print(name)
             continue
 
@@ -202,6 +212,9 @@ def execute_search(args, parser):
                 continue
             latest = pkgs[-1]
             if latest.version == vers_inst[0]:
+                continue
+            if args.names_only:
+                print(name)
                 continue
 
         for pkg in sorted(r.get_pkgs(ms_name)):

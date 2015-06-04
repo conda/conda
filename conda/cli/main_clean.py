@@ -1,11 +1,10 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
 
-from argparse import RawDescriptionHelpFormatter
 import os
 import sys
 
@@ -22,46 +21,45 @@ Remove unused packages and caches.
 """
 
 example = """
-examples:
+Examples:
+
     conda clean --tarballs
 """
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'clean',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = descr,
-        epilog = example,
+        description=descr,
+        help=descr,
+        epilog=example,
     )
-
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
         "-i", "--index-cache",
-        action = "store_true",
-        help = "remove index cache",
+        action="store_true",
+        help="Remove index cache.",
     )
     p.add_argument(
         "-l", "--lock",
-        action = "store_true",
-        help = "remove all conda lock files",
+        action="store_true",
+        help="Remove all conda lock files.",
     )
     p.add_argument(
         "-t", "--tarballs",
-        action = "store_true",
-        help = "remove cached package tarballs",
+        action="store_true",
+        help="Remove cached package tarballs.",
     )
     p.add_argument(
         '-p', '--packages',
         action='store_true',
-        help="""remove unused cached packages. Warning: this does not check
+        help="""Remove unused cached packages. Warning: this does not check
     for symlinked packages.""",
     )
     p.add_argument(
         '-s', '--source-cache',
         action='store_true',
-        help="""remove files from the source cache of conda build""",
+        help="""Remove files from the source cache of conda build.""",
     )
     p.set_defaults(func=execute)
 

@@ -18,42 +18,51 @@ from conda.cli import common
 
 help = "Display information about current conda install."
 
+example = """
+
+Examples:
+
+    conda info -a
+"""
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('info',
-                               description = help,
-                               help = help)
+    p = sub_parsers.add_parser(
+        'info',
+        description=help,
+        help=help,
+        epilog=example,
+    )
     common.add_parser_json(p)
     p.add_argument(
         '-a', "--all",
-        action  = "store_true",
-        help    = "show all information, (environments, license, and system "
-                  "information")
+        action="store_true",
+        help="Show all information, (environments, license, and system "
+                  "information.")
     p.add_argument(
         '-e', "--envs",
-        action  = "store_true",
-        help    = "list all known conda environments",
+        action="store_true",
+        help="List all known conda environments.",
     )
     p.add_argument(
         '-l', "--license",
-        action  = "store_true",
-        help    = "display information about local conda licenses list",
+        action="store_true",
+        help="Display information about the local conda licenses list.",
     )
     p.add_argument(
         '-s', "--system",
-        action = "store_true",
-        help = "list environment variables",
+        action="store_true",
+        help="List environment variables.",
     )
     p.add_argument(
         'packages',
-        action = "store",
-        nargs = '*',
-        help = "display information about packages",
+        action="store",
+        nargs='*',
+        help="Display information about packages.",
     )
     p.add_argument(
         '--root',
         action='store_true',
-        help='display root environment path',
+        help='Display root environment path.',
     )
     p.set_defaults(func=execute)
 

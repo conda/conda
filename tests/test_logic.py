@@ -1,6 +1,7 @@
-import pycosat
-
 from itertools import product, chain, permutations
+
+import pycosat
+import pytest
 
 from conda.compat import log2, ceil
 from conda.logic import (Linear, Clauses, true, false, sat, min_sat,
@@ -448,6 +449,8 @@ def test_Linear():
     assert l.total == 0
     assert l([1, 2, 3]) == False
 
+
+@pytest.mark.slow
 def test_BDD():
     L = [
         Linear([(1, 1), (2, 2)], [0, 2]),
@@ -694,6 +697,8 @@ def test_odd_even_mergesort():
 
                 assert s == sorted(a, reverse=True), (a, s, sol)
 
+
+@pytest.mark.slow
 def test_sorter():
     L = [
         Linear([(1, 1), (2, 2)], [0, 2]),
