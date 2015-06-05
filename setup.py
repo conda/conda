@@ -38,6 +38,7 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
     ],
     description="tools for interacting with conda environments",
     long_description=open('README.rst').read(),
@@ -45,6 +46,8 @@ setup(
         'conda_env',
         'conda_env.cli',
         'conda_env.installers',
+        'conda_env.specs',
+        'conda_env.utils',
     ],
     scripts=[
         'bin/conda-env',

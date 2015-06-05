@@ -1,6 +1,6 @@
 package:
   name: conda-env
-  version: 2.2alpha.0
+  version: 2.2beta.0
 
 build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
@@ -8,10 +8,10 @@ build:
   {% else %}string: py{{ environ.get('PY_VER').replace('.', '') }}_{{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}{% endif %}
   preserve_egg_dir: yes
   always_include_files:
-    - bin/activate
-    - bin/activate.bat
-    - bin/deactivate
-    - bin/deactivate.bat
+    - bin/activate              [unix]
+    - Scripts/activate.bat      [win]
+    - bin/deactivate            [unix]
+    - Scripts/deactivate.bat    [win]
 
 source:
   git_url: ../
