@@ -7,7 +7,7 @@ Provides the `conda env` interface to Conda environments.
 Installing
 ----------
 
-To install `conda env` with conda, run the following command in your root environment: 
+To install `conda env` with conda, run the following command in your root environment:
 
 .. code-block:: bash
 
@@ -29,7 +29,9 @@ All of the usage is documented via the ``--help`` flag.
         export              Export a given environment
         list                List the Conda environments
         remove              Remove an environment
-        update              Updates the current environment based on environment file
+        upload              Upload an environment to binstar
+        update              Updates the current environment based on environment
+                            file
 
     optional arguments:
       -h, --help            show this help message and exit
