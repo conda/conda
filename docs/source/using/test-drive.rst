@@ -1,16 +1,17 @@
-================
-Conda test drive
+Test drive
 ================
 
-To start the conda 30-minute test drive, you should have already followed our 2-minute :doc:`install/quick` guide to download, install and update Miniconda, OR have downloaded, installed and updated Anaconda or Miniconda on your own.
+To start the conda 30-minute test drive, you should have already followed our 2-minute :doc:`/install/quick` guide to download, install and update Miniconda, OR have downloaded, installed and updated Anaconda or Miniconda on your own.
 NOTE: After installing, be sure you have closed and then re-opened the terminal window so the changes can take effect.
-Conda test drive milestones:
 
-#. USING CONDA. First we will verify that you have installed Anaconda or Miniconda, and check that it is updated to the current version. 3 min.
-#. MANAGING ENVIRONMENTS. Next we will play with environments by creating a few environments, so you can learn to move easily between the environments. We will also verify which environment you are in, and make an exact copy of an environment as a backup. 10 min.
-#. MANAGING PYTHON. Then we will check to see which versions of Python are available to install, install another version of Python, and switch between versions. 4 min.
-#. MANAGING PACKAGES. We play with packages. We will a) list packages installed on your computer, b) see a list of available packages, and c) install and remove some packages using conda install. For packages not available using conda install, we will d) search on binstar.org. For packages that are in neither location, we’ll e) install a package with the pip package manager. We will also install a free 30 day trial of Continuum’s commercial package IOPro. 10 min.
-#. REMOVING PACKAGES, ENVIRONMENTS, OR CONDA. We’ll end the test drive by removing one or more of your test packages, environments, and/or conda,  if you wish. 3 min.
+Conda test drive milestones:
+----------------------------
+
+#. :ref:`USING CONDA<managing-conda>`. First we will verify that you have installed Anaconda or Miniconda, and check that it is updated to the current version. 3 min.
+#. :ref:`MANAGING ENVIRONMENTS<managing-envs>`. Next we will play with environments by creating a few environments, so you can learn to move easily between the environments. We will also verify which environment you are in, and make an exact copy of an environment as a backup. 10 min.
+#. :ref:`MANAGING PYTHON<managing-python>`. Then we will check to see which versions of Python are available to install, install another version of Python, and switch between versions. 4 min.
+#. :ref:`MANAGING PACKAGES<managing-pkgs>`. We play with packages. We will a) list packages installed on your computer, b) see a list of available packages, and c) install and remove some packages using conda install. For packages not available using conda install, we will d) search on binstar.org. For packages that are in neither location, we’ll e) install a package with the pip package manager. We will also install a free 30 day trial of Continuum’s commercial package IOPro. 10 min.
+#. :ref:`REMOVING PACKAGES, ENVIRONMENTS, OR CONDA<remove-pkgs-envs-conda>`. We’ll end the test drive by removing one or more of your test packages, environments, and/or conda,  if you wish. 3 min.
 
 TOTAL 30 Minutes
 
@@ -20,6 +21,8 @@ For example, to learn about the conda update command:
 .. code::
 
    conda update --help
+
+.. _managing-conda:
 
 1. Managing conda
 -----------------
@@ -66,6 +69,8 @@ type Y to update:
    Proceed ([y]/n)? y
 
 When conda is updated, move to the next topic.
+
+.. _managing-envs:
 
 2. Managing environments
 ------------------------
@@ -201,6 +206,8 @@ To learn more about any conda command, just type the command followed by  ``--he
 
    conda remove --help
 
+.. _managing-python:
+
 3. Managing Python
 ------------------
 
@@ -271,6 +278,8 @@ revert your PATH to its previous state:
 
 * Linux, Macintosh: ``source deactivate``
 * Windows: ``deactivate``
+
+.. _managing-pkgs:
 
 4. Managing packages
 --------------------
@@ -399,6 +408,8 @@ up your Python processing:
 TIP: Except for academic use, this free trial expires after 30 days.
 
 You can now install and verify any package you want using conda, whether using the conda command, downloading from Binstar.org, or using pip install, and whether open source or commercial.
+
+.. _remove-pkgs-envs-conda:
 
 5. Removing packages, environments, or conda
 --------------------------------------------

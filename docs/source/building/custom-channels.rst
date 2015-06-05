@@ -1,5 +1,5 @@
 =================
- Custom Channels
+ Custom channels
 =================
 
 

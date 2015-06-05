@@ -1,5 +1,5 @@
 --------------------------
-Package Naming Conventions
+Package naming conventions
 --------------------------
 
 Names and versions of software packages do not follow any prescribed rules.

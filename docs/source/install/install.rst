@@ -5,8 +5,7 @@ Installation
 .. toctree::
    :maxdepth: 2
 
-   full
    quick
+   full
    config
    central
-   silent

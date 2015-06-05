@@ -1,8 +1,6 @@
-=========================
-Building Python packages
-=========================
-with setup.py bdist_conda
-==========================
+===========
+Bdist_conda
+===========
 
 You can use conda build to build packages for Python to install rather than 
 conda, by using ``setup.py bdist_conda``. This is a “quick and dirty” way to 

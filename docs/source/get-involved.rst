@@ -2,8 +2,8 @@
 Get involved
 ============
 
-Join a conda mailing list
-=========================
+Join conda email group
+======================
 
 Please feel welcome to join the mailing lists for both 
 `Anaconda <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda>`_ and 

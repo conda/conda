@@ -1,7 +1,15 @@
 .. _build:
 
-conda build Recipe Reference
+Conda build recipe reference
 ============================
+
+..
+   This is a messy compromise, but to keep the links from outside this repository in 
+   to build.html and its anchor linked sections from breaking, we're going to leave 
+   this one file in the root directory instead of putting it at building/recipe.rst the 
+   way we really should. In the future, we may explore html redirects as a better 
+   option. -Will Warner 2015-06-04
+
 
 Building a package requires a recipe.  A recipe is flat directory which
 contains the following files:

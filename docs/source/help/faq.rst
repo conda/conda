@@ -1,6 +1,6 @@
-=========
-Conda FAQ
-=========
+===
+FAQ
+===
 
 .. contents::
 
@@ -443,3 +443,18 @@ Recipes
 
    This information is also shown at the end of the build process.
 
+.. toctree::
+   :hidden:
+
+   conda-pip-virtualenv-translator
+   silent
+   travis
+
+:doc:`conda-pip-virtualenv-translator`
+======================================
+
+:doc:`silent`
+=============
+
+:doc:`travis`
+=============

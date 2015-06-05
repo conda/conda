@@ -1,4 +1,4 @@
-Full Installation
+Full installation
 =================
 
 Conda is a cross-platform package manager and environment manager program that installs, runs, and updates 

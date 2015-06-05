@@ -1,5 +1,5 @@
 -------------------
-Directory Structure
+Directory structure
 -------------------
 
 The conda system has the following directory structure:

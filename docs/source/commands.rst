@@ -1,5 +1,5 @@
 =================
-Command Reference
+Command reference
 =================
 
 Conda provides many commands for managing packages and environments.  The
@@ -11,8 +11,10 @@ accessed from the command line with the ``--help`` flag:
    conda install --help
 
 
-:doc:`general-commands`
-=======================
+Conda general commands
+======================
+
+The following commands are part of conda.
 
 .. toctree::
    :glob:
@@ -21,21 +23,8 @@ accessed from the command line with the ``--help`` flag:
    commands/*
 
 
-:doc:`env-commands`
-===================
-
-The following commands are part of the ``conda-env`` package, which is
-installed automatically with conda.
-
-.. toctree::
-   :glob:
-   :maxdepth: 2
-
-   commands/env/*
-
-
-:doc:`build-commands`
-=====================
+Conda build commands
+====================
 
 The following commands are part of the ``conda-build`` package, which can be
 installed with ``conda install conda-build``.
@@ -46,3 +35,15 @@ installed with ``conda install conda-build``.
 
    commands/build/*
 
+
+Conda environment commands
+==========================
+
+The following commands are part of the ``conda-env`` package, which is
+installed automatically with conda.
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+
+   commands/env/*

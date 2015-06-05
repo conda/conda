@@ -1,8 +1,6 @@
 ==========================================
 Tutorial: Intro to building conda packages
 ==========================================
-with conda skeleton
-~~~~~~~~~~~~~~~~~~~~
 
 This tutorial explores building a simple conda package using the conda skeleton command. Building a package 
 makes it simple to install the program in any location. Many packages can be built using just the conda 

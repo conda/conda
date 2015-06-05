@@ -363,4 +363,4 @@ More resources
 
 :doc:`../build`
 
-:doc:`../build-commands`
+:doc:`../commands`

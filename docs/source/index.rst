@@ -40,39 +40,14 @@ Table of Contents
 .. toctree::
    :maxdepth: 2
 
-   intro
+   get-started/get-started
    install/install
-   test-drive
-   py2or3
-   glossary
-   config
+   using/index
    building/build
-   build_tutorials
-   custom-channels
-   help/help
-
-
-..
-   This is a messy compromise, but to keep the links from outside this repository in 
-   to build.html and its anchor linked sections from breaking, we're going to leave 
-   that one file in the root directory instead of putting it at building/recipe.rst the 
-   way we really should. In the future, we may explore html redirects as a better 
-   option. -Will Warner 2015-06-04
-
-
-Reference Guide
----------------
-
-.. toctree::
-   :maxdepth: 2
-
    commands
-   general-commands
-   env-commands
-   build-commands
-   spec
-   bdist_conda
-   license
+   build_tutorials/build_tutorials
+   get-involved
+   help/help
 
 Presentations & Blog Posts
 --------------------------
