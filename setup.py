@@ -45,6 +45,8 @@ setup(
         'conda_env',
         'conda_env.cli',
         'conda_env.installers',
+        'conda_env.specs',
+        'conda_env.utils',
     ],
     scripts=[
         'bin/conda-env',
