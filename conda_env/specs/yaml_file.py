@@ -13,7 +13,7 @@ class YamlFileSpec(object):
         try:
             self._environment = env.from_file(self.filename)
             return True
-        except EnvironmentFileNotFound, e:
+        except EnvironmentFileNotFound as e:
             self.msg = e.message
             return False
 
