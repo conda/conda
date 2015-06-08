@@ -11,7 +11,14 @@ import logging
 
 from conda.cli import common
 
-descr = "Launches an application installed with Conda."
+descr = """
+Launches an application installed with conda.
+
+To include command line options in a command, separate the command from the
+other options with --, like
+
+    conda run -- ipython --matplotlib
+"""
 
 examples = """
 Examples:
