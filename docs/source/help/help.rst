@@ -9,3 +9,5 @@ Get more help
    troubleshooting
    examples/examples
    support
+
+Please see also the :doc:`/using/cheatsheet`.

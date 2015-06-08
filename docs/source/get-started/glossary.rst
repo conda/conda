@@ -2,6 +2,8 @@
 Glossary
 ========
 
+Please see also the :doc:`/using/cheatsheet`.
+
 .condarc: 
   Conda configuration file, an optional runtime configuration YAML file which allows users to configure many aspects of conda, such as which channels it searches for packages, proxy settings, environment directories, etc. A .condarc file is not included by default, but when you use the ‘conda config’ command it is automatically created in the user’s home directory. The .condarc file can also be located in a root environment, in which case it overrides any in the home directory.  See conda configuration documentation for more information. 
 
