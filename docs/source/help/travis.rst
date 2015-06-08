@@ -1,5 +1,5 @@
 ============================
- Using Conda with Travis CI
+ Using conda with Travis CI
 ============================
 
 If you are already using Travis CI, using conda is a preferable alternative

@@ -450,11 +450,20 @@ Recipes
    silent
    travis
 
-:doc:`conda-pip-virtualenv-translator`
-======================================
+Conda, pip, and virtualenv
+==========================
 
-:doc:`silent`
-=============
+If you are already familiar with pip or virtualenv, please see our chart comparing 
+:download:`Conda, pip, and virtualenv <conda-pip-virtualenv-translator.html>`.
 
-:doc:`travis`
-=============
+Silent installation
+===================
+
+:doc:`Silent installation <silent>`  of Miniconda or Anaconda can be used for deployment 
+or testing or building services such as Travis CI and Appveyor.
+
+Using conda with Travis CI
+==========================
+
+Conda can be combined with :doc:`continuous integration systems <travis>` such as Travis CI 
+and AppVeyor to provide frequent, automated testing of your code.
