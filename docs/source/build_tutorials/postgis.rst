@@ -37,7 +37,7 @@ configured correctly,
 obtains the source files from the location specified in ``meta.yaml`` and,
 following the commands in ``build.sh``, builds the package locally. Once
 complete, the package and all its metadata bundled. We will upload it to
-`binstar.org <http://binstar.org/>`_, where it can be accessed via:
+`Anaconda.org <http://anaconda.org/>`_, where it can be accessed via:
 
 .. code-block:: bash
 
@@ -144,14 +144,14 @@ is that you bundle what you need, so this utility has to be included in the
 package. I do:
 
 Some searching indicates pg_config is distributed with postgresql, so let me
-check that out. A search on `binstar.org <https://binstar.org/>`__ for conda
+check that out. A search on `Anaconda.org <https://anaconda.org/>`__ for conda
 packages with the name ``postgresql`` yields some results for 64-bit
-Linux. I'll try to install from one of the Binstar channels. First the channel
+Linux. I'll try to install from one of the Anaconda.org channels. First the channel
 must be added with:
 
 .. code-block:: bash
 
-    $ conda config --add channels https://conda.binstar.org/trent
+    $ conda config --add channels https://conda.anaconda.org/trent
 
 which I can verify by inspecting:
 
@@ -166,11 +166,11 @@ which I can verify by inspecting:
       default environment : /home/irritum/miniconda
          envs directories : /home/irritum/miniconda/envs
             package cache : /home/irritum/miniconda/pkgs
-             channel URLs : https://conda.binstar.org/trent/linux-64
+             channel URLs : https://conda.anaconda.org/trent/linux-64
                             http://repo.continuum.io/pkgs/free/linux-64/
                             http://repo.continuum.io/pkgs/pro/linux-64/
                             http://repo.continuum.io/pkgs/gpl/linux-64/
-                            https://conda.binstar.org/mutirri/linux-64/
+                            https://conda.anaconda.org/mutirri/linux-64/
               config file : /home/irritum/.condarc
         is foreign system : False
 
@@ -569,11 +569,11 @@ And that's all.
 
     BUILD END: postgis-2.1.3-0
     Nothing to test for: postgis-2.1.3-0
-    # If you want to upload this package to binstar.org later, type:
+    # If you want to upload this package to Anaconda.org later, type:
     #
     # $ binstar upload /home/mutirri/code/miniconda/conda-bld/linux-32/postgis-2.1.3-0.tar.bz2
     #
-    # To have conda build upload to binstar automatically, use
+    # To have conda build upload to Anaconda.org automatically, use
     # $ conda config --set binstar_upload yes
 
 If you'd methodically followed along, you now have a ``postgis`` package you

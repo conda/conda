@@ -31,7 +31,7 @@ System configuration settings
     - :ref:`Offline_mode_only`
     - :ref:`Channel_alias`
     - :ref:`Disallow_installation_of_specific_packages`
-    - :ref:`Add_binstar_token_to_automatically_see_private_packages_on_binstar.org`
+    - :ref:`Add_token_to_see_private_packages`
     - :ref:`Specify_environment_directories`
 
 .. _allow_other_channels:
@@ -85,7 +85,7 @@ Offline mode filters out all channels URLs which do not start with 'file:'. The 
 Channel alias
 -------------
 
-Alias for non-url channels used with the -c or --channel flag. The default is ``https://conda.binstar.org/``
+Alias for non-url channels used with the -c or --channel flag. The default is ``https://conda.anaconda.org/``
 
 .. code-block:: yaml
 
@@ -103,13 +103,14 @@ Package specifications to disallow installing. The default is to allow all packa
   disallow:
     - anaconda
 
-.. _Add_binstar_token_to_automatically_see_private_packages_on_binstar.org:
+.. _Add_token_to_see_private_packages:
 
-Add Binstar token to automatically see private packages
--------------------------------------------------------
+Add Anaconda.org token to automatically see private packages
+------------------------------------------------------------
 
-When the channel alias is binstar.org or an Anaconda Server GUI, the system configuration file can be set so users 
-automatically see private packages. This uses the binstar command line client (which can be installed with 'conda 
+When the channel alias is Anaconda.org or an Anaconda Server GUI, the system configuration file can be set so users 
+automatically see private packages. (Anaconda.org was formerly known as binstar.org.) 
+This uses the binstar command line client (which can be installed with 'conda 
 install binstar') to automatically add the token to the channel urls. 
 
 The default is True.
@@ -175,14 +176,14 @@ download packages from only the ‘admin’ channel:
 
   cat /tmp/miniconda/.condarc
   allow_other_channels : false
-  channel_alias: https://conda.binstar.org/
+  channel_alias: https://conda.anaconda.org/
   channels:
     - admin
 
 Because ``allow_other_channels`` is false and the channel ‘defaults’ are not explicitly specified, users 
 are disallowed from downloading packages from the default channels. We will check this in the next step.
 
-Note: The admin channel can also be expressed as https://conda.binstar.org/admin/
+Note: The admin channel can also be expressed as https://conda.anaconda.org/admin/
 
 **User configuration file**
 
@@ -221,7 +222,7 @@ message telling them what channels are allowed:
    Fetching package metadata:
    Error: URL 'http://repo.continuum.io/pkgs/pro/osx-64/' not in allowed channels.
    Allowed channels are:
-    - https://conda.binstar.org/admin/osx-64/
+    - https://conda.anaconda.org/admin/osx-64/
 
 This error message tells the user to add the “admin” channel to their configuration file.
 

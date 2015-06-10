@@ -19,7 +19,7 @@ Building a simple conda package can be done in two steps, with two optional step
 #. Before you start: make sure you have all the requirements.
 #. Build a simple package with conda skeleton and PyPI: generate a simple package.
 #. Optional - Convert conda package for other platforms: convert your simple package so it can be used on on Linux, Mac and Windows.
-#. Optional - Upload package to Binstar.org: upload to a public or private repository so others can share your package.
+#. Optional - Upload package to Anaconda.org: upload to a public or private repository so others can share your package.
 
 
 1. Before you start
@@ -55,7 +55,7 @@ TIP: The conda skeleton command is also available for CPAN and CRAN repositories
 
 Let’s generate a simple conda skeleton recipe for a package named Pyinstrument using existing PyPI metadata. 
 Building a package will make it simple to install Pyinstrument in any location, especially if we choose to 
-upload it to Binstar.org.
+upload it to Anaconda.org.
 
 Pyinstrument is a Python statistical profiler that records the whole call stack once each millisecond, so 
 programmers can see which parts of their code are slowest and how to make them faster. More information about
@@ -141,33 +141,34 @@ Windows users:
 
 NOTE: Change your path and filename to the exact path and filename you saved in Step 2.
 
-4. Optional - Upload packages to binstar.org
---------------------------------------------
+4. Optional - Upload packages to Anaconda.org
+---------------------------------------------
 
-Binstar is a repository for public or private packages. Uploading to Binstar allows you to easily install 
+Anaconda.org, formerly known as binstar.org, is a repository for public or private packages. Uploading to Anaconda.org allows you to easily install 
 your package in any environment with just the conda install command, rather than manually copying or moving 
 the tarball file from one location to another. You can choose to make your files public or private. For more 
-info about binstar.org visit the Binstar documentation page.  
+info about Anaconda.org visit the Anaconda.org documentation page.  
 
-Open a free Binstar.org account and record your new binstar username and password.
-Next, run conda install binstar and enter your binstar username and password. 
-Next, log into your binstar.org account with the command:
-binstar login
+Open a free Anaconda.org account and record your new Anaconda.org username and password.
+Next, run ``conda install binstar`` and enter your Anaconda.org username and password. 
+Next, log into your Anaconda.org account with the command:
 
-Now you can upload the new local packages to Binstar, as in this example:
+``binstar login``
+
+Now you can upload the new local packages to Anaconda.org, as in this example:
 
 binstar upload /home/jsmith/miniconda/conda-bld/linux-64/pyinstrument-0.12-py27_0.tar.bz
 
 NOTE: Change your path and filename to the exact path and filename you saved in Step 2.
 
-TIP: If you want to always automatically upload a successful build to Binstar, run:
+TIP: If you want to always automatically upload a successful build to Anaconda.org, run:
 conda config --set binstar_upload yes
 
-You can log out of your binstar.org account with the command:
+You can log out of your Anaconda.org account with the command:
 
 binstar logout
 
-For more information about Binstar.org, see the binstar.org documentation page.
+For more information about Anaconda.org, see the Anaconda.org documentation page.
 
 This completes the tutorial Intro to building conda packages using conda skeleton. 
 

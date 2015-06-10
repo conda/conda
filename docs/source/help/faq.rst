@@ -57,11 +57,11 @@ Searching & info
 
       $ conda search --override-channels --channel defaults scipy
 
-#. How do I check if package X (e.g. *iminuit*) exists in channel Y (e.g. http://conda.binstar.org/mutirri) and is available for installation?
+#. How do I check if package X (e.g. *iminuit*) exists in channel Y (e.g. http://conda.anaconda.org/mutirri) and is available for installation?
 
    .. code-block:: bash
 
-      $ conda search --override-channels --channel http://conda.binstar.org/mutirri iminuit
+      $ conda search --override-channels --channel http://conda.anaconda.org/mutirri iminuit
 
 .. _customization:
 
@@ -85,17 +85,17 @@ Customization (.condarc file)
 
       $ conda config --get channels
 
-#. How can I add a new value Y (e.g. http://conda.binstar.org/mutirri) to key X (e.g. channels)?
+#. How can I add a new value Y (e.g. http://conda.anaconda.org/mutirri) to key X (e.g. channels)?
 
    .. code-block:: bash
 
-      $ conda config --add channels http://conda.binstar.org/mutirri
+      $ conda config --add channels http://conda.anaconda.org/mutirri
 
-#. How can I remove existing value Y (e.g. http://conda.binstar.org/mutirri) from key X?
+#. How can I remove existing value Y (e.g. http://conda.anaconda.org/mutirri) from key X?
 
    .. code-block:: bash
 
-      $ conda config --remove channels http://conda.binstar.org/mutirri
+      $ conda config --remove channels http://conda.anaconda.org/mutirri
 
 #. How can I remove the key X (e.g. channels) and all of its values?
 
@@ -420,15 +420,15 @@ Recipes
 
       $ conda build bottle
 
-   It is recommended to upload the package to binstar when you are done. Then
-   if you add your binstar channel to your .condarc (see :ref:`customization`
+   It is recommended to upload the package to Anaconda.org when you are done. Then
+   if you add your Anaconda.org channel to your .condarc (see :ref:`customization`
    above), you will be able to install the package with
 
    .. code-block:: bash
 
       $ conda install bottle
 
-   - If you did not upload the package to binstar, to install this package in
+   - If you did not upload the package to Anaconda.org, to install this package in
      the root environment, you need to find out where the built package is:
 
      .. code-block:: bash

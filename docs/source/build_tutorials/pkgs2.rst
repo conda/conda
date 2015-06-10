@@ -22,7 +22,7 @@ This tutorial includes the following:
 #. :ref:`build-sh-bld-bat`
 #. :ref:`build-and-install`
 #. :ref:`convert`
-#. :ref:`binstar`
+#. :ref:`anaconda-org`
 #. :ref:`more-resources`
 
 
@@ -327,25 +327,25 @@ Use the conda convert command with a platform specifier from the list
 
 Note: change your path and filename to the exact path and filename you saved in Step 7.
 
-.. _binstar:
+.. _anaconda-org:
 
-Optional: Upload new packages to Binstar.org
---------------------------------------------
+Optional: Upload new packages to Anaconda.org
+---------------------------------------------
 
-After converting your files for use on other platforms, you may choose to upload your files to Binstar.
-It only takes a minute to do if you have a free Binstar.org account.
+After converting your files for use on other platforms, you may choose to upload your files to Anaconda.org, formerly known as binstar.org.
+It only takes a minute to do if you have a free Anaconda.org account.
 
-If you haven’t already, open a free Binstar.org account and record your new binstar username and password.
+If you haven’t already, open a free Anaconda.org account and record your new Anaconda.org username and password.
 
-Next, in your terminal window, run ``conda install binstar`` and enter your new binstar username and password.
+Next, in your terminal window, run ``conda install binstar`` and enter your new Anaconda.org username and password.
 
-Again in your terminal window, log into your binstar.org account with the command:
+Again in your terminal window, log into your Anaconda.org account with the command:
 
 .. code-block:: bash
 
     binstar login
 
-And upload your package to Binstar:
+And upload your package to Anaconda.org:
 
 .. code-block:: bash
 
@@ -353,7 +353,7 @@ And upload your package to Binstar:
 
 NOTE: Change your path and filename to the exact path and filename you saved in Step 7.
 
-TIP: To save time, you can set conda to always automatically upload a successful build to Binstar
+TIP: To save time, you can set conda to always automatically upload a successful build to Anaconda.org
 with the command: ``conda config --set binstar_upload yes``
 
 .. _more-resources:

@@ -25,7 +25,7 @@ The conda configuration file can be used to change:
 
 - Whether to update the bash prompt with the current activated environment name
 
-- Whether user-built packages should be uploaded to Binstar.org
+- Whether user-built packages should be uploaded to Anaconda.org
 
 - Default packages or features to include in new environments
 
@@ -60,13 +60,13 @@ Listing channel locations in the .condarc file will override conda defaults,
 causing conda to search only the channels listed here, in the order given.
 
 Use ``defaults`` to automatically include all default channels. Non-url channels
-will be interpreted as binstar usernames, and this can be changed by modifying
+will be interpreted as Anaconda.org usernames, and this can be changed by modifying
 the ``channel_alias`` key as explained below. The default is just ``defaults``.
 
 .. code-block:: yaml
 
   channels:
-    - <binstar_username>
+    - <anaconda_dot_org_username>
     - http://some.custom/channel
     - file:///some/local/directory
     - defaults
@@ -176,8 +176,8 @@ Set a channel alias
 ^^^^^^^^^^^^^^^^^^^
 
 By default, ``conda install --channel asmeurer <package>`` is the same
-as ``conda install --channel https://conda.binstar.org/asmeurer <package>``. This
-is because the default ``channel_alias`` is https://conda.binstar.org/ . Whenever
+as ``conda install --channel https://conda.anaconda.org/asmeurer <package>``. This
+is because the default ``channel_alias`` is https://conda.anaconda.org/ . Whenever
 conda is given a channel name that is not a URL, it prepends the ``channel_alias``
 to the front of the name it was given.
 
@@ -220,10 +220,10 @@ Conda build configuration
 =========================
 
 
-Automatically upload conda build packages to binstar.org
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Automatically upload conda build packages to Anaconda.org
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Automatically upload packages built with ``conda build`` to binstar.org. The
+Automatically upload packages built with ``conda build`` to Anaconda.org. The
 default is ``False``.
 
 .. code-block:: yaml

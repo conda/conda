@@ -10,7 +10,7 @@ Conda test drive milestones:
 #. :ref:`USING CONDA<managing-conda>`. First we will verify that you have installed Anaconda or Miniconda, and check that it is updated to the current version. 3 min.
 #. :ref:`MANAGING ENVIRONMENTS<managing-envs>`. Next we will play with environments by creating a few environments, so you can learn to move easily between the environments. We will also verify which environment you are in, and make an exact copy of an environment as a backup. 10 min.
 #. :ref:`MANAGING PYTHON<managing-python>`. Then we will check to see which versions of Python are available to install, install another version of Python, and switch between versions. 4 min.
-#. :ref:`MANAGING PACKAGES<managing-pkgs>`. We play with packages. We will a) list packages installed on your computer, b) see a list of available packages, and c) install and remove some packages using conda install. For packages not available using conda install, we will d) search on binstar.org. For packages that are in neither location, we’ll e) install a package with the pip package manager. We will also install a free 30 day trial of Continuum’s commercial package IOPro. 10 min.
+#. :ref:`MANAGING PACKAGES<managing-pkgs>`. We play with packages. We will a) list packages installed on your computer, b) see a list of available packages, and c) install and remove some packages using conda install. For packages not available using conda install, we will d) search on Anaconda.org. For packages that are in neither location, we’ll e) install a package with the pip package manager. We will also install a free 30 day trial of Continuum’s commercial package IOPro. 10 min.
 #. :ref:`REMOVING PACKAGES, ENVIRONMENTS, OR CONDA<remove-pkgs-envs-conda>`. We’ll end the test drive by removing one or more of your test packages, environments, and/or conda,  if you wish. 3 min.
 
 TOTAL 30 Minutes
@@ -287,7 +287,7 @@ revert your PATH to its previous state:
 Now let’s play with packages. We’ve already installed several packages (Astroid, Babel and a specific
 version of Python) when we created a new environment. We’ll check what packages we have, check what
 are available, look for a specific package and install it. Then we’ll look for and install specific
-packages on the Binstar.org repository, install more using pip install instead of conda install, and
+packages on the Anaconda.org repository, install more using pip install instead of conda install, and
 install a commercial package.
 
 **View a list of packages and versions installed in an environment**
@@ -336,29 +336,29 @@ All platforms:
 
    conda list
 
-**Install a package from Binstar.org**
+**Install a package from Anaconda.org**
 
-For packages that are not available using conda install, we can next look on binstar.org.
-Binstar is a package management service for both public and private package repositories.
-Binstar is a Continuum Analytics product, just like Anaconda and Miniconda.
+For packages that are not available using conda install, we can next look on Anaconda.org.
+Anaconda.org is a package management service for both public and private package repositories.
+Anaconda.org is a Continuum Analytics product, just like Anaconda and Miniconda.
 
-TIP: You are not required to register with Binstar.org to download files.
+TIP: You are not required to register with Anaconda.org to download files.
 
-To download into the current environment from Binstar.org, we will specify Binstar as the
+To download into the current environment from Anaconda.org, we will specify Anaconda.org as the
 “channel” by typing the full URL to the package we want.
 
-In a browser, go to http://binstar.org.  We are looking for a package named “bottleneck” so in
+In a browser, go to http://anaconda.org.  We are looking for a package named “bottleneck” so in
 the top left box named “Search Packages” type “bottleneck” and click the Search button.
 
-There are more than a dozen copies of bottleneck available on Binstar, but we want the most
+There are more than a dozen copies of bottleneck available on Anaconda.org, but we want the most
 frequently downloaded copy. So you can sort by number of downloads by clicking the “Downloads” heading.
 
 One version of bottleneck has over 24,000 downloads, so select that one by clicking the package name.
-This brings you to the Binstar detail page that shows the exact command to use to download it:
+This brings you to the Anaconda.org detail page that shows the exact command to use to download it:
 
 .. code::
 
-   conda install --channel https://conda.binstar.org/pandas bottleneck
+   conda install --channel https://conda.anaconda.org/pandas bottleneck
 
 
 **Check to see that the package downloaded**
@@ -369,7 +369,7 @@ This brings you to the Binstar detail page that shows the exact command to use t
 
 **Install a package with PIP**
 
-For packages that are not available from conda or Binstar, we can often install the package with pip.
+For packages that are not available from conda or Anaconda.org, we can often install the package with pip.
 
 TIP:  Pip is only a package manager, so it cannot manage environments for you. Pip cannot even update
 Python, because unlike conda it does not consider Python a package. But it does install some things
@@ -407,7 +407,7 @@ up your Python processing:
 
 TIP: Except for academic use, this free trial expires after 30 days.
 
-You can now install and verify any package you want using conda, whether using the conda command, downloading from Binstar.org, or using pip install, and whether open source or commercial.
+You can now install and verify any package you want using conda, whether using the conda command, downloading from Anaconda.org, or using pip install, and whether open source or commercial.
 
 .. _remove-pkgs-envs-conda:
 

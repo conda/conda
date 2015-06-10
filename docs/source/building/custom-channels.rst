@@ -5,9 +5,9 @@
 
 Channels are the path that conda takes to look for packages, and the easiest
 way to use and manage custom channels is to use a private or public repository
-on `Binstar <https://binstar.org/>`_.   If you designate your Binstar.org 
-repository as private, then only you, and those you grant access, can access 
-your private repository. 
+on `Anaconda.org <https://anaconda.org/>`_, formerly known as Binstar.org.   If 
+you designate your Anaconda.org repository as private, then only you, and those 
+you grant access, can access your private repository. 
 
 If you do not wish to upload your packages to the internet, however, you can 
 build a custom repository served either through a web server, or locally 
