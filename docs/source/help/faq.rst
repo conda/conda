@@ -449,6 +449,7 @@ Recipes
    conda-pip-virtualenv-translator
    silent
    travis
+   /redirects
 
 Conda, pip, and virtualenv
 ==========================
