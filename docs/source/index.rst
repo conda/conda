@@ -49,6 +49,11 @@ Table of Contents
    get-involved
    help/help
 
+.. toctree::
+   :hidden:
+   
+   redirects
+
 Presentations & Blog Posts
 --------------------------
 
