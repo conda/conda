@@ -1,9 +1,9 @@
 import sys
 import base64
+import hashlib
 from os.path import abspath, expanduser, isfile, join
 
 from conda.compat import PY3
-from conda.utils import sha256_file
 
 try:
     from Crypto.PublicKey import RSA
@@ -17,6 +17,17 @@ Error: could not import Crypto (required for signature verification).
 
 KEYS = {}
 KEYS_DIR = abspath(expanduser('~/.conda/keys'))
+
+
+def hash_file(path):
+    h = hashlib.new('sha256')
+    with open(path, 'rb') as fi:
+        while True:
+            chunk = fi.read(262144)  # process chunks of 256KB
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.digest()
 
 
 def sig2ascii(i):
@@ -72,4 +83,4 @@ def verify(path):
             raise SignatureError("public key does not exist: %s" % key_path)
         KEYS[key_name] = RSA.importKey(open(key_path).read())
     key = KEYS[key_name]
-    return key.verify(sha256_file(path), (ascii2sig(sig),))
+    return key.verify(hash_file(path), (ascii2sig(sig),))
