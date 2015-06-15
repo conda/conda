@@ -68,9 +68,6 @@ def hashsum_file(path, mode='md5'):
 def md5_file(path):
     return hashsum_file(path, 'md5')
 
-def sha256_file(path):
-    return hashsum_file(path, 'sha256')
-
 
 def url_path(path):
     path = abspath(path)
