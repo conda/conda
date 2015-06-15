@@ -219,7 +219,7 @@ def execute(args, parser):
                      requests_version=requests_version,
     )
 
-    if args.channels:
+    if args.unsafe_channels:
         if not args.json:
             print("\n".join(info_dict["channels"]))
         else:
