@@ -8,5 +8,5 @@ Building Python packages
    dirs
    bdist_conda
    custom-channels
-   ../build
+   recipe
    spec

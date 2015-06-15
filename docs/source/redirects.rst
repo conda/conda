@@ -15,6 +15,7 @@ Redirects
    examples/update
    admin
    bdist_conda
+   build
    build-commands
    build_tutorials
    config
