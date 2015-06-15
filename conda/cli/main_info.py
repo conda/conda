@@ -66,9 +66,9 @@ def configure_parser(sub_parsers):
         help='Display root environment path.',
     )
     p.add_argument(
-        '--channels',
+        '--unsafe-channels',
         action='store_true',
-        help='Display list of channels.',
+        help='Display list of channels with tokens exposed.',
     )
     p.set_defaults(func=execute)
 
