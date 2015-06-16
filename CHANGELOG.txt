@@ -2,7 +2,8 @@
 --------------------
   * fix issue when trying to add 'pip' dependency to old python packages
   * add ability to verify signed packages, see #1343 (and conda-build #430)
-  * provide option to "conda info" for getting unobscured channel list
+  * provide option "conda info --unsafe-channels" for getting unobscured
+    channel list, #1374
 
 
 2015-06-04   3.13.0:
