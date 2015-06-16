@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from conda.cli import common
 from conda.misc import make_icon_url
-from conda.resolve import NoPackagesFound
+from conda.resolve import NoPackagesFound, Package
 from conda import config
 
 descr = """Search for packages and display their information. The input is a
@@ -93,6 +93,13 @@ def configure_parser(sub_parsers):
         (package_name[=version[=build]]).""",
     )
     p.add_argument(
+        "--reverse-dependency",
+        action="store_true",
+        help="""Perform a reverse dependency search. When using this flag, the --full-name
+flag is recommended. Use 'conda info package' to see the dependencies of a
+package.""",
+    )
+    p.add_argument(
         'regex',
         metavar='regex',
         action="store",
@@ -115,6 +122,12 @@ def execute(args, parser):
 def execute_search(args, parser):
     import re
     from conda.resolve import MatchSpec, Resolve
+
+    if args.reverse_dependency:
+        if not args.regex:
+            parser.error("--reverse-dependency requires at least one package name")
+        if args.spec:
+            parser.error("--reverse-dependency does not work with --spec")
 
     pat = None
     ms = None
@@ -182,21 +195,48 @@ def execute_search(args, parser):
     else:
         json = {}
 
+    names = []
     for name in sorted(r.groups):
-        disp_name = name
-        if pat and pat.search(name) is None:
-            continue
-        if ms and name != ms.name:
-            continue
+        if args.reverse_dependency:
+            ms_name = ms
+            for pkg in r.groups[name]:
+                for dep in r.ms_depends(pkg):
+                    if pat.search(dep.name):
+                        names.append((name, Package(pkg, r.index[pkg])))
+        else:
+            if pat and pat.search(name) is None:
+                continue
+            if ms and name != ms.name:
+                continue
+
+            if ms:
+                ms_name = ms
+            else:
+                ms_name = MatchSpec(name)
+
+            pkgs = sorted(r.get_pkgs(ms_name))
+            names.append((name, pkgs))
+
+    if args.reverse_dependency:
+        new_names = []
+        old = None
+        for name, pkg in sorted(names, key=lambda x:(x[0], x[1].name, x[1])):
+            if name == old:
+                new_names[-1][1].append(pkg)
+            else:
+                new_names.append((name, [pkg]))
+            old = name
+        names = new_names
+
+    for name, pkgs in names:
+        if args.reverse_dependency:
+            disp_name = pkgs[0].name
+        else:
+            disp_name = name
 
         if args.names_only and not args.outdated:
             print(name)
             continue
-
-        if ms:
-            ms_name = ms
-        else:
-            ms_name = MatchSpec(name)
 
         if not args.canonical:
             json[name] = []
@@ -207,7 +247,6 @@ def execute_search(args, parser):
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name
-            pkgs = sorted(r.get_pkgs(ms_name))
             if not pkgs:
                 continue
             latest = pkgs[-1]
@@ -217,7 +256,7 @@ def execute_search(args, parser):
                 print(name)
                 continue
 
-        for pkg in sorted(r.get_pkgs(ms_name)):
+        for pkg in pkgs:
             dist = pkg.fn[:-8]
             if args.canonical:
                 if not args.json:
