@@ -1,7 +1,8 @@
 2015-06-16   3.14.0:
 --------------------
   * add ability to verify signed packages, see #1343 (and conda-build #430)
-  * provide option to "conda info" for getting unobscured channel list
+  * provide option "conda info --unsafe-channels" for getting unobscured
+    channel list, #1374
 
 
 2015-06-04   3.13.0:
