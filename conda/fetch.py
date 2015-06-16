@@ -283,6 +283,20 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    if info.get('sig'):
+        from conda.signature import verify, SignatureError
+
+        fn2 = fn + '.sig'
+        url = (info['channel'] if info['sig'] == '.' else
+               info['sig'].rstrip('/') + '/') + fn2
+        log.debug("signature url=%r" % url)
+        download(url, join(dst_dir, fn2), session=session)
+        try:
+            if verify(path):
+                return
+        except SignatureError as e:
+            sys.exit(str(e))
+        sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,

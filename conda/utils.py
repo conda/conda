@@ -55,10 +55,10 @@ def try_write(dir_path):
 
 
 def hashsum_file(path, mode='md5'):
+    h = hashlib.new(mode)
     with open(path, 'rb') as fi:
-        h = hashlib.new(mode)
         while True:
-            chunk = fi.read(262144)
+            chunk = fi.read(262144)  # process chunks of 256KB
             if not chunk:
                 break
             h.update(chunk)
