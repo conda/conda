@@ -102,7 +102,7 @@ def execute(args, parser):
                  or you can add a name property to your {} file.""".lstrip().format(args.file)
         raise exceptions.CondaEnvRuntimeError(msg)
 
-    uploader = Uploader(name, args.file, summary=summary, force=args.force, env_data=dict(env.to_dict()))
+    uploader = Uploader(name, args.file, summary=summary, env_data=dict(env.to_dict()))
 
     if uploader.authorized():
         info = uploader.upload(args.force)
