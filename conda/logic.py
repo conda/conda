@@ -494,11 +494,12 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
     func should be a function that is called with the arguments func(lo_rhs,
     hi_rhs) and returns a list of constraints.
 
-    The midpoint of the bisection will not happen more than lo value +
-    increment.  To not use it, set a very large increment. The increment
-    argument should be used if you expect the optimal solution to be near 0.
+    The midpoint of the bisection will not be more than lo_value + increment.
+    To not use it, set a very large increment. The increment argument should
+    be used if you expect the optimal solution to be near 0.
 
     If evalaute_func is given, it is used to evaluate solutions to aid in the bisection.
+
     """
     lo, hi = [min_rhs, max_rhs]
     while True:
@@ -541,7 +542,7 @@ def min_sat(clauses, max_n=1000, N=None, alg='sorter', raise_on_max_n=False):
     literals from 1 to N is minimal.  Returned is the list of those solutions.
     When the clauses are unsatisfiable, an empty list is returned.
 
-    alg can be any algorithm supported by generate_constraints, or 'iterate",
+    alg can be any algorithm supported by generate_constraints, or 'iterate',
     which iterates all solutions and finds the smallest.
 
     max_n is the maximum number of iterations the algorithm will run
