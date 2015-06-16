@@ -77,7 +77,7 @@ class Uploader(object):
         :return: True/False
         """
         print("Uploading environment %s to anaconda-server (%s)... " % (self.packagename, self.binstar.domain))
-        if force or self.is_ready(force):
+        if self.is_ready(force):
             return self.binstar.upload(self.username, self.packagename,
                                        self.version, self.basename, open(self.file),
                                        distribution_type=ENVIRONMENT_TYPE, attrs=self.env_data)
