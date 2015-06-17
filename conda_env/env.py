@@ -7,6 +7,7 @@ import os
 from conda.cli import common
 from conda.cli import main_list
 from conda import install
+from conda import config
 
 from . import compat
 from . import exceptions
@@ -43,7 +44,9 @@ def from_environment(name, prefix):
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
-    return Environment(name=name, dependencies=dependencies)
+    channels = config.get_rc_urls()
+
+    return Environment(name=name, dependencies=dependencies, channels=channels)
 
 
 def from_yaml(yamlstr, **kwargs):
