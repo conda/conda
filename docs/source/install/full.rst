@@ -67,7 +67,7 @@ Open a terminal window, navigate to the anaconda directory, then type ``conda up
 **Macintosh Anaconda uninstall**
 
 Because Anaconda is contained in one directory, uninstalling Anaconda is simple -- in 
-your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``
+your terminal window, remove the entire miniconda install directory: ``rm -rf ~/anaconda``
 
 
 Windows Anaconda install
