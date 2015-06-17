@@ -101,6 +101,12 @@ class Environment(object):
             channels = []
         self.channels = channels
 
+    def add_channels(self, channels=[]):
+        self.channels = list(set(self.channels + channels))
+
+    def remove_channels(self):
+        self.channels = []
+
     def to_dict(self):
         d = yaml.dict([('name', self.name)])
         if self.channels:
