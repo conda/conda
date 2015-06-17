@@ -4,5 +4,5 @@ Building packages
 .. toctree::
 
    bpp
-   signed-packages
+   ../signed-packages
    sample-recipes
