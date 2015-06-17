@@ -1,6 +1,6 @@
 package:
   name: conda-docs-deps
-  version: 2.0
+  version: 3.0
 
 requirements:
   run:
@@ -12,6 +12,7 @@ requirements:
     - help2man
     - man2html
     - futures # [py2k]
+    - pycrypto
 
 test:
   commands:
