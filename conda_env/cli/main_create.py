@@ -19,6 +19,7 @@ Create an environment based on an environment file
 example = """
 examples:
     conda env create
+    conda env create -n name
     conda env create vader/deathstar
     conda env create -f=/path/to/environment.yml
 """
@@ -41,9 +42,9 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-n', '--name',
         action='store',
-        help='environment definition [Deprecated]',
+        help='environment definition',
         default=None,
-        dest='old_name'
+        dest='name'
     )
     p.add_argument(
         '-q', '--quiet',
@@ -51,8 +52,8 @@ def configure_parser(sub_parsers):
         default=False,
     )
     p.add_argument(
-        'name',
-        help='environment definition',
+        'remote_definition',
+        help='remote environment definition',
         action='store',
         default=None,
         nargs='?'
@@ -62,21 +63,16 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-
-    name = None
-    if args.old_name:
-        print("--name is deprecated. Use the following command instead:\n"
-              "    conda env create {}".format(args.old_name), file=sys.stderr)
-        name = args.old_name
-    elif args.name:
-        name = args.name
-
+    name = args.remote_definition or args.name
     try:
         spec = specs.detect(name=name, filename=args.file,
                             directory=os.getcwd())
         env = spec.environment
+
         # FIXME conda code currently requires args to have a name or prefix
-        args.name = env.name
+        if args.name is None:
+            args.name = env.name
+
     except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
 
