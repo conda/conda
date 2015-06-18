@@ -63,6 +63,28 @@ class TestBinstarSpec(unittest.TestCase):
             spec = BinstarSpec(name='darth/env-file')
             self.assertIsInstance(spec.environment, Environment)
 
+    def test_environment_version_sorting(self):
+        fake_package = {
+            'files': [
+                {'type': 'env', 'version': '0.1.1', 'basename': 'environment.yml'},
+                {'type': 'env', 'version': '0.1a.2', 'basename': 'environment.yml'},
+                {'type': 'env', 'version': '0.2.0', 'basename': 'environment.yml'},
+            ]
+        }
+        yml = StringIO()
+        yml.write(u"name: env")
+        yml.seek(0)
+        fake_req = MagicMock(raw=yml)
+        with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
+            package = MagicMock(return_value=fake_package)
+            downloader = MagicMock(return_value=fake_req)
+            binstar = MagicMock(package=package, download=downloader)
+            get_binstar_mock.return_value = binstar
+
+            spec = BinstarSpec(name='darth/env-file')
+            spec.environment
+            downloader.assert_called_with('darth', 'env-file', '0.2.0', 'environment.yml')
+
     def test_binstar_not_installed(self):
         spec = BinstarSpec(name='user/package')
         spec.binstar = None
