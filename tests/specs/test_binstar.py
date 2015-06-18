@@ -48,7 +48,7 @@ class TestBinstarSpec(unittest.TestCase):
 
     def test_download_environment(self):
         fake_package = {
-            'files': [{'type': 'env', 'version': '1', 'basename': 'environment.yml'}]
+            'files': [{'type': 'env', 'version': '1.0.1', 'basename': 'environment.yml'}]
         }
         yml = StringIO()
         yml.write(u"name: env")
