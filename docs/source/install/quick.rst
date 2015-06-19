@@ -34,7 +34,7 @@ the download plus another 300+ to install it.
 Linux Miniconda install
 -----------------------
 
-In your browser download the `Miniconda installer <http://conda.pydata.org/miniconda.html>`_ for Linux, then in your terminal 
+In your browser download the `Miniconda installer for Linux <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
 window type the following and follow the prompts on the installer screens. If unsure 
 about any setting, simply accept the defaults as they all can be changed later:
 
@@ -62,7 +62,7 @@ your terminal window, remove the entire miniconda install directory: ``rm -rf ~/
 OSX Miniconda install
 ---------------------
 
-In your browser download the `Miniconda installer <http://conda.pydata.org/miniconda.html>`_ for OSX, then in your terminal 
+In your browser download the `Miniconda installer for OSX <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
 window type the following and follow the prompts on the installer screens. If unsure about any setting, 
 simply accept the defaults as they all can be changed later.
 
@@ -90,7 +90,7 @@ your terminal window, remove the entire miniconda install directory: ``rm -rf ~/
 Windows Miniconda install
 -------------------------
 
-In your browser download the `Miniconda installer <http://conda.pydata.org/miniconda.html>`_ for Windows, then double click 
+In your browser download the `Miniconda installer for Windows <http://conda.pydata.org/miniconda.html>`_, then double click 
 the .exe file and follow the instructions on the screen.  If unsure about any setting, 
 simply accept the defaults as they all can be changed later.
 
