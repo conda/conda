@@ -14,7 +14,7 @@ that can be installed with the simple ``conda install`` command.
 You can be using Python in two minutes or less with this quick install guide - including 
 install, update and uninstall. If you have any problems, please see the full installation instructions.
 
-QUICK TIP: If you prefer to have the 150+ open source packages included with Anaconda, 
+TIP: If you prefer to have the 150+ open source packages included with Anaconda, 
 and have 10 minutes and disk space required, you can download Anaconda simply by 
 replacing the word “Miniconda” with “Anaconda” in the examples below.
 
