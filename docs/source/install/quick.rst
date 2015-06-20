@@ -25,7 +25,7 @@ replacing the word “Miniconda” with “Anaconda” in the examples below.
 Miniconda quick install requirements
 ------------------------------------
 
-32 or 64 bit computer, 32MB available, Linux, Macintosh or Windows.
+32- or 64-bit computer, 32MB available, Linux, Macintosh or Windows.
 
 NOTE: If you choose to install the full Anaconda package, it requires 300+ MB for 
 the download plus another 300+ to install it. 
