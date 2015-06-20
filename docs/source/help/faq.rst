@@ -70,7 +70,7 @@ Customization (.condarc file)
 
 .. note::
 
-   Sometimes to perform the below commands it is necessary to add the **-f** option
+   Sometimes to perform the commands below it is necessary to add the **-f** option
    (aka **--force**).
 
 #. How can I get all keys and their values from my .condarc file?
