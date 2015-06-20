@@ -4,7 +4,7 @@ Download conda
 
 Conda can be downloaded with an array of options. This page is to help you decide among the various options.  
 To download conda, you will download Anaconda or Miniconda (both are free), or purchase Anaconda Server. All 
-can be downloaded with Python 2.7 (most popular and stable), or Python 3.4 (most recent stable version). You 
+can be downloaded with legacy Python 2.7 or current Python 3.4. You 
 can choose a version with a GUI or a command line installer. 
 
 TIP: If you are unsure, we recommend the most recent version of Anaconda - that automatically includes 
@@ -97,4 +97,3 @@ Navigate to the file, then enter the following command:
 Note: replace md5sum or sha1sum with the actual sum. 
 
 Note: replace the C:\path\to\file.ext with the actual path, filename and extension. 
-
