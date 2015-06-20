@@ -5,7 +5,7 @@ Glossary
 Please see also the :doc:`/using/cheatsheet`.
 
 .condarc: 
-  Conda configuration file, an optional runtime configuration YAML file which allows users to configure many aspects of conda, such as which channels it searches for packages, proxy settings, environment directories, etc. A .condarc file is not included by default, but when you use the ‘conda config’ command it is automatically created in the user’s home directory. The .condarc file can also be located in a root environment, in which case it overrides any in the home directory.  See conda configuration documentation for more information. 
+  Conda configuration file, an optional runtime configuration YAML file which allows users to configure many aspects of conda, such as which channels it searches for packages, proxy settings, environment directories, etc. A .condarc file is not included by default, but when you use the ‘conda config’ command it is automatically created in the user’s home directory. The .condarc file can also be located in a root environment, in which case it overrides any in the home directory.  See :doc:`conda configuration </install/config>` documentation for more information. 
 
 Activate/deactivate environment: 
   Conda commands used to switch or move between installed environments. Activate prepends the path of your current environment to PATH environment variable, and deactivate removes it. Even when an environment is not activated, programs in that environment can still be executed by specifying their path directly, as in ‘~/anaconda/envs/envname/bin/program_name’. When an environment is activated, you can just use ‘program_name’.
@@ -33,4 +33,3 @@ Miniconda:
 
 Repository: 
   A storage location from which software packages may be retrieved and installed on a computer.  A repository needs to be indexed with ‘conda index’ (to generate the repodata.json file) to be usable by conda. 
-
