@@ -33,7 +33,7 @@ you are currently using. With just a few commands you can set up a totally separ
 different version of Python, and yet continue to run your usual version of Python in your normal environment.
 That’s the power of having an environment manager like conda.
 
-TIP: Whether you are using Linux, Mac or the Windows command prompt, in your terminal window the conda commands
+TIP: Whether you are using Linux, OS X or the Windows command prompt, in your terminal window the conda commands
 are all the same unless noted.
 
 **Verify that conda is installed**
@@ -93,7 +93,7 @@ first letter. So ``--name`` and ``-n`` options are the same and ``--envs`` and `
 
 **Activate the new environment:**
 
-* Linux, Mac: ``source activate snowflakes``
+* Linux, OS X: ``source activate snowflakes``
 * Windows:  ``activate snowflakes``
 
 TIP: Environments are installed by default into the envs directory in your conda directory. You can specify a
@@ -155,12 +155,12 @@ of your prompt:
 
 To change to another environment, type the following with the name of the environment:
 
-* Linux, Mac: ``source activate bunnies``
+* Linux, OS X: ``source activate bunnies``
 * Windows:  ``activate bunnies``
 
 To change your path from the current environment back to the root:
 
-* Linux, Mac: `source deactivate`
+* Linux, OS X: `source deactivate`
 * Windows:  `deactivate`
 
 TIP: When the environment is deactivated, ``(bunnies)`` will no longer be shown in the prompt.
@@ -231,7 +231,7 @@ the latest version of Python 3 as follows:
 
    conda create --name snakes python=3
 
-* Linux, Mac: ``source activate snakes``
+* Linux, OS X: ``source activate snakes``
 * Windows:  ``activate snakes``
 
 TIP: It would be wise to name this environment a descriptive name like ``python3`` but that is not as much fun.
@@ -260,7 +260,7 @@ Verify that the snakes environment uses python version 3:
 To switch to the new environment with a different version of Python, you simply need to activate it.
 Let’s switch back to the default, 2.7:
 
-* Linux, Mac: ``source activate snowflakes``
+* Linux, OS X: ``source activate snowflakes``
 * Windows:  ``activate snowflakes``
 
 **Verify Python version in environment**
@@ -276,7 +276,7 @@ Verify that the snowflakes environment uses python version 2:
 After you are finished working in the snowflakes environment, deactivate this environment and
 revert your PATH to its previous state:
 
-* Linux, Macintosh: ``source deactivate``
+* Linux, OS X: ``source deactivate``
 * Windows: ``deactivate``
 
 .. _managing-pkgs:
@@ -327,7 +327,7 @@ the current environment.
 
 Now activate the bunnies environment , and do a conda list to see the new program installed:
 
-* Linux, Mac: ``source activate bunnies``
+* Linux, OS X: ``source activate bunnies``
 * Windows:  ``activate bunnies``
 
 All platforms:
@@ -378,7 +378,7 @@ Pip install packages
 
 We activate the environment where we want to put the program, then pip install a program named “See”:
 
-* Linux, Mac: source activate bunnies
+* Linux, OS X: source activate bunnies
 * Windows:  activate bunnies
 
 All platforms:
@@ -453,7 +453,7 @@ Snakes is no longer shown in the environment list, so we know it was deleted.
 
 **Remove conda**
 
-* Linux, Mac:
+* Linux, OS X:
 
 Remove the Anaconda OR Miniconda install directory:
 

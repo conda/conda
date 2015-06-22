@@ -24,7 +24,7 @@ The same help that is available in conda is also available online from our  :doc
 Managing conda
 ~~~~~~~~~~~~~~~
 
-NOTE: Whether you are using Linux, Mac or the Windows command prompt, in your terminal window the conda commands are all the same unless noted.
+NOTE: Whether you are using Linux, OS X or the Windows command prompt, in your terminal window the conda commands are all the same unless noted.
 
 Verify that conda is installed, check current conda version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

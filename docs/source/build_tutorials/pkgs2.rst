@@ -238,14 +238,14 @@ Write the build script files build.sh and bld.bat
 
 The other two files you need for a build  are
 
-* **build.sh** shell script for Unix and Mac, and
+* **build.sh** shell script for Linux and OS X, and
 * **bld.bat** batch file for Windows.
 
 These two build files contain all the variables such as for 32-bit or 64-bit architecture (the ARCH
 variable) and the build environment prefix (PREFIX). The two files ``build.sh`` and ``bld.bat`` files must be
 in the same directory as your ``meta.yaml`` file.
 
-First, we'll write the build file for Linux and Macintosh, then the next file for Windows.
+First, we'll write the build file for Linux and OS X, then the next file for Windows.
 All users, in your favorite text editor, create a new file named ``build.sh`` and enter the text exactly as
 shown:
 

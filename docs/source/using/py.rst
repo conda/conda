@@ -22,7 +22,7 @@ So now let’s say you need Python 3 to learn programming, but you don’t want 
 
    conda create --name snakes python=3   
 
-**Linux, Mac:** ``source activate snakes``
+**Linux, OS X:** ``source activate snakes``
 
 **Windows:**  ``activate snakes``
 
@@ -47,7 +47,7 @@ Use a different version of Python
 
 To switch to the new environment with a different version of Python, you simply need to activate it. Let’s switch back to the default, 2.7: 
 
-**Linux, Mac:** ``source activate snowflakes``
+**Linux, OS X:** ``source activate snowflakes``
 
 **Windows:**  ``activate snowflakes``
 

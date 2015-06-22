@@ -25,7 +25,7 @@ replacing the word “Miniconda” with “Anaconda” in the examples below.
 Miniconda quick install requirements
 ------------------------------------
 
-32- or 64-bit computer, 32MB available, Linux, Macintosh or Windows.
+32- or 64-bit computer, 32MB available, Linux, OS X or Windows.
 
 NOTE: If you choose to install the full Anaconda package, it requires 300+ MB for 
 the download plus another 300+ to install it. 
@@ -59,10 +59,10 @@ Because Miniconda is contained in one directory, uninstalling Miniconda is simpl
 your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``
 
 
-OSX Miniconda install
----------------------
+OS X Miniconda install
+----------------------
 
-In your browser download the `Miniconda installer for OSX <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
+In your browser download the `Miniconda installer for OS X <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
 window type the following and follow the prompts on the installer screens. If unsure about any setting, 
 simply accept the defaults as they all can be changed later.
 
@@ -77,11 +77,11 @@ correctly, you will see a list of packages that were installed.
 
 Next, go to our :doc:`30-minute conda test drive </using/test-drive>`.
 
-**OSX Miniconda update**
+**OS X Miniconda update**
 
 Open a terminal window, navigate to the anaconda directory, then type ``conda update conda``.
 
-**OSX Miniconda uninstall**
+**OS X Miniconda uninstall**
 
 Because Miniconda is contained in one directory, uninstalling Miniconda is simple -- in 
 your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``

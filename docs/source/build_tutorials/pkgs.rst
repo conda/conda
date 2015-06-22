@@ -18,7 +18,7 @@ Building a simple conda package can be done in two steps, with two optional step
 
 #. Before you start: make sure you have all the requirements.
 #. Build a simple package with conda skeleton and PyPI: generate a simple package.
-#. Optional - Convert conda package for other platforms: convert your simple package so it can be used on on Linux, Mac and Windows.
+#. Optional - Convert conda package for other platforms: convert your simple package so it can be used on on Linux, OS X and Windows.
 #. Optional - Upload package to Anaconda.org: upload to a public or private repository so others can share your package.
 
 
@@ -76,7 +76,7 @@ commands, but for pyinstrument, any changes are optional.
 
 What are these three files?
     **meta.yaml:** Contains all the metadata in the recipe. Only package/name and package/version are required; everything else is optional.
-    **build.sh:** Environment and other variables for Unix and Mac - whether 32 or 64-bit, path info, etc.
+    **build.sh:** Environment and other variables for Linux and OS X - whether 32 or 64-bit, path info, etc.
     **bld.bat:** The same environment and other variables for Windows.
 
 Now that you have the skeleton ready, you can use the conda build tool. Let’s try it:
@@ -93,7 +93,7 @@ Linux example file path:
 
     /home/jsmith/miniconda/conda-bld/linux-64/pyinstrument-0.13.1-py27_0.tar.bz2
 
-Macintosh example file path: 
+OS X example file path: 
 
 .. code-block:: bash
 
@@ -125,7 +125,7 @@ Now verify that Pyinstrument installed successfully:
 
 Now that you have built a package for your current platform with conda build, you can convert it for use on other platforms with the conda convert command and a platform specifier from the list {osx-64,linux-32,linux-64,win-32,win-64,all}. In the output directory, one folder will be created for each of the one or more platforms you chose, and each folder will contain a .tar.bz2 package file for that platform.
 
-Linux and Macintosh users:
+Linux and OS X users:
 
 .. code-block:: bash
 
@@ -174,6 +174,3 @@ This completes the tutorial Intro to building conda packages using conda skeleto
 
 Please see our next tutorial, Building conda packages part 2, to learn more about the files that 
 go into each conda build and how to edit them manually. 
-
-
-

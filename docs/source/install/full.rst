@@ -11,14 +11,14 @@ Miniconda includes only conda, conda-build, and their dependencies so you can in
 These instructions are for a full install of Anaconda, which includes conda, conda-build, and 150+ 
 open source packages. 
 
-TIP: For installation instructions using our graphical installers for Mac or PC, please see 
+TIP: For installation instructions using our graphical installers for OS X or Windows, please see 
 the `Anaconda Install <http://docs.continuum.io/anaconda/install.html>`_ page. 
 
 
 Anaconda requirements
 ------------------------------------
 
-32 or 64 bit computer, 32MB available, Linux, Macintosh or Windows.
+32 or 64 bit computer, 32MB available, Linux, OS X or Windows.
 
 300 MB to download Anaconda plus another 300 to install it. 
 
@@ -51,20 +51,20 @@ Because Anaconda is contained in one directory, uninstalling Anaconda is simple 
 window, remove the entire anaconda install directory: ``rm -rf ~/anaconda``
 
 
-Macintosh Anaconda install
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+OS X Anaconda install
+~~~~~~~~~~~~~~~~~~~~~
 
 In your browser download the `Anaconda installer <http://continuum.io/downloads>`_ for 
-Macintosh, then double click the .pkg file and follow the instructions on the screen. 
+OS X, then double click the .pkg file and follow the instructions on the screen. 
 If unsure about any setting, simply accept the defaults as they all can be changed later.
 
 NOTE: The install will not take effect until AFTER you close and reopen your terminal window.
 
-**Macintosh Anaconda update**
+**OS X Anaconda update**
 
 Open a terminal window, navigate to the anaconda directory, then type ``conda update conda``
 
-**Macintosh Anaconda uninstall**
+**OS X Anaconda uninstall**
 
 Because Anaconda is contained in one directory, uninstalling Anaconda is simple -- in 
 your terminal window, remove the entire miniconda install directory: ``rm -rf ~/anaconda``

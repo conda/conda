@@ -85,8 +85,8 @@ site-specific packages can be found is in `PEP 370
 Python may try importing packages from this directory, which can cause
 issues. The recommended fix is to remove the site-specific directory.
 
-Resolution: For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on Mac OS X.
---------------------------------------------------------------------------------------------------------------------------------
+Resolution: For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on OS X.
+----------------------------------------------------------------------------------------------------------------------------
 
 These act similarly to ``PYTHONPATH`` for Python. If they are set, they can
 cause libraries to be loaded from locations other than the Conda
@@ -142,8 +142,8 @@ not a git checkout (the version should not include any hashes).
 
 .. _unknown-locale:
 
-Issue: ``ValueError unknown locale: UTF-8`` on Mac OS X
-=======================================================
+Issue: ``ValueError unknown locale: UTF-8`` on OS X
+===================================================
 
 Resolution: Uncheck "set locale environment variables on startup" setting in Terminal settings
 ----------------------------------------------------------------------------------------------
@@ -230,5 +230,3 @@ The command ``type command_name`` will always tell you exactly what is being
 run (this is better than ``which command_name``, which ignores hashed commands
 and searches the ``PATH`` directly), and ``hash -r`` (in bash) or ``rehash``
 (in zsh) will reset the hash, or you can run ``source activate``.
-
-

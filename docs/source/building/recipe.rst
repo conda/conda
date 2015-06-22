@@ -110,7 +110,7 @@ sections are optional except for package/name and package/version.
         - bspatch4 = bsdiff4.cli:main_bspatch4
 
       # If osx_is_app is set, entry points will use python.app instead of
-      # python in Mac OS X
+      # python in OS X
       osx_is_app: yes # (defaults to no)
 
       # See the Features section below for more information on features
@@ -408,7 +408,7 @@ defined in Windows:
   * - ``CYGWIN_PREFIX``
     - Same as ``PREFIX``, but as a unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
 
-On non-Windows (Linux and Mac OS X), we have:
+On non-Windows (Linux and OS X), we have:
 
 .. list-table::
 
@@ -421,7 +421,7 @@ On non-Windows (Linux and Mac OS X), we have:
   * - ``LIBRARY_PATH``
     - ``<build prefix>/lib``
 
-On Mac OS X, we have:
+On OS X, we have:
 
 .. list-table::
 
@@ -645,7 +645,7 @@ Conda build does the following things automatically to make packages
 relocatable:
 
 - Binary object files are converted to use relative paths using
-  ``install_name_tool`` on Mac OS X and ``patchelf`` on Linux.
+  ``install_name_tool`` on OS X and ``patchelf`` on Linux.
 
 - Any text file (containing no NULL bytes) containing the build prefix or the
   placeholder prefix ``/opt/anaconda1anaconda2anaconda3`` is registered in the

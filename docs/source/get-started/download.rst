@@ -40,7 +40,7 @@ Which version of Anaconda or Miniconda should I choose?
 Should I choose GUI installer or command line installer?
 --------------------------------------------------------
 
-Whether you are on Mac, Windows or Linux, there is an installer to make it easy for you. 
+Whether you are on Linux, OS X or Windows, there is an installer to make it easy for you. 
 
 * If you do not wish to enter commands in a terminal window, choose the GUI installer. 
 * If GUIs slow you down, choose the command line version. 
@@ -74,7 +74,7 @@ Note: replace md5sum or sha1sum with the actual sum.
 
 Note: replace the path/to/filename.ext with the actual path, filename and extension. 
 
-**Mac users:**
+**OS X users:**
 
 * MD5: ``md5 path/to/filename.ext``
 * SHA1: ``sha1 path/to/filename.ext``
