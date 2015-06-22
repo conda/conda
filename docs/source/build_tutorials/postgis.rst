@@ -24,7 +24,7 @@ Abstract Description of conda build
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We begin building a package by pointing conda to a directory with a ``build.sh``
-(for Linux and OSX, Windows uses ``bld.bat`` file) and ``meta.yaml`` file.
+(for Linux and OS X, Windows uses ``bld.bat`` file) and ``meta.yaml`` file.
 Respectively, these files specify the command line instructions to build a
 particular package from source, and information about where to download the
 source files and dependencies that the package requires. If these files are
