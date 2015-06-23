@@ -1,6 +1,7 @@
 from argparse import RawDescriptionHelpFormatter
-
+from ..utils.notebooks import current_env
 from conda.cli import common
+
 
 description = """
 Attach a Conda environment into a notebook
@@ -45,9 +46,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    # info_dict = {'envs': []}
-    # common.handle_envs_list(info_dict['envs'], not args.json)
-    #
-    # if args.json:
-    #     common.stdout_json(info_dict)
-    print(args)
+    name = args.name
+    if args.name is None:
+        name = current_env()
+    print("Environment {} will be attach into {}".format(current_env()['name'], args.notebook))
