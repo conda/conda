@@ -75,8 +75,11 @@ Next, edit the new 50-line file meta.yaml.  This skeleton file can be fleshed ou
 commands, but for pyinstrument, any changes are optional.  
 
 What are these three files?
+
     **meta.yaml:** Contains all the metadata in the recipe. Only package/name and package/version are required; everything else is optional.
+    
     **build.sh:** Environment and other variables for Linux and OS X - whether 32 or 64-bit, path info, etc.
+    
     **bld.bat:** The same environment and other variables for Windows.
 
 Now that you have the skeleton ready, you can use the conda build tool. Let’s try it:
