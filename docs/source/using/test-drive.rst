@@ -97,7 +97,7 @@ first letter. So ``--name`` and ``-n`` options are the same and ``--envs`` and `
 * Windows:  ``activate snowflakes``
 
 TIP: Environments are installed by default into the envs directory in your conda directory. You can specify a
-different path, see conda create --help for details.
+different path, see ``conda create --help`` for details.
 
 TIP: Since we did not specify a version of Python, conda installs the same version that you used when you
 download and installed conda.
@@ -133,23 +133,25 @@ You will see a list of environments like the following:
 
    conda environments:
 
-	snowflakes            /home/username/miniconda/envs/snowflakes
+	snowflakes          * /home/username/miniconda/envs/snowflakes
 	bunnies               /home/username/miniconda/envs/bunnies
+        root                  /home/username/miniconda
 
 **Verify current environment**
 
-Which of these environments are you using right now -- snowflakes or bunnies? To find out, type the command:
+Which of these environments are you using right now -- snowflakes or bunnies? To find out, type the same command:
 
 .. code::
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parenthesis) in front
-of your prompt:
+Conda displays the list of all environments, with the current environment shown in (parenthesis) in front of your prompt:
 
 .. code::
 
    (snowflakes)
+
+NOTE: conda also puts an asterisk (*) in front of the active environment in your environment list, see above in "List all environments."
 
 **Switch to another environment (activate/deactivate)**
 
@@ -265,7 +267,7 @@ Let’s switch back to the default, 2.7:
 
 **Verify Python version in environment**
 
-Verify that the snowflakes environment uses python version 2:
+Verify that the snowflakes environment uses the same Python version used when you installed conda:
 
 .. code::
 
@@ -353,7 +355,7 @@ the top left box named “Search Packages” type “bottleneck” and click the
 There are more than a dozen copies of bottleneck available on Anaconda.org, but we want the most
 frequently downloaded copy. So you can sort by number of downloads by clicking the “Downloads” heading.
 
-One version of bottleneck has over 24,000 downloads, so select that one by clicking the package name.
+Select the version that has the most downloads by clicking the package name.
 This brings you to the Anaconda.org detail page that shows the exact command to use to download it:
 
 .. code::
@@ -367,7 +369,7 @@ This brings you to the Anaconda.org detail page that shows the exact command to 
 
    conda list
 
-**Install a package with PIP**
+**Install a package with pip**
 
 For packages that are not available from conda or Anaconda.org, we can often install the package with pip.
 
