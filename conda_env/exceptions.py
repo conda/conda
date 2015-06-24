@@ -26,7 +26,7 @@ class AlreadyExist(CondaEnvRuntimeError):
 
 
 class EnvironmentAlreadyInNotebook(CondaEnvRuntimeError):
-    def __init__(self, notebook):
+    def __init__(self, notebook, *args, **kwargs):
         msg = "The notebook {} already has an environment"
         super(EnvironmentAlreadyInNotebook, self).__init__(msg, *args, **kwargs)
 
