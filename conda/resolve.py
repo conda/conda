@@ -613,11 +613,22 @@ class Resolve(object):
             return ''
         if len(hint) == 1:
             # TODO: Generate a hint from the dependencies.
-            return (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
+            ret = (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
                 "info {0}')").format(hint[0].split()[0]))
-        return ("""
+        else:
+            ret = """
 Hint: the following packages conflict with each other:
-  - %s""" % '\n  - '.join(hint))
+  - %s
+
+Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - '.join(hint), hint[0].split()[0])
+
+        if features:
+            ret += """
+
+Note that the following features are enabled:
+  - %s
+""" % ('\n  - '.join(features))
+        return ret
 
     def explicit(self, specs):
         """
