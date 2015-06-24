@@ -64,3 +64,8 @@ There are example recipes for many conda packages in the `conda-recipes
 
 The :ref:`conda skeleton <skeleton_ref>` command can help to make skeleton
 recipes for common repositories, such as `PyPI <https://pypi.python.org/pypi>`_.
+
+More information about meta.yaml
+================================
+
+Next, please continue on to learn more about :doc:`meta-yaml`.
