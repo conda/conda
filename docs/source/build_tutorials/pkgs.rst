@@ -104,7 +104,7 @@ OS X example file path:
 
 Windows example file path: 
 
-.. code-block:: bash
+.. code-block:: none
 
     C:\Users\jsmith\Miniconda\conda-bld\win-64\pyinstrument-0.13.1-py27_0.tar.bz2
 
