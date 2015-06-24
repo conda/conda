@@ -1,6 +1,6 @@
 package:
   name: pyinstrument
-  version: 0.13.1
+  version: "0.13.1"
  
 source:
   git_tag: 0.13.1
