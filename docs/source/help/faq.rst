@@ -49,7 +49,7 @@ Or on the web in our command reference guide,  :doc:`/commands`
 
 #. How can I get help with using conda? 
 
-Download our :doc:`/using/cheat-sheet` and :doc:`/install/quick` guide, take the 30-minute :doc:`/using/test-drive`, and see the complete :doc:`/using/index` section of our documentation site. 
+Download our :doc:`/using/cheatsheet` and :doc:`/install/quick` guide, take the 30-minute :doc:`/using/test-drive`, and see the complete :doc:`/using/index` section of our documentation site. 
 
 Get free community support with our `Google group <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_ 
 
