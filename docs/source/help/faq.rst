@@ -49,7 +49,7 @@ Or on the web in our command reference guide,  :doc:`/commands`
 
 #. How can I get help with using conda? 
 
-Download our :ref:`user/cheat-sheet` and :ref:`install/quick` guide, take the 30-minute :ref:`using/test-drive`, and see the complete :ref:`using/index` section of our documentation site. 
+Download our :doc:`/using/cheat-sheet` and :doc:`/install/quick` guide, take the 30-minute :doc:`/using/test-drive`, and see the complete :doc:`/using/index` section of our documentation site. 
 
 Get free community support with our `Google group <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_ 
 
@@ -72,7 +72,7 @@ Searching & info
 
       conda -V
 
-SEE ALSO: the complete :ref:`using/index` section of our documentation site. 
+SEE ALSO: the complete :doc:`using/index` section of our documentation site. 
 
 #. How can I check if a specific package, such as *SciPy*, is available for installation?
 
@@ -86,7 +86,7 @@ SEE ALSO: the complete :ref:`using/index` section of our documentation site.
 
       conda search --override-channels --channel defaults scipy
 
-SEE ALSO: the :ref:`using/pkgs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/pkgs` section of our documentation site. 
 
 
 #. How do I check if a specific package such as *iminuit* exists in a specific channel (for example,  http://conda.anaconda.org/mutirri) and is available for installation?
@@ -203,7 +203,7 @@ Getting info about environments
 
       conda info -e
 
-SEE ALSO: the :ref:`using/envs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
 #. How can I list all installed packages in a specific environment, for example, ``myenv``?
 
@@ -234,7 +234,7 @@ Creating new environments
 
       conda create -n myenv python
 
-SEE ALSO: the :ref:`using/envs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
 #. How can I create a new environment such as ``myenv`` with a specific version of *python* 
    as the default interpreter inside it?
@@ -290,7 +290,7 @@ Activate and deactivate
 
 **Windows:** activate myenv``
 
-SEE ALSO: the :ref:`using/envs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
 #. How can I deactivate the active environment ``myenv``?
 
@@ -433,7 +433,7 @@ Conda build and recipes
 
       conda build bottle
 
-SEE ALSO: :ref:`build_tutorials/pkgs` tutorial.
+SEE ALSO: :doc:`/build_tutorials/pkgs` tutorial.
 
 .. toctree::
    :hidden:
