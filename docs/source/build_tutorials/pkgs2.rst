@@ -129,30 +129,7 @@ The fields we want to replace in our pyinstrument script are:
 When finished, save to the same directory, this time with the correct name, meta.yaml.
 When you are finished, compare your meta .yaml with the answer below:
 
-.. code-block:: bash
-
-  package:
-    name: pyfaker pyinstrument
-
-  source:
-    git_tag: 0.3.2 0.13.1
-    git_url: https://github.com/tpn/faker.git https://github.com/joerick/pyinstrument.git
-
-  requirements:
-    build:
-      - python
-      - setuptools
-
-  run:
-    - python
-
-  test:
-    imports:
-      - faker pyinstrument
-
-  about:
-    home: http://www.joke2k.net/faker https://github.com/joerick/pyinstrument
-    license: MIT BSD
+.. literalinclude:: meta.yaml
 
 How to use PyPI as the source instead of Github
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

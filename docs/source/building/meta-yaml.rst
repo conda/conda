@@ -3,7 +3,10 @@
 The meta.yaml file
 ==================
 
-All the metadata in the conda build recipe is specified in the ``meta.yaml`` file.
+All the metadata in the conda build recipe is specified in the ``meta.yaml`` file, 
+as in this example of a simple meta.yaml file:
+
+.. literalinclude:: /build_tutorials/meta.yaml
 
 NOTE: All sections are optional except for package/name and package/version.
 
