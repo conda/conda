@@ -179,7 +179,7 @@ distinguished by the repository sub-directory they are contained in.
 
 .. _build-version-spec:
 
-Package Match Specifications
+Package match specifications
 ----------------------------
 
 Note that this is not the same as the syntax used at the command line with

@@ -1,5 +1,5 @@
-Tutorial: Building the PostGIS package
-==========================================
+Deconstructing the PostGIS package
+==================================
 
 Overview
 --------

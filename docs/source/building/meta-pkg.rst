@@ -1,7 +1,5 @@
--------------
 Metapackages
--------------
+------------
 
-conda also provides the notion of `metapackages`.  A metapackage is a conda
-package that only has dependencies, no files. An easy way to make a
-metapackage is with the ``conda metapackage`` command.
+Conda `metapackages` are conda packages that have only dependencies and no files. 
+They can be made with the ``conda metapackage`` command.

@@ -1,12 +1,14 @@
-Building Python packages
-========================
+Building conda packages
+=======================
 
 .. toctree::
+   :maxdepth: 2
 
    pkg-name-conv
    meta-pkg
    dirs
-   bdist_conda
-   custom-channels
    recipe
+   meta-yaml
+   environment-vars
+   build-scripts
    spec

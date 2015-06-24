@@ -14,7 +14,7 @@ import ``distutils.command.bdist_conda``, because Setuptools monkeypatches
 ``distutils.dist.Distribution``.
 
 Example
----------
+=======
 
 A minimal setup.py file using setup options name and version:
 
@@ -128,7 +128,7 @@ SEE ALSO:  :ref:`features` section of the conda build documentation for more inf
 features in conda.
 
 Command line options
-=======================
+====================
 
 Build number
 -------------
@@ -140,7 +140,7 @@ Set the build number. Defaults to the ``conda_buildnum`` passed to ``setup()``, 
    --buildnum=1
 
 Notes
-=======
+=====
 
 - ``bdist_conda`` must be installed into a root conda environment, as it imports ``conda`` and ``conda_build``. It is included as part of the ``conda build`` package.
 
@@ -153,4 +153,3 @@ Notes
 - ``bdist_conda`` uses the metadata provided to the ``setup()`` function.
 
 - If you want to pass any ``bdist_conda`` specific options to ``setup()``, in ``setup()`` you must set ``distclass=distutils.command.bdist_conda.CondaDistribution``.
-

@@ -1,6 +1,6 @@
-========================================
-Tutorial: Building conda packages part 2
-========================================
+====================================
+Building conda packages from scratch
+====================================
 
 This second tutorial is about building a conda package without using the ``conda skeleton pypi``
 command. In this tutorial we will build the same recipe as in the first tutorial, Pyinstrument, but

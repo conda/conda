@@ -45,7 +45,6 @@ Table of Contents
    using/index
    building/build
    commands
-   build_tutorials/build_tutorials
    get-involved
    help/help
 
