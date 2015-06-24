@@ -7,7 +7,7 @@ makes it simple to install the program in any location. Many packages can be bui
 skeleton command with a few minor edits. Building conda packages can also be complex, especially if many 
 dependencies are involved. 
 
-TIP: A skeleton command generates a template that may be used as-is or with very few edits. See `skeleton (computer programming) <https://en.wikipedia.org/wiki/Skeleton_(computer_programming)/>`_.
+TIP: A skeleton command generates a template that may be used as-is or with very few edits. See `skeleton (computer programming) <https://en.wikipedia.org/wiki/Skeleton_(computer_programming)>`_.
  
 This is the first of three tutorials on building conda packages.
 
@@ -59,7 +59,7 @@ upload it to Anaconda.org.
 
 Pyinstrument is a Python statistical profiler that records the whole call stack once each millisecond, so 
 programmers can see which parts of their code are slowest and how to make them faster. More information about
-Pyinstrument: `https://github.com/joerick/pyinstrument <https://github.com/joerick/pyinstrument>`_
+Pyinstrument: https://github.com/joerick/pyinstrument
 
 First, in your user home directory, run the conda skeleton command: 
 
