@@ -173,7 +173,5 @@ binstar logout
 
 For more information about Anaconda.org, see the Anaconda.org documentation page.
 
-This completes the tutorial Intro to building conda packages using conda skeleton. 
-
-Please see our next tutorial, Building conda packages part 2, to learn more about the files that 
+Please see our next tutorial, :doc:`pkgs2`, to learn more about the files that 
 go into each conda build and how to edit them manually. 
