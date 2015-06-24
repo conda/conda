@@ -39,7 +39,7 @@ Getting help
 
       conda -h
 
-Or on the web in our command reference guide,  :ref:`commands` 
+Or on the web in our command reference guide,  :doc:`/commands` 
 
 #. How can I get help for a specific command, such as **conda create**?
 
