@@ -1,6 +1,7 @@
 from argparse import RawDescriptionHelpFormatter
-from ..utils.notebooks import current_env
+from ..utils.notebooks import current_env, Notebook
 from conda.cli import common
+from ..env import from_environment
 
 
 description = """
@@ -46,7 +47,16 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    name = args.name
+    print(args)
     if args.name is None:
-        name = current_env()
-    print("Environment {} will be attach into {}".format(current_env()['name'], args.notebook))
+        args.name = current_env()
+    prefix = common.get_prefix(args)
+    env = from_environment(args.name, prefix)
+
+    print("Environment {} will be attach into {}".format(args.name, args.notebook))
+    nb = Notebook(args.notebook)
+    if nb.inject(env, args.force):
+        print("Done.")
+    else:
+        print("The environment couldn't be attached due:")
+        print(nb.msg)
