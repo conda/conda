@@ -2,8 +2,8 @@
 Configuration
 =============
 
-The conda configuration file  (.condarc) is an optional runtime configuration
-file which allows users to configure various aspects of conda, such as which
+The conda configuration file  (.condarc) is an OPTIONAL runtime configuration
+file which allows heavy users to configure various aspects of conda, such as which
 channels it searches for packages, proxy settings, environment directories, etc.
 
 A .condarc file is not included by default, but it is automatically created in
