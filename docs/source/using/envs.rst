@@ -4,7 +4,7 @@ Managing environments
 
 With conda, you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called  activating the environment. You can even share an environment file with a coworker. 
  
-Anytime you wish to see the full documentation for any command, type the command followed by  --help. For example, to learn about the conda environment command:   
+Anytime you wish to see the full documentation for any command, type the command followed by  ``--help``. For example, to learn about the conda environment command:   
 
 .. code::
 
@@ -33,7 +33,7 @@ Type “y” for “yes.”
 
 This will create a new environment named ``/envs/snowflakes`` that contains the program Biopython. This environment will use the same version of Python that you are currently using, because you did not specify a version. 
 
-TIP:  Many frequently used options after two dashes (--) can be abbreviated with just a dash and the first letter. So --name and -n options are the same and --envs and -e are the same. See conda --help or conda -h for a list of abbreviations. 
+TIP:  Many frequently used options after two dashes (``--``) can be abbreviated with just a dash and the first letter. So ``--name`` and ``-n`` options are the same and ``--envs`` and ``-e`` are the same. See ``conda --help`` or ``conda -h`` for a list of abbreviations. 
 
 Change environments (activate/deactivate)
 ----------------------------------------------------
@@ -44,7 +44,7 @@ Change environments (activate/deactivate)
 
 Conda prepends the path name (snowflakes) onto your system command.
 
-TIP: Environments are installed by default into the envs directory in your conda directory. You can specify a different path, see conda create --help for details. 
+TIP: Environments are installed by default into the envs directory in your conda directory. You can specify a different path, see ``conda create --help`` for details. 
 
 Deactivate the environment with the following:
 
@@ -67,7 +67,8 @@ This will create a second new environment named /envs/bunnies with Python 3 and 
 
 TIP: Install all the programs you will want in this environment at the same time. Installing one program at a time can lead to dependency conflicts.
 
-TIP: You can add much more to the conda create command, type conda create --help for details.
+TIP: You can add much more to the conda create command, type ``conda create --help`` for details.
+
 List all environments
 
 Now you can use conda to see which environments you have installed so far. Use the conda environment info command to find out: 
