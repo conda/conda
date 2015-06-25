@@ -2,6 +2,7 @@ Test drive
 ================
 
 To start the conda 30-minute test drive, you should have already followed our 2-minute :doc:`/install/quick` guide to download, install and update Miniconda, OR have downloaded, installed and updated Anaconda or Miniconda on your own.
+
 NOTE: After installing, be sure you have closed and then re-opened the terminal window so the changes can take effect.
 
 Conda test drive milestones:
@@ -15,7 +16,7 @@ Conda test drive milestones:
 
 TOTAL 30 Minutes
 
-TIP:  Anytime you wish to see the full documentation for any command, type the command followed by  --help.
+TIP:  Anytime you wish to see the full documentation for any command, type the command followed by  ``--help``.
 For example, to learn about the conda update command:
 
 .. code::
@@ -87,7 +88,7 @@ Use the conda create command, followed by any name you wish to call it:
 
 This will create a new environment named /envs/snowflakes with the program Biopython.
 
-TIP:  Many frequently used options after two dashes (--) can be abbreviated with just a dash and the
+TIP:  Many frequently used options after two dashes (``--``) can be abbreviated with just a dash and the
 first letter. So ``--name`` and ``-n`` options are the same and ``--envs`` and ``-e`` are the same. See ``conda --help`` or
 ``conda -h`` for a list of abbreviations.
 
@@ -116,7 +117,7 @@ This will create a second new environment named /envs/bunnies with Python 3 and 
 TIP: Install all the programs you will want in this environment at the same time. Installing one program at
 a time can lead to dependency conflicts.
 
-TIP: You can add much more to the conda create command, type conda create --help for details.
+TIP: You can add much more to the conda create command, type ``conda create --help`` for details.
 
 **List all environments**
 
@@ -145,13 +146,13 @@ Which of these environments are you using right now -- snowflakes or bunnies? To
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parenthesis) in front of your prompt:
+Conda displays the list of all environments, with the current environment shown in (parentheses) in front of your prompt:
 
 .. code::
 
    (snowflakes)
 
-NOTE: conda also puts an asterisk (*) in front of the active environment in your environment list, see above in "List all environments."
+NOTE: conda also puts an asterisk (*) in front of the active environment in your environment list; see above in "List all environments."
 
 **Switch to another environment (activate/deactivate)**
 
@@ -246,12 +247,12 @@ To verify that the snakes environment has now been added, type the command:
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parenthesis)
+Conda displays the list of all environments, with the current environment shown in (parentheses)
 in front of your prompt:  ``(snakes)``
 
 **Verify Python version in new environment**
 
-Verify that the snakes environment uses python version 3:
+Verify that the snakes environment uses Python version 3:
 
 .. code::
 
@@ -324,10 +325,10 @@ We will install Beautiful Soup into the current environment, using conda install
 
    conda install --name bunnies beautiful-soup
 
-NOTE: You must tell conda the name of the environment (--name bunnies) OR it will install in
+NOTE: You must tell conda the name of the environment (``--name bunnies``) OR it will install in
 the current environment.
 
-Now activate the bunnies environment , and do a conda list to see the new program installed:
+Now activate the bunnies environment, and do a conda list to see the new program installed:
 
 * Linux, OS X: ``source activate bunnies``
 * Windows:  ``activate bunnies``
@@ -371,12 +372,11 @@ This brings you to the Anaconda.org detail page that shows the exact command to 
 
 **Install a package with pip**
 
-For packages that are not available from conda or Anaconda.org, we can often install the package with pip.
+For packages that are not available from conda or Anaconda.org, we can often install the package with pip (short for "pip installs packages").
 
 TIP:  Pip is only a package manager, so it cannot manage environments for you. Pip cannot even update
 Python, because unlike conda it does not consider Python a package. But it does install some things
 that conda does not, and vice versa. Both pip and conda are included in Anaconda and Miniconda.
-Pip install packages
 
 We activate the environment where we want to put the program, then pip install a program named “See”:
 
@@ -469,11 +469,11 @@ Remove the Anaconda OR Miniconda install directory:
 **More resources**
 
 * To read the full documentation for any conda command, type the command
-  followed by  ``--h`` for “help.” For example, to learn about the conda update
-  command: ``conda update --h``
+  followed by  ``-h`` for “help.” For example, to learn about the conda update
+  command: ``conda update -h``
 * Full documentation: 	http://conda.pydata.org/docs/
 * Cheat sheet: :doc:`/using/cheatsheet`
-* FAQ: 				http://docs.continuum.io/anaconda/faq.html
+* FAQs: 				http://docs.continuum.io/anaconda/faq.html and :doc:`/help/faq`
 * Free community support:	 https://groups.google.com/a/continuum.io/forum/#!forum/anaconda
 * Paid support options:	http://continuum.io/support
-* Continuum Analytics Training & Consulting: Continuum Analytics offers Python training courses. Our teaching philosophy is that the best way to learn is with hands-on experience to real world problems. Courses are available to individuals online, at numerous sites, or in-house at your place of business. We also offer consulting services for the analysis, management and visualization of scientific and business data or optimizing your processing workflows on modern hardware and GPUs.
+* `Continuum Analytics Training & Consulting <http://continuum.io/contact-us>`_ : Continuum Analytics offers Python training courses. Our teaching philosophy is that the best way to learn is with hands-on experience to real world problems. Courses are available to individuals online, at numerous sites, or in-house at your place of business. We also offer consulting services for the analysis, management and visualization of scientific and business data or optimizing your processing workflows on modern hardware and GPUs.
