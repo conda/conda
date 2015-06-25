@@ -44,14 +44,14 @@ Install a package such as “Beautiful Soup” into the current environment, usi
 NOTE: If you do not specify the name of the environment where you want it installed (--name bunnies) it will install in the current environment. 
 
 
-Activate the bunnies environment , and do a conda list to see the new program installed:
+Activate the bunnies environment, and do a conda list to see the new program installed:
 
-**Linux, OSX:** ``source activate bunnies``
+**Linux, OS X:** ``source activate bunnies``
 **Windows:**  ``activate bunnies``
 
 **All:**  ``conda list``
 
-NOTE: installing a commercial package (such as IOPro) is the same as installing any other package: conda install --name bunnies iopro
+NOTE: Installing a commercial package (such as IOPro) is the same as installing any other package: ``conda install --name bunnies iopro``
 
 Install a package from Anaconda.org 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -84,14 +84,14 @@ You will see a list of packages, including Bottleneck.
 Install non-conda packages 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If a package is not available from conda or Anaconda.org, you may be able to find and install the package with another package manager like PIP. 
+If a package is not available from conda or Anaconda.org, you may be able to find and install the package with another package manager like pip. 
 
 
 NOTE: Both pip and conda are already included in Anaconda and Miniconda, you do not need to install them separately. 
 
 Activate the environment where you want to put the program, then pip install a program named “See”: 
 
-**Linux, OSX:** ``source activate bunnies``
+**Linux, OS X:** ``source activate bunnies``
 
 **Windows:**  ``activate bunnies``
 
