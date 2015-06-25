@@ -57,7 +57,7 @@ What about MD5 or SHA verification?
 
 If you download Anaconda, you can use MD5 or SHA to verify your download. 
 
-Note: MD5 or SHA verification is not available for Miniconda.
+NOTE: MD5 or SHA verification is not available for Miniconda.
 
 Get the actual MD5 or SHA1 sum for your Anaconda package here: http://continuum.io/md5
 
@@ -70,18 +70,18 @@ Download the package, then before installing, do the following to verify the pac
 * MD5:  ``md5sum path/to/filename.ext``
 * SHA1: ``sha1sum path/to/filename.ext``
 
-Note: replace md5sum or sha1sum with the actual sum. 
+NOTE: replace md5sum or sha1sum with the actual sum. 
 
-Note: replace the path/to/filename.ext with the actual path, filename and extension. 
+NOTE: replace the path/to/filename.ext with the actual path, filename and extension. 
 
 **OS X users:**
 
 * MD5: ``md5 path/to/filename.ext``
 * SHA1: ``sha1 path/to/filename.ext``
 
-Note: replace md5sum or sha1sum with the actual sum. 
+NOTE: replace md5sum or sha1sum with the actual sum. 
 
-Note: replace the path/to/filename.ext with the actual path, filename and extension. 
+NOTE: replace the path/to/filename.ext with the actual path, filename and extension. 
 
 **Windows users:**
 
@@ -94,6 +94,6 @@ Navigate to the file, then enter the following command:
 * MD5:  fciv.exe C:\path\to\file.ext
 * SHA1: fciv.exe –sha1 C:\path\to\file.ext
 
-Note: replace md5sum or sha1sum with the actual sum. 
+NOTE: replace md5sum or sha1sum with the actual sum. 
 
-Note: replace the C:\path\to\file.ext with the actual path, filename and extension. 
+NOTE: replace the C:\path\to\file.ext with the actual path, filename and extension. 
