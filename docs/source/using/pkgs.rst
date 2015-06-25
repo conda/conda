@@ -35,7 +35,7 @@ This displays the package name, so we know it is available.
 Install a package
 ~~~~~~~~~~~~~~~~~
 
-Install a package such as “Beautiful Soup” into the current environment, using conda install as follows: 
+Install a package such as "Beautiful Soup" into the current environment, using conda install as follows: 
 
 .. code::
 
@@ -58,9 +58,9 @@ Install a package from Anaconda.org
 
 For packages that are not available using conda install, we can look in the repository Anaconda.org. Anaconda.org, formerly Binstar.org, is a package management service for both public and private package repositories. Anaconda.org is a Continuum Analytics product, just like Anaconda and Miniconda. 
 
-In a browser, go to http://anaconda.org.  To find the package named “bottleneck” enter that search term in the top left box named “Search Packages.”
+In a browser, go to http://anaconda.org.  To find the package named "bottleneck" enter that search term in the top left box named "Search Packages."
 
-Find the package you want and click to go to the detail page. There you will see the name of the channel -- in this case it is the “pandas” channel. 
+Find the package you want and click to go to the detail page. There you will see the name of the channel -- in this case it is the "pandas" channel. 
 
 Now that you know the channel name, you can use the ``conda install`` command to get it:
 
@@ -68,7 +68,7 @@ Now that you know the channel name, you can use the ``conda install`` command to
 
    conda install -c pandas bottleneck 
 
-That means “Conda install the Bottleneck package from the Pandas channel on Anaconda.org.”
+That means "Conda install the Bottleneck package from the Pandas channel on Anaconda.org."
 
 The package will install. 
 
@@ -86,10 +86,11 @@ Install non-conda packages
 
 If a package is not available from conda or Anaconda.org, you may be able to find and install the package with another package manager like pip. 
 
+NOTE: Both pip and conda are already included in Anaconda and Miniconda, so you do not need to install them separately. 
 
-NOTE: Both pip and conda are already included in Anaconda and Miniconda, you do not need to install them separately. 
+NOTE: Conda environments replace virtualenv so there's no need to activate a virtualenv before using pip.
 
-Activate the environment where you want to put the program, then pip install a program named “See”: 
+Activate the environment where you want to put the program, then pip install a program named "See": 
 
 **Linux, OS X:** ``source activate bunnies``
 
@@ -141,7 +142,7 @@ You can also update Python with the update command:
 
 NOTE: Conda will update to the highest version in its series, so Python 2.7 will update to the highest available in the 2.x series, and 3.4 will update to the highest available in the 3.x series.
 
-Regardless of what package you are updating, conda will compare versions, then let you know what is available to install. If none are available, conda will reply “All requested packages are already installed.”
+Regardless of what package you are updating, conda will compare versions, then let you know what is available to install. If none are available, conda will reply "All requested packages are already installed."
 
 If a newer version of your package is available, and you wish to update it, type Y to update:
  
@@ -149,7 +150,7 @@ If a newer version of your package is available, and you wish to update it, type
 
    Proceed ([y]/n)? y
 
-Type “y” for yes.
+Type "y" for yes.
 
 Package remove
 ~~~~~~~~~~~~~~~~~
