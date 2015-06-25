@@ -42,7 +42,6 @@ def configure_parser(sub_parsers):
         default=None
     )
     common.add_parser_json(p)
-
     p.set_defaults(func=execute)
 
 
@@ -50,12 +49,14 @@ def execute(args, parser):
     print(args)
     if args.name is None:
         args.name = current_env()
-    prefix = common.get_prefix(args)
-    env = from_environment(args.name, prefix)
+        prefix = common.get_prefix(args)
+        content = from_environment(args.name, prefix).to_yaml()
+    else:
+        content = "name: {}".format(args.name)
 
     print("Environment {} will be attach into {}".format(args.name, args.notebook))
     nb = Notebook(args.notebook)
-    if nb.inject(env, args.force):
+    if nb.inject(content, args.force):
         print("Done.")
     else:
         print("The environment couldn't be attached due:")
