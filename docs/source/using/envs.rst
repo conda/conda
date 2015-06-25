@@ -70,6 +70,7 @@ TIP: Install all the programs you will want in this environment at the same time
 TIP: You can add much more to the conda create command, type ``conda create --help`` for details.
 
 List all environments
+~~~~~~~~~~~~~~~~~~~~~
 
 Now you can use conda to see which environments you have installed so far. Use the conda environment info command to find out: 
 
