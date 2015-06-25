@@ -36,7 +36,7 @@ To verify that the snakes environment has now been added, type the command:
 
 Conda displays the list of all environments, with the current environment shown in (parenthesis) in front of your prompt:  ``(snakes)``
 
-Verify that the snakes environment uses python version 3:
+Verify that the snakes environment uses Python version 3:
 
 .. code::
 
