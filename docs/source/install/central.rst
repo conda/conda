@@ -14,11 +14,11 @@ An administrator may make conda and any number of packages available to a group 
 still preventing these users from installing unwanted packages with conda. To do this, the administrator installs 
 conda and the packages, if any, in a location that is controlled by the administrator and accessible by the users. 
 
-Each user may then use the central conda installation, and with their own “user” .condarc configuration file 
-located in their home directory. The users’ configuration is limited by the second “system” .condarc 
-file, and the path to it is the same as the root environment prefix displayed by “conda info”. See example below.
+Each user may then use the central conda installation, which will read settings from their own "user" .condarc configuration file 
+located in their home directory. The users' configuration is limited by the second "system" .condarc 
+file, and the path to it is the same as the root environment prefix displayed by ``conda info``.
 
-The following settings are commonly used in a system configuration file, although they may also be used in a 
+The system configuration settings are commonly used in a system configuration file, although they may also be used in a 
 user configuration file.  All user configuration settings may also be used in a system configuration file. 
 
 See also: :doc:`Conda configuration file <config>`.
@@ -53,7 +53,7 @@ When set to true or not specified, then each user will have access to the defaul
 channels that the user specifies in their local .condarc file. If the user specifies other channels, the 
 other channels will be blocked and the user will receive a message explaining this. See example below.
 
-If the system .condarc  file specifies a channel_alias, it will override any channel aliases set in users’  
+If the system .condarc  file specifies a channel_alias, it will override any channel aliases set in users'  
 .condarc  files. See channel alias below.
 
 .. _SSL_verification:
@@ -61,7 +61,7 @@ If the system .condarc  file specifies a channel_alias, it will override any cha
 SSL verification
 ----------------
 
-By default ssl verification is used. This can be turned off, but this disables the connection’s normal 
+By default ssl verification is used. This can be turned off, but this disables the connection's normal 
 security, and is not recommended. The default is True.
 
 .. code-block:: yaml
@@ -149,7 +149,7 @@ Example admin-controlled installation
 =====================================
 
 In the following example, we take a look at the system configuration file, review the settings, 
-compare it to the user’s configuration file, and see what happens when the user attempts to access a 
+compare it to the user's configuration file, and see what happens when the user attempts to access a 
 file from a channel that is blocked. We then show how the user must modify their configuration file to 
 access the channels allowed by the administrator.
 
@@ -170,7 +170,7 @@ Now we can look at the contents of the .condarc file located in the administrato
   cat /tmp/miniconda/.condarc
 
 This administrative .condarc file sets allow_other_channels to false, and specifies that users may 
-download packages from only the ‘admin’ channel:
+download packages from only the 'admin' channel:
 
 .. code-block:: none
 
@@ -180,14 +180,14 @@ download packages from only the ‘admin’ channel:
   channels:
     - admin
 
-Because ``allow_other_channels`` is false and the channel ‘defaults’ are not explicitly specified, users 
+Because ``allow_other_channels`` is false and the channel 'defaults' are not explicitly specified, users 
 are disallowed from downloading packages from the default channels. We will check this in the next step.
 
 Note: The admin channel can also be expressed as https://conda.anaconda.org/admin/
 
 **User configuration file**
 
-Let’s check to see where the user’s conda install is located: 
+Let's check to see where the user's conda install is located: 
 
 .. code-block:: bash
 
@@ -198,11 +198,11 @@ Let’s check to see where the user’s conda install is located:
                         http://repo.continuum.io/pkgs/pro/osx-64/
           config file : /Users/gergely/.condarc
 
-The ‘conda info’ command shows us that conda is using the user’s .condarc file, located at 
+The 'conda info' command shows us that conda is using the user's .condarc file, located at 
 ``/Users/gergely/.condarc`` and that the default channels such as ``repo.continuum.io`` are 
 listed as channel URLs.
 
-Now let’s look at the contents of the administrative .condarc file located in that directory:
+Now let's look at the contents of the administrative .condarc file located in that directory:
 
 .. code-block:: none
 
@@ -210,9 +210,9 @@ Now let’s look at the contents of the administrative .condarc file located in 
   channels:
     - defaults
 
-This user’s .condarc file specifies only the default channels. 
+This user's .condarc file specifies only the default channels. 
 
-But the administrator config file has blocked default channels by specifying that only “admin” is 
+But the administrator config file has blocked default channels by specifying that only "admin" is 
 allowed. If this user attempts to search for  a package in the default channels, they will see a 
 message telling them what channels are allowed:
 
@@ -224,7 +224,7 @@ message telling them what channels are allowed:
    Allowed channels are:
     - https://conda.anaconda.org/admin/osx-64/
 
-This error message tells the user to add the “admin” channel to their configuration file.
+This error message tells the user to add the "admin" channel to their configuration file.
 
 Conclusion: The user must edit their local .condarc configuration file to access the package 
 through the admin channel:
