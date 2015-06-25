@@ -16,7 +16,8 @@ conda and the packages, if any, in a location that is controlled by the administ
 
 Each user may then use the central conda installation, which will read settings from their own "user" .condarc configuration file 
 located in their home directory. The users' configuration is limited by the second "system" .condarc 
-file, and the path to it is the same as the root environment prefix displayed by ``conda info``.
+file, and the path to it is the same as the root environment prefix displayed by ``conda info``, as shown in the :ref:`admin-inst` 
+below.
 
 The system configuration settings are commonly used in a system configuration file, although they may also be used in a 
 user configuration file.  All user configuration settings may also be used in a system configuration file. 
@@ -74,7 +75,7 @@ security, and is not recommended. The default is True.
 Offline mode only
 -----------------
 
-Offline mode filters out all channels URLs which do not start with 'file:'. The default is False.
+Offline mode filters out all channels URLs which do not start with ``file:``. The default is False.
 
 .. code-block:: yaml
 
@@ -110,8 +111,8 @@ Add Anaconda.org token to automatically see private packages
 
 When the channel alias is Anaconda.org or an Anaconda Server GUI, the system configuration file can be set so users 
 automatically see private packages. (Anaconda.org was formerly known as binstar.org.) 
-This uses the binstar command line client (which can be installed with 'conda 
-install binstar') to automatically add the token to the channel urls. 
+This uses the binstar command line client (which can be installed with ``conda 
+install binstar``) to automatically add the token to the channel urls. 
 
 The default is True.
 
@@ -120,7 +121,7 @@ The default is True.
   add_binstar_token: False
    
 NOTE: Even when set to True, this is enabled only if the binstar command line client is installed and you 
-are logged in ``binstar login``
+are logged in with the ``binstar login`` command.
 
 .. _Specify_environment_directories:
 
@@ -131,7 +132,7 @@ Specify directories in which environments are located. If this key is set, the r
 unless explicitly included. This key also determines where the package caches will be located. 
 
 For each ``envs`` here, ``envs/pkgs`` will be used as the pkgs cache, except for the standard envs directory 
-in the root directory, for which the normal``root_dir/pkgs`` is used. The ``CONDA_ENVS_PATH`` environment 
+in the root directory, for which the normal ``root_dir/pkgs`` is used. The ``CONDA_ENVS_PATH`` environment 
 variable will overwrite this configuration file setting. 
 
 .. code-block:: yaml
@@ -144,6 +145,7 @@ variable will overwrite this configuration file setting.
 * **Linux, OS X:** ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
 * **Windows:** ``set CONDA_ENVS_PATH=C:\Users\joe\envs;C:\Anaconda\envs``
 
+.. _admin-inst:
 
 Example admin-controlled installation
 =====================================
