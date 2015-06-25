@@ -139,7 +139,7 @@ You can also update Python with the update command:
 
    conda update python
 
-NOTE: Conda will update to the highest version in its series, i.e. Python 2.7 will update to the highest available in the 2.x series, 3.4 will update to the highest 3.x available.
+NOTE: Conda will update to the highest version in its series, so Python 2.7 will update to the highest available in the 2.x series, and 3.4 will update to the highest available in the 3.x series.
 
 Regardless of what package you are updating, conda will compare versions, then let you know what is available to install. If none are available, conda will reply “All requested packages are already installed.”
 
