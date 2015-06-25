@@ -11,9 +11,9 @@ class Notebook(object):
         self.msg = ""
         self.notebook = notebook
 
-    def inject(self, environment, force=False):
+    def inject(self, content, force=False):
         try:
-            return self._inject(environment, force)
+            return self.store_in_file(content, force)
         except PermissionError:
             self.msg = "Please verify permission in {}".format(self.notebook)
         except FileNotFoundError:
@@ -23,11 +23,11 @@ class Notebook(object):
                 format(self.notebook)
         return False
 
-    def _inject(self, environment, force=False):
+    def store_in_file(self, content, force=False):
         with open(self.notebook) as fb:
             data = json.loads(fb.read())
             if force or 'environment' not in data['metadata']:
-                data['metadata']['environment'] = environment.to_yaml()
+                data['metadata']['environment'] = content
             else:
                 raise EnvironmentAlreadyInNotebook(self.notebook)
 

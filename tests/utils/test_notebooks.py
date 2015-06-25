@@ -17,22 +17,24 @@ notebook = {
 
 class NotebookTestCase(unittest.TestCase):
     def test_notebook_not_exist(self):
-        to_yaml = mock.MagicMock(return_value='')
-        env = mock.MagicMock(to_yaml=to_yaml)
         nb = Notebook('no-exist.ipynb')
-        self.assertEqual(nb.inject(env), False)
+        self.assertEqual(nb.inject('content'), False)
         self.assertEqual(nb.msg, "no-exist.ipynb does not exist")
 
     def test_environment_already_exist(self):
-        env = mock.MagicMock()
         nb = Notebook(support_file('notebook-with-env.ipynb'))
-        self.assertEqual(nb.inject(env), False)
+        self.assertEqual(nb.inject('content'), False)
+
+    def test_inject_env(self):
+        nb = Notebook(support_file('notebook.ipynb'))
+        self.assertTrue(nb.inject('content'))
+
+        with open(support_file('notebook.ipynb'), 'w') as fb:
+            fb.write(json.dumps(notebook))
 
     def test_inject(self):
-        to_yaml = mock.MagicMock(return_value='')
-        env = mock.MagicMock(to_yaml=to_yaml)
         nb = Notebook(support_file('notebook.ipynb'))
-        self.assertTrue(nb.inject(env))
+        self.assertTrue(nb.inject('user/environment'))
 
         with open(support_file('notebook.ipynb'), 'w') as fb:
             fb.write(json.dumps(notebook))
