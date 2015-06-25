@@ -172,7 +172,7 @@ You can log out of your Anaconda.org account with the command:
 
 ``binstar logout``
 
-For more information about Anaconda.org, see the Anaconda.org documentation page.
+For more information about Anaconda.org, see the `Anaconda.org documentation page <http://docs.continuum.io/anaconda/>`_.
 
 Please see our next tutorial, :doc:`pkgs2`, to learn more about the files that 
 go into each conda build and how to edit them manually. 
