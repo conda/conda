@@ -72,7 +72,7 @@ Searching & info
 
       conda -V
 
-SEE ALSO: the complete :doc:`using/index` section of our documentation site. 
+SEE ALSO: the complete :doc:`/using/index` section of our documentation site. 
 
 #. How can I check if a specific package, such as *SciPy*, is available for installation?
 
