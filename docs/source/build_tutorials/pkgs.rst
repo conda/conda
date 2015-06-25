@@ -165,7 +165,8 @@ Now you can upload the new local packages to Anaconda.org, as in this example:
 NOTE: Change your path and filename to the exact path and filename you saved in Step 2.
 
 TIP: If you want to always automatically upload a successful build to Anaconda.org, run:
-conda config --set binstar_upload yes
+
+``conda config --set binstar_upload yes``
 
 You can log out of your Anaconda.org account with the command:
 
