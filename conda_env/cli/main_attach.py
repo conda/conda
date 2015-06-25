@@ -23,10 +23,17 @@ def configure_parser(sub_parsers):
         help=description,
         epilog=example,
     )
-    p.add_argument(
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         '-n', '--name',
         action='store',
-        help='environment definition',
+        help='local environment definition',
+        default=None
+    )
+    group.add_argument(
+        '-r', '--remote',
+        action='store',
+        help='remote environment definition',
         default=None
     )
     p.add_argument(
@@ -46,13 +53,11 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    print(args)
-    if args.name is None:
-        args.name = current_env()
+    if args.name is not None:
         prefix = common.get_prefix(args)
         content = from_environment(args.name, prefix).to_yaml()
     else:
-        content = "name: {}".format(args.name)
+        content = "remote: {}".format(args.remote)
 
     print("Environment {} will be attach into {}".format(args.name, args.notebook))
     nb = Notebook(args.notebook)
