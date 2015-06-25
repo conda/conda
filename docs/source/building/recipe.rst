@@ -62,6 +62,11 @@ Conda-build invokes the following steps in this order:
 There are example recipes for many conda packages in the `conda-recipes
 <https://github.com/continuumio/conda-recipes>`_ repo.
 
+NOTE: All recipe files, including meta.yaml and build scripts, are included in 
+the final package archive which is distributed to users, so be careful not to 
+put passwords or other sensitive information into recipes where it could leak to 
+the public.
+
 The :ref:`conda skeleton <skeleton_ref>` command can help to make skeleton
 recipes for common repositories, such as `PyPI <https://pypi.python.org/pypi>`_.
 
