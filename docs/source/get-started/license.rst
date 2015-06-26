@@ -38,11 +38,7 @@ versioneer.py is Public Domain
 
 verlib.py is Public Domain
 
-The ProgressBar package is released under the following terms:
-
-progressbar  - Text progress bar library for Python.
-
-Copyright (c) 2005 Nilton Volpato
+The ProgressBar package is released under the following terms: ProgressBar - Text progress bar library for Python is copyright (c) 2005 Nilton Volpato.
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the `GNU Lesser General Public License <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html>`_
