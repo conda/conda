@@ -55,7 +55,7 @@ It includes a link to a tarball or bzipped tar archive (.tar.bz2) which contains
 The format is identical across platforms and operating systems.  During the install process,
 files are extracted into the install prefix, except for files in the ``info/``
 directory. Installing the files of a conda package into an environment can be thought of as changing the
-directory to an environment, then downloading and extracting the zip file and its dependencies - all with
+directory to an environment, then downloading and extracting the zip file and its dependencies -- all with
 the single ``conda install [packagename]`` command.
 
 .. _about-conda-build-recipe:
@@ -87,7 +87,7 @@ Edit a similar conda recipe
 ---------------------------
 
 Now we will create a recipe for the same package that we did in the first tutorial, Pyinstrument. But this
-time we will find a similar recipe from from the conda-recipes repo on Github, and manually edit  the values
+time we will find a similar recipe from from the conda-recipes repo on GitHub, and manually edit  the values
 in the  meta.yaml file.
 
 We will edit a copy of the meta.yaml used in a program named Pyfaker. Despite its name, Pyfaker is a real
@@ -119,24 +119,31 @@ Next, remove and replace the Pyfaker information with the 6 fields below.
 
 The fields we want to replace in our pyinstrument script are:
 
-#. Name: pyinstrument
-#. Git tag: 0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases)
-#. Git URL: https://github.com/joerick/pyinstrument.git
-#. Imports: pyinstrument
-#. About home: https://github.com/joerick/pyinstrument
-#. License: BSD
++---------+--------------------------------------------------------------------------+
+| Name    | pyinstrument                                                             |
++---------+--------------------------------------------------------------------------+
+| Git tag | 0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
++---------+--------------------------------------------------------------------------+
+| Git URL | https://github.com/joerick/pyinstrument.git                              |
++---------+--------------------------------------------------------------------------+
+| Imports | pyinstrument                                                             |
++---------+--------------------------------------------------------------------------+
+| Home    | https://github.com/joerick/pyinstrument                                  |
++---------+--------------------------------------------------------------------------+
+| License | BSD                                                                      |
++---------+--------------------------------------------------------------------------+
 
 When finished, save to the same directory, this time with the correct name, meta.yaml.
-When you are finished, compare your meta .yaml with the answer below:
+When you are finished, compare your meta.yaml with the answer below:
 
 .. literalinclude:: meta.yaml
 
-How to use PyPI as the source instead of Github
+How to use PyPI as the source instead of GitHub
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-What if you wanted to use PyPI or another repository instead of Github? There is little difference to conda build
+What if you wanted to use PyPI or another repository instead of GitHub? There is little difference to conda-build
 between building from Git versus building from a tarball on a repository like PyPI. Because the same source
-is hosted on PyPI and Github, you can easily find a script on  PyPI instead of Github. Simply replace this
+is hosted on PyPI and GitHub, you can easily find a script on  PyPI instead of GitHub. Simply replace this
 “source” section:
 
 .. code-block:: bash
@@ -152,7 +159,7 @@ With the following:
     md5: e347036acc50720c0903dc2221b2605d
     url: https://pypi.python.org/packages/source/p/pyinstrument/pyinstrument-0.13.1.tar.gz
 
-Note: The md5 is found on the PyPI Pyinstrument page, https://pypi.python.org/pypi/pyinstrument
+NOTE: The md5 is found on the `PyPI Pyinstrument page <https://pypi.python.org/pypi/pyinstrument>`_.
 
 More info about the meta.yaml file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -165,20 +172,26 @@ See more information about all the possible values that can go in the meta.yaml 
 Manually edit the file meta.yaml
 --------------------------------
 
-This time instead of removing and replacing text, we will manually create a new ``metal.yaml`` file. If you
+This time instead of removing and replacing text, we will manually create a new ``meta.yaml`` file. If you
 want to keep your file from Step 4 above so you can look at it later, rename it something like ``meta-step4.yaml.``
 Later when you are finished, you can rename the file meta.yaml.
 
 To create a new meta.yaml file, open your favorite editor. Create a new text file and insert the following
 information. A blank sample meta.yaml follows to make it easier to match up the information.
 
-#. Package name: pyinstrument
-#. Source Git tag: 0.13
-#. Source Git URL: https://github.com/joerick/pyinstrument.git
-#. Test - Imports: pyinstrument
-#. About home: https://github.com/joerick/pyinstrument
-#. About license: BSD
-
++---------+---------------------------------------------+
+| Name    | pyinstrument                                |
++---------+---------------------------------------------+
+| Git tag | 0.13                                        |
++---------+---------------------------------------------+
+| Git URL | https://github.com/joerick/pyinstrument.git |
++---------+---------------------------------------------+
+| Imports | pyinstrument                                |
++---------+---------------------------------------------+
+| Home    | https://github.com/joerick/pyinstrument     |
++---------+---------------------------------------------+
+| License | BSD                                         |
++---------+---------------------------------------------+
 
 .. code-block:: bash
 
@@ -190,19 +203,19 @@ information. A blank sample meta.yaml follows to make it easier to match up the 
       git_url:
 
   requirements:
-   build:
-     - python
-     - setuptools
+    build:
+      - python
+      - setuptools
 
     run:
-     - python
+      - python
 
   test:
     imports:
       -
 
   about:
-     home:
+    home:
     license:
 
 When you are finished, save the file in the same pyinstrument directory as ``meta.yaml``. Check your work against
@@ -213,7 +226,7 @@ the results in Section 4 above.
 Write the build script files build.sh and bld.bat
 -------------------------------------------------
 
-The other two files you need for a build  are
+The other two files you need for a build are
 
 * **build.sh** shell script for Linux and OS X, and
 * **bld.bat** batch file for Windows.
@@ -222,7 +235,8 @@ These two build files contain all the variables such as for 32-bit or 64-bit arc
 variable) and the build environment prefix (PREFIX). The two files ``build.sh`` and ``bld.bat`` files must be
 in the same directory as your ``meta.yaml`` file.
 
-First, we'll write the build file for Linux and OS X, then the next file for Windows.
+First we'll write the build file for Linux and OS X and then the build file for Windows.
+
 All users, in your favorite text editor, create a new file named ``build.sh`` and enter the text exactly as
 shown:
 
@@ -244,7 +258,7 @@ new file named bld.bat and enter the text exactly as shown:
 Bld.bat doesn't need the shebang, because it only has to work on Windows. But it must be formatted differently,
 and needs the command that tells it to exit if it encounters an error.
 
-NOTE: In bld.bat, it is best practices to add the ``if errorlevel 1 exit 1`` so if the build fails,
+NOTE: In bld.bat, the best practice is to to add the ``if errorlevel 1 exit 1`` so if the build fails,
 the command fails.
 
 Save this new file ``bld.bat`` to the same directory where you put your new ``meta.yaml`` and ``build.sh`` files.
@@ -252,7 +266,7 @@ Save this new file ``bld.bat`` to the same directory where you put your new ``me
 More information on environment variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For more information on build files, see :doc:`../build`
+For more information on build files, see :doc:`../build`.
 
 .. _build-and-install:
 
@@ -279,7 +293,7 @@ NOTE: Save this path and file information for the next step. The exact path and 
 on your operating system, and whether you are using Anaconda or Miniconda. Conda-build tells you the exact
 location and filename.
 
-Now install your newly-built program on your local computer by using the use-local flag:
+Now install your newly built program on your local computer by using the use-local flag:
 
 .. code-block:: bash
 
@@ -292,7 +306,7 @@ We know that Pyinstrument installed successfully if there are no error messages.
 Convert package for use on all platforms
 ----------------------------------------
 
-Now that you have built a package for your current platform with conda build, you can convert it for use on
+Now that you have built a package for your current platform with conda-build, you can convert it for use on
 other platforms. This is why you made the two build files, ``build.sh`` and ``bld.bat`` for all platforms.
 
 Use the conda convert command with a platform specifier from the list
@@ -302,7 +316,7 @@ Use the conda convert command with a platform specifier from the list
 
     conda convert --platform all ~/anaconda/conda-bld/linux-64/pyinstrument-0.13.1-py27_0.tar.bz2 -o outputdir/
 
-Note: change your path and filename to the exact path and filename you saved in Step 7.
+NOTE: change your path and filename to the exact path and filename you saved in Step 7.
 
 .. _anaconda-org:
 
@@ -312,7 +326,7 @@ Optional: Upload new packages to Anaconda.org
 After converting your files for use on other platforms, you may choose to upload your files to Anaconda.org, formerly known as binstar.org.
 It only takes a minute to do if you have a free Anaconda.org account.
 
-If you haven’t already, open a free Anaconda.org account and record your new Anaconda.org username and password.
+If you haven’t already, open a free Anaconda.org account and record your new username and password.
 
 Next, in your terminal window, run ``conda install binstar`` and enter your new Anaconda.org username and password.
 
