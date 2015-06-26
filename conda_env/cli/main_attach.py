@@ -10,8 +10,8 @@ Attach a Conda environment into a notebook
 
 example = """
 examples:
-    conda env attach notebook.ipynb
-    conda env attach -n darth/deathstar notebook.ipynb
+    conda env attach -n root notebook.ipynb
+    conda env attach -r user/environment notebook.ipynb
 """
 
 
