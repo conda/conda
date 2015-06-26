@@ -148,7 +148,7 @@ is hosted on PyPI and GitHub, you can easily find a script on  PyPI instead of G
 
 .. code-block:: bash
 
-    git_tag: 0.12
+    git_rev: 0.12
     git_url: https://github.com/joerick/pyinstrument.git
 
 With the following:
@@ -182,7 +182,7 @@ information. A blank sample meta.yaml follows to make it easier to match up the 
 +---------+---------------------------------------------+
 | Name    | pyinstrument                                |
 +---------+---------------------------------------------+
-| Git tag | 0.13                                        |
+| Git rev | 0.13                                        |
 +---------+---------------------------------------------+
 | Git URL | https://github.com/joerick/pyinstrument.git |
 +---------+---------------------------------------------+
@@ -199,7 +199,7 @@ information. A blank sample meta.yaml follows to make it easier to match up the 
     name:
 
     source:
-      git_tag:
+      git_rev:
       git_url:
 
   requirements:

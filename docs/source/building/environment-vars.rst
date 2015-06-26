@@ -137,6 +137,8 @@ When the source is a git repository, the following variables are defined:
    * - ``GIT_BUILD_STR``
      - a string that joins ``GIT_DESCRIBE_NUMBER`` and ``GIT_DESCRIBE_HASH``
        by an underscore.
+   * - ``GIT_FULL_HASH``
+     - a string with the full SHA1 of the current HEAD
 
 These can be used in conjunction with templated meta.yaml files to set things
 like the build string based on the state of the git repository.

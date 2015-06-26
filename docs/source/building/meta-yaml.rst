@@ -81,7 +81,7 @@ The ``git_url`` can also be a relative path to the recipe directory:
 
   source:
     git_url: https://github.com/ilanschnell/bsdiff4.git
-    git_tag: 1.1.4
+    git_rev: 1.1.4
 
 Source from hg
 ~~~~~~~~~~~~~~
