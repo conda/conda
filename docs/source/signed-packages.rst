@@ -2,7 +2,7 @@
 Signing conda packages
 ======================
 
-**BETA FEATURE**
+**PREVIEW RELEASE**
 
 Conda build has the ability to verify 1024 bit RSA signatures of conda packages. Conda-build includes a tool that allows signing those conda packages and adding the required package metadata to the conda repository index.
 
