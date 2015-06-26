@@ -5,7 +5,8 @@ from ..env import from_environment
 
 
 description = """
-Attach a Conda environment into a notebook
+Embeds information describing your conda environment
+into the notebook metadata
 """
 
 example = """
