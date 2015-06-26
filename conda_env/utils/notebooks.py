@@ -14,10 +14,8 @@ class Notebook(object):
     def inject(self, content, force=False):
         try:
             return self.store_in_file(content, force)
-        except PermissionError:
-            self.msg = "Please verify permission in {}".format(self.notebook)
-        except FileNotFoundError:
-            self.msg = "{} does not exist".format(self.notebook)
+        except IOError:
+            self.msg = "{} may not exist or you don't have adecuate permissions".format(self.notebook)
         except EnvironmentAlreadyInNotebook:
             self.msg = "There is already an environment in {}. Consider '--force'".\
                 format(self.notebook)
