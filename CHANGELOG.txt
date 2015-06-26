@@ -1,3 +1,5 @@
+  * note when features are being used in the unsatisfiable hint
+
 2015-06-16   3.14.0:
 --------------------
   * add ability to verify signed packages, see #1343 (and conda-build #430)
