@@ -73,4 +73,4 @@ recipes for common repositories, such as `PyPI <https://pypi.python.org/pypi>`_.
 More information about meta.yaml
 ================================
 
-Next, please continue on to learn more about :doc:`meta-yaml`.
+Next, please continue on to learn more about :doc:`the meta.yaml file<meta-yaml>`.
