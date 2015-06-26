@@ -458,4 +458,3 @@ Using conda with Travis CI
 ==========================
 
 Conda can be combined with :doc:`continuous integration systems <travis>` such as Travis CI and AppVeyor to provide frequent, automated testing of your code.
-

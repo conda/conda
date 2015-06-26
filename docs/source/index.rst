@@ -48,7 +48,6 @@ Table of Contents
    get-involved
    help/help
 
-
 Presentations & Blog Posts
 --------------------------
 

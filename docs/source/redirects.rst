@@ -1,8 +1,13 @@
 Redirects
 =========
 
-.. toctree::
+.. raw:: html
 
+        <html><head><meta http-equiv="refresh" content="0; URL='help/troubleshooting.html'" /></head><body></body></html>
+
+.. toctree::
+   :hidden:
+   
    examples/advanced
    examples/basic
    examples/create
