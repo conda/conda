@@ -34,7 +34,8 @@ To verify that the snakes environment has now been added, type the command:
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parenthesis) in front of your prompt:  ``(snakes)``
+Conda displays the list of all environments, with the current environment 
+highlighted by a '*'.
 
 Verify that the snakes environment uses Python version 3:
 
