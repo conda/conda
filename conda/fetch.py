@@ -1,4 +1,4 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -17,11 +17,12 @@ from os.path import basename, dirname, isdir, join
 import sys
 import getpass
 import warnings
+from functools import wraps
 
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.compat import itervalues, get_http_value, input, urllib_quote
+from conda.compat import itervalues, input, urllib_quote
 from conda.lock import Locked
 
 import requests
@@ -44,18 +45,30 @@ def create_cache_dir():
 
 
 def cache_fn_url(url):
-    return '%s.json' % hashlib.md5(url.encode('utf-8')).hexdigest()
+    md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
+    return '%s.json' % (md5[:8],)
 
 
-def add_http_value_to_dict(u, http_key, d, dict_key):
-    value = get_http_value(u, http_key)
+def add_http_value_to_dict(resp, http_key, d, dict_key):
+    value = resp.headers.get(http_key)
     if value:
         d[dict_key] = value
 
+# We need a decorator so that the dot gets printed *after* the repodata is fetched
+class dotlog_on_return(object):
+    def __init__(self, msg):
+        self.msg = msg
 
+    def __call__(self, f):
+        @wraps(f)
+        def func(*args, **kwargs):
+            res = f(*args, **kwargs)
+            dotlog.debug("%s args %s kwargs %s" % (self.msg, args, kwargs))
+            return res
+        return func
+
+@dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    dotlog.debug("fetching repodata: %s ..." % url)
-
     if not config.ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
@@ -76,7 +89,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         return cache
 
     headers = {}
-    if "_tag" in cache:
+    if "_etag" in cache:
         headers["If-None-Match"] = cache["_etag"]
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
@@ -88,6 +101,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
+            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
@@ -99,23 +114,34 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
+
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
                 msg = ('Could not find Binstar user %s' %
-                   config.remove_binstar_tokens(url).split(config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
+                   config.remove_binstar_tokens(url).split(
+                        config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
+                if url.endswith('/noarch/'): # noarch directory might not exist
+                    return None
                 msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+        elif e.response.status_code == 403 and url.endswith('/noarch/'):
+            return None
+
         elif (e.response.status_code == 401 and config.rc.get('channel_alias',
-            config.DEFAULT_CHANNEL_ALIAS) in url):
+                        config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to binstar again with "
                 "'binstar login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
-            return fetch_repodata(config.remove_binstar_tokens(url), cache_dir=cache_dir, use_cache=use_cache, session=session)
+            return fetch_repodata(config.remove_binstar_tokens(url),
+                                  cache_dir=cache_dir,
+                                  use_cache=use_cache, session=session)
+
         else:
             msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
+
         log.debug(msg)
         raise RuntimeError(msg)
 
@@ -163,10 +189,35 @@ def add_username_and_pass_to_url(url, username, passwd):
     urlparts[1] = username + ':' + passwd
     return unparse_url(urlparts)
 
+@memoized
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
     passwd = getpass.getpass("Password:")
     return username, passwd
+
+def add_unknown(index):
+    for pkgs_dir in config.pkgs_dirs:
+        if not isdir(pkgs_dir):
+            continue
+        for dn in os.listdir(pkgs_dir):
+            fn = dn + '.tar.bz2'
+            if fn in index:
+                continue
+            try:
+                with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
+                    meta = json.load(fi)
+            except IOError:
+                continue
+            if 'depends' not in meta:
+                meta['depends'] = []
+            log.debug("adding cached pkg to index: %s" % fn)
+            index[fn] = meta
+
+def add_pip_dependency(index):
+    for info in itervalues(index):
+        if (info['name'] == 'python' and
+                    info['version'].startswith(('2.', '3.'))):
+            info.setdefault('depends', []).append('pip')
 
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
@@ -190,16 +241,18 @@ Allowed channels are:
 
         repodatas = []
         with concurrent.futures.ThreadPoolExecutor(10) as executor:
-            future_to_url = OrderedDict([(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                session=session), url) for url in reversed(channel_urls)])
-            for future in concurrent.futures.as_completed(future_to_url):
+            future_to_url = OrderedDict([(executor.submit(
+                            fetch_repodata, url, use_cache=use_cache,
+                            session=session), url)
+                                         for url in reversed(channel_urls)])
+            for future in future_to_url:
                 url = future_to_url[future]
                 repodatas.append((url, future.result()))
     except ImportError:
         # concurrent.futures is only available in Python 3
         repodatas = map(lambda url: (url, fetch_repodata(url,
-                 use_cache=use_cache, session=session)),
-        reversed(channel_urls))
+                                     use_cache=use_cache, session=session)),
+                        reversed(channel_urls))
 
     for url, repodata in repodatas:
         if repodata is None:
@@ -208,25 +261,11 @@ Allowed channels are:
         for info in itervalues(new_index):
             info['channel'] = url
         index.update(new_index)
+
     stdoutlog.info('\n')
     if unknown:
-        for pkgs_dir in config.pkgs_dirs:
-            if not isdir(pkgs_dir):
-                continue
-            for dn in os.listdir(pkgs_dir):
-                fn = dn + '.tar.bz2'
-                if fn in index:
-                    continue
-                try:
-                    with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
-                        meta = json.load(fi)
-                except IOError:
-                    continue
-                if 'depends' not in meta:
-                    continue
-                log.debug("adding cached pkg to index: %s" % fn)
-                index[fn] = meta
-
+        add_unknown(index)
+    add_pip_dependency(index)
     return index
 
 def fetch_pkg(info, dst_dir=None, session=None):
@@ -244,6 +283,20 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    if info.get('sig'):
+        from conda.signature import verify, SignatureError
+
+        fn2 = fn + '.sig'
+        url = (info['channel'] if info['sig'] == '.' else
+               info['sig'].rstrip('/') + '/') + fn2
+        log.debug("signature url=%r" % url)
+        download(url, join(dst_dir, fn2), session=session)
+        try:
+            if verify(path):
+                return
+        except SignatureError as e:
+            sys.exit(str(e))
+        sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
@@ -307,15 +360,21 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             h = hashlib.new('md5')
         try:
             with open(pp, 'wb') as fo:
-                for chunk in resp.iter_content(2**14):
+                more = True
+                while more:
+                    # Use resp.raw so that requests doesn't decode gz files
+                    chunk  = resp.raw.read(2**14)
+                    if not chunk:
+                        more = False
                     try:
                         fo.write(chunk)
                     except IOError:
                         raise RuntimeError("Failed to write to %r." % pp)
                     if md5:
                         h.update(chunk)
-                    n += len(chunk)
-                    if size:
+                    # update n with actual bytes read
+                    n = resp.raw.tell()
+                    if size and 0 <= n <= size:
                         getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries: # Connection reset by pee

@@ -8,14 +8,15 @@
 import sys
 import os
 
-try:
+if 'develop' in sys.argv:
     from setuptools import setup
     using_setuptools = True
-except ImportError:
+    print("Using setuptools")
+else:
     from distutils.core import setup
     using_setuptools = False
+    print("Not using setuptools")
 
-add_activate = True
 
 import versioneer
 
@@ -27,7 +28,7 @@ try:
     if os.environ['CONDA_DEFAULT_ENV']:
         # Try to prevent accidentally installing conda into a non-root conda environment
         sys.exit("You appear to be in a non-root conda environment. Conda is only "
-            "supported in a non-root environment. Deactivate and try again. If believe "
+            "supported in the root environment. Deactivate and try again. If you believe "
             "this message is in error, run CONDA_DEFAULT_ENV='' python setup.py.")
 except KeyError:
     pass
@@ -44,11 +45,6 @@ if sys.platform == 'win32' and using_setuptools:
 else:
     kwds['scripts'].append('bin/conda')
 
-if add_activate:
-    if sys.platform == 'win32':
-        kwds['scripts'].extend(['bin/activate.bat', 'bin/deactivate.bat'])
-    else:
-        kwds['scripts'].extend(['bin/activate', 'bin/deactivate'])
 
 setup(
     name = "conda",

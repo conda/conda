@@ -18,7 +18,7 @@ from conda.utils import try_write, memoized
 
 
 log = logging.getLogger(__name__)
-
+stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
 
@@ -53,7 +53,7 @@ rc_list_keys = [
     'envs_dirs'
     ]
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
 ADD_BINSTAR_TOKEN = True
 
@@ -63,8 +63,8 @@ rc_bool_keys = [
     'allow_softlinks',
     'changeps1',
     'use_pip',
+    'offline',
     'binstar_upload',
-    'binstar_personal',
     'show_channel_urls',
     'allow_other_channels',
     'ssl_verify',
@@ -94,14 +94,13 @@ def get_rc_path():
 rc_path = get_rc_path()
 
 def load_condarc(path):
-    if not path:
+    if not path or not isfile(path):
         return {}
     try:
         import yaml
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file: %s)' % path)
-
     return yaml.load(open(path)) or {}
 
 rc = load_condarc(rc_path)
@@ -120,7 +119,8 @@ root_env_name = 'root'
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
     if not root_writable:
-        lst.insert(0, '~/envs')
+        # ~/envs for backwards compatibility
+        lst = ['~/.conda/envs', '~/envs'] + lst
     return lst
 
 def _pathsep_env(name):
@@ -175,10 +175,12 @@ def get_default_urls():
         if 'default_channels' in sys_rc:
             return sys_rc['default_channels']
 
-    return ['http://repo.continuum.io/pkgs/free',
-            'http://repo.continuum.io/pkgs/pro']
+    return ['https://repo.continuum.io/pkgs/free',
+            'https://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
+    if rc.get('channels') is None:
+        return []
     if 'system' in rc['channels']:
         raise RuntimeError("system cannot be used in .condarc")
     return rc['channels']
@@ -200,13 +202,16 @@ def binstar_channel_alias(channel_alias):
         except ImportError:
             log.debug("Could not import binstar")
             pass
+        except Exception as e:
+            stderrlog.info("Warning: could not import binstar_client (%s)" %
+                e)
     return channel_alias
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
     (re.escape(channel_alias)))
 
 def hide_binstar_tokens(url):
@@ -217,7 +222,7 @@ def remove_binstar_tokens(url):
 
 def normalize_urls(urls, platform=None):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
-        DEFAULT_CHANNEL_ALIAS))
+                                                 DEFAULT_CHANNEL_ALIAS))
 
     platform = platform or subdir
     newurls = []
@@ -237,22 +242,28 @@ def normalize_urls(urls, platform=None):
             newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
+            newurls.append('%s/noarch/' % url.rstrip('/'))
     return newurls
+
+offline = bool(rc.get('offline', False))
 
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST') == '2':
+        if os.getenv('CIO_TEST').strip() == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
+        return normalize_urls(base_urls, platform=platform)
 
-    elif 'channels' not in rc:
+    if 'channels' not in rc:
         base_urls = get_default_urls()
-
     else:
         base_urls = get_rc_urls()
 
-    return normalize_urls(base_urls, platform=platform)
+    res = normalize_urls(base_urls, platform=platform)
+    if offline:
+        res = [url for url in res if url.startswith('file:')]
+    return res
 
 def canonical_channel_name(channel, hide=True):
     if channel is None:
@@ -293,10 +304,7 @@ allowed_channels = get_allowed_channels()
 # ----- proxy -----
 
 def get_proxy_servers():
-    res = rc.get('proxy_servers')
-    if res is None:
-        import requests
-        return requests.utils.getproxies()
+    res = rc.get('proxy_servers') or {}
     if isinstance(res, dict):
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
@@ -315,7 +323,6 @@ always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('binstar_upload', None) # None means ask
-binstar_personal = bool(rc.get('binstar_personal', True))
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded

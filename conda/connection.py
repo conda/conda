@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -17,6 +17,7 @@ import cgi
 from io import BytesIO
 import tempfile
 
+import conda
 from conda.compat import urlparse, StringIO
 from conda.config import get_proxy_servers
 
@@ -59,7 +60,9 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        self.proxies = get_proxy_servers()
+        proxies = get_proxy_servers()
+        if proxies:
+            self.proxies = proxies
 
         # Configure retries
         if retries:
@@ -75,6 +78,9 @@ class CondaSession(requests.Session):
 
         # Enable s3:// urls
         self.mount("s3://", S3Adapter())
+
+        self.headers['User-Agent'] = "conda/%s %s" % (
+                          conda.__version__, self.headers['User-Agent'])
 
 
 class S3Adapter(requests.adapters.BaseAdapter):
@@ -177,6 +183,7 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
     def close(self):
         pass
 
+
 def url_to_path(url):
     """
     Convert a file: URL to a path.
@@ -192,6 +199,7 @@ def url_to_path(url):
     return path
 
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
+
 
 # Taken from requests-ftp
 # (https://github.com/Lukasa/requests-ftp/blob/master/requests_ftp/ftp.py)
@@ -382,6 +390,7 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         return (host, port, path)
 
+
 def data_callback_factory(variable):
     '''Returns a callback suitable for use by the FTP library. This callback
     will repeatedly save data into the variable provided to this function. This
@@ -391,6 +400,7 @@ def data_callback_factory(variable):
         return
 
     return callback
+
 
 class AuthError(Exception):
     '''Denotes an error with authentication.'''

@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 from collections import defaultdict
-from os.path import dirname, isdir, join
+from os.path import isdir, join
 
 from conda import config
 from conda import install
@@ -26,7 +26,7 @@ def _fn2fullspec(fn):
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_cache=False, unknown=False):
+              use_cache=False, unknown=False, offline=False):
     """
     Return the index of packages available on the channels
 
@@ -36,6 +36,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     channel_urls = config.normalize_urls(channel_urls, platform=platform)
     if prepend:
         channel_urls += config.get_channel_urls(platform=platform)
+    if offline:
+        channel_urls = [url for url in channel_urls if url.startswith('file:')]
     return fetch_index(tuple(channel_urls), use_cache=use_cache,
                        unknown=unknown)
 

@@ -1,76 +1,166 @@
 from __future__ import print_function, division, absolute_import
 
+from functools import wraps
 import re
 import os
 import sys
 import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
+import textwrap
+import warnings
 
 import conda.config as config
 from conda import console
+from conda.utils import memoize
 
+
+class Completer(object):
+    """
+    Subclass this class to get tab completion from argcomplete
+
+    There are two ways to use this. One is to subclass and define `_get_items(self)`
+    to return a list of all possible completions, and put that as the choices
+    in the add_argument. If you do that, you will probably also want to set
+    metavar to something, so that the argparse help doesn't show all possible
+    choices.
+
+    Another option is to define `_get_items(self)` in the same way, but also
+    define `__init__(self, prefix, parsed_args, **kwargs)` (I'm not sure what
+    goes in kwargs).  The prefix will be the parsed arguments so far, and
+    `parsed_args` will be an argparse args object. Then use
+
+    p.add_argument('argname', ...).completer = TheSubclass
+
+    Use this second option if the set of completions depends on the command
+    line flags (e.g., the list of completed packages to install changes if -c
+    flags are used).
+    """
+    @memoize
+    def get_items(self):
+        return self._get_items()
+
+    def __contains__(self, item):
+        # This generally isn't all possibilities, and even if it is, we want
+        # to give better error messages than argparse
+        return True
+
+    def __iter__(self):
+        return iter(self.get_items())
+
+class Environments(Completer):
+    def _get_items(self):
+        res = []
+        for dir in config.envs_dirs:
+            try:
+                res.extend(os.listdir(dir))
+            except OSError:
+                pass
+        return res
+
+class Packages(Completer):
+    def __init__(self, prefix, parsed_args, **kwargs):
+        self.prefix = prefix
+        self.parsed_args = parsed_args
+
+    def _get_items(self):
+        # TODO: Include .tar.bz2 files for local installs.
+        from conda.api import get_index
+        args = self.parsed_args
+        call_dict = dict(channel_urls=args.channel or (), use_cache=True,
+            prepend=not args.override_channels, unknown=args.unknown,
+            offline=args.offline)
+        if hasattr(args, 'platform'): # in search
+            call_dict['platform'] = args.platform
+        index = get_index(**call_dict)
+        return [i.rsplit('-', 2)[0] for i in index]
+
+class InstalledPackages(Completer):
+    def __init__(self, prefix, parsed_args, **kwargs):
+        self.prefix = prefix
+        self.parsed_args = parsed_args
+
+    @memoize
+    def _get_items(self):
+        import conda.install
+        packages = conda.install.linked(get_prefix(self.parsed_args))
+        return [i.rsplit('-', 2)[0] for i in packages]
+
+def add_parser_help(p):
+    """
+    So we can use consistent capitalization and periods in the help. You must
+    use the add_help=False argument to ArgumentParser or add_parser to use
+    this. Add this first to be consistent with the default argparse output.
+
+    """
+    p.add_argument(
+        '-h', '--help',
+        action=argparse._HelpAction,
+        help="Show this help message and exit.",
+    )
 
 def add_parser_prefix(p):
     npgroup = p.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
-        action = "store",
-        help = "name of environment (in %s)" %
+        action="store",
+        help="Name of environment (in %s)." %
                             os.pathsep.join(config.envs_dirs),
+        metavar="ENVIRONMENT",
+        choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
-        action = "store",
-        help = "full path to environment prefix (default: %s)" %
+        action="store",
+        help="Full path to environment prefix (default: %s)." %
                                            config.default_prefix,
-        metavar = 'PATH',
+        metavar='PATH',
     )
 
 
 def add_parser_yes(p):
     p.add_argument(
-        "--yes",
-        action = "store_true",
-        help = "do not ask for confirmation",
+        "-y", "--yes",
+        action="store_true",
+        help="Do not ask for confirmation.",
     )
     p.add_argument(
         "--dry-run",
-        action = "store_true",
-        help = "only display what would have been done",
+        action="store_true",
+        help="Only display what would have been done.",
     )
 
 
 def add_parser_json(p):
     p.add_argument(
         "--json",
-        action = "store_true",
-        help = argparse.SUPPRESS,
+        action="store_true",
+        help="Report all output as json. Suitable for using conda programmatically."
     )
 
 
 def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
-        action = "store_true",
-        help = "do not display progress bar",
+        action="store_true",
+        help="Do not display progress bar.",
     )
 
 def add_parser_channels(p):
     p.add_argument('-c', '--channel',
-        action = "append",
-        help = """additional channel to search for packages. These are URLs searched in the order
+        action="append",
+        help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
         or channels from .condarc are searched (unless --override-channels is given).  You can use
         'defaults' to get the default packages for conda, and 'system' to get the system
         packages, which also takes .condarc into account.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.binstar.org/""" # we can't put , here; invalid syntax
+        is http://conda.anaconda.org/.""" # we can't put , here; invalid syntax
     )
     p.add_argument(
         "--override-channels",
-        action = "store_true",
-        help = """Do not search default or .condarc channels.  Requires --channel.""",
+        action="store_true",
+        help="""Do not search default or .condarc channels.  Requires --channel.""",
     )
 
 def add_parser_known(p):
@@ -79,8 +169,9 @@ def add_parser_known(p):
         action="store_true",
         default=False,
         dest='unknown',
-        help="use index metadata from the local package cache "
-             "(which are from unknown channels)",
+        help="Use index metadata from the local package cache, "
+             "which are from unknown channels (installing local packages "
+             "directly implies this option).",
     )
 
 def add_parser_use_index_cache(p):
@@ -88,64 +179,95 @@ def add_parser_use_index_cache(p):
         "--use-index-cache",
         action="store_true",
         default=False,
-        help = "use cache of channel index files",
+        help="Use cache of channel index files.",
     )
+
+def add_parser_copy(p):
+    p.add_argument(
+        '--copy',
+        action="store_true",
+        help="Install all packages using copies instead of hard- or soft-linking."
+        )
 
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
-        action = "store_true",
-        help = "force install (even when package already installed), "
-               "implies --no-deps",
+        action="store_true",
+        help="Force install (even when package already installed), "
+               "implies --no-deps.",
     )
     p.add_argument(
         "--force-pscheck",
-        action = "store_true",
-        help = ("force removal (when package process is running)"
-                if config.platform == 'win' else argparse.SUPPRESS)
+        action="store_true",
+        help=("Force removal (when package process is running) (deprecated)"
+              if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         "--file",
-        action = "store",
-        help = "read package versions from FILE",
+        action="store",
+        help="Read package versions from FILE.",
     )
     add_parser_known(p)
     p.add_argument(
         "--no-deps",
-        action = "store_true",
-        help = "do not install dependencies",
+        action="store_true",
+        help="Do not install dependencies.",
     )
     p.add_argument(
         '-m', "--mkdir",
-        action = "store_true",
-        help = "create prefix directory if necessary",
+        action="store_true",
+        help="Create prefix directory if necessary.",
     )
     add_parser_use_index_cache(p)
     add_parser_use_local(p)
+    add_parser_offline(p)
     add_parser_no_pin(p)
     add_parser_channels(p)
     add_parser_prefix(p)
     add_parser_quiet(p)
+    add_parser_copy(p)
     p.add_argument(
         "--alt-hint",
         action="store_true",
         default=False,
-        help="Use an alternate algorithm to generate an unsatisfiable hint")
-    p.add_argument(
-        'packages',
-        metavar = 'package_spec',
-        action = "store",
-        nargs = '*',
-        help = "package versions to install into conda environment",
-    )
+        help="Use an alternate algorithm to generate an unsatisfiability hint.")
+
+    if 'update' in p.prog:
+        # I don't know if p.prog is the correct thing to use here but it's the
+        # only thing that seemed to contain the command name
+        p.add_argument(
+            'packages',
+            metavar='package_spec',
+            action="store",
+            nargs='*',
+            help="Package versions to install into the conda environment.",
+        ).completer=InstalledPackages
+    else: # create or install
+        # Same as above except the completer is not only installed packages
+        p.add_argument(
+            'packages',
+            metavar='package_spec',
+            action="store",
+            nargs='*',
+            help="Package versions to install into the conda environment.",
+            ).completer=Packages
+
 
 def add_parser_use_local(p):
     p.add_argument(
         "--use-local",
         action="store_true",
         default=False,
-        help = "use locally built packages",
+        help="Use locally built packages.",
+    )
+
+def add_parser_offline(p):
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        default=False,
+        help="Offline mode, don't connect to the Internet.",
     )
 
 
@@ -155,7 +277,7 @@ def add_parser_no_pin(p):
         action="store_false",
         default=True,
         dest='pinned',
-        help="don't use pinned packages",
+        help="Ignore pinned file.",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
@@ -308,8 +430,12 @@ spec_pat = re.compile(r'''
 )?
 $                                  # end-of-line
 ''', re.VERBOSE)
+
+def strip_comment(line):
+    return line.split('#')[0].rstrip()
+
 def spec_from_line(line):
-    m = spec_pat.match(line)
+    m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
     name, cc, pc = (m.group('name').lower(), m.group('cc'), m.group('pc'))
@@ -348,20 +474,27 @@ def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
 
 
-def check_specs(prefix, specs, json=False):
+def check_specs(prefix, specs, json=False, create=False):
     from conda.plan import is_root_prefix
 
     if len(specs) == 0:
-        error_and_exit('too few arguments, must supply command line '
-                       'package specs or --file',
+        msg = ('too few arguments, must supply command line '
+               'package specs or --file')
+        if create:
+            msg += textwrap.dedent("""
+
+                You can specify one or more default packages to install when creating
+                an environment.  Doing so allows you to call conda create without
+                explicitly providing any package names.
+
+                To set the provided packages, call conda config like this:
+
+                    conda config --add create_default_packages PACKAGE_NAME
+            """)
+        error_and_exit(msg,
                        json=json,
                        error_type="ValueError")
 
-    if not is_root_prefix(prefix) and names_in_specs(['conda'], specs):
-        error_and_exit("Package 'conda' may only be installed in the "
-                       "root environment",
-                       json=json,
-                       error_type="ValueError")
 
 
 def disp_features(features):
@@ -396,7 +529,7 @@ def error_and_exit(message, json=False, newline=False, error_text=True,
 def exception_and_exit(exc, **kwargs):
     if 'error_type' not in kwargs:
         kwargs['error_type'] = exc.__class__.__name__
-    error_and_exit('; '.join(exc.args), **kwargs)
+    error_and_exit('; '.join(map(str, exc.args)), **kwargs)
 
 
 def get_index_trap(*args, **kwargs):
@@ -435,4 +568,46 @@ def stdout_json_success(success=True, **kwargs):
     result.update(kwargs)
     stdout_json(result)
 
-root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda'
+root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda', 'openssl', 'requests'
+
+
+def handle_envs_list(acc, output=True):
+    from conda import misc
+
+    if output:
+        print("# conda environments:")
+        print("#")
+
+    def disp_env(prefix):
+        fmt = '%-20s  %s  %s'
+        default = '*' if prefix == config.default_prefix else ' '
+        name = (config.root_env_name if prefix == config.root_dir else
+                basename(prefix))
+        if output:
+            print(fmt % (name, default, prefix))
+
+    for prefix in misc.list_prefixes():
+        disp_env(prefix)
+        if prefix != config.root_dir:
+            acc.append(prefix)
+
+    if output:
+        print()
+
+
+DEPRECATED = ["force_pscheck", ]
+
+
+def deprecation_warning(func):
+    """Wraps an execute function in a deprecated args checker"""
+
+    msg = "Argument %s is no longer used"
+
+    @wraps(func)
+    def inner(args, parser):
+        for key in DEPRECATED:
+            if not hasattr(args, key):
+                continue
+            warnings.warn(msg % key.replace("_", "-"), DeprecationWarning)
+        return func(args, parser)
+    return inner

@@ -11,9 +11,10 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
 from conda.console import setup_handlers
 from conda import config
+from conda.toposort import toposort
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -226,7 +227,7 @@ class Resolve(object):
 
     def __init__(self, index):
         self.index = index
-        self.groups = defaultdict(list) # map name to list of filenames
+        self.groups = defaultdict(list)  # map name to list of filenames
         for fn, info in iteritems(index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
@@ -266,7 +267,7 @@ class Resolve(object):
             ret = []
             for pkg in pkgs:
                 try:
-                    if (pkg.name, pkg.norm_version, pkg.build_number) ==\
+                    if (pkg.name, pkg.norm_version, pkg.build_number) == \
                        (maxpkg.name, maxpkg.norm_version, maxpkg.build_number):
                         ret.append(pkg)
                 except TypeError:
@@ -315,7 +316,7 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
-        groups = defaultdict(list) # map name to list of filenames
+        groups = defaultdict(list)  # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
@@ -381,7 +382,7 @@ class Resolve(object):
             yield tuple(clause)
 
     def generate_version_eq(self, v, dists, include0=False):
-        groups = defaultdict(list) # map name to list of filenames
+        groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
 
@@ -430,10 +431,34 @@ class Resolve(object):
 
         return dists
 
+    def graph_sort(self, must_have):
+
+        def lookup(value):
+            index_data = self.index.get('%s.tar.bz2' % value, {})
+            return {item.split(' ', 1)[0] for item in index_data.get('depends', [])}
+
+        digraph = {}
+
+        for key, value in must_have.items():
+            depends = lookup(value)
+            digraph[key] = depends
+
+        sorted_keys = toposort(digraph)
+
+        must_have = must_have.copy()
+        # Take all of the items in the sorted keys
+        # Don't fail if the key does not exist
+        result = [must_have.pop(key) for key in sorted_keys if key in must_have]
+
+        # Take any key that were not sorted
+        result.extend(must_have.values())
+
+        return result
+
     def solve2(self, specs, features, guess=True, alg='BDD',
         returnall=False, minimal_hint=False, unsat_only=False):
+
         log.debug("Solving for %s" % str(specs))
-        log.debug("Using alg %s" % alg)
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
@@ -447,9 +472,9 @@ class Resolve(object):
             # couldn't be found.
             pass
         else:
-            v = {} # map fn to variable number
-            w = {} # map variable number to fn
-            i = -1 # in case the loop doesn't run
+            v = {}  # map fn to variable number
+            w = {}  # map variable number to fn
+            i = -1  # in case the loop doesn't run
             for i, fn in enumerate(sorted(dists)):
                 v[fn] = i + 1
                 w[i + 1] = fn
@@ -457,19 +482,23 @@ class Resolve(object):
 
             dotlog.debug("Solving using max dists only")
             clauses = set(self.gen_clauses(v, dists, specs, features))
-            solutions = min_sat(clauses)
-
-            if len(solutions) == 1:
-                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                if returnall:
-                    return [ret]
-                return ret
+            try:
+                solutions = min_sat(clauses, alg='iterate',
+                    raise_on_max_n=True)
+            except MaximumIterationsError:
+                pass
+            else:
+                if len(solutions) == 1:
+                    ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+                    if returnall:
+                        return [ret]
+                    return ret
 
         dists = self.get_dists(specs)
 
-        v = {} # map fn to variable number
-        w = {} # map variable number to fn
-        i = -1 # in case the loop doesn't run
+        v = {}  # map fn to variable number
+        w = {}  # map variable number to fn
+        i = -1  # in case the loop doesn't run
         for i, fn in enumerate(sorted(dists)):
             v[fn] = i + 1
             w[i + 1] = fn
@@ -489,17 +518,21 @@ class Resolve(object):
 
         if not solution:
             if guess:
-                stderrlog.info('\nError: Unsatisfiable package '
-                    'specifications.\nGenerating hint: \n')
                 if minimal_hint:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating minimal hint: \n')
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
                 else:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: \n')
                     sys.exit(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if unsat_only:
             return True
+
+        log.debug("Using alg %s" % alg)
 
         def version_constraints(lo, hi):
             return set(generate_constraints(eq, m, [lo, hi], alg=alg))
@@ -520,13 +553,20 @@ class Resolve(object):
                 constraints = set([])
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses | constraints, N=m+1)
+        try:
+            solutions = min_sat(clauses | constraints, N=m + 1, alg='iterate',
+                raise_on_max_n=True)
+        except MaximumIterationsError:
+            solutions = min_sat(clauses | constraints, N=m + 1, alg='sorter')
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
-            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
-            for sol in solutions:
-                stdoutlog.info('\t' + str([w[lit] for lit in sol if 0 < lit <= m]))
+            stdoutlog.info('\nWarning: %s possible package resolutions (only showing differing packages):\n' % len(solutions))
+            pretty_solutions = [{w[lit] for lit in sol if 0 < lit <= m} for
+                sol in solutions]
+            common  = set.intersection(*pretty_solutions)
+            for sol in pretty_solutions:
+                stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
@@ -556,47 +596,39 @@ class Resolve(object):
         # TODO: Check features as well
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
-        # Don't show the dots in normal mode but do show the dotlog messages
-        # with --debug
+
+        # Don't show the dots from solve2 in normal mode but do show the
+        # dotlog messages with --debug
         dotlog.setLevel(logging.WARN)
-        hint = []
-        # Try to find the largest satisfiable subset
-        found = False
-        if len(specs) > 10:
-            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
-        for i in range(len(specs), 0, -1):
-            if found:
-                logging.getLogger('progress.stop').info(None)
-                break
 
-            # Too lazy to compute closed form expression
-            ncombs = len(list(combinations(specs, i)))
-            logging.getLogger('progress.start').info(ncombs)
-            for j, comb in enumerate(combinations(specs, i), 1):
-                try:
-                    logging.getLogger('progress.update').info(('%s/%s' % (j,
-                        ncombs), j))
-                    self.solve2(comb, features, guess=False, unsat_only=True)
-                except RuntimeError:
-                    pass
-                else:
-                    rem = set(specs) - set(comb)
-                    rem.discard('conda')
-                    if len(rem) == 1:
-                        hint.append("%s" % rem.pop())
-                    else:
-                        hint.append("%s" % ' and '.join(rem))
+        def sat(specs):
+            try:
+                self.solve2(specs, features, guess=False, unsat_only=True)
+            except RuntimeError:
+                return False
+            return True
 
-                    found = True
+        hint = minimal_unsatisfiable_subset(specs, sat=sat, log=True)
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("\nHint: %s has a conflict with the remaining packages" %
-                    hint[0])
-        return ("""
-Hint: the following combinations of packages create a conflict with the
-remaining packages:
-  - %s""" % '\n  - '.join(hint))
+            # TODO: Generate a hint from the dependencies.
+            ret = (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
+                "info {0}')").format(hint[0].split()[0]))
+        else:
+            ret = """
+Hint: the following packages conflict with each other:
+  - %s
+
+Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - '.join(hint), hint[0].split()[0])
+
+        if features:
+            ret += """
+
+Note that the following features are enabled:
+  - %s
+""" % ('\n  - '.join(features))
+        return ret
 
     def explicit(self, specs):
         """

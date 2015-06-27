@@ -6,8 +6,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from argparse import RawDescriptionHelpFormatter
-
 from conda.cli import common, install
 
 
@@ -18,7 +16,8 @@ descr = (help +
          "the -n NAME or -p PREFIX option.")
 
 example = """
-examples:
+Examples:
+
     conda create -n myenv sqlite
 
 """
@@ -26,25 +25,26 @@ examples:
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'create',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = help,
-        epilog  = example,
+        description=descr,
+        help=help,
+        epilog=example,
     )
     common.add_parser_install(p)
     common.add_parser_json(p)
     p.add_argument(
         "--clone",
-        action = "store",
-        help = 'path to (or name of) existing local environment',
-        metavar = 'ENV',
+        action="store",
+        help='Path to (or name of) existing local environment.',
+        metavar='ENV',
     )
     p.add_argument(
         "--no-default-packages",
-        action = "store_true",
-        help = 'ignore create_default_packages in condarc file',
+        action="store_true",
+        help='Ignore create_default_packages in the .condarc file.',
     )
     p.set_defaults(func=execute)
 
+
+@common.deprecation_warning
 def execute(args, parser):
     install.install(args, parser, 'create')

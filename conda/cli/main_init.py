@@ -12,16 +12,27 @@ from os.path import isdir, join
 import conda
 import conda.config as config
 
+descr = """
+Initialize conda into a regular environment (when conda was installed as a
+Python package, e.g. using pip). (DEPRECATED)
+"""
 
-descr = ("Initialize conda into a regular environment (when conda was "
-         "installed as a Python package, e.g. using pip). (DEPRECATED)")
+warning = """
+WARNING: conda init is deprecated. The recommended way to manage pip installed
+conda is to use pip to manage the root environment and conda to manage new
+conda environments.
+
+Note that pip installing conda is not the recommended way for setting up your
+system.  The recommended way for setting up a conda system is by installing
+Miniconda. See http://conda.pydata.org/miniconda.html."""
 
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'init',
-        description = descr,
-        help = descr,
+        description=descr,
+        epilog=warning,
+        help=descr,
     )
     p.set_defaults(func=execute)
 
@@ -52,7 +63,7 @@ def initialize(prefix=config.root_dir):
         if sys.platform != 'win32':
             fo.write('zlib sqlite readline tk openssl system\n')
     write_meta(meta_dir, dict(name='conda',
-                              version=conda.__version__.split('-')[0]))
+        version=conda.__version__.split('-')[0], build_number=0))
     write_meta(meta_dir, dict(name='python', version=sys.version[:5],
         build_number=0, build="0"))
     with open(join(meta_dir, "pinned"), 'w') as f:
@@ -63,6 +74,8 @@ def execute(args, parser):
     if is_initialized():
         sys.exit('Error: conda appears to be already initalized in: %s' %
                  config.root_dir)
+
+    print(warning, file=sys.stderr)
 
     print('Initializing conda into: %s' % config.root_dir)
     initialize()

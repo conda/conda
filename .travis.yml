@@ -22,7 +22,9 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - conda install pytest requests
+  - bin/conda install --force --no-deps conda requests
+  - conda --version
+  - conda install -c conda pytest requests mock conda-env pycrypto
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi

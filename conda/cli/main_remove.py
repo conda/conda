@@ -6,47 +6,66 @@
 
 from __future__ import print_function, division, absolute_import
 
-import sys
+from os.path import join
 
 import argparse
 from argparse import RawDescriptionHelpFormatter
+import errno
+import logging
 
 from conda import config
+from conda import plan
 from conda.cli import common
 from conda.console import json_progress_bars
 
 
-help = "Remove a list of packages from a specified conda environment."
+help = "%s a list of packages from a specified conda environment."
 descr = help + """
 Normally, only the specified package is removed, and not the packages
 which may depend on the package.  Hence this command should be used
-with caution.
+with caution.  Note:  conda uninstall is an alias for conda remove.
 """
 example = """
-examples:
-    conda remove -n myenv scipy
+Examples:
+
+    conda %s -n myenv scipy
 
 """
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'remove',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = help,
-        epilog = example,
-    )
+uninstall_help = "Alias for conda remove.  See conda remove --help."
+log = logging.getLogger(__name__)
+
+def configure_parser(sub_parsers, name='remove'):
+    if name == 'remove':
+        p = sub_parsers.add_parser(
+            name,
+            formatter_class=RawDescriptionHelpFormatter,
+            description=descr % name.capitalize(),
+            help=help % name.capitalize(),
+            epilog=example % name,
+            add_help=False,
+        )
+    else:
+        p = sub_parsers.add_parser(
+            name,
+            formatter_class=RawDescriptionHelpFormatter,
+            description=uninstall_help,
+            help=uninstall_help,
+            epilog=example % name,
+            add_help=False,
+        )
+    common.add_parser_help(p)
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
         "--all",
-        action = "store_true",
-        help = "remove all packages, i.e. the entire environment",
+        action="store_true",
+        help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
     p.add_argument(
         "--features",
-        action = "store_true",
-        help = "remove features (instead of packages)",
+        action="store_true",
+        help="%s features (instead of packages)." % name.capitalize(),
     )
     common.add_parser_no_pin(p)
     common.add_parser_channels(p)
@@ -54,27 +73,29 @@ def configure_parser(sub_parsers):
     common.add_parser_quiet(p)
     common.add_parser_use_index_cache(p)
     common.add_parser_use_local(p)
+    common.add_parser_offline(p)
     p.add_argument(
         "--force-pscheck",
-        action = "store_true",
-        help = ("force removal (when package process is running)"
-                if config.platform == 'win' else argparse.SUPPRESS)
+        action="store_true",
+        help=("Force removal (when package process is running) (deprecated)"
+              if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
         'package_names',
-        metavar = 'package_name',
-        action = "store",
-        nargs = '*',
-        help = "package names to remove from environment",
-    )
+        metavar='package_name',
+        action="store",
+        nargs='*',
+        help="Package names to %s from the environment." % name,
+    ).completer = common.InstalledPackages
     p.set_defaults(func=execute)
 
 
+@common.deprecation_warning
 def execute(args, parser):
     import sys
 
     import conda.plan as plan
-    from conda.cli import pscheck
+    import conda.instructions as inst
     from conda.install import rm_rf, linked
     from conda import config
 
@@ -85,6 +106,8 @@ def execute(args, parser):
                               error_type="ValueError")
 
     prefix = common.get_prefix(args)
+    if args.all and prefix == config.default_prefix:
+        common.error_and_exit("cannot remove current environment. deactivate and run conda remove again")
     common.check_write('remove', prefix, json=args.json)
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
@@ -104,12 +127,15 @@ def execute(args, parser):
         index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
     else:
-        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels,
+        index = common.get_index_trap(channel_urls=channel_urls,
+                                      prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      json=args.json)
+                                      json=args.json,
+                                      offline=args.offline)
+    specs = None
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
@@ -121,8 +147,9 @@ def execute(args, parser):
                                   json=args.json,
                                   error_type="CantRemoveRoot")
 
-        actions = {plan.PREFIX: prefix,
-                   plan.UNLINK: sorted(linked(prefix))}
+        actions = {inst.PREFIX: prefix}
+        for dist in sorted(linked(prefix)):
+            plan.add_unlink(actions, dist)
 
     else:
         specs = common.specs_from_args(args.package_names)
@@ -162,21 +189,24 @@ def execute(args, parser):
         })
         return
 
+
     if not args.json:
-        if not pscheck.main(args):
-            common.confirm_yn(args)
-    elif (sys.platform == 'win32' and not args.force_pscheck and
-          not pscheck.check_processes(verbose=False)):
-        common.error_and_exit("Cannot continue removal while processes "
-                              "from packages are running without --force-pscheck.",
-                              json=True,
-                              error_type="ProcessesStillRunning")
+        common.confirm_yn(args)
 
     if args.json and not args.quiet:
         with json_progress_bars():
             plan.execute_actions(actions, index, verbose=not args.quiet)
     else:
         plan.execute_actions(actions, index, verbose=not args.quiet)
+        if specs:
+            try:
+                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                    f.write('# remove specs: %s\n' % specs)
+            except IOError as e:
+                if e.errno == errno.EACCES:
+                    log.debug("Can't write the history file")
+                else:
+                    raise
 
     if args.all:
         rm_rf(prefix)

@@ -5,6 +5,8 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
+import json
+import shlex
 import shutil
 import subprocess
 from collections import defaultdict
@@ -15,8 +17,8 @@ from os.path import (abspath, basename, dirname, expanduser, exists,
 from conda import config
 from conda import install
 from conda.api import get_index
-from conda.plan import (RM_EXTRACTED, EXTRACT, UNLINK, LINK,
-                        ensure_linked_actions, execute_actions)
+from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from conda.plan import ensure_linked_actions, execute_actions
 from conda.compat import iteritems
 
 
@@ -81,7 +83,7 @@ def untracked(prefix, exclude_self_build=False):
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or
-                     (sys.platform=='darwin' and path.endswith('.DS_Store')) or
+                     (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
                      (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
@@ -132,6 +134,17 @@ def touch_nonadmin(prefix):
             fo.write('')
 
 
+def append_env(prefix):
+    dir_path = abspath(expanduser('~/.conda'))
+    try:
+        if not isdir(dir_path):
+            os.mkdir(dir_path)
+        with open(join(dir_path, 'environments.txt'), 'a') as f:
+            f.write('%s\n' % prefix)
+    except IOError:
+        pass
+
+
 def clone_env(prefix1, prefix2, verbose=True, quiet=False):
     """
     clone existing prefix1 into new prefix2
@@ -162,7 +175,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
             s = data.decode('utf-8')
             s = s.replace(prefix1, prefix2)
             data = s.encode('utf-8')
-        except UnicodeDecodeError: # data is binary
+        except UnicodeDecodeError:  # data is binary
             pass
 
         with open(dst, 'wb') as fo:
@@ -177,12 +190,13 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
 
 def install_local_packages(prefix, paths, verbose=False):
     # copy packages to pkgs dir
+    pkgs_dir = config.pkgs_dirs[0]
     dists = []
     for src_path in paths:
         assert src_path.endswith('.tar.bz2')
         fn = basename(src_path)
         dists.append(fn[:-8])
-        dst_path = join(config.pkgs_dirs[0], fn)
+        dst_path = join(pkgs_dir, fn)
         if abspath(src_path) == abspath(dst_path):
             continue
         shutil.copyfile(src_path, dst_path)
@@ -198,13 +212,22 @@ def install_local_packages(prefix, paths, verbose=False):
         actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
 
+    depends = []
+    for dist in dists:
+        try:
+            with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
+                meta = json.load(fi)
+            depends.extend(meta['depends'])
+        except (IOError, KeyError):
+            continue
+    return depends
+
 
 def environment_for_conda_environment(prefix=config.root_dir):
     # prepend the bin directory to the path
     fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
     binpath = fmt % abspath(prefix)
-    path = r'%s;%s' if sys.platform == 'win32' else '%s:%s'
-    path = path % (binpath, os.getenv('PATH'))
+    path = os.path.pathsep.join([binpath, os.getenv('PATH')])
     env = {'PATH': path}
     # copy existing environment variables, but not anything with PATH in it
     for k, v in iteritems(os.environ):
@@ -256,10 +279,8 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     if sys.platform == 'win32' and cmd == 'python':
         # python is located one directory up on Windows
         cmd = join(binpath, '..', cmd)
-    else:
-        cmd = join(binpath, cmd)
 
-    args = [cmd]
+    args = shlex.split(cmd)
     if additional_args:
         args.extend(additional_args)
 
@@ -281,8 +302,8 @@ def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
         base_url = dirname(info['channel'].rstrip('/'))
         icon_fn = info['icon']
-        #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-        #if isfile(icon_cache_path):
+        # icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+        # if isfile(icon_cache_path):
         #    return url_path(icon_cache_path)
         return '%s/icons/%s' % (base_url, icon_fn)
     return ''

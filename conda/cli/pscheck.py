@@ -16,7 +16,7 @@ except NameError:
         pass
 
 
-def check_processes(verbose=True):
+def check_processes(dir=root_dir, verbose=True):
     # Conda should still work if psutil is not installed (it should not be a
     # hard dependency)
     try:
@@ -38,9 +38,9 @@ def check_processes(verbose=True):
         except psutil.NoSuchProcess:
             continue
         try:
-            if abspath(p.exe()).startswith(root_dir):
+            if abspath(p.exe()).startswith(dir):
                 processcmd = ' '.join(p.cmdline())
-                if 'conda ' in processcmd:
+                if 'conda' in processcmd:
                     continue
                 if verbose:
                     print("WARNING: the process %s (%d) is running" %

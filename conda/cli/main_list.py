@@ -9,53 +9,87 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import subprocess
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile
 import logging
+from argparse import RawDescriptionHelpFormatter
 
 import conda.install as install
 import conda.config as config
 from conda.cli import common
 
+# pip_args is here for BC
+from conda.pip import pip_args, add_pip_installed
+
 
 descr = "List linked packages in a conda environment."
 
+# Note, the formatting of this is designed to work well with help2man
+examples = """
+Examples:
+
+List all packages in the current environment:
+
+    conda list
+
+List all packages installed into the environment 'myenv':
+
+    conda list -n myenv
+
+Save packages for future use:
+
+    conda list --export > package-list.txt
+
+Reinstall packages from an export file:
+
+    conda create -n myenv --file package-list.txt
+
+"""
 log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'list',
-        description = descr,
-        help = descr,
+        description=descr,
+        help=descr,
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog=examples,
+        add_help=False,
     )
+    common.add_parser_help(p)
     common.add_parser_prefix(p)
     common.add_parser_json(p)
     p.add_argument(
         '-c', "--canonical",
-        action = "store_true",
-        help = "output canonical names of packages only",
+        action="store_true",
+        help="Output canonical names of packages only.",
+    )
+    p.add_argument(
+        '-f', "--full-name",
+        action="store_true",
+        help="Only search for full names, i.e., ^<regex>$.",
     )
     p.add_argument(
         '-e', "--export",
-        action = "store_true",
-        help = "output requirement string only "
-                  "(output may be used by conda create --file)",
+        action="store_true",
+        help="""Output requirement string only (output may be used by conda create
+                  --file).""",
     )
     p.add_argument(
         '-r', "--revisions",
-        action = "store_true",
-        help = "list the revision history and exit",
+        action="store_true",
+        help="List the revision history and exit.",
     )
     p.add_argument(
         "--no-pip",
-        action = "store_false",
+        action="store_false",
         default=True,
         dest="pip",
-        help = "Do not include pip-only installed packages")
+        help="Do not include pip-only installed packages.")
     p.add_argument(
         'regex',
-        action = "store",
-        nargs = "?",
-        help = "list only packages matching this regular expression",
+        action="store",
+        nargs="?",
+        help="List only packages matching this regular expression.",
     )
     p.set_defaults(func=execute)
 
@@ -64,68 +98,6 @@ def print_export_header():
     print('# This file may be used to create an environment using:')
     print('# $ conda create --name <env> --file <this file>')
     print('# platform: %s' % config.subdir)
-
-
-def pip_args(prefix):
-    """
-    return the arguments required to invoke pip (in prefix), or None if pip
-    is not installed
-    """
-    if sys.platform == 'win32':
-        pip_path = join(prefix, 'Scripts', 'pip-script.py')
-        py_path = join(prefix, 'python.exe')
-    else:
-        pip_path = join(prefix, 'bin', 'pip')
-        py_path = join(prefix, 'bin', 'python')
-    if isfile(pip_path) and isfile(py_path):
-        return [py_path, pip_path]
-    else:
-        return None
-
-
-def add_pip_installed(prefix, installed, json=False):
-    args = pip_args(prefix)
-    if args is None:
-        return
-    args.append('list')
-    try:
-        pipinst = subprocess.check_output(
-                                args, universal_newlines=True).split('\n')
-    except Exception as e:
-        # Any error should just be ignored
-        if not json:
-            print("# Warning: subprocess call to pip failed")
-        return
-
-    # For every package in pipinst that is not already represented
-    # in installed append a fake name to installed with 'pip'
-    # as the build string
-    conda_names = {d.rsplit('-', 2)[0] for d in installed}
-    pat = re.compile('([\w.-]+)\s+\((.+)\)')
-    for line in pipinst:
-        line = line.strip()
-        if not line:
-            continue
-        m = pat.match(line)
-        if m is None:
-            if not json:
-                print('Could not extract name and version from: %r' % line)
-            continue
-        name, version = m.groups()
-        name = name.lower()
-        if ', ' in version:
-            # Packages installed with setup.py develop will include a path in
-            # the version. They should be included here, even if they are
-            # installed with conda, as they are preferred over the conda
-            # version. We still include the conda version, though, because it
-            # is still installed.
-
-            version, path = version.split(', ')
-            # We do this because the code below uses rsplit('-', 2)
-            version = version.replace('-', ' ')
-            installed.add('%s (%s)-%s-<pip>' % (name, path, version))
-        elif name not in conda_names:
-            installed.add('%s-%s-<pip>' % (name, version))
 
 
 def get_packages(installed, regex):
@@ -199,6 +171,10 @@ Error: environment does not exist: %s
 def execute(args, parser):
     prefix = common.get_prefix(args)
 
+    regex = args.regex
+    if args.full_name:
+        regex = r'^%s$' % regex
+
     if args.revisions:
         from conda.history import History
 
@@ -224,4 +200,4 @@ def execute(args, parser):
     if args.json:
         format = 'canonical'
 
-    print_packages(prefix, args.regex, format, piplist=args.pip, json=args.json)
+    print_packages(prefix, regex, format, piplist=args.pip, json=args.json)
