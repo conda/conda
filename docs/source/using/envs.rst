@@ -103,11 +103,8 @@ Which environment are you using right now -- snowflakes or bunnies? To find out,
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parenthesis) in front of your prompt:  
-
-.. code::
-
-   (snowflakes) 
+Conda displays the list of all environments, with the current environment 
+highlighted with an '*' character.
 
 Clone an environment
 -------------------------------------
