@@ -1,8 +1,11 @@
 import json
 from os.path import basename
 import conda.config as config
-from conda.cli import common
-from ..exceptions import EnvironmentAlreadyInNotebook
+from ..exceptions import EnvironmentAlreadyInNotebook, IPythonNotInstalled
+try:
+    from IPython import nbformat
+except ImportError:
+    nbformat = None
 
 
 class Notebook(object):
@@ -10,6 +13,8 @@ class Notebook(object):
     def __init__(self, notebook):
         self.msg = ""
         self.notebook = notebook
+        if nbformat is None:
+            raise IPythonNotInstalled
 
     def inject(self, content, force=False):
         try:
@@ -22,16 +27,13 @@ class Notebook(object):
         return False
 
     def store_in_file(self, content, force=False):
-        with open(self.notebook) as fb:
-            data = json.loads(fb.read())
-            if force or 'environment' not in data['metadata']:
-                data['metadata']['environment'] = content
-            else:
-                raise EnvironmentAlreadyInNotebook(self.notebook)
-
-        with open(self.notebook, 'w') as fb:
-            fb.write(json.dumps(data))
-        return True
+        nb = nbformat.reader.reads(open(self.notebook).read())
+        if force or 'environment' not in nb['metadata']:
+            nb['metadata']['environment'] = content
+            nbformat.write(nb, self.notebook)
+            return True
+        else:
+            raise EnvironmentAlreadyInNotebook(self.notebook)
 
 
 def current_env():

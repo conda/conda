@@ -8,10 +8,18 @@ except ImportError:
 from conda_env.utils.notebooks import Notebook
 from ..utils import support_file
 
-
 notebook = {
-    'cells': [],
-    'metadata': {}
+    "metadata": {
+        "name": "",
+        "signature": ""
+    },
+    "nbformat": 3,
+    "nbformat_minor": 0,
+    "worksheets": [
+        {
+            "cells": []
+        }
+    ]
 }
 
 
