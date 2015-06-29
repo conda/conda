@@ -8,12 +8,12 @@ platforms and operating systems.  It is important to note that during the
 install process, all files are basically just extracted into the install
 prefix, with the exception of the ones in ``info/``.  Installing a conda
 package into an environment may be roughly thought of as executing the
-following using command::
+following command::
 
    $ cd <environment prefix>
    $ tar xjf some-package-1.0-0.tar.bz2
 
-However, it should be noted that only files (which includes symbolic
+However, it should be noted that only files (including symbolic
 links) are part of a conda package, and not directories.  Directories
 are created and removed as needed, but you cannot create an empty directory
 from the tar archive directly.
@@ -27,10 +27,7 @@ the ``info/`` directory and how it relates to the repository index
 Package metadata
 ----------------
 
-All metadata about a package is contained under ``info/``.  Any files within
-this location are not installed under the install prefix, and even though a
-package creator is free to add any file, conda will only inspect the content
-of the following ones:
+All metadata about a package is contained under ``info/``.  Files within this location are not installed under the install prefix. Though a package creator is free to add any file, conda will only inspect the content of the following files:
 
 ``info/index.json``: This file contains basic information about the package,
 such as name, version, build string, and dependencies.  The content of this
@@ -128,7 +125,7 @@ with spaces.
 (either soft or hard) into environments, and are copied instead.
 
 
-Link and unlink scripts:
+Link and unlink scripts
 ------------------------
 
 A couple of scripts may optionally be executed before and after the link
@@ -147,7 +144,7 @@ is not considered installed.
 
 ``pre-unlink``: executed prior to unlinking, errors are ignored.
 
-For example, when where is a script named ``/bin/.foo-post-link.sh`` in the
+For example, when there is a script named ``/bin/.foo-post-link.sh`` in the
 package ``foo-1.0-0.tar.bz2``, it is executed after the linking is completed.
 Moreover, the following environment variables are set while the script is
 being executed: ``PREFIX``, ``PKG_NAME``, ``PKG_VERSION``
