@@ -41,6 +41,8 @@ Table of Contents
    :maxdepth: 2
 
    get-started/get-started
+   get-started/license
+   get-started/download
    install/install
    using/index
    building/build
@@ -70,12 +72,6 @@ Requirements
 * pycosat
 * pyyaml
 * requests
-
-
-License Agreement
------------------
-
-conda is distributed under the `BSD license <http://opensource.org/licenses/bsd-license.php>`_.
 
 
 Indices and tables
