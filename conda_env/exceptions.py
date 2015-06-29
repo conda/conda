@@ -55,3 +55,11 @@ class InvalidLoader(Exception):
     def __init__(self, name):
         msg = 'Unable to load installer for {}'.format(name)
         super(InvalidLoader, self).__init__(msg)
+
+
+class IPythonNotInstalled(CondaEnvRuntimeError):
+    def __init__(self):
+        msg = """IPython notebook is not installed. Install it with:
+        conda install ipython-noteboook
+        """
+        super(IPythonNotInstalled, self).__init__(msg)
