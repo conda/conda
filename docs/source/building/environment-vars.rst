@@ -6,8 +6,8 @@ Environment variables
 Environment variables set during the build process
 --------------------------------------------------
 
-The following environment variables are set, both on Unix (``build.sh``) and on
-Windows (``bld.bat``) during the build process.
+The following environment variables are set, both on Unix (build.sh) and on 
+Windows (bld.bat) during the build process.
 (By default, these are the only variables available to your build script --
 unless otherwise noted, no variables are inherited from the shell environment
 in which you invoked ``conda build``. See :ref:`inherited-env-vars` to
@@ -40,7 +40,7 @@ override this behavior.)
   * - ``PATH``
     - Prepended by the build prefix bin directory.
   * - ``PYTHON``
-    - Path to python executable in build prefix (note that python is only
+    - Path to Python executable in build prefix (note that Python is only
       installed in the build prefix when it is listed as a build requirement).
   * - ``PY3K``
     - ``1`` when Python 3 is installed in build prefix, else ``0``.
@@ -65,7 +65,7 @@ override this behavior.)
   * - ``PATH``
     - Inherited from your shell environment, and augmented with ``$PREFIX/bin``
 
-When building "unix-style" packages on Windows, which are then usually
+When building "Unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
 under the build prefix.  The following environment variables are only
 defined in Windows:
@@ -83,7 +83,7 @@ defined in Windows:
   * - ``SCRIPTS``
     - ``<build prefix>\Scripts``
   * - ``CYGWIN_PREFIX``
-    - Same as ``PREFIX``, but as a unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
+    - Same as ``PREFIX``, but as a Unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
 
 On non-Windows (Linux and OS X), we have:
 
@@ -166,7 +166,7 @@ so the ``git_url`` is ``../``:
 All of the above environment variables are also set during the test process,
 except with the test prefix instead of the build prefix everywhere.
 
-Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echos each
+Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echo each
 command that is run, and the ``-e`` makes it exit whenever a command in the
 script returns nonzero exit status).  You can revert this in the script if you
 need to by using the ``set`` command.
@@ -191,11 +191,9 @@ additional environment variables by adding them to ``meta.yaml``:
 If an inherited variable was missing from your shell environment, it will be 
 assigned the value ``<UNDEFINED>``.
 
-.. note::
-
-   Inheriting environment variables like this can make it difficult for others
-   to reproduce binaries from source with your recipe. This feature should be 
-   used with caution or avoided altogether.
+NOTE: Inheriting environment variables like this can make it difficult for others
+to reproduce binaries from source with your recipe. This feature should be 
+used with caution or avoided altogether.
 
 .. _build-envs:
 
