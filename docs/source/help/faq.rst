@@ -7,93 +7,93 @@ FAQ
 General questions
 =================
 
-#. What is Anaconda?
+1. What is Anaconda?
 
-   *Anaconda* is a meta package for *conda*. This meta package contains a stable collection of standard
-   packages (like *scipy*, *numpy*, *zlib* etc.) for big data and scientific use that have all been tested
-   to work well together. These packages are all installed automatically with one quick installation 
-   routine, so it is convenient and fast. It includes Python, so it is often referred to as a “Python
-   distribution” that makes installing Python (and the many other packages) easy and fast, even for new 
-   Python users. 
+*Anaconda* is a meta package for *conda*. This meta package contains a stable collection of standard
+packages (like *scipy*, *numpy*, *zlib* etc.) for big data and scientific use that have all been tested
+to work well together. These packages are all installed automatically with one quick installation 
+routine, so it is convenient and fast. It includes Python, so it is often referred to as a “Python
+distribution” that makes installing Python (and the many other packages) easy and fast, even for new 
+Python users. 
 
-#. What is conda?
+2. What is conda?
 
-   Conda is a cross-platform, Python-agnostic “package manager” and “environment manager” program that 
-   quickly installs, runs, and updates packages and their dependencies, and easily switches between 
-   environments on your local computer.  Conda is included in all versions of Anaconda, Anaconda Server, 
-   and Miniconda.
+Conda is a cross-platform, Python-agnostic “package manager” and “environment manager” program that 
+quickly installs, runs, and updates packages and their dependencies, and easily switches between 
+environments on your local computer.  Conda is included in all versions of Anaconda, Anaconda Server, 
+and Miniconda.
 
-#. What is Miniconda? 
+3. What is Miniconda? 
 
-   Miniconda mini-installer is a small or “bootstrap” version of Anaconda. It installs only what you need
-   to get conda running. If you use Miniconda instead of the full Anaconda, you must then choose each 
-   package you want, and use conda to download and install them.  Miniconda can be used when disk space 
-   is a problem or if you do not wish to take the time to download and install all 100+ packages at once. 
+Miniconda mini-installer is a small or “bootstrap” version of Anaconda. It installs only what you need
+to get conda running. If you use Miniconda instead of the full Anaconda, you must then choose each 
+package you want, and use conda to download and install them.  Miniconda can be used when disk space 
+is a problem or if you do not wish to take the time to download and install all 100+ packages at once. 
+
 
 Getting help
 ============
 
-#. How can I see what conda commands are supported?
+1. How can I see what conda commands are supported?
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      conda -h
+  conda -h
 
-Or on the web in our command reference guide,  :doc:`/commands` 
+Or on the web in our command reference guide,  :doc:`/commands`.
 
-#. How can I get help for a specific command, such as **conda create**?
+2. How can I get help for a specific command, such as **conda create**?
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      conda create -h
+  conda create -h
 
-#. How can I get help with using conda? 
+3. How can I get help with using conda? 
 
 Download our :doc:`/using/cheatsheet` and :doc:`/install/quick` guide, take the 30-minute :doc:`/using/test-drive`, and see the complete :doc:`/using/index` section of our documentation site. 
 
-Get free community support with our `Google group <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_ 
+Get free community support with our `Google group <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_. 
 
 There are also paid support, training and consulting options. See our `Support Services <http://continuum.io/support/>`_ page for more information.
 
 Searching & info
 ================
 
-#. How can I find out what version of conda I have installed?
+1. How can I find out what version of conda I have installed?
 
-   By entering the following in your terminal window:
+By entering the following in your terminal window:
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      conda info
+  conda info
 
-   or by entering:
+or by entering:
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      conda -V
+  conda -V
 
 SEE ALSO: the complete :doc:`/using/index` section of our documentation site. 
 
-#. How can I check if a specific package, such as *SciPy*, is available for installation?
+2. How can I check if a specific package, such as *SciPy*, is available for installation?
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      conda search scipy
+  conda search scipy
 
-#. How can I check if a specific package, such as *SciPy*,  is available for installation from the Continuum repos (i.e., from Anaconda)?
+3. How can I check if a specific package, such as *SciPy*,  is available for installation from the Continuum repos (i.e., from Anaconda)?
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      conda search --override-channels --channel defaults scipy
+  conda search --override-channels --channel defaults scipy
 
 SEE ALSO: the :doc:`/using/pkgs` section of our documentation site. 
 
+4. How do I check if a specific package such as *iminuit* exists in a specific channel (for example,  http://conda.anaconda.org/mutirri) and is available for installation?
 
-#. How do I check if a specific package such as *iminuit* exists in a specific channel (for example,  http://conda.anaconda.org/mutirri) and is available for installation?
+.. code-block:: bash
 
-   .. code-block:: bash
-
-      conda search --override-channels --channel http://conda.anaconda.org/mutirri iminuit
+  conda search --override-channels --channel http://conda.anaconda.org/mutirri iminuit
 
 .. _customization:
 
@@ -104,19 +104,19 @@ Managing Packages
 Installing packages
 -------------------
 
-#. How can I install a specific package, such as SciPy?
+1. How can I install a specific package, such as SciPy?
 
    .. code-block:: bash
 
       conda install scipy
 
-#. How can I install a package such as SciPy, in a specific version?
+2. How can I install a package such as SciPy, in a specific version?
 
    .. code-block:: bash
 
       conda install scipy=0.15.0
 
-#. How can I install more than one package at once, such as SciPy and *cURL*)?
+3. How can I install more than one package at once, such as SciPy and *cURL*)?
 
    .. code-block:: bash
 
@@ -124,7 +124,7 @@ Installing packages
 
 NOTE: We recommend that you install all packages at once, so all the dependencies are installed at the same time.
 
-#. How can I install many packages at once and specify the version of the package?
+4. How can I install many packages at once and specify the version of the package?
 
    .. code-block:: bash
 
@@ -197,7 +197,7 @@ Managing Environments
 Getting info about environments
 -------------------------------
 
-#. How can I get a list of all of my environments?
+1. How can I get a list of all of my environments?
 
    .. code-block:: bash
 
@@ -205,7 +205,7 @@ Getting info about environments
 
 SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
-#. How can I list all installed packages in a specific environment, for example, ``myenv``?
+2. How can I list all installed packages in a specific environment, for example, ``myenv``?
 
    If ``myenv`` is not activated:
 
@@ -219,7 +219,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
         conda list
 
-#. How can I check if package (for example, SciPy) is already installed in an existing environment such as ``myenv``?
+3. How can I check if package (for example, SciPy) is already installed in an existing environment such as ``myenv``?
 
      .. code-block:: bash
 
@@ -228,7 +228,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 Creating new environments
 -------------------------
 
-#. How can I create a new and clean environment, for example,``myenv``?
+1. How can I create a new and clean environment, for example,``myenv``?
 
    .. code-block:: bash
 
@@ -236,14 +236,14 @@ Creating new environments
 
 SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
-#. How can I create a new environment such as ``myenv`` with a specific version of *python* 
+2. How can I create a new environment such as ``myenv`` with a specific version of *python* 
    as the default interpreter inside it?
 
    .. code-block:: bash
 
       conda create -n myenv python=3.4
 
-#. How can I create a new environment, for example, ``myenv`` with a specific package in it, for example, SciPy?
+3. How can I create a new environment, for example, ``myenv`` with a specific package in it, for example, SciPy?
 
    - In one line:
 
@@ -258,7 +258,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
         conda create -n myenv python
         conda install -n myenv scipy
 
-#. How can I create a new environment with a specific package in a specific version?
+4. How can I create a new environment with a specific package in a specific version?
 
    - In one line:
 
@@ -273,7 +273,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
         conda create -n myenv python
         conda install -n myenv scipy=0.15.0
 
-#. How can I use pip in my environment ``myenv``?
+5. How can I use pip in my environment ``myenv``?
 
    .. code-block:: bash
 
@@ -284,7 +284,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 Activate and deactivate
 -----------------------
 
-#. How can I activate the existing environment ``myenv``?
+1. How can I activate the existing environment ``myenv``?
 
 **Linux, OS X:** ``source activate myenv``
 
@@ -292,7 +292,7 @@ Activate and deactivate
 
 SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
-#. How can I deactivate the active environment ``myenv``?
+2. How can I deactivate the active environment ``myenv``?
 
 **Linux, OS X:** ``source deactivate myenv``
 
@@ -303,13 +303,13 @@ NOTE: It is good practice to deactivate one environment before activating anothe
 Installing packages
 -------------------
 
-#. How can I install a specific package for example, SciPy, in an existing environment ``myenv``?
+1. How can I install a specific package for example, SciPy, in an existing environment ``myenv``?
 
      .. code-block:: bash
 
         conda install -n myenv scipy
 
-#. How can I install a specific version of a package like SciPy in the existing environment ``myenv``?
+2. How can I install a specific version of a package like SciPy in the existing environment ``myenv``?
 
    If ``myenv`` not activated:
 
@@ -325,7 +325,7 @@ The -n or name tells conda to install the environment into the environment named
 
         conda install scipy=0.15.0
 
-#. How can I automatically install pip or another program every time I create a new environment?
+3. How can I automatically install pip or another program every time I create a new environment?
 
    .. code-block:: bash
 
@@ -334,24 +334,24 @@ The -n or name tells conda to install the environment into the environment named
    After performing the above command you can create new environments in the
    standard way, and the default package(s) will be installed in all of them.
 
-#. How can I automatically install a specific package like SciPy during creation of any of new environment?
+4. How can I automatically install a specific package like SciPy during creation of any of new environment?
 
    .. code-block:: bash
 
       conda config --add create_default_packages scipy
 
-   After performing the above command you can create new environments in the
-   standard way, and the latest version of SciPy will be installed in all of them.
+After performing the above command you can create new environments in the
+standard way, and the latest version of SciPy will be installed in all of them.
 
-#. How can I automatically install a specific version of a package such as SciPy during creation of any of new environment?
+5. How can I automatically install a specific version of a package such as SciPy during creation of any of new environment?
 
    .. code-block:: bash
 
       conda config --add create_default_packages scipy=0.15.0
 
-   After performing the above command you can create new environments in the standard way, and SciPy Version 0.15.0 will be installed in all of them.
+After performing the above command you can create new environments in the standard way, and SciPy Version 0.15.0 will be installed in all of them.
 
-#. How can I ignore packages from automatic installation during creation of new and clean environment, such as ``myenv``?
+6. How can I ignore packages from automatic installation during creation of new and clean environment, such as ``myenv``?
 
    .. code-block:: bash
 
@@ -438,16 +438,16 @@ SEE ALSO: :doc:`/build_tutorials/pkgs` tutorial.
 .. toctree::
    :hidden:
 
-   conda-pip-virtualenv-translator
+   /redirects
    silent
    travis
-   /redirects
+   conda-pip-virtualenv-translator.rst
 
 Conda, pip, and virtualenv
 ==========================
 
 If you are already familiar with pip or virtualenv, please see our chart comparing 
-:download:`Conda, pip, and virtualenv <conda-pip-virtualenv-translator.html>`.
+:doc:`Conda, pip, and virtualenv <conda-pip-virtualenv-translator>`.
 
 Silent installation
 ===================

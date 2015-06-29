@@ -1,6 +1,12 @@
-============================
 conda vs. pip vs. virtualenv
 ============================
+
+If you are already familiar with pip or virtualenv, please see our chart comparing 
+:download:`Conda, pip, and virtualenv <conda-pip-virtualenv-translator.html>`.
+
+.. raw:: html
+
+        <html><head><meta http-equiv="refresh" content="0; URL='../_downloads/conda-pip-virtualenv-translator.html'" /></head><body></body></html>
 
 If you’ve used pip and virtualenv in the past, you can use conda to perform all 
 of the same operations. Pip is a package manager, and Virtualenv is an 
