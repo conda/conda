@@ -242,7 +242,6 @@ shown:
 
 .. code-block:: bash
 
-    #!/bin/bash                 # This “shebang” tells what program to use to interpret the script.
     $PYTHON setup.py install     # Python command to install the script.
 
 That's it! Save your new build.sh file to the same directory where you put the meta.yaml file.
