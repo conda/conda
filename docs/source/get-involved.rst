@@ -10,7 +10,7 @@ Please feel welcome to join the mailing lists for both
 answer questions, and discuss ways to use conda, requests for new features, and any 
 other comments you may have.
 
-Contribute recipes to Github
+Contribute recipes to GitHub
 ----------------------------
 
 The GitHub repository at https://github.com/conda/conda-recipes is always happy to 
@@ -32,4 +32,4 @@ else has.
 Give us feedback
 ----------------
 
-Please send feedback about the conda documentation to documentation@continuum.io .
+Please send feedback about the conda documentation to documentation@continuum.io.

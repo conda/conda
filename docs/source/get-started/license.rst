@@ -1,5 +1,5 @@
 =============
-Conda License
+Conda license
 =============
 
 Except where noted below, conda is released under the following terms:
