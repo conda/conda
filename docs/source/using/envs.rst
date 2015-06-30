@@ -166,6 +166,10 @@ Export your active environment to the new file:
 
 Email or copy the exported environment.yml file to the other person.
 
+The other person will then need to create the environment by the following command:
+
+``conda env create -f environment.yml``
+
 Use environment from file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
