@@ -56,9 +56,9 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     if args.name is not None:
         prefix = common.get_prefix(args)
-        content = from_environment(args.name, prefix).to_yaml()
+        content = from_environment(args.name, prefix).to_dict()
     else:
-        content = "remote: {}".format(args.remote)
+        content = {'remote': args.remote}
 
     print("Environment {} will be attach into {}".format(args.name, args.notebook))
     nb = Notebook(args.notebook)
