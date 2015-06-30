@@ -9,6 +9,5 @@ Help & reference
    /commands
    faq
    troubleshooting
-   examples/examples
    support
    /get-started/license

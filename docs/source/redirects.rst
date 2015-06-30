@@ -8,16 +8,6 @@ Redirects
 .. toctree::
    :hidden:
    
-   examples/advanced
-   examples/basic
-   examples/create
-   examples/info
-   examples/information
-   examples/install
-   examples/list
-   examples/remove
-   examples/search
-   examples/update
    admin
    bdist_conda
    build
@@ -26,7 +16,6 @@ Redirects
    config
    custom-channels
    env-commands
-   examples
    faq
    general-commands
    glossary

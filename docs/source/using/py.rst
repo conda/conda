@@ -73,7 +73,7 @@ the default is 3.4.
 Create a Python 3.4 environment
 ````````````````````````````````
 
-To create a new environment with a different version of Python, use the :doc:`conda create </help/examples/create>` command. In this example, we'll make the new environment for Python 3.4: 
+To create a new environment with a different version of Python, use the :doc:``conda create`` command. In this example, we'll make the new environment for Python 3.4: 
 
 .. code-block:: bash
 
