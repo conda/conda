@@ -22,7 +22,7 @@ below.
 The system configuration settings are commonly used in a system configuration file, although they may also be used in a 
 user configuration file.  All user configuration settings may also be used in a system configuration file. 
 
-See also: :doc:`Conda configuration file <config>`.
+See also: :doc:`Conda configuration file </config>`.
 
 System configuration settings
 =============================

@@ -11,4 +11,4 @@ Building conda packages
    meta-yaml
    environment-vars
    build-scripts
-   spec
+   /spec

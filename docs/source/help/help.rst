@@ -5,9 +5,9 @@ Help & reference
    :maxdepth: 2
 
    /using/cheatsheet
-   /get-started/glossary
+   /glossary
    /commands
-   faq
-   troubleshooting
+   /faq
+   /troubleshooting
    support
-   /get-started/license
+   /license

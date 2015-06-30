@@ -47,7 +47,7 @@ Now close and re-open your terminal window for the changes to take effect.
 To test your installation, enter the command ``conda list.`` If installed 
 correctly, you will see a list of packages that were installed. 
 
-Next, go to our :doc:`30-minute conda test drive </using/test-drive>`.
+Next, go to our :doc:`30-minute conda test drive </test-drive>`.
 
 **Linux Miniconda update**
 
@@ -75,7 +75,7 @@ Now close and re-open your terminal window for the changes to take effect.
 To test your installation, enter the command ``conda list.`` If installed 
 correctly, you will see a list of packages that were installed. 
 
-Next, go to our :doc:`30-minute conda test drive </using/test-drive>`.
+Next, go to our :doc:`30-minute conda test drive </test-drive>`.
 
 **OS X Miniconda update**
 
@@ -99,7 +99,7 @@ NOTE: When finished, a new terminal window will open. If not, click Start - Run 
 To test your installation, enter the command ``conda list.`` If installed 
 correctly, you will see a list of packages that were installed. 
 
-Next, go to our :doc:`30-minute conda test drive </using/test-drive>`.
+Next, go to our :doc:`30-minute conda test drive </test-drive>`.
 
 **Windows Miniconda update**
 

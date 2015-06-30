@@ -40,7 +40,7 @@ Table of Contents
 .. toctree::
    :maxdepth: 2
 
-   get-started/get-started
+   get-started
    using/index
    building/build
    help/help
