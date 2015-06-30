@@ -4,4 +4,7 @@ Get started
 .. toctree::
 
    condaintro
-   glossary
+   download
+   /install/install
+   /using/test-drive
+   /using/cheatsheet

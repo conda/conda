@@ -18,5 +18,4 @@ Users may modify what remote channels are automatically searched, for example, i
 
 The **conda build** command creates new packages that can be optionally uploaded to a repository such as PyPi, GitHub, or Anaconda.org. 
 
-SEE ALSO: :doc:`/building/build`.
-
+SEE ALSO: :doc:`/building/build` and :doc:`glossary`.

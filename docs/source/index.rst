@@ -41,14 +41,10 @@ Table of Contents
    :maxdepth: 2
 
    get-started/get-started
-   get-started/license
-   get-started/download
-   install/install
    using/index
    building/build
-   commands
-   get-involved
    help/help
+   get-involved
 
 Presentations & Blog Posts
 --------------------------

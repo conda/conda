@@ -7,5 +7,3 @@ Using conda
    envs
    py
    pkgs
-   test-drive
-   cheatsheet

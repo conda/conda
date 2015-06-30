@@ -1,9 +1,8 @@
-============
 Get involved
 ============
 
 Join conda email group
-======================
+----------------------
 
 Please feel welcome to join the mailing lists for both 
 `Anaconda <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda>`_ and 
@@ -12,7 +11,7 @@ answer questions, and discuss ways to use conda, requests for new features, and 
 other comments you may have.
 
 Contribute recipes to Github
-============================
+----------------------------
 
 The GitHub repository at https://github.com/conda/conda-recipes is always happy to 
 accept new recipes for programs not yet there. Building recipes is described in 
@@ -23,9 +22,14 @@ for programs that use any license, whether GPL, BSD, MIT, Apache, or any other, 
 all of the recipes in this repository are released into the public domain.
 
 Report a bug
-============
+------------
 
 Issues with conda are tracked on GitHub at https://github.com/conda/conda/issues, and 
 issues with conda build at https://github.com/conda/conda-build/issues. If you find 
 a bug, please search to see if it has been reported, and please report it if no one 
 else has.
+
+Give us feedback
+----------------
+
+Please send feedback about the conda documentation to documentation@continuum.io .
