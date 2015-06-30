@@ -40,11 +40,10 @@ def installed(prefix, output=True):
     args = pip_args(prefix)
     if args is None:
         return
-    args.append('list')
+    args.extend(('list', '--disable-pip-version-check'))
     try:
         pipinst = subprocess.check_output(
-            args, universal_newlines=True,
-            stderr=subprocess.DEVNULL
+            args, universal_newlines=True
         ).split('\n')
     except Exception:
         # Any error should just be ignored
