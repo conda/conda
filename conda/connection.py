@@ -15,6 +15,7 @@ import base64
 import ftplib
 import cgi
 from io import BytesIO
+import tempfile
 
 import conda
 from conda.compat import urlparse, StringIO
@@ -25,6 +26,7 @@ import requests
 RETRIES = 3
 
 log = getLogger(__name__)
+stderrlog = getLogger('stderrlog')
 
 # Modified from code in pip/download.py:
 
@@ -74,8 +76,79 @@ class CondaSession(requests.Session):
         # Enable ftp:// urls
         self.mount("ftp://", FTPAdapter())
 
+        # Enable s3:// urls
+        self.mount("s3://", S3Adapter())
+
         self.headers['User-Agent'] = "conda/%s %s" % (
                           conda.__version__, self.headers['User-Agent'])
+
+
+class S3Adapter(requests.adapters.BaseAdapter):
+
+    def __init__(self):
+        super(S3Adapter, self).__init__()
+        self._temp_file = None
+
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
+             proxies=None):
+
+        resp = requests.models.Response()
+        resp.status_code = 200
+        resp.url = request.url
+
+        try:
+            import boto
+        except ImportError:
+            stderrlog.info('\nError: boto is required for S3 channels. '
+                           'Please install it with: conda install boto\n')
+            resp.status_code = 404
+            return resp
+
+        conn = boto.connect_s3()
+
+        bucket_name, key_string = url_to_S3_info(request.url)
+
+        try:
+            bucket = conn.get_bucket(bucket_name)
+        except boto.exception.S3ResponseError as exc:
+            resp.status_code = 404
+            resp.raw = exc
+            return resp
+
+        key = bucket.get_key(key_string)
+        if key and key.exists:
+            modified = key.last_modified
+            content_type = key.content_type or "text/plain"
+            resp.headers = requests.structures.CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": key.size,
+                "Last-Modified": modified,
+                })
+
+            _, self._temp_file = tempfile.mkstemp()
+            key.get_contents_to_filename(self._temp_file)
+            f = open(self._temp_file, 'rb')
+            resp.raw = f
+            resp.close = resp.raw.close
+        else:
+            resp.status_code = 404
+
+        return resp
+
+    def close(self):
+        if self._temp_file:
+            os.remove(self._temp_file)
+
+
+def url_to_S3_info(url):
+    """
+    Convert a S3 url to a tuple of bucket and key
+    """
+    parsed_url = requests.packages.urllib3.util.url.parse_url(url)
+    assert parsed_url.scheme == 's3', (
+        "You can only use s3: urls (not %r)" % url)
+    bucket, key = parsed_url.host, parsed_url.path
+    return bucket, key
 
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
