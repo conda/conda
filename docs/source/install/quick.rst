@@ -6,16 +6,16 @@ runs, and updates packages and their dependencies, so you can easily set up and 
 between environments on your local computer.  Conda is included in all versions 
 of **Anaconda, Anaconda Server**, and **Miniconda**.
 
-The fastest way to get and install conda is to download Miniconda, a bootstrap version 
-of Anaconda that includes just conda, its dependencies, and Python. Anaconda has all 
-that plus 150+ open source packages that install at the same time, and 250 packages 
-that can be installed with the simple ``conda install`` command. 
+The fastest way to get and install conda is to `download Miniconda <http://conda.pydata.org/miniconda.html>`_, 
+a mini version of Anaconda that includes just conda, its dependencies, and Python. 
+Anaconda has all that plus over 100 open source packages that install at the same time, 
+and over 200 packages that can be installed with the simple ``conda install`` command. 
 
 You can be using Python in two minutes or less with this quick install guide - including 
 install, update and uninstall. If you have any problems, please see the full installation instructions.
 
-TIP: If you prefer to have the 150+ open source packages included with Anaconda, 
-and have 10 minutes and disk space required, you can download Anaconda simply by 
+TIP: If you prefer to have the over 100 open source packages included with Anaconda, 
+and have 20 minutes and the disk space required, you can download Anaconda simply by 
 replacing the word “Miniconda” with “Anaconda” in the examples below.
 
 
@@ -25,10 +25,9 @@ replacing the word “Miniconda” with “Anaconda” in the examples below.
 Miniconda quick install requirements
 ------------------------------------
 
-32- or 64-bit computer, 32MB available, Linux, OS X or Windows.
+32- or 64-bit computer, 400 MB available, Linux, OS X or Windows.
 
-NOTE: If you choose to install the full Anaconda package, it requires 300+ MB for 
-the download plus another 300+ to install it. 
+NOTE: If you choose to install the full Anaconda package, it requires 3 GB of available disk space. 
 
 
 Linux Miniconda install

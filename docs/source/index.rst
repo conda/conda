@@ -13,11 +13,11 @@ Linux, OS X and Windows, and was created for Python programs but can package and
 
 Conda is included in all versions of Anaconda, Anaconda Server, and Miniconda, and is not available separately. 
 
-* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. About
-  279 scientific packages and their dependencies can be installed individually from the Continuum repository with
+* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 200 
+  scientific packages and their dependencies can be installed individually from the Continuum repository with
   the “conda install” command.
-* Anaconda includes conda, conda-build and Python, plus about 100 automatically installed scientific packages and
-  their dependencies. Like Miniconda, the 279 scientific packages can be installed individually with
+* Anaconda includes conda, conda-build, Python, and over 100 automatically installed scientific packages and
+  their dependencies. Like Miniconda, over 200 scientific packages can be installed individually with
   the “conda install” command.
 * Anaconda Server allows both system administrators and users to manage packages and environments on-site. Any
   software application stack can be managed, including Python, R, NodeJs, Java, and more. It is sold by

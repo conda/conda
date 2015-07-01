@@ -28,7 +28,7 @@ and Miniconda.
 Miniconda mini-installer is a small or “bootstrap” version of Anaconda. It installs only what you need
 to get conda running. If you use Miniconda instead of the full Anaconda, you must then choose each 
 package you want, and use conda to download and install them.  Miniconda can be used when disk space 
-is a problem or if you do not wish to take the time to download and install all 100+ packages at once. 
+is a problem or if you do not wish to take the time to download and install all of the over 100 packages at once. 
 
 
 Getting help

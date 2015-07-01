@@ -11,7 +11,7 @@ Activate/deactivate environment:
   Conda commands used to switch or move between installed environments. Activate prepends the path of your current environment to PATH environment variable, and deactivate removes it. Even when an environment is not activated, programs in that environment can still be executed by specifying their path directly, as in ‘~/anaconda/envs/envname/bin/program_name’. When an environment is activated, you can just use ‘program_name’.
 
 Anaconda: 
-  An easy-to-install, free collection of Open Source packages, including Python and the conda package manager, with free community support. About 140 packages are installed with Anaconda. The Anaconda repository contains about 300 Open Source packages that can be installed or updated after installing Anaconda with the conda command.
+  An easy-to-install, free collection of Open Source packages, including Python and the conda package manager, with free community support. Over 100 packages are installed with Anaconda. The Anaconda repository contains over 200 Open Source packages that can be installed or updated after installing Anaconda with the conda command.
 
 Channels: 
   The URLs to the repositories where conda looks for packages. Channels may point to a remote repository website, Anaconda.org repository, a private repository or a local repository that you have created. The conda channel command starts with a default set of channels to search, but users may override this, for example, to maintain a private or internal channel. These default channels are referred to in conda commands and in the .condarc by the channel name ‘defaults’.
