@@ -31,5 +31,8 @@ Metapackage:
 Miniconda: 
   A minimal installer for conda. Like Anaconda, Miniconda is a software package that includes the conda package manager and Python and its dependencies, but Miniconda does not include any other packages. Once conda is installed by installing either Anaconda or miniconda, other software packages may be installed directly from the command line with ‘conda install’. See also Anaconda and conda.
 
+Noarch Python package:
+  A conda package built in Python that contains nothing specific to any system architecture, so it may be installed from any system. When conda does a search for packages on any system in a channel, conda always checks both the system-specific subdirectory, for example, "linux-64" *and* the ``noarch`` directory. Noarch is available for Python only.
+
 Repository: 
   A storage location from which software packages may be retrieved and installed on a computer.  A repository needs to be indexed with ‘conda index’ (to generate the repodata.json file) to be usable by conda. 
