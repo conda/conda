@@ -110,7 +110,7 @@ not-final code.
 #### Merging Feature Releases to `master`
 
 If you're ready to release, open a PR to ensure that `develop` has everything
-that it needs for this release, including any updates to change logs and such.
+that it needs for this release, including any **updates to change logs** and such.
 Do not merge `conda-env` directly via GitHub's interface.  Instead, follow
 these steps from your working tree (note: this assumes you have
 github.com/conda/conda-env.git setup as the remote `conda`):
