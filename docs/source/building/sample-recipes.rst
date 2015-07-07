@@ -19,3 +19,5 @@ of Python libraries with extensions.
 `six <https://github.com/conda/conda-recipes/tree/master/six>`_, and 
 `gensim <https://github.com/conda/conda-recipes/tree/master/gensim>`_ are 
 examples of Python-only libraries.
+
+Gensim works on Python 2, and all the others work on both Python 2 and Python 3.
