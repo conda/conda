@@ -1,4 +1,4 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -29,12 +29,12 @@ _sys_map = {'linux2': 'linux', 'linux': 'linux',
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
 
-if platform == 'linux' and machine() == 'armv6l':
-    subdir = 'linux-armv6l'
-    arch_name = 'armv6l'
+if platform == 'linux' and machine() in ('armv6l', 'ppc64le'):
+    arch_name = machine()
+    subdir = 'linux-%s' % arch_name
 else:
-    subdir = '%s-%d' % (platform, bits)
     arch_name = {64: 'x86_64', 32: 'x86'}[bits]
+    subdir = '%s-%d' % (platform, bits)
 
 # ----- rc file -----
 
