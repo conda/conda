@@ -694,7 +694,7 @@ Note that the following features are enabled:
         res = set()
         for fn in installed:
             try:
-                res.update(self.features(fn))
+                res.update(self.track_features(fn))
             except KeyError:
                 pass
         return res
