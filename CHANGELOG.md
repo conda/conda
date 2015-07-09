@@ -5,6 +5,12 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v2.3.0 (07/09/15)
+
+- `--force` flag on `create`
+- `--no-builds` flag on `export`
+- `conda env attach` feature
+
 #### v2.2.3 (06/18/15)
 
 - Reimplement `-n` flag
