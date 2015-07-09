@@ -28,6 +28,7 @@ environment, please open a bug report at:
     else:
         raise e
 
+from . import main_attach
 from . import main_create
 from . import main_export
 from . import main_list
@@ -48,6 +49,7 @@ def create_parser():
     p = argparse.ArgumentParser()
     sub_parsers = p.add_subparsers()
 
+    main_attach.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_export.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)

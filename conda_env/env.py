@@ -31,7 +31,7 @@ def load_from_directory(directory):
 
 # TODO This should lean more on conda instead of divining it from the outside
 # TODO tests!!!
-def from_environment(name, prefix):
+def from_environment(name, prefix, no_builds=False):
     installed = install.linked(prefix)
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
@@ -39,7 +39,10 @@ def from_environment(name, prefix):
 
     pip_pkgs = sorted(installed - conda_pkgs)
 
-    dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
+    if no_builds:
+        dependencies = ['='.join(a.rsplit('-', 2)[0:2]) for a in sorted(conda_pkgs)]
+    else:
+        dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
