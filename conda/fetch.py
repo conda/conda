@@ -97,7 +97,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     try:
         resp = session.get(url + 'repodata.json.bz2',
                            headers=headers, proxies=session.proxies,
-                           verify=config.ssl_verify)
+                           verify=config.ssl_verify,
+                           cert=session.cert)
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))

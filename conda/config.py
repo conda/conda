@@ -75,6 +75,7 @@ rc_other = [
     'proxy_servers',
     'root_dir',
     'channel_alias',
+    'ssl_cert'
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -309,6 +310,23 @@ def get_proxy_servers():
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
 
+# ----- SSL Verification ----
+
+def get_local_ssl_cert():
+    res = rc.get('ssl_cert') or {}
+    if isinstance(res, dict):
+        ssl_key = res.get('key', None)
+        ssl_cert = res.get('cert', None)
+        if ssl_cert and ssl_key:
+            return (ssl_cert, ssl_key)
+        elif ssl_cert:
+            return ssl_cert
+        else:
+            sys.exit("Error: ssl_cert must have cert and/or key defined")
+    sys.exit("Error: ssl_cert setting is not a mapping")
+
+ssl_verify = bool(rc.get('ssl_verify', True))
+
 # ----- foreign -----
 
 try:
@@ -331,7 +349,6 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
-ssl_verify = bool(rc.get('ssl_verify', True))
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:
