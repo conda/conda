@@ -19,7 +19,7 @@ import tempfile
 
 import conda
 from conda.compat import urlparse, StringIO
-from conda.config import get_proxy_servers
+from conda.config import get_proxy_servers, get_local_ssl_cert
 
 import requests
 
