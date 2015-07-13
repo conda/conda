@@ -321,7 +321,9 @@ def get_local_ssl_cert():
             return (ssl_cert, ssl_key)
         elif ssl_cert:
             return ssl_cert
-    sys.exit("Error: ssl_cert must have cert and/or key defined")
+        else:
+            sys.exit("Error: ssl_cert must have cert and/or key defined")
+    sys.exit("Error: ssl_cert setting is not a mapping")
 
 ssl_verify = bool(rc.get('ssl_verify', True))
 
