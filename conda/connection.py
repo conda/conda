@@ -64,6 +64,10 @@ class CondaSession(requests.Session):
         if proxies:
             self.proxies = proxies
 
+        cert = get_local_ssl_cert()
+        if cert:
+            self.cert = cert
+
         # Configure retries
         if retries:
             http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
