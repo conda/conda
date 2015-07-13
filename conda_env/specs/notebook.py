@@ -3,6 +3,7 @@ try:
 except ImportError:
     nbformat = None
 from ..env import Environment
+from .binstar import BinstarSpec
 
 
 class NotebookSpec(object):
@@ -10,6 +11,7 @@ class NotebookSpec(object):
 
     def __init__(self, name=None, **kwargs):
         self.name = name
+        self.nb = {}
 
     def can_handle(self):
         try:
@@ -26,4 +28,8 @@ class NotebookSpec(object):
 
     @property
     def environment(self):
-        return Environment(**self.nb['metadata']['environment'])
+        if 'remote' in self.nb['metadata']['environment']:
+            spec = BinstarSpec('darth/deathstar')
+            return spec.environment
+        else:
+            return Environment(**self.nb['metadata']['environment'])
