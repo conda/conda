@@ -331,7 +331,15 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
-ssl_verify = rc.get('ssl_verify', True)
+
+# ssl_verify can be a boolean value or a filename string
+ssl_verify = rc.get('ssl_verify', 'True')
+_v = ssl_verify.lower()
+if _v in {'on', 'true', 'yes'}:
+    ssl_verify = True
+elif _v in {'off', 'false', 'no'}:
+    ssl_verify = False
+
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:
