@@ -1,10 +1,5 @@
 import json
 import unittest
-import tempfile
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 from conda_env.utils.notebooks import Notebook
 from ..utils import support_file
 
