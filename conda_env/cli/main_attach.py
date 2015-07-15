@@ -44,6 +44,13 @@ def configure_parser(sub_parsers):
         help='Replace existing environment definition'
     )
     p.add_argument(
+        '--no-builds',
+        default=False,
+        action='store_true',
+        required=False,
+        help='Remove build specification from dependencies'
+    )
+    p.add_argument(
         'notebook',
         help='notebook file',
         action='store',
@@ -56,7 +63,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
     if args.name is not None:
         prefix = common.get_prefix(args)
-        content = from_environment(args.name, prefix).to_dict()
+        content = from_environment(args.name, prefix, no_builds=args.no_builds).to_dict()
     else:
         content = {'remote': args.remote}
 
