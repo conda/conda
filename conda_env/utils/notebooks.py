@@ -19,7 +19,7 @@ class Notebook(object):
         try:
             return self.store_in_file(content, force)
         except IOError:
-            self.msg = "{} may not exist or you don't have adecuate permissions".\
+            self.msg = "{} may not exist or you don't have adequate permissions".\
                 format(self.notebook)
         except EnvironmentAlreadyInNotebook:
             self.msg = "There is already an environment in {}. Consider '--force'".\
