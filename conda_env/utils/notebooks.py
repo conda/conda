@@ -1,4 +1,3 @@
-import json
 from os.path import basename
 import conda.config as config
 from ..exceptions import EnvironmentAlreadyInNotebook, IPythonNotInstalled
@@ -20,7 +19,8 @@ class Notebook(object):
         try:
             return self.store_in_file(content, force)
         except IOError:
-            self.msg = "{} may not exist or you don't have adecuate permissions".format(self.notebook)
+            self.msg = "{} may not exist or you don't have adequate permissions".\
+                format(self.notebook)
         except EnvironmentAlreadyInNotebook:
             self.msg = "There is already an environment in {}. Consider '--force'".\
                 format(self.notebook)
