@@ -18,7 +18,7 @@ Should I download Anaconda or Miniconda?
 
 * Are new to conda or Python
 * Like the convenience of having Python and over 100 scientific packages automatically installed at once
-* Have the time and disk space (about 20 minutes and 3 GB), and/or
+* Have the time and disk space (a few minutes and 3 GB), and/or
 * Don’t want to install each of the packages you want to use individually. 
 
 Anaconda download: http://continuum.io/downloads
