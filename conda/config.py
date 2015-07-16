@@ -26,10 +26,11 @@ default_python = '%d.%d' % sys.version_info[:2]
 
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
             'darwin': 'osx', 'win32': 'win'}
+non_x86_linux_machines = {'armv6l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
 
-if platform == 'linux' and machine() in ('armv6l', 'ppc64le'):
+if platform == 'linux' and machine() in non_x86_linux_machines:
     arch_name = machine()
     subdir = 'linux-%s' % arch_name
 else:
