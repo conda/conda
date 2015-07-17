@@ -81,7 +81,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
-        cache = json.load(open(cache_path))
+        with open(cache_path) as f:
+            cache = json.load(f)
     except (IOError, ValueError):
         cache = {'packages': {}}
 
