@@ -25,7 +25,7 @@ def pip_args(prefix):
         # Check the version of pip
         # --disable-pip-version-check was introduced in pip 6.0
         # If older than that, they should probably get the warning anyway.
-        pip_version = subprocess.check_output(ret + ['-V']).split()[1]
+        pip_version = subprocess.check_output(ret + ['-V']).decode('utf-8').split()[1]
         major_ver = pip_version.split('.')[0]
         if int(major_ver) >= 6:
             ret.append('--disable-pip-version-check')
