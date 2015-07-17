@@ -26,7 +26,7 @@ default_python = '%d.%d' % sys.version_info[:2]
 
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
             'darwin': 'osx', 'win32': 'win'}
-non_x86_linux_machines = {'armv6l', 'ppc64le'}
+non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
 
