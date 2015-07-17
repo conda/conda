@@ -1,7 +1,8 @@
 2015-07-XX   3.14.2:
 --------------------
   * add support for other machine types on Linux, in particular ppc64le
-
+  * added support for S3 channels
+  * fix color issues from pip in conda list on Windows
 
 2015-06-29   3.14.1:
 --------------------
