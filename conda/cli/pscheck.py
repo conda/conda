@@ -1,6 +1,6 @@
 # NOTE:
-#   This is deprecated, and will be removed in the future.
-#   it is not imported anywhere in conda.
+#   This module is deprecated, and will be removed in the future.
+#   pscheck is not imported anywhere in conda.
 
 from __future__ import print_function, division, absolute_import
 
