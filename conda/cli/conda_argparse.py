@@ -8,10 +8,12 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import argparse
+import os
+import subprocess
 
 from difflib import get_close_matches
 
-from conda.cli.find_commands import find_commands
+from conda.cli.find_commands import find_commands, find_executable
 from conda.cli import common
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
@@ -30,12 +32,14 @@ except (ImportError, AttributeError):
     argcomplete = None
 
 if argcomplete:
-    class SubprocessCompletionFinder(argcomplete.CompletionFinder):
+    class CondaSubprocessCompletionFinder(argcomplete.CompletionFinder):
         def __call__(self, argument_parser, **kwargs):
             debug("Working")
-            import os
-            import subprocess
-            from conda.cli.find_commands import find_executable
+
+            if argument_parser.prog != 'conda':
+                debug("Argument parser is not conda")
+                return super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
+
             environ = os.environ.copy()
             for subcommand in ['build', 'skeleton']:
                 environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
@@ -54,8 +58,9 @@ if argcomplete:
                     sys.exit()
                     p.wait()
             else:
+                debug("Not using subprocess")
                 debug(sys.argv)
-                return super().__call__(argument_parser, **kwargs)
+                return super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
 
 class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
@@ -145,6 +150,6 @@ Error: You need to install conda-build in order to use the 'conda %s'
 
     def parse_args(self, *args, **kwargs):
         if argcomplete:
-            SubprocessCompletionFinder()(self)
+            CondaSubprocessCompletionFinder()(self)
 
         super(ArgumentParser, self).set_defaults(*args, **kwargs)
