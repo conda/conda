@@ -62,7 +62,6 @@ if argcomplete:
                     import pprint
                     debug(pprint.pformat(environ))
                     args = [find_executable('conda-%s' % subcommand)]
-                    # args.extend(sys.argv[2:])
                     debug(args)
                     p = subprocess.Popen(args, env=environ, close_fds=False)
                     p.communicate()
