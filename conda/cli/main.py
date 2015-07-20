@@ -161,49 +161,6 @@ In short:
     from conda.cli import main_bundle
     main_bundle.configure_parser(sub_parsers)
 
-    try:
-        def debug(msg):
-            f = open('/dev/ttys007', 'w')
-            f.write("\n%s\n" % msg)
-            f.flush()
-
-        import argcomplete
-        class SubprocessCompletionFinder(argcomplete.CompletionFinder):
-            def __call__(self, argument_parser, **kwargs):
-                debug("Working")
-                import os
-                import subprocess
-                from conda.cli.find_commands import find_executable
-                environ = os.environ.copy()
-                for subcommand in ['build', 'skeleton']:
-                    environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
-                        % subcommand, 'conda-%s' % subcommand)
-
-                    if subcommand in environ['COMP_LINE']:
-                        debug("Using subprocess")
-                        debug(sys.argv)
-                        import pprint
-                        debug(pprint.pformat(environ))
-                        args = [find_executable('conda-%s' % subcommand)]
-                        # args.extend(sys.argv[2:])
-                        debug(args)
-                        p = subprocess.Popen(args, env=environ, close_fds=False)
-                        p.communicate()
-                        sys.exit()
-                        p.wait()
-                else:
-                    debug(sys.argv)
-                    return super().__call__(argument_parser, **kwargs)
-
-        SubprocessCompletionFinder()(p)
-
-    except ImportError:
-        pass
-    except AttributeError:
-        # On Python 3.3, argcomplete can be an empty namespace package when
-        # we are in the conda-recipes directory.
-        pass
-
     args = p.parse_args()
 
     if getattr(args, 'json', False):

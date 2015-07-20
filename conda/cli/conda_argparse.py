@@ -17,6 +17,46 @@ from conda.cli import common
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
 
+def debug(msg):
+    f = open('/dev/ttys007', 'w')
+    f.write("\n%s\n" % msg)
+    f.flush()
+
+try:
+    import argcomplete
+except (ImportError, AttributeError):
+    # On Python 3.3, argcomplete can be an empty namespace package when
+    # we are in the conda-recipes directory.
+    argcomplete = None
+
+if argcomplete:
+    class SubprocessCompletionFinder(argcomplete.CompletionFinder):
+        def __call__(self, argument_parser, **kwargs):
+            debug("Working")
+            import os
+            import subprocess
+            from conda.cli.find_commands import find_executable
+            environ = os.environ.copy()
+            for subcommand in ['build', 'skeleton']:
+                environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
+                    % subcommand, 'conda-%s' % subcommand)
+
+                if subcommand in environ['COMP_LINE']:
+                    debug("Using subprocess")
+                    debug(sys.argv)
+                    import pprint
+                    debug(pprint.pformat(environ))
+                    args = [find_executable('conda-%s' % subcommand)]
+                    # args.extend(sys.argv[2:])
+                    debug(args)
+                    p = subprocess.Popen(args, env=environ, close_fds=False)
+                    p.communicate()
+                    sys.exit()
+                    p.wait()
+            else:
+                debug(sys.argv)
+                return super().__call__(argument_parser, **kwargs)
+
 class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         if not kwargs.get('formatter_class'):
@@ -102,3 +142,9 @@ Error: You need to install conda-build in order to use the 'conda %s'
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             from conda.cli.find_commands import help
             help()
+
+    def parse_args(self, *args, **kwargs):
+        if argcomplete:
+            SubprocessCompletionFinder()(self)
+
+        super(ArgumentParser, self).set_defaults(*args, **kwargs)
