@@ -19,7 +19,7 @@ from conda.cli import common
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
 
-_ARGCOMPLETE_DEBUG = True
+_ARGCOMPLETE_DEBUG = False
 def debug_argcomplete(msg):
     # To debug this, replace ttys001 with the fd of the terminal you are using
     # (use the `tty` command to find this), and set _ARGCOMPLETE_DEBUG above
