@@ -79,7 +79,7 @@ class Dependencies(OrderedDict):
         self.update({'conda': []})
 
         for line in self.raw:
-            if type(line) is dict:
+            if isinstance(line, dict):
                 self.update(line)
             else:
                 self['conda'].append(common.arg2spec(line))
