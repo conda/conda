@@ -161,16 +161,9 @@ In short:
     from conda.cli import main_bundle
     main_bundle.configure_parser(sub_parsers)
 
-    try:
-        import argcomplete
-        argcomplete.autocomplete(p)
-    except ImportError:
-        pass
-    except AttributeError:
-        # On Python 3.3, argcomplete can be an empty namespace package when
-        # we are in the conda-recipes directory.
-        pass
-
+    from conda.cli.find_commands import find_commands
+    sub_parsers.completer = lambda prefix, **kwargs: [i for i in
+        list(sub_parsers.choices) + find_commands() if i.startswith(prefix)]
     args = p.parse_args()
 
     if getattr(args, 'json', False):

@@ -8,14 +8,70 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import argparse
+import os
+import subprocess
 
 from difflib import get_close_matches
 
-from conda.cli.find_commands import find_commands
+from conda.cli.find_commands import find_commands, find_executable
 from conda.cli import common
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
+
+_ARGCOMPLETE_DEBUG = False
+def debug_argcomplete(msg):
+    # To debug this, replace ttys001 with the fd of the terminal you are using
+    # (use the `tty` command to find this), and set _ARGCOMPLETE_DEBUG above
+    # to True. You can also `export _ARC_DEBUG=1` in the shell you are using
+    # to print debug messages from argcomplete.
+    if _ARGCOMPLETE_DEBUG:
+        f = open('/dev/ttys001', 'w')
+        f.write("\n%s\n" % msg)
+        f.flush()
+
+try:
+    import argcomplete
+except (ImportError, AttributeError):
+    # On Python 3.3, argcomplete can be an empty namespace package when
+    # we are in the conda-recipes directory.
+    argcomplete = None
+
+if argcomplete:
+    class CondaSubprocessCompletionFinder(argcomplete.CompletionFinder):
+        def __call__(self, argument_parser, **kwargs):
+            call_super = lambda: super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
+
+            debug_argcomplete("Working")
+
+            if argument_parser.prog != 'conda':
+                debug_argcomplete("Argument parser is not conda")
+                return call_super()
+
+            environ = os.environ.copy()
+            if 'COMP_LINE' not in environ:
+                debug_argcomplete("COMP_LINE not in environ")
+                return call_super()
+
+            subcommands = find_commands()
+            for subcommand in subcommands:
+                if 'conda %s' % subcommand in environ['COMP_LINE']:
+                    environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
+                        % subcommand, 'conda-%s' % subcommand)
+                    debug_argcomplete("Using subprocess")
+                    debug_argcomplete(sys.argv)
+                    import pprint
+                    debug_argcomplete(pprint.pformat(environ))
+                    args = [find_executable('conda-%s' % subcommand)]
+                    debug_argcomplete(args)
+                    p = subprocess.Popen(args, env=environ, close_fds=False)
+                    p.communicate()
+                    sys.exit()
+            else:
+                debug_argcomplete("Not using subprocess")
+                debug_argcomplete(sys.argv)
+                debug_argcomplete(argument_parser)
+                return call_super()
 
 class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
@@ -102,3 +158,9 @@ Error: You need to install conda-build in order to use the 'conda %s'
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             from conda.cli.find_commands import help
             help()
+
+    def parse_args(self, *args, **kwargs):
+        if argcomplete:
+            CondaSubprocessCompletionFinder()(self)
+
+        return super(ArgumentParser, self).parse_args(*args, **kwargs)
