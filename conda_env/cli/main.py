@@ -1,5 +1,4 @@
 from __future__ import print_function, division, absolute_import
-import argparse
 import os
 import sys
 
@@ -28,6 +27,8 @@ environment, please open a bug report at:
     else:
         raise e
 
+from conda.cli.conda_argparse import ArgumentParser
+
 from . import main_attach
 from . import main_create
 from . import main_export
@@ -46,7 +47,7 @@ def show_help_on_empty_command():
 
 
 def create_parser():
-    p = argparse.ArgumentParser()
+    p = ArgumentParser()
     sub_parsers = p.add_subparsers()
 
     main_attach.configure_parser(sub_parsers)
