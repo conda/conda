@@ -34,18 +34,24 @@ except (ImportError, AttributeError):
 if argcomplete:
     class CondaSubprocessCompletionFinder(argcomplete.CompletionFinder):
         def __call__(self, argument_parser, **kwargs):
+            call_super = lambda: super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
+
             debug("Working")
 
             if argument_parser.prog != 'conda':
                 debug("Argument parser is not conda")
-                return super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
+                return call_super()
 
             environ = os.environ.copy()
-            for subcommand in ['build', 'skeleton']:
-                environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
-                    % subcommand, 'conda-%s' % subcommand)
+            if 'COMP_LINE' not in environ:
+                debug("COMP_LINE not in environ")
+                return call_super()
 
-                if subcommand in environ['COMP_LINE']:
+            subcommands = find_commands()
+            for subcommand in subcommands:
+                if 'conda %s' % subcommand in environ['COMP_LINE']:
+                    environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
+                        % subcommand, 'conda-%s' % subcommand)
                     debug("Using subprocess")
                     debug(sys.argv)
                     import pprint
@@ -60,7 +66,7 @@ if argcomplete:
             else:
                 debug("Not using subprocess")
                 debug(sys.argv)
-                return super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
+                return call_super()
 
 class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
