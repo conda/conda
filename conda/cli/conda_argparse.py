@@ -67,7 +67,6 @@ if argcomplete:
                     p = subprocess.Popen(args, env=environ, close_fds=False)
                     p.communicate()
                     sys.exit()
-                    p.wait()
             else:
                 debug("Not using subprocess")
                 debug(sys.argv)
