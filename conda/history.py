@@ -106,7 +106,9 @@ class History(object):
         if not isfile(self.path):
             return res
         sep_pat = re.compile(r'==>\s*(.+?)\s*<==')
-        for line in open(self.path):
+        with open(self.path) as f:
+            lines = f.read().splitlines()
+        for line in lines:
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
