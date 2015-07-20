@@ -152,4 +152,4 @@ Error: You need to install conda-build in order to use the 'conda %s'
         if argcomplete:
             CondaSubprocessCompletionFinder()(self)
 
-        super(ArgumentParser, self).set_defaults(*args, **kwargs)
+        return super(ArgumentParser, self).set_defaults(*args, **kwargs)
