@@ -19,10 +19,15 @@ from conda.cli import common
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
     'pipbuild', 'develop', 'convert'}
 
+_ARGCOMPLETE_DEBUG = False
 def debug(msg):
-    f = open('/dev/ttys007', 'w')
-    f.write("\n%s\n" % msg)
-    f.flush()
+    # To debug this, replace ttys001 with the fd of the terminal you are using
+    # (use the `tty` command to find this), and set _ARGCOMPLETE_DEBUG above
+    # to True.
+    if _ARGCOMPLETE_DEBUG:
+        f = open('/dev/ttys001', 'w')
+        f.write("\n%s\n" % msg)
+        f.flush()
 
 try:
     import argcomplete
