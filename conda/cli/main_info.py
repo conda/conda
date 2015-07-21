@@ -177,7 +177,7 @@ def execute(args, parser):
 
         for spec in specs:
             versions = r.get_pkgs(MatchSpec(spec))
-            for pkg in versions:
+            for pkg in sorted(versions):
                 pretty_package(pkg)
 
         return
