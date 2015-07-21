@@ -1,6 +1,5 @@
 from __future__ import print_function, division, absolute_import
 
-from functools import wraps
 import re
 import os
 import sys
@@ -8,7 +7,6 @@ import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
 import textwrap
-import warnings
 
 import conda.config as config
 from conda import console
@@ -469,8 +467,6 @@ def names_in_specs(names, specs):
 
 
 def check_specs(prefix, specs, json=False, create=False):
-    from conda.plan import is_root_prefix
-
     if len(specs) == 0:
         msg = ('too few arguments, must supply command line '
                'package specs or --file')
