@@ -294,7 +294,7 @@ channels:
     for key, item in args.add:
         if key not in config.rc_list_keys:
             common.error_and_exit("key must be one of %s, not %r" %
-                                  (config.rc_list_keys, key), json=args.json,
+                                  (', '.join(config.rc_list_keys), key), json=args.json,
                                   error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
             raise CouldntParse("key %r should be a list, not %s." % (key,
