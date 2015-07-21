@@ -1,5 +1,12 @@
 2015-07-XX   3.14.2:
 --------------------
+  * enable tab completion of conda command extensions using
+    argcomplete. Command extensions that import conda should use
+    conda.cli.conda_argparse.ArgumentParser instead of
+    argparse.ArgumentParser. Otherwise, they should enable argcomplete
+    completion manually.
+  * allow psutil and pycosat to be updated in the root environment on Windows
+  * remove all mentions of pscheck. The --force-pscheck flag has been removed.
   * added support for S3 channels
   * fix color issues from pip in conda list on Windows
   * add support for other machine types on Linux, in particular ppc64le
