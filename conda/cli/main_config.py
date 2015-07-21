@@ -171,7 +171,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         "--set",
         nargs=2,
         action="append",
-        help="""Set a key.""",
+        help="""Set a boolean or string key""",
         default=[],
         choices=SingleValueKey(),
         metavar=('KEY', 'VALUE'),
@@ -323,7 +323,7 @@ channels:
             new_rc_config[key] = yamlitem
         else:
             common.error_and_exit("Error key must be one of %s, not %s" %
-                                  (set_bools | set_strings, key), json=args.json,
+                                  (', '.join(set_bools | set_strings), key), json=args.json,
                                   error_type="ValueError")
 
     # Remove
