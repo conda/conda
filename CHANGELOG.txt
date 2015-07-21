@@ -1,5 +1,6 @@
 2015-07-XX   3.14.2:
 --------------------
+  * sort the output of conda info package correctly
   * enable tab completion of conda command extensions using
     argcomplete. Command extensions that import conda should use
     conda.cli.conda_argparse.ArgumentParser instead of
