@@ -316,8 +316,8 @@ channels:
         yamlitem = yaml.load(item)
         if key in set_bools:
             if not isinstance(yamlitem, bool):
-                common.error_and_exit("Key: %s; Value is not a boolean" % (key, item), json=args.json,
-                                      error_type="TypeError")
+                common.error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
+                                      json=args.json, error_type="TypeError")
             new_rc_config[key] = yamlitem
         elif key in set_strings:
             new_rc_config[key] = yamlitem
