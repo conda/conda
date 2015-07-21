@@ -12,6 +12,7 @@ from copy import deepcopy
 
 import conda.config as config
 from conda.cli import common
+from conda.compat import string_types
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -255,7 +256,7 @@ channels:
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in config.rc_list_keys + config.rc_bool_keys:
+            if key not in config.rc_list_keys + config.rc_bool_keys + config.rc_string_keys:
                 if key not in config.rc_other:
                     if not args.json:
                         message = "unknown key %s" % key
@@ -270,7 +271,7 @@ channels:
                 json_get[key] = rc_config[key]
                 continue
 
-            if isinstance(rc_config[key], bool):
+            if isinstance(rc_config[key], (bool, string_types)):
                 print("--set", key, rc_config[key])
             else:
                 # Note, since conda config --add prepends, these are printed in

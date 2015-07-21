@@ -78,8 +78,6 @@ rc_string_keys = [
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
-    'root_dir',
-    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
