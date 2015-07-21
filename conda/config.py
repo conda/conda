@@ -69,12 +69,17 @@ rc_bool_keys = [
     'allow_other_channels',
     ]
 
+rc_string_keys = [
+    'ssl_verify',
+    'channel_alias',
+    'root_dir',
+]
+
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
     'root_dir',
     'channel_alias',
-    'ssl_verify'
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -333,12 +338,7 @@ disallow = set(rc.get('disallow', []))
 create_default_packages = list(rc.get('create_default_packages', []))
 
 # ssl_verify can be a boolean value or a filename string
-ssl_verify = rc.get('ssl_verify', 'True')
-_v = ssl_verify.lower()
-if _v in {'on', 'true', 'yes'}:
-    ssl_verify = True
-elif _v in {'off', 'false', 'no'}:
-    ssl_verify = False
+ssl_verify = rc.get('ssl_verify', True)
 
 try:
     track_features = set(rc['track_features'].split())
