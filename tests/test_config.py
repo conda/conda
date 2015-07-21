@@ -190,13 +190,14 @@ always_yes: yes
 
 invalid_key: yes
 
-channel_alias: http://alpha.conda.binstar.org
+channel_alias: http://alpha.conda.anaconda.org
 """)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
+--set channel_alias http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
 --add create_default_packages 'numpy'
