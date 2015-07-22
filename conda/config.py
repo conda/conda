@@ -68,14 +68,17 @@ rc_bool_keys = [
     'binstar_upload',
     'show_channel_urls',
     'allow_other_channels',
-    'ssl_verify',
     ]
+
+rc_string_keys = [
+    'ssl_verify',
+    'channel_alias',
+    'root_dir',
+]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
-    'root_dir',
-    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -333,7 +336,10 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
-ssl_verify = bool(rc.get('ssl_verify', True))
+
+# ssl_verify can be a boolean value or a filename string
+ssl_verify = rc.get('ssl_verify', True)
+
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:
