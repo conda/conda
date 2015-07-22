@@ -12,6 +12,8 @@
   * fix color issues from pip in conda list on Windows
   * add support for other machine types on Linux, in particular ppc64le
   * add non_x86_linux_machines set to config module
+  * allow ssl_verify to accept strings in addition to boolean values in condarc
+  * enable --set to work with both boolean and string values
 
 
 2015-06-29   3.14.1:
