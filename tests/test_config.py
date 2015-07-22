@@ -190,13 +190,14 @@ always_yes: yes
 
 invalid_key: yes
 
-channel_alias: http://alpha.conda.binstar.org
+channel_alias: http://alpha.conda.anaconda.org
 """)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
+--set channel_alias http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
 --add create_default_packages 'numpy'
@@ -532,6 +533,52 @@ yaml parser (this will remove any structure or comments from the existing
     finally:
         try:
             pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_set():
+    # Test the config set command
+    # Make sure it accepts only boolean values for boolean keys and any value for string keys
+
+    try:
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'always_yes', 'yep')
+
+        assert stdout == ''
+        assert stderr == 'Error: Key: always_yes; yep is not a YAML boolean.\n'
+
+    finally:
+        try:
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_set_rc_string():
+    # Test setting string keys in .condarc
+
+    # We specifically test ssl_verify since it can be either a boolean or a string
+    try:
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'ssl_verify', 'yes')
+        assert stdout == ''
+        assert stderr == ''
+
+        verify = yaml.load(open(test_condarc, 'r'))['ssl_verify']
+        assert verify == True
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'ssl_verify', 'test_string.crt')
+        assert stdout == ''
+        assert stderr == ''
+
+        verify = yaml.load(open(test_condarc, 'r'))['ssl_verify']
+        assert verify == 'test_string.crt'
+
+
+        os.unlink(test_condarc)
+    finally:
+        try:
             os.unlink(test_condarc)
         except OSError:
             pass
