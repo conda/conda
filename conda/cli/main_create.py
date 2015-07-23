@@ -45,6 +45,5 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-@common.deprecation_warning
 def execute(args, parser):
     install.install(args, parser, 'create')
