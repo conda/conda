@@ -12,6 +12,7 @@ from copy import deepcopy
 
 import conda.config as config
 from conda.cli import common
+from conda.compat import string_types
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -100,22 +101,11 @@ class CouldntParse(NotImplementedError):
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
-class BoolKey(common.Completer):
-    def __contains__(self, other):
-        # Other is either one of the keys or the boolean
-        try:
-            import yaml
-        except ImportError:
-            yaml = False
-
-        ret = other in config.rc_bool_keys
-        if yaml:
-            ret = ret or isinstance(yaml.load(other), bool)
-
-        return ret
-
+class SingleValueKey(common.Completer):
     def _get_items(self):
-        return config.rc_bool_keys + ['yes', 'no', 'on', 'off', 'true', 'false']
+        return config.rc_bool_keys + \
+               config.rc_string_keys + \
+               ['yes', 'no', 'on', 'off', 'true', 'false']
 
 class ListKey(common.Completer):
     def _get_items(self):
@@ -182,11 +172,10 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         "--set",
         nargs=2,
         action="append",
-        help="""Set a boolean key. BOOL_VALUE should be a valid YAML boolean,
-        such as 'yes' or 'no'.""",
+        help="""Set a boolean or string key""",
         default=[],
-        choices=BoolKey(),
-        metavar=('KEY', 'BOOL_VALUE'),
+        choices=SingleValueKey(),
+        metavar=('KEY', 'VALUE'),
         )
     action.add_argument(
         "--remove",
@@ -267,10 +256,10 @@ channels:
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in config.rc_list_keys + config.rc_bool_keys:
+            if key not in config.rc_list_keys + config.rc_bool_keys + config.rc_string_keys:
                 if key not in config.rc_other:
+                    message = "unknown key %s" % key
                     if not args.json:
-                        message = "unknown key %s" % key
                         print(message, file=sys.stderr)
                     else:
                         json_warnings.append(message)
@@ -282,7 +271,7 @@ channels:
                 json_get[key] = rc_config[key]
                 continue
 
-            if isinstance(rc_config[key], bool):
+            if isinstance(rc_config[key], (bool, string_types)):
                 print("--set", key, rc_config[key])
             else:
                 # Note, since conda config --add prepends, these are printed in
@@ -306,7 +295,7 @@ channels:
     for key, item in args.add:
         if key not in config.rc_list_keys:
             common.error_and_exit("key must be one of %s, not %r" %
-                                  (config.rc_list_keys, key), json=args.json,
+                                  (', '.join(config.rc_list_keys), key), json=args.json,
                                   error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
             raise CouldntParse("key %r should be a list, not %s." % (key,
@@ -322,13 +311,21 @@ channels:
         new_rc_config.setdefault(key, []).insert(0, item)
 
     # Set
+    set_bools, set_strings = set(config.rc_bool_keys), set(config.rc_string_keys)
     for key, item in args.set:
+        # Check key and value
         yamlitem = yaml.load(item)
-        if not isinstance(yamlitem, bool):
-            common.error_and_exit("%r is not a boolean" % item, json=args.json,
-                                  error_type="TypeError")
-
-        new_rc_config[key] = yamlitem
+        if key in set_bools:
+            if not isinstance(yamlitem, bool):
+                common.error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
+                                      json=args.json, error_type="TypeError")
+            new_rc_config[key] = yamlitem
+        elif key in set_strings:
+            new_rc_config[key] = yamlitem
+        else:
+            common.error_and_exit("Error key must be one of %s, not %s" %
+                                  (', '.join(set_bools | set_strings), key), json=args.json,
+                                  error_type="ValueError")
 
     # Remove
     for key, item in args.remove:
@@ -405,10 +402,6 @@ channels:
                 new_rc_config['channels'].append('defaults')
 
     for key, item in args.set:
-        if key not in config.rc_bool_keys:
-            common.error_and_exit("Error key must be one of %s, not %s" %
-                                  (config.rc_bool_keys, key), json=args.json,
-                                  error_type="ValueError")
         added = False
         for pos, line in enumerate(new_rc_text[:]):
             matched = setkeyregexes[key].match(line)
