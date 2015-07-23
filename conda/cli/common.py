@@ -187,6 +187,14 @@ def add_parser_copy(p):
         help="Install all packages using copies instead of hard- or soft-linking."
         )
 
+def add_parser_pscheck(p):
+    p.add_argument(
+        "--force-pscheck",
+        action="store_true",
+        help=("No-op. Included for backwards compatibility (deprecated)."
+              if config.platform == 'win' else argparse.SUPPRESS)
+    )
+
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
@@ -195,6 +203,7 @@ def add_parser_install(p):
         help="Force install (even when package already installed), "
                "implies --no-deps.",
     )
+    add_parser_pscheck(p)
     p.add_argument(
         "--file",
         action="store",
