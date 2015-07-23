@@ -146,6 +146,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         log.debug(msg)
         raise RuntimeError(msg)
 
+    except requests.exceptions.SSLError as e:
+        msg = "SSL Error: %s\n" % e
+        stderrlog.info("SSL verification error %s\n" % e.message)
+        log.debug(msg)
+
     except requests.exceptions.ConnectionError as e:
         # requests isn't so nice here. For whatever reason, https gives this
         # error and http gives the above error. Also, there is no status_code
