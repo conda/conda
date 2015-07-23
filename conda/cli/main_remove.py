@@ -75,6 +75,12 @@ def configure_parser(sub_parsers, name='remove'):
     common.add_parser_use_local(p)
     common.add_parser_offline(p)
     p.add_argument(
+        "--force-pscheck",
+        action="store_true",
+        help=("Force removal (when package process is running) (deprecated)"
+              if config.platform == 'win' else argparse.SUPPRESS)
+    )
+    p.add_argument(
         'package_names',
         metavar='package_name',
         action="store",
@@ -84,6 +90,7 @@ def configure_parser(sub_parsers, name='remove'):
     p.set_defaults(func=execute)
 
 
+@common.deprecation_warning
 def execute(args, parser):
     import sys
 
