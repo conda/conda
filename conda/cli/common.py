@@ -198,7 +198,7 @@ def add_parser_install(p):
     p.add_argument(
         "--force-pscheck",
         action="store_true",
-        help=("Force removal (when package process is running) (deprecated)"
+        help=("No-op. Included for backwards compatibility (deprecated)."
               if config.platform == 'win' else argparse.SUPPRESS)
     )
     p.add_argument(
@@ -589,21 +589,3 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
-
-
-DEPRECATED = ["force_pscheck", ]
-
-
-def deprecation_warning(func):
-    """Wraps an execute function in a deprecated args checker"""
-
-    msg = "Argument %s is no longer used"
-
-    @wraps(func)
-    def inner(args, parser):
-        for key in DEPRECATED:
-            if not hasattr(args, key):
-                continue
-            warnings.warn(msg % key.replace("_", "-"), DeprecationWarning)
-        return func(args, parser)
-    return inner
