@@ -32,6 +32,7 @@ def debug_argcomplete(msg):
 
 try:
     import argcomplete
+    argcomplete.CompletionFinder
 except (ImportError, AttributeError):
     # On Python 3.3, argcomplete can be an empty namespace package when
     # we are in the conda-recipes directory.
