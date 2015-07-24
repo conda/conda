@@ -64,7 +64,7 @@ if on_win:
 
     # on Windows we cannot update these packages in the root environment
     # because of the file lock problem
-    win_ignore_root = set(['python', 'pycosat', 'psutil'])
+    win_ignore_root = set(['python'])
 
     CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
