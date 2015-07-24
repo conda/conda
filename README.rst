@@ -98,20 +98,21 @@ To go back to the root environment, use
 Building Your Own Packages
 --------------------------
 
-You can easily build your own packages for conda, and upload them to `Binstar
-<https://binstar.org>`_, a free service for hosting packages for conda, as
-well as other package managers.  To build a package, create a recipe.  See
-http://github.com/conda/conda-recipes for many example recipes, and
+You can easily build your own packages for conda, and upload them
+to `anaconda.org <https://anaconda.org>`_, a free service for hosting
+packages for conda, as well as other package managers.
+To build a package, create a recipe.
+See http://github.com/conda/conda-recipes for many example recipes, and
 http://docs.continuum.io/conda/build.html for documentation on how to build
 recipes.
 
-To upload to Binstar, create an account on binstar.org.  Then, install the
-binstar client and login
+To upload to anaconda.org, create an account.  Then, install the
+conda-server client and login
 
 .. code-block:: bash
 
-   $ conda install binstar
-   $ binstar login
+   $ conda install conda-server
+   $ conda-server login
 
 Then, after you build your recipe
 
@@ -119,14 +120,14 @@ Then, after you build your recipe
 
    $ conda build <recipe-dir>
 
-you will be prompted to upload to binstar.
+you will be prompted to upload to anaconda.org.
 
-To add your Binstar channel, or the channel of others to conda so that ``conda
-install`` will find and install their packages, run
+To add your anaconda.org channel, or the channel of others to conda so
+that ``conda install`` will find and install their packages, run
 
 .. code-block:: bash
 
-   $ conda config --add channels https://conda.binstar.org/username
+   $ conda config --add channels https://conda.anaconda.org/username
 
 (replacing ``username`` with the user name of the person whose channel you want
 to add).
