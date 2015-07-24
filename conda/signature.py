@@ -1,12 +1,11 @@
 import sys
 import base64
-import hashlib
 from os.path import abspath, expanduser, isfile, join
 
-from conda.compat import PY3
-
 try:
+    from Crypto.Hash import SHA256
     from Crypto.PublicKey import RSA
+    from Crypto.Signature import PKCS1_PSS
 except ImportError:
     sys.exit("""\
 Error: could not import Crypto (required for signature verification).
@@ -20,44 +19,14 @@ KEYS_DIR = abspath(expanduser('~/.conda/keys'))
 
 
 def hash_file(path):
-    h = hashlib.new('sha256')
+    h = SHA256.new()
     with open(path, 'rb') as fi:
         while True:
             chunk = fi.read(262144)  # process chunks of 256KB
             if not chunk:
                 break
             h.update(chunk)
-    return h.digest()
-
-
-def sig2ascii(i):
-    """
-    Given a positive integer `i`, return a base64 encoded string
-    representation of the value.
-    """
-    if i < 0:
-        raise ValueError('positive integer expected, got: %r' % i)
-    ret = []
-    while i:
-        i, r = divmod(i, 256)
-        ret.append(r)
-    if PY3:
-        s = bytes(n for n in ret[::-1])
-    else:
-        s = ''.join(chr(n) for n in ret[::-1])
-    return base64.b64encode(s).decode('utf-8')
-
-
-def ascii2sig(s):
-    """
-    Given the base64 encoded string representation of an integer (returned
-    by sig2ascii), return the integer value.
-    """
-    res = 0
-    for c in base64.b64decode(s):
-        res *= 256
-        res += (c if PY3 else ord(c))
-    return res
+    return h
 
 
 class SignatureError(Exception):
@@ -84,4 +53,5 @@ def verify(path):
             raise SignatureError("public key does not exist: %s" % key_path)
         KEYS[key_name] = RSA.importKey(open(key_path).read())
     key = KEYS[key_name]
-    return key.verify(hash_file(path), (ascii2sig(sig),))
+    verifier = PKCS1_PSS.new(key)
+    return verifier.verify(hash_file(path), base64.b64decode(sig))
