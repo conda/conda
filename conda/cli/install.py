@@ -363,15 +363,15 @@ environment does not exist: %s
                 if close:
                     error_message += ("\n\nDid you mean one of these?"
                                       "\n\n    %s" % (', '.join(close)))
-            error_message += '\n\nYou can search for this package on Binstar with'
-            error_message += '\n\n    binstar search -t conda %s' % pkg
+            error_message += '\n\nYou can search for this package on anaconda.org with'
+            error_message += '\n\n    conda-server search -t conda %s' % pkg
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message += '\n\n (and similarly for the other packages)'
-            binstar = find_executable('binstar', include_others=False)
-            if not binstar:
-                error_message += '\n\nYou may need to install the Binstar command line client with'
-                error_message += '\n\n    conda install binstar'
+            cs = find_executable('conda-server', include_others=False)
+            if not cs:
+                error_message += '\n\nYou may need to install the conda-server command line client with'
+                error_message += '\n\n    conda install conda-server'
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
