@@ -1,12 +1,6 @@
 from logging import getLogger, Handler, DEBUG
-import random
-import types
 import unittest
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 from conda import exceptions
 from conda import instructions
