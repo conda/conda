@@ -20,6 +20,7 @@ from conda.resolve import Resolve
 from tests.helpers import captured
 from conda.exceptions import CondaException
 
+from .decorators import skip_if_no_mock
 from .helpers import mock
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -62,6 +63,7 @@ class add_unlink_TestCase(unittest.TestCase):
             sys.platform = "win32" if windows else "not win32"
             yield sys
 
+    @skip_if_no_mock
     def test_simply_adds_unlink_on_non_windows(self):
         actions = {}
         dist = self.generate_random_dist()
@@ -70,6 +72,7 @@ class add_unlink_TestCase(unittest.TestCase):
         self.assertIn(inst.UNLINK, actions)
         self.assertEqual(actions[inst.UNLINK], [dist, ])
 
+    @skip_if_no_mock
     def test_adds_to_existing_actions(self):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
         dist = self.generate_random_dist()
