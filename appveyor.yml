@@ -32,8 +32,8 @@ init:
   - C:\Miniconda\Scripts\conda config --set always_yes yes
   # We need to do this first as other commands may not work with older versions of conda.
   - C:\Miniconda\Scripts\conda update conda
-  - C:\Miniconda\Scripts\conda install -c conda pytest requests conda-env --quiet
-  - ps: if($env:PYTHON -eq "2.7"){C:\Miniconda\Scripts\conda install ndg-httpsclient}
+  - C:\Miniconda\Scripts\conda install -c conda pytest requests pycrypto mock conda-env --quiet
+  - cmd: if "%PYTHON%"=="2.7" C:\Miniconda\Scripts\conda install ndg-httpsclient
 
 install:
   - C:\Miniconda\python.exe setup.py install
