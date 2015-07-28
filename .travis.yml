@@ -29,7 +29,9 @@ install:
   - python setup.py install
   - conda info -a
 
-script: py.test
+script:
+  - py.test
+  - conda --help
 
 notifications:
     flowdock: ef3821a08a791106512ccfc04c92eccb
