@@ -200,9 +200,17 @@ def args_func(args, p):
     try:
         args.func(args, p)
     except RuntimeError as e:
+        if 'maximum recursion depth exceeded' in str(e):
+            print_issue_message(e, use_json=use_json)
+            raise
         common.error_and_exit(str(e), json=use_json)
     except Exception as e:
-        if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
+        print_issue_message(e, use_json=use_json)
+        raise  # as if we did not catch it
+
+def print_issue_message(e, use_json=False):
+    from conda.cli import common
+    if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
@@ -212,12 +220,11 @@ following traceback to the conda GitHub issue tracker at:
 Include the output of the command 'conda info' in your report.
 
 """
-            if use_json:
-                import traceback
-                common.error_and_exit(message + traceback.format_exc(),
-                                      error_type="UnexpectedError", json=True)
-            print(message)
-        raise  # as if we did not catch it
+    if use_json:
+        import traceback
+        common.error_and_exit(message + traceback.format_exc(),
+                              error_type="UnexpectedError", json=True)
+    print(message)
 
 if __name__ == '__main__':
     main()
