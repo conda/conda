@@ -245,7 +245,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
         conda list
 
-4. How can I check if package (for example, SciPy) is already installed in an existing environment such as ``myenv``?
+4. How can I check if a package (for example, SciPy) is already installed in an existing environment such as ``myenv``?
 
      .. code-block:: bash
 
