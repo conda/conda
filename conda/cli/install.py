@@ -245,7 +245,8 @@ def install(args, parser, command='install'):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        channel_urls = [url_path(croot)] + list(channel_urls)
+        if exists(croot):
+            channel_urls = [url_path(croot)] + list(channel_urls)
 
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,
