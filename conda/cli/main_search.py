@@ -6,6 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+from os.path import exists
+
 from conda.cli import common
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound, Package
@@ -177,7 +179,9 @@ def execute_search(args, parser):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
+        if exists(croot):
+            channel_urls = [url_path(croot)] + list(channel_urls)
+        index = common.get_index_trap(channel_urls=channel_urls,
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       unknown=args.unknown,

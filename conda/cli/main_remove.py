@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from os.path import join
+from os.path import join, exists
 
 import argparse
 from argparse import RawDescriptionHelpFormatter
@@ -118,7 +118,9 @@ def execute(args, parser):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
+        if exists(croot):
+            channel_urls = [url_path(croot)] + list(channel_urls)
+        index = common.get_index_trap(channel_urls=channel_urls,
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       json=args.json,
