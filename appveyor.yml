@@ -42,4 +42,5 @@ install:
 
 test_script:
   - C:\Miniconda\Scripts\py.test -vvv
+  - C:\Miniconda\Scripts\conda --help
   - IF %PYTHON%==2.7 IF DEFINED PYCOSAT C:\Miniconda\Scripts\conda install -f menuinst ipython-notebook & echo "Finished menuinst test"
