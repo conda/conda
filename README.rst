@@ -24,7 +24,9 @@ All of the usage is documented via the ``--help`` flag.
     usage: conda-env [-h] {create,export,list,remove} ...
 
     positional arguments:
-      {create,export,list,remove}
+      {attach,create,export,list,remove,upload,update}
+        attach              Embeds information describing your conda environment
+                            into the notebook metadata
         create              Create an environment based on an environment file
         export              Export a given environment
         list                List the Conda environments
@@ -73,3 +75,19 @@ in your local package cache.
 
 You can explicitly provide an environment spec file using ``-f`` or ``--file``
 and the name of the file you would like to use.
+
+``environment.yml`` example
+---------------------------
+
+-- code-block:: yaml
+    name: stats
+    channels:
+      - javascript
+    dependencies:
+      - python=3.4   # or 2.7 if you are feeling nostalgic
+      - bokeh=0.9.2
+      - numpy=1.9.*
+      - nodejs=0.10.*
+      - flask
+      - pip:
+        - Flask-Testing
