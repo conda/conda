@@ -60,14 +60,14 @@ ADD_BINSTAR_TOKEN = True
 
 rc_bool_keys = [
     'add_binstar_token',
-    'add_conda_server_token',
+    'add_anaconda_token',
     'always_yes',
     'allow_softlinks',
     'changeps1',
     'use_pip',
     'offline',
     'binstar_upload',
-    'conda_server_upload',
+    'anaconda_upload',
     'show_channel_urls',
     'allow_other_channels',
     ]
@@ -197,7 +197,7 @@ def is_url(url):
 
 @memoized
 def binstar_channel_alias(channel_alias):
-    if rc.get('add_conda_server_token',
+    if rc.get('add_anaconda_token',
               rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
         try:
             from binstar_client.utils import get_binstar
@@ -330,7 +330,7 @@ except IOError:
 always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
-binstar_upload = rc.get('conda_server_upload',
+binstar_upload = rc.get('anaconda_upload',
                         rc.get('binstar_upload', None)) # None means ask
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
