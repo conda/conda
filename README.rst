@@ -2,6 +2,9 @@
 conda-env
 =========
 
+.. image:: https://travis-ci.org/conda/conda-env.svg
+    :target: https://travis-ci.org/conda/conda-env
+
 Provides the `conda env` interface to Conda environments.
 
 Installing
