@@ -79,7 +79,7 @@ and the name of the file you would like to use.
 ``environment.yml`` example
 ---------------------------
 
--- code-block:: yaml
+.. code-block:: yaml
     name: stats
     channels:
       - javascript
