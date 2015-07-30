@@ -19,5 +19,6 @@ script:
 - conda --help
 sudo: false
 notifications:
+  email: false
   flowdock:
     secure: QH1eDdrLEHrRQnBNNqITB1XoEiz0Dey0LzL1VZl06KJINRoOvDiM4uZU6pC7odU7r+Bwxv0YTqY6tZZDQSDwzJpLqyxX7KJwNwIgU13sD7NLGdh0Ll8o8fZOS0sIu6xsFKh7X0PPTTGV0FCYUrzft0drM8jjPCRV4Ayn5wlGc/g=
