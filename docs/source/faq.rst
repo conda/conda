@@ -207,13 +207,8 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
 2. In OS X or Linux, how can I set whether my command prompt shows the name of the active environment?
 
-   To turn this option on:
+   This option is enabled by default in OS X, and disabled by default in Linux.
    
-     .. code-block:: bash
-        
-        source deactivate
-        conda config --set changeps1 true
-
    To turn this option off:
         
      .. code-block:: bash
@@ -221,14 +216,14 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
         source deactivate
         conda config --set changeps1 false
 
-   To test it:
+   To turn this option on:
    
      .. code-block:: bash
         
-        source activate environmentname
         source deactivate
-   
-   NOTE: Replace environmentname with an actual environment name.
+        conda config --set changeps1 true
+
+   This option can be tested by activating and then deactivating any environment.
 
 
 3. How can I list all installed packages in a specific environment, for example, ``myenv``?
@@ -314,7 +309,7 @@ Activate and deactivate
 
 **Linux, OS X:** ``source activate myenv``
 
-**Windows:** activate myenv``
+**Windows:** ``activate myenv``
 
 SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
 
@@ -324,7 +319,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
 **Windows:** deactivate myenv``
 
-NOTE: It is good practice to deactivate one environment before activating another.
+NOTE: In Windows it is good practice to deactivate one environment before activating another.
 
 Installing packages
 -------------------
