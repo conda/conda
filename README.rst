@@ -107,12 +107,12 @@ http://docs.continuum.io/conda/build.html for documentation on how to build
 recipes.
 
 To upload to anaconda.org, create an account.  Then, install the
-conda-server client and login
+anaconda-client and login
 
 .. code-block:: bash
 
-   $ conda install conda-server
-   $ conda-server login
+   $ conda install anaconda-client
+   $ anaconda login
 
 Then, after you build your recipe
 

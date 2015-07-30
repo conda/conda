@@ -133,7 +133,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to anaconda.org again with "
-                "'conda-server login' to access private packages(%s, %s)" %
+                "'anaconda login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url),
