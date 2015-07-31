@@ -85,7 +85,7 @@ def filter_descr(cmd):
 
 
 def help():
-    print("\nexternal commands:")
+    print("\nother commands:")
     for cmd in find_commands():
         filter_descr(cmd)
 
