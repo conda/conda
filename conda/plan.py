@@ -381,7 +381,7 @@ def get_pinned_specs(prefix):
     if not exists(pinfile):
         return []
     with open(pinfile) as f:
-        return [i for i in f.read().strip().split('\n') if i and not i.strip().startswith('#')]
+        return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None,
