@@ -20,7 +20,7 @@ for info in index.itervalues():
 print(len(index))
 
 data = json.dumps(index, indent=2, sort_keys=True)
-data = '\n'.join(line.rstrip() for line in data.split('\n'))
+data = '\n'.join(line.rstrip() for line in data.splitlines())
 if not data.endswith('\n'):
     data += '\n'
 with open('index.json', 'w') as fo:
