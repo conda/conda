@@ -29,7 +29,7 @@ All of the usage is documented via the ``--help`` flag.
         export              Export a given environment
         list                List the Conda environments
         remove              Remove an environment
-        upload              Upload an environment to binstar
+        upload              Upload an environment to anaconda.org
         update              Updates the current environment based on environment
                             file
 
