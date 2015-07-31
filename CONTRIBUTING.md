@@ -146,8 +146,8 @@ to merge `master` into `develop` and push that branch as well so the bugfix is
 included in future versions.
 
 
-[binstar build]: http://docs.binstar.org/build_cli.html
-[conda/c/dev]: https://conda.binstar.org/conda/c/dev
+[binstar build]: http://docs.anaconda.org/build_cli.html
+[conda/c/dev]: https://conda.anaconda.org/conda/c/dev
 [develop branch]: https://github.com/conda/conda-env/tree/develop
 [flake8]: http://flake8.readthedocs.org/
 [gist]: https://gist.github.com/
