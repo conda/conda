@@ -365,14 +365,15 @@ environment does not exist: %s
                     error_message += ("\n\nDid you mean one of these?"
                                       "\n\n    %s" % (', '.join(close)))
             error_message += '\n\nYou can search for this package on anaconda.org with'
-            error_message += '\n\n    conda server search -t conda %s' % pkg
+            error_message += '\n\n    anaconda search -t conda %s' % pkg
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message += '\n\n (and similarly for the other packages)'
-            conda_server = find_executable('conda-server', include_others=False)
-            if not conda_server:
-                error_message += '\n\nYou may need to install the anaconda.org command line client with'
-                error_message += '\n\n    conda install conda-server'
+
+            if not find_executable('anaconda', include_others=False):
+                error_message += '\n\nYou may need to install the anaconda-client command line client with'
+                error_message += '\n\n    conda install anaconda-client'
+
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
