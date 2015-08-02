@@ -1,6 +1,10 @@
+2015-08-XX   3.
+--------------------
+  * rename binstar -> anaconda, see #1458
   * fix --use-local when the conda-bld directory doesn't exist
   * don't mask recursion depth errors
   * add conda search --reverse-dependency
+
 
 2015-07-23   3.15.1:
 --------------------
