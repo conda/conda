@@ -50,7 +50,7 @@ What version of Python should I choose?
 
 * The most popular version of Python is 2.7, and that is included with Anaconda and Miniconda. 
 * The newest stable version of Python is 3.4, and that is included with Anaconda3 and Miniconda3. 
-* You can easily set up additional versions of Python such as 2.6 or 3.3 by downloading any version and creating a new environment with just a few clicks. (See our Test Drive page.)
+* You can easily set up additional versions of Python such as 2.6 or 3.3 by downloading any version and creating a new environment with just a few clicks. (See our :doc:`test-drive`.)
 
 What about MD5 or SHA verification?
 -----------------------------------
