@@ -12,6 +12,7 @@ import os
 from os import listdir
 from os.path import isfile, exists, expanduser, join
 from collections import defaultdict, OrderedDict
+import json
 
 from conda.cli import common
 
@@ -63,6 +64,11 @@ def configure_parser(sub_parsers):
         '--root',
         action='store_true',
         help='Display root environment path.',
+    )
+    p.add_argument(
+        '--unsafe-channels',
+        action='store_true',
+        help='Display list of channels with tokens exposed.',
     )
     p.set_defaults(func=execute)
 
@@ -171,7 +177,7 @@ def execute(args, parser):
 
         for spec in specs:
             versions = r.get_pkgs(MatchSpec(spec))
-            for pkg in versions:
+            for pkg in sorted(versions):
                 pretty_package(pkg)
 
         return
@@ -213,12 +219,18 @@ def execute(args, parser):
                      requests_version=requests_version,
     )
 
+    if args.unsafe_channels:
+        if not args.json:
+            print("\n".join(info_dict["channels"]))
+        else:
+            print(json.dumps({"channels": info_dict["channels"]}))
+        return 0
+    else:
+        info_dict['channels'] = [config.hide_binstar_tokens(c) for c in
+                                 info_dict['channels']]
     if args.all or args.json:
         for option in options:
             setattr(args, option, True)
-
-    info_dict['channels'] = [config.hide_binstar_tokens(c) for c in
-        info_dict['channels']]
 
     if args.all or all(not getattr(args, opt) for opt in options):
         for key in 'pkgs_dirs', 'envs_dirs', 'channels':

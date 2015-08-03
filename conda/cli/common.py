@@ -1,6 +1,5 @@
 from __future__ import print_function, division, absolute_import
 
-from functools import wraps
 import re
 import os
 import sys
@@ -8,7 +7,6 @@ import argparse
 import contextlib
 from os.path import abspath, basename, expanduser, isdir, join
 import textwrap
-import warnings
 
 import conda.config as config
 from conda import console
@@ -189,6 +187,14 @@ def add_parser_copy(p):
         help="Install all packages using copies instead of hard- or soft-linking."
         )
 
+def add_parser_pscheck(p):
+    p.add_argument(
+        "--force-pscheck",
+        action="store_true",
+        help=("No-op. Included for backwards compatibility (deprecated)."
+              if config.platform == 'win' else argparse.SUPPRESS)
+    )
+
 def add_parser_install(p):
     add_parser_yes(p)
     p.add_argument(
@@ -197,12 +203,7 @@ def add_parser_install(p):
         help="Force install (even when package already installed), "
                "implies --no-deps.",
     )
-    p.add_argument(
-        "--force-pscheck",
-        action="store_true",
-        help=("Force removal (when package process is running) (deprecated)"
-              if config.platform == 'win' else argparse.SUPPRESS)
-    )
+    add_parser_pscheck(p)
     p.add_argument(
         "--file",
         action="store",
@@ -488,8 +489,6 @@ def names_in_specs(names, specs):
 
 
 def check_specs(prefix, specs, json=False, create=False):
-    from conda.plan import is_root_prefix
-
     if len(specs) == 0:
         msg = ('too few arguments, must supply command line '
                'package specs or --file')
@@ -606,21 +605,3 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
-
-
-DEPRECATED = ["force_pscheck", ]
-
-
-def deprecation_warning(func):
-    """Wraps an execute function in a deprecated args checker"""
-
-    msg = "Argument %s is no longer used"
-
-    @wraps(func)
-    def inner(args, parser):
-        for key in DEPRECATED:
-            if not hasattr(args, key):
-                continue
-            warnings.warn(msg % key.replace("_", "-"), DeprecationWarning)
-        return func(args, parser)
-    return inner

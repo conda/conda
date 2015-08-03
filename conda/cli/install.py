@@ -245,7 +245,8 @@ def install(args, parser, command='install'):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        channel_urls = [url_path(croot)] + list(channel_urls)
+        if exists(croot):
+            channel_urls = [url_path(croot)] + list(channel_urls)
 
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,
@@ -364,15 +365,16 @@ environment does not exist: %s
                 if close:
                     error_message += ("\n\nDid you mean one of these?"
                                       "\n\n    %s" % (', '.join(close)))
-            error_message += '\n\nYou can search for this package on Binstar with'
-            error_message += '\n\n    binstar search -t conda %s' % pkg
+            error_message += '\n\nYou can search for this package on anaconda.org with'
+            error_message += '\n\n    anaconda search -t conda %s' % pkg
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message += '\n\n (and similarly for the other packages)'
-            binstar = find_executable('binstar', include_others=False)
-            if not binstar:
-                error_message += '\n\nYou may need to install the Binstar command line client with'
-                error_message += '\n\n    conda install binstar'
+
+            if not find_executable('anaconda', include_others=False):
+                error_message += '\n\nYou may need to install the anaconda-client command line client with'
+                error_message += '\n\n    conda install anaconda-client'
+
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error

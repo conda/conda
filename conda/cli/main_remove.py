@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from os.path import join
+from os.path import join, exists
 
 import argparse
 from argparse import RawDescriptionHelpFormatter
@@ -74,12 +74,7 @@ def configure_parser(sub_parsers, name='remove'):
     common.add_parser_use_index_cache(p)
     common.add_parser_use_local(p)
     common.add_parser_offline(p)
-    p.add_argument(
-        "--force-pscheck",
-        action="store_true",
-        help=("Force removal (when package process is running) (deprecated)"
-              if config.platform == 'win' else argparse.SUPPRESS)
-    )
+    common.add_parser_pscheck(p)
     p.add_argument(
         'package_names',
         metavar='package_name',
@@ -90,7 +85,6 @@ def configure_parser(sub_parsers, name='remove'):
     p.set_defaults(func=execute)
 
 
-@common.deprecation_warning
 def execute(args, parser):
     import sys
 
@@ -124,7 +118,9 @@ def execute(args, parser):
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
+        if exists(croot):
+            channel_urls = [url_path(croot)] + list(channel_urls)
+        index = common.get_index_trap(channel_urls=channel_urls,
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       json=args.json,

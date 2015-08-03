@@ -1,4 +1,4 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -26,15 +26,16 @@ default_python = '%d.%d' % sys.version_info[:2]
 
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
             'darwin': 'osx', 'win32': 'win'}
+non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
 
-if platform == 'linux' and machine() == 'armv6l':
-    subdir = 'linux-armv6l'
-    arch_name = 'armv6l'
+if platform == 'linux' and machine() in non_x86_linux_machines:
+    arch_name = machine()
+    subdir = 'linux-%s' % arch_name
 else:
-    subdir = '%s-%d' % (platform, bits)
     arch_name = {64: 'x86_64', 32: 'x86'}[bits]
+    subdir = '%s-%d' % (platform, bits)
 
 # ----- rc file -----
 
@@ -59,23 +60,28 @@ ADD_BINSTAR_TOKEN = True
 
 rc_bool_keys = [
     'add_binstar_token',
+    'add_anaconda_token',
     'always_yes',
     'allow_softlinks',
     'changeps1',
     'use_pip',
     'offline',
     'binstar_upload',
+    'anaconda_upload',
     'show_channel_urls',
     'allow_other_channels',
-    'ssl_verify',
     'update_dependencies',
     ]
+
+rc_string_keys = [
+    'ssl_verify',
+    'channel_alias',
+    'root_dir',
+]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
-    'root_dir',
-    'channel_alias',
     ]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
@@ -102,7 +108,8 @@ def load_condarc(path):
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file: %s)' % path)
-    return yaml.load(open(path)) or {}
+    with open(path) as f:
+        return yaml.load(f) or {}
 
 rc = load_condarc(rc_path)
 sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
@@ -191,7 +198,8 @@ def is_url(url):
 
 @memoized
 def binstar_channel_alias(channel_alias):
-    if rc.get('add_binstar_token', ADD_BINSTAR_TOKEN):
+    if rc.get('add_anaconda_token',
+              rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
         try:
             from binstar_client.utils import get_binstar
             bs = get_binstar()
@@ -323,7 +331,8 @@ except IOError:
 always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
-binstar_upload = rc.get('binstar_upload', None) # None means ask
+binstar_upload = rc.get('anaconda_upload',
+                        rc.get('binstar_upload', None)) # None means ask
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded
@@ -332,8 +341,11 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
-ssl_verify = bool(rc.get('ssl_verify', True))
 update_dependencies = bool(rc.get('update_dependencies', True))
+
+# ssl_verify can be a boolean value or a filename string
+ssl_verify = rc.get('ssl_verify', True)
+
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:
