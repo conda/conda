@@ -81,7 +81,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
-        cache = json.load(open(cache_path))
+        with open(cache_path) as f:
+            cache = json.load(f)
     except (IOError, ValueError):
         cache = {'packages': {}}
 
@@ -117,7 +118,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
-                msg = ('Could not find Binstar user %s' %
+                msg = ('Could not find anaconda.org user %s' %
                    config.remove_binstar_tokens(url).split(
                         config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
@@ -131,8 +132,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                         config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
-            msg = ("Warning: you may need to login to binstar again with "
-                "'binstar login' to access private packages(%s, %s)" %
+            msg = ("Warning: you may need to login to anaconda.org again with "
+                "'anaconda login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url),
@@ -144,6 +145,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
         log.debug(msg)
         raise RuntimeError(msg)
+
+    except requests.exceptions.SSLError as e:
+        msg = "SSL Error: %s\n" % e
+        stderrlog.info("SSL verification error %s\n" % e.message)
+        log.debug(msg)
 
     except requests.exceptions.ConnectionError as e:
         # requests isn't so nice here. For whatever reason, https gives this
@@ -217,7 +223,7 @@ def add_pip_dependency(index):
     for info in itervalues(index):
         if (info['name'] == 'python' and
                     info['version'].startswith(('2.', '3.'))):
-            info['depends'].append('pip')
+            info.setdefault('depends', []).append('pip')
 
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
@@ -283,6 +289,20 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    if info.get('sig'):
+        from conda.signature import verify, SignatureError
+
+        fn2 = fn + '.sig'
+        url = (info['channel'] if info['sig'] == '.' else
+               info['sig'].rstrip('/') + '/') + fn2
+        log.debug("signature url=%r" % url)
+        download(url, join(dst_dir, fn2), session=session)
+        try:
+            if verify(path):
+                return
+        except SignatureError as e:
+            sys.exit(str(e))
+        sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
