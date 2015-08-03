@@ -7,28 +7,36 @@ FAQ
 General questions
 =================
 
-1. What is Anaconda?
+1. What is conda?
 
-*Anaconda* is a meta package for *conda*. This meta package contains a stable collection of standard
-packages (like *scipy*, *numpy*, *zlib* etc.) for big data and scientific use that have all been tested
-to work well together. These packages are all installed automatically with one quick installation 
-routine, so it is convenient and fast. It includes Python, so it is often referred to as a “Python
-distribution” that makes installing Python (and the many other packages) easy and fast, even for new 
-Python users. 
+Conda is a cross-platform and Python-agnostic package manager and environment manager 
+program that quickly installs, runs and updates packages and their dependencies and 
+easily creates, saves, loads and switches between environments on your local computer. 
+Conda is included in all versions of Anaconda, Miniconda and Anaconda Server.
 
-2. What is conda?
+2. What is Miniconda?
 
-Conda is a cross-platform, Python-agnostic “package manager” and “environment manager” program that 
-quickly installs, runs, and updates packages and their dependencies, and easily switches between 
-environments on your local computer.  Conda is included in all versions of Anaconda, Anaconda Server, 
-and Miniconda.
+Miniconda includes conda, Python and a small number of other useful packages including 
+pip, zlib and a few others.
 
-3. What is Miniconda? 
+3. What is Anaconda?
 
-Miniconda mini-installer is a small or “bootstrap” version of Anaconda. It installs only what you need
-to get conda running. If you use Miniconda instead of the full Anaconda, you must then choose each 
-package you want, and use conda to download and install them.  Miniconda can be used when disk space 
-is a problem or if you do not wish to take the time to download and install all of the over 100 packages at once. 
+Anaconda includes everything in Miniconda and a stable collection of over 100 standard 
+open source packages for data analysis and scientific computing that have all been 
+tested to work well together, including scipy, numpy and many others. These packages 
+can all be installed automatically with one quick and convenient installation routine.
+
+4. Do Miniconda and Anaconda include Python?
+
+Yes. Because Anaconda and Miniconda include Python, they are Python distributions, and 
+can make installing Python quick and easy even for new users.
+
+5. When should I use Miniconda instead of Anaconda?
+
+If you use Miniconda instead of the full Anaconda then you must choose each package 
+you want and use conda to download and install them. Miniconda can be used when disk 
+space is limited or if you do not wish to take the time to download and install all 
+the Anaconda packages at once.
 
 
 Getting help
@@ -234,7 +242,7 @@ SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 Creating new environments
 -------------------------
 
-1. How can I create a new and clean environment, for example,``myenv``?
+1. How can I create a new and clean environment, for example, ``myenv``?
 
    .. code-block:: bash
 
@@ -340,7 +348,7 @@ The -n or name tells conda to install the environment into the environment named
    After performing the above command you can create new environments in the
    standard way, and the default package(s) will be installed in all of them.
 
-4. How can I automatically install a specific package like SciPy during creation of any of new environment?
+4. How can I automatically install a specific package like SciPy during creation of any new environment?
 
    .. code-block:: bash
 
@@ -349,7 +357,7 @@ The -n or name tells conda to install the environment into the environment named
 After performing the above command you can create new environments in the
 standard way, and the latest version of SciPy will be installed in all of them.
 
-5. How can I automatically install a specific version of a package such as SciPy during creation of any of new environment?
+5. How can I automatically install a specific version of a package such as SciPy during creation of any new environment?
 
    .. code-block:: bash
 
@@ -357,11 +365,20 @@ standard way, and the latest version of SciPy will be installed in all of them.
 
 After performing the above command you can create new environments in the standard way, and SciPy Version 0.15.0 will be installed in all of them.
 
-6. How can I ignore packages from automatic installation during creation of new and clean environment, such as ``myenv``?
+6. How can I ignore packages from automatic installation during creation of a new and clean environment, such as ``myenv``?
 
    .. code-block:: bash
 
       conda create --no-default-packages -n myenv python
+
+7. When making a python package for an app I create an environment for the app from 
+a file req.txt that sets python=2.7.9. However, when I conda install my package it 
+automatically upgrades to 2.7.10. How do I avoid this?
+
+If you make a conda package for the app using conda-build, you can set dependencies 
+with specific version numbers. In `this example <http://conda.pydata.org/docs/building/meta-yaml.html>`_ 
+the requirements lines that say "- python" could be "- python ==2.7.9" instead. It 
+is important to have one space before the == operator and no space after.
 
 Removing packages and environments
 ----------------------------------
@@ -426,7 +443,7 @@ NOTE: It may be necessary to add the "force" option ``-f`` to the following comm
 Conda build and recipes
 =======================
 
-#. How can I create a skeleton conda recipe for package such as *bottle* if I
+#. How can I create a skeleton conda recipe for a package such as *bottle* if I
    know that this package is on PyPI?
 
    .. code-block:: bash
