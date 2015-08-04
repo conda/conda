@@ -65,7 +65,7 @@ def check_prefix(prefix, json=False):
         common.error_and_exit(error, json=json, error_type="ValueError")
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False):
+def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
     from conda.misc import clone_env
 
     if os.sep in src_arg:
@@ -88,7 +88,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False):
     with common.json_progress_bars(json=json and not quiet):
         actions, untracked_files = clone_env(src_prefix, dst_prefix,
                                              verbose=not json,
-                                             quiet=quiet)
+                                             quiet=quiet, index=index)
 
     if json:
         common.stdout_json_success(
@@ -162,18 +162,6 @@ def install(args, parser, command='install'):
                                       json=args.json,
                                       error_type="ValueError")
 
-    if newenv and args.clone:
-        if args.packages:
-            common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json,
-                                  error_type="ValueError")
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet)
-        misc.append_env(prefix)
-        misc.touch_nonadmin(prefix)
-        if not args.json:
-            print_activate(args.name if args.name else prefix)
-        return
-
     if newenv and not args.no_default_packages:
         default_packages = config.create_default_packages[:]
         # Override defaults if they are specified at the command line
@@ -206,7 +194,7 @@ def install(args, parser, command='install'):
 
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
-    else:
+    elif not (newenv and args.clone):
         common.check_specs(prefix, specs, json=args.json,
                            create=(command == 'create'))
 
@@ -254,6 +242,18 @@ def install(args, parser, command='install'):
                                   unknown=args.unknown,
                                   json=args.json,
                                   offline=args.offline)
+
+    if newenv and args.clone:
+        if args.packages:
+            common.error_and_exit('did not expect any arguments for --clone',
+                                  json=args.json,
+                                  error_type="ValueError")
+        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index=index)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
+        if not args.json:
+            print_activate(args.name if args.name else prefix)
+        return
 
     # Don't update packages that are already up-to-date
     if command == 'update' and not (args.all or args.force):
