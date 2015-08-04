@@ -164,6 +164,8 @@ Export your active environment to the new file:
 
 **All users:** ``conda env export > environment.yml``
 
+NOTE: This file handles the environment's pip packages as well as its conda packages.
+
 Email or copy the exported environment.yml file to the other person.
 
 The other person will then need to create the environment by the following command:
