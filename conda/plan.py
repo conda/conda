@@ -30,6 +30,11 @@ from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
                                 RM_FETCHED, PREFIX, PRINT, PROGRESS,
                                 SYMLINK_CONDA)
 
+# Silence pyflakes
+(FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
+                                RM_FETCHED, PREFIX, PRINT, PROGRESS,
+                                SYMLINK_CONDA)
+
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
