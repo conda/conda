@@ -8,7 +8,6 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import sys
-import subprocess
 from os.path import isdir, isfile
 import logging
 from argparse import RawDescriptionHelpFormatter
@@ -17,9 +16,10 @@ import conda.install as install
 import conda.config as config
 from conda.cli import common
 
-# pip_args is here for BC
+# pip_args is here for backwards compatibility
 from conda.pip import pip_args, add_pip_installed
-
+# Silence pyflakes
+pip_args, add_pip_installed
 
 descr = "List linked packages in a conda environment."
 

@@ -10,7 +10,7 @@ import re
 import sys
 import os
 from os import listdir
-from os.path import isfile, exists, expanduser, join
+from os.path import exists, expanduser, join
 from collections import defaultdict, OrderedDict
 import json
 
@@ -147,11 +147,10 @@ def pretty_package(pkg):
 
 def execute(args, parser):
     import os
-    from os.path import basename, dirname
+    from os.path import dirname
 
     import conda
     import conda.config as config
-    import conda.misc as misc
     from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
     from conda.api import get_index, get_package_versions
