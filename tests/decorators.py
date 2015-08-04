@@ -7,6 +7,7 @@ try:
 except ImportError:
     try:
         import mock
+        mock
         skip_mock = False
     except ImportError:
         skip_mock = True
