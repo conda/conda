@@ -2,6 +2,7 @@
 --------------------
   * rename binstar -> anaconda, see #1458
   * fix --use-local when the conda-bld directory doesn't exist
+  * fixed --offline option when using "conda create --clone"
   * don't mask recursion depth errors
   * add conda search --reverse-dependency
 
