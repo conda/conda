@@ -144,7 +144,19 @@ Windows users:
 
 NOTE: Change your path and filename to the exact path and filename you saved in Step 2.
 
-4. Optional - Upload packages to Anaconda.org
+4. Optional - Build for a different Python version
+--------------------------------------------------
+By default, conda build will build packages for the version of Python installed
+in the root environment. If you'd like to build packages for other versions of
+Python, you can simply use the `--python` flag, followed by a version. For
+example, to explicitly build a version of the Pyinstrument package for Python
+3.3, use
+
+.. code-block:: bash
+
+    conda build --python 3.3 pyinstrument
+
+5. Optional - Upload packages to Anaconda.org
 ---------------------------------------------
 
 Anaconda.org, formerly known as binstar.org, is a repository for public or private packages. Uploading to Anaconda.org allows you to easily install 
