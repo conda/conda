@@ -80,6 +80,9 @@ class TestMatchSpec(unittest.TestCase):
         c, d = MatchSpec('python'), MatchSpec('python 2.7.4')
         self.assertNotEqual(a, c)
         self.assertNotEqual(hash(a), hash(c))
+        self.assertNotEqual(c, d)
+        self.assertNotEqual(hash(c), hash(d))
+
 
 
 class TestPackage(unittest.TestCase):
