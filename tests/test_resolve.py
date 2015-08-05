@@ -946,6 +946,32 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
 
+
+def test_install_package_with_feature():
+    index2 = index.copy()
+    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = {
+        'build': 'featurepy33_0',
+        'build_number': 0,
+        'depends': ['python 3.3*'],
+        'name': 'mypackage',
+        'version': '1.0',
+        'features': 'feature',
+    }
+    index2['feature-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['python 3.3*'],
+        'name': 'mypackage',
+        'version': '1.0',
+        'track_features': 'feature',
+    }
+
+    r = Resolve(index2)
+
+    # It should not raise
+    r.solve(['mypackage'], installed=['feature-1.0-py33_0.tar.bz2'])
+
+
 def test_circular_dependencies():
     index2 = index.copy()
     index2['package1-1.0-0.tar.bz2'] = {
