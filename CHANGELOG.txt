@@ -7,7 +7,9 @@
   * add conda search --reverse-dependency
   * check whether hardlinking is available before linking when
     using "python install.py --link" directly, see #1490
-
+  * don't exit nonzero when installing a package with no dependencies
+  * check which features are installed in an environment via track_features,
+    not features
 
 2015-07-23   3.15.1:
 --------------------
