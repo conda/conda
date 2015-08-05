@@ -802,7 +802,10 @@ def main():
         extract(pkgs_dir, dist)
 
     elif opts.link:
-        link(pkgs_dir, prefix, dist)
+        linktype = (LINK_HARD
+                    if try_hard_link(pkgs_dir, prefix, dist) else
+                    LINK_COPY)
+        link(pkgs_dir, prefix, dist, linktype)
 
     elif opts.unlink:
         unlink(prefix, dist)
