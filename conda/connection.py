@@ -19,7 +19,7 @@ import tempfile
 
 import conda
 from conda.compat import urlparse, StringIO
-from conda.config import get_proxy_servers
+from conda.config import get_proxy_servers, ssl_verify
 
 import requests
 
@@ -82,6 +82,7 @@ class CondaSession(requests.Session):
         self.headers['User-Agent'] = "conda/%s %s" % (
                           conda.__version__, self.headers['User-Agent'])
 
+        self.verify = ssl_verify
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
