@@ -165,7 +165,7 @@ Error: environment does not exist: %s
         print('\n'.join(output))
     else:
         common.stdout_json(output)
-    sys.exit(exitcode)
+    return exitcode
 
 
 def execute(args, parser):
@@ -200,4 +200,5 @@ def execute(args, parser):
     if args.json:
         format = 'canonical'
 
-    print_packages(prefix, regex, format, piplist=args.pip, json=args.json)
+    exitcode = print_packages(prefix, regex, format, piplist=args.pip, json=args.json)
+    sys.exit(exitcode)
