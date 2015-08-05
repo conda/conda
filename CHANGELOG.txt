@@ -10,6 +10,8 @@
   * don't exit nonzero when installing a package with no dependencies
   * check which features are installed in an environment via track_features,
     not features
+  * set the verify flag directly on CondaSession (fixes conda skeleton not
+    respecting the ssl_verify option)
 
 2015-07-23   3.15.1:
 --------------------
