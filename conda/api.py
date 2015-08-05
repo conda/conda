@@ -164,8 +164,8 @@ def app_uninstall(fn, prefix=config.root_dir):
     plan.execute_actions(actions, index)
 
 
-def get_package_versions(package):
-    index = get_index()
+def get_package_versions(package, offline=False):
+    index = get_index(offline=offline)
     r = Resolve(index)
     if package in r.groups:
         return r.get_pkgs(MatchSpec(package))
