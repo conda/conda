@@ -559,6 +559,9 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         # Try deleting the trash every time we link something.
         delete_trash(prefix)
 
+    if linktype == LINK_HARD:
+        if not try_hard_link(pkgs_dir, prefix, dist):
+            linktype = LINK_SOFT
 
     index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
@@ -787,15 +790,8 @@ def main():
 
     elif opts.link_all:
         dists = sorted(extracted(pkgs_dir))
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dists[0]) else
-                    LINK_COPY)
-        if opts.verbose or linktype == LINK_COPY:
-            print("linktype: %s" % link_name_map[linktype])
         for dist in dists:
-            if opts.verbose or linktype == LINK_COPY:
-                print("linking: %s" % dist)
-            link(pkgs_dir, prefix, dist, linktype)
+            link(pkgs_dir, prefix, dist)
         messages(prefix)
 
     elif opts.extract:
