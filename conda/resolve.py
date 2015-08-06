@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import combinations
 from collections import defaultdict
 from functools import partial
 
