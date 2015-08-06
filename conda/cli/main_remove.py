@@ -8,13 +8,10 @@ from __future__ import print_function, division, absolute_import
 
 from os.path import join, exists
 
-import argparse
 from argparse import RawDescriptionHelpFormatter
 import errno
 import logging
 
-from conda import config
-from conda import plan
 from conda.cli import common
 from conda.console import json_progress_bars
 
@@ -86,8 +83,6 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
-    import sys
-
     import conda.plan as plan
     import conda.instructions as inst
     from conda.install import rm_rf, linked

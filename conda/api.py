@@ -109,7 +109,7 @@ def app_is_installed(fn, prefixes=None):
                 if isdir(prefix):
                     prefixes.append(prefix)
     dist = fn[:-8]
-    return [prefix for prefix in prefixes if install.is_linked(prefix, dist)]
+    return [p for p in prefixes if install.is_linked(p, dist)]
 
 # It seems to me that we need different types of apps, i.e. apps which
 # are preferably installed (or already exist) in existing environments,
