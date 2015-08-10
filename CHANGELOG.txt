@@ -1,3 +1,6 @@
+  * add windows_forward_slashes option to walk_prefix(), see #1513
+
+
 2015-08-10   3.16.0:
 --------------------
   * rename binstar -> anaconda, see #1458
