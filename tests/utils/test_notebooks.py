@@ -22,7 +22,7 @@ class NotebookTestCase(unittest.TestCase):
     def test_notebook_not_exist(self):
         nb = Notebook('no-exist.ipynb')
         self.assertEqual(nb.inject('content'), False)
-        self.assertEqual(nb.msg, "no-exist.ipynb may not exist or you don't have adecuate permissions")
+        self.assertEqual(nb.msg, "no-exist.ipynb may not exist or you don't have adequate permissions")
 
     def test_environment_already_exist(self):
         nb = Notebook(support_file('notebook-with-env.ipynb'))

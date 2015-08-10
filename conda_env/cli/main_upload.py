@@ -7,7 +7,7 @@ from ..utils.uploader import is_installed, Uploader
 
 
 description = """
-Upload an environment to binstar
+Upload an environment to anaconda.org
 """
 
 example = """
@@ -108,9 +108,9 @@ def execute(args, parser):
         info = uploader.upload(args.force)
         print("Your environment file has been uploaded to {}".format(info.get('url', 'anaconda.org')))
     else:
-        msg = """You are not authorized to upload a package into Binstar.org
-                 Verify that you are logged in Binstar.org with:
-                 \tbinstar login""".lstrip()
+        msg = """You are not authorized to upload a package into Anaconda.org
+                 Verify that you are logged in anaconda.org with:
+                 \tanaconda login""".lstrip()
         raise exceptions.CondaEnvRuntimeError(msg)
 
     print("Done.")

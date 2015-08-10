@@ -15,7 +15,7 @@ class EnvironmentFileNotFound(CondaEnvException):
 
 class NoBinstar(CondaEnvRuntimeError):
     def __init__(self):
-        msg = 'The binstar client must be installed to perform this action'
+        msg = 'The anaconda-client cli must be installed to perform this action'
         super(NoBinstar, self).__init__(msg)
 
 
