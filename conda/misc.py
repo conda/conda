@@ -37,14 +37,14 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-def rel_path(prefix, path):
+def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1:]
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and windows_forward_slashes:
         res = res.replace('\\', '/')
     return res
 
 
-def walk_prefix(prefix, ignore_predefined_files=True):
+def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
     """
     Return the set of all files in a given prefix directory.
     """
@@ -68,11 +68,11 @@ def walk_prefix(prefix, ignore_predefined_files=True):
                 if ignore_predefined_files:
                     if root == join(prefix, 'bin') and fn2 in binignore:
                         continue
-                res.add(rel_path(prefix, join(root, fn2)))
+                res.add(rel_path(prefix, join(root, fn2), windows_forward_slashes=windows_forward_slashes))
             for dn in dirs:
                 path = join(root, dn)
                 if islink(path):
-                    res.add(rel_path(prefix, path))
+                    res.add(rel_path(prefix, path, windows_forward_slashes=windows_forward_slashes))
     return res
 
 
