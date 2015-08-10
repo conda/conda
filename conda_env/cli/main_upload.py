@@ -101,9 +101,9 @@ def execute(args, parser):
         info = uploader.upload()
         print("Your environment file has been uploaded to {}".format(info.get('url', 'anaconda.org')))
     else:
-        msg = """You are not authorized to upload a package into Anaconda.org
-                 Verify that you are logged in anaconda.org with:
-                 \tanaconda login""".lstrip()
+        msg = "\n".join(["You are not authorized to upload a package into Anaconda.org",
+                         "Verify that you are logged in anaconda.org with:",
+                         "    anaconda login\n"])
         raise exceptions.CondaEnvRuntimeError(msg)
 
     print("Done.")
