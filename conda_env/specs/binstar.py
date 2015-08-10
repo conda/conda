@@ -98,9 +98,9 @@ class BinstarSpec(object):
             try:
                 self._package = self.binstar.package(self.username, self.packagename)
             except errors.NotFound:
-                self.msg = "{} was not found on Binstar.org.\n"\
+                self.msg = "{} was not found on anaconda.org.\n"\
                            "You may need to be logged in. Try running:\n"\
-                           "    binstar login".format(self.name)
+                           "    anaconda login".format(self.name)
         return self._package
 
     @property
