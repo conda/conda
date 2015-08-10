@@ -222,7 +222,7 @@ def add_pip_dependency(index):
     for info in itervalues(index):
         if (info['name'] == 'python' and
                     info['version'].startswith(('2.', '3.'))):
-            info.setdefault('depends', []).append('pip')
+            info.setdefault('depends', []).extend(['pip', 'wheel'])
 
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
