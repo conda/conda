@@ -117,3 +117,5 @@ class Uploader(object):
             self.binstar.distribution(self.username, self.packagename, self.version, self.basename)
         except errors.NotFound:
             return True
+        else:
+            return False
