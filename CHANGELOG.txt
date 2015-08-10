@@ -1,4 +1,4 @@
-2015-08-XX   3.
+2015-08-10   3.16.0:
 --------------------
   * rename binstar -> anaconda, see #1458
   * fix --use-local when the conda-bld directory doesn't exist
@@ -12,6 +12,7 @@
     not features
   * set the verify flag directly on CondaSession (fixes conda skeleton not
     respecting the ssl_verify option)
+
 
 2015-07-23   3.15.1:
 --------------------
