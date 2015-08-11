@@ -1,4 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -15,15 +15,18 @@ import base64
 import ftplib
 import cgi
 from io import BytesIO
+import tempfile
 
+import conda
 from conda.compat import urlparse, StringIO
-from conda.config import get_proxy_servers
+from conda.config import get_proxy_servers, ssl_verify
 
 import requests
 
 RETRIES = 3
 
 log = getLogger(__name__)
+stderrlog = getLogger('stderrlog')
 
 # Modified from code in pip/download.py:
 
@@ -57,7 +60,9 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        self.proxies = get_proxy_servers()
+        proxies = get_proxy_servers()
+        if proxies:
+            self.proxies = proxies
 
         # Configure retries
         if retries:
@@ -70,6 +75,82 @@ class CondaSession(requests.Session):
 
         # Enable ftp:// urls
         self.mount("ftp://", FTPAdapter())
+
+        # Enable s3:// urls
+        self.mount("s3://", S3Adapter())
+
+        self.headers['User-Agent'] = "conda/%s %s" % (
+                          conda.__version__, self.headers['User-Agent'])
+
+        self.verify = ssl_verify
+
+class S3Adapter(requests.adapters.BaseAdapter):
+
+    def __init__(self):
+        super(S3Adapter, self).__init__()
+        self._temp_file = None
+
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
+             proxies=None):
+
+        resp = requests.models.Response()
+        resp.status_code = 200
+        resp.url = request.url
+
+        try:
+            import boto
+        except ImportError:
+            stderrlog.info('\nError: boto is required for S3 channels. '
+                           'Please install it with: conda install boto\n')
+            resp.status_code = 404
+            return resp
+
+        conn = boto.connect_s3()
+
+        bucket_name, key_string = url_to_S3_info(request.url)
+
+        try:
+            bucket = conn.get_bucket(bucket_name)
+        except boto.exception.S3ResponseError as exc:
+            resp.status_code = 404
+            resp.raw = exc
+            return resp
+
+        key = bucket.get_key(key_string)
+        if key and key.exists:
+            modified = key.last_modified
+            content_type = key.content_type or "text/plain"
+            resp.headers = requests.structures.CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": key.size,
+                "Last-Modified": modified,
+                })
+
+            _, self._temp_file = tempfile.mkstemp()
+            key.get_contents_to_filename(self._temp_file)
+            f = open(self._temp_file, 'rb')
+            resp.raw = f
+            resp.close = resp.raw.close
+        else:
+            resp.status_code = 404
+
+        return resp
+
+    def close(self):
+        if self._temp_file:
+            os.remove(self._temp_file)
+
+
+def url_to_S3_info(url):
+    """
+    Convert a S3 url to a tuple of bucket and key
+    """
+    parsed_url = requests.packages.urllib3.util.url.parse_url(url)
+    assert parsed_url.scheme == 's3', (
+        "You can only use s3: urls (not %r)" % url)
+    bucket, key = parsed_url.host, parsed_url.path
+    return bucket, key
+
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
@@ -103,6 +184,7 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
     def close(self):
         pass
 
+
 def url_to_path(url):
     """
     Convert a file: URL to a path.
@@ -118,6 +200,7 @@ def url_to_path(url):
     return path
 
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
+
 
 # Taken from requests-ftp
 # (https://github.com/Lukasa/requests-ftp/blob/master/requests_ftp/ftp.py)
@@ -308,6 +391,7 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         return (host, port, path)
 
+
 def data_callback_factory(variable):
     '''Returns a callback suitable for use by the FTP library. This callback
     will repeatedly save data into the variable provided to this function. This
@@ -317,6 +401,7 @@ def data_callback_factory(variable):
         return
 
     return callback
+
 
 class AuthError(Exception):
     '''Denotes an error with authentication.'''

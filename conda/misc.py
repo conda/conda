@@ -145,7 +145,7 @@ def append_env(prefix):
         pass
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
     """
     clone existing prefix1 into new prefix2
     """
@@ -183,7 +183,9 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
         shutil.copystat(src, dst)
 
     actions = ensure_linked_actions(dists, prefix2)
-    execute_actions(actions, index=get_index(), verbose=not quiet)
+    if index is None:
+        index = get_index()
+    execute_actions(actions, index=index, verbose=not quiet)
 
     return actions, untracked_files
 

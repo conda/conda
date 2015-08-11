@@ -6,22 +6,29 @@ import sys
 import time
 from os.path import isdir, isfile, join
 import warnings
+import errno
+import logging
 
 from conda import install
 
+log = logging.getLogger(__name__)
 
 class CondaHistoryException(Exception):
     pass
 
+
 class CondaHistoryWarning(Warning):
     pass
+
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
     fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
 
+
 def is_diff(content):
     return any(s.startswith(('-', '+')) for s in content)
+
 
 def pretty_diff(diff):
     added = {}
@@ -40,6 +47,7 @@ def pretty_diff(diff):
         yield '-%s-%s' % (name, removed[name])
     for name in sorted(set(added) - changed):
         yield '+%s-%s' % (name, added[name])
+
 
 def pretty_content(content):
     if is_diff(content):
@@ -71,17 +79,23 @@ class History(object):
         """
         update the history file (creating a new one if necessary)
         """
-        self.init_log_file()
         try:
-            last = self.get_state()
-        except CondaHistoryException as e:
-            warnings.warn("Error in %s: %s" % (self.path, e),
-                CondaHistoryWarning)
-            return
-        curr = set(install.linked(self.prefix))
-        if last == curr:
-            return
-        self.write_changes(last, curr)
+            self.init_log_file()
+            try:
+                last = self.get_state()
+            except CondaHistoryException as e:
+                warnings.warn("Error in %s: %s" % (self.path, e),
+                              CondaHistoryWarning)
+                return
+            curr = set(install.linked(self.prefix))
+            if last == curr:
+                return
+            self.write_changes(last, curr)
+        except IOError as e:
+            if e.errno == errno.EACCES:
+                log.debug("Can't write the history file")
+            else:
+                raise
 
     def parse(self):
         """
@@ -92,7 +106,9 @@ class History(object):
         if not isfile(self.path):
             return res
         sep_pat = re.compile(r'==>\s*(.+?)\s*<==')
-        for line in open(self.path):
+        with open(self.path) as f:
+            lines = f.read().splitlines()
+        for line in lines:
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
@@ -192,6 +208,8 @@ class History(object):
         return result
 
     def write_dists(self, dists):
+        if not dists:
+            return
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
@@ -206,7 +224,6 @@ class History(object):
                 fo.write('-%s\n' % fn)
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
-
 
 if __name__ == '__main__':
     with History(sys.prefix) as h:

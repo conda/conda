@@ -13,22 +13,26 @@ import tarfile
 import tempfile
 from os.path import isdir, join, basename, exists, abspath
 from difflib import get_close_matches
+import logging
+import errno
 
 import conda.config as config
 import conda.plan as plan
 import conda.instructions as inst
 import conda.misc as misc
 from conda.api import get_index
-from conda.cli import pscheck
 from conda.cli import common
 from conda.cli.find_commands import find_executable
 from conda.resolve import NoPackagesFound, Resolve, MatchSpec
 import conda.install as ci
 
+log = logging.getLogger(__name__)
 
 def install_tar(prefix, tar_path, verbose=False):
     from conda.misc import install_local_packages
 
+    if not exists(tar_path):
+        sys.exit("File does not exist: %s" % tar_path)
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tar_path, 'r')
     t.extractall(path=tmp_dir)
@@ -61,7 +65,7 @@ def check_prefix(prefix, json=False):
         common.error_and_exit(error, json=json, error_type="ValueError")
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False):
+def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
     from conda.misc import clone_env
 
     if os.sep in src_arg:
@@ -84,7 +88,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False):
     with common.json_progress_bars(json=json and not quiet):
         actions, untracked_files = clone_env(src_prefix, dst_prefix,
                                              verbose=not json,
-                                             quiet=quiet)
+                                             quiet=quiet, index=index)
 
     if json:
         common.stdout_json_success(
@@ -158,18 +162,6 @@ def install(args, parser, command='install'):
                                       json=args.json,
                                       error_type="ValueError")
 
-    if newenv and args.clone:
-        if args.packages:
-            common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json,
-                                  error_type="ValueError")
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet)
-        misc.append_env(prefix)
-        misc.touch_nonadmin(prefix)
-        if not args.json:
-            print_activate(args.name if args.name else prefix)
-        return
-
     if newenv and not args.no_default_packages:
         default_packages = config.create_default_packages[:]
         # Override defaults if they are specified at the command line
@@ -191,18 +183,18 @@ def install(args, parser, command='install'):
                 "prefix %s" % prefix)
         for pkg in linked:
             name, ver, build = pkg.rsplit('-', 2)
-            if name in getattr(args, '_skip', []):
+            if name in getattr(args, '_skip', ['anaconda']):
                 continue
             if name == 'python' and ver.startswith('2'):
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
             else:
-                specs.append('%s >=%s' % (name, ver))
+                specs.append('%s' % name)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
-    else:
+    elif not (newenv and args.clone):
         common.check_specs(prefix, specs, json=args.json,
                            create=(command == 'create'))
 
@@ -233,26 +225,35 @@ def install(args, parser, command='install'):
         try:
             from conda_build.config import croot
         except ImportError:
-            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                                  " to use the --use-local option",
-                                  json=args.json,
-                                  error_type="RuntimeError")
+            common.error_and_exit(
+                    "you need to have 'conda-build >= 1.7.1' installed"
+                    " to use the --use-local option",
+                    json=args.json,
+                    error_type="RuntimeError")
         # remove the cache such that a refetch is made,
         # this is necessary because we add the local build repo URL
         fetch_index.cache = {}
-        index = common.get_index_trap(channel_urls=[url_path(croot)] + list(channel_urls),
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
-                                      json=args.json,
-                                      offline=args.offline)
-    else:
-        index = common.get_index_trap(channel_urls=channel_urls,
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
-                                      json=args.json,
-                                      offline=args.offline)
+        if exists(croot):
+            channel_urls = [url_path(croot)] + list(channel_urls)
+
+    index = common.get_index_trap(channel_urls=channel_urls,
+                                  prepend=not args.override_channels,
+                                  use_cache=args.use_index_cache,
+                                  unknown=args.unknown,
+                                  json=args.json,
+                                  offline=args.offline)
+
+    if newenv and args.clone:
+        if args.packages:
+            common.error_and_exit('did not expect any arguments for --clone',
+                                  json=args.json,
+                                  error_type="ValueError")
+        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index=index)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
+        if not args.json:
+            print_activate(args.name if args.name else prefix)
+        return
 
     # Don't update packages that are already up-to-date
     if command == 'update' and not (args.all or args.force):
@@ -281,7 +282,8 @@ def install(args, parser, command='install'):
                 continue
             latest = pkgs[-1]
 
-            if latest.version == vers_inst[0] and latest.build_number == build_inst[0]:
+            if (latest.version == vers_inst[0] and
+                       latest.build_number == build_inst[0]):
                 args.packages.remove(name)
         if not args.packages:
             from conda.cli.main_list import print_packages
@@ -291,7 +293,8 @@ def install(args, parser, command='install'):
                 print('# All requested packages already installed.')
                 print_packages(prefix, regex)
             else:
-                common.stdout_json_success(message='All requested packages already installed.')
+                common.stdout_json_success(
+                    message='All requested packages already installed.')
             return
 
     if args.force:
@@ -325,8 +328,13 @@ environment does not exist: %s
         if command == 'install' and args.revision:
             actions = plan.revert_actions(prefix, get_revision(args.revision))
         else:
-            actions = plan.install_actions(prefix, index, specs, force=args.force,
-                                           only_names=only_names, pinned=args.pinned, minimal_hint=args.alt_hint)
+            with common.json_progress_bars(json=args.json and not args.quiet):
+
+                actions = plan.install_actions(prefix, index, specs,
+                                               force=args.force,
+                                               only_names=only_names,
+                                               pinned=args.pinned,
+                                               minimal_hint=args.alt_hint)
             if args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
@@ -345,7 +353,7 @@ environment does not exist: %s
             else:
                 # Not sure what to do here
                 pass
-            args._skip = getattr(args, '_skip', [])
+            args._skip = getattr(args, '_skip', ['anaconda'])
             args._skip.extend([i.split()[0] for i in e.pkgs])
             return install(args, parser, command=command)
         else:
@@ -354,16 +362,18 @@ environment does not exist: %s
             for pkg in e.pkgs:
                 close = get_close_matches(pkg, packages, cutoff=0.7)
                 if close:
-                    error_message += "\n\nDid you mean one of these?\n\n    %s" % (', '.join(close))
-            error_message += '\n\nYou can search for this package on Binstar with'
-            error_message += '\n\n    binstar search -t conda %s' % pkg
+                    error_message += ("\n\nDid you mean one of these?"
+                                      "\n\n    %s" % (', '.join(close)))
+            error_message += '\n\nYou can search for this package on anaconda.org with'
+            error_message += '\n\n    anaconda search -t conda %s' % pkg
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message += '\n\n (and similarly for the other packages)'
-            binstar = find_executable('binstar', include_others=False)
-            if not binstar:
-                error_message += '\n\nYou may need to install the Binstar command line client with'
-                error_message += '\n\n    conda install binstar'
+
+            if not find_executable('anaconda', include_others=False):
+                error_message += '\n\nYou may need to install the anaconda-client command line client with'
+                error_message += '\n\n    conda install anaconda-client'
+
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
@@ -382,7 +392,8 @@ environment does not exist: %s
             print('\n# All requested packages already installed.')
             print_packages(prefix, regex)
         else:
-            common.stdout_json_success(message='All requested packages already installed.')
+            common.stdout_json_success(
+                message='All requested packages already installed.')
         return
 
     if not args.json:
@@ -394,25 +405,24 @@ environment does not exist: %s
         common.check_write(command, prefix)
 
     if not args.json:
-        if not pscheck.main(args):
-            common.confirm_yn(args)
-    else:
-        if (sys.platform == 'win32' and not args.force_pscheck and
-            not pscheck.check_processes(verbose=False)):
-            common.error_and_exit("Cannot continue operation while processes "
-                                  "from packages are running without --force-pscheck.",
-                                  json=True,
-                                  error_type="ProcessesStillRunning")
-        elif args.dry_run:
-            common.stdout_json_success(actions=actions, dry_run=True)
-            sys.exit(0)
+        common.confirm_yn(args)
+    elif args.dry_run:
+        common.stdout_json_success(actions=actions, dry_run=True)
+        sys.exit(0)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         try:
             plan.execute_actions(actions, index, verbose=not args.quiet)
             if not (command == 'update' and args.all):
-                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                    f.write('# %s specs: %s\n' % (command, specs))
+                try:
+                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                        f.write('# %s specs: %s\n' % (command, specs))
+                except IOError as e:
+                    if e.errno == errno.EACCES:
+                        log.debug("Can't write the history file")
+                    else:
+                        raise
+
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
                 error_type = "AlreadyLocked"
@@ -432,13 +442,15 @@ environment does not exist: %s
         common.stdout_json_success(actions=actions)
 
 
-def check_install(packages, platform=None, channel_urls=(), prepend=True, minimal_hint=False):
+def check_install(packages, platform=None, channel_urls=(), prepend=True,
+                  minimal_hint=False):
     try:
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform)
-        actions = plan.install_actions(prefix, index, specs, pinned=False, minimal_hint=minimal_hint)
+        actions = plan.install_actions(prefix, index, specs, pinned=False,
+                                       minimal_hint=minimal_hint)
         plan.display_actions(actions, index)
         return actions
     finally:

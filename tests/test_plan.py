@@ -1,8 +1,12 @@
+from contextlib import contextmanager
 import sys
 import json
+import random
 import unittest
 from os.path import dirname, join
 from collections import defaultdict
+
+import pytest
 
 from conda.config import default_python, pkgs_dirs
 import conda.config
@@ -12,12 +16,17 @@ import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
 
+# FIXME This should be a relative import
 from tests.helpers import captured
 from conda.exceptions import CondaException
+
+from .decorators import skip_if_no_mock
+from .helpers import mock
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
     r = Resolve(index)
+
 
 def solve(specs):
     return [fn[:-8] for fn in r.solve(specs)]
@@ -32,6 +41,44 @@ class TestMisc(unittest.TestCase):
             (' w3-1.2-0  /opt/pkgs  1  ', ('w3-1.2-0', '/opt/pkgs', 1)),
             (r'w3-1.2-0 C:\A B\pkgs 2', ('w3-1.2-0', r'C:\A B\pkgs', 2))]:
             self.assertEqual(inst.split_linkarg(arg), res)
+
+
+@pytest.mark.parametrize("args", [
+    (),
+    ("one", ),
+    ("one", "two", "three", ),
+])
+def test_add_unlink_takes_two_arguments(args):
+    with pytest.raises(TypeError):
+        plan.add_unlink(*args)
+
+
+class add_unlink_TestCase(unittest.TestCase):
+    def generate_random_dist(self):
+        return "foobar-%s-0" % random.randint(100, 200)
+
+    @contextmanager
+    def mock_platform(self, windows=False):
+        with mock.patch.object(plan, "sys") as sys:
+            sys.platform = "win32" if windows else "not win32"
+            yield sys
+
+    @skip_if_no_mock
+    def test_simply_adds_unlink_on_non_windows(self):
+        actions = {}
+        dist = self.generate_random_dist()
+        with self.mock_platform(windows=False):
+            plan.add_unlink(actions, dist)
+        self.assertIn(inst.UNLINK, actions)
+        self.assertEqual(actions[inst.UNLINK], [dist, ])
+
+    @skip_if_no_mock
+    def test_adds_to_existing_actions(self):
+        actions = {inst.UNLINK: [{"foo": "bar"}]}
+        dist = self.generate_random_dist()
+        with self.mock_platform(windows=False):
+            plan.add_unlink(actions, dist)
+        self.assertEqual(2, len(actions[inst.UNLINK]))
 
 
 class TestAddDeaultsToSpec(unittest.TestCase):
@@ -811,7 +858,7 @@ The following packages will be DOWNGRADED:
 
 """
 
-class TestDepricatedExecutePlan(unittest.TestCase):
+class TestDeprecatedExecutePlan(unittest.TestCase):
 
     def test_update_old_plan(self):
         old_plan = ['# plan', 'INSTRUCTION arg']
@@ -871,8 +918,16 @@ class PlanFromActionsTests(unittest.TestCase):
 
         if sys.platform == 'win32':
             # menuinst should be linked first
-            last_two = expected_plan[-2:]
-            expected_plan[-2:] = last_two[::-1]
+            expected_plan = [
+                ('PREFIX', 'aprefix'),
+                ('LINK', menuinst),
+                ('PRINT', 'Linking packages ...'),
+                ('PROGRESS', '1'),
+                ('LINK', ipython),
+            ]
+
+            # last_two = expected_plan[-2:]
+            # expected_plan[-2:] = last_two[::-1]
 
         self.assertEqual(expected_plan, conda_plan)
 

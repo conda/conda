@@ -1,7 +1,0 @@
-#!/bin/bash
-ROOT_PREFIX=$(conda info --root)
-if [[ -a "${ROOT_PREFIX}/bin/env-activate" ]]; then
-    source "${ROOT_PREFIX}/bin/env-activate" $@
-else
-    source "${ROOT_PREFIX}/bin/_conda-env-missing"
-fi
