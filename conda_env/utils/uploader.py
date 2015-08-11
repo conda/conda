@@ -1,4 +1,5 @@
 import os
+import time
 from collections import namedtuple
 from .. import exceptions
 try:
@@ -9,7 +10,6 @@ except ImportError:
 
 
 ENVIRONMENT_TYPE = 'env'
-PACKAGE_VERSION = '1.0'
 
 # TODO: refactor binstar so that individual arguments are passed in instead of an arg object
 binstar_args = namedtuple('binstar_args', ['site', 'token'])
@@ -45,7 +45,7 @@ class Uploader(object):
 
     @property
     def version(self):
-        return PACKAGE_VERSION
+        return time.strftime('%Y.%m.%d-%H%M')
 
     @property
     def user(self):
@@ -71,25 +71,26 @@ class Uploader(object):
         except errors.Unauthorized:
             return False
 
-    def upload(self, force=False):
+    def upload(self):
         """
         Prepares and uploads env file
         :return: True/False
         """
-        print("Uploading environment %s to anaconda-server (%s)... " % (self.packagename, self.binstar.domain))
-        if self.is_ready(force):
+        print("Uploading environment %s to anaconda-server (%s)... " %
+              (self.packagename, self.binstar.domain))
+        if self.is_ready():
             return self.binstar.upload(self.username, self.packagename,
                                        self.version, self.basename, open(self.file),
                                        distribution_type=ENVIRONMENT_TYPE, attrs=self.env_data)
         else:
             raise exceptions.AlreadyExist()
 
-    def is_ready(self, force):
+    def is_ready(self):
         """
         Ensures package namespace and distribution
         :return: True or False
         """
-        return self.ensure_package_namespace() and self.ensure_distribution(force)
+        return self.ensure_package_namespace() and self.ensure_distribution()
 
     def ensure_package_namespace(self):
         """
@@ -108,16 +109,13 @@ class Uploader(object):
 
         return True
 
-    def ensure_distribution(self, force=False):
+    def ensure_distribution(self):
         """
-        Ensure that a package namespace exists. This is required to upload a file.
+        Ensure that a package distribution does not exist.
         """
         try:
             self.binstar.distribution(self.username, self.packagename, self.version, self.basename)
         except errors.NotFound:
             return True
         else:
-            if force:
-                self.binstar.remove_dist(self.username, self.packagename, self.version, self.basename)
-                return True
             return False

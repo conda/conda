@@ -5,6 +5,21 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v2.4.0 (08/11/15)
+
+- `update` works with remote definitions
+- `CONDA_ENV_PATH` fixed
+- Windows prompt fixed
+- Update `pip` dependencies
+- `Library/bin` add to path in win
+- Better authorization message
+- Remove `--force` flag from upload
+- New version created every time you run upload
+- Using `conda_argparse2` now
+- Fix `activate` script in ZSH
+- `--no-builds` flag in attach
+- Create environment from notebooks
+
 #### v2.3.0 (07/09/15)
 
 - `--force` flag on `create`
