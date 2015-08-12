@@ -49,7 +49,7 @@ def install_tar(prefix, tar_path, verbose=False):
     return depends
 
 
-def check_prefix(prefix, json=False):
+def check_prefix(prefix, json=False, create_env=False):
     from conda.config import root_env_name
 
     name = basename(prefix)
@@ -58,7 +58,7 @@ def check_prefix(prefix, json=False):
         error = "environment name cannot start with '.': %s" % name
     if name == root_env_name:
         error = "'%s' is a reserved environment name" % name
-    if exists(prefix):
+    if not create_env and exists(prefix):
         error = "prefix already exists: %s" % prefix
 
     if error:
@@ -125,12 +125,12 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
-    newenv = bool(command == 'create')
+    newenv = bool(command == 'create' or (command == 'install' and args.create_env))
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
-        check_prefix(prefix, json=args.json)
+        check_prefix(prefix, json=args.json, create_env=args.create_env)
 
     if command == 'update':
         if args.all:
