@@ -21,9 +21,10 @@ class NotebookSpec(object):
             self.msg = "Please install IPython notebook"
         except IOError:
             self.msg = "{} does not exist o can't be accessed".format(self.name)
-        except (nbformat.reader.NotJSONError, KeyError) as e:
-            print(e)
+        except (nbformat.reader.NotJSONError, KeyError):
             self.msg = "{} does not looks like a notebook file".format(self.name)
+        except:
+            return False
         return False
 
     @property
