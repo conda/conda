@@ -5,6 +5,10 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v2.4.1 (08/12/15)
+
+- Fix `create` bug
+
 #### v2.4.0 (08/11/15)
 
 - `update` works with remote definitions
