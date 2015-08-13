@@ -91,8 +91,8 @@ def show_pkg_info(name):
         print('    not available')
     # TODO
 
-python_re = re.compile('python\d\.\d')
 
+python_re = re.compile('python\d\.\d')
 def get_user_site():
     site_dirs = []
     if sys.platform != 'win32':
@@ -106,7 +106,7 @@ def get_user_site():
         APPDATA = os.environ['APPDATA']
         if exists(join(APPDATA, 'Python')):
             site_dirs = [join(APPDATA, 'Python', i) for i in
-                listdir(join(APPDATA, 'PYTHON'))]
+                         listdir(join(APPDATA, 'PYTHON'))]
     return site_dirs
 
 
@@ -130,7 +130,6 @@ def pretty_package(pkg):
             'version', 'build_number', 'size']:
             continue
         d[key] = rest[key]
-
 
     print()
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
@@ -178,7 +177,6 @@ def execute(args, parser):
             versions = r.get_pkgs(MatchSpec(spec))
             for pkg in sorted(versions):
                 pretty_package(pkg)
-
         return
 
     options = 'envs', 'system', 'license'
