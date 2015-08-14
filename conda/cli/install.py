@@ -130,7 +130,7 @@ def install(args, parser, command='install'):
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
     if args.create_env and newenv and exists(prefix):
-        newenv = False
+        newenv = False  # only create a new environment if it does not exist yet
     if newenv:
         check_prefix(prefix, json=args.json)
 
