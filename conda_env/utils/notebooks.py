@@ -2,7 +2,7 @@ from os.path import basename
 import conda.config as config
 from ..exceptions import EnvironmentAlreadyInNotebook, IPythonNotInstalled
 try:
-    from IPython import nbformat
+    import nbformat
 except ImportError:
     nbformat = None
 
