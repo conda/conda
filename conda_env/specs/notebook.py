@@ -1,5 +1,5 @@
 try:
-    from IPython import nbformat
+    import nbformat
 except ImportError:
     nbformat = None
 from ..env import Environment
@@ -18,7 +18,7 @@ class NotebookSpec(object):
             self.nb = nbformat.reader.reads(open(self.name).read())
             return 'environment' in self.nb['metadata']
         except AttributeError:
-            self.msg = "Please install IPython notebook"
+            self.msg = "Please install Jupyter:\n\tconda install jupyter"
         except IOError:
             self.msg = "{} does not exist o can't be accessed".format(self.name)
         except (nbformat.reader.NotJSONError, KeyError):

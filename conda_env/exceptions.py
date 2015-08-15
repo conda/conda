@@ -59,7 +59,7 @@ class InvalidLoader(Exception):
 
 class IPythonNotInstalled(CondaEnvRuntimeError):
     def __init__(self):
-        msg = """IPython notebook is not installed. Install it with:
-        conda install ipython-noteboook
+        msg = """Jupyter is not installed. Install it with:
+        conda install jupyter
         """
         super(IPythonNotInstalled, self).__init__(msg)
