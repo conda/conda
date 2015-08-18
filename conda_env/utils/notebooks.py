@@ -1,6 +1,6 @@
 from os.path import basename
 import conda.config as config
-from ..exceptions import EnvironmentAlreadyInNotebook, IPythonNotInstalled
+from ..exceptions import EnvironmentAlreadyInNotebook, NBFormatNotInstalled
 try:
     import nbformat
 except ImportError:
@@ -13,7 +13,7 @@ class Notebook(object):
         self.msg = ""
         self.notebook = notebook
         if nbformat is None:
-            raise IPythonNotInstalled
+            raise NBFormatNotInstalled
 
     def inject(self, content, force=False):
         try:
