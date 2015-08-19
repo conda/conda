@@ -57,9 +57,9 @@ class InvalidLoader(Exception):
         super(InvalidLoader, self).__init__(msg)
 
 
-class IPythonNotInstalled(CondaEnvRuntimeError):
+class NBFormatNotInstalled(CondaEnvRuntimeError):
     def __init__(self):
-        msg = """Jupyter is not installed. Install it with:
-        conda install jupyter
+        msg = """nbformat is not installed. Install it with:
+        conda install nbformat
         """
-        super(IPythonNotInstalled, self).__init__(msg)
+        super(NBFormatNotInstalled, self).__init__(msg)
