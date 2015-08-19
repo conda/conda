@@ -119,19 +119,21 @@ Next, remove and replace the Pyfaker information with the 6 fields below.
 
 The fields we want to replace in our pyinstrument script are:
 
-+---------+--------------------------------------------------------------------------+
-| Name    | pyinstrument                                                             |
-+---------+--------------------------------------------------------------------------+
-| Git tag | 0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
-+---------+--------------------------------------------------------------------------+
-| Git URL | https://github.com/joerick/pyinstrument.git                              |
-+---------+--------------------------------------------------------------------------+
-| Imports | pyinstrument                                                             |
-+---------+--------------------------------------------------------------------------+
-| Home    | https://github.com/joerick/pyinstrument                                  |
-+---------+--------------------------------------------------------------------------+
-| License | BSD                                                                      |
-+---------+--------------------------------------------------------------------------+
++--------------+--------------------------------------------------------------------------+
+| Name         | pyinstrument                                                             |
++--------------+--------------------------------------------------------------------------+
+| Git tag      | 0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
++--------------+--------------------------------------------------------------------------+
+| Git URL      | https://github.com/joerick/pyinstrument.git                              |
++--------------+--------------------------------------------------------------------------+
+| Imports      | pyinstrument                                                             |
++--------------+--------------------------------------------------------------------------+
+| Home         | https://github.com/joerick/pyinstrument                                  |
++--------------+--------------------------------------------------------------------------+
+| License      | BSD                                                                      |
++--------------+--------------------------------------------------------------------------+
+| License file | LICENSE                                                                  |
++--------------+--------------------------------------------------------------------------+
 
 When finished, save to the same directory, this time with the correct name, meta.yaml.
 When you are finished, compare your meta.yaml with the answer below:
@@ -179,28 +181,30 @@ Later when you are finished, you can rename the file meta.yaml.
 To create a new meta.yaml file, open your favorite editor. Create a new text file and insert the following
 information. A blank sample meta.yaml follows to make it easier to match up the information.
 
-+---------+---------------------------------------------+
-| Name    | pyinstrument                                |
-+---------+---------------------------------------------+
-| Git rev | 0.13                                        |
-+---------+---------------------------------------------+
-| Git URL | https://github.com/joerick/pyinstrument.git |
-+---------+---------------------------------------------+
-| Imports | pyinstrument                                |
-+---------+---------------------------------------------+
-| Home    | https://github.com/joerick/pyinstrument     |
-+---------+---------------------------------------------+
-| License | BSD                                         |
-+---------+---------------------------------------------+
++--------------+---------------------------------------------+
+| Name         | pyinstrument                                |
++--------------+---------------------------------------------+
+| Git rev      | 0.13                                        |
++--------------+---------------------------------------------+
+| Git URL      | https://github.com/joerick/pyinstrument.git |
++--------------+---------------------------------------------+
+| Imports      | pyinstrument                                |
++--------------+---------------------------------------------+
+| Home         | https://github.com/joerick/pyinstrument     |
++--------------+---------------------------------------------+
+| License      | BSD                                         |
++--------------+---------------------------------------------+
+| License file | LICENSE                                     |
++--------------+---------------------------------------------+
 
 .. code-block:: bash
 
   package:
     name:
 
-    source:
-      git_rev:
-      git_url:
+  source:
+    git_rev:
+    git_url:
 
   requirements:
     build:
@@ -217,6 +221,7 @@ information. A blank sample meta.yaml follows to make it easier to match up the 
   about:
     home:
     license:
+    license_file:
 
 When you are finished, save the file in the same pyinstrument directory as ``meta.yaml``. Check your work against
 the results in Section 4 above.

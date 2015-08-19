@@ -20,3 +20,4 @@ test:
 about:
   home: https://github.com/joerick/pyinstrument
   license: BSD
+  license_file: LICENSE
