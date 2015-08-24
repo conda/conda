@@ -13,7 +13,7 @@ Introduction
 
 You know that a package manager helps you find and install packages. But if you need a package that requires a different version of Python, there is no need to switch to a different environment manager, because conda is both a package manager and an environment manager. With just a few commands, you can set up a totally separate environment to run that different version of Python, and yet continue to run your usual version of Python in your normal environment. 
 
-Anytime you wish to see the full documentation for any command, type the command followed by  --help. For example, to learn about the conda update command:   
+Anytime you wish to see the full documentation for any command, type the command followed by ``--help`` For example, to learn about the conda update command:   
 
 .. code::
 
