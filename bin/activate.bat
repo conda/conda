@@ -1,7 +1,8 @@
 @echo off
-
-for /f "delims=" %%i in ("%~dp0..\envs") do (
-    set ANACONDA_ENVS=%%~fi
+REM Check for CONDA_EVS_PATH environment variable
+REM It it doesn't exist, look inside the Anaconda install tree
+if "%CONDA_ENVS_PATH%" == "" (
+set CONDA_ENVS_PATH="%~dp0..\envs"
 )
 
 set CONDA_NEW_ENV=%~1
@@ -20,8 +21,18 @@ if not "%CONDA_NEW_ENV%" == "" goto skipmissingarg
     exit /b 1
 :skipmissingarg
 
-if exist "%ANACONDA_ENVS%\%CONDA_NEW_ENV%\conda-meta" goto skipmissingenv
-    echo No environment named "%CONDA_NEW_ENV%" exists in %ANACONDA_ENVS%
+REM Search through paths in CONDA_ENVS_PATH 
+REM First match will be the one used
+set FOUND_ENV=0
+for %%F in ("%CONDA_ENVS_PATH:;=" "%") do (
+  if exist "%%~F\%CONDA_NEW_ENV%\conda-meta" (
+    set ANACONDA_ENVS=%%~F
+    set FOUND_ENV=1
+   )
+)
+
+if %FOUND_ENV%==1 goto skipmissingenv
+    echo No environment named "%CONDA_NEW_ENV%" exists in %CONDA_ENVS_PATH%
     set CONDA_NEW_ENV=
     exit /b 1
 :skipmissingenv
