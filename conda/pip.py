@@ -53,7 +53,7 @@ def installed(prefix, output=True):
     try:
         pipinst = subprocess.check_output(
             args, universal_newlines=True
-        ).split('\n')
+        ).splitlines()
     except Exception:
         # Any error should just be ignored
         if output:
