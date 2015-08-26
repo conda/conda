@@ -248,7 +248,7 @@ I edit the ``meta.yaml`` and ``build.sh`` files to reflect the details of this p
 .. code-block:: bash
 
     $ conda build geos
-    $ binstar upload /home/irritum/code/miniconda/conda-bld/linux-64/geos-3.4.2-0.tar.bz2
+    $ anaconda upload /home/irritum/code/miniconda/conda-bld/linux-64/geos-3.4.2-0.tar.bz2
 
 after the package is successfully built.
 
@@ -571,10 +571,10 @@ And that's all.
     Nothing to test for: postgis-2.1.3-0
     # If you want to upload this package to Anaconda.org later, type:
     #
-    # $ binstar upload /home/mutirri/code/miniconda/conda-bld/linux-32/postgis-2.1.3-0.tar.bz2
+    # $ anaconda upload /home/mutirri/code/miniconda/conda-bld/linux-32/postgis-2.1.3-0.tar.bz2
     #
     # To have conda build upload to Anaconda.org automatically, use
-    # $ conda config --set binstar_upload yes
+    # $ conda config --set anaconda_upload yes
 
 If you'd methodically followed along, you now have a ``postgis`` package you
 can upload using the command shown at the end of the build and install. Along

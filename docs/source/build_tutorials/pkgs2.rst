@@ -332,24 +332,24 @@ It only takes a minute to do if you have a free Anaconda.org account.
 
 If you haven’t already, open a free Anaconda.org account and record your new username and password.
 
-Next, in your terminal window, run ``conda install binstar`` and enter your new Anaconda.org username and password.
+Next, in your terminal window, run ``conda install anaconda-client`` and enter your new Anaconda.org username and password.
 
 Again in your terminal window, log into your Anaconda.org account with the command:
 
 .. code-block:: bash
 
-    binstar login
+    anaconda login
 
 And upload your package to Anaconda.org:
 
 .. code-block:: bash
 
-    binstar upload ~/miniconda/conda-bld/linux-64/pyinstrument-0.12-py27_0.tar.bz
+    anaconda upload ~/miniconda/conda-bld/linux-64/pyinstrument-0.12-py27_0.tar.bz
 
 NOTE: Change your path and filename to the exact path and filename you saved in Step 7.
 
 TIP: To save time, you can set conda to always automatically upload a successful build to Anaconda.org
-with the command: ``conda config --set binstar_upload yes``
+with the command: ``conda config --set anaconda_upload yes``
 
 .. _more-resources:
 
