@@ -147,7 +147,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except requests.exceptions.SSLError as e:
         msg = "SSL Error: %s\n" % e
-        stderrlog.info("SSL verification error %s\n" % e.message)
+        stderrlog.info("SSL verification error: %s\n" % e)
         log.debug(msg)
 
     except requests.exceptions.ConnectionError as e:
