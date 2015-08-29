@@ -29,8 +29,6 @@ import conda.install as ci
 log = logging.getLogger(__name__)
 
 def install_tar(prefix, tar_path, verbose=False):
-    from conda.misc import install_local_packages
-
     if not exists(tar_path):
         sys.exit("File does not exist: %s" % tar_path)
     tmp_dir = tempfile.mkdtemp()
@@ -44,7 +42,7 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    depends = install_local_packages(prefix, paths, verbose=verbose)
+    depends = misc.install_local_packages(prefix, paths, verbose=verbose)
     shutil.rmtree(tmp_dir)
     return depends
 
@@ -64,8 +62,6 @@ def check_prefix(prefix, json=False):
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
-    from conda.misc import clone_env
-
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
@@ -84,9 +80,9 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
         print("dst_prefix: %r" % dst_prefix)
 
     with common.json_progress_bars(json=json and not quiet):
-        actions, untracked_files = clone_env(src_prefix, dst_prefix,
-                                             verbose=not json,
-                                             quiet=quiet, index=index)
+        actions, untracked_files = misc.clone_env(src_prefix, dst_prefix,
+                                                  verbose=not json,
+                                                  quiet=quiet, index=index)
 
     if json:
         common.stdout_json_success(
@@ -200,9 +196,8 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            from conda.misc import install_local_packages
-            depends = install_local_packages(prefix, args.packages,
-                                             verbose=not args.quiet)
+            depends = misc.install_local_packages(prefix, args.packages,
+                                                  verbose=not args.quiet)
             specs = list(set(depends))
             args.unknown = True
         else:
