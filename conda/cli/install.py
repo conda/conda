@@ -125,6 +125,8 @@ def install(args, parser, command='install'):
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix, json=args.json)
+    if config.force_32bit and plan.is_root_prefix(prefix):
+        common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
 
     if command == 'update':
         if args.all:
