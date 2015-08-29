@@ -1,7 +1,8 @@
 2015-XX-XX   3.XX.X:
 --------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
-  * add ability to set CONDA_FORCE_32BIT environment variable, see #1555
+  * add ability to set CONDA_FORCE_32BIT environment variable, it should
+    should only be used when running conda-build
 
 
 2015-08-10   3.16.0:
