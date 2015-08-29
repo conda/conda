@@ -35,8 +35,8 @@ platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
 if force_32bit:
     if bits == 32:
-        sys.exit("Error: you cannot set CONDA_FORCE_32BIT using a "
-                 "32-bit Python running conda")
+        sys.exit("Error: you cannot set CONDA_FORCE_32BIT using "
+                 "32-bit already.")
     bits = 32
 
 if platform == 'linux' and machine() in non_x86_linux_machines:
