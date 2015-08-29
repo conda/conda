@@ -24,7 +24,7 @@ default_python = '%d.%d' % sys.version_info[:2]
 # CONDA_FORCE_32BIT should only be used when running conda-build (in order
 # to build 32-bit packages on a 64-bit system).  We don't want to mention it
 # in the documentation, because it can mess up a lot of things.
-force_32bit = bool(os.getenv('CONDA_FORCE_32BIT', 0))
+force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
 
 # ----- operating system and architecture -----
 
