@@ -21,6 +21,9 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
+# CONDA_FORCE_32BIT should only be used when running conda-build (in order
+# to build 32-bit packages on a 64-bit system).  We don't want to mention it
+# in the documentation, because it can mess up a lot of things.
 force_32bit = bool(os.getenv('CONDA_FORCE_32BIT', 0))
 
 # ----- operating system and architecture -----
@@ -76,7 +79,7 @@ rc_bool_keys = [
     'anaconda_upload',
     'show_channel_urls',
     'allow_other_channels',
-    ]
+]
 
 rc_string_keys = [
     'ssl_verify',
@@ -87,7 +90,7 @@ rc_string_keys = [
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
-    ]
+]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
