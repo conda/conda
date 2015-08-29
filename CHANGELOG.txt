@@ -1,4 +1,4 @@
-2015-XX-XX   3.XX.X:
+2015-XX-XX   3.16.1:
 --------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
   * add ability to set CONDA_FORCE_32BIT environment variable, it should
