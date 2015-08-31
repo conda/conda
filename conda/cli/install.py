@@ -165,6 +165,8 @@ def install(args, parser, command='install'):
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
                 default_packages.remove(default_pkg)
         args.packages.extend(default_packages)
+    else:
+        default_packages = []
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
@@ -239,7 +241,7 @@ def install(args, parser, command='install'):
                                   offline=args.offline)
 
     if newenv and args.clone:
-        if args.packages:
+        if set(args.packages) - set(default_packages):
             common.error_and_exit('did not expect any arguments for --clone',
                                   json=args.json,
                                   error_type="ValueError")
