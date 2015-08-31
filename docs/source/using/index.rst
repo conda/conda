@@ -5,5 +5,6 @@ Using conda
 
    using
    envs
+   explicitspecfiles
    /py2or3
    pkgs
