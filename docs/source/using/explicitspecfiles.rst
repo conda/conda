@@ -1,34 +1,34 @@
 Explicit specification files
 ============================
 
-Conda may be used to create explicit specification files, which can then be used to build an identical conda environment on the same operating system platform, on the same machine or a different machine.
+Conda may be used to create explicit specification files, which can then be used to build an identical conda environment on the same operating system platform, either on the same machine or a different machine.
 
 The command ``conda list -e`` produces a spec list such as the following:
 
-```
-# This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
-# platform: osx-64
-_license=1.1=py27_0
-abstract-rendering=0.5.1=np19py27_0
-alabaster=0.7.3=py27_0
-anaconda=2.3.0=np19py27_0
-appscript=1.0.1=py27_0
-argcomplete=0.9.0=py27_0
-astropy=1.0.3=np19py27_0
+.. code::
 
-[Packages in the list beginning with b through u have been omitted for brevity.]
+   # This file may be used to create an environment using:
+   # $ conda create --name <env> --file <this file>
+   # platform: osx-64
+   _license=1.1=py27_0
+   abstract-rendering=0.5.1=np19py27_0
+   alabaster=0.7.3=py27_0
+   anaconda=2.3.0=np19py27_0
+   appscript=1.0.1=py27_0
+   argcomplete=0.9.0=py27_0
+   astropy=1.0.3=np19py27_0
 
-werkzeug=0.10.4=py27_0
-wheel=0.24.0=py27_0
-xlrd=0.9.3=py27_0
-xlsxwriter=0.7.3=py27_0
-xlwings=0.3.5=py27_0
-xlwt=1.0.0=py27_0
-yaml=0.1.6=0
-zeromq=4.0.5=1
-zlib=1.2.8=1
-```
+   [Packages in the list beginning with b through u have been omitted for brevity.]
+
+   werkzeug=0.10.4=py27_0
+   wheel=0.24.0=py27_0
+   xlrd=0.9.3=py27_0
+   xlsxwriter=0.7.3=py27_0
+   xlwings=0.3.5=py27_0
+   xlwt=1.0.0=py27_0
+   yaml=0.1.6=0
+   zeromq=4.0.5=1
+   zlib=1.2.8=1
 
 With the command ``conda list -e > spec-file.txt`` you can create a file containing this spec list in the current working directory. You may use the filename ``spec-file.txt`` or any other filename.
 
