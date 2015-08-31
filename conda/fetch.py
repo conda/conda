@@ -184,6 +184,10 @@ def handle_proxy_407(url, session):
     # We could also use HTTPProxyAuth, but this does not work with https
     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    if scheme not in session.proxies:
+        sys.exit("""Could not find a proxy for %r. See
+http://conda.pydata.org/docs/config.html#configure-conda-for-use-behind-a-proxy-server
+for more information on how to configure proxies.""" % scheme)
     username, passwd = get_proxy_username_and_pass(scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
                            session.proxies[scheme], username, passwd)
