@@ -7,28 +7,25 @@ The command ``conda list -e`` produces a spec list such as the following:
 
 .. code::
 
-   # This file may be used to create an environment using:
-   # $ conda create --name <env> --file <this file>
-   # platform: osx-64
-   _license=1.1=py27_0
-   abstract-rendering=0.5.1=np19py27_0
-   alabaster=0.7.3=py27_0
-   anaconda=2.3.0=np19py27_0
-   appscript=1.0.1=py27_0
-   argcomplete=0.9.0=py27_0
-   astropy=1.0.3=np19py27_0
-
-   [Packages in the list beginning with b through u have been omitted for brevity.]
-
-   werkzeug=0.10.4=py27_0
-   wheel=0.24.0=py27_0
-   xlrd=0.9.3=py27_0
-   xlsxwriter=0.7.3=py27_0
-   xlwings=0.3.5=py27_0
-   xlwt=1.0.0=py27_0
-   yaml=0.1.6=0
-   zeromq=4.0.5=1
-   zlib=1.2.8=1
+    # This file may be used to create an environment using:
+    # $ conda create --name <env> --file <this file>
+    # platform: osx-64
+    astropy=1.0.4=np19py27_0
+    ncurses=5.9=1
+    numpy=1.9.2=py27_0
+    openssl=1.0.1k=1
+    pandas=0.16.2=np19py27_0
+    pip=7.1.2=py27_0
+    python=2.7.10=0
+    python-dateutil=2.4.2=py27_0
+    pytz=2015.4=py27_0
+    readline=6.2.5=1
+    setuptools=18.1=py27_0
+    six=1.9.0=py27_0
+    sqlite=3.8.4.1=1
+    tk=8.5.18=0
+    wheel=0.24.0=py27_0
+    zlib=1.2.8=1
 
 With the command ``conda list -e > spec-file.txt`` you can create a file containing this spec list in the current working directory. You may use the filename ``spec-file.txt`` or any other filename.
 
