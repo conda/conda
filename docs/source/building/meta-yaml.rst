@@ -303,6 +303,17 @@ Text files (files containing no NULL bytes) may contain the build prefix and nee
       - bin/file1
       - lib/file2
 
+Skipping builds
+~~~~~~~~~~~~~~~
+
+Whether conda-build should skip the build of this recipe. Particularly useful for defining recipes which are platform specific.
+Default is False.
+
+.. code-block:: yaml
+
+  build:
+    skip: True  # [not win]
+
 Requirements section
 --------------------
 
@@ -472,6 +483,19 @@ If own_environment is true, installing the app through the launcher will install
 
   app:
     own_environment: True
+
+Extra section
+-------------
+
+The extra section is a schema-free area for storing non-conda specific metadata in standard YAML form.
+For example, to store recipe maintainer information, one could do:
+
+.. code-block:: yaml
+
+  extra:
+    maintainers:
+     - name of maintainer
+
 
 Preprocessing selectors
 -----------------------
