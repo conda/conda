@@ -215,8 +215,6 @@ Verify that the new environment was installed correctly:
 
    conda list
 
-Next, we'll take a look at managing Python.
-
 Explicit specification files
 ----------------------------
 
@@ -251,3 +249,5 @@ With the command ``conda list -e > spec-file.txt`` you can create a file contain
 As the comment at the top of the file explains, with the command ``conda create --name MyEnvironment --file spec-file.txt`` you can use the spec file to create an identical environment on the same machine or another machine. Replace ``spec-file.txt`` with whatever file name you chose when you created the file. You may use the environment name ``MyEnvironment`` or substitute any other environment name to give your newly created environment.
 
 NOTE: Explicit spec files like this are not cross platform, and have a comment at the top such as ``# platform: osx-64`` showing the one platform where they were created, which is the one platform where they can be used to create a new environment.
+
+Next, we'll take a look at :doc:`/py2or3`.
