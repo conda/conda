@@ -309,7 +309,7 @@ class Resolve(object):
 
                 if not found:
                     raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), notfound)
+                        "for %s: %s" % (ms, ', '.join(notfound)), [ms.spec] + notfound)
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -426,7 +426,7 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), notfound)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
 
         return dists
 
