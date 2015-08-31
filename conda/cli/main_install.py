@@ -36,6 +36,11 @@ def configure_parser(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
+    p.add_argument(
+        "--create-env",
+        action="store_true",
+        help="Create the environment if it does not exist yet.",
+    )
     common.add_parser_install(p)
     common.add_parser_json(p)
     p.set_defaults(func=execute)

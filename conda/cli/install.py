@@ -119,10 +119,12 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
-    newenv = bool(command == 'create')
+    newenv = bool(command == 'create' or (command == 'install' and args.create_env))
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
+    if args.create_env and newenv and exists(prefix):
+        newenv = False  # only create a new environment if it does not exist yet
     if newenv:
         check_prefix(prefix, json=args.json)
     if config.force_32bit and plan.is_root_prefix(prefix):
