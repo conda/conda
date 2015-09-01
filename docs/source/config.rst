@@ -228,7 +228,7 @@ default is ``False``.
 
 .. code-block:: yaml
 
-  binstar_upload: True
+  anaconda_upload: True
 
 
 Specify conda build output root directory
