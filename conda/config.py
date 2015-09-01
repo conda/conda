@@ -21,6 +21,10 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
+# CONDA_FORCE_32BIT should only be used when running conda-build (in order
+# to build 32-bit packages on a 64-bit system).  We don't want to mention it
+# in the documentation, because it can mess up a lot of things.
+force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
 
 # ----- operating system and architecture -----
 
@@ -29,6 +33,11 @@ _sys_map = {'linux2': 'linux', 'linux': 'linux',
 non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
+if force_32bit:
+    if bits == 32:
+        sys.exit("Error: you cannot set CONDA_FORCE_32BIT using "
+                 "32-bit already.")
+    bits = 32
 
 if platform == 'linux' and machine() in non_x86_linux_machines:
     arch_name = machine()
@@ -70,7 +79,7 @@ rc_bool_keys = [
     'anaconda_upload',
     'show_channel_urls',
     'allow_other_channels',
-    ]
+]
 
 rc_string_keys = [
     'ssl_verify',
@@ -81,7 +90,7 @@ rc_string_keys = [
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
-    ]
+]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
@@ -151,7 +160,7 @@ envs_dirs = [abspath(expanduser(path)) for path in (
 
 def pkgs_dir_from_envs_dir(envs_dir):
     if abspath(envs_dir) == abspath(join(root_dir, 'envs')):
-        return join(root_dir, 'pkgs')
+        return join(root_dir, 'pkgs32' if force_32bit else 'pkgs')
     else:
         return join(envs_dir, '.pkgs')
 
