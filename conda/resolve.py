@@ -88,25 +88,34 @@ def ver_eval(version, constraint):
                            constraint)
 
 
+class VersionSpecAtom(object):
+
+    def __init__(self, spec):
+        assert '|' not in spec
+        assert ',' not in spec
+        self.spec = spec
+        if spec.startswith(('=', '<', '>', '!')):
+            self.regex = False
+        else:
+            rx = spec.replace('.', r'\.')
+            rx = rx.replace('*', r'.*')
+            rx = r'(%s)$' % rx
+            self.regex = re.compile(rx)
+
+    def match(self, version):
+        if self.regex:
+            return bool(self.regex.match(version))
+        else:
+            return ver_eval(version, self.spec)
+
 class VersionSpec(object):
 
     def __init__(self, spec):
         assert '|' not in spec
-        if spec.startswith(('=', '<', '>', '!')):
-            self.regex = False
-            self.constraints = spec.split(',')
-        else:
-            self.regex = True
-            rx = spec.replace('.', r'\.')
-            rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
-            self.pat = re.compile(rx)
+        self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
 
     def match(self, version):
-        if self.regex:
-            return bool(self.pat.match(version))
-        else:
-            return all(ver_eval(version, c) for c in self.constraints)
+        return all(c.match(version) for c in self.constraints)
 
 
 class MatchSpec(object):
