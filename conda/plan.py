@@ -394,6 +394,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     add_defaults_to_specs(r, linked, specs)
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
+        log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
         # TODO: Improve error messages here
 
