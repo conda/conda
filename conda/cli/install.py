@@ -371,6 +371,11 @@ environment does not exist: %s
                 error_message += '\n\nYou may need to install the anaconda-client command line client with'
                 error_message += '\n\n    conda install anaconda-client'
 
+            pinned_specs = plan.get_pinned_specs(prefix)
+            if pinned_specs:
+                error_message += "\n\nNote that you have pinned specs in %s:" % join(prefix, 'conda-meta', 'pinned')
+                error_message += "\n\n    %r" % pinned_specs
+
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:
         # Unsatisfiable package specifications/no such revision/import error
