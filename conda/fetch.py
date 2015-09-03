@@ -274,8 +274,10 @@ Allowed channels are:
     stdoutlog.info('\n')
     if unknown:
         add_unknown(index)
-    add_pip_dependency(index)
+    if config.add_pip_as_python_dependency:
+        add_pip_dependency(index)
     return index
+
 
 def fetch_pkg(info, dst_dir=None, session=None):
     '''
