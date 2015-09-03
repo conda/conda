@@ -70,6 +70,7 @@ ADD_BINSTAR_TOKEN = True
 rc_bool_keys = [
     'add_binstar_token',
     'add_anaconda_token',
+    'add_pip_as_python_dependency',
     'always_yes',
     'allow_softlinks',
     'changeps1',
@@ -336,6 +337,7 @@ except IOError:
 
 # ----- misc -----
 
+add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
 always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
