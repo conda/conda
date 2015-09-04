@@ -10,7 +10,7 @@ import re
 import sys
 import os
 from os import listdir
-from os.path import isfile, exists, expanduser, join
+from os.path import exists, expanduser, join
 from collections import defaultdict, OrderedDict
 import json
 
@@ -91,8 +91,8 @@ def show_pkg_info(name):
         print('    not available')
     # TODO
 
-python_re = re.compile('python\d\.\d')
 
+python_re = re.compile('python\d\.\d')
 def get_user_site():
     site_dirs = []
     if sys.platform != 'win32':
@@ -106,7 +106,7 @@ def get_user_site():
         APPDATA = os.environ['APPDATA']
         if exists(join(APPDATA, 'Python')):
             site_dirs = [join(APPDATA, 'Python', i) for i in
-                listdir(join(APPDATA, 'PYTHON'))]
+                         listdir(join(APPDATA, 'PYTHON'))]
     return site_dirs
 
 
@@ -131,7 +131,6 @@ def pretty_package(pkg):
             continue
         d[key] = rest[key]
 
-
     print()
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
     print(header)
@@ -147,11 +146,10 @@ def pretty_package(pkg):
 
 def execute(args, parser):
     import os
-    from os.path import basename, dirname
+    from os.path import dirname
 
     import conda
     import conda.config as config
-    import conda.misc as misc
     from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
     from conda.api import get_index, get_package_versions
@@ -179,7 +177,6 @@ def execute(args, parser):
             versions = r.get_pkgs(MatchSpec(spec))
             for pkg in sorted(versions):
                 pretty_package(pkg)
-
         return
 
     options = 'envs', 'system', 'license'

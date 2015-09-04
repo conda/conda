@@ -29,8 +29,6 @@ import conda.install as ci
 log = logging.getLogger(__name__)
 
 def install_tar(prefix, tar_path, verbose=False):
-    from conda.misc import install_local_packages
-
     if not exists(tar_path):
         sys.exit("File does not exist: %s" % tar_path)
     tmp_dir = tempfile.mkdtemp()
@@ -44,19 +42,17 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    depends = install_local_packages(prefix, paths, verbose=verbose)
+    depends = misc.install_local_packages(prefix, paths, verbose=verbose)
     shutil.rmtree(tmp_dir)
     return depends
 
 
 def check_prefix(prefix, json=False):
-    from conda.config import root_env_name
-
     name = basename(prefix)
     error = None
     if name.startswith('.'):
         error = "environment name cannot start with '.': %s" % name
-    if name == root_env_name:
+    if name == config.root_env_name:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
         error = "prefix already exists: %s" % prefix
@@ -65,9 +61,7 @@ def check_prefix(prefix, json=False):
         common.error_and_exit(error, json=json, error_type="ValueError")
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False):
-    from conda.misc import clone_env
-
+def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
@@ -86,9 +80,9 @@ def clone(src_arg, dst_prefix, json=False, quiet=False):
         print("dst_prefix: %r" % dst_prefix)
 
     with common.json_progress_bars(json=json and not quiet):
-        actions, untracked_files = clone_env(src_prefix, dst_prefix,
-                                             verbose=not json,
-                                             quiet=quiet)
+        actions, untracked_files = misc.clone_env(src_prefix, dst_prefix,
+                                                  verbose=not json,
+                                                  quiet=quiet, index=index)
 
     if json:
         common.stdout_json_success(
@@ -131,6 +125,8 @@ def install(args, parser, command='install'):
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix, json=args.json)
+    if config.force_32bit and plan.is_root_prefix(prefix):
+        common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
 
     if command == 'update':
         if args.all:
@@ -162,18 +158,6 @@ def install(args, parser, command='install'):
                                       json=args.json,
                                       error_type="ValueError")
 
-    if newenv and args.clone:
-        if args.packages:
-            common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json,
-                                  error_type="ValueError")
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet)
-        misc.append_env(prefix)
-        misc.touch_nonadmin(prefix)
-        if not args.json:
-            print_activate(args.name if args.name else prefix)
-        return
-
     if newenv and not args.no_default_packages:
         default_packages = config.create_default_packages[:]
         # Override defaults if they are specified at the command line
@@ -181,6 +165,8 @@ def install(args, parser, command='install'):
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
                 default_packages.remove(default_pkg)
         args.packages.extend(default_packages)
+    else:
+        default_packages = []
 
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
@@ -206,7 +192,7 @@ def install(args, parser, command='install'):
 
     if command == 'install' and args.revision:
         get_revision(args.revision, json=args.json)
-    else:
+    elif not (newenv and args.clone):
         common.check_specs(prefix, specs, json=args.json,
                            create=(command == 'create'))
 
@@ -214,9 +200,8 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            from conda.misc import install_local_packages
-            depends = install_local_packages(prefix, args.packages,
-                                             verbose=not args.quiet)
+            depends = misc.install_local_packages(prefix, args.packages,
+                                                  verbose=not args.quiet)
             specs = list(set(depends))
             args.unknown = True
         else:
@@ -254,6 +239,18 @@ def install(args, parser, command='install'):
                                   unknown=args.unknown,
                                   json=args.json,
                                   offline=args.offline)
+
+    if newenv and args.clone:
+        if set(args.packages) - set(default_packages):
+            common.error_and_exit('did not expect any arguments for --clone',
+                                  json=args.json,
+                                  error_type="ValueError")
+        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index=index)
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
+        if not args.json:
+            print_activate(args.name if args.name else prefix)
+        return
 
     # Don't update packages that are already up-to-date
     if command == 'update' and not (args.all or args.force):
@@ -374,6 +371,11 @@ environment does not exist: %s
             if not find_executable('anaconda', include_others=False):
                 error_message += '\n\nYou may need to install the anaconda-client command line client with'
                 error_message += '\n\n    conda install anaconda-client'
+
+            pinned_specs = plan.get_pinned_specs(prefix)
+            if pinned_specs:
+                error_message += "\n\nNote that you have pinned specs in %s:" % join(prefix, 'conda-meta', 'pinned')
+                error_message += "\n\n    %r" % pinned_specs
 
             common.error_and_exit(error_message, json=args.json)
     except SystemExit as e:

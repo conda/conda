@@ -218,7 +218,7 @@ def add_parser_install(p):
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
-        help="Create prefix directory if necessary.",
+        help="Create the environment directory if necessary.",
     )
     add_parser_use_index_cache(p)
     add_parser_use_local(p)

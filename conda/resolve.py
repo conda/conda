@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import combinations
 from collections import defaultdict
 from functools import partial
 
@@ -91,25 +90,34 @@ def ver_eval(version, constraint):
                            constraint)
 
 
+class VersionSpecAtom(object):
+
+    def __init__(self, spec):
+        assert '|' not in spec
+        assert ',' not in spec
+        self.spec = spec
+        if spec.startswith(('=', '<', '>', '!')):
+            self.regex = False
+        else:
+            rx = spec.replace('.', r'\.')
+            rx = rx.replace('*', r'.*')
+            rx = r'(%s)$' % rx
+            self.regex = re.compile(rx)
+
+    def match(self, version):
+        if self.regex:
+            return bool(self.regex.match(version))
+        else:
+            return ver_eval(version, self.spec)
+
 class VersionSpec(object):
 
     def __init__(self, spec):
         assert '|' not in spec
-        if spec.startswith(('=', '<', '>', '!')):
-            self.regex = False
-            self.constraints = spec.split(',')
-        else:
-            self.regex = True
-            rx = spec.replace('.', r'\.')
-            rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
-            self.pat = re.compile(rx)
+        self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
 
     def match(self, version):
-        if self.regex:
-            return bool(self.pat.match(version))
-        else:
-            return all(ver_eval(version, c) for c in self.constraints)
+        return all(c.match(version) for c in self.constraints)
 
 
 class MatchSpec(object):
@@ -312,7 +320,7 @@ class Resolve(object):
 
                 if not found:
                     raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), notfound)
+                        "for %s: %s" % (ms, ', '.join(notfound)), [ms.spec] + notfound)
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -444,7 +452,7 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), notfound)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
 
         return dists
 
@@ -718,7 +726,7 @@ Note that the following features are enabled:
         res = set()
         for fn in installed:
             try:
-                res.update(self.features(fn))
+                res.update(self.track_features(fn))
             except KeyError:
                 pass
         return res

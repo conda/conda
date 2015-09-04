@@ -97,8 +97,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     try:
         resp = session.get(url + 'repodata.json.bz2',
-                           headers=headers, proxies=session.proxies,
-                           verify=config.ssl_verify)
+                           headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
@@ -148,7 +147,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except requests.exceptions.SSLError as e:
         msg = "SSL Error: %s\n" % e
-        stderrlog.info("SSL verification error %s\n" % e.message)
+        stderrlog.info("SSL verification error: %s\n" % e)
         log.debug(msg)
 
     except requests.exceptions.ConnectionError as e:
@@ -185,6 +184,10 @@ def handle_proxy_407(url, session):
     # We could also use HTTPProxyAuth, but this does not work with https
     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    if scheme not in session.proxies:
+        sys.exit("""Could not find a proxy for %r. See
+http://conda.pydata.org/docs/config.html#configure-conda-for-use-behind-a-proxy-server
+for more information on how to configure proxies.""" % scheme)
     username, passwd = get_proxy_username_and_pass(scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
                            session.proxies[scheme], username, passwd)
@@ -271,8 +274,10 @@ Allowed channels are:
     stdoutlog.info('\n')
     if unknown:
         add_unknown(index)
-    add_pip_dependency(index)
+    if config.add_pip_as_python_dependency:
+        add_pip_dependency(index)
     return index
+
 
 def fetch_pkg(info, dst_dir=None, session=None):
     '''
@@ -323,8 +328,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         retries = RETRIES
     with Locked(dst_dir):
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies,
-                               verify=config.ssl_verify)
+            resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407: # Proxy Authentication Required

@@ -6,8 +6,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from argparse import RawTextHelpFormatter
-
 from conda.cli import common
 
 

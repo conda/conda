@@ -1,9 +1,25 @@
-2015-08-XX   3.
+2015-XX-XX   3.16.1:
+--------------------
+  * add windows_forward_slashes option to walk_prefix(), see #1513
+  * add ability to set CONDA_FORCE_32BIT environment variable, it should
+    should only be used when running conda-build, #1555
+  * add config option to makes the python dependency on pip optional, #1577
+
+
+2015-08-10   3.16.0:
 --------------------
   * rename binstar -> anaconda, see #1458
   * fix --use-local when the conda-bld directory doesn't exist
+  * fixed --offline option when using "conda create --clone", see #1487
   * don't mask recursion depth errors
   * add conda search --reverse-dependency
+  * check whether hardlinking is available before linking when
+    using "python install.py --link" directly, see #1490
+  * don't exit nonzero when installing a package with no dependencies
+  * check which features are installed in an environment via track_features,
+    not features
+  * set the verify flag directly on CondaSession (fixes conda skeleton not
+    respecting the ssl_verify option)
 
 
 2015-07-23   3.15.1:
