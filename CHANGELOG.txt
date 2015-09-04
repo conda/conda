@@ -2,7 +2,7 @@
 --------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
   * add ability to set CONDA_FORCE_32BIT environment variable, it should
-    should only be used when running conda-build
+    should only be used when running conda-build, #1555
   * add config option to makes the python dependency on pip optional, #1577
 
 
