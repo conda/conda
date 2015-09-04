@@ -30,6 +30,11 @@ from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
                                 RM_FETCHED, PREFIX, PRINT, PROGRESS,
                                 SYMLINK_CONDA)
 
+# Silence pyflakes
+(FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
+                                RM_FETCHED, PREFIX, PRINT, PROGRESS,
+                                SYMLINK_CONDA)
+
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -96,14 +101,14 @@ def display_actions(actions, index):
     maxnewver = len(max(packages.values() or [['', '']], key=lambda i: len(i[1]))[1])
     maxoldfeatures = len(max(features.values() or [['']], key=lambda i: len(i[0]))[0])
     maxnewfeatures = len(max(features.values() or [['', '']], key=lambda i: len(i[1]))[1])
-    maxoldchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
-        packages[pkg][0]].channel) for pkg in packages if packages[pkg][0]] or
+    maxoldchannel = len(max([config.canonical_channel_name(Packages[p + '-' +
+        packages[p][0]].channel) for p in packages if packages[p][0]] or
         [''], key=len))
-    maxnewchannel = len(max([config.canonical_channel_name(Packages[pkg + '-' +
-        packages[pkg][1]].channel) for pkg in packages if packages[pkg][1]] or
+    maxnewchannel = len(max([config.canonical_channel_name(Packages[p + '-' +
+        packages[p][1]].channel) for p in packages if packages[p][1]] or
         [''], key=len))
-    new = {pkg for pkg in packages if not packages[pkg][0]}
-    removed = {pkg for pkg in packages if not packages[pkg][1]}
+    new = {p for p in packages if not packages[p][0]}
+    removed = {p for p in packages if not packages[p][1]}
     updated = set()
     downgraded = set()
     oldfmt = {}
@@ -376,7 +381,7 @@ def get_pinned_specs(prefix):
     if not exists(pinfile):
         return []
     with open(pinfile) as f:
-        return [i for i in f.read().strip().split('\n') if i and not i.strip().startswith('#')]
+        return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None,
@@ -389,6 +394,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     add_defaults_to_specs(r, linked, specs)
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
+        log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
         # TODO: Improve error messages here
 

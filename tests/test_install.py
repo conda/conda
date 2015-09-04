@@ -1,18 +1,13 @@
 from contextlib import contextmanager
-from copy import copy
 import random
 import shutil
 import stat
-import subprocess
 import tempfile
 import unittest
 from os.path import join
 
-import pytest
 
-from conda import exceptions
 from conda import install
-from conda import utils
 from conda.install import PaddingError, binary_replace, update_prefix
 
 from .decorators import skip_if_no_mock

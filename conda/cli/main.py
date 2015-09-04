@@ -210,6 +210,7 @@ def args_func(args, p):
 
 def print_issue_message(e, use_json=False):
     from conda.cli import common
+    message = ""
     if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
 An unexpected error has occurred, please consider sending the

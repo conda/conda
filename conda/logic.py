@@ -27,7 +27,7 @@ being used will only be used in the positive or the negative, respectively
 import sys
 from collections import defaultdict
 from functools import total_ordering, partial
-from itertools import islice, chain, combinations
+from itertools import chain
 import logging
 
 from conda.compat import log2, ceil, range, zip

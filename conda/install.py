@@ -272,6 +272,7 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     if new_data == data:
         return
     st = os.lstat(path)
+    os.remove(path) # Remove file before rewriting to avoid destroying hard-linked cache.
     with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -802,7 +803,10 @@ def main():
         extract(pkgs_dir, dist)
 
     elif opts.link:
-        link(pkgs_dir, prefix, dist)
+        linktype = (LINK_HARD
+                    if try_hard_link(pkgs_dir, prefix, dist) else
+                    LINK_COPY)
+        link(pkgs_dir, prefix, dist, linktype)
 
     elif opts.unlink:
         unlink(prefix, dist)
