@@ -12,7 +12,6 @@ from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
     MaximumIterationsError)
-from conda.install import load_meta
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
