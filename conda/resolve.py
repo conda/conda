@@ -32,6 +32,18 @@ def normalized_version(version):
             return verlib.NormalizedVersion(suggested_version)
         return version
 
+def version_to_list(version):
+    """
+    Splits a version string into a list of numbers and strings, where
+    the individual elements are formed by first splitting at dots '.' 
+    and then splitting again into maximal runs of numeric or non-numeric 
+    characters respectively. The function assumes that 'version' does not
+    contain '-'. Example:
+    
+        '1.2.1099a4' => [1, 2, 1099, 'a', 4]
+    """
+    version_split = re.findall(r'([0-9]+|[^0-9]+|\.)', version)
+    return [int(k) if k.isdigit() else k for k in version_split if k != '.']
 
 class NoPackagesFound(RuntimeError):
     def __init__(self, msg, pkgs):
@@ -175,6 +187,7 @@ class Package(object):
         self.build = info['build']
         self.channel = info.get('channel')
         self.norm_version = normalized_version(self.version)
+        self.list_version = version_to_list(self.version)
         self.info = info
 
     def _asdict(self):
@@ -203,8 +216,8 @@ class Package(object):
             return ((self.norm_version, self.build_number, other.build) <
                     (other.norm_version, other.build_number, self.build))
         except TypeError:
-            return ((self.version, self.build_number) <
-                    (other.version, other.build_number))
+            return ((self.list_version, self.build_number) <
+                    (other.list_version, other.build_number))
 
     def __eq__(self, other):
         if not isinstance(other, Package):
