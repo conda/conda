@@ -42,7 +42,7 @@ def version_to_list(version):
     
         '1.2.1099a4' => [1, 2, 1099, 'a', 4]
     """
-    version_split = re.findall(r'([0-9]+|[^0-9]+|\.)', version)
+    version_split = re.findall(r'([0-9]+|[^0-9.]+|\.)', version)
     return [int(k) if k.isdigit() else k for k in version_split if k != '.']
 
 class NoPackagesFound(RuntimeError):
