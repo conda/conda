@@ -513,7 +513,7 @@ def z3_optimize(clauses, version_eq, w):
         o.add(z3_clause)
 
     o.minimize(z3_version_eq)
-    o.minimaze(z3_package_eq)
+    o.minimize(z3_package_eq)
 
     log.debug("Getting z3 model")
     o.check()
