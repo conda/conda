@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, version_to_list
 
 from tests.helpers import raises
 
@@ -19,6 +19,39 @@ f_mkl = set(['mkl'])
 
 
 class TestVersionSpec(unittest.TestCase):
+
+    def test_version_split(self):
+        versions = [
+           ("0.4",        [0, 4]),
+           ("0.4.1",      [0, 4, 1]),
+           ("0.5",        [0, 5]),
+           ("0.5a1",      [0, 5, 'a', 1]),
+           ("0.5b3",      [0, 5, 'b', 3 ]),
+           ("0.9.6",      [0, 9, 6]),
+           ("0.960923",   [0, 960923]),
+           ("1.0",        [1, 0]),
+           ("1.0.4",      [1, 0, 4]),
+           ("1.0.4a3",    [1, 0, 4, 'a', 3]),
+           ("1.0.4b1",    [1, 0, 4, 'b', 1]),
+           ("1.13++",     [1, 13, '++']),
+           ("2.0b1pl0",   [2, 0, 'b', 1, 'pl', 0]),
+           ("2.2be5ta29", [2, 2, 'be', 5, 'ta', 29]),
+           ("2.2be.ta29", [2, 2, 'be', 'ta', 29]),
+           ("2.2beta29",  [2, 2, 'beta', 29]),
+           ("2g6",        [2, 'g', 6]),
+           ("3.1.1.6",    [3, 1, 1, 6]),
+           ("3.2.p.l0",   [3, 2, 'p', 'l', 0]),
+           ("3.2.pl0",    [3, 2, 'pl', 0]),
+           ("3.2.pl.1",   [3, 2, 'pl', 1]),
+           ("5.5.kw",     [5, 5, 'kw']),
+           ("5.5.mw.",    [5, 5, 'mw']),
+           ("11g",        [11, 'g']),
+           ("1996.07.12", [1996, 7, 12]),
+        ]
+        for v, l in versions:
+            self.assertEqual(version_to_list(v), l)
+        
+        self.assertEqual(sorted(versions, key=lambda x: x[1]), versions)
 
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)

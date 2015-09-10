@@ -213,9 +213,14 @@ class Package(object):
             raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
+            # FIXME: 'self.build' and 'other.build' are intentionally swapped
+            # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
+            # FIXME: this should be reverted when the underlying problem is solved
             return ((self.norm_version, self.build_number, other.build) <
                     (other.norm_version, other.build_number, self.build))
         except TypeError:
+            # this comparison relies on the Python convention that an integer is
+            # always less than a string, regardless of values
             return ((self.list_version, self.build_number) <
                     (other.list_version, other.build_number))
 
