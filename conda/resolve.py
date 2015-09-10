@@ -468,40 +468,6 @@ class Resolve(object):
 
         log.debug("Solving for %s" % str(specs))
 
-        # First try doing it the "old way", i.e., just look at the most recent
-        # version of each package from the specs. This doesn't handle the more
-        # complicated cases that the pseudo-boolean solver does, but it's also
-        # much faster when it does work.
-
-        try:
-            dists = self.get_dists(specs, max_only=True)
-        except NoPackagesFound:
-            # Handle packages that are not included because some dependencies
-            # couldn't be found.
-            pass
-        else:
-            v = {}  # map fn to variable number
-            w = {}  # map variable number to fn
-            i = -1  # in case the loop doesn't run
-            for i, fn in enumerate(sorted(dists)):
-                v[fn] = i + 1
-                w[i + 1] = fn
-            m = i + 1
-
-            dotlog.debug("Solving using max dists only")
-            clauses = set(self.gen_clauses(v, dists, specs, features))
-            try:
-                solutions = min_sat(clauses, alg='iterate',
-                    raise_on_max_n=True)
-            except MaximumIterationsError:
-                pass
-            else:
-                if len(solutions) == 1:
-                    ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                    if returnall:
-                        return [ret]
-                    return ret
-
         dists = self.get_dists(specs)
 
         v = {}  # map fn to variable number
