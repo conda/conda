@@ -5,11 +5,10 @@ import sys
 import logging
 from collections import defaultdict
 from functools import partial, reduce
-import six
 
 from conda import verlib
 from conda.utils import memoize
-from conda.compat import itervalues, iteritems
+from conda.compat import itervalues, iteritems, string_types
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
 from conda.console import setup_handlers
@@ -34,8 +33,8 @@ def normalized_version(version):
         return version
 
 def heterogeneous_compare(left, right):
-    if isinstance(left, six.string_types):
-        if isinstance(right, six.string_types):
+    if isinstance(left, string_types):
+        if isinstance(right, string_types):
             # both string: lexicographic comparison
             if left < right:
                 return -1
@@ -47,7 +46,7 @@ def heterogeneous_compare(left, right):
             # string is always bigger than number
             return 1
     else:
-        if isinstance(right, six.string_types):
+        if isinstance(right, string_types):
             # nuber is always less than string
             return -1
         else:
