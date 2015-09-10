@@ -1,4 +1,4 @@
-2015-XX-XX   3.16.1:
+2015-XX-XX   3.17.0:
 --------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
   * add ability to set CONDA_FORCE_32BIT environment variable, it should
@@ -15,8 +15,9 @@
   * correctly skip packages whose dependencies can't be found with conda
     update --all
   * use clearer terminology in -m help text.
-  * Use splitlines to break up multiple lines throughout the codebase
+  * use splitlines to break up multiple lines throughout the codebase
   * fix AttributeError with SSLError
+
 
 2015-08-10   3.16.0:
 --------------------
