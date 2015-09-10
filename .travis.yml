@@ -22,7 +22,7 @@ install:
   - conda config --set always_yes yes
   - bin/conda install --force --no-deps conda requests
   - conda --version
-  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes
+  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes six
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi

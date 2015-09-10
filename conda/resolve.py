@@ -4,7 +4,8 @@ import re
 import sys
 import logging
 from collections import defaultdict
-from functools import partial
+from functools import partial, reduce
+import six
 
 from conda import verlib
 from conda.utils import memoize
@@ -32,18 +33,61 @@ def normalized_version(version):
             return verlib.NormalizedVersion(suggested_version)
         return version
 
-def version_to_list(version):
-    """
-    Splits a version string into a list of numbers and strings, where
-    the individual elements are formed by first splitting at dots '.' 
-    and then splitting again into maximal runs of numeric or non-numeric 
-    characters respectively. The function assumes that 'version' does not
-    contain '-'. Example:
-    
-        '1.2.1099a4' => [1, 2, 1099, 'a', 4]
-    """
-    version_split = re.findall(r'([0-9]+|[^0-9.]+|\.)', version)
-    return [int(k) if k.isdigit() else k for k in version_split if k != '.']
+def heterogeneous_compare(left, right):
+    if isinstance(left, six.string_types):
+        if isinstance(right, six.string_types):
+            # both string: lexicographic comparison
+            if left < right:
+                return -1
+            elif right < left:
+                return 1
+            else:
+                return 0
+        else:
+            # string is always bigger than number
+            return 1
+    else:
+        if isinstance(right, six.string_types):
+            # nuber is always less than string
+            return -1
+        else:
+            # both number: numeric comparison
+            if left < right:
+                return -1
+            elif right < left:
+                return 1
+            else:
+                return 0
+
+class VersionAsList(object):
+    def __init__(self, version):
+        """
+        Splits a version string into a list of numbers and strings, where
+        the individual elements are formed by first splitting at dots '.' 
+        and then splitting again into maximal runs of numeric or non-numeric 
+        characters respectively. The function assumes that 'version' does not
+        contain '-'. Example:
+        
+            '1.2.1099a4' => [1, 2, 1099, 'a', 4]
+        """
+        version_split = re.findall(r'([0-9]+|[^0-9.]+|\.)', version)
+        self.version = [int(k) if k.isdigit() else k for k in version_split if k != '.']
+        
+    def __eq__(self, other):
+        return self.version == other.version
+        
+    def __lt__(self, other):
+        """
+        Perform lexicographic comparison of two version lists. Corresponding elements 
+        are compared such that numbers use numeric comparison, strings use lexicographic
+        comparison, and numbers are smaller than strings (regardless of value) in mixed pairs.
+        """
+        res = reduce(lambda t, x: heterogeneous_compare(x[0], x[1]) if t == 0 else t,
+                     zip(self.version, other.version), 0)
+        if res == 0:
+            return len(self.version) < len(other.version)
+        else:
+            return res < 0
 
 class NoPackagesFound(RuntimeError):
     def __init__(self, msg, pkgs):
@@ -187,7 +231,7 @@ class Package(object):
         self.build = info['build']
         self.channel = info.get('channel')
         self.norm_version = normalized_version(self.version)
-        self.list_version = version_to_list(self.version)
+        self.list_version = VersionAsList(self.version)
         self.info = info
 
     def _asdict(self):
@@ -219,8 +263,6 @@ class Package(object):
             return ((self.norm_version, self.build_number, other.build) <
                     (other.norm_version, other.build_number, self.build))
         except TypeError:
-            # this comparison relies on the Python convention that an integer is
-            # always less than a string, regardless of values
             return ((self.list_version, self.build_number) <
                     (other.list_version, other.build_number))
 
