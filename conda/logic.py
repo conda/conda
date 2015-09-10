@@ -496,13 +496,16 @@ def z3_optimize(clauses, version_eq, w):
     v = {w[i]: i for i in w}
     vars = {i: Bool(i) for i in v}
 
+    log.debug("Creating z3 clauses")
     z3_clauses = []
     for clause in clauses:
         z3_clause = Or(*[vars[w[i]] if i > 0 else Not(vars[w[-i]]) for i in clause])
         z3_clauses.append(z3_clause)
 
+    log.debug("Creating z3 version equation")
     z3_version_eq = sum(i*IntSort().cast(vars[w[j]]) for i, j in version_eq)
 
+    log.debug("Creating z3 package equation")
     z3_package_eq = sum(i*IntSort().cast(i) for vars[i] in i in vars)
 
     o = Optimize()
@@ -512,6 +515,7 @@ def z3_optimize(clauses, version_eq, w):
     o.minimize(z3_version_eq)
     o.minimaze(z3_package_eq)
 
+    log.debug("Getting z3 model")
     o.check()
     m = o.model()
 
