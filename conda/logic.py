@@ -506,7 +506,7 @@ def z3_optimize(clauses, version_eq, w):
     z3_version_eq = sum(i*IntSort().cast(vars[w[j]]) for i, j in version_eq)
 
     log.debug("Creating z3 package equation")
-    z3_package_eq = sum(i*IntSort().cast(i) for vars[i] in i in vars)
+    z3_package_eq = sum(IntSort().cast(vars[i]) for i in vars)
 
     o = Optimize()
     for z3_clause in z3_clauses:
