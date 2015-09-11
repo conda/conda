@@ -10,7 +10,8 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
+    MaximumIterationsError, z3_optimize)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -463,7 +464,7 @@ class Resolve(object):
 
         return result
 
-    def solve2(self, specs, features, guess=True, alg='BDD',
+    def solve2(self, specs, features, guess=True, alg='Z3',
         returnall=False, minimal_hint=False, unsat_only=False):
 
         log.debug("Solving for %s" % str(specs))
@@ -507,6 +508,9 @@ class Resolve(object):
             return True
 
         log.debug("Using alg %s" % alg)
+
+        if alg == "Z3":
+            return z3_optimize(clauses, eq, w)
 
         def version_constraints(lo, hi):
             return set(generate_constraints(eq, m, [lo, hi], alg=alg))
