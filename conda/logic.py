@@ -489,10 +489,11 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
 
 def z3_optimize(clauses, version_eq, w):
     try:
-        from z3 import Bool, Or, Not, BoolSort, Optimize, IntSort
+        from z3 import Bool, Or, Not, BoolSort, Optimize, IntSort, set_param
     except ImportError:
         raise ImportError("The unstable branch of z3 is required for this branch")
 
+    set_param(verbose=10)
     v = {w[i]: i for i in w}
     vars = {i: Bool(i) for i in v}
 
