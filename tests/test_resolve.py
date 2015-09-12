@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, SimpleVersionOrder
 
 from tests.helpers import raises
 
@@ -20,6 +20,54 @@ f_mkl = set(['mkl'])
 
 class TestVersionSpec(unittest.TestCase):
 
+    def test_version_order(self):
+        versions = [
+           (SimpleVersionOrder("0.4"),        [[0], [4]]),
+           (SimpleVersionOrder("0.4.0"),      [[0], [4], [0]]),
+           (SimpleVersionOrder("0.4.1.rc"),   [[0], [4], [1], ['rc']]),
+           (SimpleVersionOrder("0.4.1"),      [[0], [4], [1]]),
+           (SimpleVersionOrder("0.5a1"),      [[0], [5, 'a', 1]]),
+           (SimpleVersionOrder("0.5b3"),      [[0], [5, 'b', 3]]),
+           (SimpleVersionOrder("0.5"),        [[0], [5]]),
+           (SimpleVersionOrder("0.9.6"),      [[0], [9], [6]]),
+           (SimpleVersionOrder("0.960923"),   [[0], [960923]]),
+           (SimpleVersionOrder("1.0"),        [[1], [0]]),
+           (SimpleVersionOrder("1.0.4a3"),    [[1], [0], [4, 'a', 3]]),
+           (SimpleVersionOrder("1.0.4b1"),    [[1], [0], [4, 'b', 1]]),
+           (SimpleVersionOrder("1.0.4"),      [[1], [0], [4]]),
+           (SimpleVersionOrder("1.13++"),     [[1], [13, '++']]),
+           (SimpleVersionOrder("2g6"),        [[2, 'g', 6]]),
+           (SimpleVersionOrder("2.0b1pr0"),   [[2], [0, 'b', 1, 'pr', 0]]),
+           (SimpleVersionOrder("2.2be.ta29"), [[2], [2, 'be'], ['ta', 29]]),
+           (SimpleVersionOrder("2.2be5ta29"), [[2], [2, 'be', 5, 'ta', 29]]),
+           (SimpleVersionOrder("2.2beta29"),  [[2], [2, 'beta', 29]]),
+           (SimpleVersionOrder("3.1.1.6"),    [[3], [1], [1], [6]]),
+           (SimpleVersionOrder("3.2.p.r0"),   [[3], [2], ['p'], ['r', 0]]),
+           (SimpleVersionOrder("3.2.pr0"),    [[3], [2], ['pr', 0]]),
+           (SimpleVersionOrder("3.2.pr.1"),   [[3], [2], ['pr'], [1]]),
+           (SimpleVersionOrder("5.5.kw"),     [[5], [5], ['kw']]),
+           (SimpleVersionOrder("11g"),        [[11, 'g']]),
+           (SimpleVersionOrder("1996.07.12"), [[1996], [7], [12]]),
+        ]
+        
+        # check parser
+        for v, l in versions:
+            self.assertEqual(v.version, l)
+        with self.assertRaises(ValueError):
+            SimpleVersionOrder("5.5..mw")
+        with self.assertRaises(ValueError):
+            SimpleVersionOrder("5.5.mw.")
+        
+        # check __eq__
+        self.assertEqual(SimpleVersionOrder("0.4"), SimpleVersionOrder("0.4.0"))
+        self.assertNotEqual(SimpleVersionOrder("0.4"), SimpleVersionOrder("0.4.1"))
+        self.assertEqual(SimpleVersionOrder("0.4.1a"), SimpleVersionOrder("0.4.1a0"))
+        self.assertNotEqual(SimpleVersionOrder("0.4.1a"), SimpleVersionOrder("0.4.1a1"))
+        
+        # check __lt__
+        self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
+        
+        
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
         self.assertEqual(ver_eval('1.7.0', '<1.7'), False)

@@ -8,7 +8,7 @@ from functools import partial
 
 from conda import verlib
 from conda.utils import memoize
-from conda.compat import itervalues, iteritems
+from conda.compat import itervalues, iteritems, string_types, zip_longest
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
 from conda.console import setup_handlers
@@ -32,6 +32,77 @@ def normalized_version(version):
             return verlib.NormalizedVersion(suggested_version)
         return version
 
+class SimpleVersionOrder(object):
+    '''
+    This class implements a simple order relation between versions. 
+    Version strings are parsed as follows:
+    * they are first split into components at '.'
+    * each component is split again into runs of numerals and non-numerals
+    * subcomponents containing only numerals are converted to integers
+    Example:
+    
+        1.2g.beta15.rc  =>  [[1], [2, 'g'], ['beta', 15], ['rc']]
+         
+    The resulting lists are compared lexicographically, where the following
+    rules apply for each pair of corresponding subcomponents:
+    * integers are compared numerically
+    * strings are compared lexicographically
+    * if the subcomponents have different types, strings are smaller than integers
+    * if a subcomponent has no correspondent, the missing correspondent is      
+      treated as integer 0.
+    The resulting order is:
+    
+           0.4
+        == 0.4.0     # due to 0-padding
+         < 0.4.1.rc
+         < 0.4.1
+         < 0.5a1
+         < 0.5b3
+         < 0.5
+         < 0.9.6
+         < 0.960923
+         < 1.0
+         < 1.0.4a3
+         < 1.0.4b1
+         < 1.0.4
+         < 1996.07.12
+    '''
+    def __init__(self, version):
+        self.version = version.split('.')
+        for k in range(len(self.version)):
+            c = re.findall('([0-9]+|[^0-9]+)', self.version[k])
+            if not c:
+                raise ValueError("Malformed version string '%s'." % version)
+            self.version[k] = [int(j) if j.isdigit() else j   for j in c]
+    
+    def __eq__(self, other):
+        # note: explicit padding is necessary to ensure '1.4' == '1.4.0'
+        for v1, v2 in zip_longest(self.version, other.version, fillvalue=[0]):
+            for c1, c2 in zip_longest(v1, v2, fillvalue=0):
+                if c1 != c2:
+                    return False
+        return True
+        
+    def __lt__(self, other):
+        # note: explicit padding is necessary to ensure '1.4' == '1.4.0'
+        for v1, v2 in zip_longest(self.version, other.version, fillvalue=[0]):
+            for c1, c2 in zip_longest(v1, v2, fillvalue=0):
+                if isinstance(c1, string_types):
+                    if not isinstance(c2, string_types):
+                        # str < int
+                        return True
+                else:
+                    if isinstance(c2, string_types):
+                        # not (int < str)
+                        return False
+                # c1 and c2 have the same type
+                if c1 < c2:
+                    return True
+                if c2 < c1:
+                    return False
+                # c1 == c2 => advance
+        # v1 == v2
+        return False
 
 class NoPackagesFound(RuntimeError):
     def __init__(self, msg, pkgs):
@@ -175,6 +246,7 @@ class Package(object):
         self.build = info['build']
         self.channel = info.get('channel')
         self.norm_version = normalized_version(self.version)
+        self.list_version = SimpleVersionOrder(self.version)
         self.info = info
 
     def _asdict(self):
@@ -200,11 +272,14 @@ class Package(object):
             raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
         try:
+            # FIXME: 'self.build' and 'other.build' are intentionally swapped
+            # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
+            # FIXME: this should be reverted when the underlying problem is solved
             return ((self.norm_version, self.build_number, other.build) <
                     (other.norm_version, other.build_number, self.build))
         except TypeError:
-            return ((self.version, self.build_number) <
-                    (other.version, other.build_number))
+            return ((self.list_version, self.build_number) <
+                    (other.list_version, other.build_number))
 
     def __eq__(self, other):
         if not isinstance(other, Package):
