@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, VersionAsList
 
 from tests.helpers import raises
 
@@ -19,6 +19,39 @@ f_mkl = set(['mkl'])
 
 
 class TestVersionSpec(unittest.TestCase):
+
+    def test_version_split(self):
+        versions = [
+           (VersionAsList("0.4"),        [0, 4]),
+           (VersionAsList("0.4.1"),      [0, 4, 1]),
+           (VersionAsList("0.5"),        [0, 5]),
+           (VersionAsList("0.5a1"),      [0, 5, 'a', 1]),
+           (VersionAsList("0.5b3"),      [0, 5, 'b', 3 ]),
+           (VersionAsList("0.9.6"),      [0, 9, 6]),
+           (VersionAsList("0.960923"),   [0, 960923]),
+           (VersionAsList("1.0"),        [1, 0]),
+           (VersionAsList("1.0.4"),      [1, 0, 4]),
+           (VersionAsList("1.0.4a3"),    [1, 0, 4, 'a', 3]),
+           (VersionAsList("1.0.4b1"),    [1, 0, 4, 'b', 1]),
+           (VersionAsList("1.13++"),     [1, 13, '++']),
+           (VersionAsList("2.0b1pl0"),   [2, 0, 'b', 1, 'pl', 0]),
+           (VersionAsList("2.2be5ta29"), [2, 2, 'be', 5, 'ta', 29]),
+           (VersionAsList("2.2be.ta29"), [2, 2, 'be', 'ta', 29]),
+           (VersionAsList("2.2beta29"),  [2, 2, 'beta', 29]),
+           (VersionAsList("2g6"),        [2, 'g', 6]),
+           (VersionAsList("3.1.1.6"),    [3, 1, 1, 6]),
+           (VersionAsList("3.2.p.l0"),   [3, 2, 'p', 'l', 0]),
+           (VersionAsList("3.2.pl0"),    [3, 2, 'pl', 0]),
+           (VersionAsList("3.2.pl.1"),   [3, 2, 'pl', 1]),
+           (VersionAsList("5.5.kw"),     [5, 5, 'kw']),
+           (VersionAsList("5.5.mw."),    [5, 5, 'mw']),
+           (VersionAsList("11g"),        [11, 'g']),
+           (VersionAsList("1996.07.12"), [1996, 7, 12]),
+        ]
+        for v, l in versions:
+            self.assertEqual(v.version, l)
+        
+        self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
 
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
