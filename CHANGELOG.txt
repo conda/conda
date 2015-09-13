@@ -1,4 +1,22 @@
+2015-09-11   3.17.0:
+--------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
+  * add ability to set CONDA_FORCE_32BIT environment variable, it should
+    should only be used when running conda-build, #1555
+  * add config option to makes the python dependency on pip optional, #1577
+  * fix an UnboundLocalError
+  * print note about pinned specs in no packages found error
+  * allow wildcards in AND-connected version specs
+  * print pinned specs to the debug log
+  * fix conda create --clone with create_default_packages
+  * give a better error when a proxy isn't found for a given scheme
+  * enable running 'conda run' in offline mode
+  * fix issue where hardlinked cache contents were being overwritten
+  * correctly skip packages whose dependencies can't be found with conda
+    update --all
+  * use clearer terminology in -m help text.
+  * use splitlines to break up multiple lines throughout the codebase
+  * fix AttributeError with SSLError
 
 
 2015-08-10   3.16.0:

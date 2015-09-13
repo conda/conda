@@ -36,6 +36,7 @@ def configure_parser(sub_parsers):
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
     common.add_parser_json(p)
+    common.add_parser_offline(p)
     p.add_argument(
         'package',
         metavar='COMMAND',
@@ -77,7 +78,7 @@ def execute(args, parser):
                                   error_type="PackageNotInstalled")
     else:
         installed = []
-        for pkg in get_package_versions(args.package):
+        for pkg in get_package_versions(args.package, args.offline):
             if app_is_installed(pkg.fn, prefixes=[prefix]):
                 installed.append(pkg)
 
