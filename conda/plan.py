@@ -391,11 +391,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
-    add_defaults_to_specs(r, linked, specs)
+
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         specs += pinned_specs
         # TODO: Improve error messages here
+    add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
