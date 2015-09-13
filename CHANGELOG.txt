@@ -1,3 +1,7 @@
+-------------------
+  * add defaults to specs after getting pinned specs (allows to pin a
+    different version of Python than what is installed)
+
 2015-09-11   3.17.0:
 --------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
