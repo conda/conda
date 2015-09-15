@@ -26,9 +26,12 @@ class TestVersionSpec(unittest.TestCase):
            (SimpleVersionOrder("0.4.0"),      [[0], [0], [4], [0]]),
            (SimpleVersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], ['rc']]),
            (SimpleVersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
+           (SimpleVersionOrder("0.5_"),       [[0], [0], [5, '_']]),
            (SimpleVersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
            (SimpleVersionOrder("0.5b3"),      [[0], [0], [5, 'b', 3]]),
            (SimpleVersionOrder("0.5C1"),      [[0], [0], [5, 'c', 1]]),
+           (SimpleVersionOrder("0.5z"),       [[0], [0], [5, 'z']]),
+           (SimpleVersionOrder("0.5za"),      [[0], [0], [5, 'za']]),
            (SimpleVersionOrder("0.5"),        [[0], [0], [5]]),
            (SimpleVersionOrder("0.9.6"),      [[0], [0], [9], [6]]),
            (SimpleVersionOrder("0.960923"),   [[0], [0], [960923]]),
@@ -80,27 +83,6 @@ class TestVersionSpec(unittest.TestCase):
         # check __lt__
         self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
         
-        # check openssl ordering
-        openssl_versions = [
-           SimpleVersionOrder("0.9.7m",  "openssl"),
-           SimpleVersionOrder("0.9.8",   "openssl"),
-           SimpleVersionOrder("0.9.8a",  "openssl"),
-           SimpleVersionOrder("0.9.8z",  "openssl"),
-           SimpleVersionOrder("0.9.8za", "openssl"),
-           SimpleVersionOrder("0.9.8zg", "openssl"),
-           SimpleVersionOrder("1.0.0",   "openssl"),
-           SimpleVersionOrder("1.0.0a",  "openssl"),
-           SimpleVersionOrder("1.0.0s",  "openssl"),
-           SimpleVersionOrder("1.0.1",   "openssl"),
-           SimpleVersionOrder("1.0.1a",  "openssl"),
-           SimpleVersionOrder("1.0.1p",  "openssl"),
-           SimpleVersionOrder("1.0.2",   "openssl"),
-           SimpleVersionOrder("1.0.2a",  "openssl"),
-           SimpleVersionOrder("1.0.2d",  "openssl"),
-           SimpleVersionOrder("1.1.0",   "openssl"),
-        ]
-        self.assertEqual(sorted(openssl_versions), openssl_versions)
-        
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
         self.assertEqual(ver_eval('1.7.0', '<1.7'), False)
@@ -110,7 +92,7 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('2013k', '>2013b'), True)
         self.assertEqual(ver_eval('3.0.0', '>2013b'), False)
         self.assertEqual(ver_eval('1.0.0', '>1.0.0a'), True)
-        self.assertEqual(ver_eval('1.0.0', '>1.0.0a', 'openssl'), False)
+        self.assertEqual(ver_eval('1.0.0_', '>1.0.0a'), False)
 
     def test_ver_eval_errors(self):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
@@ -151,7 +133,7 @@ class TestMatchSpec(unittest.TestCase):
             self.assertEqual(m.match('numpy-1.7.1-py27_0.tar.bz2'), res)
 
         self.assertFalse(MatchSpec('numpy >=1.0.1').match('numpy-1.0.1a-0.tar.bz2'))
-        self.assertTrue(MatchSpec('openssl >=1.0.1').match('openssl-1.0.1a-0.tar.bz2'))
+        self.assertTrue(MatchSpec('numpy >=1.0.1_').match('numpy-1.0.1a-0.tar.bz2'))
 
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')
