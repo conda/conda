@@ -22,41 +22,54 @@ class TestVersionSpec(unittest.TestCase):
 
     def test_version_order(self):
         versions = [
-           (SimpleVersionOrder("0.4"),        [[0], [4]]),
-           (SimpleVersionOrder("0.4.0"),      [[0], [4], [0]]),
-           (SimpleVersionOrder("0.4.1.rc"),   [[0], [4], [1], ['rc']]),
-           (SimpleVersionOrder("0.4.1"),      [[0], [4], [1]]),
-           (SimpleVersionOrder("0.5a1"),      [[0], [5, 'a', 1]]),
-           (SimpleVersionOrder("0.5b3"),      [[0], [5, 'b', 3]]),
-           (SimpleVersionOrder("0.5"),        [[0], [5]]),
-           (SimpleVersionOrder("0.9.6"),      [[0], [9], [6]]),
-           (SimpleVersionOrder("0.960923"),   [[0], [960923]]),
-           (SimpleVersionOrder("1.0"),        [[1], [0]]),
-           (SimpleVersionOrder("1.0.4a3"),    [[1], [0], [4, 'a', 3]]),
-           (SimpleVersionOrder("1.0.4b1"),    [[1], [0], [4, 'b', 1]]),
-           (SimpleVersionOrder("1.0.4"),      [[1], [0], [4]]),
-           (SimpleVersionOrder("1.13++"),     [[1], [13, '++']]),
-           (SimpleVersionOrder("2g6"),        [[2, 'g', 6]]),
-           (SimpleVersionOrder("2.0b1pr0"),   [[2], [0, 'b', 1, 'pr', 0]]),
-           (SimpleVersionOrder("2.2be.ta29"), [[2], [2, 'be'], ['ta', 29]]),
-           (SimpleVersionOrder("2.2be5ta29"), [[2], [2, 'be', 5, 'ta', 29]]),
-           (SimpleVersionOrder("2.2beta29"),  [[2], [2, 'beta', 29]]),
-           (SimpleVersionOrder("3.1.1.6"),    [[3], [1], [1], [6]]),
-           (SimpleVersionOrder("3.2.p.r0"),   [[3], [2], ['p'], ['r', 0]]),
-           (SimpleVersionOrder("3.2.pr0"),    [[3], [2], ['pr', 0]]),
-           (SimpleVersionOrder("3.2.pr.1"),   [[3], [2], ['pr'], [1]]),
-           (SimpleVersionOrder("5.5.kw"),     [[5], [5], ['kw']]),
-           (SimpleVersionOrder("11g"),        [[11, 'g']]),
-           (SimpleVersionOrder("1996.07.12"), [[1996], [7], [12]]),
+           (SimpleVersionOrder("0.4"),        [[0], [0], [4]]),
+           (SimpleVersionOrder("0.4.0"),      [[0], [0], [4], [0]]),
+           (SimpleVersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], ['rc']]),
+           (SimpleVersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
+           (SimpleVersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
+           (SimpleVersionOrder("0.5b3"),      [[0], [0], [5, 'b', 3]]),
+           (SimpleVersionOrder("0.5C1"),      [[0], [0], [5, 'c', 1]]),
+           (SimpleVersionOrder("0.5"),        [[0], [0], [5]]),
+           (SimpleVersionOrder("0.9.6"),      [[0], [0], [9], [6]]),
+           (SimpleVersionOrder("0.960923"),   [[0], [0], [960923]]),
+           (SimpleVersionOrder("1.0"),        [[0], [1], [0]]),
+           (SimpleVersionOrder("1.0.4a3"),    [[0], [1], [0], [4, 'a', 3]]),
+           (SimpleVersionOrder("1.0.4b1"),    [[0], [1], [0], [4, 'b', 1]]),
+           (SimpleVersionOrder("1.0.4"),      [[0], [1], [0], [4]]),
+           (SimpleVersionOrder("1.13++"),     [[0], [1], [13, '++']]),
+           (SimpleVersionOrder("2g6"),        [[0], [2, 'g', 6]]),
+           (SimpleVersionOrder("2.0b1pr0"),   [[0], [2], [0, 'b', 1, 'pr', 0]]),
+           (SimpleVersionOrder("2.2be.ta29"), [[0], [2], [2, 'be'], ['ta', 29]]),
+           (SimpleVersionOrder("2.2be5ta29"), [[0], [2], [2, 'be', 5, 'ta', 29]]),
+           (SimpleVersionOrder("2.2beta29"),  [[0], [2], [2, 'beta', 29]]),
+           (SimpleVersionOrder("3.1.1.6"),    [[0], [3], [1], [1], [6]]),
+           (SimpleVersionOrder("3.2.p.r0"),   [[0], [3], [2], ['p'], ['r', 0]]),
+           (SimpleVersionOrder("3.2.pr0"),    [[0], [3], [2], ['pr', 0]]),
+           (SimpleVersionOrder("3.2.pr.1"),   [[0], [3], [2], ['pr'], [1]]),
+           (SimpleVersionOrder("5.5.kw"),     [[0], [5], [5], ['kw']]),
+           (SimpleVersionOrder("11g"),        [[0], [11, 'g']]),
+           (SimpleVersionOrder("1996.07.12"), [[0], [1996], [7], [12]]),
+           (SimpleVersionOrder("1!0.4.1"),    [[1], [0], [4], [1]]),
+           (SimpleVersionOrder("1!3.1.1.6"),  [[1], [3], [1], [1], [6]]),
+           (SimpleVersionOrder("2!0.4.1"),    [[2], [0], [4], [1]]),
         ]
         
         # check parser
         for v, l in versions:
             self.assertEqual(v.version, l)
+        self.assertEqual(SimpleVersionOrder("0.4.1.rc"), SimpleVersionOrder("  0.4.1.RC  "))
+        with self.assertRaises(ValueError):
+            SimpleVersionOrder("")
+        with self.assertRaises(ValueError):
+            SimpleVersionOrder("  ")
         with self.assertRaises(ValueError):
             SimpleVersionOrder("5.5..mw")
         with self.assertRaises(ValueError):
             SimpleVersionOrder("5.5.mw.")
+        with self.assertRaises(ValueError):
+            SimpleVersionOrder("!")
+        with self.assertRaises(ValueError):
+            SimpleVersionOrder("a!1.0")
         
         # check __eq__
         self.assertEqual(SimpleVersionOrder("0.4"), SimpleVersionOrder("0.4.0"))
@@ -67,6 +80,26 @@ class TestVersionSpec(unittest.TestCase):
         # check __lt__
         self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
         
+        # check openssl ordering
+        openssl_versions = [
+           SimpleVersionOrder("0.9.7m",  "openssl"),
+           SimpleVersionOrder("0.9.8",   "openssl"),
+           SimpleVersionOrder("0.9.8a",  "openssl"),
+           SimpleVersionOrder("0.9.8z",  "openssl"),
+           SimpleVersionOrder("0.9.8za", "openssl"),
+           SimpleVersionOrder("0.9.8zg", "openssl"),
+           SimpleVersionOrder("1.0.0",   "openssl"),
+           SimpleVersionOrder("1.0.0a",  "openssl"),
+           SimpleVersionOrder("1.0.0s",  "openssl"),
+           SimpleVersionOrder("1.0.1",   "openssl"),
+           SimpleVersionOrder("1.0.1a",  "openssl"),
+           SimpleVersionOrder("1.0.1p",  "openssl"),
+           SimpleVersionOrder("1.0.2",   "openssl"),
+           SimpleVersionOrder("1.0.2a",  "openssl"),
+           SimpleVersionOrder("1.0.2d",  "openssl"),
+           SimpleVersionOrder("1.1.0",   "openssl"),
+        ]
+        self.assertEqual(sorted(openssl_versions), openssl_versions)
         
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
