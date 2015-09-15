@@ -39,7 +39,7 @@ import tarfile
 import traceback
 import logging
 import shlex
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
 
 try:
     from conda.lock import Locked
@@ -183,7 +183,7 @@ def rm_rf(path, max_retries=5, trash=True):
 
                     if trash:
                         try:
-                            _move_to_trash(path)
+                            move_to_trash(path)
                             if not isdir(path):
                                 return
                         except OSError as e2:
@@ -518,35 +518,30 @@ def delete_trash(prefix):
         except OSError as e:
             log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
-def move_to_trash(prefix, f):
+def move_to_trash(path):
     """
-    Move a file f from prefix to the trash
+    Move a path to the trash
     """
-    return _move_to_trash(join(prefix, f))
+    # Try deleting the trash every time we use it.
+    delete_trash()
 
-def _move_to_trash(path):
-    """
-    Move a file f from prefix to the trash
-
-    tempdir should be the name of the directory in the trash
-    """
     from conda import config
 
     for pkg_dir in config.pkgs_dirs:
         import tempfile
         trash_dir = join(pkg_dir, '.trash')
 
-        try:
+        if not isdir(trash_dir):
             os.makedirs(trash_dir)
-        except OSError as e1:
-            if e1.errno != errno.EEXIST:
-                continue
 
         trash_dir = tempfile.mkdtemp(dir=trash_dir)
+        trash_dir = join(trash_dir, relpath(os.path.dirname(path), config.root_dir))
+
+        if not isdir(trash_dir):
+            os.makedirs(trash_dir)
 
         try:
-            shutil.move(path, join(trash_dir, os.path.basename(path)))
-
+            shutil.move(path, trash_dir)
         except OSError as e:
             log.debug("Could not move %s to %s (%s)" % (path, trash_dir, e))
         else:
@@ -554,7 +549,6 @@ def _move_to_trash(path):
 
     log.debug("Could not move %s to trash" % path)
     return False
-
 
 # FIXME This should contain the implementation that loads meta, not is_linked()
 def load_meta(prefix, dist):
@@ -604,7 +598,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                     log.error('failed to unlink: %r' % dst)
                     if on_win:
                         try:
-                            move_to_trash(prefix, f)
+                            move_to_trash(dst)
                         except ImportError:
                             # This shouldn't be an issue in the installer anyway
                             pass
@@ -694,7 +688,7 @@ def unlink(prefix, dist):
                 if on_win and os.path.exists(join(prefix, f)):
                     try:
                         log.debug("moving to trash")
-                        move_to_trash(prefix, f)
+                        move_to_trash(dst)
                     except ImportError:
                         # This shouldn't be an issue in the installer anyway
                         pass
