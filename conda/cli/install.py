@@ -196,12 +196,14 @@ def install(args, parser, command='install'):
         common.check_specs(prefix, specs, json=args.json,
                            create=(command == 'create'))
 
-    # handle tar file containing conda packages
+
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
             depends = misc.install_local_packages(prefix, args.packages,
                                                   verbose=not args.quiet)
+            if args.no_deps:
+                depends = []
             specs = list(set(depends))
             args.unknown = True
         else:
@@ -209,10 +211,14 @@ def install(args, parser, command='install'):
                 "cannot mix specifications with conda package filenames",
                 json=args.json,
                 error_type="ValueError")
+
+    # handle tar file containing conda packages
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
             depends = install_tar(prefix, tar_path, verbose=not args.quiet)
+            if args.no_deps:
+                depends = []
             specs = list(set(depends))
             args.unknown = True
 
