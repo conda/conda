@@ -24,7 +24,9 @@ class TestVersionSpec(unittest.TestCase):
         versions = [
            (SimpleVersionOrder("0.4"),        [[0], [0], [4]]),
            (SimpleVersionOrder("0.4.0"),      [[0], [0], [4], [0]]),
+           (SimpleVersionOrder("0.4.1a.vc11"),[[0], [0], [4], [1, 'a'],['vc', 11]]),
            (SimpleVersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], ['rc']]),
+           (SimpleVersionOrder("0.4.1.vc11"), [[0], [0], [4], [1],['vc', 11]]),
            (SimpleVersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
            (SimpleVersionOrder("0.5_"),       [[0], [0], [5, '_']]),
            (SimpleVersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
@@ -132,8 +134,16 @@ class TestMatchSpec(unittest.TestCase):
             m = MatchSpec(spec)
             self.assertEqual(m.match('numpy-1.7.1-py27_0.tar.bz2'), res)
 
+        # both version numbers conforming
         self.assertFalse(MatchSpec('numpy >=1.0.1').match('numpy-1.0.1a-0.tar.bz2'))
+        # both version numbers non-conforming
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match('numpy-1.0.1a.vc11-0.tar.bz2'))
+        self.assertTrue(MatchSpec('numpy >=1.0.1_.vc11').match('numpy-1.0.1a.vc11-0.tar.bz2'))
+        # one conforming, other non-conforming
+        self.assertTrue(MatchSpec('numpy <1.0.1').match('numpy-1.0.1.vc11-0.tar.bz2'))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match('numpy-1.0.1a.vc11-0.tar.bz2'))
         self.assertTrue(MatchSpec('numpy >=1.0.1_').match('numpy-1.0.1a-0.tar.bz2'))
+        self.assertFalse(MatchSpec('numpy >=1.0.1a').match('numpy-1.0.1_-0.tar.bz2'))
 
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')

@@ -177,8 +177,10 @@ def ver_eval(version, constraint):
     op, b = m.groups()
     na = normalized_version(a)
     nb = normalized_version(b)
-    a  = SimpleVersionOrder(a) 
-    b  = SimpleVersionOrder(b) 
+    if not isinstance(na, verlib.NormalizedVersion) or \
+       not isinstance(nb, verlib.NormalizedVersion):
+        na  = SimpleVersionOrder(a) 
+        nb  = SimpleVersionOrder(b) 
     if op == '==':
         try:
             return na == nb
@@ -238,6 +240,7 @@ class VersionSpec(object):
 
     def __init__(self, spec):
         assert '|' not in spec
+        self.spec = spec
         self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
 
     def match(self, version):
@@ -326,13 +329,14 @@ class Package(object):
         if self.name != other.name:
             raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
-        try:
+        if isinstance(self.norm_version, verlib.NormalizedVersion) and \
+           isinstance(other.norm_version, verlib.NormalizedVersion):
             # FIXME: 'self.build' and 'other.build' are intentionally swapped
             # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
             # FIXME: this should be reverted when the underlying problem is solved
             return ((self.norm_version, self.build_number, other.build) <
                     (other.norm_version, other.build_number, self.build))
-        except TypeError:
+        else:
             return ((self.list_version, self.build_number) <
                     (other.list_version, other.build_number))
 
