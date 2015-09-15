@@ -576,6 +576,9 @@ class Resolve(object):
             for sol in pretty_solutions:
                 stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
+        log.debug("Older versions in the solution(s):")
+        for sol in solutions:
+            log.debug([(i, w[j]) for i, j in eq if j in sol])
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
