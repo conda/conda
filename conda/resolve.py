@@ -22,11 +22,7 @@ stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
 
-def normalized_version(version, package_name=None):
-    if package_name in ['openssl', 'openssl-src-for-python']:
-        # give up on openssl because its versioning scheme is non-conforming
-        # in spite of occasional conforming version strings
-        return version
+def normalized_version(version):
     version = version.replace('rc', '.dev99999')
     try:
         return verlib.NormalizedVersion(version)
@@ -81,28 +77,19 @@ class SimpleVersionOrder(object):
          < 1!3.1.1.6
          < 2!0.4.1
          
-    Special handling is needed for the 'openssl' package because 'openssl' considers 
-    strings to be greater than numbers. You enforce this behavior by specifying
-    package_name='openssl'. The resulting order is 
+    Some packages (most notably openssl) have incompatible version conventions. 
+    In particular, openssl interprets letters as version counters rather than
+    pre-release identifier. For openssl, the relation
     
-         < 0.9.7m
-         < 0.9.8
-         < 0.9.8a
-         < 0.9.8z
-         < 0.9.8za
-         < 0.9.8zg
-         < 1.0.0
-         < 1.0.0a
-         < 1.0.0s
-         < 1.0.1
-         < 1.0.1a
-         < 1.0.1p
-         < 1.0.2
-         < 1.0.2a
-         < 1.0.2d
-         < 1.1.0
+      1.0.1 < 1.0.1a   =>   True   # for openssl
+      
+    holds, whereas conforming packages use the opposite ordering (interpreting 'a' 
+    as 'alpha'). You can work-around this problem by appending a dash to 
+    plain version numbers:
+    
+      1.0.1  =>  1.0.1_    # ensure correct ordering for openssl
     '''
-    def __init__(self, version, package_name=None):
+    def __init__(self, version):
         error = ValueError("Malformed version string '%s'." % version)
         # version comparison is case-insensitive
         version = version.strip().rstrip().lower()
@@ -126,13 +113,8 @@ class SimpleVersionOrder(object):
                 raise error
             version[k] = [int(j) if j.isdigit() else j   for j in c]
         self.version = version
-        # configure special version handling
-        if package_name in ['openssl', 'openssl-src-for-python']:
-            # in these packages, strings are greater than numbers
-            self.string_vs_int = False   
-        else:
-            # in general, strings are less than numbers
-            self.string_vs_int = True
+        # strings are less than numbers
+        self.string_vs_int = True
     
     def __eq__(self, other):
         # note: explicit padding is necessary to ensure '1.4' == '1.4.0'
@@ -181,17 +163,11 @@ class NoPackagesFound(RuntimeError):
         self.pkgs = pkgs
 
 const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
-def ver_eval(version, constraint, package_name=None):
+def ver_eval(version, constraint):
     """
     return the Boolean result of a comparison between two versions, where the
     second argument includes the comparison operator.  For example,
     ver_eval('1.2', '>=1.1') will return True.
-    
-    Since some packages (e.g. 'openssl') may require non-standard sorting order,
-    you can pass the package name as third parameter. For example,
-    
-      var_eval('1.0.1a', '>=1.0.1')             =>  False # alpha version is less than release
-      var_eval('1.0.1a', '>=1.0.1', 'openssl')  =>  True  # 'a' is just the next release here
     """
     a = version
     m = const_pat.match(constraint)
@@ -199,10 +175,10 @@ def ver_eval(version, constraint, package_name=None):
         raise RuntimeError("Did not recognize version specification: %r" %
                            constraint)
     op, b = m.groups()
-    na = normalized_version(a, package_name)
-    nb = normalized_version(b, package_name)
-    a  = SimpleVersionOrder(a, package_name) 
-    b  = SimpleVersionOrder(b, package_name) 
+    na = normalized_version(a)
+    nb = normalized_version(b)
+    a  = SimpleVersionOrder(a) 
+    b  = SimpleVersionOrder(b) 
     if op == '==':
         try:
             return na == nb
@@ -240,11 +216,10 @@ def ver_eval(version, constraint, package_name=None):
 
 class VersionSpecAtom(object):
 
-    def __init__(self, spec, package_name=None):
+    def __init__(self, spec):
         assert '|' not in spec
         assert ',' not in spec
         self.spec = spec
-        self.name = package_name
         if spec.startswith(('=', '<', '>', '!')):
             self.regex = False
         else:
@@ -257,13 +232,13 @@ class VersionSpecAtom(object):
         if self.regex:
             return bool(self.regex.match(version))
         else:
-            return ver_eval(version, self.spec, self.name)
+            return ver_eval(version, self.spec)
 
 class VersionSpec(object):
 
-    def __init__(self, spec, package_name=None):
+    def __init__(self, spec):
         assert '|' not in spec
-        self.constraints = [VersionSpecAtom(vs, package_name) for vs in spec.split(',')]
+        self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
 
     def match(self, version):
         return all(c.match(version) for c in self.constraints)
@@ -278,7 +253,7 @@ class MatchSpec(object):
         assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
         if self.strictness == 2:
-            self.vspecs = [VersionSpec(s, self.name) for s in parts[1].split('|')]
+            self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
 
@@ -325,8 +300,8 @@ class Package(object):
         self.build_number = info['build_number']
         self.build = info['build']
         self.channel = info.get('channel')
-        self.norm_version = normalized_version(self.version, self.name)
-        self.list_version = SimpleVersionOrder(self.version, self.name)
+        self.norm_version = normalized_version(self.version)
+        self.list_version = SimpleVersionOrder(self.version)
         self.info = info
 
     def _asdict(self):
