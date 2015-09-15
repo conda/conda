@@ -22,7 +22,11 @@ stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
 
-def normalized_version(version):
+def normalized_version(version, package_name=None):
+    if package_name in ['openssl', 'openssl-src-for-python']:
+        # give up on openssl because its versioning scheme is non-conforming
+        # in spite of occasional conforming version strings
+        return version
     version = version.replace('rc', '.dev99999')
     try:
         return verlib.NormalizedVersion(version)
@@ -36,18 +40,23 @@ class SimpleVersionOrder(object):
     '''
     This class implements a simple order relation between versions. 
     Version strings are parsed as follows:
-    * they are first split into components at '.'
+    * they are first split into epoch and version number at '!'
+      (if there is no '!', the epoch is set to 0)
+    * the version part is then split into components at '.'
     * each component is split again into runs of numerals and non-numerals
     * subcomponents containing only numerals are converted to integers
-    Example:
+    * strings are converted to lower case
+    * '-', '+', '_' are treated as letters, not separators
+    Examples:
     
-        1.2g.beta15.rc  =>  [[1], [2, 'g'], ['beta', 15], ['rc']]
+        1.2g.beta15.rc  =>  [[0], [1], [2, 'g'], ['beta', 15], ['rc']]
+        1!2.15.1_ALPHA  =>  [[1], [2], [15], [1, '_alpha']]
          
     The resulting lists are compared lexicographically, where the following
     rules apply for each pair of corresponding subcomponents:
     * integers are compared numerically
-    * strings are compared lexicographically
-    * if the subcomponents have different types, strings are smaller than integers
+    * strings are compared lexicographically, case-insensitive
+    * strings are smaller than integers
     * if a subcomponent has no correspondent, the missing correspondent is      
       treated as integer 0.
     The resulting order is:
@@ -55,9 +64,11 @@ class SimpleVersionOrder(object):
            0.4
         == 0.4.0     # due to 0-padding
          < 0.4.1.rc
+        == 0.4.1.RC  # case-insensitive comparison
          < 0.4.1
          < 0.5a1
          < 0.5b3
+         < 0.5C1     # case-insensitive comparison
          < 0.5
          < 0.9.6
          < 0.960923
@@ -66,14 +77,62 @@ class SimpleVersionOrder(object):
          < 1.0.4b1
          < 1.0.4
          < 1996.07.12
+         < 1!0.4.1   # epoch increased
+         < 1!3.1.1.6
+         < 2!0.4.1
+         
+    Special handling is needed for the 'openssl' package because 'openssl' considers 
+    strings to be greater than numbers. You enforce this behavior by specifying
+    package_name='openssl'. The resulting order is 
+    
+         < 0.9.7m
+         < 0.9.8
+         < 0.9.8a
+         < 0.9.8z
+         < 0.9.8za
+         < 0.9.8zg
+         < 1.0.0
+         < 1.0.0a
+         < 1.0.0s
+         < 1.0.1
+         < 1.0.1a
+         < 1.0.1p
+         < 1.0.2
+         < 1.0.2a
+         < 1.0.2d
+         < 1.1.0
     '''
-    def __init__(self, version):
-        self.version = version.split('.')
-        for k in range(len(self.version)):
-            c = re.findall('([0-9]+|[^0-9]+)', self.version[k])
+    def __init__(self, version, package_name=None):
+        error = ValueError("Malformed version string '%s'." % version)
+        # version comparison is case-insensitive
+        version = version.strip().rstrip().lower()
+        # find the epoch
+        version = version.split('!')
+        if len(version) == 1:
+            # epoch not given => set it to '0'
+            version = ['0'] + version[0].split('.')
+        elif len(version) == 2:
+            # epoch given, must be an integer
+            if not version[0].isdigit():
+                raise error
+            version = [version[0]] + version[1].split('.')
+        else:
+            raise error
+        # split into runs of numerals and non-numerals and
+        # convert numerals to int
+        for k in range(len(version)):
+            c = re.findall('([0-9]+|[^0-9]+)', version[k])
             if not c:
-                raise ValueError("Malformed version string '%s'." % version)
-            self.version[k] = [int(j) if j.isdigit() else j   for j in c]
+                raise error
+            version[k] = [int(j) if j.isdigit() else j   for j in c]
+        self.version = version
+        # configure special version handling
+        if package_name in ['openssl', 'openssl-src-for-python']:
+            # in these packages, strings are greater than numbers
+            self.string_vs_int = False   
+        else:
+            # in general, strings are less than numbers
+            self.string_vs_int = True
     
     def __eq__(self, other):
         # note: explicit padding is necessary to ensure '1.4' == '1.4.0'
@@ -89,12 +148,12 @@ class SimpleVersionOrder(object):
             for c1, c2 in zip_longest(v1, v2, fillvalue=0):
                 if isinstance(c1, string_types):
                     if not isinstance(c2, string_types):
-                        # str < int
-                        return True
+                        # str vs int
+                        return self.string_vs_int
                 else:
                     if isinstance(c2, string_types):
-                        # not (int < str)
-                        return False
+                        # int vs str
+                        return not self.string_vs_int
                 # c1 and c2 have the same type
                 if c1 < c2:
                     return True
@@ -245,8 +304,8 @@ class Package(object):
         self.build_number = info['build_number']
         self.build = info['build']
         self.channel = info.get('channel')
-        self.norm_version = normalized_version(self.version)
-        self.list_version = SimpleVersionOrder(self.version)
+        self.norm_version = normalized_version(self.version, self.name)
+        self.list_version = SimpleVersionOrder(self.version, self.name)
         self.info = info
 
     def _asdict(self):
