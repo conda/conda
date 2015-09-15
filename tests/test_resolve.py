@@ -108,7 +108,9 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.6.7', '>=1.7'), False)
         self.assertEqual(ver_eval('2013a', '>2013b'), False)
         self.assertEqual(ver_eval('2013k', '>2013b'), True)
-        self.assertEqual(ver_eval('3.0.0', '>2013b'), True)
+        self.assertEqual(ver_eval('3.0.0', '>2013b'), False)
+        self.assertEqual(ver_eval('1.0.0', '>1.0.0a'), True)
+        self.assertEqual(ver_eval('1.0.0', '>1.0.0a', 'openssl'), False)
 
     def test_ver_eval_errors(self):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
@@ -142,10 +144,14 @@ class TestMatchSpec(unittest.TestCase):
             ('numpy 1.6*|1.7*', True),     ('numpy 1.6*|1.8*', False),
             ('numpy 1.6.2|1.7*', True),    ('numpy 1.6.2|1.7.1', True),
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
-            ('numpy 1.7.1 py26_0', False), ('python', False),
+            ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
+            ('python', False),
             ]:
             m = MatchSpec(spec)
             self.assertEqual(m.match('numpy-1.7.1-py27_0.tar.bz2'), res)
+
+        self.assertFalse(MatchSpec('numpy >=1.0.1').match('numpy-1.0.1a-0.tar.bz2'))
+        self.assertTrue(MatchSpec('openssl >=1.0.1').match('openssl-1.0.1a-0.tar.bz2'))
 
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')

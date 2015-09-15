@@ -142,6 +142,9 @@ class SimpleVersionOrder(object):
                     return False
         return True
         
+    def __ne__(self, other):
+        return not (self == other)
+    
     def __lt__(self, other):
         # note: explicit padding is necessary to ensure '1.4' == '1.4.0'
         for v1, v2 in zip_longest(self.version, other.version, fillvalue=[0]):
@@ -163,17 +166,32 @@ class SimpleVersionOrder(object):
         # v1 == v2
         return False
 
+    def __gt__(self, other):
+        return other < self
+
+    def __le__(self, other):
+        return not (other < self)
+
+    def __ge__(self, other):
+        return not (self < other)
+
 class NoPackagesFound(RuntimeError):
     def __init__(self, msg, pkgs):
         super(NoPackagesFound, self).__init__(msg)
         self.pkgs = pkgs
 
 const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
-def ver_eval(version, constraint):
+def ver_eval(version, constraint, package_name=None):
     """
     return the Boolean result of a comparison between two versions, where the
     second argument includes the comparison operator.  For example,
     ver_eval('1.2', '>=1.1') will return True.
+    
+    Since some packages (e.g. 'openssl') may require non-standard sorting order,
+    you can pass the package name as third parameter. For example,
+    
+      var_eval('1.0.1a', '>=1.0.1')             =>  False # alpha version is less than release
+      var_eval('1.0.1a', '>=1.0.1', 'openssl')  =>  True  # 'a' is just the next release here
     """
     a = version
     m = const_pat.match(constraint)
@@ -181,8 +199,10 @@ def ver_eval(version, constraint):
         raise RuntimeError("Did not recognize version specification: %r" %
                            constraint)
     op, b = m.groups()
-    na = normalized_version(a)
-    nb = normalized_version(b)
+    na = normalized_version(a, package_name)
+    nb = normalized_version(b, package_name)
+    a  = SimpleVersionOrder(a, package_name) 
+    b  = SimpleVersionOrder(b, package_name) 
     if op == '==':
         try:
             return na == nb
@@ -220,10 +240,11 @@ def ver_eval(version, constraint):
 
 class VersionSpecAtom(object):
 
-    def __init__(self, spec):
+    def __init__(self, spec, package_name=None):
         assert '|' not in spec
         assert ',' not in spec
         self.spec = spec
+        self.name = package_name
         if spec.startswith(('=', '<', '>', '!')):
             self.regex = False
         else:
@@ -236,13 +257,13 @@ class VersionSpecAtom(object):
         if self.regex:
             return bool(self.regex.match(version))
         else:
-            return ver_eval(version, self.spec)
+            return ver_eval(version, self.spec, self.name)
 
 class VersionSpec(object):
 
-    def __init__(self, spec):
+    def __init__(self, spec, package_name=None):
         assert '|' not in spec
-        self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
+        self.constraints = [VersionSpecAtom(vs, package_name) for vs in spec.split(',')]
 
     def match(self, version):
         return all(c.match(version) for c in self.constraints)
@@ -257,7 +278,7 @@ class MatchSpec(object):
         assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
         if self.strictness == 2:
-            self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
+            self.vspecs = [VersionSpec(s, self.name) for s in parts[1].split('|')]
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
 
