@@ -93,7 +93,7 @@ class SimpleVersionOrder(object):
         error = ValueError("Malformed version string '%s'." % version)
         # version comparison is case-insensitive
         version = version.strip().rstrip().lower()
-        # find the epoch
+        # find epoch and version components
         version = version.split('!')
         if len(version) == 1:
             # epoch not given => set it to '0'
@@ -105,7 +105,7 @@ class SimpleVersionOrder(object):
             version = [version[0]] + version[1].split('.')
         else:
             raise error
-        # split into runs of numerals and non-numerals and
+        # split components into runs of numerals and non-numerals and
         # convert numerals to int
         for k in range(len(version)):
             c = re.findall('([0-9]+|[^0-9]+)', version[k])
@@ -333,7 +333,7 @@ class Package(object):
            isinstance(other.norm_version, verlib.NormalizedVersion):
             # FIXME: 'self.build' and 'other.build' are intentionally swapped
             # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
-            # FIXME: this should be reverted when the underlying problem is solved
+            # FIXME: This should be reverted when the underlying problem is solved.
             return ((self.norm_version, self.build_number, other.build) <
                     (other.norm_version, other.build_number, self.build))
         else:
@@ -345,21 +345,28 @@ class Package(object):
             return False
         if self.name != other.name:
             return False
-        try:
+        # FIXME: __eq__() is slightly inconsistent with __lt__() because the equivalence
+        # FIXME:       (a == b)  <===>  (not (a < b) and not (b < a))
+        # FIXME: is violated when only the build strings differ.
+        if isinstance(self.norm_version, verlib.NormalizedVersion) and \
+           isinstance(other.norm_version, verlib.NormalizedVersion):
             return ((self.norm_version, self.build_number, self.build) ==
                     (other.norm_version, other.build_number, other.build))
-        except TypeError:
-            return ((self.version, self.build_number, self.build) ==
-                    (other.version, other.build_number, other.build))
+        else:
+            return ((self.list_version, self.build_number, self.build) ==
+                    (other.list_version, other.build_number, other.build))
+
+    def __ne__(self, other):
+        return not (self == other)
 
     def __gt__(self, other):
-        return not (self.__lt__(other) or self.__eq__(other))
+        return other < self
 
     def __le__(self, other):
-        return self < other or self == other
+        return not (other < self)
 
     def __ge__(self, other):
-        return self > other or self == other
+        return not (self < other)
 
     def __repr__(self):
         return '<Package %s>' % self.fn
