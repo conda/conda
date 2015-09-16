@@ -507,7 +507,7 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
-def delete_trash(prefix):
+def delete_trash():
     from conda import config
 
     for pkg_dir in config.pkgs_dirs:
@@ -565,11 +565,6 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
-    if on_win:
-        # Try deleting the trash every time we link something.
-        delete_trash(prefix)
-
-
     index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
