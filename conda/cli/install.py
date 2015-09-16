@@ -357,7 +357,14 @@ environment does not exist: %s
                 # Not sure what to do here
                 pass
             args._skip = getattr(args, '_skip', ['anaconda'])
-            args._skip.extend([i.split()[0] for i in e.pkgs])
+            for pkg in e.pkgs:
+                p = pkg.split()[0]
+                if p in args._skip:
+                    # Avoid infinite recursion. This can happen if a spec
+                    # comes from elsewhere, like --file
+                    raise
+                args._skip.append(p)
+
             return install(args, parser, command=command)
         else:
             packages = {index[fn]['name'] for fn in index}
