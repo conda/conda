@@ -27,18 +27,18 @@ the standard library).
 
 from __future__ import print_function, division, absolute_import
 
-import time
-import os
-import json
 import errno
+import json
+import logging
+import os
+import shlex
 import shutil
 import stat
-import sys
 import subprocess
+import sys
 import tarfile
+import time
 import traceback
-import logging
-import shlex
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
 
 try:
@@ -531,14 +531,20 @@ def move_to_trash(path):
         import tempfile
         trash_dir = join(pkg_dir, '.trash')
 
-        if not isdir(trash_dir):
+        try:
             os.makedirs(trash_dir)
+        except OSError as e1:
+            if e1.errno != errno.EEXIST:
+                continue
 
         trash_dir = tempfile.mkdtemp(dir=trash_dir)
         trash_dir = join(trash_dir, relpath(os.path.dirname(path), config.root_dir))
 
-        if not isdir(trash_dir):
+        try:
             os.makedirs(trash_dir)
+        except OSError as e2:
+            if e2.errno != errno.EEXIST:
+                continue
 
         try:
             shutil.move(path, trash_dir)
