@@ -162,7 +162,11 @@ class NoPackagesFound(RuntimeError):
         super(NoPackagesFound, self).__init__(msg)
         self.pkgs = pkgs
 
-const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
+# This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
+# followed by a version string. It rejects expressions like
+# '<= 1.2' (space after operator), '<>1.2' (unknown operator),
+# and '<=!1.2' (nonsensical operator).
+const_pat = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
 def ver_eval(version, constraint):
     """
     return the Boolean result of a comparison between two versions, where the
@@ -175,9 +179,6 @@ def ver_eval(version, constraint):
         raise RuntimeError("Did not recognize version specification: %r" %
                            constraint)
     op, b = m.groups()
-    if not op in ('==', '!=', '<=', '>=', '<', '>'):
-        raise RuntimeError("Did not recognize version comparison operator: %r" %
-                           constraint)
     na = normalized_version(a)
     nb = normalized_version(b)
     if not isinstance(na, verlib.NormalizedVersion) or \
