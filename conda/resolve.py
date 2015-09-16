@@ -175,46 +175,16 @@ def ver_eval(version, constraint):
         raise RuntimeError("Did not recognize version specification: %r" %
                            constraint)
     op, b = m.groups()
+    if not op in ('==', '!=', '<=', '>=', '<', '>'):
+        raise RuntimeError("Did not recognize version comparison operator: %r" %
+                           constraint)
     na = normalized_version(a)
     nb = normalized_version(b)
     if not isinstance(na, verlib.NormalizedVersion) or \
        not isinstance(nb, verlib.NormalizedVersion):
         na  = SimpleVersionOrder(a) 
         nb  = SimpleVersionOrder(b) 
-    if op == '==':
-        try:
-            return na == nb
-        except TypeError:
-            return a == b
-    elif op == '>=':
-        try:
-            return na >= nb
-        except TypeError:
-            return a >= b
-    elif op == '<=':
-        try:
-            return na <= nb
-        except TypeError:
-            return a <= b
-    elif op == '>':
-        try:
-            return na > nb
-        except TypeError:
-            return a > b
-    elif op == '<':
-        try:
-            return na < nb
-        except TypeError:
-            return a < b
-    elif op == '!=':
-        try:
-            return na != nb
-        except TypeError:
-            return a != b
-    else:
-        raise RuntimeError("Did not recognize version comparison operator: %r" %
-                           constraint)
-
+    return eval('na' + op + 'nb')
 
 class VersionSpecAtom(object):
 
