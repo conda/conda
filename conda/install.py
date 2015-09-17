@@ -56,6 +56,24 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
+try:
+    import concurrent.futures
+    import multiprocessing
+    Executor = lambda: concurrent.futures.ThreadPoolExecutor(
+        max_workers=multiprocessing.cpu_count())
+    has_futures = True
+except ImportError:
+    has_futures = False
+    class Executor(object):
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            pass
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
 on_win = bool(sys.platform == 'win32')
 
 if on_win:
@@ -581,33 +599,49 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     no_link = read_no_link(info_dir)
 
     with Locked(prefix), Locked(pkgs_dir):
-        for f in files:
-            src = join(source_dir, f)
-            dst = join(prefix, f)
-            dst_dir = dirname(dst)
-            if not isdir(dst_dir):
-                os.makedirs(dst_dir)
-            if os.path.exists(dst):
-                log.warn("file already exists: %r" % dst)
-                try:
-                    os.unlink(dst)
-                except OSError:
-                    log.error('failed to unlink: %r' % dst)
-                    if on_win:
-                        try:
-                            move_to_trash(prefix, f)
-                        except ImportError:
-                            # This shouldn't be an issue in the installer anyway
-                            pass
+        futures = {}
+        with Executor() as executor:
+            for f in files:
+                src = join(source_dir, f)
+                dst = join(prefix, f)
+                dst_dir = dirname(dst)
+                if not isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                if os.path.exists(dst):
+                    log.warn("file already exists: %r" % dst)
+                    try:
+                        os.unlink(dst)
+                    except OSError:
+                        log.error('failed to unlink: %r' % dst)
+                        if on_win:
+                            try:
+                                move_to_trash(prefix, f)
+                            except ImportError:
+                                # This shouldn't be an issue in the installer anyway
+                                pass
 
-            lt = linktype
-            if f in has_prefix_files or f in no_link or islink(src):
-                lt = LINK_COPY
-            try:
-                _link(src, dst, lt)
-            except OSError as e:
-                log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                          (src, dst, lt, e))
+                lt = linktype
+                if f in has_prefix_files or f in no_link or islink(src):
+                    lt = LINK_COPY
+
+                if has_futures:
+                    future = executor.submit(_link, src, dst, lt)
+                    futures[future] = (src, dst, lt)
+                else:
+                    try:
+                        _link(src,dst,lt)
+                    except OSError as e:
+                        log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                  (src, dst, lt, e))
+
+            if has_futures:
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except OSError as e:
+                        src, dst, lt = futures[future]
+                        log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                  (src, dst, lt, e))
 
         if name_dist(dist) == '_cache':
             return
