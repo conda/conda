@@ -610,7 +610,7 @@ class Resolve(object):
 
         # Don't show the dots from solve2 in normal mode but do show the
         # dotlog messages with --debug
-        dotlog.setLevel(logging.WARN)
+        dotlog.setLevel(logging.INFO)
 
         def sat(specs):
             try:
