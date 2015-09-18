@@ -464,7 +464,7 @@ class Resolve(object):
         return result
 
     def solve2(self, specs, features, guess=True, alg='BDD',
-        returnall=False, minimal_hint=False, unsat_only=False):
+        returnall=False, minimal_hint=False, unsat_only=False, try_max_only=None):
 
         log.debug("Solving for %s" % str(specs))
 
@@ -473,34 +473,41 @@ class Resolve(object):
         # complicated cases that the pseudo-boolean solver does, but it's also
         # much faster when it does work.
 
-        try:
-            dists = self.get_dists(specs, max_only=True)
-        except NoPackagesFound:
-            # Handle packages that are not included because some dependencies
-            # couldn't be found.
-            pass
-        else:
-            v = {}  # map fn to variable number
-            w = {}  # map variable number to fn
-            i = -1  # in case the loop doesn't run
-            for i, fn in enumerate(sorted(dists)):
-                v[fn] = i + 1
-                w[i + 1] = fn
-            m = i + 1
+        if try_max_only is None:
+            if unsat_only:
+                try_max_only = False
+            else:
+                try_max_only = True
 
-            dotlog.debug("Solving using max dists only")
-            clauses = set(self.gen_clauses(v, dists, specs, features))
+        if try_max_only:
             try:
-                solutions = min_sat(clauses, alg='iterate',
-                    raise_on_max_n=True)
-            except MaximumIterationsError:
+                dists = self.get_dists(specs, max_only=True)
+            except NoPackagesFound:
+                # Handle packages that are not included because some dependencies
+                # couldn't be found.
                 pass
             else:
-                if len(solutions) == 1:
-                    ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                    if returnall:
-                        return [ret]
-                    return ret
+                v = {}  # map fn to variable number
+                w = {}  # map variable number to fn
+                i = -1  # in case the loop doesn't run
+                for i, fn in enumerate(sorted(dists)):
+                    v[fn] = i + 1
+                    w[i + 1] = fn
+                m = i + 1
+
+                dotlog.debug("Solving using max dists only")
+                clauses = set(self.gen_clauses(v, dists, specs, features))
+                try:
+                    solutions = min_sat(clauses, alg='iterate',
+                        raise_on_max_n=True)
+                except MaximumIterationsError:
+                    pass
+                else:
+                    if len(solutions) == 1:
+                        ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+                        if returnall:
+                            return [ret]
+                        return ret
 
         dists = self.get_dists(specs)
 
@@ -610,7 +617,7 @@ class Resolve(object):
 
         # Don't show the dots from solve2 in normal mode but do show the
         # dotlog messages with --debug
-        dotlog.setLevel(logging.WARN)
+        dotlog.setLevel(logging.INFO)
 
         def sat(specs):
             try:
