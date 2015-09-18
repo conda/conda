@@ -1,4 +1,3 @@
-import sys
 from os.path import join
 
 import conda.config as config

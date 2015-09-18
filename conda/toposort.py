@@ -26,7 +26,7 @@ items in the preceding sets.
     data.update({item:set() for item in extra_items_in_deps})
     while True:
 
-        ordered = set(item for item, dep in data.items() if len(dep) == 0)
+        ordered = sorted(set(item for item, dep in data.items() if len(dep) == 0))
         if not ordered:
             break
 
@@ -34,8 +34,8 @@ items in the preceding sets.
             yield item
             data.pop(item, None)
 
-        for dep in data.values():
-            dep -= ordered
+        for dep in sorted(data.values()):
+            dep -= set(ordered)
 #         data = {item: (dep - ordered)
 #                 for item, dep in data.items()
 #                     if item not in ordered}
@@ -47,7 +47,7 @@ items in the preceding sets.
 def pop_key(data):
     '''
     Pop an item from the graph that has the fewest dependencies in the case of a tie
-    The winners will be sorted alphabetically  
+    The winners will be sorted alphabetically
     '''
     items = sorted(data.items(), key=lambda item: (len(item[1]), item[0]))
     key = items[0][0]
@@ -63,7 +63,7 @@ def _safe_toposort(data):
     """Dependencies are expressed as a dictionary whose keys are items
 and whose values are a set of dependent items. Output is a list of
 sets in topological order. The first set consists of items with no
-dependences, each subsequent set consists of items that depend upon
+dependencies, each subsequent set consists of items that depend upon
 items in the preceding sets.
 """
 
@@ -78,7 +78,7 @@ items in the preceding sets.
             value = next(t)
             yield value
         except ValueError as err:
-            log.warn(err.args[0])
+            log.debug(err.args[0])
 
             if not data:
                 return
@@ -96,9 +96,17 @@ def toposort(data, safe=True):
 
     data = {k:set(v) for k, v in data.items()}
 
+    if 'python' in data:
+        # Special case: Remove circular dependency between python and pip,
+        # to ensure python is always installed before anything that needs it.
+        # For more details:
+        # - https://github.com/conda/conda/issues/1152
+        # - https://github.com/conda/conda/pull/1154
+        # - https://github.com/conda/conda-build/issues/401
+        # - https://github.com/conda/conda/pull/1614
+        data['python'].discard('pip')
+
     if safe:
         return list(_safe_toposort(data))
     else:
         return list(_toposort(data))
-
-

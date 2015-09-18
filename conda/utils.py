@@ -1,11 +1,44 @@
 from __future__ import print_function, division, absolute_import
 
+import logging
 import sys
 import hashlib
 import collections
 from functools import partial
 from os.path import abspath, isdir, join
 import os
+
+log = logging.getLogger(__name__)
+stderrlog = logging.getLogger('stderrlog')
+
+def can_open(file):
+    """
+    Return True if the given ``file`` can be opened for writing
+    """
+    try:
+        fp = open(file, "ab")
+        fp.close()
+        return True
+    except IOError:
+        stderrlog.info("Unable to open %s\n" % file)
+        return False
+
+
+def can_open_all(files):
+    """
+    Return True if all of the provided ``files`` can be opened
+    """
+    for f in files:
+        if not can_open(f):
+            return False
+    return True
+
+
+def can_open_all_files_in_prefix(prefix, files):
+    """
+    Returns True if all ``files`` at a given ``prefix`` can be opened
+    """
+    return can_open_all((os.path.join(prefix, f) for f in files))
 
 def try_write(dir_path):
     assert isdir(dir_path)
@@ -22,10 +55,10 @@ def try_write(dir_path):
 
 
 def hashsum_file(path, mode='md5'):
+    h = hashlib.new(mode)
     with open(path, 'rb') as fi:
-        h = hashlib.new(mode)
         while True:
-            chunk = fi.read(262144)
+            chunk = fi.read(262144)  # process chunks of 256KB
             if not chunk:
                 break
             h.update(chunk)
@@ -39,7 +72,7 @@ def md5_file(path):
 def url_path(path):
     path = abspath(path)
     if sys.platform == 'win32':
-        path = '/' + path.replace(':', '|')
+        path = '/' + path.replace(':', '|').replace('\\', '/')
     return 'file://%s' % path
 
 
@@ -68,11 +101,18 @@ class memoized(object):
         self.func = func
         self.cache = {}
     def __call__(self, *args, **kw):
-        if not isinstance(args, collections.Hashable):
-            # uncacheable. a list, for instance.
-            # better to not cache than blow up.
-            return self.func(*args, **kw)
-        key = (args, frozenset(kw.items()))
+        newargs = []
+        for arg in args:
+            if isinstance(arg, list):
+                newargs.append(tuple(arg))
+            elif not isinstance(arg, collections.Hashable):
+                # uncacheable. a list, for instance.
+                # better to not cache than blow up.
+                return self.func(*args, **kw)
+            else:
+                newargs.append(arg)
+        newargs = tuple(newargs)
+        key = (newargs, frozenset(kw.items()))
         if key in self.cache:
             return self.cache[key]
         else:

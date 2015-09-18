@@ -1,4 +1,4 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -21,20 +21,30 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
+# CONDA_FORCE_32BIT should only be used when running conda-build (in order
+# to build 32-bit packages on a 64-bit system).  We don't want to mention it
+# in the documentation, because it can mess up a lot of things.
+force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
 
 # ----- operating system and architecture -----
 
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
             'darwin': 'osx', 'win32': 'win'}
+non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
+if force_32bit:
+    if bits == 32:
+        sys.exit("Error: you cannot set CONDA_FORCE_32BIT using "
+                 "32-bit already.")
+    bits = 32
 
-if platform == 'linux' and machine() == 'armv6l':
-    subdir = 'linux-armv6l'
-    arch_name = 'armv6l'
+if platform == 'linux' and machine() in non_x86_linux_machines:
+    arch_name = machine()
+    subdir = 'linux-%s' % arch_name
 else:
-    subdir = '%s-%d' % (platform, bits)
     arch_name = {64: 'x86_64', 32: 'x86'}[bits]
+    subdir = '%s-%d' % (platform, bits)
 
 # ----- rc file -----
 
@@ -53,29 +63,35 @@ rc_list_keys = [
     'envs_dirs'
     ]
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.binstar.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
 ADD_BINSTAR_TOKEN = True
 
 rc_bool_keys = [
     'add_binstar_token',
+    'add_anaconda_token',
+    'add_pip_as_python_dependency',
     'always_yes',
     'allow_softlinks',
     'changeps1',
     'use_pip',
+    'offline',
     'binstar_upload',
-    'binstar_personal',
+    'anaconda_upload',
     'show_channel_urls',
     'allow_other_channels',
+]
+
+rc_string_keys = [
     'ssl_verify',
-    ]
+    'channel_alias',
+    'root_dir',
+]
 
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
-    'root_dir',
-    'channel_alias',
-    ]
+]
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
@@ -101,7 +117,8 @@ def load_condarc(path):
     except ImportError:
         sys.exit('Error: could not import yaml (required to read .condarc '
                  'config file: %s)' % path)
-    return yaml.load(open(path)) or {}
+    with open(path) as f:
+        return yaml.load(f) or {}
 
 rc = load_condarc(rc_path)
 sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
@@ -144,7 +161,7 @@ envs_dirs = [abspath(expanduser(path)) for path in (
 
 def pkgs_dir_from_envs_dir(envs_dir):
     if abspath(envs_dir) == abspath(join(root_dir, 'envs')):
-        return join(root_dir, 'pkgs')
+        return join(root_dir, 'pkgs32' if force_32bit else 'pkgs')
     else:
         return join(envs_dir, '.pkgs')
 
@@ -175,8 +192,8 @@ def get_default_urls():
         if 'default_channels' in sys_rc:
             return sys_rc['default_channels']
 
-    return ['http://repo.continuum.io/pkgs/free',
-            'http://repo.continuum.io/pkgs/pro']
+    return ['https://repo.continuum.io/pkgs/free',
+            'https://repo.continuum.io/pkgs/pro']
 
 def get_rc_urls():
     if rc.get('channels') is None:
@@ -190,7 +207,8 @@ def is_url(url):
 
 @memoized
 def binstar_channel_alias(channel_alias):
-    if rc.get('add_binstar_token', ADD_BINSTAR_TOKEN):
+    if rc.get('add_anaconda_token',
+              rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
         try:
             from binstar_client.utils import get_binstar
             bs = get_binstar()
@@ -211,7 +229,7 @@ channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
     (re.escape(channel_alias)))
 
 def hide_binstar_tokens(url):
@@ -222,7 +240,7 @@ def remove_binstar_tokens(url):
 
 def normalize_urls(urls, platform=None):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
-        DEFAULT_CHANNEL_ALIAS))
+                                                 DEFAULT_CHANNEL_ALIAS))
 
     platform = platform or subdir
     newurls = []
@@ -242,22 +260,28 @@ def normalize_urls(urls, platform=None):
             newurls.extend(moreurls)
         else:
             newurls.append('%s/%s/' % (url.rstrip('/'), platform))
+            newurls.append('%s/noarch/' % url.rstrip('/'))
     return newurls
+
+offline = bool(rc.get('offline', False))
 
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         base_urls = ['http://filer/pkgs/pro',
                      'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST') == '2':
+        if os.getenv('CIO_TEST').strip() == '2':
             base_urls.insert(0, 'http://filer/test-pkgs')
+        return normalize_urls(base_urls, platform=platform)
 
-    elif 'channels' not in rc:
+    if 'channels' not in rc:
         base_urls = get_default_urls()
-
     else:
         base_urls = get_rc_urls()
 
-    return normalize_urls(base_urls, platform=platform)
+    res = normalize_urls(base_urls, platform=platform)
+    if offline:
+        res = [url for url in res if url.startswith('file:')]
+    return res
 
 def canonical_channel_name(channel, hide=True):
     if channel is None:
@@ -298,10 +322,7 @@ allowed_channels = get_allowed_channels()
 # ----- proxy -----
 
 def get_proxy_servers():
-    res = rc.get('proxy_servers')
-    if res is None:
-        import requests
-        return requests.utils.getproxies()
+    res = rc.get('proxy_servers') or {}
     if isinstance(res, dict):
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
@@ -316,11 +337,12 @@ except IOError:
 
 # ----- misc -----
 
+add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
 always_yes = bool(rc.get('always_yes', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
-binstar_upload = rc.get('binstar_upload', None) # None means ask
-binstar_personal = bool(rc.get('binstar_personal', True))
+binstar_upload = rc.get('anaconda_upload',
+                        rc.get('binstar_upload', None)) # None means ask
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded
@@ -329,7 +351,10 @@ show_channel_urls = bool(rc.get('show_channel_urls', False))
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
-ssl_verify = bool(rc.get('ssl_verify', True))
+
+# ssl_verify can be a boolean value or a filename string
+ssl_verify = rc.get('ssl_verify', True)
+
 try:
     track_features = set(rc['track_features'].split())
 except KeyError:

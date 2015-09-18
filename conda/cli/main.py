@@ -40,24 +40,6 @@ Additional help for each command can be accessed by using:
 from __future__ import print_function, division, absolute_import
 
 import sys
-import argparse
-
-from conda.cli import common
-from conda.cli import conda_argparse
-from conda.cli import main_bundle
-from conda.cli import main_create
-from conda.cli import main_help
-from conda.cli import main_init
-from conda.cli import main_info
-from conda.cli import main_install
-from conda.cli import main_list
-from conda.cli import main_remove
-from conda.cli import main_package
-from conda.cli import main_run
-from conda.cli import main_search
-from conda.cli import main_update
-from conda.cli import main_config
-from conda.cli import main_clean
 
 def main():
     if len(sys.argv) > 1:
@@ -121,6 +103,8 @@ In short:
         sys.argv.append('-h')
 
     import logging
+    from conda.cli import conda_argparse
+    import argparse
     import conda
 
     p = conda_argparse.ArgumentParser(
@@ -128,13 +112,14 @@ In short:
     )
     p.add_argument(
         '-V', '--version',
-        action = 'version',
-        version = 'conda %s' % conda.__version__,
+        action='version',
+        version='conda %s' % conda.__version__,
+        help="Show the conda version number and exit."
     )
     p.add_argument(
         "--debug",
         action = "store_true",
-        help = argparse.SUPPRESS,
+        help = "Show debug output."
     )
     p.add_argument(
         "--json",
@@ -146,37 +131,43 @@ In short:
         dest = 'cmd',
     )
 
+    from conda.cli import main_info
     main_info.configure_parser(sub_parsers)
+    from conda.cli import main_help
     main_help.configure_parser(sub_parsers)
+    from conda.cli import main_list
     main_list.configure_parser(sub_parsers)
+    from conda.cli import main_search
     main_search.configure_parser(sub_parsers)
+    from conda.cli import main_create
     main_create.configure_parser(sub_parsers)
+    from conda.cli import main_install
     main_install.configure_parser(sub_parsers)
+    from conda.cli import main_update
     main_update.configure_parser(sub_parsers)
+    from conda.cli import main_remove
     main_remove.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers, name='uninstall')
+    from conda.cli import main_run
     main_run.configure_parser(sub_parsers)
+    from conda.cli import main_config
     main_config.configure_parser(sub_parsers)
+    from conda.cli import main_init
     main_init.configure_parser(sub_parsers)
+    from conda.cli import main_clean
     main_clean.configure_parser(sub_parsers)
+    from conda.cli import main_package
     main_package.configure_parser(sub_parsers)
+    from conda.cli import main_bundle
     main_bundle.configure_parser(sub_parsers)
 
-    try:
-        import argcomplete
-        argcomplete.autocomplete(p)
-    except ImportError:
-        pass
-    except AttributeError:
-        # On Python 3.3, argcomplete can be an empty namespace package when
-        # we are in the conda-recipes directory.
-        pass
-
+    from conda.cli.find_commands import find_commands
+    sub_parsers.completer = lambda prefix, **kwargs: [i for i in
+        list(sub_parsers.choices) + find_commands() if i.startswith(prefix)]
     args = p.parse_args()
 
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
-        import logging
         for logger in logging.Logger.manager.loggerDict:
             if logger not in ('fetch', 'progress'):
                 logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
@@ -189,6 +180,7 @@ In short:
         'init' not in sys.argv and 'info' not in sys.argv):
         if hasattr(args, 'name') and hasattr(args, 'prefix'):
             import conda.config as config
+            from conda.cli import common
             if common.get_prefix(args) == config.root_dir:
                 sys.exit("""\
 Error: This installation of conda is not initialized. Use 'conda create -n
@@ -202,13 +194,24 @@ activate it.
     args_func(args, p)
 
 def args_func(args, p):
+    from conda.cli import common
+
     use_json = getattr(args, 'json', False)
     try:
         args.func(args, p)
     except RuntimeError as e:
+        if 'maximum recursion depth exceeded' in str(e):
+            print_issue_message(e, use_json=use_json)
+            raise
         common.error_and_exit(str(e), json=use_json)
     except Exception as e:
-        if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
+        print_issue_message(e, use_json=use_json)
+        raise  # as if we did not catch it
+
+def print_issue_message(e, use_json=False):
+    from conda.cli import common
+    message = ""
+    if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
@@ -218,12 +221,11 @@ following traceback to the conda GitHub issue tracker at:
 Include the output of the command 'conda info' in your report.
 
 """
-            if use_json:
-                import traceback
-                common.error_and_exit(message + traceback.format_exc(),
-                                      error_type="UnexpectedError", json=True)
-            print(message)
-        raise  # as if we did not catch it
+    if use_json:
+        import traceback
+        common.error_and_exit(message + traceback.format_exc(),
+                              error_type="UnexpectedError", json=True)
+    print(message)
 
 if __name__ == '__main__':
     main()

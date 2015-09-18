@@ -17,8 +17,8 @@ from os.path import (abspath, basename, dirname, expanduser, exists,
 from conda import config
 from conda import install
 from conda.api import get_index
-from conda.plan import (RM_EXTRACTED, EXTRACT, UNLINK, LINK,
-                        ensure_linked_actions, execute_actions)
+from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from conda.plan import ensure_linked_actions, execute_actions
 from conda.compat import iteritems
 
 
@@ -37,14 +37,14 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-def rel_path(prefix, path):
+def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1:]
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and windows_forward_slashes:
         res = res.replace('\\', '/')
     return res
 
 
-def walk_prefix(prefix, ignore_predefined_files=True):
+def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
     """
     Return the set of all files in a given prefix directory.
     """
@@ -68,11 +68,11 @@ def walk_prefix(prefix, ignore_predefined_files=True):
                 if ignore_predefined_files:
                     if root == join(prefix, 'bin') and fn2 in binignore:
                         continue
-                res.add(rel_path(prefix, join(root, fn2)))
+                res.add(rel_path(prefix, join(root, fn2), windows_forward_slashes=windows_forward_slashes))
             for dn in dirs:
                 path = join(root, dn)
                 if islink(path):
-                    res.add(rel_path(prefix, path))
+                    res.add(rel_path(prefix, path, windows_forward_slashes=windows_forward_slashes))
     return res
 
 
@@ -83,7 +83,7 @@ def untracked(prefix, exclude_self_build=False):
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or
-                     (sys.platform=='darwin' and path.endswith('.DS_Store')) or
+                     (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
                      (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
@@ -145,7 +145,7 @@ def append_env(prefix):
         pass
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
     """
     clone existing prefix1 into new prefix2
     """
@@ -175,7 +175,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
             s = data.decode('utf-8')
             s = s.replace(prefix1, prefix2)
             data = s.encode('utf-8')
-        except UnicodeDecodeError: # data is binary
+        except UnicodeDecodeError:  # data is binary
             pass
 
         with open(dst, 'wb') as fo:
@@ -183,7 +183,9 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False):
         shutil.copystat(src, dst)
 
     actions = ensure_linked_actions(dists, prefix2)
-    execute_actions(actions, index=get_index(), verbose=not quiet)
+    if index is None:
+        index = get_index()
+    execute_actions(actions, index=index, verbose=not quiet)
 
     return actions, untracked_files
 
@@ -220,7 +222,6 @@ def install_local_packages(prefix, paths, verbose=False):
             depends.extend(meta['depends'])
         except (IOError, KeyError):
             continue
-    print('depends: %r' % depends)
     return depends
 
 
@@ -228,8 +229,7 @@ def environment_for_conda_environment(prefix=config.root_dir):
     # prepend the bin directory to the path
     fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
     binpath = fmt % abspath(prefix)
-    path = r'%s;%s' if sys.platform == 'win32' else '%s:%s'
-    path = path % (binpath, os.getenv('PATH'))
+    path = os.path.pathsep.join([binpath, os.getenv('PATH')])
     env = {'PATH': path}
     # copy existing environment variables, but not anything with PATH in it
     for k, v in iteritems(os.environ):
@@ -281,8 +281,6 @@ def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
     if sys.platform == 'win32' and cmd == 'python':
         # python is located one directory up on Windows
         cmd = join(binpath, '..', cmd)
-    else:
-        cmd = join(binpath, cmd)
 
     args = shlex.split(cmd)
     if additional_args:
@@ -306,8 +304,8 @@ def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
         base_url = dirname(info['channel'].rstrip('/'))
         icon_fn = info['icon']
-        #icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
-        #if isfile(icon_cache_path):
+        # icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+        # if isfile(icon_cache_path):
         #    return url_path(icon_cache_path)
         return '%s/icons/%s' % (base_url, icon_fn)
     return ''

@@ -9,8 +9,6 @@ env:
   - PYCOSAT=0.6.0
 install:
   # TODO: Use a "latest" url
-  - sudo apt-get update
-  - sudo apt-get install zsh
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget http://repo.continuum.io/miniconda/Miniconda-3.5.2-Linux-x86_64.sh -O miniconda.sh;
     elif [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
@@ -22,14 +20,27 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - conda install pytest requests
+  - bin/conda install --force --no-deps conda requests
+  - conda --version
+  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
   - python setup.py install
   - conda info -a
 
-script: py.test
+script:
+  - shopt -s extglob globstar
+  - pyflakes conda/**/!(compat|__init__).py bin setup.py tests
+  - py.test
+  - conda --help
 
 notifications:
     flowdock: ef3821a08a791106512ccfc04c92eccb
+
+addons:
+  apt:
+    packages:
+      - zsh
+
+sudo: false

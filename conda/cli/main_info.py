@@ -10,50 +10,65 @@ import re
 import sys
 import os
 from os import listdir
-from os.path import isfile, exists, expanduser, join
+from os.path import exists, expanduser, join
 from collections import defaultdict, OrderedDict
+import json
 
 from conda.cli import common
 
 
 help = "Display information about current conda install."
 
+example = """
+
+Examples:
+
+    conda info -a
+"""
 
 def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser('info',
-                               description = help,
-                               help = help)
+    p = sub_parsers.add_parser(
+        'info',
+        description=help,
+        help=help,
+        epilog=example,
+    )
     common.add_parser_json(p)
     p.add_argument(
         '-a', "--all",
-        action  = "store_true",
-        help    = "show all information, (environments, license, and system "
-                  "information")
+        action="store_true",
+        help="Show all information, (environments, license, and system "
+                  "information.")
     p.add_argument(
         '-e', "--envs",
-        action  = "store_true",
-        help    = "list all known conda environments",
+        action="store_true",
+        help="List all known conda environments.",
     )
     p.add_argument(
         '-l', "--license",
-        action  = "store_true",
-        help    = "display information about local conda licenses list",
+        action="store_true",
+        help="Display information about the local conda licenses list.",
     )
     p.add_argument(
         '-s', "--system",
-        action = "store_true",
-        help = "list environment variables",
+        action="store_true",
+        help="List environment variables.",
     )
     p.add_argument(
         'packages',
-        action = "store",
-        nargs = '*',
-        help = "display information about packages",
+        action="store",
+        nargs='*',
+        help="Display information about packages.",
     )
     p.add_argument(
         '--root',
         action='store_true',
-        help='display root environment path',
+        help='Display root environment path.',
+    )
+    p.add_argument(
+        '--unsafe-channels',
+        action='store_true',
+        help='Display list of channels with tokens exposed.',
     )
     p.set_defaults(func=execute)
 
@@ -76,8 +91,8 @@ def show_pkg_info(name):
         print('    not available')
     # TODO
 
-python_re = re.compile('python\d\.\d')
 
+python_re = re.compile('python\d\.\d')
 def get_user_site():
     site_dirs = []
     if sys.platform != 'win32':
@@ -91,7 +106,7 @@ def get_user_site():
         APPDATA = os.environ['APPDATA']
         if exists(join(APPDATA, 'Python')):
             site_dirs = [join(APPDATA, 'Python', i) for i in
-                listdir(join(APPDATA, 'PYTHON'))]
+                         listdir(join(APPDATA, 'PYTHON'))]
     return site_dirs
 
 
@@ -116,7 +131,6 @@ def pretty_package(pkg):
             continue
         d[key] = rest[key]
 
-
     print()
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
     print(header)
@@ -132,11 +146,10 @@ def pretty_package(pkg):
 
 def execute(args, parser):
     import os
-    from os.path import basename, dirname
+    from os.path import dirname
 
     import conda
     import conda.config as config
-    import conda.misc as misc
     from conda.resolve import Resolve, MatchSpec
     from conda.cli.main_init import is_initialized
     from conda.api import get_index, get_package_versions
@@ -162,9 +175,8 @@ def execute(args, parser):
 
         for spec in specs:
             versions = r.get_pkgs(MatchSpec(spec))
-            for pkg in versions:
+            for pkg in sorted(versions):
                 pretty_package(pkg)
-
         return
 
     options = 'envs', 'system', 'license'
@@ -204,15 +216,21 @@ def execute(args, parser):
                      requests_version=requests_version,
     )
 
+    if args.unsafe_channels:
+        if not args.json:
+            print("\n".join(info_dict["channels"]))
+        else:
+            print(json.dumps({"channels": info_dict["channels"]}))
+        return 0
+    else:
+        info_dict['channels'] = [config.hide_binstar_tokens(c) for c in
+                                 info_dict['channels']]
     if args.all or args.json:
         for option in options:
             setattr(args, option, True)
 
-    info_dict['channels_disp'] = [config.hide_binstar_tokens(c) for c in
-        info_dict['channels']]
-
     if args.all or all(not getattr(args, opt) for opt in options):
-        for key in 'pkgs_dirs', 'envs_dirs', 'channels_disp':
+        for key in 'pkgs_dirs', 'envs_dirs', 'channels':
             info_dict['_' + key] = ('\n' + 24 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
                                'read only')
@@ -228,7 +246,7 @@ Current conda install:
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
         package cache : %(_pkgs_dirs)s
-         channel URLs : %(_channels_disp)s
+         channel URLs : %(_channels)s
           config file : %(rc_path)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
@@ -236,8 +254,6 @@ Current conda install:
             print("""\
 # NOTE:
 #     root directory '%s' is uninitialized""" % config.root_dir)
-
-    del info_dict['channels_disp']
 
     if args.envs:
         common.handle_envs_list(info_dict['envs'], not args.json)

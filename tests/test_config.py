@@ -9,6 +9,8 @@ import unittest
 from os.path import dirname, join, exists
 import yaml
 
+import pytest
+
 import conda.config as config
 
 from tests.helpers import run_conda_command
@@ -67,27 +69,37 @@ class TestConfig(unittest.TestCase):
 
     def test_normalize_urls(self):
         current_platform = config.subdir
-        assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.binstar.org/'
+        assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
 
         for channel in config.normalize_urls(['defaults', 'system',
-            'https://binstar.org/username', 'file:///Users/username/repo',
+            'https://anaconda.org/username', 'file:///Users/username/repo',
             'username']):
-            assert channel.endswith('/%s/' % current_platform)
+            assert (channel.endswith('/%s/' % current_platform) or
+                    channel.endswith('/noarch/'))
         self.assertEqual(config.normalize_urls([
-            'defaults', 'system', 'https://conda.binstar.org/username',
+            'defaults', 'system', 'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 'username'
             ], 'osx-64'),
             [
                 'http://repo.continuum.io/pkgs/free/osx-64/',
+                'http://repo.continuum.io/pkgs/free/noarch/',
                 'http://repo.continuum.io/pkgs/pro/osx-64/',
+                'http://repo.continuum.io/pkgs/pro/noarch/',
                 'https://your.repo/binstar_username/osx-64/',
+                'https://your.repo/binstar_username/noarch/',
                 'http://some.custom/channel/osx-64/',
+                'http://some.custom/channel/noarch/',
                 'http://repo.continuum.io/pkgs/free/osx-64/',
+                'http://repo.continuum.io/pkgs/free/noarch/',
                 'http://repo.continuum.io/pkgs/pro/osx-64/',
-                'https://conda.binstar.org/username/osx-64/',
+                'http://repo.continuum.io/pkgs/pro/noarch/',
+                'https://conda.anaconda.org/username/osx-64/',
+                'https://conda.anaconda.org/username/noarch/',
                 'file:///Users/username/repo/osx-64/',
+                'file:///Users/username/repo/noarch/',
                 'https://your.repo/username/osx-64/',
+                'https://your.repo/username/noarch/',
                 ])
 
 test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
@@ -96,6 +108,8 @@ def _read_test_condarc():
         return f.read()
 
 # Tests for the conda config command
+# FIXME This shoiuld be multiple individual tests
+@pytest.mark.slow
 def test_config_command_basics():
 
     try:
@@ -154,6 +168,9 @@ always_yes: yes
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_get():
     try:
         # Test --get
@@ -173,13 +190,14 @@ always_yes: yes
 
 invalid_key: yes
 
-channel_alias: http://alpha.conda.binstar.org
+channel_alias: http://alpha.conda.anaconda.org
 """)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
+--set channel_alias http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
 --add create_default_packages 'numpy'
@@ -248,6 +266,9 @@ channel_alias: http://alpha.conda.binstar.org
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_parser():
     try:
         # Now test the YAML "parser"
@@ -417,6 +438,9 @@ disallow:
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_remove_force():
     try:
         # Finally, test --remove, --remove-key, and --force (right now
@@ -460,6 +484,9 @@ def test_config_command_remove_force():
         except OSError:
             pass
 
+
+# FIXME Break into multiple tests
+@pytest.mark.slow
 def test_config_command_bad_args():
     try:
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
@@ -506,6 +533,52 @@ yaml parser (this will remove any structure or comments from the existing
     finally:
         try:
             pass
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_config_set():
+    # Test the config set command
+    # Make sure it accepts only boolean values for boolean keys and any value for string keys
+
+    try:
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'always_yes', 'yep')
+
+        assert stdout == ''
+        assert stderr == 'Error: Key: always_yes; yep is not a YAML boolean.\n'
+
+    finally:
+        try:
+            os.unlink(test_condarc)
+        except OSError:
+            pass
+
+def test_set_rc_string():
+    # Test setting string keys in .condarc
+
+    # We specifically test ssl_verify since it can be either a boolean or a string
+    try:
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'ssl_verify', 'yes')
+        assert stdout == ''
+        assert stderr == ''
+
+        verify = yaml.load(open(test_condarc, 'r'))['ssl_verify']
+        assert verify == True
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'ssl_verify', 'test_string.crt')
+        assert stdout == ''
+        assert stderr == ''
+
+        verify = yaml.load(open(test_condarc, 'r'))['ssl_verify']
+        assert verify == 'test_string.crt'
+
+
+        os.unlink(test_condarc)
+    finally:
+        try:
             os.unlink(test_condarc)
         except OSError:
             pass

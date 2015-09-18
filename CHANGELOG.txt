@@ -1,10 +1,212 @@
-2014-XX-XX   3.7.4:
 -------------------
-  * add --offline option to install, create, update and remove commands
+  * add defaults to specs after getting pinned specs (allows to pin a
+    different version of Python than what is installed)
+
+2015-09-11   3.17.0:
+--------------------
+  * add windows_forward_slashes option to walk_prefix(), see #1513
+  * add ability to set CONDA_FORCE_32BIT environment variable, it should
+    should only be used when running conda-build, #1555
+  * add config option to makes the python dependency on pip optional, #1577
+  * fix an UnboundLocalError
+  * print note about pinned specs in no packages found error
+  * allow wildcards in AND-connected version specs
+  * print pinned specs to the debug log
+  * fix conda create --clone with create_default_packages
+  * give a better error when a proxy isn't found for a given scheme
+  * enable running 'conda run' in offline mode
+  * fix issue where hardlinked cache contents were being overwritten
+  * correctly skip packages whose dependencies can't be found with conda
+    update --all
+  * use clearer terminology in -m help text.
+  * use splitlines to break up multiple lines throughout the codebase
+  * fix AttributeError with SSLError
+
+
+2015-08-10   3.16.0:
+--------------------
+  * rename binstar -> anaconda, see #1458
+  * fix --use-local when the conda-bld directory doesn't exist
+  * fixed --offline option when using "conda create --clone", see #1487
+  * don't mask recursion depth errors
+  * add conda search --reverse-dependency
+  * check whether hardlinking is available before linking when
+    using "python install.py --link" directly, see #1490
+  * don't exit nonzero when installing a package with no dependencies
+  * check which features are installed in an environment via track_features,
+    not features
+  * set the verify flag directly on CondaSession (fixes conda skeleton not
+    respecting the ssl_verify option)
+
+
+2015-07-23   3.15.1:
+--------------------
+  * fix conda with older versions of argcomplete
+  * restore the --force-pscheck option as a no-op for backwards
+    compatibility
+
+
+2015-07-22   3.15.0:
+--------------------
+  * sort the output of conda info package correctly
+  * enable tab completion of conda command extensions using
+    argcomplete. Command extensions that import conda should use
+    conda.cli.conda_argparse.ArgumentParser instead of
+    argparse.ArgumentParser. Otherwise, they should enable argcomplete
+    completion manually.
+  * allow psutil and pycosat to be updated in the root environment on Windows
+  * remove all mentions of pscheck. The --force-pscheck flag has been removed.
+  * added support for S3 channels
+  * fix color issues from pip in conda list on Windows
+  * add support for other machine types on Linux, in particular ppc64le
+  * add non_x86_linux_machines set to config module
+  * allow ssl_verify to accept strings in addition to boolean values in condarc
+  * enable --set to work with both boolean and string values
+
+
+2015-06-29   3.14.1:
+--------------------
+  * make use of Crypto.Signature.PKCS1_PSS module, see #1388
+  * note when features are being used in the unsatisfiable hint
+
+
+2015-06-16   3.14.0:
+--------------------
+  * add ability to verify signed packages, see #1343 (and conda-build #430)
+  * fix issue when trying to add 'pip' dependency to old python packages
+  * provide option "conda info --unsafe-channels" for getting unobscured
+    channel list, #1374
+
+
+2015-06-04   3.13.0:
+--------------------
+  * avoid the Windows file lock by moving files to a trash directory, #1133
+  * handle env dirs not existing in the Environments completer
+  * rename binstar.org -> anaconda.org, see #1348
+  * speed up 'source activate' by ~40%
+
+
+2015-05-05   3.12.0:
+--------------------
+  * correctly allow conda to update itself
+  * print which file leads to the "unable to remove file" error on Windows
+  * add support for the no_proxy environment variable, #1171
+  * add a much faster hint generation for unsatisfiable packages, which is now
+    always enabled (previously it would not run if there were more than ten
+    specs). The new hint only gives one set of conflicting packages, rather
+    than all sets, so multiple passes may be necessary to fix such issues
+  * conda extensions that import conda should use
+    conda.cli.conda_argparser.ArgumentParser instead of
+    argparse.ArgumentParser to conform to the conda help guidelines (e.g., all
+    help messages should be capitalized with periods, and the options should
+    be preceded by "Options:" for the sake of help2man).
+  * add confirmation dialog to conda remove. Fixes conda remove --dry-run.
+
+
+2015-04-22   3.11.0:
+--------------------
+  * fix issue where forced update on Windows could cause a package to break
+  * remove detection of running processes that might conflict
+  * deprecate --force-pscheck (now a no-op argument)
+  * make conda search --outdated --names-only work, fixes #1252
+  * handle the history file not having read or write permissions better
+  * make multiple package resolutions warning easier to read
+  * add --full-name to conda list
+  * improvements to command help
+
+
+2015-04-06   3.10.1:
+--------------------
+  * fix logic in @memoized for unhashable args
+  * restored json cache of repodata, see #1249
+  * hide binstar tokens in conda info --json
+  * handle CIO_TEST='2 '
+  * always find the solution with minimal number of packages, even if there
+    are many solutions
+  * allow comments at the end of the line in requirement files
+  * don't update the progressbar until after the item is finished running
+  * add conda/<version> to HTTP header User-Agent string
+
+
+2015-03-12   3.10.0:
+--------------------
+  * change default repo urls to be https
+  * add --offline to conda search
+  * add --names-only and --full-name to conda search
+  * add tab completion for packages to conda search
+
+
+2015-02-24   3.9.1:
+-------------------
+  * pscheck: check for processes in the current environment, see #1157
+  * don't write to the history file if nothing has changed, see #1148
+  * conda update --all installs packages without version restrictions (except
+    for Python), see #1138
+  * conda update --all ignores the anaconda metapackage, see #1138
+  * use forward slashes for file urls on Windows
+  * don't symlink conda in the root environment from activate
+  * use the correct package name in the progress bar info
+  * use json progress bars for unsatisfiable dependencies hints
+  * don't let requests decode gz files when downloaded
+
+
+2015-02-16   3.9.0:
+-------------------
+  * remove (de)activation scripts from conda, those are now in conda-env
+  * pip is now always added as a Python dependency
+  * allow conda to be installed into environments which start with _
+  * add argcomplete tab completion for environments with the -n flag, and for
+    package names with install, update, create, and remove
+
+
+2015-02-03   3.8.4:
+-------------------
+  * copy (de)activate scripts from conda-env
+  * Add noarch (sub) directory support
+
+
+2015-01-28   3.8.3:
+-------------------
+  * simplified how ROOT_PREFIX is obtained in (de)activate
+
+
+2015-01-27   3.8.2:
+-------------------
+  * add conda clean --source-cache to clean the conda build source caches
+  * add missing quotes in (de)activate.bat, fixes problem in Windows when
+    conda is installed into a directory with spaces
+  * fix conda install --copy
+
+
+2015-01-23   3.8.1:
+-------------------
+  * add missing utf-8 decoding, fixes Python 3 bug when icondata to json file
+
+
+2015-01-22   3.8.0:
+-------------------
+  * move active script into conda-env, which is now a new dependency
+  * load the channel urls in the correct order when using concurrent.futures
+  * add optional 'icondata' key to json files in conda-meta directory, which
+    contain the base64 encoded png file or the icon
+  * remove a debug print statement
+
+
+2014-12-18   3.7.4:
+-------------------
+  * add --offline option to install, create, update and remove commands, and
+    also add ability to set "offline: True" in condarc file
   * add conda uninstall as alias for conda remove
   * add conda info --root
   * add conda.pip module
   * fix CONDARC pointing to non-existing file, closes issue #961
+  * make update -f work if the package is already up-to-date
+  * fix possible TypeError when printing an error message
+  * link packages in topologically sorted order (so that pre-link scripts can
+    assume that the dependencies are installed)
+  * add --copy flag to install
+  * prevent the progressbar from crashing conda when fetching in some
+    situations
 
 
 2014-11-05   3.7.3:

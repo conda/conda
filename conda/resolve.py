@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import combinations
 from collections import defaultdict
 from functools import partial
 
@@ -11,7 +10,7 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -89,25 +88,34 @@ def ver_eval(version, constraint):
                            constraint)
 
 
+class VersionSpecAtom(object):
+
+    def __init__(self, spec):
+        assert '|' not in spec
+        assert ',' not in spec
+        self.spec = spec
+        if spec.startswith(('=', '<', '>', '!')):
+            self.regex = False
+        else:
+            rx = spec.replace('.', r'\.')
+            rx = rx.replace('*', r'.*')
+            rx = r'(%s)$' % rx
+            self.regex = re.compile(rx)
+
+    def match(self, version):
+        if self.regex:
+            return bool(self.regex.match(version))
+        else:
+            return ver_eval(version, self.spec)
+
 class VersionSpec(object):
 
     def __init__(self, spec):
         assert '|' not in spec
-        if spec.startswith(('=', '<', '>', '!')):
-            self.regex = False
-            self.constraints = spec.split(',')
-        else:
-            self.regex = True
-            rx = spec.replace('.', r'\.')
-            rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
-            self.pat = re.compile(rx)
+        self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
 
     def match(self, version):
-        if self.regex:
-            return bool(self.pat.match(version))
-        else:
-            return all(ver_eval(version, c) for c in self.constraints)
+        return all(c.match(version) for c in self.constraints)
 
 
 class MatchSpec(object):
@@ -314,7 +322,7 @@ class Resolve(object):
 
                 if not found:
                     raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), notfound)
+                        "for %s: %s" % (ms, ', '.join(notfound)), [ms.spec] + notfound)
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -431,7 +439,7 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), notfound)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
 
         return dists
 
@@ -463,7 +471,6 @@ class Resolve(object):
         returnall=False, minimal_hint=False, unsat_only=False):
 
         log.debug("Solving for %s" % str(specs))
-        log.debug("Using alg %s" % alg)
 
         # First try doing it the "old way", i.e., just look at the most recent
         # version of each package from the specs. This doesn't handle the more
@@ -487,13 +494,17 @@ class Resolve(object):
 
             dotlog.debug("Solving using max dists only")
             clauses = set(self.gen_clauses(v, dists, specs, features))
-            solutions = min_sat(clauses)
-
-            if len(solutions) == 1:
-                ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                if returnall:
-                    return [ret]
-                return ret
+            try:
+                solutions = min_sat(clauses, alg='iterate',
+                    raise_on_max_n=True)
+            except MaximumIterationsError:
+                pass
+            else:
+                if len(solutions) == 1:
+                    ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+                    if returnall:
+                        return [ret]
+                    return ret
 
         dists = self.get_dists(specs)
 
@@ -519,17 +530,21 @@ class Resolve(object):
 
         if not solution:
             if guess:
-                stderrlog.info('\nError: Unsatisfiable package '
-                    'specifications.\nGenerating hint: \n')
                 if minimal_hint:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating minimal hint: \n')
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
                 else:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: \n')
                     sys.exit(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if unsat_only:
             return True
+
+        log.debug("Using alg %s" % alg)
 
         def version_constraints(lo, hi):
             return set(generate_constraints(eq, m, [lo, hi], alg=alg))
@@ -550,14 +565,24 @@ class Resolve(object):
                 constraints = set([])
 
         dotlog.debug("Finding the minimal solution")
-        solutions = min_sat(clauses | constraints, N=m + 1)
+        try:
+            solutions = min_sat(clauses | constraints, N=m + 1, alg='iterate',
+                raise_on_max_n=True)
+        except MaximumIterationsError:
+            solutions = min_sat(clauses | constraints, N=m + 1, alg='sorter')
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
-            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
-            for sol in solutions:
-                stdoutlog.info('\t' + str([w[lit] for lit in sol if 0 < lit <= m]))
+            stdoutlog.info('\nWarning: %s possible package resolutions (only showing differing packages):\n' % len(solutions))
+            pretty_solutions = [{w[lit] for lit in sol if 0 < lit <= m} for
+                sol in solutions]
+            common  = set.intersection(*pretty_solutions)
+            for sol in pretty_solutions:
+                stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
+        log.debug("Older versions in the solution(s):")
+        for sol in solutions:
+            log.debug([(i, w[j]) for i, j in eq if j in sol])
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
@@ -586,47 +611,39 @@ class Resolve(object):
         # TODO: Check features as well
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
-        # Don't show the dots in normal mode but do show the dotlog messages
-        # with --debug
+
+        # Don't show the dots from solve2 in normal mode but do show the
+        # dotlog messages with --debug
         dotlog.setLevel(logging.WARN)
-        hint = []
-        # Try to find the largest satisfiable subset
-        found = False
-        if len(specs) > 10:
-            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
-        for i in range(len(specs), 0, -1):
-            if found:
-                logging.getLogger('progress.stop').info(None)
-                break
 
-            # Too lazy to compute closed form expression
-            ncombs = len(list(combinations(specs, i)))
-            logging.getLogger('progress.start').info(ncombs)
-            for j, comb in enumerate(combinations(specs, i), 1):
-                try:
-                    logging.getLogger('progress.update').info(('%s/%s' % (j,
-                        ncombs), j))
-                    self.solve2(comb, features, guess=False, unsat_only=True)
-                except RuntimeError:
-                    pass
-                else:
-                    rem = set(specs) - set(comb)
-                    rem.discard('conda')
-                    if len(rem) == 1:
-                        hint.append("%s" % rem.pop())
-                    else:
-                        hint.append("%s" % ' and '.join(rem))
+        def sat(specs):
+            try:
+                self.solve2(specs, features, guess=False, unsat_only=True)
+            except RuntimeError:
+                return False
+            return True
 
-                    found = True
+        hint = minimal_unsatisfiable_subset(specs, sat=sat, log=True)
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("\nHint: %s has a conflict with the remaining packages" %
-                    hint[0])
-        return ("""
-Hint: the following combinations of packages create a conflict with the
-remaining packages:
-  - %s""" % '\n  - '.join(hint))
+            # TODO: Generate a hint from the dependencies.
+            ret = (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
+                "info {0}')").format(hint[0].split()[0]))
+        else:
+            ret = """
+Hint: the following packages conflict with each other:
+  - %s
+
+Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - '.join(hint), hint[0].split()[0])
+
+        if features:
+            ret += """
+
+Note that the following features are enabled:
+  - %s
+""" % ('\n  - '.join(features))
+        return ret
 
     def explicit(self, specs):
         """
@@ -692,7 +709,7 @@ remaining packages:
         res = set()
         for fn in installed:
             try:
-                res.update(self.features(fn))
+                res.update(self.track_features(fn))
             except KeyError:
                 pass
         return res

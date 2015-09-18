@@ -20,7 +20,16 @@ def pip_args(prefix):
         pip_path = join(prefix, 'bin', 'pip')
         py_path = join(prefix, 'bin', 'python')
     if isfile(pip_path) and isfile(py_path):
-        return [py_path, pip_path]
+        ret = [py_path, pip_path]
+
+        # Check the version of pip
+        # --disable-pip-version-check was introduced in pip 6.0
+        # If older than that, they should probably get the warning anyway.
+        pip_version = subprocess.check_output(ret + ['-V']).decode('utf-8').split()[1]
+        major_ver = pip_version.split('.')[0]
+        if int(major_ver) >= 6:
+            ret.append('--disable-pip-version-check')
+        return ret
     else:
         return None
 
@@ -44,7 +53,7 @@ def installed(prefix, output=True):
     try:
         pipinst = subprocess.check_output(
             args, universal_newlines=True
-        ).split('\n')
+        ).splitlines()
     except Exception:
         # Any error should just be ignored
         if output:

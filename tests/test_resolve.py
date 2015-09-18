@@ -3,6 +3,8 @@ import json
 import unittest
 from os.path import dirname, join
 
+import pytest
+
 from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound
 
 from tests.helpers import raises
@@ -54,6 +56,8 @@ class TestMatchSpec(unittest.TestCase):
             ('numpy >1.8,<2|==1.7', False),('numpy >1.8,<2|>=1.7.1', True),
             ('numpy >=1.8|1.7*', True),    ('numpy ==1.7', False),
             ('numpy >=1.5,>1.6', True),    ('numpy ==1.7.1', True),
+            ('numpy >=1,*.7.*', True),     ('numpy *.7.*,>=1', True),
+            ('numpy >=1,*.8.*', False),    ('numpy >=2,*.7.*', False),
             ('numpy 1.6*|1.7*', True),     ('numpy 1.6*|1.8*', False),
             ('numpy 1.6.2|1.7*', True),    ('numpy 1.6.2|1.7.1', True),
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
@@ -78,6 +82,9 @@ class TestMatchSpec(unittest.TestCase):
         c, d = MatchSpec('python'), MatchSpec('python 2.7.4')
         self.assertNotEqual(a, c)
         self.assertNotEqual(hash(a), hash(c))
+        self.assertNotEqual(c, d)
+        self.assertNotEqual(hash(c), hash(d))
+
 
 
 class TestPackage(unittest.TestCase):
@@ -232,6 +239,8 @@ class TestFindSubstitute(unittest.TestCase):
             self.assertTrue(old in installed)
             self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
+
+@pytest.mark.slow
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     for alg in ['sorter', 'BDD']: #, 'BDD_recursive']:
@@ -941,6 +950,32 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
+
+
+def test_install_package_with_feature():
+    index2 = index.copy()
+    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = {
+        'build': 'featurepy33_0',
+        'build_number': 0,
+        'depends': ['python 3.3*'],
+        'name': 'mypackage',
+        'version': '1.0',
+        'features': 'feature',
+    }
+    index2['feature-1.0-py33_0.tar.bz2'] = {
+        'build': 'py33_0',
+        'build_number': 0,
+        'depends': ['python 3.3*'],
+        'name': 'mypackage',
+        'version': '1.0',
+        'track_features': 'feature',
+    }
+
+    r = Resolve(index2)
+
+    # It should not raise
+    r.solve(['mypackage'], installed=['feature-1.0-py33_0.tar.bz2'])
+
 
 def test_circular_dependencies():
     index2 = index.copy()
