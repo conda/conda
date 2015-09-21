@@ -44,6 +44,19 @@ class TestVersionSpec(unittest.TestCase):
             m = VersionSpec(vspec)
             self.assertEqual(m.match('1.7.1'), res)
 
+    def test_local_identifier(self):
+        """The separator for the local identifier should be either `.` or `+`"""
+        # a valid versionstr should match itself
+        versions = (
+            '1.7.0'
+            '1.7.0.post123'
+            '1.7.0.post123.gabcdef9',
+            '1.7.0.post123+gabcdef9',
+        )
+        for version in versions:
+            m = VersionSpec(version)
+            self.assertTrue(m.match(version))
+
 
 class TestMatchSpec(unittest.TestCase):
 
