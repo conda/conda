@@ -489,19 +489,13 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
 
 def z3_optimize(clauses, version_eq, w, use_combined_eq=True):
     try:
-        from z3 import Bool, Or, Not, BoolSort, Optimize, IntSort, set_param
+        from z3 import Bool, BoolSort, Optimize, IntSort, set_param
     except ImportError:
         raise ImportError("The unstable branch of z3 is required for this branch")
 
     set_param(verbose=10)
     v = {w[i]: i for i in w}
     vars = {i: Bool(i) for i in v}
-
-    log.debug("Creating z3 clauses")
-    z3_clauses = []
-    for clause in clauses:
-        z3_clause = Or(*[vars[w[i]] if i > 0 else Not(vars[w[-i]]) for i in clause])
-        z3_clauses.append(z3_clause)
 
     log.debug("Creating z3 version equation")
     z3_version_eq = sum(i*IntSort().cast(vars[w[j]]) for i, j in version_eq)
@@ -512,8 +506,8 @@ def z3_optimize(clauses, version_eq, w, use_combined_eq=True):
     combined_eq = len(vars)*z3_version_eq + z3_package_eq
 
     o = Optimize()
-    for z3_clause in z3_clauses:
-        o.add(z3_clause)
+    for clause in clauses:
+        o.add(clause)
 
     if use_combined_eq:
         o.minimize(combined_eq)
