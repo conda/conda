@@ -550,7 +550,7 @@ class Resolve(object):
         m = i + 1
 
         if alg == "Z3":
-            clauses = self.gen_z3_clauses(v, dists, specs, features)
+            clauses = list(self.gen_z3_clauses(v, dists, specs, features))
         else:
             clauses = set(self.gen_clauses(v, dists, specs, features))
         if not clauses:
@@ -573,7 +573,6 @@ class Resolve(object):
             solution = s.check() == sat
         else:
             solution = sat(clauses)
-
 
         if not solution:
             if guess:
