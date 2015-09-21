@@ -98,6 +98,7 @@ class VersionSpecAtom(object):
             self.regex = False
         else:
             rx = spec.replace('.', r'\.')
+            rx = spec.replace('+', r'\+')
             rx = rx.replace('*', r'.*')
             rx = r'(%s)$' % rx
             self.regex = re.compile(rx)
