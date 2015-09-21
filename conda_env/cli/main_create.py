@@ -62,7 +62,7 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '--force',
-        help='force creation of environment (removing a previously existing environment of the same name.',
+        help='force creation of environment (removing a previously existing environment of the same name).',
         action='store_true',
         default=False,
     )
