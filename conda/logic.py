@@ -487,7 +487,7 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
 
     return C.clauses | additional_clauses
 
-def z3_optimize(clauses, version_eq, w):
+def z3_optimize(clauses, version_eq, w, use_combined_eq=True):
     try:
         from z3 import Bool, Or, Not, BoolSort, Optimize, IntSort, set_param
     except ImportError:
@@ -515,9 +515,11 @@ def z3_optimize(clauses, version_eq, w):
     for z3_clause in z3_clauses:
         o.add(z3_clause)
 
-    # o.minimize(combined_eq)
-    o.minimize(z3_version_eq)
-    o.minimize(z3_package_eq)
+    if use_combined_eq:
+        o.minimize(combined_eq)
+    else:
+        o.minimize(z3_version_eq)
+        o.minimize(z3_package_eq)
 
     log.debug("Getting z3 model")
     o.check()
