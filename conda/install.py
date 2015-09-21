@@ -183,7 +183,7 @@ def rm_rf(path, max_retries=5, trash=True):
 
                     if trash:
                         try:
-                            move_to_trash(path)
+                            move_path_to_trash(path)
                             if not isdir(path):
                                 return
                         except OSError as e2:
@@ -507,7 +507,7 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
-def delete_trash():
+def delete_trash(prefix=None):
     from conda import config
 
     for pkg_dir in config.pkgs_dirs:
@@ -518,7 +518,17 @@ def delete_trash():
         except OSError as e:
             log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
-def move_to_trash(path):
+def move_to_trash(prefix, f, tempdir=None):
+    """
+    Move a file f from prefix to the trash
+
+    tempdir is a deprecated parameter, and will be ignored.
+
+    This function is deprecated in favor of `move_path_to_trash`.
+    """
+    return move_path_to_trash(join(prefix, f))
+
+def move_path_to_trash(path):
     """
     Move a path to the trash
     """
@@ -599,7 +609,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                     log.error('failed to unlink: %r' % dst)
                     if on_win:
                         try:
-                            move_to_trash(dst)
+                            move_path_to_trash(dst)
                         except ImportError:
                             # This shouldn't be an issue in the installer anyway
                             pass
@@ -689,7 +699,7 @@ def unlink(prefix, dist):
                 if on_win and os.path.exists(join(prefix, f)):
                     try:
                         log.debug("moving to trash")
-                        move_to_trash(dst)
+                        move_path_to_trash(dst)
                     except ImportError:
                         # This shouldn't be an issue in the installer anyway
                         pass
