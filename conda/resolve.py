@@ -561,11 +561,19 @@ class Resolve(object):
 
         # Second common case, check if it's unsatisfiable
         dotlog.debug("Checking for unsatisfiability")
-        if alg != "Z3":
-            solution = sat(clauses)
+        if alg == "Z3":
+            try:
+                from z3 import Solver, BoolSort, sat
+            except ImportError:
+                raise ImportError("The unstable branch of z3 is required for this branch")
+
+            s = Solver()
+            for clause in clauses:
+                s.add(clause)
+            solution = s.check() == sat
         else:
-            # TODO
-            solution = True
+            solution = sat(clauses)
+
 
         if not solution:
             if guess:
