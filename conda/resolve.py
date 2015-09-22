@@ -20,6 +20,10 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
+    # normalized_version() is needed by conda-env
+def normalized_version(version):
+    return VersionOrder(version).norm_version
+
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
 class VersionOrder(object):
