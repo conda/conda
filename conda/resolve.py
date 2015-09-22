@@ -269,9 +269,7 @@ def ver_eval(version, constraint):
         raise RuntimeError("Did not recognize version specification: %r" %
                            constraint)
     op, b = m.groups()
-    na  = VersionOrder(a) 
-    nb  = VersionOrder(b) 
-    return eval('na' + op + 'nb')
+    return eval('VersionOrder("%s") %s VersionOrder("%s")' % (a, op, b))
 
 class VersionSpecAtom(object):
 
