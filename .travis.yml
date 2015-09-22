@@ -8,6 +8,11 @@ python:
 env:
   -
   - PYCOSAT=0.6.0
+matrix:
+  exclude:
+    - python: "3.5"
+    - env: PYCOSAT=0.6.0
+
 install:
   # TODO: Use a "latest" url
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
