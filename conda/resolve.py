@@ -99,6 +99,7 @@ class VersionSpecAtom(object):
             self.regex = False
         else:
             rx = spec.replace('.', r'\.')
+            rx = spec.replace('+', r'\+')
             rx = rx.replace('*', r'.*')
             rx = r'(%s)$' % rx
             self.regex = re.compile(rx)
@@ -535,9 +536,50 @@ class Resolve(object):
         return result
 
     def solve2(self, specs, features, guess=True, alg='Z3',
-        returnall=False, minimal_hint=False, unsat_only=False):
+        returnall=False, minimal_hint=False, unsat_only=False, try_max_only=None):
 
         log.debug("Solving for %s" % str(specs))
+
+        # First try doing it the "old way", i.e., just look at the most recent
+        # version of each package from the specs. This doesn't handle the more
+        # complicated cases that the pseudo-boolean solver does, but it's also
+        # much faster when it does work.
+
+        if try_max_only is None:
+            if unsat_only or alg == "Z3":
+                try_max_only = False
+            else:
+                try_max_only = True
+
+        if try_max_only:
+            try:
+                dists = self.get_dists(specs, max_only=True)
+            except NoPackagesFound:
+                # Handle packages that are not included because some dependencies
+                # couldn't be found.
+                pass
+            else:
+                v = {}  # map fn to variable number
+                w = {}  # map variable number to fn
+                i = -1  # in case the loop doesn't run
+                for i, fn in enumerate(sorted(dists)):
+                    v[fn] = i + 1
+                    w[i + 1] = fn
+                m = i + 1
+
+                dotlog.debug("Solving using max dists only")
+                clauses = set(self.gen_clauses(v, dists, specs, features))
+                try:
+                    solutions = min_sat(clauses, alg='iterate',
+                        raise_on_max_n=True)
+                except MaximumIterationsError:
+                    pass
+                else:
+                    if len(solutions) == 1:
+                        ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+                        if returnall:
+                            return [ret]
+                        return ret
 
         dists = self.get_dists(specs)
 
@@ -629,6 +671,9 @@ class Resolve(object):
             for sol in pretty_solutions:
                 stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
+        log.debug("Older versions in the solution(s):")
+        for sol in solutions:
+            log.debug([(i, w[j]) for i, j in eq if j in sol])
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
@@ -660,7 +705,7 @@ class Resolve(object):
 
         # Don't show the dots from solve2 in normal mode but do show the
         # dotlog messages with --debug
-        dotlog.setLevel(logging.WARN)
+        dotlog.setLevel(logging.INFO)
 
         def sat(specs):
             try:
