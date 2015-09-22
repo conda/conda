@@ -10,12 +10,12 @@
               /   |     |      |      |
              /    |     |      |      |
       resolve   fetch   |      |   progressbar
-      /  |  \           |      |
-     /   |   \          |      |
-  verlib |  utils    config  install
-         |              |
-         |              |
-         |          (optional)
-         |              |
-         |              |
-      pycosat          yaml
+      /     \           |      |
+     /       \          |      |
+ pycosat    utils    config  install
+                        |
+                        |
+                    (optional)
+                        |
+                        |
+                       yaml
