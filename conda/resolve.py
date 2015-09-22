@@ -20,7 +20,7 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
-version_check_re = re.compile(r'^[\*\.!_0-9a-z]+$')
+version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
 class VersionOrder(object):
     '''
@@ -136,18 +136,34 @@ class VersionOrder(object):
             raise ValueError(message + "invalid character(s).")
         self.norm_version = version
         
-        # find epoch and version components
+        # find epoch
         version = version.split('!')
         if len(version) == 1:
             # epoch not given => set it to '0'
-            version = ['0'] + version[0].split('.')
+            epoch = ['0']
+            version = version[0]
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
                 raise ValueError(message + "epoch must be an integer.")
-            version = [version[0]] + version[1].split('.')
+            epoch = [version[0]]
+            version = version[1]
         else:
             raise ValueError(message + "duplicated epoch separator '!'.")
+        
+        # find local version string
+        version = version.split('+')
+        if len(version) == 1:
+            # no local version
+            self.local = []
+        elif len(version) == 2:
+            # local version given
+            self.local = [int(j) if j.isdigit() else j for j in version[1].split('.')]
+        else:
+            raise ValueError(message + "duplicated local version separator '+'.")
+        
+        # split version
+        version = epoch + version[0].split('.')
         
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
@@ -181,33 +197,35 @@ class VersionOrder(object):
         return self.norm_version
     
     def __eq__(self, other):
-        for v1, v2 in zip_longest(self.version, other.version, fillvalue=[self.fillvalue]):
-            for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
-                if c1 != c2:
-                    return False
+        for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
+            for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
+                for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
+                    if c1 != c2:
+                        return False
         return True
         
     def __ne__(self, other):
         return not (self == other)
     
     def __lt__(self, other):
-        for v1, v2 in zip_longest(self.version, other.version, fillvalue=[self.fillvalue]):
-            for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
-                if isinstance(c1, string_types):
-                    if not isinstance(c2, string_types):
-                        # str < int
+        for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
+            for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
+                for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
+                    if isinstance(c1, string_types):
+                        if not isinstance(c2, string_types):
+                            # str < int
+                            return True
+                    else:
+                        if isinstance(c2, string_types):
+                            # not (int < str)
+                            return False
+                    # c1 and c2 have the same type
+                    if c1 < c2:
                         return True
-                else:
-                    if isinstance(c2, string_types):
-                        # not (int < str)
+                    if c2 < c1:
                         return False
-                # c1 and c2 have the same type
-                if c1 < c2:
-                    return True
-                if c2 < c1:
-                    return False
-                # c1 == c2 => advance
-        # v1 == v2
+                    # c1 == c2 => advance
+        # self == other
         return False
 
     def __gt__(self, other):
