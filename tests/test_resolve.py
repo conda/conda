@@ -73,7 +73,7 @@ class TestVersionSpec(unittest.TestCase):
         for v, l in versions:
             self.assertEqual(v.version, l)
         self.assertEqual(VersionOrder("0.4.1.rc"), VersionOrder("  0.4.1.RC  "))
-        self.assertEqual(normalized_version("  0.4.1.RC  "), "0.4.1.rc")
+        self.assertEqual(normalized_version("  0.4.1.RC  "), VersionOrder("0.4.1.rc"))
         with self.assertRaises(ValueError):
             VersionOrder("")
         with self.assertRaises(ValueError):
