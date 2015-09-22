@@ -173,7 +173,8 @@ def install(args, parser, command='install'):
 
     specs = []
     if args.file:
-        specs.extend(common.specs_from_url(args.file, json=args.json))
+        for fpath in args.file:
+            specs.extend(common.specs_from_url(fpath, json=args.json))
     elif getattr(args, 'all', False):
         linked = ci.linked(prefix)
         if not linked:
