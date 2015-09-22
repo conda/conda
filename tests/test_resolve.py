@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, SimpleVersionOrder
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, VersionOrder
 
 from tests.helpers import raises
 
@@ -22,73 +22,88 @@ class TestVersionSpec(unittest.TestCase):
 
     def test_version_order(self):
         versions = [
-           (SimpleVersionOrder("0.4"),        [[0], [0], [4]]),
-           (SimpleVersionOrder("0.4.0"),      [[0], [0], [4], [0]]),
-           (SimpleVersionOrder("0.4.1a.vc11"),[[0], [0], [4], [1, 'a'],['vc', 11]]),
-           (SimpleVersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], ['rc']]),
-           (SimpleVersionOrder("0.4.1.vc11"), [[0], [0], [4], [1],['vc', 11]]),
-           (SimpleVersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
-           (SimpleVersionOrder("0.5_"),       [[0], [0], [5, '_']]),
-           (SimpleVersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
-           (SimpleVersionOrder("0.5b3"),      [[0], [0], [5, 'b', 3]]),
-           (SimpleVersionOrder("0.5C1"),      [[0], [0], [5, 'c', 1]]),
-           (SimpleVersionOrder("0.5z"),       [[0], [0], [5, 'z']]),
-           (SimpleVersionOrder("0.5za"),      [[0], [0], [5, 'za']]),
-           (SimpleVersionOrder("0.5"),        [[0], [0], [5]]),
-           (SimpleVersionOrder("0.9.6"),      [[0], [0], [9], [6]]),
-           (SimpleVersionOrder("0.960923"),   [[0], [0], [960923]]),
-           (SimpleVersionOrder("1.0"),        [[0], [1], [0]]),
-           (SimpleVersionOrder("1.0.4a3"),    [[0], [1], [0], [4, 'a', 3]]),
-           (SimpleVersionOrder("1.0.4b1"),    [[0], [1], [0], [4, 'b', 1]]),
-           (SimpleVersionOrder("1.0.4"),      [[0], [1], [0], [4]]),
-           (SimpleVersionOrder("1.13++"),     [[0], [1], [13, '++']]),
-           (SimpleVersionOrder("2g6"),        [[0], [2, 'g', 6]]),
-           (SimpleVersionOrder("2.0b1pr0"),   [[0], [2], [0, 'b', 1, 'pr', 0]]),
-           (SimpleVersionOrder("2.2be.ta29"), [[0], [2], [2, 'be'], ['ta', 29]]),
-           (SimpleVersionOrder("2.2be5ta29"), [[0], [2], [2, 'be', 5, 'ta', 29]]),
-           (SimpleVersionOrder("2.2beta29"),  [[0], [2], [2, 'beta', 29]]),
-           (SimpleVersionOrder("3.1.1.6"),    [[0], [3], [1], [1], [6]]),
-           (SimpleVersionOrder("3.2.p.r0"),   [[0], [3], [2], ['p'], ['r', 0]]),
-           (SimpleVersionOrder("3.2.pr0"),    [[0], [3], [2], ['pr', 0]]),
-           (SimpleVersionOrder("3.2.pr.1"),   [[0], [3], [2], ['pr'], [1]]),
-           (SimpleVersionOrder("5.5.kw"),     [[0], [5], [5], ['kw']]),
-           (SimpleVersionOrder("11g"),        [[0], [11, 'g']]),
-           (SimpleVersionOrder("1996.07.12"), [[0], [1996], [7], [12]]),
-           (SimpleVersionOrder("1!0.4.1"),    [[1], [0], [4], [1]]),
-           (SimpleVersionOrder("1!3.1.1.6"),  [[1], [3], [1], [1], [6]]),
-           (SimpleVersionOrder("2!0.4.1"),    [[2], [0], [4], [1]]),
+           (VersionOrder("0.4"),        [[0], [0], [4]]),
+           (VersionOrder("0.4.0"),      [[0], [0], [4], [0]]),
+           (VersionOrder("0.4.1a.vc11"),[[0], [0], [4], [1, 'a'],[0, 'vc', 11]]),
+           (VersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], [0, 'rc']]),
+           (VersionOrder("0.4.1.vc11"), [[0], [0], [4], [1],[0, 'vc', 11]]),
+           (VersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
+           (VersionOrder("0.5_"),       [[0], [0], [5, '_']]),
+           (VersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
+           (VersionOrder("0.5b3"),      [[0], [0], [5, 'b', 3]]),
+           (VersionOrder("0.5C1"),      [[0], [0], [5, 'c', 1]]),
+           (VersionOrder("0.5z"),       [[0], [0], [5, 'z']]),
+           (VersionOrder("0.5za"),      [[0], [0], [5, 'za']]),
+           (VersionOrder("0.5"),        [[0], [0], [5]]),
+           (VersionOrder("0.9.6"),      [[0], [0], [9], [6]]),
+           (VersionOrder("0.960923"),   [[0], [0], [960923]]),
+           (VersionOrder("1.0"),        [[0], [1], [0]]),
+           (VersionOrder("1.0.4a3"),    [[0], [1], [0], [4, 'a', 3]]),
+           (VersionOrder("1.0.4b1"),    [[0], [1], [0], [4, 'b', 1]]),
+           (VersionOrder("1.0.4"),      [[0], [1], [0], [4]]),
+           (VersionOrder("1.1dev1"),    [[0], [1], [1, 'DEV', 1]]),
+           (VersionOrder("1.1a1"),      [[0], [1], [1, 'a', 1]]),
+           (VersionOrder("1.1.dev1"),   [[0], [1], [1], [0, 'DEV', 1]]),
+           (VersionOrder("1.1.a1"),     [[0], [1], [1], [0, 'a', 1]]),
+           (VersionOrder("1.1"),        [[0], [1], [1]]),
+           (VersionOrder("1.1.post1"),  [[0], [1], [1], [0, float('inf'), 1]]),
+           (VersionOrder("1.1.1dev1"),  [[0], [1], [1], [1, 'DEV', 1]]),
+           (VersionOrder("1.1.1rc1"),   [[0], [1], [1], [1, 'rc', 1]]),
+           (VersionOrder("1.1.1"),      [[0], [1], [1], [1]]),
+           (VersionOrder("1.1.1post1"), [[0], [1], [1], [1, float('inf'), 1]]),
+           (VersionOrder("1.1post1"),   [[0], [1], [1, float('inf'), 1]]),
+           (VersionOrder("2g6"),        [[0], [2, 'g', 6]]),
+           (VersionOrder("2.0b1pr0"),   [[0], [2], [0, 'b', 1, 'pr', 0]]),
+           (VersionOrder("2.2be.ta29"), [[0], [2], [2, 'be'], [0, 'ta', 29]]),
+           (VersionOrder("2.2be5ta29"), [[0], [2], [2, 'be', 5, 'ta', 29]]),
+           (VersionOrder("2.2beta29"),  [[0], [2], [2, 'beta', 29]]),
+           (VersionOrder("3.1.1.6"),    [[0], [3], [1], [1], [6]]),
+           (VersionOrder("3.2.p.r0"),   [[0], [3], [2], [0, 'p'], [0, 'r', 0]]),
+           (VersionOrder("3.2.pr0"),    [[0], [3], [2], [0, 'pr', 0]]),
+           (VersionOrder("3.2.pr.1"),   [[0], [3], [2], [0, 'pr'], [1]]),
+           (VersionOrder("5.5.kw"),     [[0], [5], [5], [0, 'kw']]),
+           (VersionOrder("11g"),        [[0], [11, 'g']]),
+           (VersionOrder("1996.07.12"), [[0], [1996], [7], [12]]),
+           (VersionOrder("1!0.4.1"),    [[1], [0], [4], [1]]),
+           (VersionOrder("1!3.1.1.6"),  [[1], [3], [1], [1], [6]]),
+           (VersionOrder("2!0.4.1"),    [[2], [0], [4], [1]]),
         ]
         
         # check parser
         for v, l in versions:
             self.assertEqual(v.version, l)
-        self.assertEqual(SimpleVersionOrder("0.4.1.rc"), SimpleVersionOrder("  0.4.1.RC  "))
+        self.assertEqual(VersionOrder("0.4.1.rc"), VersionOrder("  0.4.1.RC  "))
         with self.assertRaises(ValueError):
-            SimpleVersionOrder("")
+            VersionOrder("")
         with self.assertRaises(ValueError):
-            SimpleVersionOrder("  ")
+            VersionOrder("  ")
         with self.assertRaises(ValueError):
-            SimpleVersionOrder("5.5..mw")
+            VersionOrder("5.5++")
         with self.assertRaises(ValueError):
-            SimpleVersionOrder("5.5.mw.")
+            VersionOrder("5.5..mw")
         with self.assertRaises(ValueError):
-            SimpleVersionOrder("!")
+            VersionOrder("5.5.mw.")
         with self.assertRaises(ValueError):
-            SimpleVersionOrder("a!1.0")
+            VersionOrder("!")
+        with self.assertRaises(ValueError):
+            VersionOrder("a!1.0")
         
         # check __eq__
-        self.assertEqual(SimpleVersionOrder("0.4"), SimpleVersionOrder("0.4.0"))
-        self.assertNotEqual(SimpleVersionOrder("0.4"), SimpleVersionOrder("0.4.1"))
-        self.assertEqual(SimpleVersionOrder("0.4.1a"), SimpleVersionOrder("0.4.1a0"))
-        self.assertNotEqual(SimpleVersionOrder("0.4.1a"), SimpleVersionOrder("0.4.1a1"))
+        self.assertEqual(VersionOrder("  0.4.rc  "), VersionOrder("0.4.RC"))
+        self.assertEqual(VersionOrder("0.4"), VersionOrder("0.4.0"))
+        self.assertNotEqual(VersionOrder("0.4"), VersionOrder("0.4.1"))
+        self.assertEqual(VersionOrder("0.4.a1"), VersionOrder("0.4.0a1"))
+        self.assertNotEqual(VersionOrder("0.4.a1"), VersionOrder("0.4.1a1"))
         
         # check __lt__
         self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
         
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
+        self.assertEqual(ver_eval('1.7.0', '<=1.7'), True)
         self.assertEqual(ver_eval('1.7.0', '<1.7'), False)
         self.assertEqual(ver_eval('1.7.0', '>=1.7'), True)
+        self.assertEqual(ver_eval('1.7.0', '>1.7'), False)
         self.assertEqual(ver_eval('1.6.7', '>=1.7'), False)
         self.assertEqual(ver_eval('2013a', '>2013b'), False)
         self.assertEqual(ver_eval('2013k', '>2013b'), True)
@@ -1138,7 +1153,6 @@ def test_package_ordering():
 def test_irrational_version():
     r.msd_cache = {}
 
-    # verlib.NormalizedVersion('2012d') raises IrrationalVersionError.
     assert r.solve2(['pytz 2012d', 'python 3*'], set(), returnall=True) == [[
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
