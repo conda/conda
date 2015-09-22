@@ -145,6 +145,7 @@ In short:
     main_install.configure_parser(sub_parsers)
     from conda.cli import main_update
     main_update.configure_parser(sub_parsers)
+    main_update.configure_parser(sub_parsers, name='upgrade')
     from conda.cli import main_remove
     main_remove.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers, name='uninstall')
