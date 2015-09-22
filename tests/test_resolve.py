@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, VersionOrder
+from conda.resolve import ver_eval, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, VersionOrder, normalized_version
 
 from tests.helpers import raises
 
@@ -73,6 +73,7 @@ class TestVersionSpec(unittest.TestCase):
         for v, l in versions:
             self.assertEqual(v.version, l)
         self.assertEqual(VersionOrder("0.4.1.rc"), VersionOrder("  0.4.1.RC  "))
+        self.assertEqual(normalized_version("  0.4.1.RC  "), "0.4.1.rc")
         with self.assertRaises(ValueError):
             VersionOrder("")
         with self.assertRaises(ValueError):
