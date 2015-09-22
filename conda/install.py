@@ -27,19 +27,19 @@ the standard library).
 
 from __future__ import print_function, division, absolute_import
 
-import time
-import os
-import json
 import errno
+import json
+import logging
+import os
+import shlex
 import shutil
 import stat
-import sys
 import subprocess
+import sys
 import tarfile
+import time
 import traceback
-import logging
-import shlex
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
 
 try:
     from conda.lock import Locked
@@ -143,13 +143,14 @@ def _remove_readonly(func, path, excinfo):
     func(path)
 
 
-def rm_rf(path, max_retries=5):
+def rm_rf(path, max_retries=5, trash=True):
     """
     Completely delete path
 
     max_retries is the number of times to retry on failure. The default is
     5. This only applies to deleting a directory.
 
+    If removing path fails and trash is True, files will be moved to the trash directory.
     """
     if islink(path) or isfile(path):
         # Note that we have to check if the destination is a link because
@@ -179,6 +180,15 @@ def rm_rf(path, max_retries=5):
                     else:
                         if not isdir(path):
                             return
+
+                    if trash:
+                        try:
+                            move_path_to_trash(path)
+                            if not isdir(path):
+                                return
+                        except OSError as e2:
+                            raise
+                            msg += "Retry with onerror failed (%s)\n" % e2
 
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
@@ -497,14 +507,14 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
-def delete_trash(prefix):
+def delete_trash(prefix=None):
     from conda import config
 
     for pkg_dir in config.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
         try:
             log.debug("Trying to delete the trash dir %s" % trash_dir)
-            rm_rf(trash_dir, max_retries=1)
+            rm_rf(trash_dir, max_retries=1, trash=False)
         except OSError as e:
             log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
@@ -512,11 +522,23 @@ def move_to_trash(prefix, f, tempdir=None):
     """
     Move a file f from prefix to the trash
 
-    tempdir should be the name of the directory in the trash
+    tempdir is a deprecated parameter, and will be ignored.
+
+    This function is deprecated in favor of `move_path_to_trash`.
     """
+    return move_path_to_trash(join(prefix, f))
+
+def move_path_to_trash(path):
+    """
+    Move a path to the trash
+    """
+    # Try deleting the trash every time we use it.
+    delete_trash()
+
     from conda import config
 
     for pkg_dir in config.pkgs_dirs:
+        import tempfile
         trash_dir = join(pkg_dir, '.trash')
 
         try:
@@ -525,26 +547,23 @@ def move_to_trash(prefix, f, tempdir=None):
             if e1.errno != errno.EEXIST:
                 continue
 
-        if tempdir is None:
-            import tempfile
-            trash_dir = tempfile.mkdtemp(dir=trash_dir)
-        else:
-            trash_dir = join(trash_dir, tempdir)
+        trash_dir = tempfile.mkdtemp(dir=trash_dir)
+        trash_dir = join(trash_dir, relpath(os.path.dirname(path), config.root_dir))
 
         try:
-            try:
-                os.makedirs(join(trash_dir, dirname(f)))
-            except OSError as e1:
-                if e1.errno != errno.EEXIST:
-                    continue
-            shutil.move(join(prefix, f), join(trash_dir, f))
+            os.makedirs(trash_dir)
+        except OSError as e2:
+            if e2.errno != errno.EEXIST:
+                continue
 
+        try:
+            shutil.move(path, trash_dir)
         except OSError as e:
-            log.debug("Could not move %s to %s (%s)" % (f, trash_dir, e))
+            log.debug("Could not move %s to %s (%s)" % (path, trash_dir, e))
         else:
             return True
 
-    log.debug("Could not move %s to trash" % f)
+    log.debug("Could not move %s to trash" % path)
     return False
 
 # FIXME This should contain the implementation that loads meta, not is_linked()
@@ -556,11 +575,6 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
-    if on_win:
-        # Try deleting the trash every time we link something.
-        delete_trash(prefix)
-
-
     index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
@@ -595,7 +609,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                     log.error('failed to unlink: %r' % dst)
                     if on_win:
                         try:
-                            move_to_trash(prefix, f)
+                            move_path_to_trash(dst)
                         except ImportError:
                             # This shouldn't be an issue in the installer anyway
                             pass
@@ -685,7 +699,7 @@ def unlink(prefix, dist):
                 if on_win and os.path.exists(join(prefix, f)):
                     try:
                         log.debug("moving to trash")
-                        move_to_trash(prefix, f)
+                        move_path_to_trash(dst)
                     except ImportError:
                         # This shouldn't be an issue in the installer anyway
                         pass
