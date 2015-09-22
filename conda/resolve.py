@@ -33,7 +33,7 @@ class VersionOrder(object):
     (this is useful to indicate a change in the versioning
     scheme itself). Version comparison is case-insensitive. 
     
-    Conda supports five types of version strings:
+    Conda supports six types of version strings:
     
     * Release versions contain only integers, e.g. '1.0', '2.3.5'.
     * Pre-release versions use additional letters such as 'a' or 'rc', 
@@ -44,29 +44,35 @@ class VersionOrder(object):
       for example '1.0post1', '2.3.5.post2'.
     * Tagged versions have a suffix that specifies a particular 
       property of interest, e.g. '1.1.parallel'. Tags can be added 
-      to any of the other four types. As far as sorting is concerned.
+      to any of the preceding four types. As far as sorting is concerned,
       tags are treated like strings in pre-release versions.
+    * An optional local version string separated by '+' can be appended 
+      to an official (upstream) version string. For details, see 
+      https://www.python.org/dev/peps/pep-0440/.
       
     To obtain a predictable version ordering, it is crucial to keep the 
     version number scheme of a given package consistent over time. 
     Specifically, 
     
     * version strings should always have the same number of components
-      (except for an optional tag suffix),
+      (except for an optional tag suffix or local version string),
     * letters/strings indicating non-release versions should always 
       occur at the same position.
     
     Before comparison, version strings are parsed as follows:
     
-    * they are first split into epoch and version number at '!'
-      (if there is no '!', the epoch is set to 0)
-    * the version part is then split into components at '.'
-    * each component is split again into runs of numerals and non-numerals
-    * subcomponents containing only numerals are converted to integers
-    * strings are converted to lower case, with special treatment for 'dev' 
-      and 'post'
-    * when a component starts with a letter, the fillvalue 0 is inserted 
+    * They are first split into epoch, version number, and local version
+      number at '!' and '+' respectively. If there is no '!', the epoch is 
+      set to 0. If there is no '+', the local version is empty.
+    * The version part is then split into components at '.'.
+    * Each component is split again into runs of numerals and non-numerals
+    * Subcomponents containing only numerals are converted to integers.
+    * Strings are converted to lower case, with special treatment for 'dev' 
+      and 'post'.
+    * When a component starts with a letter, the fillvalue 0 is inserted 
       to keep numbers and strings in phase, resulting in '1.1.a1' == 1.1.0a1'.
+    * The same is repeated for the local version part, but without splitting 
+      into subcomponents and special treatment of 'dev' and 'post'.
       
     Examples:
     
@@ -78,7 +84,7 @@ class VersionOrder(object):
     
     * integers are compared numerically
     * strings are compared lexicographically, case-insensitive
-    * strings are smaller than integers, except for
+    * strings are smaller than integers, except
     * 'dev' versions are smaller than all corresponding versions of other types
     * 'post' versions are greater than all corresponding versions of other types
     * if a subcomponent has no correspondent, the missing correspondent is      
