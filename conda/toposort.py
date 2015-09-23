@@ -96,6 +96,16 @@ def toposort(data, safe=True):
 
     data = {k:set(v) for k, v in data.items()}
 
+    if 'python' in data:
+        # Special case: Remove circular dependency between python and pip,
+        # to ensure python is always installed before anything that needs it.
+        # For more details:
+        # - https://github.com/conda/conda/issues/1152
+        # - https://github.com/conda/conda/pull/1154
+        # - https://github.com/conda/conda-build/issues/401
+        # - https://github.com/conda/conda/pull/1614
+        data['python'].discard('pip')
+
     if safe:
         return list(_safe_toposort(data))
     else:

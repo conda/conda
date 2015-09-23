@@ -204,10 +204,14 @@ def add_parser_install(p):
                "implies --no-deps.",
     )
     add_parser_pscheck(p)
+    # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
+    # want to gobble up all arguments after --file.
     p.add_argument(
         "--file",
-        action="store",
-        help="Read package versions from FILE.",
+        default=[],
+        action='append',
+        help="Read package versions from the given file. Repeated file "
+              "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
     add_parser_known(p)
     p.add_argument(

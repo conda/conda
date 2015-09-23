@@ -85,6 +85,11 @@ class TestJson(unittest.TestCase):
                                      '--file', 'tmpfile.rc', '--json')
         self.assertJsonSuccess(res)
 
+        res = capture_json_with_argv('conda', 'config', '--get', 'channels',
+                                     '--file', 'tmpfile.rc',
+                                     '--file', 'tmpfile.rc', '--json')
+        self.assertJsonSuccess(res)
+
         # res = capture_json_with_argv('conda', 'config', '--add', 'channels',
         #                              'binstar', '--json')
         # self.assertIsInstance(res, dict)
