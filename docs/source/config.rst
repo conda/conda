@@ -215,6 +215,32 @@ list.
   track_features:
     - mkl
 
+Disable updating of dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, ``conda install`` updates the given package and all its
+dependencies to the latest versions.
+
+If you prefer to only update the packages given explicitly at the command line
+and avoid updating existing installed packages as much as possible, you can
+set ``update_dependencies`` to ``True``.
+
+.. code-block:: yaml
+
+   update_dependencies: True
+
+Note that conda will still ensure that dependency specifications are
+satisfied, so some dependencies may still be updated, or, conversely, this may
+prevent packages given at the command line from being updated to their latest
+versions. You can always specify versions at the command line to force conda
+to install a given version (like ``conda
+install numpy=1.9.3``).
+
+This option can also be enabled or disabled at the command line with the
+``--update-dependencies`` and ``--no-update-dependencies`` flags.
+
+To avoid updating only specific packages in an environment, a better option
+may be to *pin* them. See :ref:`pinning-packages` for more information.
 
 Conda build configuration
 =========================
