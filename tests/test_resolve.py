@@ -72,7 +72,7 @@ class TestVersionSpec(unittest.TestCase):
            (VersionOrder("1!3.1.1.6"),  [[1], [3], [1], [1], [6]]),
            (VersionOrder("2!0.4.1"),    [[2], [0], [4], [1]]),
         ]
-        
+
         # check parser
         for v, l in versions:
             self.assertEqual(v.version, l)
@@ -92,17 +92,17 @@ class TestVersionSpec(unittest.TestCase):
             VersionOrder("!")
         with self.assertRaises(ValueError):
             VersionOrder("a!1.0")
-        
+
         # check __eq__
         self.assertEqual(VersionOrder("  0.4.rc  "), VersionOrder("0.4.RC"))
         self.assertEqual(VersionOrder("0.4"), VersionOrder("0.4.0"))
         self.assertNotEqual(VersionOrder("0.4"), VersionOrder("0.4.1"))
         self.assertEqual(VersionOrder("0.4.a1"), VersionOrder("0.4.0a1"))
         self.assertNotEqual(VersionOrder("0.4.a1"), VersionOrder("0.4.1a1"))
-        
+
         # check __lt__
         self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
-    
+
     def test_pep440(self):
         # this list must be in sorted order (slightly modified from the PEP 440 test suite
         # https://github.com/pypa/packaging/blob/master/tests/test_version.py)
@@ -111,7 +111,7 @@ class TestVersionSpec(unittest.TestCase):
             "1.0a1", "1.0a2.dev456", "1.0a12.dev456", "1.0a12",
             "1.0b1.dev456", "1.0b2", "1.0b2.post345.dev456", "1.0b2.post345",
             "1.0c1.dev456", "1.0c1", "1.0c3", "1.0rc2", "1.0.dev456", "1.0",
-            "1.0.post456.dev34", "1.0.post456", "1.1.dev1", 
+            "1.0.post456.dev34", "1.0.post456", "1.1.dev1",
             "1.2.r32+123456", "1.2.rev33+123456", "1.2+123abc",
             "1.2+123abc456", "1.2+abc", "1.2+abc123", "1.2+abc123def", "1.2+1234.abc",
             "1.2+123456",
@@ -120,16 +120,16 @@ class TestVersionSpec(unittest.TestCase):
             "1!1.0a1", "1!1.0a2.dev456", "1!1.0a12.dev456", "1!1.0a12",
             "1!1.0b1.dev456", "1!1.0b2", "1!1.0b2.post345.dev456", "1!1.0b2.post345",
             "1!1.0c1.dev456", "1!1.0c1", "1!1.0c3", "1!1.0rc2", "1!1.0.dev456", "1!1.0",
-            "1!1.0.post456.dev34", "1!1.0.post456", "1!1.1.dev1", 
+            "1!1.0.post456.dev34", "1!1.0.post456", "1!1.1.dev1",
             "1!1.2.r32+123456", "1!1.2.rev33+123456", "1!1.2+123abc",
             "1!1.2+123abc456", "1!1.2+abc", "1!1.2+abc123", "1!1.2+abc123def",
             "1!1.2+1234.abc", "1!1.2+123456",
         ]
-        
+
         version = [VersionOrder(v) for v in VERSIONS]
-        
+
         self.assertEqual(version, sorted(version))
-        
+
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
         self.assertEqual(ver_eval('1.7.0', '<=1.7'), True)
@@ -424,14 +424,15 @@ def test_get_dists():
 def test_generate_eq():
     r.msd_cache = {}
 
-    dists = r.get_dists(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
+    specs = ['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*']
+    dists = r.get_dists(specs)
     v = {}
     w = {}
     for i, fn in enumerate(sorted(dists)):
         v[fn] = i + 1
         w[i + 1] = fn
 
-    eq, max_rhs = r.generate_version_eq(v, dists, include0=True)
+    eq, max_rhs = r.generate_version_eq(v, dists, [], specs, include0=True)
     e = [(i, w[j]) for i, j in eq]
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
@@ -756,7 +757,7 @@ def test_generate_eq():
 
     assert max_rhs == 20 + 4 + 2 + 2 + 1
 
-    eq, max_rhs = r.generate_version_eq(v, dists)
+    eq, max_rhs = r.generate_version_eq(v, dists, [], specs)
     assert all(i > 0 for i, _ in eq)
     e = [(i, w[j]) for i, j in eq]
 
@@ -1316,3 +1317,59 @@ def test_no_features():
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
             ]][0]
+
+def test_update_deps():
+    r.msd_cache = {}
+
+    installed = r.solve2(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'], set())
+    assert installed == [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.10.1-np16py27_0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.11.0-np16py27_3.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+    # numpy, scipy, and pandas should all be updated here. pytz is a new
+    # dependency of pandas.
+    assert r.solve2(['pandas', 'python 2.7*'], set(), installed=installed,
+        update_deps=True, returnall=True) == [[
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.7.1-py27_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.11.0-np17py27_1.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.12.0-np17py27_0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]
+
+    # pandas should be updated here. However, it's going to try to not update
+    # scipy, so it won't be updated to the latest version (0.11.0).
+    assert r.solve2(['pandas', 'python 2.7*'], set(), installed=installed,
+        update_deps=False, returnall=True) == [[
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.10.1-np16py27_0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.11.0-np16py27_3.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]

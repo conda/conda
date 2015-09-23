@@ -338,7 +338,8 @@ environment does not exist: %s
                                                force=args.force,
                                                only_names=only_names,
                                                pinned=args.pinned,
-                                               minimal_hint=args.alt_hint)
+                                               minimal_hint=args.alt_hint,
+                                               update_deps=args.update_deps)
             if args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
