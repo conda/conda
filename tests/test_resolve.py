@@ -1317,3 +1317,59 @@ def test_no_features():
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
             ]][0]
+
+def test_update_deps():
+    r.msd_cache = {}
+
+    installed = r.solve2(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'], set())
+    assert installed == [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.10.1-np16py27_0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.11.0-np16py27_3.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]
+
+    # numpy, scipy, and pandas should all be updated here. pytz is a new
+    # dependency of pandas.
+    assert r.solve2(['pandas', 'python 2.7*'], set(), installed=installed,
+        update_deps=True, returnall=True) == [[
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.7.1-py27_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.11.0-np17py27_1.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.12.0-np17py27_0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]
+
+    # pandas should be updated here. However, it's going to try to not update
+    # scipy, so it won't be updated to the latest version (0.11.0).
+    assert r.solve2(['pandas', 'python 2.7*'], set(), installed=installed,
+        update_deps=False, returnall=True) == [[
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.10.1-np16py27_0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.11.0-np16py27_3.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]
