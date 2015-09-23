@@ -165,10 +165,10 @@ class VersionOrder(object):
         version = version.split('+')
         if len(version) == 1:
             # no local version
-            self.local = []
+            self.local = [[]]
         elif len(version) == 2:
             # local version given
-            self.local = [int(j) if j.isdigit() else j for j in version[1].split('.')]
+            self.local = [[int(j) if j.isdigit() else j for j in version[1].split('.')]]
         else:
             raise ValueError(message + "duplicated local version separator '+'.")
         
