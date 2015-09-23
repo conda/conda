@@ -19,6 +19,7 @@
   * add conda upgrade alias for conda update
   * add update_dependencies condarc option and --update-deps/--no-update-deps
     command line flags
+  * allow specs with conda update --all
 
 2015-09-11   3.17.0:
 --------------------
