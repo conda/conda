@@ -93,7 +93,7 @@ def external_commands():
     start = False
     for line in help.splitlines():
         # Commands start after "command" header
-        if line.strip() == 'external commands:':
+        if line.strip() == 'other commands:':
             start = True
             continue
         if start:
