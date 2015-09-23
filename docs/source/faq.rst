@@ -9,33 +9,33 @@ General questions
 
 1. What is conda?
 
-Conda is a cross-platform and Python-agnostic package manager and environment manager 
-program that quickly installs, runs and updates packages and their dependencies and 
-easily creates, saves, loads and switches between environments on your local computer. 
+Conda is a cross-platform and Python-agnostic package manager and environment manager
+program that quickly installs, runs and updates packages and their dependencies and
+easily creates, saves, loads and switches between environments on your local computer.
 Conda is included in all versions of Anaconda, Miniconda and Anaconda Server.
 
 2. What is Miniconda?
 
-Miniconda includes conda, Python and a small number of other useful packages including 
+Miniconda includes conda, Python and a small number of other useful packages including
 pip, zlib and a few others.
 
 3. What is Anaconda?
 
-Anaconda includes everything in Miniconda and a stable collection of over 100 standard 
-open source packages for data analysis and scientific computing that have all been 
-tested to work well together, including scipy, numpy and many others. These packages 
+Anaconda includes everything in Miniconda and a stable collection of over 100 standard
+open source packages for data analysis and scientific computing that have all been
+tested to work well together, including scipy, numpy and many others. These packages
 can all be installed automatically with one quick and convenient installation routine.
 
 4. Do Miniconda and Anaconda include Python?
 
-Yes. Because Anaconda and Miniconda include Python, they are Python distributions, and 
+Yes. Because Anaconda and Miniconda include Python, they are Python distributions, and
 can make installing Python quick and easy even for new users.
 
 5. When should I use Miniconda instead of Anaconda?
 
-If you use Miniconda instead of the full Anaconda then you must choose each package 
-you want and use conda to download and install them. Miniconda can be used when disk 
-space is limited or if you do not wish to take the time to download and install all 
+If you use Miniconda instead of the full Anaconda then you must choose each package
+you want and use conda to download and install them. Miniconda can be used when disk
+space is limited or if you do not wish to take the time to download and install all
 the Anaconda packages at once.
 
 
@@ -56,11 +56,11 @@ Or on the web in our command reference guide,  :doc:`/commands`.
 
   conda create -h
 
-3. How can I get help with using conda? 
+3. How can I get help with using conda?
 
-Download our :doc:`/using/cheatsheet` and :doc:`/install/quick` guide, take the 30-minute :doc:`test-drive`, and see the complete :doc:`/using/index` section of our documentation site. 
+Download our :doc:`/using/cheatsheet` and :doc:`/install/quick` guide, take the 30-minute :doc:`test-drive`, and see the complete :doc:`/using/index` section of our documentation site.
 
-Get free community support with our `Google group <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_. 
+Get free community support with our `Google group <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_.
 
 There are also paid support, training and consulting options. See our `Support Services <http://continuum.io/support/>`_ page for more information.
 
@@ -81,7 +81,7 @@ or by entering:
 
   conda -V
 
-SEE ALSO: the complete :doc:`/using/index` section of our documentation site. 
+SEE ALSO: the complete :doc:`/using/index` section of our documentation site.
 
 2. How can I check if a specific package, such as *SciPy*, is available for installation?
 
@@ -95,7 +95,7 @@ SEE ALSO: the complete :doc:`/using/index` section of our documentation site.
 
   conda search --override-channels --channel defaults scipy
 
-SEE ALSO: the :doc:`/using/pkgs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/pkgs` section of our documentation site.
 
 4. How do I check if a specific package such as *iminuit* exists in a specific channel (for example,  http://conda.anaconda.org/mutirri) and is available for installation?
 
@@ -106,7 +106,7 @@ SEE ALSO: the :doc:`/using/pkgs` section of our documentation site.
 .. _customization:
 
 
-Managing Packages 
+Managing Packages
 ==================
 
 Installing packages
@@ -164,25 +164,8 @@ Updating packages
 
 #. How can I prevent a specific package from being updated?
 
-   You can *pin* a package specification in an environment, which will prevent
-   it from being updated, unless the ``--no-pin`` flag is passed to conda. To
-   do so, add a file named ``pinned`` to the environment's ``conda-meta``
-   directory with a list of specs. For example, a file with this command:
+   See :ref:`pinning-packages`.
 
-   ::
-
-      numpy 1.7.*
-      scipy ==0.14.2
-
-   will force numpy to stay on the 1.7 series (any version that starts with
-   "1.7."), and will force scipy to stay at exactly version 0.14.2.
-
-   NOTE: With this pinned file, ``conda update numpy`` will keep numpy at 1.7.1, and
-   ``conda install scipy=0.15.0`` will lead to an error. To force either of
-   these, use the ``--no-pin`` flag, like ``conda update numpy --no-pin``. The
-   way pinning works is that the pinned specs are included with each conda
-   install, so subsequent ``conda update`` commands without ``--no-pin`` will revert numpy back
-   to the 1.7 series.
 
 Removing packages
 ------------------
@@ -211,12 +194,12 @@ Getting info about environments
 
       conda info -e
 
-SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
 2. How can I set whether my command prompt shows the name of the active environment?
 
-   This option can be disabled with ``conda config --set changeps1 false`` and enabled 
-   with ``conda config --set changeps1 true``. It is enabled by default and can be 
+   This option can be disabled with ``conda config --set changeps1 false`` and enabled
+   with ``conda config --set changeps1 true``. It is enabled by default and can be
    tested by activating and then deactivating any environment.
 
 3. How can I list all installed packages in a specific environment, for example, ``myenv``?
@@ -248,9 +231,9 @@ Creating new environments
 
       conda create -n myenv python
 
-SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
-2. How can I create a new environment such as ``myenv`` with a specific version of *python* 
+2. How can I create a new environment such as ``myenv`` with a specific version of *python*
    as the default interpreter inside it?
 
    .. code-block:: bash
@@ -304,7 +287,7 @@ Activate and deactivate
 
 **Windows:** ``activate myenv``
 
-SEE ALSO: the :doc:`/using/envs` section of our documentation site. 
+SEE ALSO: the :doc:`/using/envs` section of our documentation site.
 
 2. How can I deactivate the active environment ``myenv``?
 
@@ -371,13 +354,13 @@ After performing the above command you can create new environments in the standa
 
       conda create --no-default-packages -n myenv python
 
-7. When making a python package for an app I create an environment for the app from 
-a file req.txt that sets python=2.7.9. However, when I conda install my package it 
+7. When making a python package for an app I create an environment for the app from
+a file req.txt that sets python=2.7.9. However, when I conda install my package it
 automatically upgrades to 2.7.10. How do I avoid this?
 
-If you make a conda package for the app using conda-build, you can set dependencies 
-with specific version numbers. In `this example <http://conda.pydata.org/docs/building/meta-yaml.html>`_ 
-the requirements lines that say "- python" could be "- python ==2.7.9" instead. It 
+If you make a conda package for the app using conda-build, you can set dependencies
+with specific version numbers. In `this example <http://conda.pydata.org/docs/building/meta-yaml.html>`_
+the requirements lines that say "- python" could be "- python ==2.7.9" instead. It
 is important to have one space before the == operator and no space after.
 
 Removing packages and environments
@@ -466,10 +449,36 @@ SEE ALSO: :doc:`/build_tutorials/pkgs` tutorial.
    travis
    help/conda-pip-virtualenv-translator.rst
 
+
+.. _pinning-packages:
+
+Pinning packages
+================
+
+You can *pin* a package specification in an environment, which will prevent
+it from being updated, unless the ``--no-pin`` flag is passed to conda. To
+do so, add a file named ``pinned`` to the environment's ``conda-meta``
+directory with a list of specs. For example, a file with this command:
+
+::
+
+   numpy 1.7.*
+   scipy ==0.14.2
+
+will force numpy to stay on the 1.7 series (any version that starts with
+"1.7."), and will force scipy to stay at exactly version 0.14.2.
+
+NOTE: With this pinned file, ``conda update numpy`` will keep numpy at 1.7.1, and
+``conda install scipy=0.15.0`` will lead to an error. To force either of
+these, use the ``--no-pin`` flag, like ``conda update numpy --no-pin``. The
+way pinning works is that the pinned specs are included with each conda
+install, so subsequent ``conda update`` commands without ``--no-pin`` will revert numpy back
+to the 1.7 series.
+
 Conda, pip, and virtualenv
 ==========================
 
-If you are already familiar with pip or virtualenv, please see our chart comparing 
+If you are already familiar with pip or virtualenv, please see our chart comparing
 :doc:`Conda, pip, and virtualenv <help/conda-pip-virtualenv-translator>`.
 
 Silent installation
