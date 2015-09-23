@@ -1,6 +1,23 @@
 -------------------
   * add defaults to specs after getting pinned specs (allows to pin a
     different version of Python than what is installed)
+  * show what older versions are in the solutions in the resolve debug log
+  * fix use of os.chmod in Python 3.5
+  * respect --no-deps when installing from .tar or .tar.bz2
+  * avoid infinite recursion with NoPackagesFound and conda update --all --file
+  * fix conda update --file
+  * toposort: Added special case to remove 'pip' dependency from 'python'
+  * show dotlog messages during hint generation with --debug
+  * disable the max_only heuristic during hint generation
+  * new version comparison algorithm, which consistently compares any version
+    string, and better handles version strings using things like alpha, beta,
+    rc, post, and dev. This should remove any inconsistent version comparison
+    that would lead to conda installing an incorrect version.
+  * use the trash in rm_rf, meaning more things will get the benefit of the
+    trash system on Windows
+  * add the ability to pass the --file argument multiple times
+  * add conda upgrade alias for conda update
+
 
 2015-09-11   3.17.0:
 --------------------
