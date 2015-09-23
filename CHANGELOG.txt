@@ -2,7 +2,7 @@
   * add defaults to specs after getting pinned specs (allows to pin a
     different version of Python than what is installed)
   * show what older versions are in the solutions in the resolve debug log
-  * fix use of os.chmod in Python 3.5
+  * fix some issues with Python 3.5
   * respect --no-deps when installing from .tar or .tar.bz2
   * avoid infinite recursion with NoPackagesFound and conda update --all --file
   * fix conda update --file
