@@ -4,9 +4,15 @@ python:
   - "2.7"
   - "3.3"
   - "3.4"
+  - "3.5"
 env:
   -
   - PYCOSAT=0.6.0
+matrix:
+  exclude:
+    - python: "3.5"
+      env: PYCOSAT=0.6.0
+
 install:
   # TODO: Use a "latest" url
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -22,7 +28,7 @@ install:
   - conda config --set always_yes yes
   - bin/conda install --force --no-deps conda requests
   - conda --version
-  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes
+  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
