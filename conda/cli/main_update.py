@@ -13,17 +13,27 @@ descr = "Update conda packages to the current version."
 example = """
 Examples:
 
-    conda update -n myenv scipy
+    conda %s -n myenv scipy
 
 """
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'update',
-        description=descr,
-        help=descr,
-        epilog=example,
-    )
+alias_help = "Alias for conda update.  See conda update --help."
+
+def configure_parser(sub_parsers, name='update'):
+    if name == 'update':
+        p = sub_parsers.add_parser(
+            'update',
+            description=descr,
+            help=descr,
+            epilog=example % name,
+        )
+    else:
+        p = sub_parsers.add_parser(
+            name,
+            description=alias_help,
+            help=alias_help,
+            epilog=example % name,
+        )
     common.add_parser_install(p)
     common.add_parser_json(p)
     p.add_argument(

@@ -367,7 +367,8 @@ def add_defaults_to_specs(r, linked, specs):
             specs.append(dist2spec3v(names_linked[name]))
             continue
 
-        if (name, def_ver) in [('python', '3.3'), ('python', '3.4')]:
+        if (name, def_ver) in [('python', '3.3'), ('python', '3.4'),
+            ('python', '3.5')]:
             # Don't include Python 3 in the specs if this is the Python 3
             # version of conda.
             continue
@@ -391,12 +392,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
-    add_defaults_to_specs(r, linked, specs)
+
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
         # TODO: Improve error messages here
+    add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],

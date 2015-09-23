@@ -31,8 +31,6 @@ Exceptions
 
 versioneer.py is Public Domain
 
-verlib.py is Public Domain
-
 The ProgressBar package is released under the following terms:
 
 # progressbar  - Text progress bar library for Python.
