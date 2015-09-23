@@ -237,6 +237,20 @@ def add_parser_install(p):
         action="store_true",
         default=False,
         help="Use an alternate algorithm to generate an unsatisfiability hint.")
+    p.add_argument(
+        "--update-dependencies", "--update-deps",
+        action="store_true",
+        dest="update_deps",
+        default=config.update_dependencies,
+        help="Update dependencies (default: %(default)s).",
+    )
+    p.add_argument(
+        "--no-update-dependencies", "--no-update-deps",
+        action="store_false",
+        dest="update_deps",
+        default=not config.update_dependencies,
+        help="Don't update dependencies (default: %(default)s).",
+    )
 
     if 'update' in p.prog:
         # I don't know if p.prog is the correct thing to use here but it's the
@@ -246,7 +260,7 @@ def add_parser_install(p):
             metavar='package_spec',
             action="store",
             nargs='*',
-            help="Package versions to install into the conda environment.",
+            help="Packages to update in the conda environment.",
         ).completer=InstalledPackages
     else: # create or install
         # Same as above except the completer is not only installed packages
@@ -255,9 +269,8 @@ def add_parser_install(p):
             metavar='package_spec',
             action="store",
             nargs='*',
-            help="Package versions to install into the conda environment.",
+            help="Packages to install into the conda environment.",
             ).completer=Packages
-
 
 def add_parser_use_local(p):
     p.add_argument(

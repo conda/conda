@@ -9,7 +9,8 @@ from functools import partial
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems, string_types, zip_longest
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
+    MaximumIterationsError)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -570,7 +571,8 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield tuple(clause)
 
-    def generate_version_eq(self, v, dists, include0=False):
+    def generate_version_eq(self, v, dists, installed_dists, specs,
+        include0=False, update_deps=True):
         groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
@@ -579,6 +581,20 @@ class Resolve(object):
         max_rhs = 0
         for filenames in sorted(itervalues(groups)):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
+            if (not update_deps and not any(s.split()[0] == pkgs[0].rsplit('-', 2)[0] for s in specs)):
+                rearrange = True
+                for d in installed_dists:
+                    if d in pkgs:
+                        break
+                else:
+                    # It isn't already installed
+                    rearrange = False
+                if rearrange:
+                    idx = pkgs.index(d)
+                    # For example, if the versions are 1.0, 2.0, 3.0, 4.0, and
+                    # 5.0, and 3.0 is installed, this prefers 3.0 > 4.0 > 5.0
+                    # > 2.0 > 1.0.
+                    pkgs = [d] + list(reversed(pkgs[:idx])) + pkgs[idx+1:]
             i = 0
             prev = pkgs[0]
             for pkg in pkgs:
@@ -644,18 +660,20 @@ class Resolve(object):
 
         return result
 
-    def solve2(self, specs, features, guess=True, alg='BDD',
-        returnall=False, minimal_hint=False, unsat_only=False, try_max_only=None):
-
+    def solve2(self, specs, features, installed=(), guess=True, alg='BDD',
+        returnall=False, minimal_hint=False, unsat_only=False, update_deps=True,
+        try_max_only=None):
         log.debug("Solving for %s" % str(specs))
+        log.debug("Features: %s" % str(features))
+        log.debug("Installed: %s" % str(installed))
 
-        # First try doing it the "old way", i.e., just look at the most recent
-        # version of each package from the specs. This doesn't handle the more
-        # complicated cases that the pseudo-boolean solver does, but it's also
-        # much faster when it does work.
+        # This won't packages that aren't in the index, but there isn't much
+        # we can do with such packages here anyway.
+        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in
+            installed if pkg in self.index}
 
         if try_max_only is None:
-            if unsat_only:
+            if unsat_only or update_deps:
                 try_max_only = False
             else:
                 try_max_only = True
@@ -705,7 +723,8 @@ class Resolve(object):
             if returnall:
                 return [[]]
             return []
-        eq, max_rhs = self.generate_version_eq(v, dists)
+        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
+            specs, update_deps=update_deps)
 
 
         # Second common case, check if it's unsatisfiable
@@ -916,7 +935,7 @@ Note that the following features are enabled:
         self.msd_cache[fn] = d.values()
 
     def solve(self, specs, installed=None, features=None, max_only=False,
-              minimal_hint=False):
+              minimal_hint=False, update_deps=True):
         if installed is None:
             installed = []
         if features is None:
@@ -935,7 +954,7 @@ Note that the following features are enabled:
         stdoutlog.info("Solving package specifications: ")
         try:
             return self.explicit(specs) or self.solve2(specs, features,
-                                                       minimal_hint=minimal_hint)
+                installed, minimal_hint=minimal_hint, update_deps=update_deps)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
