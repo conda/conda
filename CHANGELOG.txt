@@ -17,7 +17,8 @@
     trash system on Windows
   * add the ability to pass the --file argument multiple times
   * add conda upgrade alias for conda update
-
+  * add update_dependencies condarc option and --update-deps/--no-update-deps
+    command line flags
 
 2015-09-11   3.17.0:
 --------------------
