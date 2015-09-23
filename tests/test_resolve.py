@@ -57,12 +57,16 @@ class TestVersionSpec(unittest.TestCase):
            (VersionOrder("2.2be.ta29"), [[0], [2], [2, 'be'], [0, 'ta', 29]]),
            (VersionOrder("2.2be5ta29"), [[0], [2], [2, 'be', 5, 'ta', 29]]),
            (VersionOrder("2.2beta29"),  [[0], [2], [2, 'beta', 29]]),
+           (VersionOrder("2.2.0.1"),    [[0], [2], [2],[0],[1]]),
            (VersionOrder("3.1.1.6"),    [[0], [3], [1], [1], [6]]),
            (VersionOrder("3.2.p.r0"),   [[0], [3], [2], [0, 'p'], [0, 'r', 0]]),
            (VersionOrder("3.2.pr0"),    [[0], [3], [2], [0, 'pr', 0]]),
            (VersionOrder("3.2.pr.1"),   [[0], [3], [2], [0, 'pr'], [1]]),
            (VersionOrder("5.5.kw"),     [[0], [5], [5], [0, 'kw']]),
            (VersionOrder("11g"),        [[0], [11, 'g']]),
+           (VersionOrder("14.3.1"),     [[0], [14], [3], [1]]),
+           (VersionOrder("14.3.1.post26.g9d75ca2"),
+                                        [[0],[14],[3],[1],[0,float('inf'),26],[0,'g',9,'d',75,'ca',2]]),
            (VersionOrder("1996.07.12"), [[0], [1996], [7], [12]]),
            (VersionOrder("1!0.4.1"),    [[1], [0], [4], [1]]),
            (VersionOrder("1!3.1.1.6"),  [[1], [3], [1], [1], [6]]),
@@ -98,6 +102,33 @@ class TestVersionSpec(unittest.TestCase):
         
         # check __lt__
         self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
+    
+    def test_pep440(self):
+        # this list must be in sorted order (slightly modified from the PEP 440 test suite
+        # https://github.com/pypa/packaging/blob/master/tests/test_version.py)
+        VERSIONS = [
+            # Implicit epoch of 0
+            "1.0a1", "1.0a2.dev456", "1.0a12.dev456", "1.0a12",
+            "1.0b1.dev456", "1.0b2", "1.0b2.post345.dev456", "1.0b2.post345",
+            "1.0c1.dev456", "1.0c1", "1.0c3", "1.0rc2", "1.0.dev456", "1.0",
+            "1.0.post456.dev34", "1.0.post456", "1.1.dev1", 
+            "1.2.r32+123456", "1.2.rev33+123456", "1.2+123abc",
+            "1.2+123abc456", "1.2+abc", "1.2+abc123", "1.2+abc123def", "1.2+1234.abc",
+            "1.2+123456",
+
+            # Explicit epoch of 1
+            "1!1.0a1", "1!1.0a2.dev456", "1!1.0a12.dev456", "1!1.0a12",
+            "1!1.0b1.dev456", "1!1.0b2", "1!1.0b2.post345.dev456", "1!1.0b2.post345",
+            "1!1.0c1.dev456", "1!1.0c1", "1!1.0c3", "1!1.0rc2", "1!1.0.dev456", "1!1.0",
+            "1!1.0.post456.dev34", "1!1.0.post456", "1!1.1.dev1", 
+            "1!1.2.r32+123456", "1!1.2.rev33+123456", "1!1.2+123abc",
+            "1!1.2+123abc456", "1!1.2+abc", "1!1.2+abc123", "1!1.2+abc123def",
+            "1!1.2+1234.abc", "1!1.2+123456",
+        ]
+        
+        version = [VersionOrder(v) for v in VERSIONS]
+        
+        self.assertEqual(version, sorted(version))
         
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
