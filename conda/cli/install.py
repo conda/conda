@@ -129,12 +129,7 @@ def install(args, parser, command='install'):
         common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
 
     if command == 'update':
-        if args.all:
-            if args.packages:
-                common.error_and_exit("""--all cannot be used with packages""",
-                                      json=args.json,
-                                      error_type="ValueError")
-        elif not args.file:
+        if not args.file:
             if len(args.packages) == 0:
                 common.error_and_exit("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
@@ -144,7 +139,7 @@ def install(args, parser, command='install'):
                                       json=args.json,
                                       error_type="ValueError")
 
-    if command == 'update':
+    if command == 'update' and not args.all:
         linked = ci.linked(prefix)
         for name in args.packages:
             common.arg2spec(name, json=args.json)
