@@ -10,7 +10,8 @@ from conda import verlib
 from conda.utils import memoize
 from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
+    MaximumIterationsError, z3_optimize)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -390,6 +391,76 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield tuple(clause)
 
+    def gen_z3_clauses(self, v, dists, specs, features):
+        try:
+            from z3 import Bool, Or, Not, Implies, IntSort
+        except ImportError:
+            raise ImportError("The unstable branch of z3 is required for this branch")
+
+        log.debug("Creating z3 clauses")
+
+        vars = {i: Bool(i) for i in v}
+        as_int = IntSort().cast
+
+        groups = defaultdict(list)  # map name to list of filenames
+        for fn in dists:
+            groups[self.index[fn]['name']].append(fn)
+
+        for filenames in itervalues(groups):
+            # ensure packages with the same name conflict. At most one file
+            # from a given package can be installed.
+            yield sum(as_int(vars[fn]) for fn in filenames) <= 1
+
+        for fn1 in dists:
+            for ms in self.ms_depends(fn1):
+                # ensure dependencies are installed
+                # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
+                depends_fns = []
+                for fn2 in self.find_matches(ms):
+                    if fn2 in dists:
+                        depends_fns.append(fn2)
+                assert depends_fns, '%s %r' % (fn1, ms)
+                yield Implies(vars[fn1], Or(*[vars[fn] for fn in depends_fns]))
+
+                for feat in features:
+                    # ensure that a package (with required name) which has
+                    # the feature is installed
+                    # e.g. numpy-1.7 IMPLIES (numpy-1.8[mkl] OR numpy-1.7[mkl])
+                    depends_fns = []
+                    for fn2 in groups[ms.name]:
+                         if feat in self.features(fn2):
+                             depends_fns.append(fn2)
+                    if depends_fns > 1:
+                        yield Implies(vars[fn1], Or(*[vars[fn] for fn in depends_fns]))
+
+                # Don't install any package that has a feature that wasn't requested.
+                for fn in self.find_matches(ms):
+                    if fn in dists and self.features(fn) - features:
+                        yield Not(vars[fn])
+
+        for spec in specs:
+            ms = MatchSpec(spec)
+            # ensure that a matching package with the feature is installed
+            for feat in features:
+                # numpy-1.7[mkl] OR numpy-1.8[mkl]
+                fns_with_feature = [fn for fn in self.find_matches(ms)
+                          if fn in dists and feat in self.features(fn)]
+                if fns_with_feature:
+                    yield Or(*[vars[fn] for fn in fns_with_feature])
+
+            # Don't install any package that has a feature that wasn't requested.
+            for fn in self.find_matches(ms):
+                if fn in dists and self.features(fn) - features:
+                    yield Not(vars[fn])
+
+            # finally, ensure a matching package itself is installed
+            # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
+            # numpy-1.7-py27[mkl] OR ...
+            fns = [fn for fn in self.find_matches(ms)
+                      if fn in dists]
+            assert len(fns) >= 1, ms
+            yield Or(*[vars[fn] for fn in fns])
+
     def generate_version_eq(self, v, dists, include0=False):
         groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
@@ -464,7 +535,7 @@ class Resolve(object):
 
         return result
 
-    def solve2(self, specs, features, guess=True, alg='BDD',
+    def solve2(self, specs, features, guess=True, alg='Z3',
         returnall=False, minimal_hint=False, unsat_only=False, try_max_only=None):
 
         log.debug("Solving for %s" % str(specs))
@@ -475,7 +546,7 @@ class Resolve(object):
         # much faster when it does work.
 
         if try_max_only is None:
-            if unsat_only:
+            if unsat_only or alg == "Z3":
                 try_max_only = False
             else:
                 try_max_only = True
@@ -520,17 +591,30 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = set(self.gen_clauses(v, dists, specs, features))
+        if alg == "Z3":
+            clauses = list(self.gen_z3_clauses(v, dists, specs, features))
+        else:
+            clauses = set(self.gen_clauses(v, dists, specs, features))
         if not clauses:
             if returnall:
                 return [[]]
             return []
         eq, max_rhs = self.generate_version_eq(v, dists)
 
-
         # Second common case, check if it's unsatisfiable
         dotlog.debug("Checking for unsatisfiability")
-        solution = sat(clauses)
+        if alg == "Z3":
+            try:
+                from z3 import Solver, BoolSort, sat
+            except ImportError:
+                raise ImportError("The unstable branch of z3 is required for this branch")
+
+            s = Solver()
+            for clause in clauses:
+                s.add(clause)
+            solution = s.check() == sat
+        else:
+            solution = sat(clauses)
 
         if not solution:
             if guess:
@@ -549,6 +633,9 @@ class Resolve(object):
             return True
 
         log.debug("Using alg %s" % alg)
+
+        if alg == "Z3":
+            return z3_optimize(clauses, eq, w)
 
         def version_constraints(lo, hi):
             return set(generate_constraints(eq, m, [lo, hi], alg=alg))

@@ -487,6 +487,42 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
 
     return C.clauses | additional_clauses
 
+def z3_optimize(clauses, version_eq, w, use_combined_eq=False):
+    try:
+        from z3 import Bool, BoolSort, Optimize, IntSort, set_param
+    except ImportError:
+        raise ImportError("The unstable branch of z3 is required for this branch")
+
+    set_param(verbose=10)
+    v = {w[i]: i for i in w}
+    vars = {i: Bool(i) for i in v}
+
+    log.debug("Creating z3 version equation")
+    z3_version_eq = sum(i*IntSort().cast(vars[w[j]]) for i, j in version_eq)
+
+    log.debug("Creating z3 package equation")
+    z3_package_eq = sum(IntSort().cast(vars[i]) for i in vars)
+
+    combined_eq = len(vars)*z3_version_eq + z3_package_eq
+
+    o = Optimize()
+    for clause in clauses:
+        o.add(clause)
+
+    if use_combined_eq:
+        o.minimize(combined_eq)
+    else:
+        o.minimize(z3_version_eq)
+        o.minimize(z3_package_eq)
+
+    log.debug("Getting z3 model")
+    o.check()
+    m = o.model()
+
+    log.debug(str(o.statistics()))
+
+    return [i.name() for i in m if m[i].eq(BoolSort().cast(True))]
+
 def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
     """
     Bisect the solution space of a constraint, to minimize it.
