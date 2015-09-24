@@ -52,8 +52,9 @@ class VersionOrder(object):
       to any of the preceding four types. As far as sorting is concerned,
       tags are treated like strings in pre-release versions.
     * An optional local version string separated by '+' can be appended 
-      to an official (upstream) version string. For details, see 
-      https://www.python.org/dev/peps/pep-0440/.
+      to the main (upstream) version string. It is only considered 
+      in comparisons when the main versions are equal, but otherwise 
+      handled in exactly the same manner.
       
     To obtain a predictable version ordering, it is crucial to keep the 
     version number scheme of a given package consistent over time. 
@@ -76,8 +77,7 @@ class VersionOrder(object):
       and 'post'.
     * When a component starts with a letter, the fillvalue 0 is inserted 
       to keep numbers and strings in phase, resulting in '1.1.a1' == 1.1.0a1'.
-    * The same is repeated for the local version part, but without splitting 
-      into subcomponents and special treatment of 'dev' and 'post'.
+    * The same is repeated for the local version part.
       
     Examples:
     
@@ -137,6 +137,10 @@ class VersionOrder(object):
       1.0.1  =>  1.0.1_    # ensure correct ordering for openssl
     '''
     def __init__(self, version):
+        # when fillvalue ==  0  =>  1.1 == 1.1.0
+        # when fillvalue == -1  =>  1.1  < 1.1.0
+        self.fillvalue = 0
+    
         message = "Malformed version string '%s': " % version
         # version comparison is case-insensitive
         version = version.strip().rstrip().lower()
@@ -152,57 +156,51 @@ class VersionOrder(object):
         if len(version) == 1:
             # epoch not given => set it to '0'
             epoch = ['0']
-            version = version[0]
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
                 raise ValueError(message + "epoch must be an integer.")
             epoch = [version[0]]
-            version = version[1]
         else:
             raise ValueError(message + "duplicated epoch separator '!'.")
         
         # find local version string
-        version = version.split('+')
+        version = version[-1].split('+')
         if len(version) == 1:
             # no local version
-            self.local = [[]]
+            self.local = ['0']
         elif len(version) == 2:
             # local version given
-            self.local = [[int(j) if j.isdigit() else j for j in version[1].split('.')]]
+            self.local = version[1].split('.')
         else:
             raise ValueError(message + "duplicated local version separator '+'.")
         
         # split version
-        version = epoch + version[0].split('.')
-        
-        # when fillvalue ==  0  =>  1.1 == 1.1.0
-        # when fillvalue == -1  =>  1.1  < 1.1.0
-        self.fillvalue = 0
+        self.version = epoch + version[0].split('.')
         
         # split components into runs of numerals and non-numerals,
         # convert numerals to int, handle special strings
-        self.version = []
-        for k in range(len(version)):
-            c = version_split_re.findall(version[k])
-            if not c:
-                raise ValueError(message + "empty version component.")
-            for j in range(len(c)):
-                if c[j].isdigit():
-                    c[j] = int(c[j])
-                elif c[j] == 'post':
-                    # ensure number < 'post' == infinity
-                    c[j] = float('inf')
-                elif c[j] == 'dev':
-                    # ensure '*' < 'DEV' < '_' < 'a' < number
-                    # by upper-casing (all other strings are lower case)
-                    c[j] = 'DEV'
-            if not version[k][0].isdigit():
-                # components shall start with a number to keep numbers and
-                # strings in phase => prepend fillvalue
-                self.version.append([self.fillvalue] + c)
-            else:
-                self.version.append(c)
+        for v in (self.version, self.local):
+            for k in range(len(v)):
+                c = version_split_re.findall(v[k])
+                if not c:
+                    raise ValueError(message + "empty version component.")
+                for j in range(len(c)):
+                    if c[j].isdigit():
+                        c[j] = int(c[j])
+                    elif c[j] == 'post':
+                        # ensure number < 'post' == infinity
+                        c[j] = float('inf')
+                    elif c[j] == 'dev':
+                        # ensure '*' < 'DEV' < '_' < 'a' < number
+                        # by upper-casing (all other strings are lower case)
+                        c[j] = 'DEV'
+                if v[k][0].isdigit():
+                    v[k] = c
+                else:
+                    # components shall start with a number to keep numbers and
+                    # strings in phase => prepend fillvalue
+                    v[k] = [self.fillvalue] + c
     
     def __str__(self):
         return self.norm_version
