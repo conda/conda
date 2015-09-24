@@ -47,7 +47,9 @@ def print_dists(dists_extras):
         print(line)
 
 
-def display_actions(actions, index):
+def display_actions(actions, index, show_channel_urls=None):
+    if show_channel_urls is None:
+        show_channel_urls = config.show_channel_urls
     if actions.get(inst.FETCH):
         print("\nThe following packages will be downloaded:\n")
 
@@ -55,7 +57,7 @@ def display_actions(actions, index):
         for dist in actions[inst.FETCH]:
             info = index[dist + '.tar.bz2']
             extra = '%15s' % human_bytes(info['size'])
-            if config.show_channel_urls:
+            if show_channel_urls:
                 extra += '  %s' % config.canonical_channel_name(
                                        info.get('channel'))
             disp_lst.append((dist, extra))
@@ -117,13 +119,13 @@ def display_actions(actions, index):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
         oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
-        if config.show_channel_urls:
+        if show_channel_urls:
             oldfmt[pkg] += ' {channel[0]:<%s}' % maxoldchannel
         if packages[pkg][0]:
             newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
         else:
             newfmt[pkg] = '{pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
-        if config.show_channel_urls:
+        if show_channel_urls:
             newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
         # TODO: Should we also care about the old package's link type?
         if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
