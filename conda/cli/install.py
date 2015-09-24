@@ -411,7 +411,7 @@ environment does not exist: %s
     if not args.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
-        plan.display_actions(actions, index)
+        plan.display_actions(actions, index, show_channel_urls=args.show_channel_urls)
 
     if command in {'install', 'update'}:
         common.check_write(command, prefix)
