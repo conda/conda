@@ -107,7 +107,7 @@ def test_activate_test1():
             assert stdout == envs + "/test1/bin:" + PATH
             expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
             if syspath != '/usr/bin':
-                expected = 'discarding {syspath} from PATH\n{expected}'.format(expected=expected)
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
             assert stderr == expected
 
 
@@ -284,7 +284,7 @@ def test_activate_symlinking():
             assert not stdout
             expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
             if syspath != '/usr/bin':
-                expected = 'discarding {syspath} from PATH\n{expected}'.format(expected=expected)
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
             assert stderr == expected
             for f in ['conda', 'activate', 'deactivate']:
                 assert os.path.lexists('{envs}/test1/bin/{f}'.format(envs=envs, f=f))
@@ -310,7 +310,7 @@ def test_activate_symlinking():
                 assert not stdout
                 expected = 'prepending {envs}/test3/bin to PATH\n'.format(envs=envs)
                 if syspath != '/usr/bin':
-                    expected = 'discarding {syspath} from PATH\n{expected}'.format(expected=expected)
+                    expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
                 assert stderr == expected
 
                 # Make sure it stays the same
@@ -360,7 +360,7 @@ def test_PS1():
             assert stdout == '({envs}/test1)$'.format(envs=envs)
             expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
             if syspath != '/usr/bin':
-                expected = 'discarding {syspath} from PATH\n{expected}'.format(expected=expected)
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
             assert stderr == expected
 
             commands = (command_setup + """
@@ -469,7 +469,7 @@ changeps1: no
             assert stdout == '$'
             expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
             if syspath != '/usr/bin':
-                expected = 'discarding {syspath} from PATH\n{expected}'.format(expected=expected)
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
             assert stderr == expected
 
             commands = (command_setup + condarc + """
@@ -571,7 +571,7 @@ def test_CONDA_DEFAULT_ENV():
             assert stdout == '{envs}/test1'.format(envs=envs)
             expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
             if syspath != '/usr/bin':
-                expected = 'discarding {syspath} from PATH\n{expected}'.format(expected=expected)
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
             assert stderr == expected
 
             commands = (command_setup + """
