@@ -16,6 +16,12 @@ import conda.config as config
 from conda.utils import human_bytes
 from conda.install import rm_rf
 
+try:
+    from builtins import PermissionError
+except ImportError:  #py2
+    from __builtin__ import OSError as PermissionError
+
+
 descr = """
 Remove unused packages and caches.
 """
@@ -148,7 +154,10 @@ def rm_tarballs(args, pkgs_dir, rmlist, totalsize, verbose=True):
     for fn in rmlist:
         if verbose:
             print("removing %s" % fn)
-        os.unlink(os.path.join(pkgs_dir, fn))
+        try:
+            os.unlink(join(pkgs_dir, fn))
+        except PermissionError:
+            print("Permission denied to remove {}".format(join(pkgs_dir, fn)))
 
 
 def find_pkgs():
@@ -229,13 +238,21 @@ def rm_pkgs(args, pkgs_dir, rmlist, warnings, totalsize, pkgsizes,
     for pkg in rmlist:
         if verbose:
             print("removing %s" % pkg)
-        rm_rf(join(pkgs_dir, pkg))
+        try:
+            rm_rf(join(pkgs_dir, pkg))
+        except PermissionError:
+            print('Permission denied to remove {}'.format(join(pkgs_dir, pkg)))
 
 
 def rm_index_cache():
     from conda.install import rm_rf
-
-    rm_rf(join(config.pkgs_dirs[0], 'cache'))
+    for pkg_dir in config.pkgs_dirs:
+        cache_dir = join(pkg_dir, 'cache')
+        try:
+            rm_rf(cache_dir)
+            print('Removed {}'.format(cache_dir))
+        except PermissionError:
+            print('Permission denied to remove {}'.format(cache_dir))
 
 def find_source_cache():
     try:
