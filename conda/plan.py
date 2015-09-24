@@ -47,7 +47,9 @@ def print_dists(dists_extras):
         print(line)
 
 
-def display_actions(actions, index, show_channel_urls=config.show_channel_urls):
+def display_actions(actions, index, show_channel_urls=None):
+    if show_channel_urls is None:
+        show_channel_urls = config.show_channel_urls
     if actions.get(inst.FETCH):
         print("\nThe following packages will be downloaded:\n")
 
