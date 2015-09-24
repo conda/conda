@@ -20,7 +20,8 @@
   * add update_dependencies condarc option and --update-deps/--no-update-deps
     command line flags
   * allow specs with conda update --all
-
+  * add --show-channel-urls and --no-show-channel-urls command line options
+  
 2015-09-11   3.17.0:
 --------------------
   * add windows_forward_slashes option to walk_prefix(), see #1513
