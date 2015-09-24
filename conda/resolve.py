@@ -29,74 +29,74 @@ version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
 class VersionOrder(object):
     '''
-    This class implements an order relation between version strings. 
+    This class implements an order relation between version strings.
     Version strings can contain the usual alphanumeric characters
-    (A-Za-z0-9_), separated into components by dots. Empty 
+    (A-Za-z0-9_), separated into components by dots. Empty
     segments (i.e. two consecutive dots, a leading/trailing dot)
-    are not permitted. An optional epoch number - an integer 
-    followed by '!' - can preceed the actual version string 
+    are not permitted. An optional epoch number - an integer
+    followed by '!' - can preceed the actual version string
     (this is useful to indicate a change in the versioning
-    scheme itself). Version comparison is case-insensitive. 
-    
+    scheme itself). Version comparison is case-insensitive.
+
     Conda supports six types of version strings:
-    
+
     * Release versions contain only integers, e.g. '1.0', '2.3.5'.
-    * Pre-release versions use additional letters such as 'a' or 'rc', 
+    * Pre-release versions use additional letters such as 'a' or 'rc',
       for example '1.0a1', '1.2.beta3', '2.3.5rc3'.
-    * Development versions are indicated by the string 'dev', 
+    * Development versions are indicated by the string 'dev',
       for example '1.0dev42', '2.3.5.dev12'.
     * Post-release versions are indicated by the string 'post',
       for example '1.0post1', '2.3.5.post2'.
-    * Tagged versions have a suffix that specifies a particular 
-      property of interest, e.g. '1.1.parallel'. Tags can be added 
+    * Tagged versions have a suffix that specifies a particular
+      property of interest, e.g. '1.1.parallel'. Tags can be added
       to any of the preceding four types. As far as sorting is concerned,
       tags are treated like strings in pre-release versions.
-    * An optional local version string separated by '+' can be appended 
-      to the main (upstream) version string. It is only considered 
-      in comparisons when the main versions are equal, but otherwise 
+    * An optional local version string separated by '+' can be appended
+      to the main (upstream) version string. It is only considered
+      in comparisons when the main versions are equal, but otherwise
       handled in exactly the same manner.
-      
-    To obtain a predictable version ordering, it is crucial to keep the 
-    version number scheme of a given package consistent over time. 
-    Specifically, 
-    
+
+    To obtain a predictable version ordering, it is crucial to keep the
+    version number scheme of a given package consistent over time.
+    Specifically,
+
     * version strings should always have the same number of components
       (except for an optional tag suffix or local version string),
-    * letters/strings indicating non-release versions should always 
+    * letters/strings indicating non-release versions should always
       occur at the same position.
-    
+
     Before comparison, version strings are parsed as follows:
-    
+
     * They are first split into epoch, version number, and local version
-      number at '!' and '+' respectively. If there is no '!', the epoch is 
+      number at '!' and '+' respectively. If there is no '!', the epoch is
       set to 0. If there is no '+', the local version is empty.
     * The version part is then split into components at '.'.
     * Each component is split again into runs of numerals and non-numerals
     * Subcomponents containing only numerals are converted to integers.
-    * Strings are converted to lower case, with special treatment for 'dev' 
+    * Strings are converted to lower case, with special treatment for 'dev'
       and 'post'.
-    * When a component starts with a letter, the fillvalue 0 is inserted 
+    * When a component starts with a letter, the fillvalue 0 is inserted
       to keep numbers and strings in phase, resulting in '1.1.a1' == 1.1.0a1'.
     * The same is repeated for the local version part.
-      
+
     Examples:
-    
+
         1.2g.beta15.rc  =>  [[0], [1], [2, 'g'], [0, 'beta', 15], [0, 'rc']]
         1!2.15.1_ALPHA  =>  [[1], [2], [15], [1, '_alpha']]
-         
+
     The resulting lists are compared lexicographically, where the following
     rules are applied to each pair of corresponding subcomponents:
-    
+
     * integers are compared numerically
     * strings are compared lexicographically, case-insensitive
     * strings are smaller than integers, except
     * 'dev' versions are smaller than all corresponding versions of other types
     * 'post' versions are greater than all corresponding versions of other types
-    * if a subcomponent has no correspondent, the missing correspondent is      
+    * if a subcomponent has no correspondent, the missing correspondent is
       treated as integer 0 to ensure '1.1' == '1.1.0'.
-      
+
     The resulting order is:
-    
+
            0.4
          < 0.4.0
          < 0.4.1.rc
@@ -110,37 +110,37 @@ class VersionOrder(object):
          < 0.960923
          < 1.0
          < 1.1dev1    # special case 'dev'
-         < 1.1a1      
+         < 1.1a1
          < 1.1.0dev1  # special case 'dev'
         == 1.1.dev1   # 0 is inserted before string
-         < 1.1.a1     
-         < 1.1.0rc1   
-         < 1.1.0      
-        == 1.1        
-         < 1.1.0post1 # special case 'post' 
+         < 1.1.a1
+         < 1.1.0rc1
+         < 1.1.0
+        == 1.1
+         < 1.1.0post1 # special case 'post'
         == 1.1.post1  # 0 is inserted before string
-         < 1.1post1   # special case 'post' 
+         < 1.1post1   # special case 'post'
          < 1996.07.12
          < 1!0.4.1    # epoch increased
          < 1!3.1.1.6
          < 2!0.4.1    # epoch increased again
-         
-    Some packages (most notably openssl) have incompatible version conventions. 
+
+    Some packages (most notably openssl) have incompatible version conventions.
     In particular, openssl interprets letters as version counters rather than
     pre-release identifiers. For openssl, the relation
-    
+
       1.0.1 < 1.0.1a   =>   True   # for openssl
-      
-    holds, whereas conda packages use the opposite ordering. You can work-around 
+
+    holds, whereas conda packages use the opposite ordering. You can work-around
     this problem by appending a dash to plain version numbers:
-    
+
       1.0.1  =>  1.0.1_    # ensure correct ordering for openssl
     '''
     def __init__(self, version):
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
         self.fillvalue = 0
-    
+
         message = "Malformed version string '%s': " % version
         # version comparison is case-insensitive
         version = version.strip().rstrip().lower()
@@ -150,7 +150,7 @@ class VersionOrder(object):
         if not version_check_re.match(version):
             raise ValueError(message + "invalid character(s).")
         self.norm_version = version
-        
+
         # find epoch
         version = version.split('!')
         if len(version) == 1:
@@ -163,7 +163,7 @@ class VersionOrder(object):
             epoch = [version[0]]
         else:
             raise ValueError(message + "duplicated epoch separator '!'.")
-        
+
         # find local version string
         version = version[-1].split('+')
         if len(version) == 1:
@@ -174,10 +174,10 @@ class VersionOrder(object):
             self.local = version[1].split('.')
         else:
             raise ValueError(message + "duplicated local version separator '+'.")
-        
+
         # split version
         self.version = epoch + version[0].split('.')
-        
+
         # split components into runs of numerals and non-numerals,
         # convert numerals to int, handle special strings
         for v in (self.version, self.local):
@@ -201,10 +201,10 @@ class VersionOrder(object):
                     # components shall start with a number to keep numbers and
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
-    
+
     def __str__(self):
         return self.norm_version
-    
+
     def __eq__(self, other):
         for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
             for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
@@ -212,10 +212,10 @@ class VersionOrder(object):
                     if c1 != c2:
                         return False
         return True
-        
+
     def __ne__(self, other):
         return not (self == other)
-    
+
     def __lt__(self, other):
         for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
             for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
