@@ -251,6 +251,7 @@ def add_parser_install(p):
         default=not config.update_dependencies,
         help="Don't update dependencies (default: %(default)s).",
     )
+    add_parser_show_channel_urls(p)
 
     if 'update' in p.prog:
         # I don't know if p.prog is the correct thing to use here but it's the
@@ -296,6 +297,22 @@ def add_parser_no_pin(p):
         default=True,
         dest='pinned',
         help="Ignore pinned file.",
+    )
+
+def add_parser_show_channel_urls(p):
+    p.add_argument(
+        "--show-channel-urls",
+        action="store_true",
+        dest="show_channel_urls",
+        default=config.show_channel_urls,
+        help="Show channel urls (default: %(default)s).",
+    )
+    p.add_argument(
+        "--no-show-channel-urls",
+        action="store_false",
+        dest="show_channel_urls",
+        default=not config.show_channel_urls,
+        help="Don't show channel urls (default: %(default)s).",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
