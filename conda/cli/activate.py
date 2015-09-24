@@ -35,6 +35,8 @@ def binpath_from_arg(arg):
     path = join(prefix_from_arg(arg), 'bin')
     if not isdir(path):
         sys.exit("Error: no such directory: %s" % path)
+    if path == '/usr/bin':
+        return None
     return path
 
 def main():
@@ -62,7 +64,8 @@ def main():
             print(os.environ['PATH'])
             raise
         paths = []
-        sys.stderr.write("discarding %s from PATH\n" % binpath)
+        if binpath is not None:
+            sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..activateroot':
         if len(sys.argv) != 2:
@@ -80,11 +83,12 @@ def main():
         # deactivate is the same as activate root (except without setting
         # CONDA_DEFAULT_ENV or PS1). XXX: The user might want to put the root
         # env back somewhere in the middle of the PATH, not at the beginning.
-        if rootpath not in os.getenv('PATH').split(os.pathsep):
+        if rootpath not in os.getenv('PATH').split(os.pathsep) and rootpath is not None:
             paths = [rootpath]
         else:
             paths = []
-        sys.stderr.write("discarding %s from PATH\n" % binpath)
+        if binpath is not None:
+            sys.stderr.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:

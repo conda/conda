@@ -405,7 +405,7 @@ def name_prefix(prefix):
     return basename(prefix)
 
 def check_write(command, prefix, json=False):
-    if inroot_notwritable(prefix):
+    if inroot_notwritable(prefix) or prefix == '/usr':
         from conda.cli.help import root_read_only
 
         root_read_only(command, prefix, json=json)
