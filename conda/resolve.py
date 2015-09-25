@@ -430,7 +430,7 @@ class Resolve(object):
                     for fn2 in groups[ms.name]:
                          if feat in self.features(fn2):
                              depends_fns.append(fn2)
-                    if depends_fns > 1:
+                    if len(depends_fns) > 1:
                         yield Implies(vars[fn1], Or(*[vars[fn] for fn in depends_fns]))
 
                 # Don't install any package that has a feature that wasn't requested.
