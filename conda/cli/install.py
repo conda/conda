@@ -130,7 +130,7 @@ def install(args, parser, command='install'):
 
     if command == 'update':
         if not args.file:
-            if len(args.packages) == 0:
+            if not args.all and len(args.packages) == 0:
                 common.error_and_exit("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
