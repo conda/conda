@@ -31,8 +31,8 @@ class VersionOrder(object):
     '''
     This class implements an order relation between version strings.
     Version strings can contain the usual alphanumeric characters
-    (A-Za-z0-9_), separated into components by dots. Empty
-    segments (i.e. two consecutive dots, a leading/trailing dot)
+    (A-Za-z0-9), separated into components by dots and underscores. Empty
+    segments (i.e. two consecutive dots, a leading/trailing underscore)
     are not permitted. An optional epoch number - an integer
     followed by '!' - can preceed the actual version string
     (this is useful to indicate a change in the versioning
@@ -70,7 +70,7 @@ class VersionOrder(object):
     * They are first split into epoch, version number, and local version
       number at '!' and '+' respectively. If there is no '!', the epoch is
       set to 0. If there is no '+', the local version is empty.
-    * The version part is then split into components at '.'.
+    * The version part is then split into components at '.' and '_'.
     * Each component is split again into runs of numerals and non-numerals
     * Subcomponents containing only numerals are converted to integers.
     * Strings are converted to lower case, with special treatment for 'dev'
@@ -134,7 +134,7 @@ class VersionOrder(object):
     holds, whereas conda packages use the opposite ordering. You can work-around
     this problem by appending a dash to plain version numbers:
 
-      1.0.1  =>  1.0.1_    # ensure correct ordering for openssl
+      1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
     '''
     def __init__(self, version):
         # when fillvalue ==  0  =>  1.1 == 1.1.0
@@ -171,12 +171,12 @@ class VersionOrder(object):
             self.local = ['0']
         elif len(version) == 2:
             # local version given
-            self.local = version[1].split('.')
+            self.local = version[1].replace('_', '.').split('.')
         else:
             raise ValueError(message + "duplicated local version separator '+'.")
 
         # split version
-        self.version = epoch + version[0].split('.')
+        self.version = epoch + version[0].replace('_', '.').split('.')
 
         # split components into runs of numerals and non-numerals,
         # convert numerals to int, handle special strings
