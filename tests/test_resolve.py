@@ -28,7 +28,7 @@ class TestVersionSpec(unittest.TestCase):
            (VersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], [0, 'rc']]),
            (VersionOrder("0.4.1.vc11"), [[0], [0], [4], [1],[0, 'vc', 11]]),
            (VersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
-           (VersionOrder("0.5_"),       [[0], [0], [5, '_']]),
+           (VersionOrder("0.5*"),       [[0], [0], [5, '*']]),
            (VersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
            (VersionOrder("0.5b3"),      [[0], [0], [5, 'b', 3]]),
            (VersionOrder("0.5C1"),      [[0], [0], [5, 'c', 1]]),
@@ -103,6 +103,11 @@ class TestVersionSpec(unittest.TestCase):
         # check __lt__
         self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
 
+        # test openssl convention
+        openssl = [VersionOrder(k) for k in ['1.0.1', '1.0.1post.a', '1.0.1post.b',
+                                             '1.0.1post.z', '1.0.1post.za', '1.0.2']]
+        self.assertEqual(sorted(openssl), openssl)
+
     def test_pep440(self):
         # this list must be in sorted order (slightly modified from the PEP 440 test suite
         # https://github.com/pypa/packaging/blob/master/tests/test_version.py)
@@ -111,18 +116,18 @@ class TestVersionSpec(unittest.TestCase):
             "1.0a1", "1.0a2.dev456", "1.0a12.dev456", "1.0a12",
             "1.0b1.dev456", "1.0b2", "1.0b2.post345.dev456", "1.0b2.post345",
             "1.0c1.dev456", "1.0c1", "1.0c3", "1.0rc2", "1.0.dev456", "1.0",
-            "1.0.post456.dev34", "1.0.post456", "1.1.dev1", 
-            "1.2.r32+123456", "1.2.rev33+123456", 
-            "1.2+abc", "1.2+abc123def", "1.2+abc123", 
+            "1.0.post456.dev34", "1.0.post456", "1.1.dev1",
+            "1.2.r32+123456", "1.2.rev33+123456",
+            "1.2+abc", "1.2+abc123def", "1.2+abc123",
             "1.2+123abc", "1.2+123abc456", "1.2+1234.abc", "1.2+123456",
 
             # Explicit epoch of 1
             "1!1.0a1", "1!1.0a2.dev456", "1!1.0a12.dev456", "1!1.0a12",
             "1!1.0b1.dev456", "1!1.0b2", "1!1.0b2.post345.dev456", "1!1.0b2.post345",
             "1!1.0c1.dev456", "1!1.0c1", "1!1.0c3", "1!1.0rc2", "1!1.0.dev456", "1!1.0",
-            "1!1.0.post456.dev34", "1!1.0.post456", "1!1.1.dev1", 
-            "1!1.2.r32+123456", "1!1.2.rev33+123456", 
-            "1!1.2+abc", "1!1.2+abc123def", "1!1.2+abc123", 
+            "1!1.0.post456.dev34", "1!1.0.post456", "1!1.1.dev1",
+            "1!1.2.r32+123456", "1!1.2.rev33+123456",
+            "1!1.2+abc", "1!1.2+abc123def", "1!1.2+abc123",
             "1!1.2+123abc", "1!1.2+123abc456", "1!1.2+1234.abc", "1!1.2+123456",
         ]
 
@@ -141,7 +146,7 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('2013k', '>2013b'), True)
         self.assertEqual(ver_eval('3.0.0', '>2013b'), False)
         self.assertEqual(ver_eval('1.0.0', '>1.0.0a'), True)
-        self.assertEqual(ver_eval('1.0.0_', '>1.0.0a'), False)
+        self.assertEqual(ver_eval('1.0.0', '>1.0.0*'), True)
 
     def test_ver_eval_errors(self):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
@@ -194,16 +199,16 @@ class TestMatchSpec(unittest.TestCase):
             m = MatchSpec(spec)
             self.assertEqual(m.match('numpy-1.7.1-py27_0.tar.bz2'), res)
 
-        # both version numbers conforming
+        # both version numbers conforming to PEP 440
         self.assertFalse(MatchSpec('numpy >=1.0.1').match('numpy-1.0.1a-0.tar.bz2'))
-        # both version numbers non-conforming
+        # both version numbers non-conforming to PEP 440
         self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match('numpy-1.0.1a.vc11-0.tar.bz2'))
-        self.assertTrue(MatchSpec('numpy >=1.0.1_.vc11').match('numpy-1.0.1a.vc11-0.tar.bz2'))
-        # one conforming, other non-conforming
+        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match('numpy-1.0.1a.vc11-0.tar.bz2'))
+        # one conforming, other non-conforming to PEP 440
         self.assertTrue(MatchSpec('numpy <1.0.1').match('numpy-1.0.1.vc11-0.tar.bz2'))
         self.assertTrue(MatchSpec('numpy <1.0.1').match('numpy-1.0.1a.vc11-0.tar.bz2'))
-        self.assertTrue(MatchSpec('numpy >=1.0.1_').match('numpy-1.0.1a-0.tar.bz2'))
-        self.assertFalse(MatchSpec('numpy >=1.0.1a').match('numpy-1.0.1_-0.tar.bz2'))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match('numpy-1.0.1a-0.tar.bz2'))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a').match('numpy-1.0.1z-0.tar.bz2'))
 
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')
