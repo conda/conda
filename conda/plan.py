@@ -96,8 +96,8 @@ def display_actions(actions, index, show_channel_urls=None):
 
 
 
-    #             Put a minimum length here---.    .--For the :
-    #                                         v    v
+    #                     Put a minimum length here---.    .--For the :
+    #                                                 v    v
     maxpkg = max(len(max(packages or [''], key=len)), 0) + 1
     maxoldver = len(max(packages.values() or [['']], key=lambda i: len(i[0]))[0])
     maxnewver = len(max(packages.values() or [['', '']], key=lambda i: len(i[1]))[1])
