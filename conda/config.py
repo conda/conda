@@ -72,6 +72,7 @@ rc_bool_keys = [
     'add_anaconda_token',
     'add_pip_as_python_dependency',
     'always_yes',
+    'always_copy',
     'allow_softlinks',
     'changeps1',
     'use_pip',
@@ -340,6 +341,7 @@ except IOError:
 
 add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
 always_yes = bool(rc.get('always_yes', False))
+always_copy = bool(rc.get('always_copy', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('anaconda_upload',

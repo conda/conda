@@ -251,7 +251,9 @@ def ensure_linked_actions(dists, prefix):
 
         extracted_in = extracted_where(dist)
         if extracted_in:
-            if install.try_hard_link(extracted_in, prefix, dist):
+            if config.always_copy:
+                lt = install.LINK_COPY
+            elif install.try_hard_link(extracted_in, prefix, dist):
                 lt = install.LINK_HARD
             else:
                 lt = (install.LINK_SOFT if (config.allow_softlinks and
@@ -267,7 +269,9 @@ def ensure_linked_actions(dists, prefix):
                                   'index.json')
                 with open(index_json, 'w'):
                     pass
-                if install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
+                if config.always_copy:
+                    lt = install.LINK_COPY
+                elif install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
                     lt = install.LINK_HARD
                 else:
                     lt = (install.LINK_SOFT if (config.allow_softlinks and
