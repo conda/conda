@@ -22,7 +22,9 @@
   * allow specs with conda update --all
   * add --show-channel-urls and --no-show-channel-urls command line options
   * add always_copy condarc option
-
+  * conda clean properly handles multiple envs directories. This breaks
+    backwards compatibility with some of the --json output. Some of the old
+    --json keys are kept for backwards compatibility.
 
 2015-09-11   3.17.0:
 --------------------
