@@ -1,11 +1,152 @@
-2015-XX-XX   3.10.1:
+-------------------
+  * add defaults to specs after getting pinned specs (allows to pin a
+    different version of Python than what is installed)
+  * show what older versions are in the solutions in the resolve debug log
+  * fix some issues with Python 3.5
+  * respect --no-deps when installing from .tar or .tar.bz2
+  * avoid infinite recursion with NoPackagesFound and conda update --all --file
+  * fix conda update --file
+  * toposort: Added special case to remove 'pip' dependency from 'python'
+  * show dotlog messages during hint generation with --debug
+  * disable the max_only heuristic during hint generation
+  * new version comparison algorithm, which consistently compares any version
+    string, and better handles version strings using things like alpha, beta,
+    rc, post, and dev. This should remove any inconsistent version comparison
+    that would lead to conda installing an incorrect version.
+  * use the trash in rm_rf, meaning more things will get the benefit of the
+    trash system on Windows
+  * add the ability to pass the --file argument multiple times
+  * add conda upgrade alias for conda update
+  * add update_dependencies condarc option and --update-deps/--no-update-deps
+    command line flags
+  * allow specs with conda update --all
+  * add --show-channel-urls and --no-show-channel-urls command line options
+  
+2015-09-11   3.17.0:
 --------------------
-  * allow comments at the end of the line in requirement files
+  * add windows_forward_slashes option to walk_prefix(), see #1513
+  * add ability to set CONDA_FORCE_32BIT environment variable, it should
+    should only be used when running conda-build, #1555
+  * add config option to makes the python dependency on pip optional, #1577
+  * fix an UnboundLocalError
+  * print note about pinned specs in no packages found error
+  * allow wildcards in AND-connected version specs
+  * print pinned specs to the debug log
+  * fix conda create --clone with create_default_packages
+  * give a better error when a proxy isn't found for a given scheme
+  * enable running 'conda run' in offline mode
+  * fix issue where hardlinked cache contents were being overwritten
+  * correctly skip packages whose dependencies can't be found with conda
+    update --all
+  * use clearer terminology in -m help text.
+  * use splitlines to break up multiple lines throughout the codebase
+  * fix AttributeError with SSLError
+
+
+2015-08-10   3.16.0:
+--------------------
+  * rename binstar -> anaconda, see #1458
+  * fix --use-local when the conda-bld directory doesn't exist
+  * fixed --offline option when using "conda create --clone", see #1487
+  * don't mask recursion depth errors
+  * add conda search --reverse-dependency
+  * check whether hardlinking is available before linking when
+    using "python install.py --link" directly, see #1490
+  * don't exit nonzero when installing a package with no dependencies
+  * check which features are installed in an environment via track_features,
+    not features
+  * set the verify flag directly on CondaSession (fixes conda skeleton not
+    respecting the ssl_verify option)
+
+
+2015-07-23   3.15.1:
+--------------------
+  * fix conda with older versions of argcomplete
+  * restore the --force-pscheck option as a no-op for backwards
+    compatibility
+
+
+2015-07-22   3.15.0:
+--------------------
+  * sort the output of conda info package correctly
+  * enable tab completion of conda command extensions using
+    argcomplete. Command extensions that import conda should use
+    conda.cli.conda_argparse.ArgumentParser instead of
+    argparse.ArgumentParser. Otherwise, they should enable argcomplete
+    completion manually.
+  * allow psutil and pycosat to be updated in the root environment on Windows
+  * remove all mentions of pscheck. The --force-pscheck flag has been removed.
+  * added support for S3 channels
+  * fix color issues from pip in conda list on Windows
+  * add support for other machine types on Linux, in particular ppc64le
+  * add non_x86_linux_machines set to config module
+  * allow ssl_verify to accept strings in addition to boolean values in condarc
+  * enable --set to work with both boolean and string values
+
+
+2015-06-29   3.14.1:
+--------------------
+  * make use of Crypto.Signature.PKCS1_PSS module, see #1388
+  * note when features are being used in the unsatisfiable hint
+
+
+2015-06-16   3.14.0:
+--------------------
+  * add ability to verify signed packages, see #1343 (and conda-build #430)
+  * fix issue when trying to add 'pip' dependency to old python packages
+  * provide option "conda info --unsafe-channels" for getting unobscured
+    channel list, #1374
+
+
+2015-06-04   3.13.0:
+--------------------
+  * avoid the Windows file lock by moving files to a trash directory, #1133
+  * handle env dirs not existing in the Environments completer
+  * rename binstar.org -> anaconda.org, see #1348
+  * speed up 'source activate' by ~40%
+
+
+2015-05-05   3.12.0:
+--------------------
+  * correctly allow conda to update itself
+  * print which file leads to the "unable to remove file" error on Windows
+  * add support for the no_proxy environment variable, #1171
+  * add a much faster hint generation for unsatisfiable packages, which is now
+    always enabled (previously it would not run if there were more than ten
+    specs). The new hint only gives one set of conflicting packages, rather
+    than all sets, so multiple passes may be necessary to fix such issues
+  * conda extensions that import conda should use
+    conda.cli.conda_argparser.ArgumentParser instead of
+    argparse.ArgumentParser to conform to the conda help guidelines (e.g., all
+    help messages should be capitalized with periods, and the options should
+    be preceded by "Options:" for the sake of help2man).
+  * add confirmation dialog to conda remove. Fixes conda remove --dry-run.
+
+
+2015-04-22   3.11.0:
+--------------------
+  * fix issue where forced update on Windows could cause a package to break
+  * remove detection of running processes that might conflict
+  * deprecate --force-pscheck (now a no-op argument)
+  * make conda search --outdated --names-only work, fixes #1252
+  * handle the history file not having read or write permissions better
+  * make multiple package resolutions warning easier to read
+  * add --full-name to conda list
+  * improvements to command help
+
+
+2015-04-06   3.10.1:
+--------------------
+  * fix logic in @memoized for unhashable args
+  * restored json cache of repodata, see #1249
+  * hide binstar tokens in conda info --json
+  * handle CIO_TEST='2 '
   * always find the solution with minimal number of packages, even if there
     are many solutions
-  * handle CIO_TEST='2 '
-  * hide binstar tokens in conda info --json
-  * fix logic in @memoized for unhashable args
+  * allow comments at the end of the line in requirement files
+  * don't update the progressbar until after the item is finished running
+  * add conda/<version> to HTTP header User-Agent string
+
 
 2015-03-12   3.10.0:
 --------------------

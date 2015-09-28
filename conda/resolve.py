@@ -3,15 +3,14 @@ from __future__ import print_function, division, absolute_import
 import re
 import sys
 import logging
-from itertools import combinations
 from collections import defaultdict
 from functools import partial
 
-from conda import verlib
 from conda.utils import memoize
-from conda.compat import itervalues, iteritems
+from conda.compat import itervalues, iteritems, string_types, zip_longest
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset, MaximumIterationsError)
+    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
+    MaximumIterationsError)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -22,24 +21,241 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
-
+    # normalized_version() is needed by conda-env
 def normalized_version(version):
-    version = version.replace('rc', '.dev99999')
-    try:
-        return verlib.NormalizedVersion(version)
-    except verlib.IrrationalVersionError:
-        suggested_version = verlib.suggest_normalized_version(version)
-        if suggested_version:
-            return verlib.NormalizedVersion(suggested_version)
-        return version
+    return VersionOrder(version)
 
+version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
+version_split_re = re.compile('([0-9]+|[^0-9]+)')
+class VersionOrder(object):
+    '''
+    This class implements an order relation between version strings.
+    Version strings can contain the usual alphanumeric characters
+    (A-Za-z0-9), separated into components by dots and underscores. Empty
+    segments (i.e. two consecutive dots, a leading/trailing underscore)
+    are not permitted. An optional epoch number - an integer
+    followed by '!' - can preceed the actual version string
+    (this is useful to indicate a change in the versioning
+    scheme itself). Version comparison is case-insensitive.
+
+    Conda supports six types of version strings:
+
+    * Release versions contain only integers, e.g. '1.0', '2.3.5'.
+    * Pre-release versions use additional letters such as 'a' or 'rc',
+      for example '1.0a1', '1.2.beta3', '2.3.5rc3'.
+    * Development versions are indicated by the string 'dev',
+      for example '1.0dev42', '2.3.5.dev12'.
+    * Post-release versions are indicated by the string 'post',
+      for example '1.0post1', '2.3.5.post2'.
+    * Tagged versions have a suffix that specifies a particular
+      property of interest, e.g. '1.1.parallel'. Tags can be added
+      to any of the preceding four types. As far as sorting is concerned,
+      tags are treated like strings in pre-release versions.
+    * An optional local version string separated by '+' can be appended
+      to the main (upstream) version string. It is only considered
+      in comparisons when the main versions are equal, but otherwise
+      handled in exactly the same manner.
+
+    To obtain a predictable version ordering, it is crucial to keep the
+    version number scheme of a given package consistent over time.
+    Specifically,
+
+    * version strings should always have the same number of components
+      (except for an optional tag suffix or local version string),
+    * letters/strings indicating non-release versions should always
+      occur at the same position.
+
+    Before comparison, version strings are parsed as follows:
+
+    * They are first split into epoch, version number, and local version
+      number at '!' and '+' respectively. If there is no '!', the epoch is
+      set to 0. If there is no '+', the local version is empty.
+    * The version part is then split into components at '.' and '_'.
+    * Each component is split again into runs of numerals and non-numerals
+    * Subcomponents containing only numerals are converted to integers.
+    * Strings are converted to lower case, with special treatment for 'dev'
+      and 'post'.
+    * When a component starts with a letter, the fillvalue 0 is inserted
+      to keep numbers and strings in phase, resulting in '1.1.a1' == 1.1.0a1'.
+    * The same is repeated for the local version part.
+
+    Examples:
+
+        1.2g.beta15.rc  =>  [[0], [1], [2, 'g'], [0, 'beta', 15], [0, 'rc']]
+        1!2.15.1_ALPHA  =>  [[1], [2], [15], [1, '_alpha']]
+
+    The resulting lists are compared lexicographically, where the following
+    rules are applied to each pair of corresponding subcomponents:
+
+    * integers are compared numerically
+    * strings are compared lexicographically, case-insensitive
+    * strings are smaller than integers, except
+    * 'dev' versions are smaller than all corresponding versions of other types
+    * 'post' versions are greater than all corresponding versions of other types
+    * if a subcomponent has no correspondent, the missing correspondent is
+      treated as integer 0 to ensure '1.1' == '1.1.0'.
+
+    The resulting order is:
+
+           0.4
+         < 0.4.0
+         < 0.4.1.rc
+        == 0.4.1.RC   # case-insensitive comparison
+         < 0.4.1
+         < 0.5a1
+         < 0.5b3
+         < 0.5C1      # case-insensitive comparison
+         < 0.5
+         < 0.9.6
+         < 0.960923
+         < 1.0
+         < 1.1dev1    # special case 'dev'
+         < 1.1a1
+         < 1.1.0dev1  # special case 'dev'
+        == 1.1.dev1   # 0 is inserted before string
+         < 1.1.a1
+         < 1.1.0rc1
+         < 1.1.0
+        == 1.1
+         < 1.1.0post1 # special case 'post'
+        == 1.1.post1  # 0 is inserted before string
+         < 1.1post1   # special case 'post'
+         < 1996.07.12
+         < 1!0.4.1    # epoch increased
+         < 1!3.1.1.6
+         < 2!0.4.1    # epoch increased again
+
+    Some packages (most notably openssl) have incompatible version conventions.
+    In particular, openssl interprets letters as version counters rather than
+    pre-release identifiers. For openssl, the relation
+
+      1.0.1 < 1.0.1a   =>   True   # for openssl
+
+    holds, whereas conda packages use the opposite ordering. You can work-around
+    this problem by appending a dash to plain version numbers:
+
+      1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
+    '''
+    def __init__(self, version):
+        # when fillvalue ==  0  =>  1.1 == 1.1.0
+        # when fillvalue == -1  =>  1.1  < 1.1.0
+        self.fillvalue = 0
+
+        message = "Malformed version string '%s': " % version
+        # version comparison is case-insensitive
+        version = version.strip().rstrip().lower()
+        # basic validity checks
+        if version == '':
+            raise ValueError("Empty version string.")
+        if not version_check_re.match(version):
+            raise ValueError(message + "invalid character(s).")
+        self.norm_version = version
+
+        # find epoch
+        version = version.split('!')
+        if len(version) == 1:
+            # epoch not given => set it to '0'
+            epoch = ['0']
+        elif len(version) == 2:
+            # epoch given, must be an integer
+            if not version[0].isdigit():
+                raise ValueError(message + "epoch must be an integer.")
+            epoch = [version[0]]
+        else:
+            raise ValueError(message + "duplicated epoch separator '!'.")
+
+        # find local version string
+        version = version[-1].split('+')
+        if len(version) == 1:
+            # no local version
+            self.local = ['0']
+        elif len(version) == 2:
+            # local version given
+            self.local = version[1].replace('_', '.').split('.')
+        else:
+            raise ValueError(message + "duplicated local version separator '+'.")
+
+        # split version
+        self.version = epoch + version[0].replace('_', '.').split('.')
+
+        # split components into runs of numerals and non-numerals,
+        # convert numerals to int, handle special strings
+        for v in (self.version, self.local):
+            for k in range(len(v)):
+                c = version_split_re.findall(v[k])
+                if not c:
+                    raise ValueError(message + "empty version component.")
+                for j in range(len(c)):
+                    if c[j].isdigit():
+                        c[j] = int(c[j])
+                    elif c[j] == 'post':
+                        # ensure number < 'post' == infinity
+                        c[j] = float('inf')
+                    elif c[j] == 'dev':
+                        # ensure '*' < 'DEV' < '_' < 'a' < number
+                        # by upper-casing (all other strings are lower case)
+                        c[j] = 'DEV'
+                if v[k][0].isdigit():
+                    v[k] = c
+                else:
+                    # components shall start with a number to keep numbers and
+                    # strings in phase => prepend fillvalue
+                    v[k] = [self.fillvalue] + c
+
+    def __str__(self):
+        return self.norm_version
+
+    def __eq__(self, other):
+        for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
+            for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
+                for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
+                    if c1 != c2:
+                        return False
+        return True
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __lt__(self, other):
+        for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
+            for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
+                for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
+                    if isinstance(c1, string_types):
+                        if not isinstance(c2, string_types):
+                            # str < int
+                            return True
+                    else:
+                        if isinstance(c2, string_types):
+                            # not (int < str)
+                            return False
+                    # c1 and c2 have the same type
+                    if c1 < c2:
+                        return True
+                    if c2 < c1:
+                        return False
+                    # c1 == c2 => advance
+        # self == other
+        return False
+
+    def __gt__(self, other):
+        return other < self
+
+    def __le__(self, other):
+        return not (other < self)
+
+    def __ge__(self, other):
+        return not (self < other)
 
 class NoPackagesFound(RuntimeError):
     def __init__(self, msg, pkgs):
         super(NoPackagesFound, self).__init__(msg)
         self.pkgs = pkgs
 
-const_pat = re.compile(r'([=<>!]{1,2})(\S+)$')
+# This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
+# followed by a version string. It rejects expressions like
+# '<= 1.2' (space after operator), '<>1.2' (unknown operator),
+# and '<=!1.2' (nonsensical operator).
+version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
 def ver_eval(version, constraint):
     """
     return the Boolean result of a comparison between two versions, where the
@@ -47,67 +263,42 @@ def ver_eval(version, constraint):
     ver_eval('1.2', '>=1.1') will return True.
     """
     a = version
-    m = const_pat.match(constraint)
+    m = version_relation_re.match(constraint)
     if m is None:
         raise RuntimeError("Did not recognize version specification: %r" %
                            constraint)
     op, b = m.groups()
-    na = normalized_version(a)
-    nb = normalized_version(b)
-    if op == '==':
-        try:
-            return na == nb
-        except TypeError:
-            return a == b
-    elif op == '>=':
-        try:
-            return na >= nb
-        except TypeError:
-            return a >= b
-    elif op == '<=':
-        try:
-            return na <= nb
-        except TypeError:
-            return a <= b
-    elif op == '>':
-        try:
-            return na > nb
-        except TypeError:
-            return a > b
-    elif op == '<':
-        try:
-            return na < nb
-        except TypeError:
-            return a < b
-    elif op == '!=':
-        try:
-            return na != nb
-        except TypeError:
-            return a != b
-    else:
-        raise RuntimeError("Did not recognize version comparison operator: %r" %
-                           constraint)
+    return eval('VersionOrder("%s") %s VersionOrder("%s")' % (a, op, b))
 
+class VersionSpecAtom(object):
+
+    def __init__(self, spec):
+        assert '|' not in spec
+        assert ',' not in spec
+        self.spec = spec
+        if spec.startswith(('=', '<', '>', '!')):
+            self.regex = False
+        else:
+            rx = spec.replace('.', r'\.')
+            rx = spec.replace('+', r'\+')
+            rx = rx.replace('*', r'.*')
+            rx = r'(%s)$' % rx
+            self.regex = re.compile(rx)
+
+    def match(self, version):
+        if self.regex:
+            return bool(self.regex.match(version))
+        else:
+            return ver_eval(version, self.spec)
 
 class VersionSpec(object):
 
     def __init__(self, spec):
         assert '|' not in spec
-        if spec.startswith(('=', '<', '>', '!')):
-            self.regex = False
-            self.constraints = spec.split(',')
-        else:
-            self.regex = True
-            rx = spec.replace('.', r'\.')
-            rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
-            self.pat = re.compile(rx)
+        self.constraints = [VersionSpecAtom(vs) for vs in spec.split(',')]
 
     def match(self, version):
-        if self.regex:
-            return bool(self.pat.match(version))
-        else:
-            return all(ver_eval(version, c) for c in self.constraints)
+        return all(c.match(version) for c in self.constraints)
 
 
 class MatchSpec(object):
@@ -166,7 +357,7 @@ class Package(object):
         self.build_number = info['build_number']
         self.build = info['build']
         self.channel = info.get('channel')
-        self.norm_version = normalized_version(self.version)
+        self.norm_version = VersionOrder(self.version)
         self.info = info
 
     def _asdict(self):
@@ -191,37 +382,34 @@ class Package(object):
         if self.name != other.name:
             raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
-        try:
-            return ((self.norm_version, self.build_number, other.build) <
-                    (other.norm_version, other.build_number, self.build))
-        except TypeError:
-            return ((self.version, self.build_number) <
-                    (other.version, other.build_number))
+        # FIXME: 'self.build' and 'other.build' are intentionally swapped
+        # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
+        # FIXME: This should be reverted when the underlying problem is solved.
+        return ((self.norm_version, self.build_number, other.build) <
+                (other.norm_version, other.build_number, self.build))
 
     def __eq__(self, other):
         if not isinstance(other, Package):
             return False
         if self.name != other.name:
             return False
-        try:
-            return ((self.norm_version, self.build_number, self.build) ==
-                    (other.norm_version, other.build_number, other.build))
-        except TypeError:
-            return ((self.version, self.build_number, self.build) ==
-                    (other.version, other.build_number, other.build))
+        return ((self.norm_version, self.build_number, self.build) ==
+                (other.norm_version, other.build_number, other.build))
+
+    def __ne__(self, other):
+        return not self == other
 
     def __gt__(self, other):
-        return not (self.__lt__(other) or self.__eq__(other))
+        return other < self
 
     def __le__(self, other):
-        return self < other or self == other
+        return not (other < self)
 
     def __ge__(self, other):
-        return self > other or self == other
+        return not (self < other)
 
     def __repr__(self):
         return '<Package %s>' % self.fn
-
 
 class Resolve(object):
 
@@ -310,7 +498,7 @@ class Resolve(object):
 
                 if not found:
                     raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), notfound)
+                        "for %s: %s" % (ms, ', '.join(notfound)), [ms.spec] + notfound)
 
         add_dependents(root_fn, max_only=max_only)
         return res
@@ -381,7 +569,8 @@ class Resolve(object):
             assert len(clause) >= 1, ms
             yield tuple(clause)
 
-    def generate_version_eq(self, v, dists, include0=False):
+    def generate_version_eq(self, v, dists, installed_dists, specs,
+        include0=False, update_deps=True):
         groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
             groups[self.index[fn]['name']].append(fn)
@@ -390,6 +579,20 @@ class Resolve(object):
         max_rhs = 0
         for filenames in sorted(itervalues(groups)):
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
+            if (not update_deps and not any(s.split()[0] == pkgs[0].rsplit('-', 2)[0] for s in specs)):
+                rearrange = True
+                for d in installed_dists:
+                    if d in pkgs:
+                        break
+                else:
+                    # It isn't already installed
+                    rearrange = False
+                if rearrange:
+                    idx = pkgs.index(d)
+                    # For example, if the versions are 1.0, 2.0, 3.0, 4.0, and
+                    # 5.0, and 3.0 is installed, this prefers 3.0 > 4.0 > 5.0
+                    # > 2.0 > 1.0.
+                    pkgs = [d] + list(reversed(pkgs[:idx])) + pkgs[idx+1:]
             i = 0
             prev = pkgs[0]
             for pkg in pkgs:
@@ -427,7 +630,7 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), notfound)
+                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
 
         return dists
 
@@ -455,44 +658,53 @@ class Resolve(object):
 
         return result
 
-    def solve2(self, specs, features, guess=True, alg='BDD',
-        returnall=False, minimal_hint=False, unsat_only=False):
-
+    def solve2(self, specs, features, installed=(), guess=True, alg='BDD',
+        returnall=False, minimal_hint=False, unsat_only=False, update_deps=True,
+        try_max_only=None):
         log.debug("Solving for %s" % str(specs))
+        log.debug("Features: %s" % str(features))
+        log.debug("Installed: %s" % str(installed))
 
-        # First try doing it the "old way", i.e., just look at the most recent
-        # version of each package from the specs. This doesn't handle the more
-        # complicated cases that the pseudo-boolean solver does, but it's also
-        # much faster when it does work.
+        # This won't packages that aren't in the index, but there isn't much
+        # we can do with such packages here anyway.
+        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in
+            installed if pkg in self.index}
 
-        try:
-            dists = self.get_dists(specs, max_only=True)
-        except NoPackagesFound:
-            # Handle packages that are not included because some dependencies
-            # couldn't be found.
-            pass
-        else:
-            v = {}  # map fn to variable number
-            w = {}  # map variable number to fn
-            i = -1  # in case the loop doesn't run
-            for i, fn in enumerate(sorted(dists)):
-                v[fn] = i + 1
-                w[i + 1] = fn
-            m = i + 1
+        if try_max_only is None:
+            if unsat_only or update_deps:
+                try_max_only = False
+            else:
+                try_max_only = True
 
-            dotlog.debug("Solving using max dists only")
-            clauses = set(self.gen_clauses(v, dists, specs, features))
+        if try_max_only:
             try:
-                solutions = min_sat(clauses, alg='iterate',
-                    raise_on_max_n=True)
-            except MaximumIterationsError:
+                dists = self.get_dists(specs, max_only=True)
+            except NoPackagesFound:
+                # Handle packages that are not included because some dependencies
+                # couldn't be found.
                 pass
             else:
-                if len(solutions) == 1:
-                    ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                    if returnall:
-                        return [ret]
-                    return ret
+                v = {}  # map fn to variable number
+                w = {}  # map variable number to fn
+                i = -1  # in case the loop doesn't run
+                for i, fn in enumerate(sorted(dists)):
+                    v[fn] = i + 1
+                    w[i + 1] = fn
+                m = i + 1
+
+                dotlog.debug("Solving using max dists only")
+                clauses = set(self.gen_clauses(v, dists, specs, features))
+                try:
+                    solutions = min_sat(clauses, alg='iterate',
+                        raise_on_max_n=True)
+                except MaximumIterationsError:
+                    pass
+                else:
+                    if len(solutions) == 1:
+                        ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+                        if returnall:
+                            return [ret]
+                        return ret
 
         dists = self.get_dists(specs)
 
@@ -509,7 +721,8 @@ class Resolve(object):
             if returnall:
                 return [[]]
             return []
-        eq, max_rhs = self.generate_version_eq(v, dists)
+        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
+            specs, update_deps=update_deps)
 
 
         # Second common case, check if it's unsatisfiable
@@ -520,14 +733,13 @@ class Resolve(object):
             if guess:
                 if minimal_hint:
                     stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating hint: \n')
+                        'specifications.\nGenerating minimal hint: \n')
                     sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
             w))
                 else:
-                    if len(specs) <= 10: # TODO: Add a way to override this
-                        stderrlog.info('\nError: Unsatisfiable package '
-                            'specifications.\nGenerating hint: \n')
-                        sys.exit(self.guess_bad_solve(specs, features))
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: \n')
+                    sys.exit(self.guess_bad_solve(specs, features))
             raise RuntimeError("Unsatisfiable package specifications")
 
         if unsat_only:
@@ -562,10 +774,16 @@ class Resolve(object):
         assert solutions, (specs, features)
 
         if len(solutions) > 1:
-            stdoutlog.info('Warning: %s possible package resolutions:' % len(solutions))
-            for sol in solutions:
-                stdoutlog.info('\t' + str([w[lit] for lit in sol if 0 < lit <= m]))
+            stdoutlog.info('\nWarning: %s possible package resolutions (only showing differing packages):\n' % len(solutions))
+            pretty_solutions = [{w[lit] for lit in sol if 0 < lit <= m} for
+                sol in solutions]
+            common  = set.intersection(*pretty_solutions)
+            for sol in pretty_solutions:
+                stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
+        log.debug("Older versions in the solution(s):")
+        for sol in solutions:
+            log.debug([(i, w[j]) for i, j in eq if j in sol])
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
@@ -594,48 +812,39 @@ class Resolve(object):
         # TODO: Check features as well
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
-        # Don't show the dots in normal mode but do show the dotlog messages
-        # with --debug
-        dotlog.setLevel(logging.WARN)
-        hint = []
-        # Try to find the largest satisfiable subset
-        found = False
-        if len(specs) > 10:
-            stderrlog.info("WARNING: This could take a while. Type Ctrl-C to exit.\n")
 
-        for i in range(len(specs), 0, -1):
-            if found:
-                logging.getLogger('progress.stop').info(None)
-                break
+        # Don't show the dots from solve2 in normal mode but do show the
+        # dotlog messages with --debug
+        dotlog.setLevel(logging.INFO)
 
-            # Too lazy to compute closed form expression
-            ncombs = len(list(combinations(specs, i)))
-            logging.getLogger('progress.start').info(ncombs)
-            for j, comb in enumerate(combinations(specs, i), 1):
-                try:
-                    logging.getLogger('progress.update').info(('%s/%s' % (j,
-                        ncombs), j))
-                    self.solve2(comb, features, guess=False, unsat_only=True)
-                except RuntimeError:
-                    pass
-                else:
-                    rem = set(specs) - set(comb)
-                    rem.discard('conda')
-                    if len(rem) == 1:
-                        hint.append("%s" % rem.pop())
-                    else:
-                        hint.append("%s" % ' and '.join(rem))
+        def sat(specs):
+            try:
+                self.solve2(specs, features, guess=False, unsat_only=True)
+            except RuntimeError:
+                return False
+            return True
 
-                    found = True
+        hint = minimal_unsatisfiable_subset(specs, sat=sat, log=True)
         if not hint:
             return ''
         if len(hint) == 1:
-            return ("\nHint: %s has a conflict with the remaining packages" %
-                    hint[0])
-        return ("""
-Hint: the following combinations of packages create a conflict with the
-remaining packages:
-  - %s""" % '\n  - '.join(hint))
+            # TODO: Generate a hint from the dependencies.
+            ret = (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
+                "info {0}')").format(hint[0].split()[0]))
+        else:
+            ret = """
+Hint: the following packages conflict with each other:
+  - %s
+
+Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - '.join(hint), hint[0].split()[0])
+
+        if features:
+            ret += """
+
+Note that the following features are enabled:
+  - %s
+""" % ('\n  - '.join(features))
+        return ret
 
     def explicit(self, specs):
         """
@@ -701,7 +910,7 @@ remaining packages:
         res = set()
         for fn in installed:
             try:
-                res.update(self.features(fn))
+                res.update(self.track_features(fn))
             except KeyError:
                 pass
         return res
@@ -724,7 +933,7 @@ remaining packages:
         self.msd_cache[fn] = d.values()
 
     def solve(self, specs, installed=None, features=None, max_only=False,
-              minimal_hint=False):
+              minimal_hint=False, update_deps=True):
         if installed is None:
             installed = []
         if features is None:
@@ -743,7 +952,7 @@ remaining packages:
         stdoutlog.info("Solving package specifications: ")
         try:
             return self.explicit(specs) or self.solve2(specs, features,
-                                                       minimal_hint=minimal_hint)
+                installed, minimal_hint=minimal_hint, update_deps=update_deps)
         except RuntimeError:
             stdoutlog.info('\n')
             raise

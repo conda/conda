@@ -20,7 +20,7 @@ if PY3:
     def lchmod(path, mode):
         try:
             os.chmod(path, mode, follow_symlinks=False)
-        except (TypeError, NotImplementedError):
+        except (TypeError, NotImplementedError, SystemError):
             # On systems that don't allow permissions on symbolic links, skip
             # links entirely.
             if not os.path.islink(path):
@@ -34,6 +34,7 @@ if PY3:
     from shlex import quote
     from tempfile import TemporaryDirectory
     range = range
+    zip = zip
 else:
     import ConfigParser as configparser
     from cStringIO import StringIO
@@ -69,6 +70,7 @@ else:
     import os as _os
     from tempfile import mkdtemp
     range = xrange
+    from itertools import izip as zip
 
     class TemporaryDirectory(object):
         """Create and return a temporary directory.  This has the same

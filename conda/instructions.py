@@ -23,8 +23,15 @@ SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
-action_codes = (FETCH, EXTRACT, UNLINK, LINK, SYMLINK_CONDA, RM_EXTRACTED,
-                RM_FETCHED)
+action_codes = (
+    FETCH,
+    EXTRACT,
+    UNLINK,
+    LINK,
+    SYMLINK_CONDA,
+    RM_EXTRACTED,
+    RM_FETCHED,
+)
 
 
 def PREFIX_CMD(state, arg):
@@ -131,7 +138,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((install.name_dist(arg), state['i']))
+            getLogger('progress.update').info((install.name_dist(arg),
+                state['i']-1))
         cmd = _commands.get(instruction)
 
         if cmd is None:

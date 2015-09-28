@@ -22,7 +22,7 @@ from functools import wraps
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.compat import itervalues, get_http_value, input, urllib_quote
+from conda.compat import itervalues, input, urllib_quote
 from conda.lock import Locked
 
 import requests
@@ -45,11 +45,12 @@ def create_cache_dir():
 
 
 def cache_fn_url(url):
-    return '%s.json' % hashlib.md5(url.encode('utf-8')).hexdigest()
+    md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
+    return '%s.json' % (md5[:8],)
 
 
-def add_http_value_to_dict(u, http_key, d, dict_key):
-    value = get_http_value(u, http_key)
+def add_http_value_to_dict(resp, http_key, d, dict_key):
+    value = resp.headers.get(http_key)
     if value:
         d[dict_key] = value
 
@@ -80,7 +81,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
-        cache = json.load(open(cache_path))
+        with open(cache_path) as f:
+            cache = json.load(f)
     except (IOError, ValueError):
         cache = {'packages': {}}
 
@@ -88,18 +90,19 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         return cache
 
     headers = {}
-    if "_tag" in cache:
+    if "_etag" in cache:
         headers["If-None-Match"] = cache["_etag"]
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
 
     try:
         resp = session.get(url + 'repodata.json.bz2',
-                           headers=headers, proxies=session.proxies,
-                           verify=config.ssl_verify)
+                           headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
+            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
@@ -114,7 +117,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
-                msg = ('Could not find Binstar user %s' %
+                msg = ('Could not find anaconda.org user %s' %
                    config.remove_binstar_tokens(url).split(
                         config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
@@ -128,8 +131,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                         config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
-            msg = ("Warning: you may need to login to binstar again with "
-                "'binstar login' to access private packages(%s, %s)" %
+            msg = ("Warning: you may need to login to anaconda.org again with "
+                "'anaconda login' to access private packages(%s, %s)" %
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url),
@@ -141,6 +144,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
         log.debug(msg)
         raise RuntimeError(msg)
+
+    except requests.exceptions.SSLError as e:
+        msg = "SSL Error: %s\n" % e
+        stderrlog.info("SSL verification error: %s\n" % e)
+        log.debug(msg)
 
     except requests.exceptions.ConnectionError as e:
         # requests isn't so nice here. For whatever reason, https gives this
@@ -176,6 +184,10 @@ def handle_proxy_407(url, session):
     # We could also use HTTPProxyAuth, but this does not work with https
     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    if scheme not in session.proxies:
+        sys.exit("""Could not find a proxy for %r. See
+http://conda.pydata.org/docs/config.html#configure-conda-for-use-behind-a-proxy-server
+for more information on how to configure proxies.""" % scheme)
     username, passwd = get_proxy_username_and_pass(scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
                            session.proxies[scheme], username, passwd)
@@ -214,7 +226,7 @@ def add_pip_dependency(index):
     for info in itervalues(index):
         if (info['name'] == 'python' and
                     info['version'].startswith(('2.', '3.'))):
-            info['depends'].append('pip')
+            info.setdefault('depends', []).append('pip')
 
 @memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
@@ -262,8 +274,10 @@ Allowed channels are:
     stdoutlog.info('\n')
     if unknown:
         add_unknown(index)
-    add_pip_dependency(index)
+    if config.add_pip_as_python_dependency:
+        add_pip_dependency(index)
     return index
+
 
 def fetch_pkg(info, dst_dir=None, session=None):
     '''
@@ -280,6 +294,20 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    if info.get('sig'):
+        from conda.signature import verify, SignatureError
+
+        fn2 = fn + '.sig'
+        url = (info['channel'] if info['sig'] == '.' else
+               info['sig'].rstrip('/') + '/') + fn2
+        log.debug("signature url=%r" % url)
+        download(url, join(dst_dir, fn2), session=session)
+        try:
+            if verify(path):
+                return
+        except SignatureError as e:
+            sys.exit(str(e))
+        sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
@@ -300,8 +328,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         retries = RETRIES
     with Locked(dst_dir):
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies,
-                               verify=config.ssl_verify)
+            resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407: # Proxy Authentication Required
