@@ -1,4 +1,6 @@
--------------------
+2015-09-28   3.18.0:
+--------------------
+  * allow Python to be updated in root environment on Windows, #1657
   * add defaults to specs after getting pinned specs (allows to pin a
     different version of Python than what is installed)
   * show what older versions are in the solutions in the resolve debug log
@@ -25,6 +27,7 @@
   * conda clean properly handles multiple envs directories. This breaks
     backwards compatibility with some of the --json output. Some of the old
     --json keys are kept for backwards compatibility.
+
 
 2015-09-11   3.17.0:
 --------------------
