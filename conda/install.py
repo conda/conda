@@ -62,10 +62,6 @@ if on_win:
     import ctypes
     from ctypes import wintypes
 
-    # on Windows we cannot update these packages in the root environment
-    # because of the file lock problem
-    win_ignore_root = set(['python'])
-
     CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
     CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
@@ -578,12 +574,6 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     index = index or {}
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
-    if (on_win and abspath(prefix) == abspath(sys.prefix) and
-              name_dist(dist) in win_ignore_root):
-        # on Windows we have the file lock problem, so don't allow
-        # linking or unlinking some packages
-        log.warn('Ignored: %s' % dist)
-        return
 
     source_dir = join(pkgs_dir, dist)
     if not run_script(source_dir, dist, 'pre-link', prefix):
@@ -672,13 +662,6 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     '''
-    if (on_win and abspath(prefix) == abspath(sys.prefix) and
-              name_dist(dist) in win_ignore_root):
-        # on Windows we have the file lock problem, so don't allow
-        # linking or unlinking some packages
-        log.warn('Ignored: %s' % dist)
-        return
-
     with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
