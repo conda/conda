@@ -417,10 +417,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        if install.on_win:
-            for name in install.win_ignore_root:
-                if name in must_have:
-                    del must_have[name]
         for name in config.foreign:
             if name in must_have:
                 del must_have[name]
