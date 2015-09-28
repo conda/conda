@@ -335,7 +335,7 @@ environment does not exist: %s
                                                pinned=args.pinned,
                                                minimal_hint=args.alt_hint,
                                                update_deps=args.update_deps)
-            if args.copy:
+            if config.always_copy or args.copy:
                 new_link = []
                 for pkg in actions["LINK"]:
                     dist, pkgs_dir, lt = inst.split_linkarg(pkg)
