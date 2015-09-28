@@ -27,18 +27,19 @@ the standard library).
 
 from __future__ import print_function, division, absolute_import
 
-import time
-import os
+import errno
 import json
+import logging
+import os
+import shlex
 import shutil
 import stat
-import sys
 import subprocess
+import sys
 import tarfile
+import time
 import traceback
-import logging
-import shlex
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
 
 try:
     from conda.lock import Locked
@@ -48,8 +49,10 @@ except ImportError:
     class Locked(object):
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             pass
+
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
@@ -61,7 +64,7 @@ if on_win:
 
     # on Windows we cannot update these packages in the root environment
     # because of the file lock problem
-    win_ignore_root = set(['python', 'pycosat', 'psutil'])
+    win_ignore_root = set(['python'])
 
     CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
@@ -140,13 +143,14 @@ def _remove_readonly(func, path, excinfo):
     func(path)
 
 
-def rm_rf(path, max_retries=5):
+def rm_rf(path, max_retries=5, trash=True):
     """
     Completely delete path
 
     max_retries is the number of times to retry on failure. The default is
     5. This only applies to deleting a directory.
 
+    If removing path fails and trash is True, files will be moved to the trash directory.
     """
     if islink(path) or isfile(path):
         # Note that we have to check if the destination is a link because
@@ -168,11 +172,24 @@ def rm_rf(path, max_retries=5):
                     except OSError as e1:
                         msg += "Retry with onerror failed (%s)\n" % e1
 
-                    try:
-                        subprocess.check_call(['cmd', '/c', 'rd', '/s', '/q', path])
-                        return
-                    except subprocess.CalledProcessError as e2:
-                        msg += '%s\n' % e2
+                    p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    (stdout, stderr) = p.communicate()
+                    if p.returncode != 0:
+                        msg += '%s\n%s\n' % (stdout, stderr)
+                    else:
+                        if not isdir(path):
+                            return
+
+                    if trash:
+                        try:
+                            move_path_to_trash(path)
+                            if not isdir(path):
+                                return
+                        except OSError as e2:
+                            raise
+                            msg += "Retry with onerror failed (%s)\n" % e2
+
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
@@ -265,6 +282,7 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     if new_data == data:
         return
     st = os.lstat(path)
+    os.remove(path) # Remove file before rewriting to avoid destroying hard-linked cache.
     with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -476,7 +494,7 @@ def linked(prefix):
         return set()
     return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
 
-
+# FIXME Functions that begin with `is_` should return True/False
 def is_linked(prefix, dist):
     """
     Return the install meta-data for a linked package in a prefix, or None
@@ -489,6 +507,68 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
+def delete_trash(prefix=None):
+    from conda import config
+
+    for pkg_dir in config.pkgs_dirs:
+        trash_dir = join(pkg_dir, '.trash')
+        try:
+            log.debug("Trying to delete the trash dir %s" % trash_dir)
+            rm_rf(trash_dir, max_retries=1, trash=False)
+        except OSError as e:
+            log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
+
+def move_to_trash(prefix, f, tempdir=None):
+    """
+    Move a file f from prefix to the trash
+
+    tempdir is a deprecated parameter, and will be ignored.
+
+    This function is deprecated in favor of `move_path_to_trash`.
+    """
+    return move_path_to_trash(join(prefix, f))
+
+def move_path_to_trash(path):
+    """
+    Move a path to the trash
+    """
+    # Try deleting the trash every time we use it.
+    delete_trash()
+
+    from conda import config
+
+    for pkg_dir in config.pkgs_dirs:
+        import tempfile
+        trash_dir = join(pkg_dir, '.trash')
+
+        try:
+            os.makedirs(trash_dir)
+        except OSError as e1:
+            if e1.errno != errno.EEXIST:
+                continue
+
+        trash_dir = tempfile.mkdtemp(dir=trash_dir)
+        trash_dir = join(trash_dir, relpath(os.path.dirname(path), config.root_dir))
+
+        try:
+            os.makedirs(trash_dir)
+        except OSError as e2:
+            if e2.errno != errno.EEXIST:
+                continue
+
+        try:
+            shutil.move(path, trash_dir)
+        except OSError as e:
+            log.debug("Could not move %s to %s (%s)" % (path, trash_dir, e))
+        else:
+            return True
+
+    log.debug("Could not move %s to trash" % path)
+    return False
+
+# FIXME This should contain the implementation that loads meta, not is_linked()
+def load_meta(prefix, dist):
+    return is_linked(prefix, dist)
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
@@ -527,6 +607,13 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
                     os.unlink(dst)
                 except OSError:
                     log.error('failed to unlink: %r' % dst)
+                    if on_win:
+                        try:
+                            move_path_to_trash(dst)
+                        except ImportError:
+                            # This shouldn't be an issue in the installer anyway
+                            pass
+
             lt = linktype
             if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
@@ -579,6 +666,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
 
         create_meta(prefix, dist, info_dir, meta_dict)
 
+
 def unlink(prefix, dist):
     '''
     Remove a package from the specified environment, it is an error if the
@@ -606,8 +694,15 @@ def unlink(prefix, dist):
             dst_dirs1.add(dirname(dst))
             try:
                 os.unlink(dst)
-            except OSError: # file might not exist
+            except OSError:  # file might not exist
                 log.debug("could not remove file: '%s'" % dst)
+                if on_win and os.path.exists(join(prefix, f)):
+                    try:
+                        log.debug("moving to trash")
+                        move_path_to_trash(dst)
+                    except ImportError:
+                        # This shouldn't be an issue in the installer anyway
+                        pass
 
         # remove the meta-file last
         os.unlink(meta_path)
@@ -635,7 +730,9 @@ def messages(prefix):
     finally:
         rm_rf(path)
 
+
 # =========================== end API functions ==========================
+
 
 def main():
     from pprint import pprint
@@ -720,7 +817,10 @@ def main():
         extract(pkgs_dir, dist)
 
     elif opts.link:
-        link(pkgs_dir, prefix, dist)
+        linktype = (LINK_HARD
+                    if try_hard_link(pkgs_dir, prefix, dist) else
+                    LINK_COPY)
+        link(pkgs_dir, prefix, dist, linktype)
 
     elif opts.unlink:
         unlink(prefix, dist)

@@ -6,32 +6,40 @@
 
 from __future__ import print_function, division, absolute_import
 
-from argparse import RawDescriptionHelpFormatter
-
 from conda.cli import common, install
 
 
-descr = "Update conda packages."
+descr = "Update conda packages to the current version."
 example = """
-examples:
-    conda update -n myenv scipy
+Examples:
+
+    conda %s -n myenv scipy
 
 """
 
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'update',
-        formatter_class = RawDescriptionHelpFormatter,
-        description = descr,
-        help = descr,
-        epilog = example,
-    )
+alias_help = "Alias for conda update.  See conda update --help."
+
+def configure_parser(sub_parsers, name='update'):
+    if name == 'update':
+        p = sub_parsers.add_parser(
+            'update',
+            description=descr,
+            help=descr,
+            epilog=example % name,
+        )
+    else:
+        p = sub_parsers.add_parser(
+            name,
+            description=alias_help,
+            help=alias_help,
+            epilog=example % name,
+        )
     common.add_parser_install(p)
     common.add_parser_json(p)
     p.add_argument(
         "--all",
         action="store_true",
-        help="Update all installed packages in the environment",
+        help="Update all installed packages in the environment.",
     )
     p.set_defaults(func=execute)
 
