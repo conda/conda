@@ -37,22 +37,24 @@ class FetchProgressHandler(logging.Handler):
 class ProgressHandler(logging.Handler):
 
     def emit(self, record):
-        if record.name == 'progress.start':
-            progress.maxval = record.msg
-            progress.start()
-
-        elif record.name == 'progress.update':
-            name, n = record.msg
-            progress.widgets[0] = '[%-20s]' % name
-            if n == 0:
-                # Make sure the widget gets updated
+        try:
+            if record.name == 'progress.start':
+                progress.maxval = record.msg
                 progress.start()
-            progress.update(n)
 
-        elif record.name == 'progress.stop':
-            progress.widgets[0] = '[      COMPLETE      ]'
-            progress.finish()
+            elif record.name == 'progress.update':
+                name, n = record.msg
+                progress.widgets[0] = '[%-20s]' % name
+                if n == 0:
+                    # Make sure the widget gets updated
+                    progress.start()
+                    progress.update(n)
 
+            elif record.name == 'progress.stop':
+                progress.widgets[0] = '[      COMPLETE      ]'
+                progress.finish()
+        except LookupError:
+            pass
 
 class JsonFetchProgressHandler(logging.Handler):
     def emit(self, record):
