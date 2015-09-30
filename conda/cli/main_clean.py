@@ -70,7 +70,7 @@ def find_lock():
 
     from conda.lock import LOCKFN
 
-    lock_dirs = config.pkgs_dirs
+    lock_dirs = config.pkgs_dirs[:]
     lock_dirs += [config.root_dir]
     for envs_dir in config.envs_dirs:
         if os.path.exists(envs_dir):
