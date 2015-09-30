@@ -48,7 +48,7 @@ class ProgressHandler(logging.Handler):
                 if n == 0:
                     # Make sure the widget gets updated
                     progress.start()
-                    progress.update(n)
+                progress.update(n)
 
             elif record.name == 'progress.stop':
                 progress.widgets[0] = '[      COMPLETE      ]'
