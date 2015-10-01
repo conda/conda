@@ -68,6 +68,8 @@ def configure_parser(sub_parsers, name='remove'):
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
     common.add_parser_quiet(p)
+    # Putting this one first makes it the default
+    common.add_parser_no_use_index_cache(p)
     common.add_parser_use_index_cache(p)
     common.add_parser_use_local(p)
     common.add_parser_offline(p)
