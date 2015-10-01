@@ -1,3 +1,11 @@
+...
+-------------------
+  * Fix a potential issue in conda clean
+  * Avoid issues with LookupErrors when updating Python in the root
+    environment on Windows
+  * Don't fetch the index from the network with conda remove
+
+
 2015-09-28   3.18.1:
 --------------------
   * fix: removed reference to win_ignore_root in plan module
