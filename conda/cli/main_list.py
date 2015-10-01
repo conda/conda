@@ -62,7 +62,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-c', "--canonical",
         action="store_true",
-        help="Output canonical names of packages only.",
+        help="Output canonical names of packages only. Implies --no-pip. ",
     )
     p.add_argument(
         '-f', "--full-name",
