@@ -180,6 +180,16 @@ def add_parser_use_index_cache(p):
         help="Use cache of channel index files.",
     )
 
+
+def add_parser_no_use_index_cache(p):
+    p.add_argument(
+        "--no-use-index-cache",
+        action="store_false",
+        default=True,
+        dest="use_index_cache",
+        help="Use cache of channel index files.",
+    )
+
 def add_parser_copy(p):
     p.add_argument(
         '--copy',
