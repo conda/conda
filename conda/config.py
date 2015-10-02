@@ -130,10 +130,53 @@ sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
 # root_dir should only be used for testing, which is why don't mention it in
 # the documentation, to avoid confusion (it can really mess up a lot of
 # things)
-root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
-                                        rc.get('root_dir', sys.prefix))))
+
+
+expanded_user_path = lambda s: abspath(expanduser(s))
+
+
+def possible_root_dirs():
+    if platform == 'win':
+        dirs = [
+            ['~', 'Anaconda', ],
+            ['~', 'Miniconda', ],
+            ['C:\\', 'Anaconda', ],
+            ['C:\\', 'Miniconda', ],
+        ]
+
+    else:
+        dirs = [
+            # Check ~/anaconda first, but ideally move to ~/.conda
+            ['~', 'anaconda', ],
+            ['/opt', 'anaconda', ],
+        ]
+
+    return [expanded_user_path(os.path.join(*a)) for a in dirs]
+
+
+def determine_root_dir(compatibility=True):
+    if 'CONDA_ROOT' in os.environ:
+        return expanded_user_path(os.environ['CONDA_ROOT'])
+
+    rc_root_dir = rc.get('root_dir', False)
+    if rc_root_dir is not False:
+        return rc_root_dir
+
+    possible_default_paths = possible_root_dirs()
+    for possible in possible_default_paths:
+        if os.path.exists(possible):
+            return possible
+
+    # all else failed, fall back to the sys.prefix -- this should be
+    # deprecated with a proper warning but is included here for non-
+    # standard installation paths.
+    return sys.prefix if compatibility else possible_default_paths[0]
+
+
+root_dir = determine_root_dir()
 root_writable = try_write(root_dir)
 root_env_name = 'root'
+
 
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
