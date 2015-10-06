@@ -170,6 +170,9 @@ def install(args, parser, command='install'):
     if args.file:
         for fpath in args.file:
             specs.extend(common.specs_from_url(fpath, json=args.json))
+        if '@EXPLICIT' in specs:
+            misc.explicit(specs)
+            return
     elif getattr(args, 'all', False):
         linked = ci.linked(prefix)
         if not linked:
