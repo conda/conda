@@ -37,6 +37,18 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
+def explicit(urls):
+    import conda.fetch as fetch
+
+    for url in urls:
+        if url == '@EXPLICIT':
+            continue
+        channel_url, fn = url.rsplit('/', 1)
+        index = fetch.fetch_index((channel_url + '/',))
+        info = index[fn]
+        #print(url, info)
+
+
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1:]
     if sys.platform == 'win32' and windows_forward_slashes:
