@@ -37,16 +37,32 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-def explicit(urls):
+def explicit(urls, prefix):
     import conda.fetch as fetch
+    from conda.utils import md5_file
 
+    plan = [('PREFIX', prefix)]
     for url in urls:
         if url == '@EXPLICIT':
             continue
+        print("Fetching: %s" % url)
         channel_url, fn = url.rsplit('/', 1)
         index = fetch.fetch_index((channel_url + '/',))
         info = index[fn]
-        #print(url, info)
+        pkg_path = join(config.pkgs_dirs[0], fn)
+        if isfile(pkg_path):
+            try:
+                if md5_file(pkg_path) != index[fn]['md5']:
+                    install.rm_rf(pkg_path)
+                    fetch.fetch_pkg(info)
+            except KeyError:
+                sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+        else:
+            fetch.fetch_pkg(info)
+
+#        plan.extend([
+#                inst.RM_EXTRACTED].append(dist)
+#        ])
 
 
 def rel_path(prefix, path, windows_forward_slashes=True):
