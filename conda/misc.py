@@ -36,16 +36,34 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-def explicit(urls, prefix):
+def force_extract_and_link(dists, prefix, verbose=False):
+    actions = defaultdict(list)
+    actions['PREFIX'] = prefix
+    actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
+    # maps names of installed packages to dists
+    linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
+    for dist in dists:
+        actions[RM_EXTRACTED].append(dist)
+        actions[EXTRACT].append(dist)
+        # unlink any installed package with that name
+        name = install.name_dist(dist)
+        if name in linked:
+            actions[UNLINK].append(linked[name])
+        actions[LINK].append(dist)
+    execute_actions(actions, verbose=verbose)
+
+
+def explicit(urls, prefix, verbose=True):
     import conda.fetch as fetch
     from conda.utils import md5_file
 
-    plan = [('PREFIX', prefix)]
+    dists = []
     for url in urls:
         if url == '@EXPLICIT':
             continue
         print("Fetching: %s" % url)
         channel_url, fn = url.rsplit('/', 1)
+        dists.append(fn[:-8])
         index = fetch.fetch_index((channel_url + '/',))
         info = index[fn]
         pkg_path = join(config.pkgs_dirs[0], fn)
@@ -59,9 +77,7 @@ def explicit(urls, prefix):
         else:
             fetch.fetch_pkg(info)
 
-#        plan.extend([
-#                inst.RM_EXTRACTED].append(dist)
-#        ])
+    force_extract_and_link(dists, prefix, verbose=verbose)
 
 
 def rel_path(prefix, path, windows_forward_slashes=True):
@@ -230,20 +246,7 @@ def install_local_packages(prefix, paths, verbose=False):
             continue
         shutil.copyfile(src_path, dst_path)
 
-    actions = defaultdict(list)
-    actions['PREFIX'] = prefix
-    actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
-    # maps names of installed packages to dists
-    linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
-    for dist in dists:
-        actions[RM_EXTRACTED].append(dist)
-        actions[EXTRACT].append(dist)
-        # unlink any installed package with that name
-        name = install.name_dist(dist)
-        if name in linked:
-            actions[UNLINK].append(linked[name])
-        actions[LINK].append(dist)
-    execute_actions(actions, verbose=verbose)
+    force_extract_and_link(dists, prefix, verbose=verbose)
 
 
 def environment_for_conda_environment(prefix=config.root_dir):
