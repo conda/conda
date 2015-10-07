@@ -72,8 +72,8 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-e', "--export",
         action="store_true",
-        help="""Output requirement string only (output may be used by conda create
-                  --file).""",
+        help="Output requirement string only (output may be used by "
+             " conda create --file).",
     )
     p.add_argument(
         '-r', "--revisions",
@@ -112,7 +112,8 @@ def get_packages(installed, regex):
         yield dist
 
 
-def list_packages(prefix, installed, regex=None, format='human', show_channel_urls=config.show_channel_urls):
+def list_packages(prefix, installed, regex=None, format='human',
+                  show_channel_urls=config.show_channel_urls):
     res = 1
 
     result = []
@@ -147,7 +148,8 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         common.error_and_exit("""\
 Error: environment does not exist: %s
 #
-# Use 'conda create' to create an environment before listing its packages.""" % prefix,
+# Use 'conda create' to create an environment before listing its packages.""" %
+                              prefix,
                               json=json,
                               error_type="NoEnvironmentFound")
 
@@ -162,7 +164,8 @@ Error: environment does not exist: %s
     if piplist and config.use_pip and format == 'human':
         add_pip_installed(prefix, installed, json=json)
 
-    exitcode, output = list_packages(prefix, installed, regex, format=format, show_channel_urls=show_channel_urls)
+    exitcode, output = list_packages(prefix, installed, regex, format=format,
+                                     show_channel_urls=show_channel_urls)
     if not json:
         print('\n'.join(output))
     else:
@@ -203,5 +206,5 @@ def execute(args, parser):
         format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-        json=args.json, show_channel_urls=args.show_channel_urls)
+                  json=args.json, show_channel_urls=args.show_channel_urls)
     sys.exit(exitcode)
