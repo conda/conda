@@ -5,7 +5,6 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
-import json
 import shlex
 import shutil
 import subprocess
@@ -234,23 +233,17 @@ def install_local_packages(prefix, paths, verbose=False):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
+    # maps names of installed packages to dists
+    linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
     for dist in dists:
         actions[RM_EXTRACTED].append(dist)
         actions[EXTRACT].append(dist)
-        if install.is_linked(prefix, dist):
-            actions[UNLINK].append(dist)
+        # unlink any installed package with that name
+        name = install.name_dist(dist)
+        if name in linked:
+            actions[UNLINK].append(linked[name])
         actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
-
-    depends = []
-    for dist in dists:
-        try:
-            with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
-                meta = json.load(fi)
-            depends.extend(meta['depends'])
-        except (IOError, KeyError):
-            continue
-    return depends
 
 
 def environment_for_conda_environment(prefix=config.root_dir):

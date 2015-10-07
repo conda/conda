@@ -42,9 +42,8 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    depends = misc.install_local_packages(prefix, paths, verbose=verbose)
+    misc.install_local_packages(prefix, paths, verbose=verbose)
     shutil.rmtree(tmp_dir)
-    return depends
 
 
 def check_prefix(prefix, json=False):
@@ -199,12 +198,9 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            depends = misc.install_local_packages(prefix, args.packages,
-                                                  verbose=not args.quiet)
-            if args.no_deps:
-                depends = []
-            specs = list(set(depends))
-            args.unknown = True
+            misc.install_local_packages(prefix, args.packages,
+                                        verbose=not args.quiet)
+            return
         else:
             common.error_and_exit(
                 "cannot mix specifications with conda package filenames",
@@ -215,11 +211,8 @@ def install(args, parser, command='install'):
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
-            depends = install_tar(prefix, tar_path, verbose=not args.quiet)
-            if args.no_deps:
-                depends = []
-            specs = list(set(depends))
-            args.unknown = True
+            install_tar(prefix, tar_path, verbose=not args.quiet)
+            return
 
     if args.use_local:
         from conda.fetch import fetch_index
