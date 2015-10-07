@@ -204,8 +204,7 @@ def plan_from_actions(actions):
         op_order = inst.action_codes
 
     assert inst.PREFIX in actions and actions[inst.PREFIX]
-    res = [
-           ('PREFIX', '%s' % actions[inst.PREFIX])]
+    res = [('PREFIX', '%s' % actions[inst.PREFIX])]
 
     if sys.platform == 'win32':
         # Always link/unlink menuinst first on windows in case a subsequent
