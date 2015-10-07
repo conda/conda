@@ -44,9 +44,9 @@ class TopoSortTests(unittest.TestCase):
         """
         This test checks a special invariant related to 'python' specifically.
         Python is part of a cycle (pip <--> python), which can cause it to be
-        installed *after* packages that need python (possibly in 
+        installed *after* packages that need python (possibly in
         post-install.sh).
-        
+
         A special case in toposort() breaks the cycle, to ensure that python
         isn't installed too late.  Here, we verify that it works.
         """
