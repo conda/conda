@@ -218,16 +218,6 @@ def install_local_packages(prefix, paths, verbose=False):
         actions[LINK].append(dist)
     execute_actions(actions, verbose=verbose)
 
-    depends = []
-    for dist in dists:
-        try:
-            with open(join(pkgs_dir, dist, 'info', 'index.json')) as fi:
-                meta = json.load(fi)
-            depends.extend(meta['depends'])
-        except (IOError, KeyError):
-            continue
-    return depends
-
 
 def environment_for_conda_environment(prefix=config.root_dir):
     # prepend the bin directory to the path
