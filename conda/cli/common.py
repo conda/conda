@@ -495,12 +495,18 @@ def spec_from_line(line):
 def specs_from_url(url, json=False):
     from conda.fetch import TmpDownload
 
+    explicit = False
     with TmpDownload(url, verbose=False) as path:
         specs = []
         try:
             for line in open(path):
                 line = line.strip()
                 if not line or line.startswith('#'):
+                    continue
+                if line == '@EXPLICIT':
+                    explicit = True
+                if explicit:
+                    specs.append(line)
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
