@@ -7,7 +7,7 @@
   * when installing conda packages directly, "conda install <pkg>.tar.bz2",
     unlink any installed package with that name (not just the installed one)
   * add "conda list --explicit" which contains the URLs of all conda packages
-    to be installed, and can used with the install/create --file option
+    to be installed, and can used with the install/create --file option, #1688
 
 
 2015-09-28   3.18.1:
