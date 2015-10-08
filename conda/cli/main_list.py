@@ -194,7 +194,7 @@ def print_explicit(prefix):
             continue
         with open(join(meta_dir, fn)) as fi:
             meta = json.load(fi)
-        print(meta['url'] or '# no URL for: %s' % fn[:-5])
+        print(meta.get('url') or '# no URL for: %s' % fn[:-5])
 
 
 def execute(args, parser):
