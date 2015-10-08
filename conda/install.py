@@ -306,10 +306,16 @@ def create_meta(prefix, dist, info_dir, extra_info):
 
 
 def mk_menus(prefix, files, remove=False):
-    if abspath(prefix) != abspath(sys.prefix):
-        # we currently only want to create menu items for packages
-        # in default environment
+    """
+    Create cross-platform menu items (e.g. Windows Start Menu)
+
+    Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
+    ``remove=True`` will remove the menu items.
+    """
+    exclude_envs = ('_build', '_test')  # Exclude all envs starting with...
+    if basename(abspath(prefix)).lower().startswith(exclude_envs):
         return
+
     menu_files = [f for f in files
                   if f.startswith('Menu/') and f.endswith('.json')]
     if not menu_files:
