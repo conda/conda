@@ -317,7 +317,8 @@ def mk_menus(prefix, files, remove=False):
         return
 
     menu_files = [f for f in files
-                  if f.startswith('Menu/') and f.endswith('.json')]
+                  if f.lower().startswith('menu/')
+                  and f.lower().endswith('.json')]
     if not menu_files:
         return
     try:
