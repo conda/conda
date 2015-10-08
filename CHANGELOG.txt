@@ -1,11 +1,13 @@
-...
--------------------
+2015-10-XX   3.18.2:
+--------------------
   * Fix a potential issue in conda clean
   * Avoid issues with LookupErrors when updating Python in the root
     environment on Windows
   * Don't fetch the index from the network with conda remove
   * when installing conda packages directly, "conda install <pkg>.tar.bz2",
     unlink any installed package with that name (not just the installed one)
+  * add "conda list --explicit" which contains the URLs of all conda packages
+    to be installed, and can used with the install/create --file option
 
 
 2015-09-28   3.18.1:
