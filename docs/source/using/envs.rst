@@ -246,8 +246,28 @@ The command ``conda list -e`` produces a spec list such as the following:
 
 With the command ``conda list -e > spec-file.txt`` you can create a file containing this spec list in the current working directory. You may use the filename ``spec-file.txt`` or any other filename.
 
-As the comment at the top of the file explains, with the command ``conda create --name MyEnvironment --file spec-file.txt`` you can use the spec file to create an identical environment on the same machine or another machine. Replace ``spec-file.txt`` with whatever file name you chose when you created the file. You may use the environment name ``MyEnvironment`` or substitute any other environment name to give your newly created environment.
+As the comment at the top of the file explains, with the command ``conda create --name MyEnvironment --file spec-file.txt`` you can use the spec file to create a matching environment on the same machine or another machine. Replace ``spec-file.txt`` with whatever file name you chose when you created the file. You may use the environment name ``MyEnvironment`` or substitute any other environment name to give your newly created environment.
 
-NOTE: Explicit spec files like this are not usually cross platform, and therefore have a comment at the top such as ``# platform: osx-64`` showing the platform where they were created. This platform is the one where this spec file is known to work. On other platforms, the packages specified might not be available or dependencies might be missing for some of the key packages already in the spec.
+NOTE: These explicit spec files are not usually cross platform, and therefore have a comment at the top such as ``# platform: osx-64`` showing the platform where they were created. This platform is the one where this spec file is known to work. On other platforms, the packages specified might not be available or dependencies might be missing for some of the key packages already in the spec.
+
+If two users set up their conda channels differently, then it is possible for them each to create a new environment from the same spec file but fetch the packages from different channels and therefore create different environments. To prevent this, conda also offers an option ``conda list --explicit``, which shows a list of the universal resource locators (URLs) of all conda packages installed in the current environment, as shown by this small example showing only three packages:
+
+.. code::
+
+    # This file may be used to create an environment using:
+    # $ conda create --name <env> --file <this file>
+    # platform: linux-64
+    @EXPLICIT
+    https://repo.continuum.io/pkgs/free/linux-64/xlsxwriter-0.7.5-py27_0.tar.bz2
+    https://repo.continuum.io/pkgs/pro/linux-64/iopro-1.7.1-np19py27_p1.tar.bz2
+    https://repo.continuum.io/pkgs/free/linux-64/python-2.7.10-1.tar.bz2
+
+With the command ``conda list --explicit > explicit-spec-file.txt`` you can create a file containing this spec list in the current working directory.
+
+As the comment at the top of the file explains, with the command ``conda create --name MyEnvironment --file explicit-spec-file.txt`` you can use the spec file to create an identical environment on the same machine or another machine.
+
+With the command ``conda install --name MyEnvironment --file explicit-spec-file.txt`` you can add these packages to an existing environment.
+
+NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file, so to ensure the packages work correctly, be sure that the file was created from a working environment and that it is only used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
 
 Next, we'll take a look at :doc:`/py2or3`.
