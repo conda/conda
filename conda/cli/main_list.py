@@ -7,8 +7,9 @@
 from __future__ import print_function, division, absolute_import
 
 import re
+import os
 import sys
-from os.path import isdir, isfile
+from os.path import isdir, isfile, join
 import logging
 from argparse import RawDescriptionHelpFormatter
 
@@ -68,6 +69,12 @@ def configure_parser(sub_parsers):
         '-f', "--full-name",
         action="store_true",
         help="Only search for full names, i.e., ^<regex>$.",
+    )
+    p.add_argument(
+        "--explicit",
+        action="store_true",
+        help="List explicitly all installed conda packaged with URL "
+             "(output may be used by conda create --file).",
     )
     p.add_argument(
         '-e', "--export",
@@ -143,7 +150,7 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-    json=False, show_channel_urls=config.show_channel_urls):
+                   json=False, show_channel_urls=config.show_channel_urls):
     if not isdir(prefix):
         common.error_and_exit("""\
 Error: environment does not exist: %s
@@ -173,6 +180,23 @@ Error: environment does not exist: %s
     return exitcode
 
 
+def print_explicit(prefix):
+    import json
+
+    if not isdir(prefix):
+        common.error_and_exit("Error: environment does not exist: %s" % prefix)
+    print_export_header()
+    print("@EXPLICIT")
+
+    meta_dir = join(prefix, 'conda-meta')
+    for fn in sorted(os.listdir(meta_dir)):
+        if not fn.endswith('.json'):
+            continue
+        with open(join(meta_dir, fn)) as fi:
+            meta = json.load(fi)
+        print(meta['url'] or '# no URL for: %s' % fn[:-5])
+
+
 def execute(args, parser):
     prefix = common.get_prefix(args)
 
@@ -193,6 +217,10 @@ def execute(args, parser):
             common.error_and_exit("No revision log found: %s\n" % h.path,
                                   json=args.json,
                                   error_type="NoRevisionLog")
+        return
+
+    if args.explicit:
+        print_explicit(prefix)
         return
 
     if args.canonical:
