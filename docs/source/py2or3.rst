@@ -93,4 +93,4 @@ In this example, we'll make a new environment for Python 2.6:
 
     $ conda create -n py26 python=2.6 anaconda
 
-Next, let's take a look at :doc:`using/pkgs`.
+Next, let's take a look at :doc:`r-and-r-essentials`.
