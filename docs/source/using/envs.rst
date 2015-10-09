@@ -215,8 +215,8 @@ Verify that the new environment was installed correctly:
 
    conda list
 
-Explicit specification files
-----------------------------
+Build identical conda environments
+----------------------------------
 
 Explicit specification files can be used to build an identical conda environment on the same operating system platform, either on the same machine or a different machine.
 
@@ -250,7 +250,12 @@ As the comment at the top of the file explains, with the command ``conda create 
 
 NOTE: These explicit spec files are not usually cross platform, and therefore have a comment at the top such as ``# platform: osx-64`` showing the platform where they were created. This platform is the one where this spec file is known to work. On other platforms, the packages specified might not be available or dependencies might be missing for some of the key packages already in the spec.
 
-If two users set up their conda channels differently, then it is possible for them each to create a new environment from the same spec file but fetch the packages from different channels and therefore create different environments. To prevent this, conda also offers an option ``conda list --explicit``, which shows a list of the universal resource locators (URLs) of all conda packages installed in the current environment, as shown by this small example showing only three packages:
+Build identical conda environments with URLs
+--------------------------------------------
+
+If two users have their conda channels set up differently, then they may inadvertently create different environments from the same spec file because conda fetches the packages from different channels. 
+
+To prevent this, conda offers an option ``conda list --explicit``, which displays a list of the universal resource locators (URLs) of all conda packages installed in the current environment, as shown by this small example showing only three packages:
 
 .. code::
 
@@ -268,6 +273,6 @@ As the comment at the top of the file explains, with the command ``conda create 
 
 With the command ``conda install --name MyEnvironment --file explicit-spec-file.txt`` you can add these packages to an existing environment.
 
-NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file, so to ensure the packages work correctly, be sure that the file was created from a working environment and that it is only used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
+NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file. To ensure the packages work correctly, be sure that the file was created from a working environment and that it is  used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
 
 Next, we'll take a look at :doc:`/py2or3`.
