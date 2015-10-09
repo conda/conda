@@ -8,6 +8,7 @@
     unlink any installed package with that name (not just the installed one)
   * add "conda list --explicit" which contains the URLs of all conda packages
     to be installed, and can used with the install/create --file option, #1688
+  * allow menu items to be installed in non-root env, #1692
 
 
 2015-09-28   3.18.1:
