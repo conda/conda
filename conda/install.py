@@ -312,8 +312,8 @@ def mk_menus(prefix, files, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    exclude_envs = ('_build', '_test')  # Exclude all envs starting with...
-    if basename(abspath(prefix)).lower().startswith(exclude_envs):
+    # exclude all envs starting with '_'
+    if basename(abspath(prefix)).startswith('_'):
         return
 
     menu_files = [f for f in files
