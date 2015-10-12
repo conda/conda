@@ -415,10 +415,79 @@ class Resolve(object):
 
     def __init__(self, index):
         self.index = index
-        self.groups = defaultdict(list)  # map name to list of filenames
+        self.groups = defaultdict(list)
         for fn, info in iteritems(index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
+
+    def filter_group(self, matches, first=False):
+        match1 = next(x for x in matches)
+        name = match1.name
+        filt0 = self.groups[name]
+
+        # Remove any packages that don't satisfy at least one of the matches
+        filt1 = [fn for fn in filt0 
+            if any(m.match(fn) for m in matches)]
+
+        # Remove any packages with missing dependencies
+        filt2 = [fn for fn in filt1 
+            if all(any(self.find_matches(ms)) for ms in self.ms_depends(fn))]
+
+        reduced = len(filt2) < len(filt0)
+        if reduced:
+            self.groups[name] = filt2
+
+        # Perform the same filtering steps on any dependencies shared across
+        # *all* packages in the group. Even if just one of the packages does
+        # not have a particular dependency, it must be ignored in this pass.
+        if reduced or first:
+            cdeps = defaultdict(list)
+            for count, fn in enumerate(filt2):
+                for m2 in self.ms_depends(fn):
+                    cdeps[m2.name].append(m2)
+            count = len(filt2)
+            for mname, deps in iteritems(cdeps):
+                if len(deps) == count:
+                    reduced = self.filter_group(deps) or reduced
+        return reduced
+
+    def is_satisfiable(self, fn):
+        rec = self.index[fn]
+        if '@sat' in rec:
+            return rec['@sat']
+        # This is necessary to allow us to terminate successfully in the 
+        # case of a cyclic dependency (e.g., A->B->C->A)
+        rec['@sat'] = True
+        for ms in self.ms_depends(fn):
+            if not any(self.is_satisfiable(f2) for f2 in self.find_matches(ms)):
+                rec['@sat'] = False
+                return False
+        return True
+
+    def touch_package(self, fn):
+        rec = self.index[fn]
+        if '@tch' not in rec and self.is_satisfiable(fn):
+            rec['@tch'] = True
+            for ms in self.ms_depends(fn):
+                for f2 in self.find_matches(ms):
+                    self.touch_package(f2)
+
+    def prune_packages(self, specs, installed):
+        first = True
+        specs = list(map(MatchSpec, specs))
+        while sum(self.filter_group([s], first) for s in specs):
+            first = False
+        for s in specs:
+            for fn in self.groups[s.name]:
+                self.touch_package(fn)
+        for fn in installed:
+            self.touch_package(fn)
+        ngroups = {}
+        for name, group in iteritems(self.groups):
+            ngroup = [fn for fn in group if '@tch' in self.index[fn]]
+            if len(ngroup):
+                ngroups[name] = ngroup
+        self.groups = ngroups
 
     def find_matches(self, ms):
         for fn in sorted(self.groups[ms.name]):
@@ -938,6 +1007,10 @@ Note that the following features are enabled:
             installed = []
         if features is None:
             features = self.installed_features(installed)
+
+        log.debug('Performing pruning step')
+        self.prune_packages(specs, installed)
+
         for spec in specs:
             ms = MatchSpec(spec)
             for pkg in self.get_pkgs(ms, max_only=max_only):
