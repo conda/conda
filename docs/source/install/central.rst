@@ -2,6 +2,11 @@
 Centralized installation
 ========================================================================
 
+.. contents::
+
+Overview
+========
+
 Administrators who wish to restrict what programs users can install may do so with a system configuration file,
 or .condarc that follows the simple `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_. The system
 configuration file overrides any  .condarc configuration files installed by the user.
@@ -27,18 +32,9 @@ See also: :doc:`Conda configuration file </config>`.
 System configuration settings
 =============================
 
-    - :ref:`allow_other_channels`
-    - :ref:`SSL_verification`
-    - :ref:`Offline_mode_only`
-    - :ref:`Channel_alias`
-    - :ref:`Disallow_installation_of_specific_packages`
-    - :ref:`Add_token_to_see_private_packages`
-    - :ref:`Specify_environment_directories`
+Allow other channels (allow_other_channels)
+-------------------------------------------
 
-.. _allow_other_channels:
-
-Allow other channels
---------------------
 The administrative system configuration .condarc may specify a set of allowed channels, and may allow the
 users to install packages from other channels with the boolean flag allow_other_channels.  The default is
 True.
@@ -59,21 +55,28 @@ If the system .condarc  file specifies a channel_alias, it will override any cha
 
 .. _SSL_verification:
 
-SSL verification
-----------------
+SSL verification (ssl_verify)
+-----------------------------
 
-By default ssl verification is used. This can be turned off, but this disables the connection's normal
-security, and is not recommended. The default is True.
+If you are behind a proxy that does SSL inspection such as a Cisco IronPort Web Security Appliance (WSA), 
+it may be necessary to override the SSL verification settings using ``ssl_verify``.
+
+By default this variable is ``True``, ssl verification is used and conda verifies 
+certificates for SSL connections. The variable can be set to ``False``, but this 
+disables the connection's normal security and is not recommended.
 
 .. code-block:: yaml
 
   ssl_verify: False
 
+``ssl_verify`` can also be set to a string path to a certificate to be used to verify SSL connections.
 
-.. _Offline_mode_only:
+.. code-block:: yaml
 
-Offline mode only
------------------
+  ssl_verify: corp.crt
+
+Offline mode only (offline)
+---------------------------
 
 Offline mode filters out all channels URLs which do not start with ``file:``. The default is False.
 
@@ -81,10 +84,8 @@ Offline mode filters out all channels URLs which do not start with ``file:``. Th
 
   offline: True
 
-.. _`Channel_alias`:
-
-Channel alias
--------------
+Channel alias (channel_alias)
+-----------------------------
 
 Alias for non-url channels used with the -c or --channel flag. The default is ``https://conda.anaconda.org/``
 
@@ -92,10 +93,8 @@ Alias for non-url channels used with the -c or --channel flag. The default is ``
 
   channel_alias: https://your.repo/
 
-.. _Disallow_installation_of_specific_packages:
-
-Disallow installation of specific packages
-------------------------------------------
+Disallow installation of specific packages (disallow)
+-----------------------------------------------------
 
 Package specifications to disallow installing. The default is to allow all packages.
 
@@ -104,10 +103,8 @@ Package specifications to disallow installing. The default is to allow all packa
   disallow:
     - anaconda
 
-.. _Add_token_to_see_private_packages:
-
-Add Anaconda.org token to automatically see private packages
-------------------------------------------------------------
+Add Anaconda.org token to automatically see private packages (add_anaconda_token)
+---------------------------------------------------------------------------------
 
 When the channel alias is Anaconda.org or an Anaconda Server GUI, the system configuration file can be set so users
 automatically see private packages. (Anaconda.org was formerly known as binstar.org.)
@@ -123,10 +120,8 @@ The default is True.
 NOTE: Even when set to True, this is enabled only if the anaconda command line client is installed and you 
 are logged in with the ``anaconda login`` command.
 
-.. _Specify_environment_directories:
-
-Specify environment directories
--------------------------------
+Specify environment directories (envs_dirs)
+-------------------------------------------
 
 Specify directories in which environments are located. If this key is set, the root prefix envs_dir is not used
 unless explicitly included. This key also determines where the package caches will be located.

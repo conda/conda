@@ -2,6 +2,12 @@
 Configuration
 =============
 
+.. contents::
+
+
+The conda configuration file (.condarc)
+=======================================
+
 The conda configuration file  (.condarc) is an OPTIONAL runtime configuration
 file which allows advanced users to configure various aspects of conda, such as which
 channels it searches for packages, proxy settings, environment directories, etc.
@@ -46,15 +52,12 @@ instead of internal configuration.
 For more configuration information see: http://continuum.io/blog/advanced-conda-part-1#configuration
 
 
-.. contents::
-
-
 General configuration
 =====================
 
 
-Channel locations
-^^^^^^^^^^^^^^^^^
+Channel locations (channels)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Listing channel locations in the .condarc file will override conda defaults,
 causing conda to search only the channels listed here, in the order given.
@@ -72,8 +75,8 @@ the ``channel_alias`` key as explained below. The default is just ``defaults``.
     - defaults
 
 
-Always yes
-^^^^^^^^^^
+Always yes (always_yes)
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Choose the yes option whenever asked to proceed, such as when installing. Same
 as using the ``--yes`` flag at the command line. The default is ``False``.
@@ -83,8 +86,8 @@ as using the ``--yes`` flag at the command line. The default is ``False``.
   always_yes: True
 
 
-Show Channel URLs
-^^^^^^^^^^^^^^^^^
+Show Channel URLs (show_channel_urls)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Show channel URLs when displaying what is going to be downloaded and
 in ``conda list``. The default is ``False``.
@@ -94,8 +97,8 @@ in ``conda list``. The default is ``False``.
   show_channel_urls: True
 
 
-Change command prompt
-^^^^^^^^^^^^^^^^^^^^^
+Change command prompt (changeps1)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When using ``activate``, change the command prompt (``$PS1``) to include the activated
 environment. The default is ``True``.
@@ -105,8 +108,8 @@ environment. The default is ``True``.
   changeps1: False
 
 
-Use PIP
-^^^^^^^
+Use PIP (use_pip)
+^^^^^^^^^^^^^^^^^
 
 Use pip when listing packages with ``conda list``. Note that this does not affect
 any conda command or functionality other than the output of the
@@ -117,8 +120,8 @@ command ``conda list``. The default is ``True``.
   use_pip: False
 
 
-Configure conda for use behind a proxy server
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Configure conda for use behind a proxy server (proxy_servers)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, proxy settings are pulled from the ``HTTP_PROXY`` and ``HTTPS_PROXY``
 environment variables or the system. Setting them here overrides that default.
@@ -137,9 +140,12 @@ as follows: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_rese
 
 Note: Be careful not to use ``http`` when you mean ``https``, or ``https`` when you mean ``http``.
 
+Note: If you are behind a proxy that does SSL inspection such as a Cisco IronPort Web Security Appliance (WSA), 
+it may be necessary to override the SSL verification settings using ``ssl_verify`` as described in :ref:`SSL_verification`.
 
-Offline mode only
-^^^^^^^^^^^^^^^^^
+
+Offline mode only (offline)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Filters out all channels URLs which do not use the ``file://`` protocol. The
 default is ``False``.
@@ -153,8 +159,8 @@ Advanced configuration
 ======================
 
 
-Disallow soft-linking
-^^^^^^^^^^^^^^^^^^^^^
+Disallow soft-linking (allow_softlinks)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When ``allow_softlinks`` is ``True``, conda uses hard-links when possible, and soft-links
 (symlinks) when hard-links are not possible, such as when installing on a
@@ -172,8 +178,8 @@ The default is ``True``.
   allow_softlinks: False
 
 
-Set a channel alias
-^^^^^^^^^^^^^^^^^^^
+Set a channel alias (channel_alias)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, ``conda install --channel asmeurer <package>`` is the same
 as ``conda install --channel https://conda.anaconda.org/asmeurer <package>``. This
@@ -190,8 +196,8 @@ the same as ``conda install --channel https://yourrepo.com/jsmith <package>`` .
   channel_alias: https://your.repo/
 
 
-Always add packages by default
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Always add packages by default (create_default_packages)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When creating new environments add these packages by default. You can override
 this option at the command prompt with the ``--no-default-packages`` flag. The
@@ -203,8 +209,8 @@ default is not to include any packages.
     - ipython
 
 
-Track features
-^^^^^^^^^^^^^^
+Track features (track_features)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Enable certain features to be tracked by default. The default is to not track
 any features. This is similar to adding ``mkl`` to the ``create_default_packages``
@@ -215,8 +221,8 @@ list.
   track_features:
     - mkl
 
-Disable updating of dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Disable updating of dependencies (update_dependencies)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, ``conda install`` updates the given package and all its
 dependencies to the latest versions.
@@ -246,8 +252,8 @@ Conda build configuration
 =========================
 
 
-Automatically upload conda build packages to Anaconda.org
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Automatically upload conda build packages to Anaconda.org (anaconda_upload)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Automatically upload packages built with ``conda build`` to Anaconda.org. The
 default is ``False``.
@@ -257,8 +263,8 @@ default is ``False``.
   anaconda_upload: True
 
 
-Specify conda build output root directory
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Specify conda build output root directory (conda-build)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Build output root directory. This can also be set with the ``CONDA_BLD_PATH``
 environment variable. The default is ``<CONDA_PREFIX>/conda-bld/``, or if you do
