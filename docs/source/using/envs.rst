@@ -255,7 +255,7 @@ Build identical conda environments with URLs
 
 If two users have their conda channels set up differently, then they may inadvertently create different environments from the same spec file because conda fetches the packages from different channels. 
 
-To prevent this, conda offers an option ``conda list --explicit``, which displays a list of the universal resource locators (URLs) of all conda packages installed in the current environment, as shown by this small example showing only three packages:
+To prevent this, starting in version 3.18.2 conda offers an option ``conda list --explicit``, which displays a list of the universal resource locators (URLs) of all conda packages installed in the current environment, as shown by this small example showing only three packages:
 
 .. code::
 
@@ -267,11 +267,11 @@ To prevent this, conda offers an option ``conda list --explicit``, which display
     https://repo.continuum.io/pkgs/pro/linux-64/iopro-1.7.1-np19py27_p1.tar.bz2
     https://repo.continuum.io/pkgs/free/linux-64/python-2.7.10-1.tar.bz2
 
-With the command ``conda list --explicit > explicit-spec-file.txt`` you can create a file containing this spec list in the current working directory.
+The command ``conda list --explicit > explicit-spec-file.txt`` creates a file containing this spec list in the current working directory.
 
-As the comment at the top of the file explains, with the command ``conda create --name MyEnvironment --file explicit-spec-file.txt`` you can use the spec file to create an identical environment on the same machine or another machine.
+As the comment at the top of the file explains, the command ``conda create --name MyEnvironment --file explicit-spec-file.txt`` uses the spec file to create an identical environment on the same machine or another machine.
 
-With the command ``conda install --name MyEnvironment --file explicit-spec-file.txt`` you can add these packages to an existing environment.
+The command ``conda install --name MyEnvironment --file explicit-spec-file.txt`` adds these packages to an existing environment.
 
 NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file. To ensure the packages work correctly, be sure that the file was created from a working environment and that it is  used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
 
