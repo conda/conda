@@ -4,11 +4,11 @@ Download conda
 
 Conda can be downloaded with an array of options. This page is to help you decide among the various options.  
 To download conda, you will download Anaconda or Miniconda (both are free), or purchase Anaconda Server. All 
-can be downloaded with legacy Python 2.7 or current Python 3.4. You 
+can be downloaded with legacy Python 2.7 or current Python 3.5. You 
 can choose a version with a GUI or a command line installer. 
 
-TIP: If you are unsure, we recommend the most recent version of Anaconda - that automatically includes 
-Python 2.7, the most popular version of Python. If you are on Windows or OS X, we recommend you also choose 
+TIP: If you are unsure, we recommend the most recent version of Anaconda3 - that automatically includes 
+Python 3.5, the most recent version of Python. If you are on Windows or OS X, we recommend you also choose 
 the version with GUI installer. 
 
 Should I download Anaconda or Miniconda? 
@@ -48,52 +48,31 @@ Whether you are on Linux, OS X or Windows, there is an installer to make it easy
 What version of Python should I choose?
 ---------------------------------------
 
-* The most popular version of Python is 2.7, and that is included with Anaconda and Miniconda. 
-* The newest stable version of Python is 3.4, and that is included with Anaconda3 and Miniconda3. 
+* The latest version of Python 2 is 2.7, and that is included with Anaconda and Miniconda. 
+* The newest stable version of Python is 3.5, and that is included with Anaconda3 and Miniconda3. 
 * You can easily set up additional versions of Python such as 2.6 or 3.3 by downloading any version and creating a new environment with just a few clicks. (See our :doc:`test-drive`.)
 
-What about MD5 or SHA verification?
------------------------------------
+What about cryptographic hash verification?
+-------------------------------------------
 
-If you download Anaconda, you can use MD5 or SHA to verify your download. 
+MD5 checksums are available for both `Miniconda <http://repo.continuum.io/miniconda/>`_ and `Anaconda <http://continuum.io/md5>`_.
 
-NOTE: MD5 or SHA verification is not available for Miniconda.
+Download the package and before installing verify it as follows:
 
-Get the actual MD5 or SHA1 sum for your Anaconda package here: http://continuum.io/md5
+**Linux:** ``md5sum filename``
 
-You will use this actual sum in the next step. 
+NOTE: Replace "filename" with the actual path and name of the downloaded package file.
 
-Download the package, then before installing, do the following to verify the package: 
+**OS X:** ``md5 filename``
 
-**Linux users:**
+NOTE: Replace "filename" with the actual path and name of the downloaded package file.
 
-* MD5:  ``md5sum path/to/filename.ext``
-* SHA1: ``sha1sum path/to/filename.ext``
-
-NOTE: replace md5sum or sha1sum with the actual sum. 
-
-NOTE: replace the path/to/filename.ext with the actual path, filename and extension. 
-
-**OS X users:**
-
-* MD5: ``md5 path/to/filename.ext``
-* SHA1: ``sha1 path/to/filename.ext``
-
-NOTE: replace md5sum or sha1sum with the actual sum. 
-
-NOTE: replace the path/to/filename.ext with the actual path, filename and extension. 
-
-**Windows users:**
+**Windows:**
 
 Use the free online verifier tool on the Microsoft website: https://support.microsoft.com/en-us/kb/841290 
 
 Download and extract the file, then open a Command Prompt window. 
 
-Navigate to the file, then enter the following command: 
+Navigate to the file, then enter the command ``fciv.exe C:\path\to\file.ext``
 
-* MD5:  fciv.exe C:\path\to\file.ext
-* SHA1: fciv.exe –sha1 C:\path\to\file.ext
-
-NOTE: replace md5sum or sha1sum with the actual sum. 
-
-NOTE: replace the C:\path\to\file.ext with the actual path, filename and extension. 
+NOTE: Replace "C:\\path\\to\\file.ext" with the actual path, filename and extension. 
