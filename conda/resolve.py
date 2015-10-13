@@ -420,35 +420,37 @@ class Resolve(object):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
 
-    def filter_group(self, matches, first=False):
+    def filter_group(self, matches, first):
         match1 = next(x for x in matches)
         name = match1.name
         filt0 = self.groups[name]
+        if len(filt0) == 0:
+            return False
 
-        # Remove any packages that don't satisfy at least one of the matches
+        # Remove any packages that don't satisfy at least one of the matches.
+        # Also remove any packages that are missing a dependency.
         filt1 = [fn for fn in filt0 
-            if any(m.match(fn) for m in matches)]
+            if any(m.match(fn) for m in matches) and
+               all(any(self.find_matches(ms)) for ms in self.ms_depends(fn))]
 
-        # Remove any packages with missing dependencies
-        filt2 = [fn for fn in filt1 
-            if all(any(self.find_matches(ms)) for ms in self.ms_depends(fn))]
-
-        reduced = len(filt2) < len(filt0)
+        reduced = len(filt1) < len(filt0)
         if reduced:
-            self.groups[name] = filt2
+            dotlog.debug('%s: pruned from %d -> %d' % (name,len(filt0),len(filt1)))
+            self.groups[name] = filt1
+        elif not first:
+            return False
 
         # Perform the same filtering steps on any dependencies shared across
         # *all* packages in the group. Even if just one of the packages does
         # not have a particular dependency, it must be ignored in this pass.
-        if reduced or first:
-            cdeps = defaultdict(list)
-            for count, fn in enumerate(filt2):
-                for m2 in self.ms_depends(fn):
-                    cdeps[m2.name].append(m2)
-            count = len(filt2)
-            for mname, deps in iteritems(cdeps):
-                if len(deps) == count:
-                    reduced = self.filter_group(deps) or reduced
+        cdeps = defaultdict(list)
+        for count, fn in enumerate(filt1):
+            for m2 in self.ms_depends(fn):
+                cdeps[m2.name].append(m2)
+        count = len(filt1)
+        for mname, deps in iteritems(cdeps):
+            if len(deps) == count:
+                self.filter_group(deps, False)
         return reduced
 
     def is_satisfiable(self, fn):
@@ -475,13 +477,21 @@ class Resolve(object):
     def prune_packages(self, specs, installed):
         first = True
         specs = list(map(MatchSpec, specs))
-        while sum(self.filter_group([s], first) for s in specs):
+        while sum(self.filter_group([s], first) for s in specs if s.name in self.groups):
             first = False
+        badspecs = []
         for s in specs:
+            found = False
             for fn in self.groups[s.name]:
                 self.touch_package(fn)
+                found = found or '@tch' in self.index[fn]
+            if not found:
+                badspecs.append(str(s))
+        if len(badspecs) > 0:
+            raise NoPackagesFound( "The following specs cannot not be satisfied: " + ', '.join(badspecs), badspecs )
         for fn in installed:
-            self.touch_package(fn)
+            if fn in self.index:
+                self.touch_package(fn)
         ngroups = {}
         for name, group in iteritems(self.groups):
             ngroup = [fn for fn in group if '@tch' in self.index[fn]]
@@ -1008,8 +1018,9 @@ Note that the following features are enabled:
         if features is None:
             features = self.installed_features(installed)
 
-        log.debug('Performing pruning step')
+        stdoutlog.info('Performing initial filtering: ')
         self.prune_packages(specs, installed)
+        stdoutlog.info('\n')
 
         for spec in specs:
             ms = MatchSpec(spec)
