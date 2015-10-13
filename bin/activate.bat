@@ -11,14 +11,7 @@ if "%~2" == "" goto skiptoomanyargs
     goto usage
 :skiptoomanyargs
 
-if not "%CONDA_NEW_NAME%" == "" goto skipmissingarg
-:usage
-    echo Usage: activate envname
-    echo.
-    echo Deactivates previously activated Conda
-    echo environment, then activates the chosen one.
-    exit /b 1
-:skipmissingarg
+if "%CONDA_NEW_NAME%" == "" set CONDA_NEW_NAME=%~dp0..\
 
 if exist "%ANACONDA_ENVS%\%CONDA_NEW_NAME%\conda-meta" goto usenamedenv
     for /F %%i in ("%CONDA_NEW_NAME%") do set CONDA_NEW_PATH=%%~fi
@@ -57,7 +50,11 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
 set CONDA_DEFAULT_ENV=%CONDA_NEW_PATH%
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
 set PATH="%CONDA_DEFAULT_ENV%";"%CONDA_DEFAULT_ENV%\Scripts";"%CONDA_DEFAULT_ENV%\Library\bin";%PATH%
-set PROMPT=[%CONDA_NEW_NAME%] $P$G
+IF "%CONDA_NEW_NAME%"=="" (
+   set PROMPT=$P$G
+   ) ELSE (
+   set PROMPT=[%CONDA_NEW_NAME%] $P$G
+)
 set CONDA_NEW_NAME=
 set CONDA_NEW_PATH=
 
