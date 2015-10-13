@@ -416,27 +416,41 @@ class Resolve(object):
     def __init__(self, index):
         self.index = index
         self.groups = defaultdict(list)
-        for fn, info in iteritems(index):
+        for fn, info in iteritems(self.index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
+        self.clear_pruning()
 
-    def filter_group(self, matches, first):
+    def clear_pruning(self):
+        self.touched_ = defaultdict(lambda:True)
+        self.satisfiable_ = None
+        self.sum_matches_ = {}
+        self.get_pkgs_ = {}
+
+    def filter_group(self, matches, top=False):
         match1 = next(x for x in matches)
         name = match1.name
-        filt0 = self.groups[name]
-        if len(filt0) == 0:
-            return False
 
-        # Remove any packages that don't satisfy at least one of the matches.
-        # Also remove any packages that are missing a dependency.
-        filt1 = [fn for fn in filt0 
-            if any(m.match(fn) for m in matches) and
-               all(any(self.find_matches(ms)) for ms in self.ms_depends(fn))]
+        nold = nnew = 0
+        first = reduced = False
+        group = self.groups[name]
+        for fn in group:
+            sat = self.satisfiable_[fn]
+            if sat is None:
+                first = sat = True
+            nold = True
+            sat = sat and any(m.match(fn) for m in matches) and \
+                all(any(self.satisfiable_.get(f2,True) and ms.match(f2)
+                    for f2 in self.groups[ms.name])
+                    for ms in self.ms_depends(fn))
+            self.satisfiable_[fn] = sat
+            nnew += sat
 
-        reduced = len(filt1) < len(filt0)
+        reduced = nnew < nold
         if reduced:
-            dotlog.debug('%s: pruned from %d -> %d' % (name,len(filt0),len(filt1)))
-            self.groups[name] = filt1
+            dotlog.debug('%s: pruned from %d -> %d' % (name,nold,nnew))
+            if nnew == 0:
+                return True
         elif not first:
             return False
 
@@ -444,64 +458,64 @@ class Resolve(object):
         # *all* packages in the group. Even if just one of the packages does
         # not have a particular dependency, it must be ignored in this pass.
         cdeps = defaultdict(list)
-        for count, fn in enumerate(filt1):
-            for m2 in self.ms_depends(fn):
-                cdeps[m2.name].append(m2)
-        count = len(filt1)
+        for fn in group:
+            if self.satisfiable_[fn]:
+                for m2 in self.ms_depends(fn):
+                    cdeps[m2.name].append(m2)
         for mname, deps in iteritems(cdeps):
-            if len(deps) == count:
-                self.filter_group(deps, False)
+            if len(deps) == nnew:
+                self.filter_group(deps)
         return reduced
 
     def is_satisfiable(self, fn):
-        rec = self.index[fn]
-        if '@sat' in rec:
-            return rec['@sat']
-        # This is necessary to allow us to terminate successfully in the 
-        # case of a cyclic dependency (e.g., A->B->C->A)
-        rec['@sat'] = True
-        for ms in self.ms_depends(fn):
-            if not any(self.is_satisfiable(f2) for f2 in self.find_matches(ms)):
-                rec['@sat'] = False
-                return False
-        return True
+        val = self.satisfiable_[fn]
+        if val is None:
+            val = self.satisfiable_[fn] = True
+            for ms in self.ms_depends(fn):
+                if not any(self.is_satisfiable(f2) for f2 in self.groups[ms.name]):
+                    val = self.satisfiable_[fn] = False
+                    break
+        return val
 
     def touch_package(self, fn):
-        rec = self.index[fn]
-        if '@tch' not in rec and self.is_satisfiable(fn):
-            rec['@tch'] = True
-            for ms in self.ms_depends(fn):
-                for f2 in self.find_matches(ms):
-                    self.touch_package(f2)
+        val = self.touched_.get(fn, None)
+        if val is None:
+            val = self.touched_[fn] = self.is_satisfiable(fn)
+            if val:
+                for ms in self.ms_depends(fn):
+                    for f2 in self.groups[ms.name]:
+                        self.touch_package(f2)
+        return val
 
     def prune_packages(self, specs, installed):
-        first = True
-        specs = list(map(MatchSpec, specs))
-        while sum(self.filter_group([s], first) for s in specs if s.name in self.groups):
-            first = False
-        badspecs = []
+        log.debug('Beginning the pruning process')
+        mspecs = []
         for s in specs:
-            found = False
-            for fn in self.groups[s.name]:
-                self.touch_package(fn)
-                found = found or '@tch' in self.index[fn]
-            if not found:
-                badspecs.append(str(s))
-        if len(badspecs) > 0:
-            raise NoPackagesFound( "The following specs cannot not be satisfied: " + ', '.join(badspecs), badspecs )
-        for fn in installed:
-            if fn in self.index:
-                self.touch_package(fn)
-        ngroups = {}
-        for name, group in iteritems(self.groups):
-            ngroup = [fn for fn in group if '@tch' in self.index[fn]]
-            if len(ngroup):
-                ngroups[name] = ngroup
-        self.groups = ngroups
+            ms = MatchSpec(s)
+            if not any(ms.match(fn) for fn in self.groups.get(ms.name,[])):
+                raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
+            mspecs.append(ms)
+        self.clear_pruning()
+        self.satisfiable_ = defaultdict(lambda:None)
+        for iter in range(5):
+            if sum(self.filter_group([ms]) for ms in mspecs) == 0:
+                break
+        self.touched_ = defaultdict(bool)
+        valid = True
+        for ms in mspecs:
+            group = self.groups[ms.name]
+            if sum(self.touch_package(fn) for fn in group) == 0:
+                valid = False
+        if not all(self.touch_package(fn) for fn in installed if fn in self.index):
+            valid = False
+        if not valid:
+            self.clear_pruning()
+            log.debug('Unsatisfiability detected in the pruning step')
+        return valid
 
     def find_matches(self, ms):
         for fn in sorted(self.groups[ms.name]):
-            if ms.match(fn):
+            if self.touched_[fn] and ms.match(fn):
                 yield fn
 
     def ms_depends(self, fn):
@@ -524,8 +538,10 @@ class Resolve(object):
     def track_features(self, fn):
         return set(self.index[fn].get('track_features', '').split())
 
-    @memoize
     def get_pkgs(self, ms, max_only=False):
+        key = (ms,max_only)
+        if key in self.get_pkgs_:
+            return self.get_pkgs_[key]
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs:
             raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
@@ -540,8 +556,8 @@ class Resolve(object):
                 except TypeError:
                     # They are not equal
                     pass
-            return ret
-
+            pkgs = ret
+        self.get_pkgs_[key] = pkgs
         return pkgs
 
     def get_max_dists(self, ms):
@@ -583,6 +599,7 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
+        print(v, dists, specs, features)
         groups = defaultdict(list)  # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
@@ -785,28 +802,31 @@ class Resolve(object):
                             return [ret]
                         return ret
 
-        dists = self.get_dists(specs)
+        if unsat_only or self.prune_packages(specs, installed):
+            dists = self.get_dists(specs)
 
-        v = {}  # map fn to variable number
-        w = {}  # map variable number to fn
-        i = -1  # in case the loop doesn't run
-        for i, fn in enumerate(sorted(dists)):
-            v[fn] = i + 1
-            w[i + 1] = fn
-        m = i + 1
+            v = {}  # map fn to variable number
+            w = {}  # map variable number to fn
+            i = -1  # in case the loop doesn't run
+            for i, fn in enumerate(sorted(dists)):
+                v[fn] = i + 1
+                w[i + 1] = fn
+            m = i + 1
 
-        clauses = set(self.gen_clauses(v, dists, specs, features))
-        if not clauses:
-            if returnall:
-                return [[]]
-            return []
-        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
-            specs, update_deps=update_deps)
+            clauses = set(self.gen_clauses(v, dists, specs, features))
+            if not clauses:
+                self.clear_pruning()
+                if returnall:
+                    return [[]]
+                return []
+            eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
+                specs, update_deps=update_deps)
 
-
-        # Second common case, check if it's unsatisfiable
-        dotlog.debug("Checking for unsatisfiability")
-        solution = sat(clauses)
+            # Second common case, check if it's unsatisfiable
+            dotlog.debug("Checking for unsatisfiability")
+            solution = sat(clauses)
+        else:
+            solution = None
 
         if not solution:
             if guess:
@@ -863,6 +883,8 @@ class Resolve(object):
         log.debug("Older versions in the solution(s):")
         for sol in solutions:
             log.debug([(i, w[j]) for i, j in eq if j in sol])
+
+        self.clear_pruning()
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
@@ -955,9 +977,11 @@ Note that the following features are enabled:
         log.debug('explicit(%r) finished' % specs)
         return res
 
-    @memoize
     def sum_matches(self, fn1, fn2):
-        return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
+        key = (fn1, fn2)
+        if key not in self.sum_matches_:
+            self.sum_matches_[key] = sum(ms.match(fn2) for ms in self.ms_depends(fn1))
+        return self.sum_matches_[key]
 
     def find_substitute(self, installed, features, fn, max_only=False):
         """
@@ -1018,10 +1042,6 @@ Note that the following features are enabled:
         if features is None:
             features = self.installed_features(installed)
 
-        stdoutlog.info('Performing initial filtering: ')
-        self.prune_packages(specs, installed)
-        stdoutlog.info('\n')
-
         for spec in specs:
             ms = MatchSpec(spec)
             for pkg in self.get_pkgs(ms, max_only=max_only):
@@ -1035,11 +1055,15 @@ Note that the following features are enabled:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            return self.explicit(specs) or self.solve2(specs, features,
+            res = self.explicit(specs) or self.solve2(specs, features,
                 installed, minimal_hint=minimal_hint, update_deps=update_deps)
         except RuntimeError:
             stdoutlog.info('\n')
+            self.clear_pruning()
             raise
+
+        self.clear_pruning()
+        return res
 
 
 if __name__ == '__main__':
