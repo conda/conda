@@ -326,18 +326,21 @@ def mk_menus(prefix, files, remove=False):
     for f in menu_files:
         try:
             env_name = os.getenv("CONDA_DEFAULT_ENV")
+            root_prefix = sys.prefix
             if env_name:
                 # Windows uses full paths; only the last folder is the env name.
                 # Other platforms still use just name.
                 end_name = os.path.split(env_name)
                 env_name = end_name[1] if end_name[1] else env_name
+                root_prefix = sys.prefix.split("envs")[0]
             if sys.platform == "win32":
                 env_setup_cmd = "activate {}"
             else:
                 env_setup_cmd = "source activate {}"
             env_setup_cmd = env_setup_cmd.format(env_name) if env_name else None
-            menuinst.install(join(prefix, f), remove, prefix,
-                             env_name=env_name, env_setup_cmd=env_setup_cmd)
+            menuinst.install(join(prefix, f), remove, root_prefix=root_prefix,
+                             target_prefix=prefix, env_name=env_name,
+                             env_setup_cmd=env_setup_cmd)
         except:
             stdoutlog.error("menuinst Exception:")
             stdoutlog.error(traceback.format_exc())
