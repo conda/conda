@@ -425,7 +425,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
         pass
     else:
         # disallow conda from being installed into all other environments
-        if 'conda' in must_have:
+        if 'conda' in must_have or 'conda-env' in must_have:
             sys.exit("Error: 'conda' can only be installed into the "
                      "root environment")
 
