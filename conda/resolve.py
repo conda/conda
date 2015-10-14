@@ -415,43 +415,47 @@ class Resolve(object):
 
     def __init__(self, index):
         self.index = index
-        self.groups = defaultdict(list)
+        self.groups = {}
         for fn, info in iteritems(self.index):
-            self.groups[info['name']].append(fn)
+            self.groups.setdefault(info['name'],[]).append(fn)
         self.msd_cache = {}
         self.clear_pruning()
 
-    def clear_pruning(self):
-        self.touched_ = defaultdict(lambda:True)
-        self.satisfiable_ = None
+    def clear_pruning(self, for_prune=False):
+        self.touched_ = defaultdict(bool) if for_prune else defaultdict(lambda:True)
+        self.satisfiable_ = defaultdict(lambda:None) if for_prune else None
         self.sum_matches_ = {}
         self.get_pkgs_ = {}
 
     def filter_group(self, matches, top=False):
         match1 = next(x for x in matches)
         name = match1.name
-
+        
+        first = False
         nold = nnew = 0
-        first = reduced = False
-        group = self.groups[name]
+        group = self.groups.get(name,[])
         for fn in group:
             sat = self.satisfiable_[fn]
             if sat is None:
                 first = sat = True
-            nold = True
-            sat = sat and any(m.match(fn) for m in matches) and \
-                all(any(self.satisfiable_.get(f2,True) and ms.match(f2)
-                    for f2 in self.groups[ms.name])
-                    for ms in self.ms_depends(fn))
-            self.satisfiable_[fn] = sat
+            nold += sat
+            # Prune packages that don't match the patterns
+            if sat:
+                sat = any(m.match(fn) for m in matches)
+            # Prune packages with missing dependencies
+            if sat:
+                sat = all(any(self.satisfiable_.get(f2,True) and ms.match(f2)
+                              for f2 in self.find_matches(ms,True))
+                          for ms in self.ms_depends(fn) if ms.name in self.groups)
             nnew += sat
+            self.satisfiable_[fn] = sat
 
         reduced = nnew < nold
         if reduced:
             dotlog.debug('%s: pruned from %d -> %d' % (name,nold,nnew))
             if nnew == 0:
                 return True
-        elif not first:
+        elif not first or nold == 0:
             return False
 
         # Perform the same filtering steps on any dependencies shared across
@@ -461,7 +465,8 @@ class Resolve(object):
         for fn in group:
             if self.satisfiable_[fn]:
                 for m2 in self.ms_depends(fn):
-                    cdeps[m2.name].append(m2)
+                    if m2.name in self.groups:
+                        cdeps[m2.name].append(m2)
         for mname, deps in iteritems(cdeps):
             if len(deps) == nnew:
                 self.filter_group(deps)
@@ -472,50 +477,39 @@ class Resolve(object):
         if val is None:
             val = self.satisfiable_[fn] = True
             for ms in self.ms_depends(fn):
-                if not any(self.is_satisfiable(f2) for f2 in self.groups[ms.name]):
+                if not any(self.is_satisfiable(f2) for f2 in self.find_matches(ms, True)):
                     val = self.satisfiable_[fn] = False
                     break
         return val
 
-    def touch_package(self, fn):
+    def touch_package(self, fn, force=False):
         val = self.touched_.get(fn, None)
-        if val is None:
-            val = self.touched_[fn] = self.is_satisfiable(fn)
+        if val is None or (force and not val):
+            val = self.touched_[fn] = force or self.is_satisfiable(fn)
             if val:
                 for ms in self.ms_depends(fn):
-                    for f2 in self.groups[ms.name]:
-                        self.touch_package(f2)
+                    for f2 in self.find_matches(ms, True):
+                        self.touch_package(f2, force)
         return val
 
     def prune_packages(self, specs, installed):
         log.debug('Beginning the pruning process')
-        mspecs = []
-        for s in specs:
-            ms = MatchSpec(s)
-            if not any(ms.match(fn) for fn in self.groups.get(ms.name,[])):
-                raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-            mspecs.append(ms)
-        self.clear_pruning()
-        self.satisfiable_ = defaultdict(lambda:None)
-        for iter in range(5):
-            if sum(self.filter_group([ms]) for ms in mspecs) == 0:
-                break
-        self.touched_ = defaultdict(bool)
-        valid = True
-        for ms in mspecs:
-            group = self.groups[ms.name]
-            if sum(self.touch_package(fn) for fn in group) == 0:
-                valid = False
-        if not all(self.touch_package(fn) for fn in installed if fn in self.index):
-            valid = False
-        if not valid:
-            self.clear_pruning()
+        self.clear_pruning(True)
+        mspecs = [MatchSpec(s) for s in specs]
+        while sum(self.filter_group([ms]) for ms in mspecs):
+            pass
+        if any(sum(self.touch_package(fn) for fn in self.find_matches(ms, True)) == 0 for ms in mspecs):
+            self.clear_pruning(False)
             log.debug('Unsatisfiability detected in the pruning step')
-        return valid
+            return False
+        for fn in installed:
+            if fn in self.index:
+                self.touch_package(fn, True)
+        return True
 
-    def find_matches(self, ms):
-        for fn in sorted(self.groups[ms.name]):
-            if self.touched_[fn] and ms.match(fn):
+    def find_matches(self, ms, getall=True):
+        for fn in self.groups.get(ms.name,[]):
+            if (getall or self.touched_[fn]) and ms.match(fn):
                 yield fn
 
     def ms_depends(self, fn):
@@ -599,7 +593,6 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
-        print(v, dists, specs, features)
         groups = defaultdict(list)  # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
@@ -802,31 +795,34 @@ class Resolve(object):
                             return [ret]
                         return ret
 
-        if unsat_only or self.prune_packages(specs, installed):
-            dists = self.get_dists(specs)
+        if not unsat_only:
+            # If pruning fails, it is because it detected unsatifiability.
+            # But the existing code does the best job of constructing hints.
+            # So prune_packages just returns False and restores the full list.
+            unsat_only = not self.prune_packages(specs, installed)
 
-            v = {}  # map fn to variable number
-            w = {}  # map variable number to fn
-            i = -1  # in case the loop doesn't run
-            for i, fn in enumerate(sorted(dists)):
-                v[fn] = i + 1
-                w[i + 1] = fn
-            m = i + 1
+        dists = self.get_dists(specs)
 
-            clauses = set(self.gen_clauses(v, dists, specs, features))
-            if not clauses:
-                self.clear_pruning()
-                if returnall:
-                    return [[]]
-                return []
-            eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
-                specs, update_deps=update_deps)
+        v = {}  # map fn to variable number
+        w = {}  # map variable number to fn
+        i = -1  # in case the loop doesn't run
+        for i, fn in enumerate(sorted(dists)):
+            v[fn] = i + 1
+            w[i + 1] = fn
+        m = i + 1
 
-            # Second common case, check if it's unsatisfiable
-            dotlog.debug("Checking for unsatisfiability")
-            solution = sat(clauses)
-        else:
-            solution = None
+        clauses = set(self.gen_clauses(v, dists, specs, features))
+        if not clauses:
+            self.clear_pruning()
+            if returnall:
+                return [[]]
+            return []
+        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
+            specs, update_deps=update_deps)
+
+        # Second common case, check if it's unsatisfiable
+        dotlog.debug("Checking for unsatisfiability")
+        solution = sat(clauses)
 
         if not solution:
             if guess:
