@@ -939,6 +939,8 @@ Note that the following features are enabled:
         if features is None:
             features = self.installed_features(installed)
         for spec in specs:
+            # XXX: This does not work when a spec only contains the name,
+            # and different versions of the package have different features.
             ms = MatchSpec(spec)
             for pkg in self.get_pkgs(ms, max_only=max_only):
                 fn = pkg.fn
