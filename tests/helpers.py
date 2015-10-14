@@ -13,6 +13,7 @@ except ImportError:
         import mock
     except ImportError:
         mock = None
+import tempfile
 
 from contextlib import contextmanager
 
@@ -30,9 +31,19 @@ def raises(exception, func, string=None):
     raise Exception("did not raise, gave %s" % a)
 
 def run_in(command, shell='bash'):
-    p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
+    if shell == 'cmd.exe':
+        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
+        cmd_script.write(command)
+        cmd_script.close()
+        p = subprocess.Popen([shell, '/d', '/c', cmd_script.name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        os.unlink(cmd_script.name)
+    else:
+        p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
         stderr.decode('utf-8').replace('\r\n', '\n'))
 
