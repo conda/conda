@@ -507,7 +507,7 @@ class Resolve(object):
                 self.touch_package(fn, True)
         return True
 
-    def find_matches(self, ms, getall=True):
+    def find_matches(self, ms, getall=False):
         for fn in self.groups.get(ms.name,[]):
             if (getall or self.touched_[fn]) and ms.match(fn):
                 yield fn
