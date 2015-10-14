@@ -1,3 +1,8 @@
+2015-10-XX   3.18.3:
+--------------------
+  * disallow conda-env to be installed into non-root environment
+
+
 2015-10-12   3.18.2:
 --------------------
   * add "conda list --explicit" which contains the URLs of all conda packages
