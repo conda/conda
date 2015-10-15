@@ -1038,7 +1038,6 @@ Note that the following features are enabled:
             installed = []
         if features is None:
             features = self.installed_features(installed)
-
         for spec in specs:
             # XXX: This does not work when a spec only contains the name,
             # and different versions of the package have different features.
