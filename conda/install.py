@@ -328,21 +328,11 @@ def mk_menus(prefix, files, remove=False):
         logging.warn("Menuinst could not be imported:")
         logging.warn(e.message)
         return
+
+    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
+                basename(prefix))
+    env_setup_cmd = ("activate %s" % env_name) if env_name else None
     for f in menu_files:
-        env_name = os.getenv("CONDA_DEFAULT_ENV")
-        # this should always be the root, because Conda can only be
-        # installed in the root environment, thus this script should only
-        # ever be running with the root interpreter.
-        if env_name:
-            # Windows uses full paths; only the last folder is the env name.
-            # Other platforms still use just name.
-            end_name = os.path.split(env_name)
-            env_name = end_name[1] if len(end_name) > 1 else env_name
-        if sys.platform == "win32":
-            env_setup_cmd = "activate {}"
-        else:
-            env_setup_cmd = "source activate {}"
-        env_setup_cmd = env_setup_cmd.format(env_name) if env_name else None
         try:
             if menuinst.__version__.startswith('1.0'):
                 menuinst.install(join(prefix, f), remove, prefix)
