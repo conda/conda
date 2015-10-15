@@ -343,11 +343,13 @@ def mk_menus(prefix, files, remove=False):
             env_setup_cmd = "source activate {}"
         env_setup_cmd = env_setup_cmd.format(env_name) if env_name else None
         try:
-            menuinst.install(join(prefix, f), remove, root_prefix=sys.prefix,
-                             target_prefix=prefix, env_name=env_name,
-                             env_setup_cmd=env_setup_cmd)
-        except TypeError: # old menuinst version
-            menuinst.install(join(prefix, f), remove, prefix)
+            if menuinst.__version__.startswith('1.0'):
+                menuinst.install(join(prefix, f), remove, prefix)
+            else:
+                menuinst.install(join(prefix, f), remove,
+                                 root_prefix=sys.prefix,
+                                 target_prefix=prefix, env_name=env_name,
+                                 env_setup_cmd=env_setup_cmd)
         except:
             stdoutlog.error("menuinst Exception:")
             stdoutlog.error(traceback.format_exc())
