@@ -415,9 +415,9 @@ class Resolve(object):
 
     def __init__(self, index):
         self.index = index
-        self.groups = {}
-        for fn, info in iteritems(self.index):
-            self.groups.setdefault(info['name'],[]).append(fn)
+        self.groups = defaultdict(list)  # map name to list of filenames
+        for fn, info in iteritems(index):
+            self.groups[info['name']].append(fn)
         self.msd_cache = {}
         self.clear_filter()
 
@@ -436,7 +436,7 @@ class Resolve(object):
             
             first = False
             nold = nnew = 0
-            group = self.groups.get(name,[])
+            group = self.groups[name]
             for fn in group:
                 sat = valid.get(fn, None)
                 if sat is None:
@@ -512,7 +512,7 @@ class Resolve(object):
         return True
 
     def find_matches(self, ms, all=True):
-        for fn in self.groups.get(ms.name,[]):
+        for fn in self.groups[ms.name]:
             if self.filter_[fn] and ms.match(fn):
                 yield fn
 
@@ -536,6 +536,7 @@ class Resolve(object):
     def track_features(self, fn):
         return set(self.index[fn].get('track_features', '').split())
 
+    # Changed to manual memoization so that we can reset if we add/change the filter.
     def get_pkgs(self, ms, max_only=False):
         key = (ms,max_only)
         if key in self.get_pkgs_:
@@ -597,7 +598,7 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
-        groups = defaultdict(list)  
+        groups = defaultdict(list)  # map name to list of filenames  
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
@@ -774,7 +775,7 @@ class Resolve(object):
             else:
                 try_max_only = True
 
-        # Should try_max_only use the filtered list?
+        # XXX: Should try_max_only use the filtered list?
         if try_max_only:
             try:
                 dists = self.get_dists(specs, max_only=True, filtered=False)
@@ -822,6 +823,7 @@ class Resolve(object):
             return []
         eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
             specs, update_deps=update_deps)
+
 
         # Second common case, check if it's unsatisfiable
         dotlog.debug("Checking for unsatisfiability")
@@ -882,7 +884,6 @@ class Resolve(object):
         log.debug("Older versions in the solution(s):")
         for sol in solutions:
             log.debug([(i, w[j]) for i, j in eq if j in sol])
-
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
@@ -1053,13 +1054,11 @@ Note that the following features are enabled:
 
         stdoutlog.info("Solving package specifications: ")
         try:
-            res = self.explicit(specs) or self.solve2(specs, features,
+            return self.explicit(specs) or self.solve2(specs, features,
                 installed, minimal_hint=minimal_hint, update_deps=update_deps)
         except RuntimeError:
             stdoutlog.info('\n')
             raise
-
-        return res
 
 
 if __name__ == '__main__':
