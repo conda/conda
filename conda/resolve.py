@@ -433,7 +433,7 @@ class Resolve(object):
         def filter_group(matches):
             match1 = next(x for x in matches)
             name = match1.name
-            
+
             first = False
             nold = nnew = 0
             group = self.groups[name]
@@ -517,7 +517,7 @@ class Resolve(object):
                 yield fn
 
     def ms_depends(self, fn):
-        # We can't use @memoize here because this cache is modified 
+        # We can't use @memoize here because this cache is modified
         # in update_with_features as well
         try:
             res = self.msd_cache[fn]
@@ -598,7 +598,7 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
-        groups = defaultdict(list)  # map name to list of filenames  
+        groups = defaultdict(list)  # map name to list of filenames
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
