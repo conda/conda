@@ -1,6 +1,8 @@
 Full installation
 =================
 
+.. contents::
+
 Conda is a cross-platform package manager and environment manager program that installs, runs, and updates 
 packages and their dependencies, so you can easily set up and switch between environments on your local 
 computer.  Conda is included in all versions of **Anaconda, Anaconda Server**, and **Miniconda**.

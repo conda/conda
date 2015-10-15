@@ -1,6 +1,8 @@
 Overview
 ========
 
+.. contents::
+
 The quickest way to start using conda is to use our :doc:`/install/quick` guide, then run through the 30-minute :doc:`Conda Test Drive </test-drive>`, which is a shortened version of this user guide.
 
 Then refer to the more detailed instructions below for managing environments, Python and other packages.

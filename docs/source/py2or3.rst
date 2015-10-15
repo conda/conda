@@ -2,6 +2,8 @@
 Managing Python
 =====================
 
+.. contents::
+
 Conda treats Python the same as any other package, so it’s very easy to manage and update multiple installations. 
 
 Check Python versions
@@ -46,7 +48,7 @@ Verify that the snakes environment uses Python version 3:
 Use a different version of Python
 ----------------------------------------
 
-To switch to the new environment with a different version of Python, you simply need to activate it. Let’s switch back to the default, 2.7: 
+To switch to the new environment with a different version of Python, you simply need to activate it. Let’s switch back to 2.7: 
 
 **Linux, OS X:** ``source activate snowflakes``
 
@@ -64,25 +66,25 @@ After you are finished working in the snowflakes environment, to close it you ca
 Create Python 2 or 3 environments
 ---------------------------------
 
-Anaconda supports Python 2.6, 2.7, 3.3, and 3.4.  The default is Python 2.7 or
-3.4, depending on which installer you used. If the installer you used is Anaconda
+Anaconda supports Python 2.6, 2.7, 3.3, 3.4, and 3.5.  The default is Python 2.7 or
+3.5, depending on which installer you used. If the installer you used is Anaconda
 or Miniconda, the default is 2.7. If the installer you used is Anaconda3 or Miniconda3,
-the default is 3.4. 
+the default is 3.5. 
 
 
-Create a Python 3.4 environment
+Create a Python 3.5 environment
 ````````````````````````````````
 
-To create a new environment with a different version of Python, use the :doc:``conda create`` command. In this example, we'll make the new environment for Python 3.4: 
+To create a new environment with a different version of Python, use the :doc:``conda create`` command. In this example, we'll make the new environment for Python 3.5: 
 
 .. code-block:: bash
 
-    $ conda create -n py34 python=3.4 anaconda
+    $ conda create -n py35 python=3.5 anaconda
 
-Here, the 'py34' is the name of the environment you want to create, and 'anaconda' is the
+Here, the 'py35' is the name of the environment you want to create, and 'anaconda' is the
 meta-package that includes all of the actual Python packages comprising
 the Anaconda distribution.  When creating a new environment and installing Anaconda, 
-you can specify the exact package and Python versions, for example, ``numpy=1.7`` or ``python=3.4``.
+you can specify the exact package and Python versions, for example, ``numpy=1.7`` or ``python=3.5``.
 
 Create a Python 2.6 environment
 ````````````````````````````````

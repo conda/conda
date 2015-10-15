@@ -3,6 +3,8 @@
 The meta.yaml file
 ==================
 
+.. contents:: Sections of ``meta.yaml``:
+
 All the metadata in the conda build recipe is specified in the ``meta.yaml`` file, 
 as in this example of a simple meta.yaml file:
 
@@ -13,8 +15,6 @@ NOTE: All sections are optional except for package/name and package/version.
 NOTE: All headers should appear exactly once. If they appear multiple times, only 
 the last will be remembered. For example, the "package:" header should only appear 
 once in the file.
-
-.. contents:: Sections of ``meta.yaml``:
 
 Package section
 ---------------

@@ -2,6 +2,8 @@
 Managing environments
 =====================
 
+.. contents::
+
 With conda, you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called  activating the environment. You can even share an environment file with a coworker. 
  
 Anytime you wish to see the full documentation for any command, type the command followed by  ``--help``. For example, to learn about the conda environment command:   
@@ -70,7 +72,7 @@ TIP: Install all the programs you will want in this environment at the same time
 TIP: You can add much more to the conda create command, type ``conda create --help`` for details.
 
 List all environments
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 Now you can use conda to see which environments you have installed so far. Use the conda environment info command to find out: 
 
@@ -95,7 +97,7 @@ You can also use the conda environments list command as follows:
 The list of all environments will be the same with either command. 
 
 Verify current environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 Which environment are you using right now -- snowflakes or bunnies? To find out, type the command:  
 
@@ -216,7 +218,7 @@ Verify that the new environment was installed correctly:
    conda list
 
 Build identical conda environments
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Explicit specification files can be used to build an identical conda environment on the same operating system platform, either on the same machine or a different machine.
 
@@ -251,7 +253,7 @@ As the comment at the top of the file explains, with the command ``conda create 
 NOTE: These explicit spec files are not usually cross platform, and therefore have a comment at the top such as ``# platform: osx-64`` showing the platform where they were created. This platform is the one where this spec file is known to work. On other platforms, the packages specified might not be available or dependencies might be missing for some of the key packages already in the spec.
 
 Build identical conda environments with URLs
---------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If two users have their conda channels set up differently, then they may inadvertently create different environments from the same spec file because conda fetches the packages from different channels. 
 

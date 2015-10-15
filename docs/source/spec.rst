@@ -1,6 +1,8 @@
 Conda package specification
 ===========================
 
+.. contents::
+
 A conda package is a bzipped tar archive (``.tar.bz2``) which contains
 metadata under the ``info/`` directory, and a collection of files which are
 installed directly into an install prefix.  The format is identical across

@@ -2,6 +2,8 @@
 Managing packages
 =================
 
+.. contents::
+
 Before you begin, you should have installed Miniconda or Anaconda, and gone through the previous :doc:`Managing environments <envs>` section. That means you have already installed a few packages when you created a new environment. 
 
 NOTE: There are many options available for each of these commands. See the :doc:`Command reference </commands>` for more detail. 
@@ -140,7 +142,7 @@ You can also update Python with the update command:
 
    conda update python
 
-NOTE: Conda will update to the highest version in its series, so Python 2.7 will update to the highest available in the 2.x series, and 3.4 will update to the highest available in the 3.x series.
+NOTE: Conda will update to the highest version in its series, so Python 2.7 will update to the highest available in the 2.x series, and 3.5 will update to the highest available in the 3.x series.
 
 Regardless of what package you are updating, conda will compare versions, then let you know what is available to install. If none are available, conda will reply "All requested packages are already installed."
 
@@ -163,4 +165,6 @@ If you decide not to continue using a package, for example, the commercial packa
 
 Confirm that the package has been removed: 
 
-conda list
+.. code::
+
+   conda list
