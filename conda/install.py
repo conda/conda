@@ -318,7 +318,8 @@ def mk_menus(prefix, files, remove=False):
     if not menu_files:
         return
     elif basename(abspath(prefix)).startswith('_'):
-        logging.warn("Environment name starts with underscore (_).  Skipping menu installation.")
+        logging.warn("Environment name starts with underscore '_'.  "
+                     "Skipping menu installation.")
         return
 
     try:
