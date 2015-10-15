@@ -336,7 +336,7 @@ def mk_menus(prefix, files, remove=False):
             # Windows uses full paths; only the last folder is the env name.
             # Other platforms still use just name.
             end_name = os.path.split(env_name)
-            env_name = end_name[1] if end_name[1] else env_name
+            env_name = end_name[1] if len(end_name) > 1 else env_name
         if sys.platform == "win32":
             env_setup_cmd = "activate {}"
         else:
