@@ -419,102 +419,106 @@ class Resolve(object):
         for fn, info in iteritems(self.index):
             self.groups.setdefault(info['name'],[]).append(fn)
         self.msd_cache = {}
-        self.clear_pruning()
+        self.clear_filter()
 
-    def clear_pruning(self, for_prune=False):
-        self.touched_ = defaultdict(bool) if for_prune else defaultdict(lambda:True)
-        self.satisfiable_ = defaultdict(lambda:None) if for_prune else None
-        self.sum_matches_ = {}
+    def clear_filter(self):
+        self.filter_ = defaultdict(lambda:True)
         self.get_pkgs_ = {}
 
-    def filter_group(self, matches, top=False):
-        match1 = next(x for x in matches)
-        name = match1.name
-        
-        first = False
-        nold = nnew = 0
-        group = self.groups.get(name,[])
-        for fn in group:
-            sat = self.satisfiable_[fn]
-            if sat is None:
-                first = sat = True
-            nold += sat
-            # Prune packages that don't match the patterns
-            if sat:
-                sat = any(m.match(fn) for m in matches)
-            # Prune packages with missing dependencies
-            if sat:
-                sat = all(any(self.satisfiable_.get(f2,True) and ms.match(f2)
-                              for f2 in self.find_matches(ms,True))
-                          for ms in self.ms_depends(fn) if ms.name in self.groups)
-            nnew += sat
-            self.satisfiable_[fn] = sat
-
-        reduced = nnew < nold
-        if reduced:
-            dotlog.debug('%s: pruned from %d -> %d' % (name,nold,nnew))
-            if nnew == 0:
-                return True
-        elif not first or nold == 0:
-            return False
-
-        # Perform the same filtering steps on any dependencies shared across
-        # *all* packages in the group. Even if just one of the packages does
-        # not have a particular dependency, it must be ignored in this pass.
-        cdeps = defaultdict(list)
-        for fn in group:
-            if self.satisfiable_[fn]:
-                for m2 in self.ms_depends(fn):
-                    if m2.name in self.groups:
-                        cdeps[m2.name].append(m2)
-        for mname, deps in iteritems(cdeps):
-            if len(deps) == nnew:
-                self.filter_group(deps)
-        return reduced
-
-    def is_satisfiable(self, fn):
-        val = self.satisfiable_[fn]
-        if val is None:
-            val = self.satisfiable_[fn] = True
-            for ms in self.ms_depends(fn):
-                if not any(self.is_satisfiable(f2) for f2 in self.find_matches(ms, True)):
-                    val = self.satisfiable_[fn] = False
-                    break
-        return val
-
-    def touch_package(self, fn, force=False):
-        val = self.touched_.get(fn, None)
-        if val is None or (force and not val):
-            val = self.touched_[fn] = force or self.is_satisfiable(fn)
-            if val:
-                for ms in self.ms_depends(fn):
-                    for f2 in self.find_matches(ms, True):
-                        self.touch_package(f2, force)
-        return val
-
-    def prune_packages(self, specs, installed):
+    def prune_packages(self, specs):
         log.debug('Beginning the pruning process')
-        self.clear_pruning(True)
+        touched = defaultdict(bool)
+        valid = {}
+
+        def filter_group(matches):
+            match1 = next(x for x in matches)
+            name = match1.name
+            
+            first = False
+            nold = nnew = 0
+            group = self.groups.get(name,[])
+            for fn in group:
+                sat = valid.get(fn, None)
+                if sat is None:
+                    first = sat = True
+                nold += sat
+                # Prune packages that don't match any of the patterns
+                if sat:
+                    sat = any(m.match(fn) for m in matches)
+                # Prune packages with missing dependencies
+                if sat:
+                    sat = all(any(valid.get(f2, True) and ms.match(f2)
+                                  for f2 in self.find_matches(ms, True))
+                              for ms in self.ms_depends(fn) if ms.name in self.groups)
+                nnew += sat
+                valid[fn] = sat
+
+            reduced = nnew < nold
+            if reduced:
+                dotlog.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
+                if nnew == 0:
+                    return True
+            elif not first or nold == 0:
+                return False
+
+            # Perform the same filtering steps on any dependencies shared across
+            # *all* packages in the group. Even if just one of the packages does
+            # not have a particular dependency, it must be ignored in this pass.
+            cdeps = {}
+            for fn in group:
+                if valid[fn]:
+                    for m2 in self.ms_depends(fn):
+                        if m2.name in self.groups:
+                            cdeps.setdefault(m2.name,[]).append(m2)
+            for mname, deps in iteritems(cdeps):
+                if len(deps) == nnew:
+                    filter_group(deps)
+            return reduced
+
+        def is_valid(fn):
+            val = valid.get(fn, None)
+            if val is None:
+                val = True
+                for ms in self.ms_depends(fn):
+                    if not any(is_valid(f2) for f2 in self.find_matches(ms, True)):
+                        val = False
+                        break
+                valid[fn] = val
+            return val
+
+        def touch(fn, force=False):
+            val = touched.get(fn, None)
+            if val is None or (force and not val):
+                val = touched[fn] = force or is_valid(fn)
+                if val:
+                    for ms in self.ms_depends(fn):
+                        for f2 in self.find_matches(ms, True):
+                            touch(f2, force)
+            return val
+
+        # Iterate in the filtering process until no more progress is made
         mspecs = [MatchSpec(s) for s in specs]
-        while sum(self.filter_group([ms]) for ms in mspecs):
+        while sum(filter_group([ms]) for ms in mspecs):
             pass
-        if any(sum(self.touch_package(fn) for fn in self.find_matches(ms, True)) == 0 for ms in mspecs):
-            self.clear_pruning(False)
-            log.debug('Unsatisfiability detected in the pruning step')
-            return False
-        for fn in installed:
-            if fn in self.index:
-                self.touch_package(fn, True)
+
+        # Now touch all of the packages to bring in the weak dependencies
+        for ms in mspecs:
+            if sum(touch(fn) for fn in self.find_matches(ms, True)) == 0:
+                dotlog.debug('Spec %s cannot be satisfied' % ms.spec)
+                return False
+
+        self.filter_ = touched
+        self.get_pkgs_ = {}
         return True
 
-    def find_matches(self, ms, getall=False):
+    def find_matches(self, ms, all=True):
         for fn in self.groups.get(ms.name,[]):
-            if (getall or self.touched_[fn]) and ms.match(fn):
+            if self.filter_[fn] and ms.match(fn):
                 yield fn
 
     def ms_depends(self, fn):
-        # the reason we don't use @memoize here is to allow resetting the
-        # cache using self.msd_cache = {}, which is used during testing
+        # We can't use @memoize here because this cache is modified 
+        # in update_with_features as well
         try:
             res = self.msd_cache[fn]
         except KeyError:
@@ -593,7 +597,7 @@ class Resolve(object):
         return res
 
     def gen_clauses(self, v, dists, specs, features):
-        groups = defaultdict(list)  # map name to list of filenames
+        groups = defaultdict(list)  
         for fn in dists:
             groups[self.index[fn]['name']].append(fn)
 
@@ -699,8 +703,10 @@ class Resolve(object):
 
         return eq, max_rhs
 
-    def get_dists(self, specs, max_only=False):
+    def get_dists(self, specs, max_only=False, filtered=False):
         dists = {}
+        if filtered:
+            filtered = self.prune_packages(specs)
         for spec in specs:
             found = False
             notfound = []
@@ -719,8 +725,11 @@ class Resolve(object):
                     dists[pkg.fn] = pkg
                     found = True
             if not found:
+                if filtered:
+                    self.clear_filter()
                 raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
-
+        if filtered:
+            self.clear_filter()
         return dists
 
     def graph_sort(self, must_have):
@@ -765,9 +774,10 @@ class Resolve(object):
             else:
                 try_max_only = True
 
+        # Should try_max_only use the filtered list?
         if try_max_only:
             try:
-                dists = self.get_dists(specs, max_only=True)
+                dists = self.get_dists(specs, max_only=True, filtered=False)
             except NoPackagesFound:
                 # Handle packages that are not included because some dependencies
                 # couldn't be found.
@@ -795,13 +805,7 @@ class Resolve(object):
                             return [ret]
                         return ret
 
-        if not unsat_only:
-            # If pruning fails, it is because it detected unsatifiability.
-            # But the existing code does the best job of constructing hints.
-            # So prune_packages just returns False and restores the full list.
-            unsat_only = not self.prune_packages(specs, installed)
-
-        dists = self.get_dists(specs)
+        dists = self.get_dists(specs, filtered=True)
 
         v = {}  # map fn to variable number
         w = {}  # map variable number to fn
@@ -813,7 +817,6 @@ class Resolve(object):
 
         clauses = set(self.gen_clauses(v, dists, specs, features))
         if not clauses:
-            self.clear_pruning()
             if returnall:
                 return [[]]
             return []
@@ -880,7 +883,6 @@ class Resolve(object):
         for sol in solutions:
             log.debug([(i, w[j]) for i, j in eq if j in sol])
 
-        self.clear_pruning()
         if returnall:
             return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
         return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
@@ -973,11 +975,9 @@ Note that the following features are enabled:
         log.debug('explicit(%r) finished' % specs)
         return res
 
+    @memoize
     def sum_matches(self, fn1, fn2):
-        key = (fn1, fn2)
-        if key not in self.sum_matches_:
-            self.sum_matches_[key] = sum(ms.match(fn2) for ms in self.ms_depends(fn1))
-        return self.sum_matches_[key]
+        return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
 
     def find_substitute(self, installed, features, fn, max_only=False):
         """
@@ -1055,10 +1055,8 @@ Note that the following features are enabled:
                 installed, minimal_hint=minimal_hint, update_deps=update_deps)
         except RuntimeError:
             stdoutlog.info('\n')
-            self.clear_pruning()
             raise
 
-        self.clear_pruning()
         return res
 
 
