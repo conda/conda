@@ -1,5 +1,6 @@
-2015-10-XX   3.18.3:
+2015-10-15   3.18.3:
 --------------------
+  * added a pruning step for more efficient solves, #1702
   * disallow conda-env to be installed into non-root environment
 
 
