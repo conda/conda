@@ -2,6 +2,8 @@
 --------------------
   * added a pruning step for more efficient solves, #1702
   * disallow conda-env to be installed into non-root environment
+  * improve error output for bad command input, #1706
+  * pass env name and setup cmd to menuinst, #1699
 
 
 2015-10-12   3.18.2:
