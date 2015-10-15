@@ -312,22 +312,40 @@ def mk_menus(prefix, files, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    # exclude all envs starting with '_'
-    if basename(abspath(prefix)).startswith('_'):
-        return
-
     menu_files = [f for f in files
                   if f.lower().startswith('menu/')
                   and f.lower().endswith('.json')]
     if not menu_files:
         return
+    elif basename(abspath(prefix)).startswith('_'):
+        logging.warn("Environment name starts with underscore (_).  Skipping menu installation.")
+        return
+
     try:
         import menuinst
-    except ImportError:
+    except ImportError as e:
+        logging.warn("Menuinst could not be imported:")
+        logging.warn(e.message)
         return
     for f in menu_files:
         try:
-            menuinst.install(join(prefix, f), remove, prefix)
+            env_name = os.getenv("CONDA_DEFAULT_ENV")
+            # this should always be the root, because Conda can only be installed in the root environment,
+            #   thus this script should only ever be running with the root interpreter.
+            root_prefix = sys.prefix
+            if env_name:
+                # Windows uses full paths; only the last folder is the env name.
+                # Other platforms still use just name.
+                end_name = os.path.split(env_name)
+                env_name = end_name[1] if end_name[1] else env_name
+            if sys.platform == "win32":
+                env_setup_cmd = "activate {}"
+            else:
+                env_setup_cmd = "source activate {}"
+            env_setup_cmd = env_setup_cmd.format(env_name) if env_name else None
+            menuinst.install(join(prefix, f), remove, root_prefix=root_prefix,
+                             target_prefix=prefix, env_name=env_name,
+                             env_setup_cmd=env_setup_cmd)
         except:
             stdoutlog.error("menuinst Exception:")
             stdoutlog.error(traceback.format_exc())
