@@ -317,6 +317,10 @@ def mk_menus(prefix, files, remove=False):
                   and f.lower().endswith('.json')]
     if not menu_files:
         return
+    elif basename(abspath(prefix)).startswith('_'):
+        logging.warn("Environment name starts with underscore (_).  Skipping menu installation.")
+        return
+
     try:
         import menuinst
     except ImportError as e:
@@ -326,13 +330,14 @@ def mk_menus(prefix, files, remove=False):
     for f in menu_files:
         try:
             env_name = os.getenv("CONDA_DEFAULT_ENV")
+            # this should always be the root, because Conda can only be installed in the root environment,
+            #   thus this script should only ever be running with the root interpreter.
             root_prefix = sys.prefix
             if env_name:
                 # Windows uses full paths; only the last folder is the env name.
                 # Other platforms still use just name.
                 end_name = os.path.split(env_name)
                 env_name = end_name[1] if end_name[1] else env_name
-                root_prefix = sys.prefix.split("envs")[0]
             if sys.platform == "win32":
                 env_setup_cmd = "activate {}"
             else:
