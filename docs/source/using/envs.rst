@@ -177,31 +177,12 @@ The other person will then need to create the environment by the following comma
 Use environment from file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To create a copy of another developer’s environment from their environment.yml file:
-
-Deactivate your current environment:
-
-**Linux, OS X:** ``source deactivate starfish``
-
-**Windows:** ``deactivate starfish``
-
-NOTE: Replace “starfish” with the name of your current environment.
-
-Make a new directory, change to the directory, and copy the environment.yml file into it. 
+To create a copy of another developer’s environment from their environment.yml file, 
+move to the same directory as the environment.yml file, and create the new environment:
 
 .. code::
 
-   mkdir peppermint
-   cd peppermint
-   cp environment.yml
-
-NOTE: Replace “peppermint” with the name of your directory.
-
-In the same directory as the environment.yml file, create the new environment: 
-
-.. code::
-
-   conda env create
+   conda env create -f environment.yml
 
 Activate the new environment:
 
