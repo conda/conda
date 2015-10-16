@@ -177,8 +177,7 @@ The other person will then need to create the environment by the following comma
 Use environment from file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To create a copy of another developer’s environment from their environment.yml file, 
-move to the same directory as the environment.yml file, and create the new environment:
+Create a copy of another developer’s environment from their environment.yml file:
 
 .. code::
 
