@@ -11,7 +11,7 @@ install:
 - hash -r
 - conda config --set always_yes yes
 - conda --version
-- conda install anaconda-client jupyter mock nose
+- conda install anaconda-client nbformat mock nose
 - if [[ "$PYCOSAT" ]]; then conda install pycosat=$PYCOSAT; fi
 - python setup.py install
 script:
