@@ -18,9 +18,9 @@ class NotebookSpec(object):
             self.nb = nbformat.reader.reads(open(self.name).read())
             return 'environment' in self.nb['metadata']
         except AttributeError:
-            self.msg = "Please install Jupyter:\n\tconda install jupyter"
+            self.msg = "Please install nbformat:\n\tconda install nbformat"
         except IOError:
-            self.msg = "{} does not exist o can't be accessed".format(self.name)
+            self.msg = "{} does not exist or can't be accessed".format(self.name)
         except (nbformat.reader.NotJSONError, KeyError):
             self.msg = "{} does not looks like a notebook file".format(self.name)
         except:
