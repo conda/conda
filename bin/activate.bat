@@ -1,7 +1,8 @@
 @echo off
-
-for /f "delims=" %%i in ("%~dp0..\envs") do (
-    set ANACONDA_ENVS=%%~fi
+REM Check for CONDA_EVS_PATH environment variable
+REM It it doesn't exist, look inside the Anaconda install tree
+if "%CONDA_ENVS_PATH%" == "" (
+set CONDA_ENVS_PATH="%~dp0..\envs"
 )
 
 set CONDA_NEW_NAME=%~1
@@ -13,19 +14,28 @@ if "%~2" == "" goto skiptoomanyargs
 
 if "%CONDA_NEW_NAME%" == "" set CONDA_NEW_NAME=%~dp0..\
 
-if exist "%ANACONDA_ENVS%\%CONDA_NEW_NAME%\conda-meta" goto usenamedenv
-    for /F %%i in ("%CONDA_NEW_NAME%") do set CONDA_NEW_PATH=%%~fi
-    if exist "%CONDA_NEW_PATH%\conda-meta" goto usefullpath
-        echo No environment named "%CONDA_NEW_NAME%" exists in %ANACONDA_ENVS%
-        set CONDA_NEW_NAME=
-        set CONDA_NEW_PATH=
-        exit /b 1
-:usenamedenv
-    set CONDA_NEW_PATH=%ANACONDA_ENVS%\%CONDA_NEW_NAME%
-    goto skipmissingenv
-:usefullpath
-    for /F %%i in ("%CONDA_NEW_PATH%") do set CONDA_NEW_NAME=%%~ni
-:skipmissingenv
+REM Search through paths in CONDA_ENVS_PATH
+REM First match will be the one used
+
+for %%F in ("%CONDA_ENVS_PATH:;=" "%") do (
+    if exist "%%~F\%CONDA_NEW_NAME%\conda-meta" (
+       set CONDA_NEW_PATH=%%~F\%CONDA_NEW_NAME%
+       goto found_env
+    )
+)
+
+if exist "%CONDA_NEW_NAME%\conda-meta" (
+    set CONDA_NEW_PATH=%CONDA_NEW_NAME%
+    ) else (
+    echo No environment named "%CONDA_NEW_NAME%" exists in %CONDA_ENVS_PATH%, or is not a valid conda installation directory.
+    set CONDA_NEW_NAME=
+    set CONDA_NEW_PATH=
+    exit /b 1
+)
+
+:found_env
+
+for /F %%i in ("%CONDA_NEW_PATH%") do set CONDA_NEW_NAME=%%~ni
 
 REM Deactivate a previous activation if it is live
 if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
