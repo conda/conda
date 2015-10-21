@@ -1,8 +1,8 @@
 @echo off
-REM Check for CONDA_EVS_PATH environment variable
+REM Check for CONDA_ENVS_PATH environment variable
 REM It it doesn't exist, look inside the Anaconda install tree
 if "%CONDA_ENVS_PATH%" == "" (
-set CONDA_ENVS_PATH="%~dp0..\envs"
+    set CONDA_ENVS_PATH=%~dp0..\envs
 )
 
 set CONDA_NEW_NAME=%~1
