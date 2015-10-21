@@ -2,7 +2,8 @@
 REM Check for CONDA_ENVS_PATH environment variable
 REM It it doesn't exist, look inside the Anaconda install tree
 if "%CONDA_ENVS_PATH%" == "" (
-    set CONDA_ENVS_PATH=%~dp0..\envs
+    REM turn relative path into absolute path
+    FOR /F %%i IN ("%~dp0..\envs") DO set CONDA_ENVS_PATH=%%~fi
 )
 
 set CONDA_NEW_NAME=%~1
@@ -49,7 +50,7 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
         popd
     :nodeactivate
 
-    set CONDACTIVATE_PATH="%CONDA_DEFAULT_ENV%";"%CONDA_DEFAULT_ENV%\Scripts";"%CONDA_DEFAULT_ENV%\Library\bin"
+    set CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;
     call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
     set CONDA_DEFAULT_ENV=
     set CONDACTIVATE_PATH=
@@ -59,7 +60,7 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
 
 set CONDA_DEFAULT_ENV=%CONDA_NEW_PATH%
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
-set PATH="%CONDA_DEFAULT_ENV%";"%CONDA_DEFAULT_ENV%\Scripts";"%CONDA_DEFAULT_ENV%\Library\bin";%PATH%
+set PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;%PATH%
 IF "%CONDA_NEW_NAME%"=="" (
    set PROMPT=$P$G
    REM Clear CONDA_DEFAULT_ENV so that this is truly a "root" environment, not an environment pointed at root
