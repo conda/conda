@@ -36,7 +36,10 @@ def prefix_from_arg(arg):
 
 def binpath_from_arg(arg):
     if sys.platform == "win32":
-        path = [prefix_from_arg(arg)] + [join(prefix_from_arg(arg), 'Scripts')]
+        path = [prefix_from_arg(arg),
+                join(prefix_from_arg(arg), 'Scripts'),
+                join(prefix_from_arg(arg), 'Library/bin'),
+               ]
     else:
         path = [join(prefix_from_arg(arg), 'bin')]
     for p in path:

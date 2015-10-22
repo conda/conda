@@ -75,7 +75,7 @@ else:
 
 # Make sure the subprocess activate calls this python
 if platform == 'win':
-    syspath_list = [root_dir, join(root_dir, 'Scripts')]
+    syspath_list = [root_dir, join(root_dir, 'Scripts'), join(root_dir, 'Library/bin')]
     syspath = pathsep.join(syspath_list)
     PATH = "C:\\Windows\\system32"
     ROOTPATH = syspath + pathsep + PATH
@@ -157,7 +157,8 @@ _format_vars = {
 def _envpaths(env_root, env_name):
     if platform == 'win':
         return [env_root + slash + env_name,
-                env_root + slash + env_name + slash + 'Scripts'
+                env_root + slash + env_name + slash + 'Scripts',
+                env_root + slash + env_name + slash + 'Library' + slash + 'bin',
                ]
     else:
         return [env_root + slash + env_name + slash + 'bin']
