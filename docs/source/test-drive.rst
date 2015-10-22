@@ -317,7 +317,7 @@ First let’s check to see if a package we want is available for conda to instal
 
 .. code::
 
-   conda search beautiful-soup
+   conda search beautifulsoup4
 
 This displays the package, so we know it is available.
 
@@ -327,7 +327,7 @@ We will install Beautiful Soup into the current environment, using conda install
 
 .. code::
 
-   conda install --name bunnies beautiful-soup
+   conda install --name bunnies beautifulsoup4
 
 NOTE: You must tell conda the name of the environment (``--name bunnies``) OR it will install in
 the current environment.
