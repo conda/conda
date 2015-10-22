@@ -31,8 +31,6 @@ def raises(exception, func, string=None):
     raise Exception("did not raise, gave %s" % a)
 
 def run_in(command, shell='bash'):
-    print("running:")
-    print(command)
     if shell == 'cmd.exe':
         cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
         cmd_script.write(command)
