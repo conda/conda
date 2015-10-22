@@ -5,7 +5,6 @@ import os
 from os.path import dirname, join, pathsep, normpath
 import shutil
 import stat
-import subprocess
 
 import pytest
 
