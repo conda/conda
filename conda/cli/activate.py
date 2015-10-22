@@ -140,7 +140,7 @@ def main():
         raise ValueError("unexpected command")
 
     for path in os.getenv('PATH').split(os.pathsep):
-        if path.lower() not in binpath.lower():
+        if path.lower() not in [pth.lower() for pth in binpath]:
             paths.append(path)
     print(os.pathsep.join(paths))
 
