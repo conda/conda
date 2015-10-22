@@ -6,8 +6,6 @@ from os.path import isdir, join, abspath
 import errno
 
 from conda.cli.common import find_prefix_name
-import conda.config
-import conda.install
 
 def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
@@ -95,6 +93,7 @@ def main():
         if 'CONDA_ACTIVE_ENV' not in os.environ:
             sys.exit("Error: No environment to deactivate")
         try:
+            import conda.config
             binpath = binpath_from_arg(os.getenv('CONDA_ACTIVE_ENV'))
             rootpath = binpath_from_arg(conda.config.root_env_name)
         except SystemExit:
@@ -127,6 +126,8 @@ def main():
         binpath = binpath_from_arg(sys.argv[2])
         # Make sure an env always has the conda symlink
         try:
+            import conda.config
+            import conda.install
             conda.install.symlink_conda(join(binpath[-1], '..'), conda.config.root_dir)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
