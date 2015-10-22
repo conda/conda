@@ -166,7 +166,7 @@ def test_activate_test1():
             commands = (command_setup + """
             {source} {activate} "{env_dirs[0]}"
             {printpath}
-            """).format(activate=activate, envs=gen_test_env_paths(envs), **_format_vars)
+            """).format(activate=activate, envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_path_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + '\n')
@@ -184,7 +184,7 @@ def test_activate_test1_test2():
             {source} {activate} "{env_dirs[0]}" {nul}
             {source} {activate} "{env_dirs[1]}"
             {printpath}
-            """).format(envs=gen_test_env_paths(envs), activate=activate, **_format_vars)
+            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_path_equals(stdout, pathsep.join(_envpaths(envs, 'test2')) + os.path.pathsep + PATH + "\n")
@@ -201,7 +201,7 @@ def test_activate_test3():
             commands = (command_setup + """
             {source} {activate} "{env_dirs[2]}"
             {printpath}
-            """).format(envs=gen_test_env_paths(envs), activate=activate, **_format_vars)
+            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_path_equals(stdout, "%s\n" % ROOTPATH)
@@ -217,7 +217,7 @@ def test_activate_test1_test3():
             {source} {activate} "{env_dirs[0]}" {nul}
             {source} {activate} ""{env_dirs[2]}"
             {printpath}
-            """).format(envs=gen_test_env_paths(envs), activate=activate, **_format_vars)
+            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + "\n")
@@ -248,7 +248,7 @@ def test_activate_test1_deactivate():
             {source} {activate} {env_dirs[0]} {nul}
             {source} {deactivate}
             {printpath}
-            """).format(envs=gen_test_env_paths(envs), deactivate=deactivate, activate=activate, **_format_vars)
+            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), deactivate=deactivate, activate=activate, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, "%s\n" % ROOTPATH)
