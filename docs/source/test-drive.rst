@@ -222,7 +222,11 @@ First let’s check to see which versions of Python are available to install:
 
 .. code::
 
-   conda search python
+   conda search --full-name python
+
+You can use ``conda search python`` to show all packages whose names contain the 
+text "python" or add the ``--full-name`` option for only the packages whose full 
+name is exactly "python".
 
 **Install a different version of Python**
 
