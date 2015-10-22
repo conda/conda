@@ -13,7 +13,15 @@ def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
     if sys.argv[1] in ('..activate', '..checkenv'):
-        sys.exit("""Usage: source activate ENV
+        if sys.platform =="win32":
+            sys.exit("""Usage: activate ENV
+
+adds the 'Scripts' and Library\bin directory of the environment ENV to the front of PATH.
+ENV may either refer to just the name of the environment, or the full
+prefix path.""")
+
+        else:
+            sys.exit("""Usage: source activate ENV
 
 adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
@@ -35,16 +43,13 @@ def prefix_from_arg(arg):
 
 
 def binpath_from_arg(arg):
+    prefix = prefix_from_arg(arg)
     if sys.platform == "win32":
-        path = [prefix_from_arg(arg),
-                join(prefix_from_arg(arg), 'Scripts'),
-                join(prefix_from_arg(arg), 'Library/bin'),
-               ]
+        path = [dir for dir in [join(prefix, 'Scripts'),
+                                join(prefix, 'Library', 'bin'),
+               ] if isdir(dir)]
     else:
-        path = [join(prefix_from_arg(arg), 'bin')]
-    for p in path:
-        if not isdir(p):
-            sys.exit("Error: no such directory: %s" % p)
+        path = [join(prefix, 'bin'),]
     return path
 
 
@@ -76,7 +81,7 @@ def main():
             sys.exit("Error: too many arguments.")
 
         try:
-            binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV', 'root'))
+            binpath = binpath_from_arg(os.getenv('CONDA_ACTIVE_ENV', 'root'))
         except SystemExit:
             print(os.environ['PATH'])
             raise
@@ -87,16 +92,16 @@ def main():
         if len(sys.argv) != 2:
             sys.exit("Error: too many arguments.")
 
-        if 'CONDA_DEFAULT_ENV' not in os.environ:
+        if 'CONDA_ACTIVE_ENV' not in os.environ:
             sys.exit("Error: No environment to deactivate")
         try:
-            binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
+            binpath = binpath_from_arg(os.getenv('CONDA_ACTIVE_ENV'))
             rootpath = binpath_from_arg(conda.config.root_env_name)
         except SystemExit:
             print(os.environ['PATH'])
             raise
         # deactivate is the same as activate root (except without setting
-        # CONDA_DEFAULT_ENV or PS1). XXX: The user might want to put the root
+        # CONDA_ACTIVE_ENV or PS1). XXX: The user might want to put the root
         # env back somewhere in the middle of the PATH, not at the beginning.
         paths = []
         for r in rootpath:

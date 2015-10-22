@@ -344,7 +344,11 @@ def mk_menus(prefix, files, remove=False):
 
     env_name = (None if abspath(prefix) == abspath(sys.prefix) else
                 basename(prefix))
-    env_setup_cmd = ("activate %s" % env_name) if env_name else None
+    # only windows is provided right now.  Add "source activate" if on Unix platforms
+    env_setup_cmd = "activate"
+    if env_name:
+        env_setup_cmd = env_setup_cmd + " %s" % env_name
+
     for f in menu_files:
         try:
             if menuinst.__version__.startswith('1.0'):
@@ -423,29 +427,20 @@ def read_no_link(info_dir):
 
 # Should this be an API function?
 def symlink_conda(prefix, root_dir):
-    if on_win:
-        where = 'Scripts'
-        symlink_fn = win_conda_bat_redirect
-    else:
-        where = 'bin'
-        symlink_fn = os.symlink
-    symlink_conda_hlp(prefix,root_dir,where,symlink_fn)
-
-def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
-    root_conda = join(root_dir, where, 'conda')
-    root_activate = join(root_dir, where, 'activate')
-    root_deactivate = join(root_dir, where, 'deactivate')
-    prefix_conda = join(prefix, where, 'conda')
-    prefix_activate = join(prefix, where, 'activate')
-    prefix_deactivate = join(prefix, where, 'deactivate')
-    if not os.path.exists(join(prefix, where)):
-        os.makedirs(join(prefix, where))
-    if not os.path.exists(prefix_conda):
-        symlink_fn(root_conda, prefix_conda)
-    if not os.path.exists(prefix_activate):
-        symlink_fn(root_activate, prefix_activate)
-    if not os.path.exists(prefix_deactivate):
-        symlink_fn(root_deactivate, prefix_deactivate)
+    root_conda = join(root_dir, 'bin', 'conda')
+    root_activate = join(root_dir, 'bin', 'activate')
+    root_deactivate = join(root_dir, 'bin', 'deactivate')
+    prefix_conda = join(prefix, 'bin', 'conda')
+    prefix_activate = join(prefix, 'bin', 'activate')
+    prefix_deactivate = join(prefix, 'bin', 'deactivate')
+    if not os.path.lexists(join(prefix, 'bin')):
+        os.makedirs(join(prefix, 'bin'))
+    if not os.path.lexists(prefix_conda):
+        os.symlink(root_conda, prefix_conda)
+    if not os.path.lexists(prefix_activate):
+        os.symlink(root_activate, prefix_activate)
+    if not os.path.lexists(prefix_deactivate):
+        os.symlink(root_deactivate, prefix_deactivate)
 
 # ========================== begin API functions =========================
 
