@@ -43,9 +43,9 @@ def prefix_from_arg(arg):
 def binpath_from_arg(arg):
     prefix = prefix_from_arg(arg)
     if sys.platform == "win32":
-        path = [dir for dir in [join(prefix, 'Scripts'),
-                                join(prefix, 'Library', 'bin'),
-               ] if isdir(dir)]
+        path = [join(prefix, 'Scripts'),
+                join(prefix, 'Library', 'bin'),
+               ]
     else:
         path = [join(prefix, 'bin'),]
     return path
@@ -128,7 +128,7 @@ def main():
         try:
             import conda.config
             import conda.install
-            conda.install.symlink_conda(join(binpath[-1], '..'), conda.config.root_dir)
+            conda.install.symlink_conda(join(binpath[0], '..'), conda.config.root_dir)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
