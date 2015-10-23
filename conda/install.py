@@ -56,7 +56,7 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-on_win = bool(sys.platform == 'win32')
+on_win = bool("win" in sys.platform)
 
 if on_win:
     import ctypes
@@ -443,14 +443,11 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
     prefix_conda = join(prefix, where, 'conda')
     prefix_activate = join(prefix, where, 'activate')
     prefix_deactivate = join(prefix, where, 'deactivate')
-    if not os.path.exists(join(prefix, where)):
-        os.makedirs(join(prefix, where))
-    if not os.path.exists(prefix_conda):
-        symlink_fn(root_conda, prefix_conda)
-    if not os.path.exists(prefix_activate):
-        symlink_fn(root_activate, prefix_activate)
-    if not os.path.exists(prefix_deactivate):
-        symlink_fn(root_deactivate, prefix_deactivate)
+    if not os.path.isdir(os.path.normpath(join(prefix, where))):
+        os.makedirs(os.path.normpath(join(prefix, where)))
+    symlink_fn(root_conda, prefix_conda)
+    symlink_fn(root_activate, prefix_activate)
+    symlink_fn(root_deactivate, prefix_deactivate)
 
 # ========================== begin API functions =========================
 
