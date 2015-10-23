@@ -443,7 +443,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
     prefix_conda = join(prefix, where, 'conda')
     prefix_activate = join(prefix, where, 'activate')
     prefix_deactivate = join(prefix, where, 'deactivate')
-    if not os.path.isdir(os.path.normpath(join(prefix, where))):
+    if not isdir(os.path.normpath(join(prefix, where))):
         os.makedirs(os.path.normpath(join(prefix, where)))
     symlink_fn(root_conda, prefix_conda)
     symlink_fn(root_activate, prefix_activate)
