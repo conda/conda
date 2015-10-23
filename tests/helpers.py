@@ -13,7 +13,6 @@ except ImportError:
         import mock
     except ImportError:
         mock = None
-import tempfile
 
 from contextlib import contextmanager
 
@@ -30,23 +29,6 @@ def raises(exception, func, string=None):
         return True
     raise Exception("did not raise, gave %s" % a)
 
-def run_in(command, shell='bash'):
-    if shell == 'cmd.exe':
-        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
-        cmd_script.write(command)
-        cmd_script.close()
-        p = subprocess.Popen([shell, '/d', '/c', cmd_script.name],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        os.unlink(cmd_script.name)
-    else:
-        p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-    return (stdout.decode('utf-8').replace('\r\n', '\n'),
-        stderr.decode('utf-8').replace('\r\n', '\n'))
-
 python = sys.executable
 conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
 
@@ -57,9 +39,9 @@ def run_conda_command(*args):
     env['CONDARC'] = ' '
     p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, env=env)
-    stdout, stderr = p.communicate()
-    return (stdout.decode('utf-8').replace('\r\n', '\n'),
-        stderr.decode('utf-8').replace('\r\n', '\n'))
+    stdout, stderr = [stream.decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
+                      for stream in p.communicate()]
+    return stdout, stderr
 
 class CapturedText(object):
     pass
