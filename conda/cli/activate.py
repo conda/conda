@@ -43,7 +43,8 @@ def prefix_from_arg(arg):
 def binpath_from_arg(arg):
     prefix = prefix_from_arg(arg)
     if sys.platform == "win32":
-        path = [join(prefix, 'Scripts'),
+        path = [prefix.strip("\\"),
+                join(prefix, 'Scripts'),
                 join(prefix, 'Library', 'bin'),
                ]
     else:
@@ -56,7 +57,7 @@ def pathlist_to_str(paths):
     Format a path list, e.g., of bin paths to be added or removed,
     for user-friendly output.
     """
-    return ' and '.join(paths)
+    return ' and '.join([path.replace("\\\\", "\\") for path in paths])
 
 
 def main():
