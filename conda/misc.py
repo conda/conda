@@ -65,14 +65,19 @@ def explicit(urls, prefix, verbose=True):
         if url == '@EXPLICIT':
             continue
         print("Fetching: %s" % url)
-        channel_url, fn = url.rsplit('/', 1)
+        m = url_pat.match(url)
+        if m is None:
+            sys.exit("Error: Could not parse: %s" % url)
+        fn = m.group('fn')
         dists.append(fn[:-8])
-        index = fetch.fetch_index((channel_url + '/',))
+        index = fetch.fetch_index((m.group('url') + '/',))
         info = index[fn]
+        if m.group('md5') and m.group('md5') != info['md5']:
+            sys.exit("Error: MD5 in explicit files does not match index")
         pkg_path = join(config.pkgs_dirs[0], fn)
         if isfile(pkg_path):
             try:
-                if md5_file(pkg_path) != index[fn]['md5']:
+                if md5_file(pkg_path) != info['md5']:
                     install.rm_rf(pkg_path)
                     fetch.fetch_pkg(info)
             except KeyError:
