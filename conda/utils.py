@@ -5,8 +5,10 @@ import sys
 import hashlib
 import collections
 from functools import partial
-from os.path import abspath, isdir, join
+from os.path import abspath, isdir
 import os
+import tempfile
+
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -43,13 +45,10 @@ def can_open_all_files_in_prefix(prefix, files):
 def try_write(dir_path):
     assert isdir(dir_path)
     try:
-        try:
-            with open(join(dir_path, '.conda-try-write'), mode='wb') as fo:
-                fo.write(b'This is a test file.\n')
-            return True
-        finally:
-            # XXX: If this raises an exception it will also return False
-            os.unlink(join(dir_path, '.conda-try-write'))
+        with tempfile.TemporaryFile(prefix='.conda-try-write',
+                                    dir=dir_path) as fo:
+            fo.write(b'This is a test file.\n')
+        return True
     except (IOError, OSError):
         return False
 
