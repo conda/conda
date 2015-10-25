@@ -71,7 +71,10 @@ def explicit(urls, prefix, verbose=True):
         fn = m.group('fn')
         dists.append(fn[:-8])
         index = fetch.fetch_index((m.group('url') + '/',))
-        info = index[fn]
+        try:
+            info = index[fn]
+        except KeyError:
+            sys.exit("Error: no package '%s' in index" % fn)
         if m.group('md5') and m.group('md5') != info['md5']:
             sys.exit("Error: MD5 in explicit files does not match index")
         pkg_path = join(config.pkgs_dirs[0], fn)
