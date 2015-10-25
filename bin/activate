@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Ensure that this script is sourced, not executed
 # Also note that errors are ignored as `activate foo` doesn't generate a bad
 # value for $0 which would cause errors.
