@@ -1,10 +1,8 @@
 from __future__ import print_function, absolute_import
 
-from distutils.spawn import find_executable
 import os
 import sys
-from os.path import dirname, join, pathsep, normpath
-import shutil
+from os.path import dirname, join, pathsep
 import stat
 
 import pytest
@@ -15,6 +13,9 @@ from conda.install import symlink_conda
 from conda.cli.activate import pathlist_to_str
 import subprocess
 import tempfile
+
+# make pathsep unicode for sake of windows backslash string formatting
+pathsep = u"%s" % pathsep
 
 
 def run_in(command, shell='bash'):
@@ -31,89 +32,71 @@ def run_in(command, shell='bash'):
         p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
-    return (stream.decode('utf-8').replace('\r\n', '\n').replace("\\\\","\\")
-            for stream in (stdout, stderr))
-
+    return [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
+                      for stream in (stdout, stderr)]
 
 def assert_equals(a, b):
     assert a == b, "%r != %r" % (a, b)
-
-
-def normalize_path_from_stdout(path):
-    if "win" in sys.platform:
-        path = path.replace("\r\n", "\n")
-    return path
 
 
 def assert_in(a, b):
     assert a in b, "%r cannot be found in %r" % (a, b)
 
 
-def gen_test_env_paths(envs, num_test_folders=5):
+def gen_test_env_paths(envs, num_test_folders=3):
     """People need not use all the test folders listed here.
     This is only for shortening the environment string generation.
 
     Also encapsulates paths in double quotes.
     """
     paths = [join(envs, "test{}".format(test_folder+1)) for test_folder in range(num_test_folders)]
-    for path in paths:
+    for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
         symlink_conda(path, sys.prefix)
     return paths
 
 
 def _envpaths(env_root, env_name=""):
     if 'win' in platform:
-        paths = [join(env_root, env_name).strip("\\"),
+        paths = [join(env_root, env_name).rstrip("\\"),
                 join(env_root, env_name, 'Scripts'),
                 join(env_root, env_name, 'Library', 'bin'),
                ]
     else:
-        paths = [join(env_root, env_name, 'bin'), ]
+        paths = [join(env_root, env_name).rstrip("/"),
+                 join(env_root, env_name, 'bin'), ]
     return paths
 
 
-ps_format_string = '({env_dirs[{number:d}]})$\n'
-ps_unchanged_string = '$\n'
-
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
-if 'win' in platform:
+BASE_PATH = os.getenv("PATH")
+# Make sure the subprocess activate calls this python
+syspath = pathsep.join(_envpaths(root_dir))
+
+echo = "echo"
+
+if platform.startswith("win"):
     shells = ['cmd.exe']
     ps_var = "PROMPT"
-    raw_ps = "$P$G\n"
-    echo = "echo."
     var_format = "%{var}%"
     binpath = "\\Scripts\\"  # mind the trailing slash.
-
-    # Make sure the subprocess activate calls this python
-    syspath = pathsep.join(_envpaths(root_dir))
-    PATH = "C:\\Windows\\system32"
-    ROOTPATH = syspath + pathsep + PATH
-
     source_setup = "call"
-
     nul = '1>NUL 2>&1'
     set_var = 'set '
+    shell_suffix = ".bat"
+    printps1 = '{echo} {var}'.format(echo=echo if os.getenv(ps_var) else "echo.", var=var_format.format(var=ps_var))
 
 else:
     # Only run these tests for commands that are installed.
     shells = ['bash', 'zsh']
     ps_var = "PS1"
-    raw_ps = "'$'"
     var_format = "${var}"
-    echo = "echo "
     binpath = "/bin/"  # mind the trailing slash.
-
-    syspath = pathsep.join(_envpaths(root_dir))
-    # dirname, which is used in the activate script, is typically installed in
-    # /usr/bin (not sure if it has to be)
-    PATH = pathsep.join(['/bin', '/usr/bin'])
-    ROOTPATH = syspath + pathsep + PATH
-
     source_setup = "source"
-
     nul = '2>/dev/null'
     set_var = ''
+    shell_suffix = ""
+    printps1 = '{echo} {var}'.format(echo=echo, var=var_format.format(var=ps_var))
 
 for shell in shells[:]:
     try:
@@ -124,28 +107,32 @@ for shell in shells[:]:
         if not stderr:
             shells.append(shell)
 
-ps_format_string = "[{env_dirs[{number}]}] "+raw_ps
+raw_ps = os.getenv(ps_var, "")
+def print_ps1(env_dirs, number):
+    ps = ""
+    if raw_ps:
+        ps = " " + raw_ps
+    return u"({})".format(env_dirs[number])+ps
 
-CONDA_ENTRY_POINT="""\
+CONDA_ENTRY_POINT = """\
 #!{syspath}/python
 import sys
 from conda.cli import main
 
 sys.exit(main())
 """
-printpath = '{echo}{var}'.format(echo=echo, var=var_format.format(var="PATH"))
-printdefaultenv = '{echo}"{var}"'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
-printps1 = '{echo}{var}'.format(echo=echo, var=var_format.format(var="PS1"))
+printpath = '{echo} {var}'.format(echo=echo, var=var_format.format(var="PATH"))
+printdefaultenv = '{echo}.{var}'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
 
 command_setup = """\
-@echo off
-set "PATH={ROOTPATH}"
 set {ps_var}={raw_ps}
 set PYTHONPATH={PYTHONPATH}
 set CONDARC=
-cd {here}
-""".format(here=dirname(__file__), ROOTPATH=ROOTPATH, PYTHONPATH=PYTHONPATH,
+""".format(here=dirname(__file__), PYTHONPATH=PYTHONPATH,
            ps_var=ps_var, raw_ps=raw_ps)
+
+if platform.startswith("win"):
+    command_setup = "@echo off\n" + command_setup
 
 
 _format_vars = {
@@ -155,7 +142,9 @@ _format_vars = {
     'printps1': printps1,
     'set_var': set_var,
     'source': source_setup,
-    'binpath': binpath
+    'binpath': binpath,
+    'syspath': sys.prefix,
+    'shell_suffix': shell_suffix
 }
 
 @pytest.mark.slow
@@ -163,16 +152,14 @@ def test_activate_test1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}"
+            {source} {syspath}{binpath}activate{shell_suffix} "{env_dirs[0]}"
             {printpath}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + '\n')
-            assert_equals(stderr,
-                          u'discarding {syspath} from PATH\nprepending {envpaths} to PATH\n'\
-                    .format(envpaths=pathlist_to_str(_envpaths(envs, 'test1')),
-                            syspath=pathlist_to_str(_envpaths(root_dir))))
+            assert_equals(stderr, u'prepending {envpaths} to PATH'\
+                    .format(envpaths=pathlist_to_str(_envpaths(envs, 'test1'))))
+            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1') + [BASE_PATH, ]))
 
 
 @pytest.mark.slow
@@ -180,16 +167,16 @@ def test_activate_test1_test2():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}activate "{env_dirs[1]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[1]}"
             {printpath}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test2')) + os.path.pathsep + PATH + "\n")
-            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
+            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH'\
                 .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
                         envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
+            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test2') + [BASE_PATH, ]))
 
 
 @pytest.mark.slow
@@ -197,13 +184,13 @@ def test_activate_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[2]}"
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printpath}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, u"%s\n" % ROOTPATH)
-            assert_equals(stderr, u'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
+            assert_equals(stdout, u"%s" % BASE_PATH)
+            assert_equals(stderr, u'Error: no such directory: {envpaths3}'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
 
 @pytest.mark.slow
@@ -211,28 +198,14 @@ def test_activate_test1_test3():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}activate ""{env_dirs[2]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printpath}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + PATH + "\n")
-            assert_equals(stderr, u'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
-
-
-@pytest.mark.slow
-def test_deactivate():
-    for shell in shells:
-        with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate
-            {printpath}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, u'Error: No environment to deactivate\n')
+            assert_equals(stdout, pathsep.join(_envpaths(envs, 'test1')) + pathsep + BASE_PATH)
+            assert_equals(stderr, u'Error: no such directory: {envpaths3}'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
 
 @pytest.mark.slow
@@ -240,14 +213,14 @@ def test_activate_test1_deactivate():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate {env_dirs[0]} {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
             {source} {envs}{binpath}deactivate
             {printpath}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, u'discarding {envpaths1} from PATH\n'\
+            assert_equals(stdout, u"%s" % BASE_PATH)
+            assert_equals(stderr, u'discarding {envpaths1} from PATH'\
                 .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
 
@@ -256,24 +229,24 @@ def test_activate_root():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate root
+            {source} {syspath}{binpath}activate root
             {printpath}
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, u'discarding {syspath} from PATH\nprepending {syspath} to PATH\n'\
+            assert_equals(stdout, u"%s" % pathsep.join(_envpaths(root_dir) + [BASE_PATH, ]))
+            assert_equals(stderr, u'prepending {syspath} to PATH'\
                 .format(syspath=pathlist_to_str(_envpaths(root_dir))))
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate root
-            {source} {envs}{binpath}deactivate
+            {source} {syspath}{binpath}activate root
+            {source} {syspath}{binpath}deactivate
             {printpath}
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, u'discarding {syspath} from PATH\nprepending {syspath} to PATH\n'\
+            assert_equals(stdout, u"%s" % BASE_PATH)
+            assert_equals(stderr, u'prepending {syspath} to PATH\ndiscarding {syspath} from PATH'\
                 .format(syspath=pathlist_to_str(_envpaths(root_dir))))
 
 
@@ -281,14 +254,14 @@ def test_activate_test1_root():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]} {nul}
-            {source} {envs}{binpath}activate root
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate root
             {printpath}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, "%s\n" % ROOTPATH)
-            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {syspath} to PATH\n'\
+            assert_equals(stdout, u"%s" % pathsep.join(_envpaths(root_dir) + [BASE_PATH, ]))
+            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {syspath} to PATH'\
                 .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
                     syspath=pathlist_to_str(_envpaths(root_dir))))
 
@@ -298,41 +271,23 @@ def test_wrong_args():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate two args
+            {source} {syspath}{binpath}activate two args
             {printpath}
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ROOTPATH)
-            assert_equals(stderr, u'Error: did not expect more than one argument.\n')
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate test
-            {printpath}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ROOTPATH)
-            assert_equals(stderr, u'Error: too many arguments.\n')
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate "{env}
-            {printpath}
-            """).format(env=join(envs, "test"), **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ROOTPATH)
-            assert_equals(stderr, u'Error: too many arguments.\n')
+            assert_equals(stdout, BASE_PATH)
+            assert_equals(stderr, u'Error: did not expect more than one argument.')
 
 
 @pytest.mark.slow
 def test_activate_help():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-            if not "win" in platform:
+            if not platform.startswith("win"):
                 commands = (command_setup + """
-                {activate} "{env}
-                """).format(env=join(envs, "test1"), **_format_vars)
+                {envs}{binpath}activate Zanzibar
+                """).format(envs=envs, **_format_vars)
 
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '')
@@ -340,12 +295,12 @@ def test_activate_help():
                 assert_in("Usage: source activate ENV", stderr)
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate --help
+            {source} {syspath}{binpath}activate --help
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '')
-            if "win" in platform:
+            if platform.startswith("win"):
                 assert_in("Usage: activate ENV", stderr)
             else:
                 assert_in("Usage: source activate ENV", stderr)
@@ -360,7 +315,7 @@ def test_activate_help():
                 assert_in("Usage: source deactivate", stderr)
 
             commands = (command_setup + """
-            {source} {envs}{binpath}deactivate --help
+            {source} {syspath}{binpath}deactivate --help
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
@@ -375,25 +330,23 @@ def test_activate_symlinking():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}
+            {source} {syspath}{binpath}activate "{env_dirs[0]}"
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert stdout != '\n'
-            assert_equals(stderr, u'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
+            assert_equals(stderr, u'prepending {envpaths1} to PATH'\
                     .format(syspath=pathlist_to_str(_envpaths(root_dir)),
                             envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
             env = gen_test_env_paths(envs)[0]
             for f in ['conda', 'activate', 'deactivate']:
                 if platform == 'win':
-                    file_path = join(env, "Scripts", f)
+                    file_path = join(env, "Scripts", f + ".bat")
                     assert os.path.exists(file_path)
-                    # TODO: assert that script in sub-env eventually finds the one in root,
-                    #   Since that is our only authoritative one
-                    raise NotImplementedError("Still working on verifying validity of conda env bat shortcuts on windows.")
+                    with open(file_path) as batfile:
+                        assert root_dir in "".join(batfile.readlines())
                 else:
-                    file_path = join(env, "bin", "f")
+                    file_path = join(env, "bin", f)
                     assert os.path.lexists(file_path)
                     assert os.path.exists(file_path)
                     s = os.lstat(file_path)
@@ -405,19 +358,21 @@ def test_activate_symlinking():
                     # Test activate when there are no write permissions in the
                     # env. There are two cases:
                     # - conda/deactivate/activate are already symlinked
-                    bin_path = join(gen_test_env_paths(envs)[2], "bin")
+                    conda, activate, deactivate = (join(syspath, binpath, cmd) for cmd in ("conda", "activate", "deactivate"))
+                    prefix_bin_path = gen_test_env_paths(envs)[2] + binpath
                     commands = (command_setup + """
                     mkdir -p {env_dirs[2]}/bin
-                    ln -s {activate} {bin_path}/activate
-                    ln -s {deactivate} {bin_path}/deactivate
-                    ln -s {conda} {bin_path}/conda
-                    chmod 555 {bin_path}
-                    {source} {envs}{binpath}activate "{env}
-                    """).format(bin_path=bin_path, env=gen_test_env_paths(envs)[2],
-                                conda=conda, **_format_vars)
+                    ln -s {activate} {prefix_bin_path}/activate
+                    ln -s {deactivate} {prefix_bin_path}/deactivate
+                    ln -s {conda} {prefix_bin_path}/conda
+                    chmod 555 {prefix_bin_path}
+                    {source} activate "{env}"
+                    """).format(prefix_bin_path=prefix_bin_path, conda=conda,
+                                activate=activate ,deactivate=deactivate,
+                                **_format_vars)
                     stdout, stderr = run_in(commands, shell)
-                    assert stdout != '\n'
-                    assert_equals(stderr, u'discarding {syspath} from PATH\nprepending {bin_path} to PATH\n'.format(bin_path=bin_path, syspath=syspath))
+                    assert stdout != ''
+                    assert_equals(stderr, u'prepending {bin_path} to PATH'.format(prefix_bin_path=prefix_bin_path, syspath=syspath))
 
                     # Make sure it stays the same
                     for f in ['conda', 'activate', 'deactivate']:
@@ -433,18 +388,18 @@ def test_activate_symlinking():
                     commands = (command_setup + """
                     mkdir -p {envs_dir[3]}/bin
                     chmod 555 {envs_dir[3]}/bin
-                    {source} {envs}{binpath}activate "{envs_dir[3]}"
+                    {source} {syspath}{binpath}activate "{envs_dir[3]}"
                     echo $PATH
                     echo $CONDA_ACTIVE_ENV
                     """).format(envs=envs, **_format_vars)
 
                     stdout, stderr = run_in(commands, shell)
                     assert_equals(stdout, (
-                        '{ROOTPATH}\n' # PATH
-                        '\n'           # CONDA_ACTIVE_ENV
-                        ).format(ROOTPATH=ROOTPATH))
+                        '{BASE_PATH}' # PATH
+                        ''           # CONDA_ACTIVE_ENV
+                        ).format(BASE_PATH=BASE_PATH))
                     assert_equals(stderr, (u'Cannot activate environment {envs}/test4, '
-                        u'do not have write access to write conda symlink\n').format(envs=envs))
+                        u'do not have write access to write conda symlink').format(envs=envs))
 
                 finally:
                     # Change the permissions back so that we can delete the directory
@@ -455,47 +410,47 @@ def test_PS1():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}"
             {printps1}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, u'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
+            assert_equals(stderr, u'prepending {envpaths1} to PATH'\
                     .format(syspath=pathlist_to_str(_envpaths(root_dir)),
                             envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
-            assert_equals(stdout, ps_format_string.format(envs=envs, env_dirs=gen_test_env_paths(envs), number=0))
+            assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs), number=0))
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]} {nul}
-            {source} {envs}{binpath}activate "{env_dirs[1]}
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[1]}"
             {printps1}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, sterr = run_in(commands, shell)
-            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'.format(
+            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH'.format(
                     envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
                     envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
 
-            assert_equals(stdout, ps_format_string.format(envs=envs, env_dirs=gen_test_env_paths(envs), number=1))
+            assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs), number=1))
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[2]}
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printps1}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, u'Error: no such directory: {envpath3}\n'.format(envpath3=_envpaths(envs, 'test3')[0]))
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stderr, u'Error: no such directory: {envpath3}'.format(envpath3=_envpaths(envs, 'test3')[0]))
+            assert_equals(stdout, raw_ps)
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{envs[0]} {nul}
-            {source} {envs}{binpath}activate "{envs[3]}
+            {source} {syspath}{binpath}activate "{envs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{envs[3]}"
             {printps1}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'Error: no such directory: {envpath3}\n'.format(envpath3=_envpaths(envs, 'test3')[0]))
-            assert_equals(stdout, ps_format_string.format(envs=envs, env_dirs=gen_test_env_paths(envs), number=0))
+            assert_equals(stderr, u'Error: no such directory: {envpath3}'.format(envpath3=_envpaths(envs, 'test3')[0]))
+            assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs), number=0))
 
             commands = (command_setup + """
             {source} {envs}{binpath}deactivate
@@ -503,51 +458,29 @@ def test_PS1():
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'Error: No environment to deactivate\n')
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stderr, 'Error: No environment to deactivate')
+            assert_equals(stdout, raw_ps)
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{envs[0]} {nul}
+            {source} {syspath}{binpath}activate "{envs[0]}" {nul}
             {source} {envs}{binpath}deactivate
             {printps1}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
+            assert_equals(stderr, u'discarding {envpaths1} from PATH'\
                     .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stdout, raw_ps)
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate
-            {printps1}
-            """).format(envs=envs, **_format_vars)
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}activate two args
+            {source} {syspath}{binpath}activate two args
             {printps1}
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'Error: did not expect more than one argument.\n')
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stderr, 'Error: did not expect more than one argument.')
+            assert_equals(stdout, raw_ps)
 
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate test
-            {printps1}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'Error: too many arguments.\n')
-            assert_equals(stdout, ps_unchanged_string)
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate "{env}
-            {printps1}
-            """).format(env=join(envs, "test"), **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'Error: too many arguments.\n')
-            assert_equals(stdout, ps_unchanged_string)
 
 @pytest.mark.slow
 def test_PS1_no_changeps1():
@@ -561,150 +494,118 @@ changeps1: no
             {set_var}CONDARC={condarc}
             """
             commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}"
             {printps1}
             """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'\
+            assert_equals(stderr, u'prepending {envpaths1} to PATH'\
                     .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
                             syspath=pathlist_to_str(_envpaths(root_dir))))
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stdout, raw_ps)
 
             commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}activate "{env_dirs[1]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[1]}"
             {printps1}
-            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
+            """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH\n'\
+            assert_equals(stderr, u'discarding {envpaths1} from PATH\nprepending {envpaths2} to PATH'\
                     .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
                             envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stdout, raw_ps)
 
             commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate "{env_dirs[2]}"
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printps1}
-            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
+            """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stdout, raw_ps)
             if platform == 'win':
-                assert_equals(stderr, 'Error: no such directory: {env_dirs[2]}\n'.format(envs=envs,
+                assert_equals(stderr, u'Error: no such directory: {env_dirs[2]}'.format(envs=envs,
                                                                              env_dirs=gen_test_env_paths(envs)))
             else:
-                assert_equals(stderr, 'Error: no such directory: {env_dirs[2]}/bin\n'.format(envs=envs,
+                assert_equals(stderr, u'Error: no such directory: {env_dirs[2]}/bin'.format(envs=envs,
                                                                              env_dirs=gen_test_env_paths(envs)))
 
             commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}activate "{env_dirs[2]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printps1}
-            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
+            """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stdout, raw_ps)
             if platform == 'win':
-                assert_equals(stderr, 'Error: no such directory: {env_dirs[2]}\n'.format(envs=envs, env_dirs=gen_test_env_paths(envs)))
+                assert_equals(stderr, u'Error: no such directory: {env_dirs[2]}'.format(envs=envs, env_dirs=gen_test_env_paths(envs)))
             else:
-                assert_equals(stderr, 'Error: no such directory: {env_dirs[2]}/bin\n'.format(envs=envs, env_dirs=gen_test_env_paths(envs)))
+                assert_equals(stderr, u'Error: no such directory: {env_dirs[2]}/bin'.format(envs=envs, env_dirs=gen_test_env_paths(envs)))
 
             commands = (command_setup + condarc + """
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
             {source} {envs}{binpath}deactivate
             {printps1}
-            """).format(**_format_vars)
+            """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ps_unchanged_string)
-            assert_equals(stderr, 'Error: No environment to deactivate\n')
+            assert_equals(stderr, u'discarding {envpaths1} from PATH'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
+            assert_equals(stdout, raw_ps)
 
             commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}deactivate
+            {source} {syspath}{binpath}activate two args
             {printps1}
-            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
+            """).format(condarc=join(envs, ".condarc"), envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
-            assert_equals(stdout, ps_unchanged_string)
+            assert_equals(stdout, raw_ps)
+            assert_equals(stderr, 'Error: did not expect more than one argument.')
 
-            commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate
-            {printps1}
-            """).format(envs=envs, **_format_vars)
-
-            commands = (command_setup + condarc + """
-            {source} {envs}{binpath}activate two args
-            {printps1}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ps_unchanged_string)
-            assert_equals(stderr, 'Error: did not expect more than one argument.\n')
-
-            commands = (command_setup + condarc + """
-            {source} {envs}{binpath}deactivate test
-            {printps1}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ps_unchanged_string)
-            assert_equals(stderr, 'Error: too many arguments.\n')
-
-            commands = (command_setup + condarc + """
-            {source} {envs}{binpath}deactivate "{env_dirs[0]}"
-            {printps1}
-            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, ps_unchanged_string)
-            assert_equals(stderr, 'Error: too many arguments.\n')
 
 @pytest.mark.slow
 def test_CONDA_ACTIVE_ENV():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}"
             {printdefaultenv}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '{env_dirs[0]}\n'.format(envs=envs, env_dirs=gen_test_env_paths(envs)))
-            assert_equals(stderr, 'discarding {syspath} from PATH\nprepending {envpaths1} to PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1')),
-                                                                                                            syspath=pathlist_to_str(_envpaths(root_dir))))
+            assert_equals(stdout, u'{env_dirs[0]}'.format(envs=envs, env_dirs=gen_test_env_paths(envs)))
+            assert_equals(stderr, u'prepending {envpaths1} to PATH'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}activate "{env_dirs[1]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[1]}"
             {printdefaultenv}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '{env_dirs[1]}\n'.format(envs=gen_test_env_paths()))
+            assert_equals(stdout, u'{env_dirs[1]}'.format(env_dirs=gen_test_env_paths(envs)))
             assert_equals(stderr,
-                'discarding {envpaths1} from PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))) +
-                'prepending {envpaths2} to PATH\n'.format(envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
+                u'discarding {envpaths1} from PATH\n'.format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))) +
+                u'prepending {envpaths2} to PATH'.format(envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[2]}"
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printdefaultenv}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
-            assert_equals(stderr, 'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
+            assert_equals(stdout, '')
+            assert_equals(stderr, u'Error: no such directory: {envpaths3}'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}activate "{env_dirs[0]}"
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[2]}"
             {printdefaultenv}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '{env_dirs[0]}\n'.format(envs=gen_test_env_paths()))
-            assert_equals(stderr, 'Error: no such directory: {envpaths3}\n'.format(envpaths3=_envpaths(envs, 'test3')[0]))
+            assert_equals(stdout, '{env_dirs[0]}'.format(env_dirs=gen_test_env_paths(envs)))
+            assert_equals(stderr, u'Error: no such directory: {envpaths3}'.format(envpaths3=_envpaths(envs, 'test3')[0]))
 
             commands = (command_setup + """
             {source} {envs}{binpath}deactivate
@@ -712,66 +613,45 @@ def test_CONDA_ACTIVE_ENV():
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
-            assert_equals(stderr, 'Error: No environment to deactivate\n')
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}activate "{env_dirs[0]}" {nul}
-            {source} {envs}{binpath}deactivate
-            {printdefaultenv}
-            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
-            assert_equals(stderr, 'discarding {envpaths1} from PATH\n'\
-                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}activate two args
-            {printdefaultenv}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
-            assert_equals(stderr, 'Error: did not expect more than one argument.\n')
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate test
-            {printdefaultenv}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
-            assert_equals(stderr, 'Error: too many arguments.\n')
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}deactivate "{envs}/test
-            {printdefaultenv}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
-            assert_equals(stderr, 'Error: too many arguments.\n')
-
-            commands = (command_setup + """
-            {source} {envs}{binpath}activate root {nul}
-            {printdefaultenv}
-            """).format(envs=envs, **_format_vars)
-
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, 'root\n')
+            assert_equals(stdout, '')
             assert_equals(stderr, '')
 
             commands = (command_setup + """
-            {source} {envs}{binpath}activate root {nul}
+            {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
+            {source} {envs}{binpath}deactivate
+            {printdefaultenv}
+            """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, '')
+            assert_equals(stderr, u'discarding {envpaths1} from PATH'\
+                    .format(envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
+
+            commands = (command_setup + """
+            {source} {syspath}{binpath}activate two args
+            {printdefaultenv}
+            """).format(envs=envs, **_format_vars)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, '')
+            assert_equals(stderr, 'Error: did not expect more than one argument.')
+
+            commands = (command_setup + """
+            {source} {syspath}{binpath}activate root {nul}
+            {printdefaultenv}
+            """).format(envs=envs, **_format_vars)
+
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, 'root')
+            assert_equals(stderr, '')
+
+            commands = (command_setup + """
+            {source} {syspath}{binpath}activate root {nul}
             {source} {envs}{binpath}deactivate {nul}
             {printdefaultenv}
             """).format(envs=envs, **_format_vars)
 
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '\n')
+            assert_equals(stdout, '')
             assert_equals(stderr, '')
 
-# TODO:
-# - Test activating an env by name
-# - Check 'symlinking' on Windows

@@ -56,7 +56,7 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-on_win = bool("win" in sys.platform)
+on_win = bool(sys.platform.startswith("win"))
 
 if on_win:
     import ctypes
@@ -428,26 +428,33 @@ def read_no_link(info_dir):
 # Should this be an API function?
 
 def symlink_conda(prefix, root_dir):
+    # do not symlink root env
+    if prefix == sys.prefix:
+        return
     if on_win:
         where = 'Scripts'
         symlink_fn = win_conda_bat_redirect
+        exists_fn = os.path.isfile
+        rm_fn = os.remove
     else:
         where = 'bin'
         symlink_fn = os.symlink
-    symlink_conda_hlp(prefix,root_dir,where,symlink_fn)
+        exists_fn = os.path.islink
+        rm_fn = os.unlink
+    if not isdir(join(prefix, where)):
+        os.makedirs(join(prefix, where))
+    symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn)
 
-def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
-    root_conda = join(root_dir, where, 'conda')
-    root_activate = join(root_dir, where, 'activate')
-    root_deactivate = join(root_dir, where, 'deactivate')
-    prefix_conda = join(prefix, where, 'conda')
-    prefix_activate = join(prefix, where, 'activate')
-    prefix_deactivate = join(prefix, where, 'deactivate')
-    if not isdir(os.path.normpath(join(prefix, where))):
-        os.makedirs(os.path.normpath(join(prefix, where)))
-    symlink_fn(root_conda, prefix_conda)
-    symlink_fn(root_activate, prefix_activate)
-    symlink_fn(root_deactivate, prefix_deactivate)
+
+def symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn):
+    scripts = ("conda", "activate", "deactivate")
+    for script in scripts:
+        root_file = join(root_dir, where, script)
+        prefix_file = join(prefix, where, script)
+        if exists_fn(prefix_file):
+            rm_fn(prefix_file)
+        symlink_fn(root_file, prefix_file)
+
 
 # ========================== begin API functions =========================
 

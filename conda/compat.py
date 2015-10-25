@@ -8,6 +8,8 @@ import types
 import os
 import warnings as _warnings
 import os as _os
+from tempfile import mkdtemp
+import shutil as _shutil
 
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3
@@ -66,8 +68,6 @@ else:
 
     # Modified from http://hg.python.org/cpython/file/3.3/Lib/tempfile.py. Don't
     # use the 3.4 one. It uses the new weakref.finalize feature.
-    import shutil as _shutil
-    from tempfile import mkdtemp
     range = xrange
     from itertools import izip as zip
 
@@ -161,9 +161,7 @@ class TemporaryDirectory(object):
     _closed = False
 
     def __init__(self, suffix="", prefix='tmp', dir=None):
-        from conda.install import symlink_conda
         self.name = mkdtemp(suffix, prefix, dir)
-        symlink_conda(self.name, sys.prefix)
 
     def __repr__(self):
         return "<{} {!r}>".format(self.__class__.__name__, self.name)

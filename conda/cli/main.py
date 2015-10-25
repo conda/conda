@@ -40,11 +40,12 @@ Additional help for each command can be accessed by using:
 from __future__ import print_function, division, absolute_import
 
 import sys
+import importlib
 
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..activate', '..deactivate', '..activateroot', '..checkenv'):
+        if argv1 in ('..activate', '..deactivate', '..checkenv', '..setps1'):
             import conda.cli.activate as activate
             activate.main()
             return
@@ -108,7 +109,8 @@ In short:
     import conda
 
     p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing and deploying applications, environments and packages.'
+        description='conda is a tool for managing and deploying applications,'
+                    ' environments and packages.'
     )
     p.add_argument(
         '-V', '--version',
@@ -131,36 +133,16 @@ In short:
         dest = 'cmd',
     )
 
-    from conda.cli import main_info
-    main_info.configure_parser(sub_parsers)
-    from conda.cli import main_help
-    main_help.configure_parser(sub_parsers)
-    from conda.cli import main_list
-    main_list.configure_parser(sub_parsers)
-    from conda.cli import main_search
-    main_search.configure_parser(sub_parsers)
-    from conda.cli import main_create
-    main_create.configure_parser(sub_parsers)
-    from conda.cli import main_install
-    main_install.configure_parser(sub_parsers)
-    from conda.cli import main_update
-    main_update.configure_parser(sub_parsers)
-    main_update.configure_parser(sub_parsers, name='upgrade')
-    from conda.cli import main_remove
-    main_remove.configure_parser(sub_parsers)
-    main_remove.configure_parser(sub_parsers, name='uninstall')
-    from conda.cli import main_run
-    main_run.configure_parser(sub_parsers)
-    from conda.cli import main_config
-    main_config.configure_parser(sub_parsers)
-    from conda.cli import main_init
-    main_init.configure_parser(sub_parsers)
-    from conda.cli import main_clean
-    main_clean.configure_parser(sub_parsers)
-    from conda.cli import main_package
-    main_package.configure_parser(sub_parsers)
-    from conda.cli import main_bundle
-    main_bundle.configure_parser(sub_parsers)
+    main_modules = ["info", "help", "list", "search", "create", "install", "update",
+                    "remove", "run", "config", "init", "clean", "package", "bundle"]
+    modules = ["conda.cli.main_"+suffix for suffix in main_modules]
+    for module in modules:
+        imported = importlib.import_module(module)
+        imported.configure_parser(sub_parsers)
+        if "update" in module:
+            imported.configure_parser(sub_parsers, name='upgrade')
+        if "remove" in module:
+            imported.configure_parser(sub_parsers, name='uninstall')
 
     from conda.cli.find_commands import find_commands
     sub_parsers.completer = lambda prefix, **kwargs: [i for i in
@@ -177,6 +159,7 @@ In short:
         logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
+    from conda.cli import main_init
     if (not main_init.is_initialized() and
         'init' not in sys.argv and 'info' not in sys.argv):
         if hasattr(args, 'name') and hasattr(args, 'prefix'):

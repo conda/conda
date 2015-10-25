@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
@@ -38,12 +38,13 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
-kwds = {'scripts': []}
 if sys.platform == 'win32' and using_setuptools:
-    kwds['entry_points'] = dict(console_scripts =
-                                        ["conda = conda.cli.main:main"])
+    kwds = {'entry_points': {"console_scripts":
+                            ["conda = conda.cli.main:main"]},
+           'scripts':  [], 
+           }
 else:
-    kwds['scripts'].append('bin/conda')
+    kwds = {'scripts': ['bin/conda'], }
 
 
 setup(

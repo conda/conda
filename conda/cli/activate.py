@@ -7,11 +7,15 @@ import errno
 
 from conda.cli.common import find_prefix_name
 
+
+on_win = bool(sys.platform.startswith("win"))
+
+
 def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
     if sys.argv[1] in ('..activate', '..checkenv'):
-        if sys.platform =="win32":
+        if on_win:
             sys.exit("""Usage: activate ENV
 
 adds the 'Scripts' and Library\bin directory of the environment ENV to the front of PATH.
@@ -33,22 +37,28 @@ activate' from PATH. """)
 
 def prefix_from_arg(arg):
     if os.sep in arg:
-        return abspath(arg)
-    prefix = find_prefix_name(arg)
-    if prefix is None:
-        sys.exit('Error: could not find environment: %s' % arg)
+        if isdir(abspath(arg.strip("\""))):
+            prefix = abspath(arg.strip("\""))
+        else:
+            sys.exit('Error: no such directory: %s' % arg)
+    else:
+        prefix = find_prefix_name(arg)
+        if prefix is None:
+            sys.exit('Error: could not find environment: %s' % arg)
     return prefix
 
 
 def binpath_from_arg(arg):
     prefix = prefix_from_arg(arg)
-    if sys.platform == "win32":
-        path = [prefix.strip("\\"),
+    if on_win:
+        path = [prefix.rstrip("\\"),
                 join(prefix, 'Scripts'),
                 join(prefix, 'Library', 'bin'),
                ]
     else:
-        path = [join(prefix, 'bin'),]
+        path = [prefix.rstrip("/"),
+                join(prefix, 'bin'),
+                ]
     return path
 
 
@@ -66,55 +76,21 @@ def main():
 
     if sys.argv[1] == '..activate':
         if len(sys.argv) == 2:
-            sys.exit("Error: no environment provided.")
+            binpath = binpath_from_arg("root")
         elif len(sys.argv) == 3:
             binpath = binpath_from_arg(sys.argv[2])
         else:
             sys.exit("Error: did not expect more than one argument")
-
-        paths = binpath
         sys.stderr.write("prepending %s to PATH\n" % pathlist_to_str(binpath))
+        path = os.pathsep.join([os.pathsep.join(binpath), os.getenv("PATH")])
 
     elif sys.argv[1] == '..deactivate':
-        if len(sys.argv) != 2:
-            sys.exit("Error: too many arguments.")
-
-        try:
-            binpath = binpath_from_arg(os.getenv('CONDA_ACTIVE_ENV', 'root'))
-        except SystemExit:
-            print(os.environ['PATH'])
-            raise
-        paths = []
-        sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
-
-    elif sys.argv[1] == '..activateroot':
-        if len(sys.argv) != 2:
-            sys.exit("Error: too many arguments.")
-
-        if 'CONDA_ACTIVE_ENV' not in os.environ:
-            sys.exit("Error: No environment to deactivate")
-        try:
-            import conda.config
+        path = os.getenv("PATH")
+        if os.getenv("CONDA_ACTIVE_ENV"):
             binpath = binpath_from_arg(os.getenv('CONDA_ACTIVE_ENV'))
-            rootpath = binpath_from_arg(conda.config.root_env_name)
-        except SystemExit:
-            print(os.environ['PATH'])
-            raise
-        # deactivate is the same as activate root (except without setting
-        # CONDA_ACTIVE_ENV or PS1). XXX: The user might want to put the root
-        # env back somewhere in the middle of the PATH, not at the beginning.
-        paths = []
-        for r in rootpath:
-            if r not in os.getenv('PATH').split(os.pathsep):
-                paths.append(r)
-            # we prevent rootpath from getting dropped if `root` is activated
-            # and then `deactivate` is called. we fall back to normal
-            # activate/deactivate behaviour which always results in having
-            # the root environment in the PATH
-            elif rootpath == binpath:
-                paths.append(r)
-        if rootpath != binpath:
-            sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
+            if binpath:
+                sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
+            path = path.replace(os.pathsep.join(binpath)+os.pathsep, "", 1)
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:
@@ -124,7 +100,7 @@ def main():
         if sys.argv[2] == 'root':
             # no need to check root env and try to install a symlink there
             sys.exit(0)
-        binpath = binpath_from_arg(sys.argv[2])
+        binpath = binpath_from_arg(sys.argv[2])  # this should throw an error and exit if the env or path can't be found.
         # Make sure an env always has the conda symlink
         try:
             import conda.config
@@ -136,14 +112,22 @@ def main():
             raise
         sys.exit(0)
 
+    elif sys.argv[1] == '..setps1':
+        env_path = os.getenv("CONDA_ACTIVE_ENV")
+        # path is a bit of a misnomer here.  It is the prompt setting.  However, it is returned
+        #    below.  That is why it is named "path"
+        if on_win:
+            path = os.getenv("PROMPT", "$P$G")
+        else:
+            path = os.getenv("PS1", "\s-\v\$")
+        if env_path:
+            path = "({}) ".format(os.path.split(env_path)[-1]) + " " + path
+
     else:
         # This means there is a bug in main.py
         raise ValueError("unexpected command")
 
-    for path in os.getenv('PATH').split(os.pathsep):
-        if path.lower() not in [pth.lower() for pth in binpath]:
-            paths.append(path)
-    print(os.pathsep.join(paths))
+    print(path)
 
 
 if __name__ == '__main__':
