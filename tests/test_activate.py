@@ -113,7 +113,7 @@ def print_ps1(env_dirs, number):
     ps = ""
     if raw_ps:
         ps = " " + raw_ps
-    return u"[{}]".format(os.path.split(env_dirs[number])[-1])+ps
+    return u"({})".format(os.path.split(env_dirs[number])[-1])+ps
 
 CONDA_ENTRY_POINT = """\
 #!{syspath}/python
