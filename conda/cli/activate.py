@@ -125,7 +125,7 @@ def main():
                 path = os.getenv("PROMPT")
                 # fall back to bash default
                 if not path:
-                    path = os.getenv("PS1", "\s-\v\$")
+                    path = os.getenv("PS1")
         # strip off previous prefix, if any:
         path = re.sub("^\(.*\)\ ", "", path)
         env_path = sys.argv[2]
