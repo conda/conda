@@ -39,13 +39,17 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
+cmdclass = versioneer.get_cmdclass()
 
 if sys.platform == 'win32' and using_setuptools:
     kwds = {'entry_points': {"console_scripts":
                             ["conda = conda.cli.main:main"]},
             'scripts':  ['bin\\activate.bat', 'bin\\deactivate.bat'],
             }
+else:
+    kwds = {'scripts': ['bin/conda', 'bin/activate', 'bin/deactivate'], }
 
+if sys.platform == "win32":
     def _post_install(dir):
         from subprocess import call
         for script in ("activate.bat", "deactivate.bat"):
@@ -56,16 +60,12 @@ if sys.platform == 'win32' and using_setuptools:
             _install.run(self)
             self.execute(_post_install, (self.install_lib,),
                         msg="Converting UNIX line endings to Windows")
-    cmdclass = {"install": install, "develop": install}
-else:
-    kwds = {'scripts': ['bin/conda', 'bin/activate', 'bin/deactivate'], }
-    cmdclass = {}
-
+    cmdclass.update({"install": install, "develop": install})
 
 setup(
     name="conda",
     version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass().update(cmdclass),
+    cmdclass=cmdclass,
     author="Continuum Analytics, Inc.",
     author_email="ilan@continuum.io",
     url="https://github.com/conda/conda",
