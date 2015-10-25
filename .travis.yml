@@ -2,6 +2,7 @@ language: python
 python:
   # We don't actually use the system Python but this keeps it organized.
   - "2.7"
+  - "3.3"
   - "3.4"
   - "3.5"
 env:
@@ -15,6 +16,8 @@ matrix:
 install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda3-3.0.0-Linux-x86_64.sh -O miniconda.sh;
     else
       wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
