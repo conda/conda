@@ -331,7 +331,7 @@ def test_activate_symlinking():
 
             for env in gen_test_env_paths(envs)[:2]:
                 for f in ['conda', 'activate', 'deactivate']:
-                    if platform == 'win32':
+                    if platform.startswith('win'):
                         file_path = join(env, "Scripts", f + ".bat")
                         assert os.path.exists(file_path)
                         with open(file_path) as batfile:
