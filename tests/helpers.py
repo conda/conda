@@ -37,11 +37,10 @@ def run_conda_command(*args):
     # Make sure bin/conda imports *this* conda.
     env['PYTHONPATH'] = os.path.dirname(os.path.dirname(__file__))
     env['CONDARC'] = ' '
-    p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
+    p = subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, env=env)
-    return_code = p.wait()
     stdout, stderr = [stream.read().strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
-                      for stream in (p.stdout, p.stderr)]
+                      for stream in p.communicate()]
     return stdout, stderr
 
 class CapturedText(object):
