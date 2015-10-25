@@ -39,7 +39,7 @@ import sys
 import tarfile
 import time
 import traceback
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath, normpath
 
 try:
     from conda.lock import Locked
@@ -428,8 +428,8 @@ def read_no_link(info_dir):
 # Should this be an API function?
 
 def symlink_conda(prefix, root_dir):
-    # do not symlink root env
-    if prefix == sys.prefix:
+    # do not symlink root env - this clobbers activate incorrectly.
+    if normpath(prefix) == normpath(sys.prefix):
         return
     if on_win:
         where = 'Scripts'

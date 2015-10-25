@@ -1,9 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
-import os
-import sys
-from os.path import isdir, join, abspath
 import errno
+import os
+from os.path import isdir, join, abspath
+import re
+import sys
 
 from conda.cli.common import find_prefix_name
 
@@ -71,6 +72,8 @@ def pathlist_to_str(paths):
 
 
 def main():
+    import conda.config
+    import conda.install
     if '-h' in sys.argv or '--help' in sys.argv:
         help()
 
@@ -103,9 +106,7 @@ def main():
         binpath = binpath_from_arg(sys.argv[2])  # this should throw an error and exit if the env or path can't be found.
         # Make sure an env always has the conda symlink
         try:
-            import conda.config
-            import conda.install
-            conda.install.symlink_conda(join(binpath[0], '..'), conda.config.root_dir)
+            conda.install.symlink_conda(binpath[0], conda.config.root_dir)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
@@ -113,15 +114,19 @@ def main():
         sys.exit(0)
 
     elif sys.argv[1] == '..setps1':
-        env_path = os.getenv("CONDA_ACTIVE_ENV")
         # path is a bit of a misnomer here.  It is the prompt setting.  However, it is returned
-        #    below.  That is why it is named "path"
-        if on_win:
-            path = os.getenv("PROMPT", "$P$G")
-        else:
-            path = os.getenv("PS1", "\s-\v\$")
-        if env_path:
-            path = "({}) ".format(os.path.split(env_path)[-1]) + " " + path
+        #    below by printing.  That is why it is named "path"
+        path = os.getenv("CONDA_OLD_PS1", "")
+        if not path:
+            if on_win:
+                path = os.getenv("PROMPT", "$P$G")
+            else:
+                path = os.getenv("PS1", "\s-\v\$")
+        # strip off previous prefix, if any:
+        path = re.sub("\(.*\)\ ", "", path)
+        env_path = sys.argv[2]
+        if conda.config.changeps1 and env_path:
+            path = "({}) ".format(os.path.split(env_path)[-1]) + path
 
     else:
         # This means there is a bug in main.py
