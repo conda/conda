@@ -279,7 +279,7 @@ def test_activate_help():
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             if not platform.startswith("win"):
                 commands = (command_setup + """
-                {envs}{binpath}activate Zanzibar
+                {syspath}{binpath}activate Zanzibar
                 """).format(envs=envs, **_format_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '')
@@ -433,7 +433,7 @@ def test_PS1():
 
             # deactivate doesn't do anything bad to PS1 when no env active to deactivate
             commands = (command_setup + """
-            {source} {envs}{binpath}deactivate
+            {source} {syspath}{binpath}deactivate
             {printps1}
             """).format(envs=envs, **_format_vars)
             stdout, stderr = run_in(commands, shell)
@@ -550,7 +550,7 @@ def test_CONDA_ACTIVE_ENV():
             assert_equals(stdout, '{env_dirs[0]}'.format(env_dirs=gen_test_env_paths(envs)), stderr)
 
             commands = (command_setup + """
-            {source} {envs}{binpath}deactivate
+            {source} {syspath}{binpath}deactivate
             {printdefaultenv}
             """).format(envs=envs, env_dirs=gen_test_env_paths(envs), **_format_vars)
             stdout, stderr = run_in(commands, shell)
