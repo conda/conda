@@ -129,10 +129,10 @@ def main():
                     print("fallback")
                     path = os.getenv("PS1", "\s-\v\$")
         # strip off previous prefix, if any:
-        path = re.sub("\[.*\]\ ", "", path)
+        path = re.sub("^\(.*\)\ ", "", path)
         env_path = sys.argv[2]
         if conda.config.changeps1 and env_path:
-            path = "[{}] {}".format(os.path.split(env_path)[-1], path)
+            path = "({}) {}".format(os.path.split(env_path)[-1], path)
 
     else:
         # This means there is a bug in main.py
