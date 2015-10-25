@@ -76,6 +76,8 @@ syspath = pathsep.join(_envpaths(root_dir))
 
 echo = "echo"
 
+escape_curly = lambda x: x.replace("{", "{{").replace("}", "}}")
+
 if platform.startswith("win"):
     shells = ['cmd.exe']
     ps_var = "PROMPT"
@@ -95,7 +97,7 @@ else:
     binpath = "/bin/"  # mind the trailing slash.
     source_setup = "source"
     nul = '2>/dev/null'
-    set_var = ''
+    set_var = 'export '
     shell_suffix = ""
     printps1 = '{echo} {var}'.format(echo=echo, var=var_format.format(var=ps_var))
 
@@ -108,12 +110,9 @@ for shell in shells[:]:
         if not stderr:
             shells.append(shell)
 
-raw_ps = os.getenv(ps_var, "")
+raw_ps = escape_curly(os.getenv(ps_var, ""))
 def print_ps1(env_dirs, number):
-    ps = ""
-    if raw_ps:
-        ps = " " + raw_ps
-    return u"({})".format(os.path.split(env_dirs[number])[-1])+ps
+    return u" ".join([u"({})".format(os.path.split(env_dirs[number])[-1]), raw_ps]).strip()
 
 CONDA_ENTRY_POINT = """\
 #!{syspath}/python
@@ -330,72 +329,38 @@ def test_activate_symlinking():
                     .format(syspath=pathlist_to_str(_envpaths(root_dir)),
                             envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
 
-            env = gen_test_env_paths(envs)[0]
-            for f in ['conda', 'activate', 'deactivate']:
-                if platform == 'win':
-                    file_path = join(env, "Scripts", f + ".bat")
-                    assert os.path.exists(file_path)
-                    with open(file_path) as batfile:
-                        assert root_dir in "".join(batfile.readlines())
-                else:
-                    file_path = join(env, "bin", f)
-                    assert os.path.lexists(file_path)
-                    assert os.path.exists(file_path)
-                    s = os.lstat(file_path)
-                    assert stat.S_ISLNK(s.st_mode)
-                    assert os.readlink(file_path) == '{syspath}/{f}'.format(syspath=syspath, f=f)
-
-            if platform != 'win':
-                try:
-                    # Test activate when there are no write permissions in the
-                    # env. There are two cases:
-                    # - conda/deactivate/activate are already symlinked
-                    conda, activate, deactivate = (join(syspath, binpath, cmd) for cmd in ("conda", "activate", "deactivate"))
-                    prefix_bin_path = gen_test_env_paths(envs)[2] + binpath
-                    commands = (command_setup + """
-                    mkdir -p {env_dirs[2]}/bin
-                    ln -s {activate} {prefix_bin_path}/activate
-                    ln -s {deactivate} {prefix_bin_path}/deactivate
-                    ln -s {conda} {prefix_bin_path}/conda
-                    chmod 555 {prefix_bin_path}
-                    {source} activate "{env}"
-                    """).format(prefix_bin_path=prefix_bin_path, conda=conda,
-                                activate=activate ,deactivate=deactivate,
-                                **_format_vars)
-                    stdout, stderr = run_in(commands, shell)
-                    assert stdout != ''
-                    assert_equals(stderr, u'prepending {bin_path} to PATH'.format(prefix_bin_path=prefix_bin_path, syspath=syspath))
-
-                    # Make sure it stays the same
-                    for f in ['conda', 'activate', 'deactivate']:
-                        file_path = join(gen_test_env_paths(envs)[2], "bin", f)
+            for env in gen_test_env_paths(envs)[:2]:
+                for f in ['conda', 'activate', 'deactivate']:
+                    if platform == 'win32':
+                        file_path = join(env, "Scripts", f + ".bat")
+                        assert os.path.exists(file_path)
+                        with open(file_path) as batfile:
+                            assert root_dir in "".join(batfile.readlines())
+                    else:
+                        file_path = join(env, "bin", f)
                         assert os.path.lexists(file_path)
                         assert os.path.exists(file_path)
                         s = os.lstat(file_path)
                         assert stat.S_ISLNK(s.st_mode)
-                        assert os.readlink(file_path) == '{f}'.format(f=locals()[f])
+                        assert os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, "bin", f))
 
-                    # - conda/deactivate/activate are not symlinked. In this case,
-                    # activate should fail
-                    commands = (command_setup + """
-                    mkdir -p {envs_dir[3]}/bin
-                    chmod 555 {envs_dir[3]}/bin
-                    {source} {syspath}{binpath}activate "{envs_dir[3]}"
-                    echo $PATH
-                    echo $CONDA_ACTIVE_ENV
-                    """).format(envs=envs, **_format_vars)
-                    stdout, stderr = run_in(commands, shell)
-                    assert_equals(stdout, (
-                        '{BASE_PATH}' # PATH
-                        ''           # CONDA_ACTIVE_ENV
-                        ).format(BASE_PATH=BASE_PATH))
-                    assert_equals(stderr, (u'Cannot activate environment {envs}/test4, '
-                        u'do not have write access to write conda symlink').format(envs=envs))
+            if platform != 'win':
+                # Test activate when there are no write permissions in the
+                # env. 
+                prefix_bin_path = gen_test_env_paths(envs)[2] + binpath
+                commands = (command_setup + """
+                mkdir -p {prefix_bin_path}
+                chmod 000 {prefix_bin_path}
+                {source} activate "{env_dirs[2]}"
+                """).format(prefix_bin_path=prefix_bin_path, envs=envs, 
+                                    env_dirs=gen_test_env_paths(envs),
+                    **_format_vars)
+                stdout, stderr = run_in(commands, shell)
+                assert_in("do not have write access", stderr)
 
-                finally:
-                    # Change the permissions back so that we can delete the directory
-                    run_in('chmod 777 {envs}/test3/bin'.format(envs=envs), shell)
-                    run_in('chmod 777 {envs}/test4/bin'.format(envs=envs), shell)
+                # restore permissions so the dir will get cleaned up
+                run_in("chmod 777 {prefix_bin_path}".format(prefix_bin_path=prefix_bin_path))
+
 
 def test_PS1():
     for shell in shells:
