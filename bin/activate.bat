@@ -28,7 +28,7 @@ FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..activate "%CONDA_NEW_ENV%"') DO s
 if errorlevel 1 exit /b 1
 
 set CONDA_OLD_PS1=%PROMPT%
-FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..setps1 %CONDA_NEW_ENV%') DO set PROMPT=%%i
+FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..setps1 "%CONDA_NEW_ENV%" "%PROMPT%"') DO set PROMPT=%%i
 if errorlevel 1 exit /b 1
 
 REM This persists env variables, which are otherwise local to this script right now.

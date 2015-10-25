@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Ensure that this script is sourced, not executed
 # Also note that errors are ignored as `activate foo` doesn't generate a bad
 # value for $0 which would cause errors.
@@ -47,11 +45,10 @@ if "$_THIS_DIR/conda" ..checkenv "$@"; then
 
     _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate)
     export PATH=$_NEW_PATH
-    if (( $("$_THIS_DIR/conda" ..changeps1) )); then
-        if [[ -n $CONDA_OLD_PS1 ]]; then
-            PS1=$CONDA_OLD_PS1
-            unset CONDA_OLD_PS1
-        fi
+    if [[ -n $CONDA_OLD_PS1 ]]; then
+        _NEW_PS1=$("$_THIS_DIR/conda" ..setps1 "" "$CONDA_OLD_PS1")
+        PS1="$_NEW_PS1"
+        unset CONDA_OLD_PS1
     fi
 else
     return 1
@@ -71,10 +68,9 @@ if (( $? == 0 )); then
     ENV_BIN_DIR="$(echo $(echo $PATH | awk -F ':' '{print $1}'))"
     export CONDA_ENV_PATH="$(get_dirname "$ENV_BIN_DIR")"
 
-    if (( $("$_THIS_DIR/conda" ..changeps1) ));  then
-            CONDA_OLD_PS1="$PS1"
-            PS1="($CONDA_ACTIVE_ENV)$PS1"
-    fi
+    _NEW_PS1=$("$_THIS_DIR/conda" ..setps1 "$@" "$PS1")
+    CONDA_OLD_PS1="$PS1"
+    PS1="$_NEW_PS1"
 else
     return $?
 fi

@@ -116,17 +116,23 @@ def main():
     elif sys.argv[1] == '..setps1':
         # path is a bit of a misnomer here.  It is the prompt setting.  However, it is returned
         #    below by printing.  That is why it is named "path"
-        path = os.getenv("CONDA_OLD_PS1", "")
+        path = sys.argv[3]
         if not path:
             if on_win:
                 path = os.getenv("PROMPT", "$P$G")
             else:
-                path = os.getenv("PS1", "\s-\v\$")
+                # zsh uses prompt.  If it exists, prefer it.
+                path = os.getenv("PROMPT")
+                print(path)
+                # fall back to bash default
+                if not path:
+                    print("fallback")
+                    path = os.getenv("PS1", "\s-\v\$")
         # strip off previous prefix, if any:
-        path = re.sub("\(.*\)\ ", "", path)
+        path = re.sub("\[.*\]\ ", "", path)
         env_path = sys.argv[2]
         if conda.config.changeps1 and env_path:
-            path = "({}) ".format(os.path.split(env_path)[-1]) + path
+            path = "[{}] {}".format(os.path.split(env_path)[-1], path)
 
     else:
         # This means there is a bug in main.py
