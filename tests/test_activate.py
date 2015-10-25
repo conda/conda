@@ -123,7 +123,10 @@ from conda.cli import main
 sys.exit(main())
 """
 printpath = '{echo} {var}'.format(echo=echo, var=var_format.format(var="PATH"))
-printdefaultenv = '{echo}.{var}'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
+if sys.platform == "win32":
+    printdefaultenv = '{echo}.{var}'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
+else:
+    printdefaultenv = '{echo} {var}'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
 
 command_setup = """\
 set {ps_var}={raw_ps}
@@ -298,7 +301,7 @@ def test_activate_help():
                 assert_in("Usage: source activate ENV", stderr)
 
                 commands = (command_setup + """
-                {syspath}{binpath}activate
+                {syspath}{binpath}deactivate
                 """).format(envs=envs, **_format_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '')

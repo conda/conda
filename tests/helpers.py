@@ -39,7 +39,7 @@ def run_conda_command(*args):
     env['CONDARC'] = ' '
     p = subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, env=env)
-    stdout, stderr = [stream.read().strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
+    stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
                       for stream in p.communicate()]
     return stdout, stderr
 
