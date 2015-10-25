@@ -1,3 +1,9 @@
+2015-10-XX   3.18.4:
+--------------------
+  * allow explicit file to contain MD5 hashsums
+  * add --md5 option to "conda list --explicit"
+
+
 2015-10-15   3.18.3:
 --------------------
   * added a pruning step for more efficient solves, #1702
