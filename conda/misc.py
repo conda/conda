@@ -54,7 +54,7 @@ def force_extract_and_link(dists, prefix, verbose=False):
     execute_actions(actions, verbose=verbose)
 
 
-url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+)'
+url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
 def explicit(urls, prefix, verbose=True):
     import conda.fetch as fetch
