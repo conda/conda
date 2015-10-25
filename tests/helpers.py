@@ -39,8 +39,9 @@ def run_conda_command(*args):
     env['CONDARC'] = ' '
     p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, env=env)
-    stdout, stderr = [stream.decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
-                      for stream in p.communicate()]
+    return_code = p.wait()
+    stdout, stderr = [stream.read().strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
+                      for stream in (p.stdout, p.stderr)]
     return stdout, stderr
 
 class CapturedText(object):

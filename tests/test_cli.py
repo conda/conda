@@ -6,7 +6,7 @@ from conda.cli.common import arg2spec, spec_from_line
 
 from conda.compat import text_type
 
-from tests.helpers import capture_json_with_argv
+from .helpers import capture_json_with_argv
 
 
 class TestArg2Spec(unittest.TestCase):
