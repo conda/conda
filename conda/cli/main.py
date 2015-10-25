@@ -49,10 +49,6 @@ def main():
             import conda.cli.activate as activate
             activate.main()
             return
-        if argv1 in ('..changeps1'):
-            import conda.cli.misc as misc
-            misc.main()
-            return
         if argv1 == 'pip':
             sys.exit("""ERROR:
 The "conda pip" command has been removed from conda (as of version 1.8) for
