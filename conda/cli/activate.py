@@ -123,10 +123,8 @@ def main():
             else:
                 # zsh uses prompt.  If it exists, prefer it.
                 path = os.getenv("PROMPT")
-                print(path)
                 # fall back to bash default
                 if not path:
-                    print("fallback")
                     path = os.getenv("PS1", "\s-\v\$")
         # strip off previous prefix, if any:
         path = re.sub("^\(.*\)\ ", "", path)
