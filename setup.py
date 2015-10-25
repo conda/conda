@@ -17,6 +17,7 @@ else:
     using_setuptools = False
     print("Not using setuptools")
 
+from distutils.command.install import install as _install
 
 import versioneer
 
@@ -38,24 +39,38 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
+
 if sys.platform == 'win32' and using_setuptools:
     kwds = {'entry_points': {"console_scripts":
                             ["conda = conda.cli.main:main"]},
-           'scripts':  [], 
-           }
+            'scripts':  ['bin\\activate.bat', 'bin\\deactivate.bat'],
+            }
+
+    def _post_install(dir):
+        from subprocess import call
+        for script in ("activate.bat", "deactivate.bat"):
+            call(["unix2dos", os.path.join(sys.prefix, "Scripts", script)],)
+
+    class install(_install):
+        def run(self):
+            _install.run(self)
+            self.execute(_post_install, (self.install_lib,),
+                        msg="Converting UNIX line endings to Windows")
+    cmdclass = {"install": install, "develop": install}
 else:
-    kwds = {'scripts': ['bin/conda'], }
+    kwds = {'scripts': ['bin/conda', 'bin/activate', 'bin/deactivate'], }
+    cmdclass = {}
 
 
 setup(
-    name = "conda",
+    name="conda",
     version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
-    author = "Continuum Analytics, Inc.",
-    author_email = "ilan@continuum.io",
-    url = "https://github.com/conda/conda",
-    license = "BSD",
-    classifiers = [
+    cmdclass=versioneer.get_cmdclass().update(cmdclass),
+    author="Continuum Analytics, Inc.",
+    author_email="ilan@continuum.io",
+    url="https://github.com/conda/conda",
+    license="BSD",
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
@@ -65,9 +80,9 @@ setup(
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
     ],
-    description = "package management tool",
-    long_description = open('README.rst').read(),
-    packages = ['conda', 'conda.cli', 'conda.progressbar'],
-    install_requires = ['pycosat', 'pyyaml', 'requests'],
+    description="package management tool",
+    long_description=open('README.rst').read(),
+    packages=['conda', 'conda.cli', 'conda.progressbar'],
+    install_requires=['pycosat', 'pyyaml', 'requests'],
     **kwds
 )
