@@ -28,9 +28,6 @@ install:
   - bin/conda install --force --no-deps conda requests
   - conda --version
   - conda install -c conda pytest requests mock pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
-  # TODO: REMOVE THIS!! for testing only; activate.bat is being moved to conda.
-  #    Removing conda-env here ensures that the activate scripts are the new ones.
-  - conda remove conda-env
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
