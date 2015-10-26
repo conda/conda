@@ -13,7 +13,7 @@ if not "%1" == "--help" goto skipusage
     exit /b 1
 :skipusage
 
-SET "CONDA_EXE=%~dp0\\conda.bat"
+SET "CONDA_EXE=%~dp0\\conda.exe"
 
 REM activate conda root environment
 FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..deactivate') DO set PATH=%%i

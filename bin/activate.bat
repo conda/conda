@@ -13,7 +13,7 @@ if not "%1" == "" goto skipmissingarg
     set CONDA_NEW_ENV=root
 :skipmissingarg
 
-SET "CONDA_EXE=%~dp0\\conda.bat"
+SET "CONDA_EXE=%~dp0\\conda.exe"
 
 REM Ensure that path or name passed is valid before deactivating anything
 call "%CONDA_EXE%" ..checkenv %CONDA_NEW_ENV%
