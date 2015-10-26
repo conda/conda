@@ -45,7 +45,7 @@ class Uploader(object):
 
     @property
     def version(self):
-        return time.strftime('%Y.%m.%d-%H%M')
+        return time.strftime('%Y.%m.%d.%H%M')
 
     @property
     def user(self):

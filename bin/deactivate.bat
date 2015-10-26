@@ -25,7 +25,7 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
         popd
     :nodeactivate
 
-    set CONDACTIVATE_PATH="%CONDA_DEFAULT_ENV%";"%CONDA_DEFAULT_ENV%\Scripts";"%CONDA_DEFAULT_ENV%\Library\bin";
+    set CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;
     call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
     set CONDA_DEFAULT_ENV=
     set CONDA_ENV_PATH=
