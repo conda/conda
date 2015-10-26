@@ -5,6 +5,11 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v2.4.4 (10/26/15)
+
+- Fix windows issues
+- Change environment's versions when uploading
+
 #### v2.4.3 (10/18/15)
 
 - Better windows compatibility
