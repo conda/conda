@@ -5,6 +5,13 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v2.4.4 (10/26/15)
+
+- Change environment's versions when uploading. (@ijstokes, #191)
+- Support specifying environment by path, as well as by name. (@remram44, #60)
+- activate.bat properly searches CONDA_ENVS_PATH for named environments. (@mikecroucher, #164)
+- Add Library\\bin to path when activating environments. (@malev, #152)
+
 #### v2.4.3 (10/18/15)
 
 - Better windows compatibility
