@@ -150,8 +150,8 @@ is hosted on PyPI and GitHub, you can easily find a script on  PyPI instead of G
 
 .. code-block:: bash
 
-    git_rev: 0.12
-    git_url: https://github.com/joerick/pyinstrument.git
+   git_rev: 0.13.1
+   git_url: https://github.com/joerick/pyinstrument.git
 
 With the following:
 
