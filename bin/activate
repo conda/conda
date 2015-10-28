@@ -63,12 +63,8 @@ fi
 _NEW_PATH=$("$_THIS_DIR/conda" ..activate "$@")
 if (( $? == 0 )); then
     export PATH=$_NEW_PATH
-    # If the string contains / it's a path
-    if [[ "$@" == */* ]]; then
-        export CONDA_ACTIVE_ENV=$(get_abs_filename "$@")
-    else
-        export CONDA_ACTIVE_ENV="$@"
-    fi
+    # extract first PATH entry (should be full path prefix of our env)
+    export CONDA_ACTIVE_ENV=${PATH%%:*}
 
     # Get first path and convert it to absolute
     ENV_BIN_DIR="$(echo $(echo $PATH | awk -F ':' '{print $1}'))"

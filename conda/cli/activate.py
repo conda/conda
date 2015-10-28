@@ -127,10 +127,10 @@ def main():
                 if not path:
                     path = os.getenv("PS1")
         # strip off previous prefix, if any:
-        path = re.sub("^\(.*\)\ ", "", path)
+        path = re.sub(".*\(\(.*\)\)\ ", "", path, count=1)
         env_path = sys.argv[2]
         if conda.config.changeps1 and env_path:
-            path = "({}) {}".format(os.path.split(env_path)[-1], path)
+            path = "(({})) {}".format(os.path.split(env_path)[-1], path)
 
     else:
         # This means there is a bug in main.py

@@ -31,6 +31,10 @@ set CONDA_OLD_PS1=%PROMPT%
 FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..setps1 "%CONDA_NEW_ENV%" "%PROMPT%"') DO set PROMPT=%%i
 if errorlevel 1 exit /b 1
 
+REM Replace CONDA_NEW_ENV with the full path, if it is anything else
+REM   (name or relative path).  This is to remove any ambiguity.
+for /F "tokens=1 delims=;" %%i in ("%PATH%") do set "CONDA_NEW_ENV=%%i"
+
 REM This persists env variables, which are otherwise local to this script right now.
 endlocal & (
     set "CONDA_OLD_PS1=%CONDA_OLD_PS1%"

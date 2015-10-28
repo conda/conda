@@ -49,19 +49,6 @@ if sys.platform == 'win32' and using_setuptools:
 else:
     kwds = {'scripts': ['bin/conda', 'bin/activate', 'bin/deactivate'], }
 
-if sys.platform == "win32":
-    def _post_install(dir):
-        from subprocess import call
-        for script in ("activate.bat", "deactivate.bat"):
-            call(["unix2dos", os.path.join(sys.prefix, "Scripts", script)],)
-
-    class install(_install):
-        def run(self):
-            _install.run(self)
-            self.execute(_post_install, (self.install_lib,),
-                        msg="Converting UNIX line endings to Windows")
-    cmdclass.update({"install": install, "develop": install})
-
 setup(
     name="conda",
     version=versioneer.get_version(),
