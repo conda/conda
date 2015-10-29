@@ -2,6 +2,7 @@
 --------------------
   * allow explicit file to contain MD5 hashsums
   * add --md5 option to "conda list --explicit"
+  * stop infinite recursion during certain resolve operations, #1749
 
 
 2015-10-15   3.18.3:
