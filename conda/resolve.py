@@ -478,7 +478,7 @@ class Resolve(object):
         def is_valid(fn):
             val = valid.get(fn, None)
             if val is None:
-                val = True
+                val = valid[fn] = True
                 for ms in self.ms_depends(fn):
                     if not any(is_valid(f2) for f2 in self.find_matches(ms, True)):
                         val = False
