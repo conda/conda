@@ -90,9 +90,9 @@ Add the 'foo' Binstar channel:
 
     conda config --add channels foo
 
-Enable the 'show_channel_urls' option:
+Disable the 'show_channel_urls' option:
 
-    conda config --set show_channel_urls yes
+    conda config --set show_channel_urls no
 """
 
 class CouldntParse(NotImplementedError):
