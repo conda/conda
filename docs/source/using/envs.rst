@@ -50,9 +50,9 @@ TIP: Environments are installed by default into the envs directory in your conda
 
 Deactivate the environment with the following:
 
-**Linux, OS X:** ``source deactivate snowflakes``
+**Linux, OS X:** ``source deactivate``
 
-**Windows:**  ``deactivate snowflakes``
+**Windows:**  ``deactivate``
 
 Conda removes the path name (snowflakes) from your system command.
 
