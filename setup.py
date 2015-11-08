@@ -44,7 +44,12 @@ cmdclass = versioneer.get_cmdclass()
 if sys.platform == 'win32' and using_setuptools:
     kwds = {'entry_points': {"console_scripts":
                             ["conda = conda.cli.main:main"]},
-            'scripts':  ['bin\\activate.bat', 'bin\\deactivate.bat'],
+            'scripts':  [
+                'cmd/activate.bat',
+                'cmd/deactivate.bat',
+                'cmd/activate',
+                'cmd/deactivate'
+                ],
             }
 else:
     kwds = {'scripts': ['bin/conda', 'bin/activate', 'bin/deactivate'], }
