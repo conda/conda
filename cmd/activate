@@ -50,7 +50,10 @@ if "$_THIS_DIR/conda" ..checkenv "$@"; then
     run_scripts "deactivate"
 
     _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate)
-    export PATH=$_NEW_PATH
+    if (( $(uname -o) == Msys )); then
+        _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
+    fi
+    export PATH="$_NEW_PATH"
     if [[ -n $CONDA_OLD_PS1 ]]; then
         _NEW_PS1=$("$_THIS_DIR/conda" ..setps1 "" "$CONDA_OLD_PS1")
         PS1="$_NEW_PS1"
@@ -61,8 +64,11 @@ else
 fi
 
 _NEW_PATH=$("$_THIS_DIR/conda" ..activate "$@")
+if (( $(uname -o) == Msys )); then
+    _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
+fi
 if (( $? == 0 )); then
-    export PATH=$_NEW_PATH
+    export PATH="$_NEW_PATH"
     # extract first PATH entry (should be full path prefix of our env)
     export CONDA_ACTIVE_ENV=${PATH%%:*}
 
