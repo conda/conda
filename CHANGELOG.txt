@@ -1,8 +1,13 @@
-2015-10-XX   3.18.4:
+2015-XX-XX   3.18.5:
+--------------------
+
+
+2015-11-09   3.18.4:
 --------------------
   * allow explicit file to contain MD5 hashsums
   * add --md5 option to "conda list --explicit"
   * stop infinite recursion during certain resolve operations, #1749
+  * add dependencies even if strictness == 3, #1766
 
 
 2015-10-15   3.18.3:
