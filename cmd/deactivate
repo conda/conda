@@ -48,11 +48,25 @@ get_abs_filename() {
     echo "$(get_dirname "$1")/$(basename "$1")"
 }
 
+win_bash() {
+    case "$(uname -s)" in
+        CYGWIN*|MINGW*|MSYS*)
+            echo true
+            ;;
+        *)
+            echo false
+            ;;
+    esac
+}
+
 run_scripts "deactivate"
 
 _NEW_PATH=$("$_THIS_DIR/conda" ..deactivate "$@")
+if [ "$(win_bash)" = true ]; then
+    _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
+fi
 if (( $? == 0 )); then
-    export PATH=$_NEW_PATH
+    export PATH="$_NEW_PATH"
     unset CONDA_ACTIVE_ENV
     unset CONDA_ENV_PATH
     _NEW_PS1=$("$_THIS_DIR/conda" ..setps1 "" "$CONDA_OLD_PS1")
