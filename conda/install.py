@@ -324,9 +324,9 @@ def mk_menus(prefix, files, remove=False):
 
     try:
         import menuinst
-    except ImportError as e:
+    except:
         logging.warn("Menuinst could not be imported:")
-        logging.warn(e.message)
+        logging.warn(traceback.format_exc())
         return
 
     env_name = (None if abspath(prefix) == abspath(sys.prefix) else
