@@ -48,7 +48,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-q', '--quiet',
         default=False,
-        action='store_false'
+        action='store_true'
     )
     p.add_argument(
         'name',

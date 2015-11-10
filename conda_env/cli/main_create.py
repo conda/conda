@@ -50,7 +50,7 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '-q', '--quiet',
-        action='store_false',
+        action='store_true',
         default=False,
     )
     p.add_argument(
