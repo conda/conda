@@ -8,7 +8,7 @@ from os.path import join
 
 
 from conda import install
-from conda.install import PaddingError, binary_replace, update_prefix
+from conda.install import PaddingError, binary_replace, update_prefix, warn_failed_remove
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
@@ -141,6 +141,11 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield isfile
 
     @contextmanager
+    def generate_mock_os_access(self, value):
+        with patch.object(install.os, 'access', return_value=value) as os_access:
+            yield os_access
+
+    @contextmanager
     def generate_mock_unlink(self):
         with patch.object(install.os, 'unlink') as unlink:
             yield unlink
@@ -173,25 +178,27 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield check_call
 
     @contextmanager
-    def generate_mocks(self, islink=True, isfile=True, isdir=True, on_win=False):
+    def generate_mocks(self, islink=True, isfile=True, isdir=True, on_win=False, os_access=True):
         with self.generate_mock_islink(islink) as mock_islink:
             with self.generate_mock_isfile(isfile) as mock_isfile:
-                with self.generate_mock_isdir(isdir) as mock_isdir:
-                    with self.generate_mock_unlink() as mock_unlink:
-                        with self.generate_mock_rmtree() as mock_rmtree:
-                            with self.generate_mock_sleep() as mock_sleep:
-                                with self.generate_mock_log() as mock_log:
-                                    with self.generate_mock_on_win(on_win):
-                                        with self.generate_mock_check_call() as check_call:
-                                            yield {
-                                                'islink': mock_islink,
-                                                'isfile': mock_isfile,
-                                                'isdir': mock_isdir,
-                                                'unlink': mock_unlink,
-                                                'rmtree': mock_rmtree,
-                                                'sleep': mock_sleep,
-                                                'log': mock_log,
-                                                'check_call': check_call,
+                with self.generate_mock_os_access(os_access) as mock_os_access:
+                    with self.generate_mock_isdir(isdir) as mock_isdir:
+                        with self.generate_mock_unlink() as mock_unlink:
+                            with self.generate_mock_rmtree() as mock_rmtree:
+                                with self.generate_mock_sleep() as mock_sleep:
+                                    with self.generate_mock_log() as mock_log:
+                                        with self.generate_mock_on_win(on_win):
+                                            with self.generate_mock_check_call() as check_call:
+                                                yield {
+                                                    'islink': mock_islink,
+                                                    'isfile': mock_isfile,
+                                                    'isdir': mock_isdir,
+                                                    'os_access': mock_os_access,
+                                                    'unlink': mock_unlink,
+                                                    'rmtree': mock_rmtree,
+                                                    'sleep': mock_sleep,
+                                                    'log': mock_log,
+                                                    'check_call': check_call,
                                             }
 
     def generate_directory_mocks(self, on_win=False):
@@ -218,6 +225,13 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
+
+    @skip_if_no_mock
+    def test_does_not_call_unlink_on_os_access_false(self):
+        with self.generate_mocks(os_access=False) as mocks:
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        self.assertFalse(mocks['unlink'].called)
 
     @skip_if_no_mock
     def test_does_not_call_isfile_if_islink_is_true(self):
@@ -259,7 +273,8 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks() as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
-        mocks['rmtree'].assert_called_with(some_path)
+        mocks['rmtree'].assert_called_with(
+            some_path, onerror=warn_failed_remove, ignore_errors=False)
 
     @skip_if_no_mock
     def test_calls_rmtree_only_once_on_success(self):
@@ -342,7 +357,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             install.rm_rf(random_path)
 
         expected_call_list = [
-            mock.call(random_path),
+            mock.call(random_path, ignore_errors=False, onerror=warn_failed_remove),
             mock.call(random_path, onerror=install._remove_readonly)
         ]
         mocks['rmtree'].assert_has_calls(expected_call_list)
