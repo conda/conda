@@ -1038,6 +1038,8 @@ Note that the following features are enabled:
         if features is None:
             features = self.installed_features(installed)
         for spec in specs:
+            if sys.platform == 'win32' and spec == 'python':
+                continue
             # XXX: This does not work when a spec only contains the name,
             # and different versions of the package have different features.
             ms = MatchSpec(spec)
