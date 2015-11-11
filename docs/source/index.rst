@@ -51,15 +51,15 @@ Presentations & Blog Posts
 
 `Packaging and Deployment with conda - Travis Oliphant <https://speakerdeck.com/teoliphant/packaging-and-deployment-with-conda>`_
 
-`Python 3 support in Anaconda - Ilan Schnell <http://continuum.io/blog/anaconda-python-3>`_
+`Python 3 support in Anaconda - Ilan Schnell <https://www.continuum.io/content/python-3-support-anaconda>`_
 
-`New Advances in conda - Ilan Schnell <http://continuum.io/blog/new-advances-in-conda>`_
+`New Advances in conda - Ilan Schnell <https://www.continuum.io/blog/developer/new-advances-conda>`_
 
-`Python Packages and Environments with conda - Bryan Van de Ven <http://continuum.io/blog/conda>`_
+`Python Packages and Environments with conda - Bryan Van de Ven <https://www.continuum.io/content/python-packages-and-environments-conda>`_
 
-`Advanced features of Conda, part 1 - Aaron Meurer <http://continuum.io/blog/advanced-conda-part-1>`_
+`Advanced features of Conda, part 1 - Aaron Meurer <https://www.continuum.io/blog/developer/advanced-features-conda-part-1>`_
 
-`Advanced features of Conda, part 2 - Aaron Meurer <http://continuum.io/blog/advanced-conda-part-2>`_
+`Advanced features of Conda, part 2 - Aaron Meurer <https://www.continuum.io/blog/developer/advanced-features-conda-part-2>`_
 
 Requirements
 ------------
