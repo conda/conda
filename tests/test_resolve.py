@@ -934,7 +934,7 @@ def test_generate_eq():
         (0, u'zeromq-2.2.0-1.tar.bz2'),
         (1, u'zeromq-2.2.0-0.tar.bz2'),
         (0, u'zlib-1.2.7-0.tar.bz2')
-    ]  
+    ]
 
     assert max_rhs == 1 + 2 + 3 + 2 + 1 + 1 + 2 + 2 + 3 + 11 + 5 + 1 + 20 + 2 + 1 + 4 + 1 + 1 + 1
 
@@ -1149,7 +1149,7 @@ def test_generate_eq():
         (1, u'six-1.2.0-py33_0.tar.bz2'),
         (1, u'system-5.8-0.tar.bz2'),
         (1, u'zeromq-2.2.0-0.tar.bz2')
-    ] 
+    ]
 
     assert max_rhs == 1 + 2 + 3 + 2 + 1 + 1 + 2 + 2 + 3 + 11 + 5 + 1 + 20 + 2 + 1 + 4 + 1 + 1 + 1
 

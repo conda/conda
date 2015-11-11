@@ -1,5 +1,7 @@
-2015-XX-XX   3.18.5:
+2015-11-11   3.18.5:
 --------------------
+  * fix bad menuinst exception handling, #1798
+  * add workaround for unresolved dependencies on Windows
 
 
 2015-11-09   3.18.4:
