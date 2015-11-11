@@ -5,6 +5,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
 
+import errno
 import os
 import sys
 from collections import defaultdict
@@ -153,7 +154,14 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         for fn in pkgs_dirs[pkgs_dir]:
             if verbose:
                 print("removing %s" % fn)
-            os.unlink(os.path.join(pkgs_dir, fn))
+            try:
+                os.unlink(os.path.join(pkgs_dir, fn))
+            except OSError as e:
+                if e.errno == errno.EACCES:
+                    # if user has no permission to remove file, move on
+                    continue
+                else:
+                    raise e
 
 
 def find_pkgs():
