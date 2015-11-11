@@ -6,6 +6,7 @@ Building packages
 
    /build_tutorials
    bpp
+   shared-libraries
    /custom-channels
    /signed-packages
    /bdist_conda
