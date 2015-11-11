@@ -167,6 +167,9 @@ def find_pkgs():
 
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in config.pkgs_dirs:
+        if not os.path.exists(pkgs_dir):
+            print("WARNING: {0} does not exist".format(pkgs_dir))
+            continue
         pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
             # Only include actual packages
             isdir(join(pkgs_dir, i, 'info'))]
