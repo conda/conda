@@ -140,11 +140,11 @@ def _remove_readonly(func, path, excinfo):
 
 def warn_failed_remove(function, path, exc_info):
     if exc_info[1].errno == errno.EACCES:
-        log.warn( "WARNING: cannot remove, permission denied: %s" % path )
+        log.warn("Cannot remove, permission denied: {0}".format(path))
     elif exc_info[1].errno == errno.ENOTEMPTY:
-        log.warn( "WARNING: cannot remove, not empty: %s" % path )
+        log.warn("Cannot remove, not empty: {0}".format(path))
     else:
-        log.warn( "WARNING: cannot remove, unknown reason: %s" % path )
+        log.warn("Cannot remove, unknown reason: {0}".format(path))
 
 def rm_rf(path, max_retries=5, trash=True):
     """
