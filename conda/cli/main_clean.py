@@ -151,9 +151,13 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
-            if verbose:
-                print("removing %s" % fn)
-            os.unlink(os.path.join(pkgs_dir, fn))
+            if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
+                if verbose:
+                    print("Removing %s" % fn)
+                os.unlink(os.path.join(pkgs_dir, fn))
+            else:
+                if verbose:
+                    print("WARNING: cannot remove, file permissions: %s" % fn)
 
 
 def find_pkgs():
