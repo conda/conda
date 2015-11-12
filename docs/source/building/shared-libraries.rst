@@ -3,12 +3,12 @@ Using shared libraries
 
 **Shared libraries** are libraries that are loosely coupled to the programs and extensions that depend on them. When loading an executable into memory, an operating system will find all dependent shared libraries and link them to the executable so that it can run. 
 
-The major operating systems Linux, OS X, and Windows all provide a way to build executables and libraries that contain links to the shared libraries they depend on, instead of the directly linking the libraries themselves. We'll discuss Linux and OS X first, then Windows because it is quite a bit different.
+The major operating systems Linux, OS X, and Windows all provide a way to build executables and libraries that contain links to the shared libraries they depend on, instead of directly linking the libraries themselves. We'll discuss Linux and OS X first, then Windows because it is quite a bit different.
 
 Shared libraries in Linux and OS X
 ----------------------------------
 
-In Linux and OS X, dynamic links are discovered in a similar manner to the way that python modules are discovered via ``PYTHONPATH``, and executables are discovered via ``PATH``.  A list of search locations is made, then the library objects are searched for in the search locations.  By default, as well as by design, the system dynamic linker does not have any special preference for the conda environment lib directories.
+In Linux and OS X, dynamic links are discovered in a similar manner to the way that Python modules are discovered via ``PYTHONPATH``, and executables are discovered via ``PATH``.  A list of search locations is made, then the library objects are searched for in the search locations.  By default, as well as by design, the system dynamic linker does not have any special preference for the conda environment ``lib`` directories.
 
 Both absolute links and relative links may be specified. If the links were absolute paths like ``/Users/jsmith/my_build_env`` then the library would only work on a system where that exact path exists. Therefore, relative links are preferred in conda packages.
 
