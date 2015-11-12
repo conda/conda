@@ -162,7 +162,7 @@ def rm_rf(path, max_retries=5, trash=True):
         if os.access(path, os.W_OK):
             os.unlink(path)
         else:
-            log.warn("WARNING: cannot remove, permission denied: %s" % path)
+            log.warn("Cannot remove, permission denied: {0}".format(path))
 
     elif isdir(path):
         for i in range(max_retries):
