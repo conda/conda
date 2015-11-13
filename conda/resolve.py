@@ -357,7 +357,13 @@ class Package(object):
         self.build_number = info['build_number']
         self.build = info['build']
         self.channel = info.get('channel')
-        self.norm_version = VersionOrder(self.version)
+        try:
+            self.norm_version = VersionOrder(self.version)
+        except ValueError as ve:
+            stderrlog.error("\nThe following stack trace is in reference to "
+                            "package:\n\n\t%s\n\n" % fn)
+            raise
+
         self.info = info
 
     def _asdict(self):
