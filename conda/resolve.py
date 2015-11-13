@@ -359,7 +359,7 @@ class Package(object):
         self.channel = info.get('channel')
         try:
             self.norm_version = VersionOrder(self.version)
-        except ValueError as ve:
+        except ValueError:
             stderrlog.error("\nThe following stack trace is in reference to "
                             "package:\n\n\t%s\n\n" % fn)
             raise
