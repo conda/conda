@@ -75,7 +75,7 @@ the default is 3.5.
 Create a Python 3.5 environment
 ````````````````````````````````
 
-To create a new environment with a different version of Python, use the :doc:``conda create`` command. In this example, we'll make the new environment for Python 3.5: 
+To create a new environment with a different version of Python, use the ``conda create`` command. In this example, we'll make the new environment for Python 3.5: 
 
 .. code-block:: bash
 
@@ -94,5 +94,20 @@ In this example, we'll make a new environment for Python 2.6:
 .. code-block:: bash
 
     $ conda create -n py26 python=2.6 anaconda
+
+Update or Upgrade Python
+------------------------
+
+If you are in an environment with Python version 3.4.2, this command will update Python to 3.4.3, which is the latest version in the 3.4 branch:
+
+.. code-block:: bash
+
+    $ conda update python
+
+And this command will upgrade Python to another branch such as 3.5 by installing that version of Python:
+
+.. code-block:: bash
+
+    $ conda install python=3.5
 
 Next, let's take a look at :doc:`r-and-r-essentials`.
