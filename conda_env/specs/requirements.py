@@ -1,4 +1,5 @@
 import os
+
 from .. import env
 
 
@@ -14,9 +15,6 @@ class RequirementsSpec(object):
         self.name = name
         self.msg = None
 
-    def can_handle(self):
-        return self._valid_file() and self._valid_name()
-
     def _valid_file(self):
         if os.path.exists(self.filename):
             return True
@@ -30,6 +28,9 @@ class RequirementsSpec(object):
             return False
         else:
             return True
+
+    def can_handle(self):
+        return self._valid_file() and self._valid_name()
 
     @property
     def environment(self):
