@@ -1,7 +1,9 @@
 import unittest
+
+from .. import utils
+
 from conda_env import env
 from conda_env.specs.requirements import RequirementsSpec
-from .. import utils
 
 
 class TestRequiremets(unittest.TestCase):
