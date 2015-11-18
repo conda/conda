@@ -121,7 +121,7 @@ class ArgumentParser(argparse.ArgumentParser):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.compile(r"invalid choice: '(\w+)'").match(exc.message)
+                m = re.compile(r"invalid choice: '([\w\-]+)'").match(exc.message)
                 if m:
                     cmd = m.group(1)
                     executable = find_executable('conda-' + cmd)
