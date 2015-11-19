@@ -24,6 +24,7 @@ examples:
     conda env create -n name
     conda env create vader/deathstar
     conda env create -f=/path/to/environment.yml
+    conda env create -f=/path/to/requirements.txt -n deathstar
 """
 
 
