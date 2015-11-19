@@ -14,7 +14,7 @@ from conda.resolve import NoPackagesFound, Package
 from conda import config
 
 descr = """Search for packages and display their information. The input is a
-Python regular expression.  To perform a search with a search string that starts 
+Python regular expression.  To perform a search with a search string that starts
 with a -, separate the search from the options with --, like 'conda search -- -h'.
 
 A * in the results means that package is installed in the current
