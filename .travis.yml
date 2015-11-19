@@ -17,7 +17,6 @@ install:
 script:
 - nosetests
 - conda env --help
-- python tests/cli.py
 sudo: false
 notifications:
   email: false
