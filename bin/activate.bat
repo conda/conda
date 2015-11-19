@@ -52,21 +52,24 @@ if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
 
     set CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;
     call set PATH=%%PATH:%CONDACTIVATE_PATH%=%%
+
+    REM Remove env name from PROMPT
+    for /F %%i in ("%CONDA_DEFAULT_ENV%") do set CONDA_OLD_ENV_NAME=%%~ni
+    call set PROMPT=%%PROMPT:[%CONDA_OLD_ENV_NAME%] =%%
+    set CONDA_OLD_ENV_NAME=
+
     set CONDA_DEFAULT_ENV=
     set CONDACTIVATE_PATH=
-    set PROMPT=%CONDA_OLD_PROMPT%
-    set CONDA_OLD_PROMPT=
 :skipdeactivate
 
 set CONDA_DEFAULT_ENV=%CONDA_NEW_PATH%
 echo Activating environment "%CONDA_DEFAULT_ENV%"...
 set PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;%PATH%
 IF "%CONDA_NEW_NAME%"=="" (
-   set PROMPT=$P$G
    REM Clear CONDA_DEFAULT_ENV so that this is truly a "root" environment, not an environment pointed at root
    set CONDA_DEFAULT_ENV=
    ) ELSE (
-   set PROMPT=[%CONDA_NEW_NAME%] $P$G
+   set PROMPT=[%CONDA_NEW_NAME%] %PROMPT%
 )
 set CONDA_NEW_NAME=
 set CONDA_NEW_PATH=
