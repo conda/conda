@@ -341,7 +341,10 @@ def mk_menus(prefix, files, remove=False):
 
     env_name = (None if abspath(prefix) == abspath(sys.prefix) else
                 basename(prefix))
-    env_setup_cmd = ("activate %s" % env_name) if env_name else None
+    # only windows is provided right now.  Add "source activate" if on Unix platforms
+    env_setup_cmd = "activate"
+    if env_name:
+        env_setup_cmd = env_setup_cmd + " %s" % env_name
     for f in menu_files:
         try:
             if menuinst.__version__.startswith('1.0'):
