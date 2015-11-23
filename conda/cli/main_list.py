@@ -207,11 +207,17 @@ def print_explicit(prefix, add_md5=False):
             continue
         with open(join(meta_dir, fn)) as fi:
             meta = json.load(fi)
-        if not meta.get('url'):
-            print('# no URL for: %s' % fn[:-5])
-            continue
+        url = meta.get('url')
+        if not url or url.startswith('file'):
+            # try to format the correct url
+            try:
+                url = '%s%s-%s-%s.tar.bz2' % (meta['channel'], meta['name'],
+                                              meta['version'], meta['build'])
+            except KeyError:
+                print('# no URL for: %s' % fn[:-5])
+                continue
         md5 = meta.get('md5')
-        print(meta['url'] + ('#%s' % md5 if add_md5 and md5 else ''))
+        print(url + ('#%s' % md5 if add_md5 and md5 else ''))
 
 
 def execute(args, parser):
