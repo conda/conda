@@ -73,7 +73,7 @@ def configure_parser(sub_parsers):
         help="Output only package names.",
     )
     common.add_parser_known(p)
-    common.add_parser_use_index_cache(p)
+    common.add_parser_no_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
         action="store_true",

@@ -19,9 +19,12 @@ import tempfile
 
 import conda
 from conda.compat import urlparse, StringIO
-from conda.config import get_proxy_servers, ssl_verify
+from conda.config import get_proxy_servers, ssl_verify, pkgs_dirs
 
 import requests
+from cachecontrol.heuristics import OneDayCache
+from cachecontrol.caches import FileCache
+from cachecontrol.adapter import CacheControlAdapter
 
 RETRIES = 3
 
@@ -83,6 +86,18 @@ class CondaSession(requests.Session):
                           conda.__version__, self.headers['User-Agent'])
 
         self.verify = ssl_verify
+
+        self._repodata_adapter = CacheControlAdapter(
+            cache=FileCache(os.path.join(pkgs_dirs[0], 'cache')),
+            cache_etags=True,
+            heuristic=OneDayCache(),
+            max_retries=retries)
+
+    def get_adapter(self, url):
+        if (url.startswith('http://') or url.startswith('https://')) and url.endswith('repodata.json.bz2'):
+            return self._repodata_adapter
+        return super(CondaSession, self).get_adapter(url)
+
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
