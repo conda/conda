@@ -42,9 +42,7 @@ environment:
       PYTHON_ARCH: "64"
 
 install:
-  # Install Python (from the official .msi of http://python.org) and pip when
-  # not already installed.
-  - "powershell ./tools/appveyor/install.ps1"
+  - "powershell ./utils/install.ps1"
   - "set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
   - "conda config --set always_yes yes"
   - "conda install --force --no-deps conda requests"
@@ -56,7 +54,7 @@ install:
   - "python setup.py install"
 
 
-# Not a .NET project, we build scikit-image in the install step instead
+# Not a .NET project, we build conda in the install step instead
 build: false
 
 test_script:
