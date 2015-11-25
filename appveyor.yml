@@ -43,7 +43,7 @@ environment:
 
 install:
   - "powershell ./utils/install.ps1"
-  - "set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
+  - "set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%"
   - "conda config --set always_yes yes"
   - "conda install --force --no-deps conda requests"
   - "conda --version"
