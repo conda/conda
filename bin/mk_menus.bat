@@ -4,7 +4,7 @@
 REM Menu installation needs to be always done with the root python for sake
 REM    of correct menu grouping
 
-set "PYTHON=%~dp0..\python.exe"
+set "PYTHON=%~dp0..\pythonw.exe"
 set "SCRIPT=install_menu.py"
 set "PREFIX=%~1"
 set "FORWARD_SLASHED_PREFIX=%PREFIX:\=/%"
