@@ -42,22 +42,25 @@ call :install_system_menu "%PYTHON%" "%SCRIPT%" & goto finish
     VER | FINDSTR /IL "4." > NUL
     IF %ERRORLEVEL% == 0 SET NewOSWith_UAC=NO
 
+    set "PYTHON=%~1"
+    set "SCRIPT=%~2"
+
     REM Test if Admin
     CALL NET SESSION >nul 2>&1
     IF NOT %ERRORLEVEL% == 0 (
 
-    set "PYTHON=%~1"
-    set "SCRIPT=%~2"
     if /i "%NewOSWith_UAC%"=="YES" (
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    :: Should unquote the path, so extra ""'s don't mess things up
     echo UAC.ShellExecute "%PYTHON%", "%SCRIPT%", "", "runas", 1 >> "%temp%\getadmin.vbs"
     "%SystemRoot%\System32\WScript.exe" "%temp%\getadmin.vbs"
     del "%temp%\getadmin.vbs"
+    )
+    ) else (
+    REM   Already elevated.  Just run the script.
+    "%PYTHON%" "%SCRIPT%"
+    )
+
     del "%SCRIPT%"
-    exit /B
-    )
-    )
     goto :eof
 
 :finish
