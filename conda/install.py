@@ -332,13 +332,6 @@ def mk_menus(prefix, files, remove=False):
                      "Skipping menu installation.")
         return
 
-    try:
-        import menuinst
-    except:
-        logging.warn("Menuinst could not be imported:")
-        logging.warn(traceback.format_exc())
-        return
-
     remove_or_install = "REMOVE" if remove else "INSTALL"
     for f in menu_files:
         try:
