@@ -42,6 +42,7 @@ kwds = {'scripts': []}
 if sys.platform == 'win32' and using_setuptools:
     kwds['entry_points'] = dict(console_scripts =
                                         ["conda = conda.cli.main:main"])
+    kwds['scripts'].append('bin/mk_menus.bat')
 else:
     kwds['scripts'].append('bin/conda')
 
