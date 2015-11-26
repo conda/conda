@@ -227,11 +227,11 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         mocks['unlink'].assert_called_with(some_path)
 
     @skip_if_no_mock
-    def test_does_not_call_unlink_on_os_access_false(self):
+    def test_calls_unlink_on_os_access_false(self):
         with self.generate_mocks(os_access=False) as mocks:
             some_path = self.generate_random_path
             install.rm_rf(some_path)
-        self.assertFalse(mocks['unlink'].called)
+        mocks['unlink'].assert_called_with(some_path)
 
     @skip_if_no_mock
     def test_does_not_call_isfile_if_islink_is_true(self):
