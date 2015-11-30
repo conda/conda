@@ -52,7 +52,7 @@ install:
   # Check that we have the expected version and architecture for Python
   - "python --version"
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
-  - "CONDA_DEFAULT_ENV='' python setup.py install"
+  - "set CONDA_DEFAULT_ENV='' & python setup.py install"
 
 
 # Not a .NET project, we build conda in the install step instead
