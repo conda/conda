@@ -45,14 +45,14 @@ install:
   - "powershell ./utils/install.ps1"
   - "set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%"
   - "conda config --set always_yes yes"
-  - "conda install --force --no-deps conda requests"
+  - "conda install --force --no-deps conda requests python=%PYTHON_VERSION%"
+  - "conda update --all"
   - "conda --version"
-  - "conda create -n conda_test -c conda pytest jinja2 requests mock pycrypto pyflakes python=%PYTHON_VERSION%"
-  - "activate conda_test"
+  - "conda install -c conda pytest requests mock pycrypto pyflakes" 
   # Check that we have the expected version and architecture for Python
   - "python --version"
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
-  - "set CONDA_DEFAULT_ENV='' & python setup.py install"
+  - "python setup.py install"
 
 
 # Not a .NET project, we build conda in the install step instead
