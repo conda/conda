@@ -38,7 +38,6 @@ import subprocess
 import sys
 import tarfile
 import time
-import traceback
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
 
 try:
@@ -332,28 +331,13 @@ def mk_menus(prefix, files, remove=False):
                      "Skipping menu installation.")
         return
 
-    try:
-        import menuinst
-    except:
-        logging.warn("Menuinst could not be imported:")
-        logging.warn(traceback.format_exc())
-        return
-
-    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
-                basename(prefix))
-    env_setup_cmd = ("activate %s" % env_name) if env_name else None
+    remove_or_install = "REMOVE" if remove else "INSTALL"
     for f in menu_files:
         try:
-            if menuinst.__version__.startswith('1.0'):
-                menuinst.install(join(prefix, f), remove, prefix)
-            else:
-                menuinst.install(join(prefix, f), remove,
-                                 root_prefix=sys.prefix,
-                                 target_prefix=prefix, env_name=env_name,
-                                 env_setup_cmd=env_setup_cmd)
-        except:
-            stdoutlog.error("menuinst Exception:")
-            stdoutlog.error(traceback.format_exc())
+            subprocess.check_call([join(sys.prefix, "Scripts", "mk_menus.bat"), prefix, f, remove_or_install])
+        except subprocess.CalledProcessError:
+            print("Failed to %s menu %s" % (remove_or_install.lower(), f))
+            print('To try again, run "%s" "%s" "%s" %s' % (join(sys.prefix, "Scripts", "mk_menus.bat"), prefix, f, remove_or_install))
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
