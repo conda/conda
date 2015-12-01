@@ -1,3 +1,8 @@
+2015-12-XX   3.18.7:
+--------------------
+  * add ROOT_PREFIX to post-link (and pre_unlink) environment
+
+
 2015-11-19   3.18.6:
 --------------------
   * improve conda clean when user lacks permissions, #1807
