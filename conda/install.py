@@ -375,6 +375,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     else:
         args = ['/bin/bash', path]
     env = os.environ
+    env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
     env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
                 str(dist).rsplit('-', 2)
