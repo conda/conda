@@ -1,6 +1,8 @@
 2015-12-XX   3.18.7:
 --------------------
   * add ROOT_PREFIX to post-link (and pre_unlink) environment
+  * simplify call to menuinst.install()
+  * add menuinst as dependency on Windows
 
 
 2015-11-19   3.18.6:
