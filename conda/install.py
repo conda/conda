@@ -339,18 +339,9 @@ def mk_menus(prefix, files, remove=False):
         logging.warn(traceback.format_exc())
         return
 
-    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
-                basename(prefix))
-    env_setup_cmd = ("activate %s" % env_name) if env_name else None
     for f in menu_files:
         try:
-            if menuinst.__version__.startswith('1.0'):
-                menuinst.install(join(prefix, f), remove, prefix)
-            else:
-                menuinst.install(join(prefix, f), remove,
-                                 root_prefix=sys.prefix,
-                                 target_prefix=prefix, env_name=env_name,
-                                 env_setup_cmd=env_setup_cmd)
+            menuinst.install(join(prefix, f), remove, prefix)
         except:
             stdoutlog.error("menuinst Exception:")
             stdoutlog.error(traceback.format_exc())
