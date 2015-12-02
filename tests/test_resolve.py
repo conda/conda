@@ -135,6 +135,11 @@ class TestVersionSpec(unittest.TestCase):
 
         self.assertEqual(version, sorted(version))
 
+    def test_hexrd(self):
+        VERSIONS = ['0.3.0.dev', '0.3.3']
+        vos = [VersionOrder(v) for v in VERSIONS]
+        self.assertEqual(sorted(vos), vos)
+
     def test_ver_eval(self):
         self.assertEqual(ver_eval('1.7.0', '==1.7'), True)
         self.assertEqual(ver_eval('1.7.0', '<=1.7'), True)
