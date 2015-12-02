@@ -1,3 +1,8 @@
+2015-12-XX   3.18.8:
+--------------------
+  * always attempt to delete files in rm_rf, #1864
+
+
 2015-12-02   3.18.7:
 --------------------
   * simplify call to menuinst.install()
