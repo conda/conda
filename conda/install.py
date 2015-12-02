@@ -159,9 +159,9 @@ def rm_rf(path, max_retries=5, trash=True):
         # Note that we have to check if the destination is a link because
         # exists('/path/to/dead-link') will return False, although
         # islink('/path/to/dead-link') is True.
-        if os.access(path, os.W_OK):
+        try:
             os.unlink(path)
-        else:
+        except (OSError, IOError):
             log.warn("Cannot remove, permission denied: {0}".format(path))
 
     elif isdir(path):
