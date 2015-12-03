@@ -1,4 +1,4 @@
-2015-12-XX   3.18.8:
+2015-12-03   3.18.8:
 --------------------
   * always attempt to delete files in rm_rf, #1864
 
