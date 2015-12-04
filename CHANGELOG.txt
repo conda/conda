@@ -1,3 +1,9 @@
+2015-XX-XX   3.18.9:
+--------------------
+  * allow chaning default_channels (only applies to "system" condarc), from
+    from CLI, #1886
+
+
 2015-12-03   3.18.8:
 --------------------
   * always attempt to delete files in rm_rf, #1864
