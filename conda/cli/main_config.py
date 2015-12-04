@@ -300,6 +300,8 @@ channels:
         if not isinstance(rc_config.get(key, []), list):
             raise CouldntParse("key %r should be a list, not %s." % (key,
                 rc_config[key].__class__.__name__))
+        if key == 'default_channels' and rc_path != config.sys_rc_path:
+            raise NotImplementedError("'default_channels' is only configurable for system installs")
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
             message = "Skipping %s: %s, item already exists" % (key, item)
