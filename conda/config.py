@@ -60,7 +60,8 @@ rc_list_keys = [
     'disallow',
     'create_default_packages',
     'track_features',
-    'envs_dirs'
+    'envs_dirs',
+    'default_channels'
     ]
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
