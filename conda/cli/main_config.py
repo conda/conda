@@ -33,7 +33,6 @@ List keys, like
 
   channels:
     - conda
-
     - defaults
 
 are modified with the --add and --remove options. For example
@@ -44,9 +43,7 @@ on the above configuration would prepend the key 'r', giving
 
     channels:
       - r
-
       - conda
-
       - defaults
 
 Note that the key 'channels' implicitly contains the key 'defaults' if it has
