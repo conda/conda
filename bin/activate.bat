@@ -7,6 +7,9 @@ IF "%CONDA_ENVS_PATH%" == "" (
     CALL :NORMALIZEPATH CONDA_ENVS_PATH "%~dp0..\envs"
 )
 
+REM Used for deactivate, to make sure we restore original state after deactivation
+IF "%CONDA_PATH_BACKUP%" == "" (SET "CONDA_PATH_BACKUP=%PATH%")
+
 set "CONDA_NEW_NAME=%~1"
 
 IF "%~2" == "" GOTO skiptoomanyargs
@@ -35,6 +38,9 @@ IF EXIST "%CONDA_NEW_NAME%\conda-meta" (
 
 :found_env
 
+SET "SCRIPT_PATH=%~dp0"
+IF "%SCRIPT_PATH:~-1%"=="\" SET "SCRIPT_PATH=%SCRIPT_PATH:~0,-1%"
+
 REM Set CONDA_NEW_NAME to the last folder name in its path
 FOR /F "tokens=* delims=\" %%i IN ("%CONDA_NEW_PATH%") DO SET "CONDA_NEW_NAME=%%~ni"
 
@@ -60,8 +66,10 @@ IF "%CONDA_DEFAULT_ENV%" == "" GOTO skipdeactivate
     FOR /F "tokens=* delims=\" %%i IN ("%CONDA_DEFAULT_ENV%") DO SET "CONDA_OLD_ENV_NAME=%%~ni"
     call set PROMPT=%%PROMPT:[%CONDA_OLD_ENV_NAME%] =%%
 
-    SET "CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;"
+    SET "CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin"
     CALL SET "PATH=%%PATH:%CONDACTIVATE_PATH%=%%"
+    REM Trim trailing semicolon, if any
+    IF "%PATH:~-1%"==";" SET "PATH=%PATH:~0,-1%"
     SET CONDA_DEFAULT_ENV=
 :skipdeactivate
 
@@ -77,8 +85,8 @@ IF "%CONDA_NEW_NAME%"=="" (
 )
 
 REM Make sure that root's Scripts dir is on PATH, for sake of keeping activate/deactivate available.
-CALL SET "PATH_NO_SCRIPTS=%%PATH:%~dp0;=%%"
-IF "%PATH_NO_SCRIPTS%"=="%PATH%" SET "PATH=%PATH%;%~dp0;"
+CALL SET "PATH_NO_SCRIPTS=%%PATH:%SCRIPT_PATH%=%%"
+IF "%PATH_NO_SCRIPTS%"=="%PATH%" SET "PATH=%PATH%;%SCRIPT_PATH%"
 
 REM Run any activate scripts
 IF NOT EXIST "%CONDA_DEFAULT_ENV%\etc\conda\activate.d" GOTO noactivate
@@ -91,6 +99,7 @@ ENDLOCAL & (
     SET "PATH=%PATH%"
     SET "PROMPT=%PROMPT%"
     SET "CONDA_DEFAULT_ENV=%CONDA_DEFAULT_ENV%"
+    SET "CONDA_PATH_BACKUP=%CONDA_PATH_BACKUP%"
 )
 
 EXIT /B
