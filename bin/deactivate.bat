@@ -9,14 +9,19 @@ IF "%1" == "" GOTO skipmissingarg
     EXIT /b 1
 :skipmissingarg
 
-REM special case for root env:
-REM   Checks for Library\bin on PATH.  If exists, we have root env on PATH.
-call :NORMALIZEPATH ROOT_PATH "%~dp0.."
-CALL SET "PATH_NO_ROOT=%%PATH:%ROOT_PATH%;=%%"
-IF NOT "%PATH_NO_ROOT%"=="%PATH%" SET "CONDA_DEFAULT_ENV=%ROOT_PATH%"
+IF "%CONDA_DEFAULT_ENV%"=="" (
+    REM special case for root env:
+    REM   Checks for Library\bin on PATH.  If exists, we have root env on PATH.
+    call :NORMALIZEPATH ROOT_PATH "%~dp0.."
+    CALL SET "PATH_NO_ROOT=%%PATH:%ROOT_PATH%;=%%"
+    IF NOT "%PATH_NO_ROOT%"=="%PATH%" SET "CONDA_DEFAULT_ENV=%ROOT_PATH%"
+)
+
+SET "SCRIPT_PATH=%~dp0"
+IF "%SCRIPT_PATH:~-1%"=="\" SET "SCRIPT_PATH=%SCRIPT_PATH:~0,-1%"
 
 REM Deactivate a previous activation if it is live
-IF "%CONDA_DEFAULT_ENV%" == "" GOTO skipdeactivate
+IF "%CONDA_PATH_BACKUP%" == "" GOTO skipdeactivate
     REM This search/replace removes the previous env from the path
     ECHO Deactivating environment "%CONDA_DEFAULT_ENV%"...
 
@@ -29,20 +34,21 @@ IF "%CONDA_DEFAULT_ENV%" == "" GOTO skipdeactivate
 
     REM Remove env name from PROMPT
     FOR /F "tokens=* delims=\" %%i IN ("%CONDA_DEFAULT_ENV%") DO SET "CONDA_OLD_ENV_NAME=%%~ni"
-    call set PROMPT=%%PROMPT:[%CONDA_OLD_ENV_NAME%] =%%
+    CALL SET PROMPT=%%PROMPT:[%CONDA_OLD_ENV_NAME%] =%%
 
-    SET "CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin;"
-    CALL SET "PATH=%%PATH:%CONDACTIVATE_PATH%=%%"
+    REM CONDA_PATH_BACKUP is set in activate.bat
+    CALL SET "PATH=%CONDA_PATH_BACKUP%"
 :skipdeactivate
 
 REM Make sure that root's Scripts dir is on PATH, for sake of keeping activate/deactivate available.
-CALL SET "PATH_NO_SCRIPTS=%%PATH:%~dp0;=%%"
-IF "%PATH_NO_SCRIPTS%"=="%PATH%" SET "PATH=%PATH%;%~dp0;"
+CALL SET "PATH_NO_SCRIPTS=%%PATH:%SCRIPT_PATH%=%%"
+IF "%PATH_NO_SCRIPTS%"=="%PATH%" SET "PATH=%PATH%;%SCRIPT_PATH%"
 
 ENDLOCAL & (
     SET "PATH=%PATH%"
     SET "PROMPT=%PROMPT%"
     SET CONDA_DEFAULT_ENV=
+    SET CONDA_PATH_BACKUP=
 )
 
 EXIT /B
