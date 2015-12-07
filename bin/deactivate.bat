@@ -1,12 +1,12 @@
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 
-if "%1" == "" goto skipmissingarg
-    echo Usage: deactivate
-    echo.
-    echo Deactivates previously activated Conda
-    echo environment.
-    exit /b 1
+IF "%1" == "" GOTO skipmissingarg
+    ECHO Usage: deactivate
+    ECHO.
+    ECHO Deactivates previously activated Conda
+    ECHO environment.
+    EXIT /b 1
 :skipmissingarg
 
 REM special case for root env:
@@ -16,15 +16,15 @@ CALL SET "PATH_NO_ROOT=%%PATH:%ROOT_PATH%;=%%"
 IF NOT "%PATH_NO_ROOT%"=="%PATH%" SET "CONDA_DEFAULT_ENV=%ROOT_PATH%"
 
 REM Deactivate a previous activation if it is live
-if "%CONDA_DEFAULT_ENV%" == "" goto skipdeactivate
+IF "%CONDA_DEFAULT_ENV%" == "" GOTO skipdeactivate
     REM This search/replace removes the previous env from the path
-    echo Deactivating environment "%CONDA_DEFAULT_ENV%"...
+    ECHO Deactivating environment "%CONDA_DEFAULT_ENV%"...
 
     REM Run any deactivate scripts
-    if not exist "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d" goto nodeactivate
-        pushd "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d"
-        for %%g in (*.bat) do call "%%g"
-        popd
+    IF NOT EXIST "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d" GOTO nodeactivate
+        PUSHD "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d"
+        FOR %%g IN (*.bat) DO CALL "%%g"
+        POPD
     :nodeactivate
 
     REM Remove env name from PROMPT
