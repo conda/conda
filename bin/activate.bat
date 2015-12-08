@@ -68,8 +68,6 @@ IF "%CONDA_DEFAULT_ENV%" == "" GOTO skipdeactivate
 
     SET "CONDACTIVATE_PATH=%CONDA_DEFAULT_ENV%;%CONDA_DEFAULT_ENV%\Scripts;%CONDA_DEFAULT_ENV%\Library\bin"
     CALL SET "PATH=%%PATH:%CONDACTIVATE_PATH%=%%"
-    REM Trim trailing semicolon, if any
-    IF "%PATH:~-1%"==";" SET "PATH=%PATH:~0,-1%"
     SET CONDA_DEFAULT_ENV=
 :skipdeactivate
 
@@ -94,6 +92,12 @@ IF NOT EXIST "%CONDA_DEFAULT_ENV%\etc\conda\activate.d" GOTO noactivate
     FOR %%g IN (*.bat) DO CALL "%%g"
     POPD
 :noactivate
+
+REM Trim trailing semicolon, if any
+IF "%PATH:~-1%"==";" SET "PATH=%PATH:~0,-1%"
+
+REM Clean up any double colons we may have ended up with
+SET "PATH=%PATH:;;=;%"
 
 ENDLOCAL & (
     SET "PATH=%PATH%"
