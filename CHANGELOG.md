@@ -5,6 +5,13 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v 2.4.5 (12/08/15)
+
+- Store quiet arg as True (default to False) (@faph, #201)
+- Initial support for requirements.txt as env spec (@malev, #203)
+- Fix PROMPT reverting to $P$G default (@tadeu, #208)
+- Fix activation behavior on Win (keep root Scripts dir on PATH); improve behavior with paths containing spaces (@msarahan, #212)
+
 #### v2.4.4 (10/26/15)
 
 - Change environment's versions when uploading. (@ijstokes, #191)
