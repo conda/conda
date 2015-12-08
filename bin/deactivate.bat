@@ -44,6 +44,12 @@ REM Make sure that root's Scripts dir is on PATH, for sake of keeping activate/d
 CALL SET "PATH_NO_SCRIPTS=%%PATH:%SCRIPT_PATH%=%%"
 IF "%PATH_NO_SCRIPTS%"=="%PATH%" SET "PATH=%PATH%;%SCRIPT_PATH%"
 
+REM Trim trailing semicolon, if any
+IF "%PATH:~-1%"==";" SET "PATH=%PATH:~0,-1%"
+
+REM Clean up any double colons we may have ended up with
+SET "PATH=%PATH:;;=;%"
+
 ENDLOCAL & (
     SET "PATH=%PATH%"
     SET "PROMPT=%PROMPT%"
