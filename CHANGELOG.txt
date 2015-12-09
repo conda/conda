@@ -1,7 +1,8 @@
-2015-XX-XX   3.18.9:
+2015-12-XX   3.18.9:
 --------------------
   * allow chaning default_channels (only applies to "system" condarc), from
     from CLI, #1886
+  * improve default for --show-channel-urls in conda list, #1900
 
 
 2015-12-03   3.18.8:
