@@ -321,8 +321,7 @@ def add_parser_show_channel_urls(p):
         "--no-show-channel-urls",
         action="store_false",
         dest="show_channel_urls",
-        default=not config.show_channel_urls,
-        help="Don't show channel urls (default: %(default)s).",
+        help="Don't show channel urls.",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):
