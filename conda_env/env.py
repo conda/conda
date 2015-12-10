@@ -70,21 +70,7 @@ def from_file(filename, selectors=None):
 
 
 def ns_cfg(selectors=None):
-    plat = sys.platform
-    arch = platform.architecture()
-    d = dict(
-        linux=plat.startswith('linux'),
-        linux32=plat.startswith('linux') and '32' in arch,
-        linux64=plat.startswith('linux') and '64' in arch,
-        osx=plat.startswith('darwin'),
-        win=plat.startswith('win32'),
-        win32=plat.startswith('win32') and '32' in arch,
-        win64=plat.startswith('win32') and '64' in arch,
-        unix=plat.startswith(('linux', 'darwin')),
-        os=os,
-        environ=os.environ,
-    )
-    d.update(os.environ)
+    d = dict()
     if selectors and len(selectors) > 0:
         selector_dict = dict((selector, True) for selector in selectors)
         d.update(selector_dict)
