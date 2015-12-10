@@ -790,9 +790,14 @@ def main():
             p.error('no arguments expected')
     else:
         if len(args) == 1:
-            dist = basename(args[0])
-            if dist.endswith('.tar.bz2'):
-                dist = dist[:-8]
+            path = args[0]
+            if path.endswith('.txt'):
+                dists = list(yield_lines(path))
+            else:
+                dist = basename(path)
+                if dist.endswith('.tar.bz2'):
+                    dist = dist[:-8]
+                dists = [dist]
         else:
             p.error('exactly one argument expected')
 
