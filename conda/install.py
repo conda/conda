@@ -740,29 +740,15 @@ def messages(prefix):
 
 
 def main():
-    from pprint import pprint
     from optparse import OptionParser
 
     p = OptionParser(
         usage="usage: %prog [options] [TARBALL/NAME]",
-        description="low-level conda install tool, by default extracts "
-                    "(if necessary) and links a TARBALL")
+        description="low-level conda link tool, by default links a TARBALL")
 
-    p.add_option('-l', '--list',
+    p.add_option('--link-all',
                  action="store_true",
-                 help="list all linked packages")
-
-    p.add_option('--extract',
-                 action="store_true",
-                 help="extract package in pkgs cache")
-
-    p.add_option('--link',
-                 action="store_true",
-                 help="link a package")
-
-    p.add_option('--unlink',
-                 action="store_true",
-                 help="unlink a package")
+                 help="link all extracted packages")
 
     p.add_option('-p', '--prefix',
                  action="store",
@@ -774,10 +760,6 @@ def main():
                  default=join(sys.prefix, 'pkgs'),
                  help="packages directory (defaults to %default)")
 
-    p.add_option('--link-all',
-                 action="store_true",
-                 help="link all extracted packages")
-
     p.add_option('-v', '--verbose',
                  action="store_true")
 
@@ -785,55 +767,37 @@ def main():
 
     logging.basicConfig()
 
-    if opts.list or opts.extract or opts.link_all:
-        if args:
-            p.error('no arguments expected')
-    else:
-        if len(args) == 1:
-            path = args[0]
-            if path.endswith('.txt'):
-                dists = list(yield_lines(path))
-            else:
-                dist = basename(path)
-                if dist.endswith('.tar.bz2'):
-                    dist = dist[:-8]
-                dists = [dist]
-        else:
-            p.error('exactly one argument expected')
-
     pkgs_dir = opts.pkgs_dir
     prefix = opts.prefix
     if opts.verbose:
         print("pkgs_dir: %r" % pkgs_dir)
         print("prefix  : %r" % prefix)
 
-    if opts.list:
-        pprint(sorted(linked(prefix)))
-
-    elif opts.link_all:
+    if opts.link_all:
+        if args:
+            p.error('no arguments expected')
         dists = sorted(extracted(pkgs_dir))
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dists[0]) else
-                    LINK_COPY)
-        if opts.verbose or linktype == LINK_COPY:
-            print("linktype: %s" % link_name_map[linktype])
-        for dist in dists:
-            if opts.verbose or linktype == LINK_COPY:
-                print("linking: %s" % dist)
-            link(pkgs_dir, prefix, dist, linktype)
-        messages(prefix)
+    else:
+        if len(args) != 1:
+            p.error('exactly one argument expected')
+        path = args[0]
+        if path.endswith('.txt'):
+            dists = list(yield_lines(path))
+        else:
+            dist = basename(path)
+            if dist.endswith('.tar.bz2'):
+                dist = dist[:-8]
+            dists = [dist]
 
-    elif opts.extract:
-        extract(pkgs_dir, dist)
+    linktype = (LINK_HARD
+                if try_hard_link(pkgs_dir, prefix, dists[0]) else
+                LINK_COPY)
+    if opts.verbose:
+        print("linktype: %s" % link_name_map[linktype])
 
-    elif opts.link:
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dist) else
-                    LINK_COPY)
+    for dist in dists:
         link(pkgs_dir, prefix, dist, linktype)
-
-    elif opts.unlink:
-        unlink(prefix, dist)
+    messages(prefix)
 
 
 if __name__ == '__main__':
