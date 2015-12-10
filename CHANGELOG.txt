@@ -1,4 +1,4 @@
-2015-12-XX   3.18.9:
+2015-12-10   3.18.9:
 --------------------
   * allow chaning default_channels (only applies to "system" condarc), from
     from CLI, #1886
