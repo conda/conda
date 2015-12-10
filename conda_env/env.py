@@ -2,6 +2,9 @@ from __future__ import absolute_import, print_function
 from collections import OrderedDict
 from copy import copy
 import os
+import re
+import sys
+import platform
 
 # TODO This should never have to import from conda.cli
 from conda.cli import common
@@ -58,11 +61,67 @@ def from_yaml(yamlstr, **kwargs):
     return Environment(**data)
 
 
-def from_file(filename):
+def from_file(filename, selectors=None):
     if not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
-    with open(filename, 'rb') as fp:
-        return from_yaml(fp.read(), filename=filename)
+    with open(filename, 'r') as fp:
+        filtered_yamlstr = select_lines(fp.read(), filename, selectors)
+        return from_yaml(filtered_yamlstr, filename=filename)
+
+
+def ns_cfg(selectors=None):
+    plat = sys.platform
+    arch = platform.architecture()
+    d = dict(
+        linux=plat.startswith('linux'),
+        linux32=plat.startswith('linux') and '32' in arch,
+        linux64=plat.startswith('linux') and '64' in arch,
+        osx=plat.startswith('darwin'),
+        win=plat.startswith('win32'),
+        win32=plat.startswith('win32') and '32' in arch,
+        win64=plat.startswith('win32') and '64' in arch,
+        unix=plat.startswith(('linux', 'darwin')),
+        os=os,
+        environ=os.environ,
+    )
+    d.update(os.environ)
+    if selectors and len(selectors) > 0:
+        selector_dict = dict((selector, True) for selector in selectors)
+        d.update(selector_dict)
+    return d
+
+
+sel_pat = re.compile(r'(.+?)\s*(#.*)?\[(.+)\](?(2).*)$')
+def select_lines(yamlstr, filename, selectors=None):
+    if selectors and len(selectors) == 1 and selectors[0] == "all":
+        return yamlstr
+    namespace = ns_cfg(selectors)
+    lines = []
+    orig_lines = yamlstr.splitlines()
+    for i, line in enumerate(orig_lines):
+        line = line.rstrip()
+        if line.lstrip().startswith('#'):
+            continue  # Don't bother with comment only lines
+        m = sel_pat.match(line)
+        if m:
+            # condition found, eval it
+            cond = m.group(3)
+            try:
+                if eval(cond, namespace, {}):
+                    lines.append(orig_lines[i])
+            except NameError:
+                continue  # if a selector is undefined, that equates to False
+            except Exception as e:
+                sys.exit('''\
+Error: Invalid selector in %s line %d:
+%s
+''' % (filename, i + 1, line))
+            continue
+        else:
+            # no condition
+            lines.append(line)
+    return '\n'.join(lines) + '\n'
+
 
 
 # TODO test explicitly

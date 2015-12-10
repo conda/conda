@@ -1,0 +1,6 @@
+name: selectors
+dependencies:
+  - python
+  - pytest  # [test]
+  - sphinx  # [docs]
+  - doctest  # [test and docs]
