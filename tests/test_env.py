@@ -43,6 +43,42 @@ class from_file_TestCase(unittest.TestCase):
         self.assert_('foo' in e.dependencies['pip'])
         self.assert_('baz' in e.dependencies['pip'])
 
+    def test_with_selectors(self):
+        e = env.from_file(utils.support_file('selectors.yml'))
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' not in e.dependencies['conda'])
+        self.assert_('sphinx' not in e.dependencies['conda'])
+        self.assert_('doctest' not in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['test'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' in e.dependencies['conda'])
+        self.assert_('sphinx' not in e.dependencies['conda'])
+        self.assert_('doctest' not in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['docs'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' not in e.dependencies['conda'])
+        self.assert_('sphinx' in e.dependencies['conda'])
+        self.assert_('doctest' not in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['docs', 'test'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' in e.dependencies['conda'])
+        self.assert_('sphinx' in e.dependencies['conda'])
+        self.assert_('doctest' in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['all'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' in e.dependencies['conda'])
+        self.assert_('sphinx' in e.dependencies['conda'])
+        self.assert_('doctest' in e.dependencies['conda'])
+
 
 class EnvironmentTestCase(unittest.TestCase):
     def test_has_empty_filename_by_default(self):
