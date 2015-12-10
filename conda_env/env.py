@@ -4,7 +4,6 @@ from copy import copy
 import os
 import re
 import sys
-import platform
 
 # TODO This should never have to import from conda.cli
 from conda.cli import common
