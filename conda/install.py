@@ -763,7 +763,7 @@ def duplicates_to_remove(linked_dists, keep_dists):
             res.update(dists - keep_dists)
         else:
             # otherwise, we take lowest (n-1) (sorted) packages
-            res.update(set(sorted(dists)[:-1]))
+            res.update(sorted(dists)[:-1])
     return sorted(res)
 
 
