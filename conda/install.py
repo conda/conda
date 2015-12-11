@@ -742,52 +742,31 @@ def messages(prefix):
 def main():
     from optparse import OptionParser
 
-    p = OptionParser(
-        usage="usage: %prog [options] [TARBALL/NAME]",
-        description="low-level conda link tool, by default links a TARBALL")
-
-    p.add_option('--link-all',
-                 action="store_true",
-                 help="link all extracted packages")
+    p = OptionParser(description="conda link tool used by installer")
 
     p.add_option('-p', '--prefix',
                  action="store",
                  default=sys.prefix,
                  help="prefix (defaults to %default)")
 
-    p.add_option('--pkgs-dir',
-                 action="store",
-                 default=join(sys.prefix, 'pkgs'),
-                 help="packages directory (defaults to %default)")
-
     p.add_option('-v', '--verbose',
                  action="store_true")
 
     opts, args = p.parse_args()
+    if args:
+        p.error('no arguments expected')
 
     logging.basicConfig()
 
-    pkgs_dir = opts.pkgs_dir
     prefix = opts.prefix
+    pkgs_dir = join(prefix, 'pkgs')
     if opts.verbose:
-        print("pkgs_dir: %r" % pkgs_dir)
-        print("prefix  : %r" % prefix)
+        print("prefix: %r" % prefix)
 
-    if opts.link_all:
-        if args:
-            p.error('no arguments expected')
-        dists = sorted(extracted(pkgs_dir))
-    else:
-        if len(args) != 1:
-            p.error('exactly one argument expected')
-        path = args[0]
-        if path.endswith('.txt'):
-            dists = list(yield_lines(path))
-        else:
-            dist = basename(path)
-            if dist.endswith('.tar.bz2'):
-                dist = dist[:-8]
-            dists = [dist]
+    inex_path = join(pkgs_dir, '.inex.txt')
+    dists = list(yield_lines(inex_path))
+    if len(dists) == 0:
+        sys.exit("Error: no distributions in %s" % inex_path)
 
     linktype = (LINK_HARD
                 if try_hard_link(pkgs_dir, prefix, dists[0]) else
@@ -796,7 +775,10 @@ def main():
         print("linktype: %s" % link_name_map[linktype])
 
     for dist in dists:
+        if opts.verbose:
+            print("linking: %s" % dist)
         link(pkgs_dir, prefix, dist, linktype)
+
     messages(prefix)
 
 
