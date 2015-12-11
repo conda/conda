@@ -775,7 +775,14 @@ def main():
 
     p = OptionParser(description="conda link tool used by installer")
 
-    p.add_option('-p', '--prefix',
+    p.add_option('--file',
+                 action="store",
+                 default=sys.prefix,
+                 help="path of a file containing distributions to link, "
+                      "by default all packages extracted in the cache are "
+                      "linked")
+
+    p.add_option('--prefix',
                  action="store",
                  default=sys.prefix,
                  help="prefix (defaults to %default)")
@@ -794,7 +801,11 @@ def main():
     if opts.verbose:
         print("prefix: %r" % prefix)
 
-    idists = list(yield_lines(join(pkgs_dir, '.idists.txt')))
+    if opts.file:
+        idists = list(yield_lines(opts.file))
+    else:
+        idists = extracted(pkgs_dir)
+
     linktype = (LINK_HARD
                 if try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
