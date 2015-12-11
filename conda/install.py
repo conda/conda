@@ -737,6 +737,11 @@ def messages(prefix):
 
 
 def duplicates_to_remove(linked_dists, keep_dists):
+    """
+    Returns the (sorted) list of distributions to be removed, such that
+    only one distribution (for each name) remains.  `keep_dists` is an
+    interable of distributions (which are not allowed to be removed).
+    """
     from collections import defaultdict
 
     keep_dists = set(keep_dists)
@@ -752,9 +757,8 @@ def duplicates_to_remove(linked_dists, keep_dists):
         if dists & keep_dists:
             res.update(dists - keep_dists)
         else:
-            dists.pop()
-            res.update(dists)
-    return res
+            res.update(set(sorted(dists)[:-1]))
+    return sorted(res)
 
 
 # =========================== end API functions ==========================
