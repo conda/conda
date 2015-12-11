@@ -736,6 +736,27 @@ def messages(prefix):
         rm_rf(path)
 
 
+def duplicates_to_remove(linked_dists, keep_dists):
+    from collections import defaultdict
+
+    keep_dists = set(keep_dists)
+    ldists = defaultdict(set) # map names to set of distributions
+    for dist in linked_dists:
+        name = name_dist(dist)
+        ldists[name].add(dist)
+
+    res = set()
+    for dists in ldists.values():
+        if len(dists) == 1:
+            continue
+        if dists & keep_dists:
+            res.update(dists - keep_dists)
+        else:
+            dists.pop()
+            res.update(dists)
+    return res
+
+
 # =========================== end API functions ==========================
 
 
@@ -763,23 +784,24 @@ def main():
     if opts.verbose:
         print("prefix: %r" % prefix)
 
-    inex_path = join(pkgs_dir, '.inex.txt')
-    dists = list(yield_lines(inex_path))
-    if len(dists) == 0:
-        sys.exit("Error: no distributions in %s" % inex_path)
-
+    idists = list(yield_lines(join(pkgs_dir, '.idists.txt')))
     linktype = (LINK_HARD
-                if try_hard_link(pkgs_dir, prefix, dists[0]) else
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])
 
-    for dist in dists:
+    for dist in idists:
         if opts.verbose:
             print("linking: %s" % dist)
         link(pkgs_dir, prefix, dist, linktype)
 
     messages(prefix)
+
+    for dist in duplicates_to_remove(linked(prefix), idists):
+        meta_path = join(prefix, 'conda-meta', dist + '.json')
+        print("WARNING: unlinking: %s" % meta_path)
+        rm_rf(meta_path)
 
 
 if __name__ == '__main__':
