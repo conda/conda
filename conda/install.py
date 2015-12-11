@@ -811,7 +811,10 @@ def main():
     for dist in duplicates_to_remove(linked(prefix), idists):
         meta_path = join(prefix, 'conda-meta', dist + '.json')
         print("WARNING: unlinking: %s" % meta_path)
-        rm_rf(meta_path)
+        try:
+            os.rename(meta_path, meta_path + '.bak')
+        except OSError:
+            rm_rf(meta_path)
 
 
 if __name__ == '__main__':
