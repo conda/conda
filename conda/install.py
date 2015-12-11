@@ -752,11 +752,17 @@ def duplicates_to_remove(linked_dists, keep_dists):
 
     res = set()
     for dists in ldists.values():
+        # `dists` is the group of packages with the same name
         if len(dists) == 1:
+            # if there is only one package, nothing has to be removed
             continue
         if dists & keep_dists:
+            # if the group has packages which are have to be kept, we just
+            # take the set of packages which are in group but not in the
+            # ones which have to be kept
             res.update(dists - keep_dists)
         else:
+            # otherwise, we take lowest (n-1) (sorted) packages
             res.update(set(sorted(dists)[:-1]))
     return sorted(res)
 
