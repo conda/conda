@@ -801,7 +801,7 @@ def main():
         print("prefix: %r" % prefix)
 
     if opts.file:
-        idists = list(yield_lines(opts.file))
+        idists = list(yield_lines(join(prefix, opts.file)))
     else:
         idists = sorted(extracted(pkgs_dir))
 
