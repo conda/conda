@@ -35,25 +35,6 @@ stderrlog = getLogger('stderrlog')
 fail_unknown_host = False
 
 
-def create_cache_dir():
-    cache_dir = join(config.pkgs_dirs[0], 'cache')
-    try:
-        os.makedirs(cache_dir)
-    except OSError:
-        pass
-    return cache_dir
-
-
-def cache_fn_url(url):
-    md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
-    return '%s.json' % (md5[:8],)
-
-
-def add_http_value_to_dict(resp, http_key, d, dict_key):
-    value = resp.headers.get(http_key)
-    if value:
-        d[dict_key] = value
-
 # We need a decorator so that the dot gets printed *after* the repodata is fetched
 class dotlog_on_return(object):
     def __init__(self, msg):
@@ -68,7 +49,7 @@ class dotlog_on_return(object):
         return func
 
 @dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
+def fetch_repodata(url, use_cache=True, session=None):
     if not config.ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
@@ -78,32 +59,15 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             warnings.simplefilter('ignore', InsecureRequestWarning)
 
     session = session or CondaSession()
-
-    cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
-    try:
-        with open(cache_path) as f:
-            cache = json.load(f)
-    except (IOError, ValueError):
-        cache = {'packages': {}}
-
-    if use_cache:
-        return cache
-
     headers = {}
-    if "_etag" in cache:
-        headers["If-None-Match"] = cache["_etag"]
-    if "_mod" in cache:
-        headers["If-Modified-Since"] = cache["_mod"]
+    if not use_cache:
+        headers['cache-control'] = 'no-cache'
 
     try:
-        resp = session.get(url + 'repodata.json.bz2',
-                           headers=headers, proxies=session.proxies)
+        resp = session.get(url + 'repodata.json.bz2', headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
-            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
-            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
-            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
-
+            return json.loads(bz2.decompress(resp.content).decode('utf-8'))
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
                            (config.remove_binstar_tokens(url), e))
@@ -112,8 +76,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if e.response.status_code == 407: # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
@@ -123,7 +86,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             else:
                 if url.endswith('/noarch/'): # noarch directory might not exist
                     return None
-                msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+                msg = 'Could not find URL: %s' % url
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
@@ -136,7 +99,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url),
-                                  cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
 
         else:
@@ -158,23 +120,15 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if "407" in str(e): # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, use_cache=use_cache, session=session)
 
+        print(e)
         msg = "Connection error: %s: %s\n" % (e, config.remove_binstar_tokens(url))
         stderrlog.info('Could not connect to %s\n' % config.remove_binstar_tokens(url))
         log.debug(msg)
         if fail_unknown_host:
             raise RuntimeError(msg)
 
-    cache['_url'] = config.remove_binstar_tokens(url)
-    try:
-        with open(cache_path, 'w') as fo:
-            json.dump(cache, fo, indent=2, sort_keys=True)
-    except IOError:
-        pass
-
-    return cache or None
 
 def handle_proxy_407(url, session):
     """
@@ -229,7 +183,7 @@ def add_pip_dependency(index):
             info.setdefault('depends', []).append('pip')
 
 @memoized
-def fetch_index(channel_urls, use_cache=False, unknown=False):
+def fetch_index(channel_urls, use_cache=True, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
     index = {}

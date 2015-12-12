@@ -26,7 +26,7 @@ def _fn2fullspec(fn):
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_cache=False, unknown=False, offline=False):
+              use_cache=True, unknown=False, offline=False):
     """
     Return the index of packages available on the channels
 

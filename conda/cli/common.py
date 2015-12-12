@@ -172,18 +172,9 @@ def add_parser_known(p):
              "directly implies this option).",
     )
 
-def add_parser_use_index_cache(p):
-    p.add_argument(
-        "--use-index-cache",
-        action="store_true",
-        default=False,
-        help="Use cache of channel index files.",
-    )
-
-
 def add_parser_no_use_index_cache(p):
     p.add_argument(
-        "--no-use-index-cache",
+        "--no-index-cache",
         action="store_false",
         default=True,
         dest="use_index_cache",
@@ -234,7 +225,7 @@ def add_parser_install(p):
         action="store_true",
         help="Create the environment directory if necessary.",
     )
-    add_parser_use_index_cache(p)
+    add_parser_no_use_index_cache(p)
     add_parser_use_local(p)
     add_parser_offline(p)
     add_parser_no_pin(p)
