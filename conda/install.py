@@ -803,7 +803,7 @@ def main():
     if opts.file:
         idists = list(yield_lines(opts.file))
     else:
-        idists = extracted(pkgs_dir)
+        idists = sorted(extracted(pkgs_dir))
 
     linktype = (LINK_HARD
                 if try_hard_link(pkgs_dir, prefix, idists[0]) else
