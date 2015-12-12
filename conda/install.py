@@ -777,7 +777,6 @@ def main():
 
     p.add_option('--file',
                  action="store",
-                 default=sys.prefix,
                  help="path of a file containing distributions to link, "
                       "by default all packages extracted in the cache are "
                       "linked")
