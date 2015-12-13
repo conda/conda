@@ -364,7 +364,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         except KeyError:
             return False
     else:
-        args = ['/bin/sh', path]
+        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        args = [shell_path, path]
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
