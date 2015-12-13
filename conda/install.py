@@ -736,99 +736,95 @@ def messages(prefix):
         rm_rf(path)
 
 
+def duplicates_to_remove(linked_dists, keep_dists):
+    """
+    Returns the (sorted) list of distributions to be removed, such that
+    only one distribution (for each name) remains.  `keep_dists` is an
+    interable of distributions (which are not allowed to be removed).
+    """
+    from collections import defaultdict
+
+    keep_dists = set(keep_dists)
+    ldists = defaultdict(set) # map names to set of distributions
+    for dist in linked_dists:
+        name = name_dist(dist)
+        ldists[name].add(dist)
+
+    res = set()
+    for dists in ldists.values():
+        # `dists` is the group of packages with the same name
+        if len(dists) == 1:
+            # if there is only one package, nothing has to be removed
+            continue
+        if dists & keep_dists:
+            # if the group has packages which are have to be kept, we just
+            # take the set of packages which are in group but not in the
+            # ones which have to be kept
+            res.update(dists - keep_dists)
+        else:
+            # otherwise, we take lowest (n-1) (sorted) packages
+            res.update(sorted(dists)[:-1])
+    return sorted(res)
+
+
 # =========================== end API functions ==========================
 
 
 def main():
-    from pprint import pprint
     from optparse import OptionParser
 
-    p = OptionParser(
-        usage="usage: %prog [options] [TARBALL/NAME]",
-        description="low-level conda install tool, by default extracts "
-                    "(if necessary) and links a TARBALL")
+    p = OptionParser(description="conda link tool used by installer")
 
-    p.add_option('-l', '--list',
-                 action="store_true",
-                 help="list all linked packages")
+    p.add_option('--file',
+                 action="store",
+                 help="path of a file containing distributions to link, "
+                      "by default all packages extracted in the cache are "
+                      "linked")
 
-    p.add_option('--extract',
-                 action="store_true",
-                 help="extract package in pkgs cache")
-
-    p.add_option('--link',
-                 action="store_true",
-                 help="link a package")
-
-    p.add_option('--unlink',
-                 action="store_true",
-                 help="unlink a package")
-
-    p.add_option('-p', '--prefix',
+    p.add_option('--prefix',
                  action="store",
                  default=sys.prefix,
                  help="prefix (defaults to %default)")
-
-    p.add_option('--pkgs-dir',
-                 action="store",
-                 default=join(sys.prefix, 'pkgs'),
-                 help="packages directory (defaults to %default)")
-
-    p.add_option('--link-all',
-                 action="store_true",
-                 help="link all extracted packages")
 
     p.add_option('-v', '--verbose',
                  action="store_true")
 
     opts, args = p.parse_args()
+    if args:
+        p.error('no arguments expected')
 
     logging.basicConfig()
 
-    if opts.list or opts.extract or opts.link_all:
-        if args:
-            p.error('no arguments expected')
-    else:
-        if len(args) == 1:
-            dist = basename(args[0])
-            if dist.endswith('.tar.bz2'):
-                dist = dist[:-8]
-        else:
-            p.error('exactly one argument expected')
-
-    pkgs_dir = opts.pkgs_dir
     prefix = opts.prefix
+    pkgs_dir = join(prefix, 'pkgs')
     if opts.verbose:
-        print("pkgs_dir: %r" % pkgs_dir)
-        print("prefix  : %r" % prefix)
+        print("prefix: %r" % prefix)
 
-    if opts.list:
-        pprint(sorted(linked(prefix)))
+    if opts.file:
+        idists = list(yield_lines(join(prefix, opts.file)))
+    else:
+        idists = sorted(extracted(pkgs_dir))
 
-    elif opts.link_all:
-        dists = sorted(extracted(pkgs_dir))
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dists[0]) else
-                    LINK_COPY)
-        if opts.verbose or linktype == LINK_COPY:
-            print("linktype: %s" % link_name_map[linktype])
-        for dist in dists:
-            if opts.verbose or linktype == LINK_COPY:
-                print("linking: %s" % dist)
-            link(pkgs_dir, prefix, dist, linktype)
-        messages(prefix)
+    linktype = (LINK_HARD
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
+                LINK_COPY)
+    if opts.verbose:
+        print("linktype: %s" % link_name_map[linktype])
 
-    elif opts.extract:
-        extract(pkgs_dir, dist)
-
-    elif opts.link:
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dist) else
-                    LINK_COPY)
+    for dist in idists:
+        if opts.verbose:
+            print("linking: %s" % dist)
         link(pkgs_dir, prefix, dist, linktype)
 
-    elif opts.unlink:
-        unlink(prefix, dist)
+    messages(prefix)
+
+    for dist in duplicates_to_remove(linked(prefix), idists):
+        meta_path = join(prefix, 'conda-meta', dist + '.json')
+        print("WARNING: unlinking: %s" % meta_path)
+        try:
+            os.rename(meta_path, meta_path + '.bak')
+        except OSError:
+            rm_rf(meta_path)
 
 
 if __name__ == '__main__':

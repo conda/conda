@@ -8,7 +8,8 @@ from os.path import join
 
 
 from conda import install
-from conda.install import PaddingError, binary_replace, update_prefix, warn_failed_remove
+from conda.install import (PaddingError, binary_replace, update_prefix,
+                           warn_failed_remove, duplicates_to_remove)
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
@@ -362,6 +363,49 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         ]
         mocks['rmtree'].assert_has_calls(expected_call_list)
         self.assertEqual(2, mocks['rmtree'].call_count)
+
+
+class duplicates_to_remove_TestCase(unittest.TestCase):
+
+    def test_1(self):
+        linked = ['conda-3.18.8-py27_0', 'conda-3.19.0',
+                  'python-2.7.10-2', 'python-2.7.11-0',
+                  'zlib-1.2.8-0']
+        keep = ['conda-3.19.0', 'python-2.7.11-0']
+        self.assertEqual(duplicates_to_remove(linked, keep),
+                         ['conda-3.18.8-py27_0', 'python-2.7.10-2'])
+
+    def test_2(self):
+        linked = ['conda-3.19.0',
+                  'python-2.7.10-2', 'python-2.7.11-0',
+                  'zlib-1.2.7-1', 'zlib-1.2.8-0', 'zlib-1.2.8-4']
+        keep = ['conda-3.19.0', 'python-2.7.11-0']
+        self.assertEqual(duplicates_to_remove(linked, keep),
+                         ['python-2.7.10-2', 'zlib-1.2.7-1', 'zlib-1.2.8-0'])
+
+    def test_3(self):
+        linked = ['python-2.7.10-2', 'python-2.7.11-0', 'python-3.4.3-1']
+        keep = ['conda-3.19.0', 'python-2.7.11-0']
+        self.assertEqual(duplicates_to_remove(linked, keep),
+                         ['python-2.7.10-2', 'python-3.4.3-1'])
+
+    def test_nokeep(self):
+        linked = ['python-2.7.10-2', 'python-2.7.11-0', 'python-3.4.3-1']
+        self.assertEqual(duplicates_to_remove(linked, []),
+                         ['python-2.7.10-2', 'python-2.7.11-0'])
+
+    def test_misc(self):
+        d1 = 'a-1.3-0'
+        self.assertEqual(duplicates_to_remove([], []), [])
+        self.assertEqual(duplicates_to_remove([], [d1]), [])
+        self.assertEqual(duplicates_to_remove([d1], [d1]), [])
+        self.assertEqual(duplicates_to_remove([d1], []), [])
+        d2 = 'a-1.4-0'
+        li = set([d1, d2])
+        self.assertEqual(duplicates_to_remove(li, [d2]), [d1])
+        self.assertEqual(duplicates_to_remove(li, [d1]), [d2])
+        self.assertEqual(duplicates_to_remove(li, []), [d1])
+        self.assertEqual(duplicates_to_remove(li, [d1, d2]), [])
 
 
 if __name__ == '__main__':
