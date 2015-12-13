@@ -1,6 +1,7 @@
 2015-12-XX   3.19.0:
 --------------------
-  * 
+  * OpenBSD 5.x support, #1891
+  * improve install CLI to make Miniconda -f work, #1905
 
 
 2015-12-10   3.18.9:
