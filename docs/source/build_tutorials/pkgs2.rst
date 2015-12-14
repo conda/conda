@@ -150,7 +150,7 @@ is hosted on PyPI and GitHub, you can easily find a script on  PyPI instead of G
 
 .. code-block:: bash
 
-   git_rev: 0.13.1
+   git_rev: v0.13.1
    git_url: https://github.com/joerick/pyinstrument.git
 
 With the following:
@@ -181,21 +181,21 @@ Later when you are finished, you can rename the file meta.yaml.
 To create a new meta.yaml file, open your favorite editor. Create a new text file and insert the following
 information. A blank sample meta.yaml follows to make it easier to match up the information.
 
-+--------------+---------------------------------------------+
-| Name         | pyinstrument                                |
-+--------------+---------------------------------------------+
-| Git rev      | 0.13                                        |
-+--------------+---------------------------------------------+
-| Git URL      | https://github.com/joerick/pyinstrument.git |
-+--------------+---------------------------------------------+
-| Imports      | pyinstrument                                |
-+--------------+---------------------------------------------+
-| Home         | https://github.com/joerick/pyinstrument     |
-+--------------+---------------------------------------------+
-| License      | BSD                                         |
-+--------------+---------------------------------------------+
-| License file | LICENSE                                     |
-+--------------+---------------------------------------------+
++--------------+---------------------------------------------------------------------------+
+| Name         | pyinstrument                                                              |
++--------------+---------------------------------------------------------------------------+
+| Git tag      | v0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
++--------------+---------------------------------------------------------------------------+
+| Git URL      | https://github.com/joerick/pyinstrument.git                               |
++--------------+---------------------------------------------------------------------------+
+| Imports      | pyinstrument                                                              |
++--------------+---------------------------------------------------------------------------+
+| Home         | https://github.com/joerick/pyinstrument                                   |
++--------------+---------------------------------------------------------------------------+
+| License      | BSD                                                                       |
++--------------+---------------------------------------------------------------------------+
+| License file | LICENSE                                                                   |
++--------------+---------------------------------------------------------------------------+
 
 .. code-block:: bash
 
@@ -262,7 +262,7 @@ new file named bld.bat and enter the text exactly as shown:
 bld.bat must be formatted differently, and needs the command that tells it to
 exit if it encounters an error.
 
-NOTE: In bld.bat, the best practice is to to add the ``if errorlevel 1 exit 1`` after every command so if the commnand fails,
+NOTE: In bld.bat, the best practice is to to add the ``if errorlevel 1 exit 1`` after every command so if the command fails,
 the build fails.
 
 Save this new file ``bld.bat`` to the same directory where you put your new ``meta.yaml`` and ``build.sh`` files.
