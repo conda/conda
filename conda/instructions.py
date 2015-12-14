@@ -1,5 +1,6 @@
 from logging import getLogger
 import re
+import traceback
 
 from conda import config
 from conda import install
@@ -132,6 +133,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     state = {'i': None, 'prefix': config.root_dir, 'index': index}
 
+    failed_instructions = []
+
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
@@ -145,11 +148,29 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         if cmd is None:
             raise InvalidInstruction(instruction)
 
-        cmd(state, arg)
+        try:
+            cmd(state, arg)
+        except:
+            failed_instructions.append((cmd, state, arg))
 
         if (state['i'] is not None and instruction in progress_cmds
                 and state['maxval'] == state['i']):
             state['i'] = None
             getLogger('progress.stop').info(None)
+
+    double_failures = []
+
+    if failed_instructions:
+        getLogger('print').info("Retrying failed commands.")
+        for cmd, state, arg in failed_instructions:
+            try:
+                cmd(state, arg)
+            except:
+                double_failures.append((cmd, state, arg, traceback.format_exc()))
+
+    for cmd, state, arg, error in double_failures:
+        getLogger('print').warn("Failed instruction: {cmd}, state {state}, arg {arg}, \n"
+                                "exception: {error}".format(cmd=cmd, state=state, arg=arg, error=error))
+
 
     install.messages(state['prefix'])
