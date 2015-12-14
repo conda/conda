@@ -120,19 +120,19 @@ Next, remove and replace the Pyfaker information with the 6 fields below.
 The fields we want to replace in our pyinstrument script are:
 
 +--------------+---------------------------------------------------------------------------+
-| Name         | pyinstrument                                                              |
+| name         | pyinstrument                                                              |
 +--------------+---------------------------------------------------------------------------+
-| Git tag      | v0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
+| git_rev      | v0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
 +--------------+---------------------------------------------------------------------------+
-| Git URL      | https://github.com/joerick/pyinstrument.git                               |
+| git_url      | https://github.com/joerick/pyinstrument.git                               |
 +--------------+---------------------------------------------------------------------------+
-| Imports      | pyinstrument                                                              |
+| imports      | pyinstrument                                                              |
 +--------------+---------------------------------------------------------------------------+
-| Home         | https://github.com/joerick/pyinstrument                                   |
+| home         | https://github.com/joerick/pyinstrument                                   |
 +--------------+---------------------------------------------------------------------------+
-| License      | BSD                                                                       |
+| license      | BSD                                                                       |
 +--------------+---------------------------------------------------------------------------+
-| License file | LICENSE                                                                   |
+| license_file | LICENSE                                                                   |
 +--------------+---------------------------------------------------------------------------+
 
 When finished, save to the same directory, this time with the correct name, meta.yaml.
@@ -182,19 +182,19 @@ To create a new meta.yaml file, open your favorite editor. Create a new text fil
 information. A blank sample meta.yaml follows to make it easier to match up the information.
 
 +--------------+---------------------------------------------------------------------------+
-| Name         | pyinstrument                                                              |
+| name         | pyinstrument                                                              |
 +--------------+---------------------------------------------------------------------------+
-| Git tag      | v0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
+| git_rev      | v0.13.1 (or latest from https://github.com/joerick/pyinstrument/releases) |
 +--------------+---------------------------------------------------------------------------+
-| Git URL      | https://github.com/joerick/pyinstrument.git                               |
+| git_url      | https://github.com/joerick/pyinstrument.git                               |
 +--------------+---------------------------------------------------------------------------+
-| Imports      | pyinstrument                                                              |
+| imports      | pyinstrument                                                              |
 +--------------+---------------------------------------------------------------------------+
-| Home         | https://github.com/joerick/pyinstrument                                   |
+| home         | https://github.com/joerick/pyinstrument                                   |
 +--------------+---------------------------------------------------------------------------+
-| License      | BSD                                                                       |
+| license      | BSD                                                                       |
 +--------------+---------------------------------------------------------------------------+
-| License file | LICENSE                                                                   |
+| license_file | LICENSE                                                                   |
 +--------------+---------------------------------------------------------------------------+
 
 .. code-block:: bash
