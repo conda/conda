@@ -168,7 +168,17 @@ def pkgs_dir_from_envs_dir(envs_dir):
     else:
         return join(envs_dir, '.pkgs')
 
-pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
+
+def _get_pkgs_dirs(envs_dirs):
+    if 'pkgs_dirs' in rc:
+        pkgs = rc['pkgs_dirs']
+    elif 'pkgs_dirs' in sys_rc:
+        pkgs = sys_rc['pkgs_dirs']
+    else:
+        pkgs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
+    return pkgs
+
+pkgs_dirs = _get_pkgs_dirs(envs_dirs)
 
 # ----- default environment prefix -----
 
