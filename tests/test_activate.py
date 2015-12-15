@@ -65,7 +65,10 @@ syspath = join(root_dir, 'bin')
 # dirname, which is used in the activate script, is typically installed in
 # /usr/bin (not sure if it has to be)
 PATH = ':'.join(['/bin', '/usr/bin'])
-ROOTPATH = syspath + ':' + PATH
+if syspath != '/usr/bin':
+    ROOTPATH = syspath + ':' + PATH
+else:
+    ROOTPATH = PATH
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
 CONDA_ENTRY_POINT="""\
@@ -102,7 +105,10 @@ def test_activate_test1():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == envs + "/test1/bin:" + PATH
-            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+            expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
+            if syspath != '/usr/bin':
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
+            assert stderr == expected
 
 
 @pytest.mark.slow
@@ -276,7 +282,10 @@ def test_activate_symlinking():
 
             stdout, stderr = run_in(commands, shell)
             assert not stdout
-            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+            expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
+            if syspath != '/usr/bin':
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
+            assert stderr == expected
             for f in ['conda', 'activate', 'deactivate']:
                 assert os.path.lexists('{envs}/test1/bin/{f}'.format(envs=envs, f=f))
                 assert os.path.exists('{envs}/test1/bin/{f}'.format(envs=envs, f=f))
@@ -299,7 +308,10 @@ def test_activate_symlinking():
                 """).format(envs=envs, activate=activate, deactivate=deactivate, conda=conda)
                 stdout, stderr = run_in(commands, shell)
                 assert not stdout
-                assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test3/bin to PATH\n'.format(envs=envs, syspath=syspath)
+                expected = 'prepending {envs}/test3/bin to PATH\n'.format(envs=envs)
+                if syspath != '/usr/bin':
+                    expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
+                assert stderr == expected
 
                 # Make sure it stays the same
                 for f in ['conda', 'activate', 'deactivate']:
@@ -346,7 +358,10 @@ def test_PS1():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == '({envs}/test1)$'.format(envs=envs)
-            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+            expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
+            if syspath != '/usr/bin':
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
+            assert stderr == expected
 
             commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
@@ -452,7 +467,10 @@ changeps1: no
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == '$'
-            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+            expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
+            if syspath != '/usr/bin':
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
+            assert stderr == expected
 
             commands = (command_setup + condarc + """
             source {activate} {envs}/test1 2> /dev/null
@@ -551,7 +569,10 @@ def test_CONDA_DEFAULT_ENV():
 
             stdout, stderr = run_in(commands, shell)
             assert stdout == '{envs}/test1'.format(envs=envs)
-            assert stderr == 'discarding {syspath} from PATH\nprepending {envs}/test1/bin to PATH\n'.format(envs=envs, syspath=syspath)
+            expected = 'prepending {envs}/test1/bin to PATH\n'.format(envs=envs)
+            if syspath != '/usr/bin':
+                expected = 'discarding {syspath} from PATH\n{expected}'.format(syspath=syspath, expected=expected)
+            assert stderr == expected
 
             commands = (command_setup + """
             source {activate} {envs}/test1 2> /dev/null
