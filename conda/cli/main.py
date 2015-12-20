@@ -28,9 +28,7 @@ conda provides the following commands:
     Packaging
     =========
 
-    build      : build a package from recipe
     package    : create a conda package in an environment
-    index      : updates repodata.json in channel directories
 
 Additional help for each command can be accessed by using:
 
