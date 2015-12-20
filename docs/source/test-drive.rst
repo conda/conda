@@ -163,8 +163,8 @@ To change to another environment, type the following with the name of the enviro
 
 To change your path from the current environment back to the root:
 
-* Linux, OS X: `source deactivate`
-* Windows:  `deactivate`
+* Linux, OS X: ``source deactivate``
+* Windows:  ``deactivate``
 
 TIP: When the environment is deactivated, ``(bunnies)`` will no longer be shown in the prompt.
 
@@ -384,8 +384,8 @@ that conda does not, and vice versa. Both pip and conda are included in Anaconda
 
 We activate the environment where we want to put the program, then pip install a program named “See”:
 
-* Linux, OS X: source activate bunnies
-* Windows:  activate bunnies
+* Linux, OS X: ``source activate bunnies``
+* Windows:  ``activate bunnies``
 
 All platforms:
 
