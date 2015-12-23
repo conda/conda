@@ -11,7 +11,7 @@ import shutil
 import hashlib
 import tarfile
 import tempfile
-from os.path import basename, dirname, isfile, islink, join
+from os.path import basename, isfile, islink, join
 
 import conda.config as config
 import conda.install as install
@@ -25,23 +25,6 @@ def get_installed_version(prefix, name):
         if n == name:
             return v
     return None
-
-
-def remove(prefix, files):
-    """
-    Remove files for a given prefix.
-    """
-    dst_dirs = set()
-    for f in files:
-        dst = join(prefix, f)
-        dst_dirs.add(dirname(dst))
-        os.unlink(dst)
-
-    for path in sorted(dst_dirs, key=len, reverse=True):
-        try:
-            os.rmdir(path)
-        except OSError: # directory might not be empty
-            pass
 
 
 def create_info(name, version, build_number, requires_py):
