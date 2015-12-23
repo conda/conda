@@ -3,8 +3,12 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
 from __future__ import print_function, division, absolute_import
+
+import os
+import re
+import sys
+from os.path import dirname, join
 
 from conda.cli import common
 
@@ -64,9 +68,6 @@ def configure_parser(sub_parsers):
 
 
 def list_package_files(pkg_name=None):
-    import os
-    import re
-
     import conda.config as config
     from conda.misc import walk_prefix
 
@@ -116,11 +117,27 @@ def list_package_files(pkg_name=None):
     for item in ret:
         print(pkg_dir+"/"+item)
 
-def execute(args, parser):
-    import sys
 
+def remove(prefix, files):
+    """
+    Remove files for a given prefix.
+    """
+    dst_dirs = set()
+    for f in files:
+        dst = join(prefix, f)
+        dst_dirs.add(dirname(dst))
+        os.unlink(dst)
+
+    for path in sorted(dst_dirs, key=len, reverse=True):
+        try:
+            os.rmdir(path)
+        except OSError: # directory might not be empty
+            pass
+
+
+def execute(args, parser):
     from conda.misc import untracked, which_package
-    from conda.packup import make_tarbz2, remove
+    from conda.packup import make_tarbz2
 
 
     prefix = common.get_prefix(args)
