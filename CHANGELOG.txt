@@ -1,3 +1,8 @@
+20XX-XX-XX   3.19.1:
+--------------------
+  *  resolve.py: properly escape periods in version numbers, #1926
+
+
 2015-12-17   3.19.0:
 --------------------
   * OpenBSD 5.x support, #1891
