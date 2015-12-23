@@ -62,11 +62,14 @@ def configure_parser(sub_parsers):
     )
     p.set_defaults(func=execute)
 
+
 def list_package_files(pkg_name=None):
     import os
     import re
+
     import conda.config as config
     from conda.misc import walk_prefix
+
 
     pkgs_dirs = config.pkgs_dirs[0]
     all_dir_names = []
@@ -116,15 +119,13 @@ def list_package_files(pkg_name=None):
 def execute(args, parser):
     import sys
 
-    from conda.misc import untracked
+    from conda.misc import untracked, which_package
     from conda.packup import make_tarbz2, remove
 
 
     prefix = common.get_prefix(args)
 
     if args.which:
-        from conda.misc import which_package
-
         for path in args.which:
             for dist in which_package(path):
                 print('%-50s  %s' % (path, dist))
