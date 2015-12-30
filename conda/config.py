@@ -9,6 +9,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import logging
+from subprocess import check_output
 from platform import machine
 from os.path import abspath, expanduser, isfile, isdir, join
 import re
@@ -21,6 +22,11 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
 default_python = '%d.%d' % sys.version_info[:2]
+try: # UNTESTED ON WINDOWS. PERHAPS CAN GRAB FROM THE CONDA_BUILD DEFAULT?
+    default_lua = check_output(["lua", "-v"])
+    default_lua = ".".join(default_lua.split(" ")[1].split(".")[:2]) # e.g. 5.2
+except:
+    default_lua = None
 # CONDA_FORCE_32BIT should only be used when running conda-build (in order
 # to build 32-bit packages on a 64-bit system).  We don't want to mention it
 # in the documentation, because it can mess up a lot of things.
