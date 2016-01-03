@@ -1,6 +1,7 @@
 20XX-XX-XX   3.19.1:
 --------------------
-  *  resolve.py: properly escape periods in version numbers, #1926
+  * resolve.py: properly escape periods in version numbers, #1926
+  * support for pinning Lua by default, #1934
 
 
 2015-12-17   3.19.0:
