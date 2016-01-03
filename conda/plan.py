@@ -338,8 +338,8 @@ def add_defaults_to_specs(r, linked, specs):
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
     for name, def_ver in [('python', config.default_python),
-                          ('lua', None)]: # Default version required, but only used for Python
-                         # ('numpy', "config.default_numpy")]:
+                          # Default version required, but only used for Python
+                          ('lua', None)]:
         ms = names_ms.get(name)
         if ms and ms.strictness > 1:
             # if any of the specifications mention the Python/Numpy version,
