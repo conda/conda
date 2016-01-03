@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2015 Continuum Analytics, Inc. / https://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
