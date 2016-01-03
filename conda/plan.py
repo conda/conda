@@ -338,7 +338,7 @@ def add_defaults_to_specs(r, linked, specs):
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
     for name, def_ver in [('python', config.default_python),
-                          ('lua', config.default_lua)]:
+                          ('lua', None)]:
                          # ('numpy', "config.default_numpy")]:
         ms = names_ms.get(name)
         if ms and ms.strictness > 1:
