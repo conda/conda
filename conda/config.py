@@ -9,7 +9,6 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import logging
-from subprocess import check_output
 from platform import machine
 from os.path import abspath, expanduser, isfile, isdir, join
 import re
