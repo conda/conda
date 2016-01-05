@@ -355,7 +355,7 @@ To download into the current environment from Anaconda.org, we will specify Anac
 “channel” by typing the full URL to the package we want.
 
 In a browser, go to http://anaconda.org.  We are looking for a package named “bottleneck” so in
-the top left box named “Search Packages” type “bottleneck” and click the Search button.
+the top left box named “Search Anaconda Cloud” type “bottleneck” and click the Search button.
 
 There are more than a dozen copies of bottleneck available on Anaconda.org, but we want the most
 frequently downloaded copy. So you can sort by number of downloads by clicking the “Downloads” heading.
