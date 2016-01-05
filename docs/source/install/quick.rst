@@ -28,34 +28,27 @@ Miniconda quick install requirements
 NOTE: If you choose to install the full Anaconda package, it requires 3 GB of available disk space. 
 
 
-Linux Miniconda install
------------------------
+Windows Miniconda install
+-------------------------
 
-In your browser download the `Miniconda installer for Linux <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
-window type the following and follow the prompts on the installer screens. If unsure 
-about any setting, simply accept the defaults as they all can be changed later:
+In your browser download the `Miniconda installer for Windows <http://conda.pydata.org/miniconda.html>`_, then double click 
+the .exe file and follow the instructions on the screen.  If unsure about any setting, 
+simply accept the defaults as they all can be changed later.
 
-.. code::
-
-   bash Miniconda-latest-Linux-x86_64.sh
-
-Now close and re-open your terminal window for the changes to take effect.
+NOTE: When finished, a new terminal window will open. If not, click Start - Run - Command Prompt. 
 
 To test your installation, enter the command ``conda list.`` If installed 
 correctly, you will see a list of packages that were installed. 
 
 Next, go to our :doc:`30-minute conda test drive </test-drive>`.
 
-**Linux Miniconda update**
+**Windows Miniconda update**
 
-In your terminal window, type the following:  ``conda update conda``
+Open a terminal window with Start - Run - Command Prompt, navigate to the anaconda folder, then type ``conda update conda``
 
-**Linux Miniconda uninstall**
+**Windows Miniconda Uninstall**
 
-Because Miniconda is contained in one directory, uninstalling Miniconda is simple -- in 
-your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``. 
-You may also edit ``~/.bash_profile`` and remove the miniconda directory from your 
-``PATH`` environment variable.
+Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Miniconda)” and click Remove Program. 
 
 
 OS X Miniconda install
@@ -88,24 +81,31 @@ You may also edit ``~/.bash_profile`` and remove the miniconda directory from yo
 ``PATH`` environment variable.
 
 
-Windows Miniconda install
--------------------------
+Linux Miniconda install
+-----------------------
 
-In your browser download the `Miniconda installer for Windows <http://conda.pydata.org/miniconda.html>`_, then double click 
-the .exe file and follow the instructions on the screen.  If unsure about any setting, 
-simply accept the defaults as they all can be changed later.
+In your browser download the `Miniconda installer for Linux <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
+window type the following and follow the prompts on the installer screens. If unsure 
+about any setting, simply accept the defaults as they all can be changed later:
 
-NOTE: When finished, a new terminal window will open. If not, click Start - Run - Command Prompt. 
+.. code::
+
+   bash Miniconda-latest-Linux-x86_64.sh
+
+Now close and re-open your terminal window for the changes to take effect.
 
 To test your installation, enter the command ``conda list.`` If installed 
 correctly, you will see a list of packages that were installed. 
 
 Next, go to our :doc:`30-minute conda test drive </test-drive>`.
 
-**Windows Miniconda update**
+**Linux Miniconda update**
 
-Open a terminal window with Start - Run - Command Prompt, navigate to the anaconda folder, then type ``conda update conda``
+In your terminal window, type the following:  ``conda update conda``
 
-**Windows Miniconda Uninstall**
+**Linux Miniconda uninstall**
 
-Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Miniconda)” and click Remove Program. 
+Because Miniconda is contained in one directory, uninstalling Miniconda is simple -- in 
+your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``. 
+You may also edit ``~/.bash_profile`` and remove the miniconda directory from your 
+``PATH`` environment variable.
