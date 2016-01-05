@@ -53,6 +53,21 @@ other channels will be blocked and the user will receive a message explaining th
 If the system .condarc  file specifies a channel_alias, it will override any channel aliases set in users'
 .condarc  files. See channel alias below.
 
+Default channels (default_channels)
+-----------------------------------
+
+Normally the default repository is repo.continuum.io, but if default_channels is 
+defined it will set the new list of default channels. This is especially useful 
+for air gap and enterprise installations.
+
+.. code-block:: yaml
+
+  channels:
+    - <anaconda_dot_org_username>
+    - http://some.custom/channel
+    - file:///some/local/directory
+    - defaults
+
 .. _SSL_verification:
 
 SSL verification (ssl_verify)
