@@ -29,6 +29,46 @@ NOTE: You do NOT need root privileges to install Anaconda if you select a user w
 Install instructions
 --------------------
 
+Windows Anaconda install
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In your browser download the `Anaconda installer <http://continuum.io/downloads>`_ for 
+Windows, then  double click the .exe file and follow the instructions on the screen. 
+If unsure about any setting, simply accept the defaults as they all can be changed later.
+
+NOTE: When finished, a new terminal window will open. If not, click Start - Run - Command Prompt. 
+
+**Windows Anaconda update**
+
+Open a terminal window with Start - Run - Command Prompt, navigate to the anaconda folder, then type ``conda update conda``
+
+**Windows Anaconda Uninstall**
+
+Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Miniconda)” and click Remove Program. 
+
+
+OS X Anaconda install
+~~~~~~~~~~~~~~~~~~~~~
+
+In your browser download the `Anaconda installer <http://continuum.io/downloads>`_ for 
+OS X, then double click the .pkg file and follow the instructions on the screen. 
+If unsure about any setting, simply accept the defaults as they all can be changed later.
+
+NOTE: The install will not take effect until AFTER you close and reopen your terminal window.
+
+**OS X Anaconda update**
+
+Open a terminal window, navigate to the anaconda directory, then type ``conda update conda``
+
+**OS X Anaconda uninstall**
+
+To uninstall Anaconda open a terminal window and remove the entire anaconda install 
+directory: ``rm -rf ~/anaconda``. You may also edit ``~/.bash_profile`` and remove 
+the anaconda directory from your ``PATH`` environment variable, and remove the 
+hidden .condarc file and .conda and .continuum directories which may have been created 
+in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
+
+
 Linux Anaconda install 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -54,43 +94,3 @@ directory: ``rm -rf ~/anaconda``. You may also edit ``~/.bash_profile`` and remo
 the anaconda directory from your ``PATH`` environment variable, and remove the 
 hidden .condarc file and .conda and .continuum directories which may have been created 
 in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
-
-
-OS X Anaconda install
-~~~~~~~~~~~~~~~~~~~~~
-
-In your browser download the `Anaconda installer <http://continuum.io/downloads>`_ for 
-OS X, then double click the .pkg file and follow the instructions on the screen. 
-If unsure about any setting, simply accept the defaults as they all can be changed later.
-
-NOTE: The install will not take effect until AFTER you close and reopen your terminal window.
-
-**OS X Anaconda update**
-
-Open a terminal window, navigate to the anaconda directory, then type ``conda update conda``
-
-**OS X Anaconda uninstall**
-
-To uninstall Anaconda open a terminal window and remove the entire anaconda install 
-directory: ``rm -rf ~/anaconda``. You may also edit ``~/.bash_profile`` and remove 
-the anaconda directory from your ``PATH`` environment variable, and remove the 
-hidden .condarc file and .conda and .continuum directories which may have been created 
-in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
-
-
-Windows Anaconda install
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In your browser download the `Anaconda installer <http://continuum.io/downloads>`_ for 
-Windows, then  double click the .exe file and follow the instructions on the screen. 
-If unsure about any setting, simply accept the defaults as they all can be changed later.
-
-NOTE: When finished, a new terminal window will open. If not, click Start - Run - Command Prompt. 
-
-**Windows Anaconda update**
-
-Open a terminal window with Start - Run - Command Prompt, navigate to the anaconda folder, then type ``conda update conda``
-
-**Windows Anaconda Uninstall**
-
-Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Miniconda)” and click Remove Program. 
