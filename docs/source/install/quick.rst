@@ -75,10 +75,11 @@ Open a terminal window, navigate to the anaconda directory, then type ``conda up
 
 **OS X Miniconda uninstall**
 
-Because Miniconda is contained in one directory, uninstalling Miniconda is simple -- in 
-your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``. 
-You may also edit ``~/.bash_profile`` and remove the miniconda directory from your 
-``PATH`` environment variable.
+To uninstall Miniconda open a terminal window and remove the entire miniconda install 
+directory: ``rm -rf ~/miniconda``. You may also edit ``~/.bash_profile`` and remove 
+the miniconda directory from your ``PATH`` environment variable, and remove the 
+hidden .condarc file and .conda and .continuum directories which may have been created 
+in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
 
 
 Linux Miniconda install
@@ -105,7 +106,8 @@ In your terminal window, type the following:  ``conda update conda``
 
 **Linux Miniconda uninstall**
 
-Because Miniconda is contained in one directory, uninstalling Miniconda is simple -- in 
-your terminal window, remove the entire miniconda install directory: ``rm -rf ~/miniconda``. 
-You may also edit ``~/.bash_profile`` and remove the miniconda directory from your 
-``PATH`` environment variable.
+To uninstall Miniconda open a terminal window and remove the entire miniconda install 
+directory: ``rm -rf ~/miniconda``. You may also edit ``~/.bash_profile`` and remove 
+the miniconda directory from your ``PATH`` environment variable, and remove the 
+hidden .condarc file and .conda and .continuum directories which may have been created 
+in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.

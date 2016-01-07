@@ -49,8 +49,11 @@ In your terminal window, type the following:  ``conda update conda``
 
 **Linux Anaconda uninstall**
 
-Because Anaconda is contained in one directory, uninstalling Anaconda is simple -- in your terminal 
-window, remove the entire anaconda install directory: ``rm -rf ~/anaconda``
+To uninstall Anaconda open a terminal window and remove the entire anaconda install 
+directory: ``rm -rf ~/anaconda``. You may also edit ``~/.bash_profile`` and remove 
+the anaconda directory from your ``PATH`` environment variable, and remove the 
+hidden .condarc file and .conda and .continuum directories which may have been created 
+in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
 
 
 OS X Anaconda install
@@ -68,8 +71,11 @@ Open a terminal window, navigate to the anaconda directory, then type ``conda up
 
 **OS X Anaconda uninstall**
 
-Because Anaconda is contained in one directory, uninstalling Anaconda is simple -- in 
-your terminal window, remove the entire miniconda install directory: ``rm -rf ~/anaconda``
+To uninstall Anaconda open a terminal window and remove the entire anaconda install 
+directory: ``rm -rf ~/anaconda``. You may also edit ``~/.bash_profile`` and remove 
+the anaconda directory from your ``PATH`` environment variable, and remove the 
+hidden .condarc file and .conda and .continuum directories which may have been created 
+in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
 
 
 Windows Anaconda install
