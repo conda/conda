@@ -12,6 +12,13 @@ from collections import defaultdict
 from os.path import join, getsize, isdir
 from os import lstat, walk, listdir
 
+try:
+    import ctypes
+    from ctypes import POINTER, WinError, sizeof, byref
+    from ctypes.wintypes import DWORD, HANDLE, BOOL
+except ImportError:
+    pass
+    
 from conda.cli import common
 import conda.config as config
 from conda.utils import human_bytes
@@ -64,6 +71,67 @@ def configure_parser(sub_parsers):
     )
     p.set_defaults(func=execute)
 
+
+# work-around for python bug on Windows prior to python 3.2
+# https://bugs.python.org/issue10027
+# Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
+try:
+    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
+    CreateFile = ctypes.windll.kernel32.CreateFileW
+    CreateFile.argtypes = [ctypes.c_wchar_p, DWORD, DWORD, ctypes.c_void_p,
+                        DWORD, DWORD, HANDLE]
+    CreateFile.restype = HANDLE
+
+    # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
+    CloseHandle = ctypes.windll.kernel32.CloseHandle
+    CloseHandle.argtypes = [HANDLE]
+    CloseHandle.restype = BOOL
+
+    class FILETIME(ctypes.Structure):
+        _fields_ = [("dwLowDateTime", DWORD),
+                    ("dwHighDateTime", DWORD)]
+
+    class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
+        _fields_ = [("dwFileAttributes", DWORD),
+                    ("ftCreationTime", FILETIME),
+                    ("ftLastAccessTime", FILETIME),
+                    ("ftLastWriteTime", FILETIME),
+                    ("dwVolumeSerialNumber", DWORD),
+                    ("nFileSizeHigh", DWORD),
+                    ("nFileSizeLow", DWORD),
+                    ("nNumberOfLinks", DWORD),
+                    ("nFileIndexHigh", DWORD),
+                    ("nFileIndexLow", DWORD)]
+
+    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
+    GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
+    GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
+    GetFileInformationByHandle.restype = BOOL
+except Error:
+    pass
+
+
+def cross_platform_st_nlink(path):
+    stat = lstat(path)
+    if stat.st_nlink == 0:
+        if os.name != 'nt':
+            return stat.st_nlink
+        # cannot trust python on Windows when st_nlink == 0
+        # get value using windows libraries to be sure of its true value
+        # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
+        GENERIC_READ = 0x80000000
+        FILE_SHARE_READ = 0x00000001
+        OPEN_EXISTING = 3
+        hfile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None, OPEN_EXISTING, 0, None)
+        if hfile is None:
+            raise WinError()
+        info = BY_HANDLE_FILE_INFORMATION()
+        rv = GetFileInformationByHandle(hfile, info)
+        CloseHandle(hfile)
+        if rv == 0:
+            raise WinError()
+        return info.nNumberOfLinks
+    
 
 def find_lock():
     from os.path import join
@@ -180,11 +248,11 @@ def find_pkgs():
                     break
                 for fn in files:
                     try:
-                        stat = lstat(join(root, fn))
+                        st_nlink = cross_platform_st_nlink(join(root, fn))
                     except OSError as e:
                         warnings.append((fn, e))
                         continue
-                    if stat.st_nlink > 1:
+                    if st_nlink > 1:
                         # print('%s is installed: %s' % (pkg, join(root, fn)))
                         breakit = True
                         break
