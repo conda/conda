@@ -14,7 +14,7 @@ from os import lstat, walk, listdir
 
 try:
     import ctypes
-    from ctypes import POINTER, WinError, sizeof, byref
+    from ctypes import POINTER, WinError
     from ctypes.wintypes import DWORD, HANDLE, BOOL
 except ImportError:
     pass
