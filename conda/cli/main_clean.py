@@ -107,7 +107,7 @@ try:
     GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
     GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
     GetFileInformationByHandle.restype = BOOL
-except Error:
+except Exception:
     pass
 
 
