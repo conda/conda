@@ -113,24 +113,23 @@ except Error:
 
 def cross_platform_st_nlink(path):
     stat = lstat(path)
-    if stat.st_nlink == 0:
-        if os.name != 'nt':
-            return stat.st_nlink
-        # cannot trust python on Windows when st_nlink == 0
-        # get value using windows libraries to be sure of its true value
-        # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-        GENERIC_READ = 0x80000000
-        FILE_SHARE_READ = 0x00000001
-        OPEN_EXISTING = 3
-        hfile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None, OPEN_EXISTING, 0, None)
-        if hfile is None:
-            raise WinError()
-        info = BY_HANDLE_FILE_INFORMATION()
-        rv = GetFileInformationByHandle(hfile, info)
-        CloseHandle(hfile)
-        if rv == 0:
-            raise WinError()
-        return info.nNumberOfLinks
+    if os.name != 'nt' or stat.st_nlink != 0:
+        return stat.st_nlink
+    # cannot trust python on Windows when st_nlink == 0
+    # get value using windows libraries to be sure of its true value
+    # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
+    GENERIC_READ = 0x80000000
+    FILE_SHARE_READ = 0x00000001
+    OPEN_EXISTING = 3
+    hfile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None, OPEN_EXISTING, 0, None)
+    if hfile is None:
+        raise WinError()
+    info = BY_HANDLE_FILE_INFORMATION()
+    rv = GetFileInformationByHandle(hfile, info)
+    CloseHandle(hfile)
+    if rv == 0:
+        raise WinError()
+    return info.nNumberOfLinks
     
 
 def find_lock():
