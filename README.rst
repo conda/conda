@@ -9,9 +9,6 @@ Conda
 .. image:: https://travis-ci.org/conda/conda.svg?branch=master
                :target: https://travis-ci.org/conda/conda
 
-.. image:: https://ci.appveyor.com/api/projects/status/6btwguwga3959bkc
-           :target: https://ci.appveyor.com/project/asmeurer/conda-973
-
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations, but it may be
