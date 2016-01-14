@@ -4,7 +4,6 @@ from copy import copy
 import os
 import re
 import sys
-import platform
 
 # TODO This should never have to import from conda.cli
 from conda.cli import common
@@ -80,23 +79,23 @@ def from_file(filename, selectors=None):
 
 
 def ns_cfg(custom_selectors, selectors=None):
-    plat = sys.platform
-    arch = platform.architecture()
+    plat = sys.platform  # see https://docs.python.org/2/library/sys.html#sys.platform
+    is_x64 = sys.maxsize > 2**32  # from https://docs.python.org/2/library/platform.html#cross-platform
     d = dict(
         linux=plat.startswith('linux'),
-        linux32=plat.startswith('linux') and '32' in arch,
-        linux64=plat.startswith('linux') and '64' in arch,
+        linux32=plat.startswith('linux') and not is_x64,
+        linux64=plat.startswith('linux') and is_x64,
         osx=plat.startswith('darwin'),
         win=plat.startswith('win32'),
-        win32=plat.startswith('win32') and '32' in arch,
-        win64=plat.startswith('win32') and '64' in arch,
+        win32=plat.startswith('win32') and not is_x64,
+        win64=plat.startswith('win32') and is_x64,
         unix=plat.startswith(('linux', 'darwin')),
         os=os,
         environ=os.environ,
     )
     if selectors is None:
         selectors = []
-    selector_dict = dict((selector, selector in selectors) for selector in custom_selectors)
+    selector_dict = dict((s, s in selectors) for s in custom_selectors)
     d.update(selector_dict)
     return d
 
