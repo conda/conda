@@ -1,4 +1,7 @@
 name: selectors
+selectors:
+  - test
+  - docs
 dependencies:
   - python
   - pytest  # [test]
