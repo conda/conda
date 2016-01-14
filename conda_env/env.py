@@ -90,6 +90,10 @@ def ns_cfg(custom_selectors, selectors=None):
         win32=plat.startswith('win32') and not is_x64,
         win64=plat.startswith('win32') and is_x64,
         unix=plat.startswith(('linux', 'darwin')),
+        unix32=plat.startswith(('linux', 'darwin')) and not is_x64,
+        unix64=plat.startswith(('linux', 'darwin')) and is_x64,
+        x86=not is_x64,
+        x64=is_x64,
         os=os,
         environ=os.environ,
     )
