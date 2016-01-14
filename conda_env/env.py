@@ -4,6 +4,7 @@ from copy import copy
 import os
 import re
 import sys
+import platform
 
 # TODO This should never have to import from conda.cli
 from conda.cli import common
@@ -60,27 +61,51 @@ def from_yaml(yamlstr, **kwargs):
     return Environment(**data)
 
 
+def custom_selectors_from_yaml(yamlstr):
+    """Load and return a list of custom selectors from a given ``yaml string``"""
+    data = yaml.load(yamlstr)
+    if 'selectors' in data:
+        return data['selectors']
+    return []
+
+
 def from_file(filename, selectors=None):
     if not os.path.exists(filename):
         raise exceptions.EnvironmentFileNotFound(filename)
     with open(filename, 'r') as fp:
-        filtered_yamlstr = select_lines(fp.read(), filename, selectors)
-        return from_yaml(filtered_yamlstr, filename=filename)
+        yamlstr = fp.read()
+        custom_selectors = custom_selectors_from_yaml(yamlstr)
+        yamlstr = select_lines(yamlstr, filename, custom_selectors, selectors=selectors)
+        return from_yaml(yamlstr, filename=filename)
 
 
-def ns_cfg(selectors=None):
-    d = dict()
-    if selectors and len(selectors) > 0:
-        selector_dict = dict((selector, True) for selector in selectors)
-        d.update(selector_dict)
+def ns_cfg(custom_selectors, selectors=None):
+    plat = sys.platform
+    arch = platform.architecture()
+    d = dict(
+        linux=plat.startswith('linux'),
+        linux32=plat.startswith('linux') and '32' in arch,
+        linux64=plat.startswith('linux') and '64' in arch,
+        osx=plat.startswith('darwin'),
+        win=plat.startswith('win32'),
+        win32=plat.startswith('win32') and '32' in arch,
+        win64=plat.startswith('win32') and '64' in arch,
+        unix=plat.startswith(('linux', 'darwin')),
+        os=os,
+        environ=os.environ,
+    )
+    if selectors is None:
+        selectors = []
+    selector_dict = dict((selector, selector in selectors) for selector in custom_selectors)
+    d.update(selector_dict)
     return d
 
 
 sel_pat = re.compile(r'(.+?)\s*(#.*)?\[(.+)\](?(2).*)$')
-def select_lines(yamlstr, filename, selectors=None):
+def select_lines(yamlstr, filename, custom_selectors, selectors=None):
     if selectors and len(selectors) == 1 and selectors[0] == "all":
-        return yamlstr
-    namespace = ns_cfg(selectors)
+        selectors = custom_selectors
+    namespace = ns_cfg(custom_selectors, selectors)
     lines = []
     orig_lines = yamlstr.splitlines()
     for i, line in enumerate(orig_lines):
@@ -136,7 +161,7 @@ class Dependencies(OrderedDict):
 
 class Environment(object):
     def __init__(self, name=None, filename=None, channels=None,
-                 dependencies=None):
+                 dependencies=None, selectors=None):
         self.name = name
         self.filename = filename
         self.dependencies = Dependencies(dependencies)
@@ -145,12 +170,18 @@ class Environment(object):
             channels = []
         self.channels = channels
 
+        if selectors is None:
+            selectors = []
+        self.selectors = selectors
+
     def to_dict(self):
         d = yaml.dict([('name', self.name)])
         if self.channels:
             d['channels'] = self.channels
         if self.dependencies:
             d['dependencies'] = self.dependencies.raw
+        if self.selectors:
+            d['selectors'] = self.selectors
         return d
 
     def to_yaml(self, stream=None):

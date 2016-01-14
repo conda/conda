@@ -70,7 +70,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '--select',
         action='append',
-        help='additional preprocessing selectors (can be passed multiple times)',
+        help='preprocessing selectors (can be passed multiple times)',
         metavar="SELECTORS",
     )
     common.add_parser_json(p)
