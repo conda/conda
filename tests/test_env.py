@@ -81,7 +81,7 @@ class from_file_TestCase(unittest.TestCase):
         self.assert_('sphinx' in e.dependencies['conda'])
         self.assert_('doctest' in e.dependencies['conda'])
     
-     def test_with_selectors_platform(self):
+    def test_with_selectors_platform(self):
         e = env.from_file(utils.support_file('selectors.yml'))
         self.assert_('conda' in e.dependencies)
         if sys.platform.startswith('win32'):
