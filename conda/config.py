@@ -270,11 +270,8 @@ offline = bool(rc.get('offline', False))
 
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
-        base_urls = ['http://filer/pkgs/pro',
-                     'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST').strip() == '2':
-            base_urls.insert(0, 'http://filer/test-pkgs')
-        return normalize_urls(base_urls, platform=platform)
+        import cio_test
+        return normalize_urls(cio_test.base_urls, platform=platform)
 
     if 'channels' not in rc:
         base_urls = get_default_urls()
