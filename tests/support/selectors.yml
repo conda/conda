@@ -7,3 +7,8 @@ dependencies:
   - pytest  # [test]
   - sphinx  # [docs]
   - doctest  # [test and docs]
+  - pywin32  # [win]
+  - foo  # [osx]
+  - bar  # [linux]
+  - baz  # [x64]
+  - quux  # [x86]
