@@ -13,6 +13,12 @@ Miniconda includes only conda, conda-build, and their dependencies so you can in
 These instructions are for a full install of Anaconda, which includes conda, conda-build, and 150+ 
 open source packages. 
 
+On Windows, OS X, and Linux, it is best to install Anaconda for the local user, 
+which does not require administrator permissions and is the most robust type of 
+installation. For users on any of the three platforms who need to do so, 
+Anaconda can also be installed system wide, which does require administrator 
+permissions.
+
 TIP: For installation instructions using our graphical installers for OS X or Windows, please see 
 the `Anaconda Install <http://docs.continuum.io/anaconda/install.html>`_ page. 
 
@@ -24,7 +30,7 @@ Anaconda requirements
 
 300 MB to download Anaconda plus another 300 to install it. 
 
-NOTE: You do NOT need root privileges to install Anaconda if you select a user writable install location.
+NOTE: You do NOT need administrative or root permissions to install Anaconda if you select a user writable install location.
 
 Install instructions
 --------------------
