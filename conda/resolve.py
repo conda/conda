@@ -763,10 +763,19 @@ class Resolve(object):
         log.debug("Features: %s" % str(features))
         log.debug("Installed: %s" % str(installed))
 
-        # This won't packages that aren't in the index, but there isn't much
+        # This won't fully catch packages that aren't in the index, but there isn't much
         # we can do with such packages here anyway.
-        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in
-            installed if pkg in self.index}
+        installed_specs = []
+        installed_dists = {}
+        snames = set(s.split(' ',1)[0] for s in specs)
+        for pkg in installed:
+            if pkg in self.index:
+                installed_dists[pkg] = Package(pkg, self.index[pkg])
+            name = pkg.split('-',1)[0]
+            if name not in snames:
+                installed_specs.append(name)
+                snames.add(name)
+        all_specs = specs + installed_specs
 
         if try_max_only is None:
             if unsat_only or update_deps:
@@ -777,7 +786,7 @@ class Resolve(object):
         # XXX: Should try_max_only use the filtered list?
         if try_max_only:
             try:
-                dists = self.get_dists(specs, max_only=True, filtered=False)
+                dists = self.get_dists(all_specs, max_only=True, filtered=False)
             except NoPackagesFound:
                 # Handle packages that are not included because some dependencies
                 # couldn't be found.
@@ -792,7 +801,7 @@ class Resolve(object):
                 m = i + 1
 
                 dotlog.debug("Solving using max dists only")
-                clauses = set(self.gen_clauses(v, dists, specs, features))
+                clauses = set(self.gen_clauses(v, dists, all_specs, features))
                 try:
                     solutions = min_sat(clauses, alg='iterate',
                         raise_on_max_n=True)
@@ -805,7 +814,7 @@ class Resolve(object):
                             return [ret]
                         return ret
 
-        dists = self.get_dists(specs, filtered=True)
+        dists = self.get_dists(all_specs, filtered=True)
 
         v = {}  # map fn to variable number
         w = {}  # map variable number to fn
@@ -815,7 +824,7 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = set(self.gen_clauses(v, dists, specs, features))
+        clauses = set(self.gen_clauses(v, dists, all_specs, features))
         if not clauses:
             if returnall:
                 return [[]]
