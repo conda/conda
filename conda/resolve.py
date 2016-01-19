@@ -417,7 +417,7 @@ class Resolve(object):
         self.index = index
         self.groups = defaultdict(list)  # map name to list of filenames
         for fn, info in iteritems(index):
-            self.groups[info['name']].append(fn)
+            self.groups[fn.rsplit('-',2)[0]].append(fn)
         self.msd_cache = {}
         self.clear_filter()
 
@@ -599,7 +599,7 @@ class Resolve(object):
     def gen_clauses(self, v, dists, specs, features):
         groups = defaultdict(list)  # map name to list of filenames
         for fn in dists:
-            groups[self.index[fn]['name']].append(fn)
+            groups[fn.rsplit('-',2)[0]].append(fn)
 
         for filenames in itervalues(groups):
             # ensure packages with the same name conflict
@@ -666,7 +666,7 @@ class Resolve(object):
         include0=False, update_deps=True):
         groups = defaultdict(list)  # map name to list of filenames
         for fn in sorted(dists):
-            groups[self.index[fn]['name']].append(fn)
+            groups[fn.rsplit('-',2)[0]].append(fn)
 
         eq = []
         max_rhs = 0
@@ -775,7 +775,7 @@ class Resolve(object):
             if name not in snames:
                 installed_specs.append(name)
                 snames.add(name)
-        all_specs = specs + installed_specs
+        all_specs = list(specs) + installed_specs
 
         if try_max_only is None:
             if unsat_only or update_deps:

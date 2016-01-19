@@ -1450,7 +1450,7 @@ def test_install_package_with_feature():
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
-        'name': 'mypackage',
+        'name': 'feature',
         'version': '1.0',
         'track_features': 'feature',
     }
