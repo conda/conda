@@ -28,6 +28,7 @@ init:
 
 install:
   - "%PYTHON%/Scripts/easy_install -U pip"
+  - "%PYTHON%/Scripts/pip install -U setuptools"
   - "%PYTHON%/Scripts/pip install tox"
   - "%PYTHON%/Scripts/pip install wheel"
 
@@ -35,7 +36,7 @@ test_script:
   - "%PYTHON%/Scripts/tox -e %TOX_ENV%"
 
 after_test:
-  - "%PYTHON%/python setup.py bdist_wheel"
+  - "%PYTHON%/python setup.py sdist bdist bdist_wheel"
   - ps: "ls dist"
 
 artifacts:
