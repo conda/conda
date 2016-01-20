@@ -9,9 +9,6 @@ Conda
 .. image:: https://travis-ci.org/conda/conda.svg?branch=master
                :target: https://travis-ci.org/conda/conda
 
-.. image:: https://ci.appveyor.com/api/projects/status/6btwguwga3959bkc
-           :target: https://ci.appveyor.com/project/asmeurer/conda-973
-
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations, but it may be
@@ -71,11 +68,15 @@ default, you would run
 This creates an environment called ``numpy16`` with the latest version of
 the IPython notebook, NumPy 1.6, and their dependencies.
 
-We can now activate this environment. On Linux and Mac OS X, use
+We can now activate this environment, use
 
 .. code-block:: bash
 
+   # On Linux and Mac OS X
    $ source activate numpy16
+   
+   # On Windows
+   > activate numpy16
 
 This puts the bin directory of the ``numpy16`` environment in the front of the
 ``PATH``, and sets it as the default environment for all subsequent conda commands.
@@ -84,26 +85,31 @@ To go back to the root environment, use
 
 .. code-block:: bash
 
+   # On Linux and Mac OS X
    $ source deactivate
+   
+   # On Windows
+   > deactivate
 
 
 Building Your Own Packages
 --------------------------
 
-You can easily build your own packages for conda, and upload them to `Binstar
-<https://binstar.org>`_, a free service for hosting packages for conda, as
-well as other package managers.  To build a package, create a recipe.  See
-http://github.com/conda/conda-recipes for many example recipes, and
+You can easily build your own packages for conda, and upload them
+to `anaconda.org <https://anaconda.org>`_, a free service for hosting
+packages for conda, as well as other package managers.
+To build a package, create a recipe.
+See http://github.com/conda/conda-recipes for many example recipes, and
 http://docs.continuum.io/conda/build.html for documentation on how to build
 recipes.
 
-To upload to Binstar, create an account on binstar.org.  Then, install the
-binstar client and login
+To upload to anaconda.org, create an account.  Then, install the
+anaconda-client and login
 
 .. code-block:: bash
 
-   $ conda install binstar
-   $ binstar login
+   $ conda install anaconda-client
+   $ anaconda login
 
 Then, after you build your recipe
 
@@ -111,14 +117,14 @@ Then, after you build your recipe
 
    $ conda build <recipe-dir>
 
-you will be prompted to upload to binstar.
+you will be prompted to upload to anaconda.org.
 
-To add your Binstar channel, or the channel of others to conda so that ``conda
-install`` will find and install their packages, run
+To add your anaconda.org channel, or the channel of others to conda so
+that ``conda install`` will find and install their packages, run
 
 .. code-block:: bash
 
-   $ conda config --add channels https://conda.binstar.org/username
+   $ conda config --add channels https://conda.anaconda.org/username
 
 (replacing ``username`` with the user name of the person whose channel you want
 to add).
@@ -131,11 +137,26 @@ subscribe to the `conda mailing list
 <https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.  The source
 code and issue tracker for conda are on `GitHub <https://github.com/conda/conda>`_.
 
---------
+Contributing
+------------
 
-Contents:
+Contributions to conda are welcome. Just fork the GitHub repository and send a
+pull request.
 
-.. toctree::
-   :maxdepth: 2
+To develop on conda, the easiest way is to use ``python setup.py develop`` in your
+root conda environment. This will install a link to the local conda source
+code, so that any change you make to conda will be instantly available. To undo
+this, run ``python setup.py develop -u``.  If you are worried about breaking
+your conda installation, you can install a separate instance of `Miniconda
+<http://conda.pydata.org/miniconda.html>`_ and work off it. This is also the
+only way to test conda in both Python 2 and Python 3, as conda can only be
+installed into a root environment.
 
-   miniconda.rst
+Run the conda tests by ``conda install pytest`` and then running ``py.test``
+in the conda directory. The tests are also run by Travis CI when you make a
+pull request.
+
+
+.. image:: https://badges.gitter.im/conda/conda.svg
+   :alt: Join the chat at https://gitter.im/conda/conda
+   :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
