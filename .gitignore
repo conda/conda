@@ -6,3 +6,8 @@ dist/
 docs/build
 .cache/
 .idea/
+
+.tox/
+.coverage
+coverage.xml
+junit.xml
