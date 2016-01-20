@@ -1,6 +1,5 @@
 language: python
 sudo: false
-cache: false
 python: '3.5'
 
 env:
@@ -27,3 +26,7 @@ addons:
   apt:
     packages:
       - zsh
+
+after_success:
+  - pip install codecov
+  - codecov --env TOX_ENV
