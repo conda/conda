@@ -14,7 +14,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      python: '2.7'
+      python: '2.7'  # these are just to make travis's UI a bit prettier
       env: TOXENV=py27
     - os: linux
       sudo: required
@@ -34,14 +34,14 @@ matrix:
       language: generic
       env: TOXENV=py35
 
-before_install:
-  - '[[ "$TRAVIS_OS_NAME" == "osx" ]] && brew update && brew install python'
+# before_install:
+
+install:
   - python --version
   - printenv
   - uname -a
   - lsb_release -a
-
-install: travis_retry pip install -U tox
+  - travis_retry pip install -U tox
 
 script: tox -v
 
