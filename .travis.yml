@@ -6,9 +6,9 @@ python: '3.5'
 env:
   global: PYTHONUNBUFFERED=yes
   matrix:
-    - TOXENV=2.7
-    - TOXENV=3.4
-    - TOXENV=3.5
+    - TOXENV=py27
+    - TOXENV=py34
+    - TOXENV=py35
 
 cache:
   - $HOME/.pip-cache
