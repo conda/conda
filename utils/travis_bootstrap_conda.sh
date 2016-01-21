@@ -3,7 +3,7 @@
 
 
 travis_bootstrap_conda() {
-    if [[ -d ~/.conda ]]; then
+    if ! [[ -d ~/.conda ]]; then
         declare miniconda_url
         case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
             linux) miniconda_url="https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh";;
@@ -13,11 +13,12 @@ travis_bootstrap_conda() {
         curl -sS -o miniconda.sh "$miniconda_url"
         bash miniconda.sh -bfp ~/.conda
         rm -rf miniconda.sh
-
-        export PATH="~/.conda/bin:$PATH" && hash -r
-        conda config --set always_yes yes
-        conda update -q conda
     fi
+
+    export PATH="~/.conda/bin:$PATH"
+    hash -r
+    conda config --set always_yes yes
+    conda update -q conda
 
     declare python_version
     case "$TOXENV" in
