@@ -34,3 +34,5 @@ travis_bootstrap_conda() {
     conda info -a
     conda list
 }
+
+travis_bootstrap_conda
