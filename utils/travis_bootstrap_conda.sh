@@ -28,7 +28,7 @@ travis_bootstrap_conda() {
         py35) python_version="3.5";;
         *)    python_version="3.5";;
     esac
-    conda create -q -n test-environment python="$python_version" virtualenv
+    conda create -q -n test-environment python="$python_version" setuptools pip virtualenv
     source activate test-environment
 
     conda info -a

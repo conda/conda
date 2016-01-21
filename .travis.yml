@@ -37,6 +37,7 @@ before_install:
   - uname -a
 
 install:
+  - python setup.py sdist
   - travis_retry pip install -U tox
 
 script: tox -v
