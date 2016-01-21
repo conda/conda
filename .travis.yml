@@ -31,7 +31,7 @@ matrix:
       env: TOXENV=py35
 
 before_install:
-  - [[ $(uname -s) == "Darwin" ]] && source utils/travis_bootstrap_conda.sh && travis_bootstrap_conda
+  - '[[ $(uname -s) == "Darwin" ]] && source utils/travis_bootstrap_conda.sh && travis_bootstrap_conda'
   - printenv
   - python --version
   - uname -a
