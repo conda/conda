@@ -1,10 +1,6 @@
 language: python
 sudo: false
 
-env:
-  global:
-    - PYTHONUNBUFFERED=yes
-
 addons:
   apt:
     packages:
@@ -34,13 +30,13 @@ matrix:
       language: generic
       env: TOXENV=py35
 
-# before_install:
+before_install:
+  - source utils/install_conda_travis.sh
+  - printenv
+  - python --version
+  - uname -a
 
 install:
-  - python --version
-  - printenv
-  - uname -a
-  - lsb_release -a
   - travis_retry pip install -U tox
 
 script: tox -v
