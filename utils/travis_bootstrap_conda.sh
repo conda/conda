@@ -1,6 +1,8 @@
 #!/bin/sh
+# NOTE: this script should be sourced instead of executed
 
-install_conda() {
+
+travis_bootstrap_conda() {
     if [[ -d ~/.conda ]]; then
         declare miniconda_url
         case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
@@ -16,10 +18,7 @@ install_conda() {
         conda config --set always_yes yes
         conda update -q conda
     fi
-}
 
-
-create_test_env() {
     declare python_version
     case "$TOXENV" in
         py27) python_version="2.7";;
@@ -30,13 +29,7 @@ create_test_env() {
     esac
     conda create -q -n test-environment python="$python_version" virtualenv
     source activate test-environment
-}
 
-main() {
-  install_conda
-  create_test_env
-  conda info -a
-  conda list
+    conda info -a
+    conda list
 }
-
-main
