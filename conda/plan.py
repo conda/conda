@@ -18,6 +18,7 @@ from os.path import abspath, basename, isfile, join, exists
 
 from conda import config
 from conda import install
+from conda.compat import itervalues
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
