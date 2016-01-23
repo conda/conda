@@ -76,13 +76,13 @@ def configure_parser(sub_parsers):
 def show_pkg_info(name):
     #import conda.install as install
     from conda.api import get_index
-    from conda.resolve import MatchSpec, Resolve
+    from conda.resolve import Resolve
 
     index = get_index()
     r = Resolve(index)
     print(name)
     if name in r.groups:
-        for pkg in sorted(r.get_pkgs(MatchSpec(name))):
+        for pkg in sorted(r.get_pkgs(name)):
             print('    %-15s %15s  %s' % (
                     pkg.version,
                     pkg.build,
@@ -150,7 +150,7 @@ def execute(args, parser):
 
     import conda
     import conda.config as config
-    from conda.resolve import Resolve, MatchSpec
+    from conda.resolve import Resolve
     from conda.cli.main_init import is_initialized
     from conda.api import get_index, get_package_versions
 
@@ -174,7 +174,7 @@ def execute(args, parser):
         specs = map(common.arg2spec, args.packages)
 
         for spec in specs:
-            versions = r.get_pkgs(MatchSpec(spec))
+            versions = r.get_pkgs(spec)
             for pkg in sorted(versions):
                 pretty_package(pkg)
         return
