@@ -9,7 +9,7 @@ from conda import install
 #from conda.utils import url_path
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import Package, Resolve
 
 
 def _name_fn(fn):
@@ -167,10 +167,7 @@ def app_uninstall(fn, prefix=config.root_dir):
 def get_package_versions(package, offline=False):
     index = get_index(offline=offline)
     r = Resolve(index)
-    if package in r.groups:
-        return r.get_pkgs(MatchSpec(package))
-    else:
-        return []
+    return r.get_pkgs(package, emptyok=True)
 
 
 if __name__ == '__main__':
