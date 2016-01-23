@@ -307,7 +307,7 @@ class MatchSpec(object):
     def __new__(cls, spec):
         if isinstance(spec, cls):
             return spec
-        self = _specs.get(spec, None)
+        self = _specs.get(spec)
         if self:
             return self
         self = object.__new__(cls)
@@ -424,13 +424,17 @@ class Resolve(object):
             match1 = next(x for x in matches)
             name = match1.name
             if name not in snames:
+                # We need to explicitly check dependencies when
+                # we cycle through the pruning loop so that we 
+                # fully explore cycles in the graph.
                 specs.append(MatchSpec(name))
+                snames.add(name)
 
             first = False
             nold = nnew = 0
             group = self.groups[name]
             for fn in group:
-                sat = valid.get(fn, None)
+                sat = valid.get(fn)
                 if sat is None:
                     first = sat = True
                 nold += sat
@@ -471,7 +475,7 @@ class Resolve(object):
             return reduced
 
         def is_valid(fn, notfound=None):
-            val = valid.get(fn, None)
+            val = valid.get(fn)
             if val is None:
                 val = valid[fn] = True
                 for ms in self.ms_depends(fn):
@@ -484,7 +488,7 @@ class Resolve(object):
             return val
 
         def touch(fn, notfound=None):
-            val = touched.get(fn, None)
+            val = touched.get(fn)
             if val is None or (notfound is not None and not val):
                 val = touched[fn] = is_valid(fn, notfound)
                 if val:
@@ -499,7 +503,7 @@ class Resolve(object):
         if filtered:
             while sum(filter_group([specs[k]]) for k in range(len(specs))):
                 pass
-            for k in range(len(specs)):
+            for k in range(len0):
                 ms = specs[k]
                 if sum(touch(fn) for fn in self.find_matches(ms)) == 0:
                     dotlog.debug('Spec %s cannot be satisfied' % ms.spec)
@@ -517,7 +521,7 @@ class Resolve(object):
                     raise NoPackagesFound("Could not find some dependencies "
                         "for %s: %s" % (ms, ', '.join(notfound)), [ms] + notfound)
 
-        dists = {fn:Package(fn, info) for fn, info in iteritems(self.index) if touched.get(fn, False)}
+        dists = {fn:Package(fn, info) for fn, info in iteritems(self.index) if touched.get(fn)}
         return dists
 
     def find_matches(self, ms):
@@ -528,9 +532,8 @@ class Resolve(object):
     def ms_depends(self, fn):
         # We can't use @memoize here because this cache is modified
         # in update_with_features as well
-        try:
-            res = self.msd_cache[fn]
-        except KeyError:
+        res = self.msd_cache.get(fn)
+        if not res:
             if not 'depends' in self.index[fn]:
                 raise NoPackagesFound('Bad metadata for %s' % fn, [fn])
             depends = self.index[fn]['depends']
@@ -546,31 +549,12 @@ class Resolve(object):
         return set(self.index[fn].get('track_features', '').split())
 
     @memoize
-    def get_pkgs(self, ms, max_only=False, emptyok=False):
+    def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs and not emptyok:
             raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-        if pkgs and max_only:
-            maxpkg = max(pkgs)
-            ret = []
-            for pkg in pkgs:
-                try:
-                    if (pkg.name, pkg.norm_version, pkg.build_number) == \
-                       (maxpkg.name, maxpkg.norm_version, maxpkg.build_number):
-                        ret.append(pkg)
-                except TypeError:
-                    # They are not equal
-                    pass
-            pkgs = ret
         return pkgs
-
-    def get_max_dists(self, ms):
-        pkgs = self.get_pkgs(ms, max_only=True)
-        if not pkgs:
-            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-        for pkg in pkgs:
-            yield pkg.fn
 
     def gen_clauses(self, v, dists, specs, features):
         groups = defaultdict(list)  # map name to list of filenames
@@ -897,7 +881,7 @@ Note that the following features are enabled:
     def sum_matches(self, fn1, fn2):
         return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
 
-    def find_substitute(self, installed, features, fn, max_only=False):
+    def find_substitute(self, installed, features, fn):
         """
         Find a substitute package for `fn` (given `installed` packages)
         which does *NOT* have `features`.  If found, the substitute will
@@ -907,7 +891,7 @@ Note that the following features are enabled:
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = {}
-        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version), max_only=max_only):
+        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
             fn1 = pkg.fn
             if self.features(fn1).intersection(features):
                 continue
@@ -949,26 +933,25 @@ Note that the following features are enabled:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None, max_only=False,
+    def solve(self, specs, installed=None, features=None, 
               minimal_hint=False, update_deps=True):
         if installed is None:
             installed = []
         if features is None:
             features = self.installed_features(installed)
+
         for spec in specs:
             if sys.platform == 'win32' and spec == 'python':
                 continue
             # XXX: This does not work when a spec only contains the name,
             # and different versions of the package have different features.
             ms = MatchSpec(spec)
-            for pkg in self.get_pkgs(ms, max_only=max_only):
-                fn = pkg.fn
-                features.update(self.track_features(fn))
+            for pkg in self.get_pkgs(ms):
+                features.update(self.track_features(pkg.fn))
         log.debug('specs=%r  features=%r' % (specs, features))
         for spec in specs:
-            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
-                fn = pkg.fn
-                self.update_with_features(fn, features)
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                self.update_with_features(pkg.fn, features)
 
         stdoutlog.info("Solving package specifications: ")
         try:
