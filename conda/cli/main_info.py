@@ -124,7 +124,7 @@ def pretty_package(pkg):
         ('channel', config.canonical_channel_name(pkg.channel)),
         ('size', human_bytes(pkg.info['size'])),
         ])
-    rest = pkg.info.copy()
+    rest = pkg.info
     for key in sorted(rest):
         if key in ['build', 'depends', 'requires', 'channel', 'name',
             'version', 'build_number', 'size']:
