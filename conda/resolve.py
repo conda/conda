@@ -21,7 +21,7 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
-    # normalized_version() is needed by conda-env
+# normalized_version() is needed by conda-env
 def normalized_version(version):
     return VersionOrder(version)
 
@@ -322,9 +322,15 @@ class MatchSpec(object):
             self.ver_build = tuple(parts[1:3])
         return self
 
-    def match(self, fn):
-        assert fn.endswith('.tar.bz2')
-        name, version, build = fn[:-8].rsplit('-', 2)
+    def match(self, info):
+        if isinstance(info, string_types):
+            name, version, build = info[:-8].rsplit('-',2)
+        else:
+            if isinstance(info, Package):
+                info = info.info
+            name = info.get('name')
+            version = info.get('version')
+            build = info.get('build')
         if name != self.name:
             return False
         if self.strictness == 1:
@@ -360,10 +366,12 @@ class Package(object):
     """
     def __init__(self, fn, info):
         self.fn = fn
-        self.name = fn.rsplit('-',2)[0] # info['name']
-        self.version = info['version']
-        self.build_number = info['build_number']
-        self.build = info['build']
+        self.name = info.get('name')
+        self.version = info.get('version')
+        self.build = info.get('build')
+        if not (self.name and self.version and self.build):
+            self.name, self.version, self.build = fn.rsplit('-',2)
+        self.build_number = info.get('build_number')
         self.channel = info.get('channel')
         self.norm_version = VersionOrder(self.version)
         self.info = info
@@ -410,7 +418,7 @@ class Resolve(object):
         self.index = index
         self.groups = defaultdict(list)  # map name to list of filenames
         for fn, info in iteritems(index):
-            self.groups[fn.rsplit('-',2)[0]].append(fn)
+            self.groups[info['name']].append(fn)
         self.msd_cache = {}
 
     def get_dists(self, specs, features=None, filtered=True):
@@ -440,7 +448,7 @@ class Resolve(object):
                 nold += sat
                 # Prune packages that don't match any of the patterns
                 if sat:
-                    sat = any(m.match(fn) for m in matches)
+                    sat = any(self.match(ms, fn) for ms in matches)
                 # Prune packages with missing dependencies
                 if sat:
                     sat = all(any(valid.get(f2, True)
@@ -476,15 +484,13 @@ class Resolve(object):
 
         def is_valid(fn, notfound=None):
             val = valid.get(fn)
-            if val is None:
-                val = valid[fn] = True
-                for ms in self.ms_depends(fn):
-                    if not any(is_valid(f2) for f2 in self.find_matches(ms)):
-                        val = False
-                        break
-                if notfound and not val:
-                    notfound.append(ms)
-                valid[fn] = val
+            if val is None or (notfound and not val):
+                valid[fn] = True # ensure cycles terminate
+                val = valid[fn] = all(any(is_valid(f2) 
+                                          for f2 in self.find_matches(ms))
+                                      for ms in self.ms_depends(fn))
+            if notfound and not val:
+                notfound.append(ms)
             return val
 
         def touch(fn, notfound=None):
@@ -503,18 +509,18 @@ class Resolve(object):
         if filtered:
             while sum(filter_group([specs[k]]) for k in range(len(specs))):
                 pass
-            for k in range(len0):
-                ms = specs[k]
+            specs = specs[:len0]
+            for ms in specs:
                 if sum(touch(fn) for fn in self.find_matches(ms)) == 0:
                     dotlog.debug('Spec %s cannot be satisfied' % ms.spec)
                     completed = False
 
         # Less aggressive pruning if the more aggressive form fails
         if not completed:
-            valid.clear()
-            touched.clear()
-            for k in range(len0):
-                ms = specs[k]
+            if filtered:
+                valid.clear()
+                touched.clear()
+            for ms in specs:
                 notfound = []
                 if sum(touch(fn, notfound) for fn in self.find_matches(ms)) == 0:
                     notfound = list(set(notfound)) 
@@ -524,9 +530,13 @@ class Resolve(object):
         dists = {fn:Package(fn, info) for fn, info in iteritems(self.index) if touched.get(fn)}
         return dists
 
+    def match(self, ms, fn):
+        rec = self.index.get(fn)
+        return rec and ms.match(rec)
+
     def find_matches(self, ms):
-        for fn in self.groups[ms.name]:
-            if ms.match(fn):
+        for fn in self.groups.get(ms.name,[]):
+            if ms.match(self.index.get(fn)):
                 yield fn
 
     def ms_depends(self, fn):
@@ -558,8 +568,8 @@ class Resolve(object):
 
     def gen_clauses(self, v, dists, specs, features):
         groups = defaultdict(list)  # map name to list of filenames
-        for fn in dists:
-            groups[fn.rsplit('-',2)[0]].append(fn)
+        for fn, pkg in iteritems(dists):
+            groups[pkg.name].append(fn)
 
         for filenames in itervalues(groups):
             # ensure packages with the same name conflict
@@ -578,7 +588,7 @@ class Resolve(object):
                 # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
                 clause = [-v[fn1]]
                 for fn2 in groups[ms.name]:
-                    if ms.match(fn2):
+                    if self.match(ms, fn2):
                         clause.append(v[fn2])
                 assert len(clause) > 1, '%s %r' % (fn1, ms)
                 yield tuple(clause)
@@ -596,7 +606,7 @@ class Resolve(object):
 
                 # Don't install any package that has a feature that wasn't requested.
                 for fn in groups[ms.name]:
-                    if ms.match(fn) and self.features(fn) - features:
+                    if self.match(ms, fn) and self.features(fn) - features:
                         yield (-v[fn],)
 
         for spec in specs:
@@ -625,14 +635,16 @@ class Resolve(object):
     def generate_version_eq(self, v, dists, installed_dists, specs,
         include0=False, update_deps=True):
         groups = defaultdict(list)  # map name to list of filenames
-        for fn in sorted(dists):
-            groups[fn.rsplit('-',2)[0]].append(fn)
+        for fn, pkg in iteritems(dists):
+            groups[pkg.name].append(fn)
+        specs = [MatchSpec(spec) for spec in specs]
 
         eq = []
         max_rhs = 0
-        for filenames in sorted(itervalues(groups)):
+        for name in sorted(groups):
+            filenames = groups[name]
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
-            if (not update_deps and not any(s.split()[0] == pkgs[0].rsplit('-', 2)[0] for s in specs)):
+            if (not update_deps and not any(ms.name == name for ms in specs)):
                 rearrange = True
                 for d in installed_dists:
                     if d in pkgs:
@@ -735,8 +747,7 @@ class Resolve(object):
                 if minimal_hint:
                     stderrlog.info('\nError: Unsatisfiable package '
                         'specifications.\nGenerating minimal hint: \n')
-                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
-            w))
+                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v, w))
                 else:
                     stderrlog.info('\nError: Unsatisfiable package '
                         'specifications.\nGenerating hint: \n')
@@ -879,7 +890,7 @@ Note that the following features are enabled:
 
     @memoize
     def sum_matches(self, fn1, fn2):
-        return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
+        return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
 
     def find_substitute(self, installed, features, fn):
         """
