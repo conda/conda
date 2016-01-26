@@ -187,7 +187,7 @@ def add_parser_no_use_index_cache(p):
         action="store_false",
         default=True,
         dest="use_index_cache",
-        help="Use cache of channel index files.",
+        help="Force fetching of channel index files.",
     )
 
 def add_parser_copy(p):
