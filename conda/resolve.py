@@ -21,7 +21,7 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
-    # normalized_version() is needed by conda-env
+# normalized_version() is needed by conda-env
 def normalized_version(version):
     return VersionOrder(version)
 
@@ -301,9 +301,16 @@ class VersionSpec(object):
         return all(c.match(version) for c in self.constraints)
 
 
+_specs = {}
 class MatchSpec(object):
 
-    def __init__(self, spec):
+    def __new__(cls, spec):
+        if isinstance(spec, cls):
+            return spec
+        self = _specs.get(spec)
+        if self:
+            return self
+        self = object.__new__(cls)
         self.spec = spec
         parts = spec.split()
         self.strictness = len(parts)
@@ -313,10 +320,17 @@ class MatchSpec(object):
             self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
+        return self
 
-    def match(self, fn):
-        assert fn.endswith('.tar.bz2')
-        name, version, build = fn[:-8].rsplit('-', 2)
+    def match(self, info):
+        if isinstance(info, string_types):
+            name, version, build = info[:-8].rsplit('-',2)
+        else:
+            if isinstance(info, Package):
+                info = info.info
+            name = info.get('name')
+            version = info.get('version')
+            build = info.get('build')
         if name != self.name:
             return False
         if self.strictness == 1:
@@ -352,10 +366,12 @@ class Package(object):
     """
     def __init__(self, fn, info):
         self.fn = fn
-        self.name = info['name']
-        self.version = info['version']
-        self.build_number = info['build_number']
-        self.build = info['build']
+        self.name = info.get('name')
+        self.version = info.get('version')
+        self.build = info.get('build')
+        if not (self.name and self.version and self.build):
+            self.name, self.version, self.build = fn.rsplit('-',2)
+        self.build_number = info.get('build_number')
         self.channel = info.get('channel')
         self.norm_version = VersionOrder(self.version)
         self.info = info
@@ -366,27 +382,12 @@ class Package(object):
         result['norm_version'] = str(self.norm_version)
         return result
 
-    # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
-#     def __cmp__(self, other):
-#         if self.name != other.name:
-#             raise ValueError('cannot compare packages with different '
-#                              'names: %r %r' % (self.fn, other.fn))
-#         try:
-#             return cmp((self.norm_version, self.build_number),
-#                       (other.norm_version, other.build_number))
-#         except TypeError:
-#             return cmp((self.version, self.build_number),
-#                       (other.version, other.build_number))
-
     def __lt__(self, other):
         if self.name != other.name:
             raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
-        # FIXME: 'self.build' and 'other.build' are intentionally swapped
-        # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
-        # FIXME: This should be reverted when the underlying problem is solved.
-        return ((self.norm_version, self.build_number, other.build) <
-                (other.norm_version, other.build_number, self.build))
+        return ((self.norm_version, self.build_number, self.build) <
+                (other.norm_version, other.build_number, other.build))
 
     def __eq__(self, other):
         if not isinstance(other, Package):
@@ -419,37 +420,43 @@ class Resolve(object):
         for fn, info in iteritems(index):
             self.groups[info['name']].append(fn)
         self.msd_cache = {}
-        self.clear_filter()
 
-    def clear_filter(self):
-        self.filter_ = defaultdict(lambda:True)
-        self.get_pkgs_ = {}
-
-    def prune_packages(self, specs):
+    def get_dists(self, specs, features=None, filtered=True):
         log.debug('Beginning the pruning process')
-        touched = defaultdict(bool)
+        specs = [MatchSpec(spec) for spec in specs]
+        snames = {spec.name for spec in specs}
+        touched = {}
         valid = {}
 
         def filter_group(matches):
             match1 = next(x for x in matches)
             name = match1.name
+            if name not in snames:
+                # We need to explicitly check dependencies when
+                # we cycle through the pruning loop so that we 
+                # fully explore cycles in the graph.
+                specs.append(MatchSpec(name))
+                snames.add(name)
 
             first = False
             nold = nnew = 0
             group = self.groups[name]
             for fn in group:
-                sat = valid.get(fn, None)
+                sat = valid.get(fn)
                 if sat is None:
                     first = sat = True
                 nold += sat
                 # Prune packages that don't match any of the patterns
                 if sat:
-                    sat = any(m.match(fn) for m in matches)
+                    sat = any(self.match(ms, fn) for ms in matches)
                 # Prune packages with missing dependencies
                 if sat:
-                    sat = all(any(valid.get(f2, True) and ms.match(f2)
-                                  for f2 in self.find_matches(ms, True))
-                              for ms in self.ms_depends(fn) if ms.name in self.groups)
+                    sat = all(any(valid.get(f2, True)
+                                  for f2 in self.find_matches(ms))
+                              for ms in self.ms_depends(fn))
+                # Prune packages with features we did not request
+                if sat and features:
+                    sat = self.features(fn) <= features
                 nnew += sat
                 valid[fn] = sat
 
@@ -464,64 +471,79 @@ class Resolve(object):
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            cdeps = {}
+            cdeps = defaultdict(list)
             for fn in group:
                 if valid[fn]:
                     for m2 in self.ms_depends(fn):
                         if m2.name in self.groups:
-                            cdeps.setdefault(m2.name,[]).append(m2)
+                            cdeps[m2.name].append(m2)
             for mname, deps in iteritems(cdeps):
-                if len(deps) == nnew:
-                    filter_group(deps)
+                if len(deps) == nnew and filter_group(set(deps)):
+                    reduced = True
             return reduced
 
-        def is_valid(fn):
-            val = valid.get(fn, None)
-            if val is None:
-                val = valid[fn] = True
-                for ms in self.ms_depends(fn):
-                    if not any(is_valid(f2) for f2 in self.find_matches(ms, True)):
-                        val = False
-                        break
-                valid[fn] = val
+        def is_valid(fn, notfound=None):
+            val = valid.get(fn)
+            if val is None or (notfound and not val):
+                valid[fn] = True # ensure cycles terminate
+                val = valid[fn] = all(any(is_valid(f2) 
+                                          for f2 in self.find_matches(ms))
+                                      for ms in self.ms_depends(fn))
+            if notfound and not val:
+                notfound.append(ms)
             return val
 
-        def touch(fn, force=False):
-            val = touched.get(fn, None)
-            if val is None or (force and not val):
-                val = touched[fn] = force or is_valid(fn)
+        def touch(fn, notfound=None):
+            val = touched.get(fn)
+            if val is None or (notfound is not None and not val):
+                val = touched[fn] = is_valid(fn, notfound)
                 if val:
                     for ms in self.ms_depends(fn):
-                        for f2 in self.find_matches(ms, True):
-                            touch(f2, force)
+                        for f2 in self.find_matches(ms):
+                            touch(f2)
             return val
 
         # Iterate in the filtering process until no more progress is made
-        mspecs = [MatchSpec(s) for s in specs]
-        while sum(filter_group([ms]) for ms in mspecs):
-            pass
+        len0 = len(specs)
+        completed = filtered
+        if filtered:
+            while sum(filter_group([specs[k]]) for k in range(len(specs))):
+                pass
+            specs = specs[:len0]
+            for ms in specs:
+                if sum(touch(fn) for fn in self.find_matches(ms)) == 0:
+                    dotlog.debug('Spec %s cannot be satisfied' % ms.spec)
+                    completed = False
 
-        # Now touch all of the packages to bring in the weak dependencies
-        for ms in mspecs:
-            if sum(touch(fn) for fn in self.find_matches(ms, True)) == 0:
-                dotlog.debug('Spec %s cannot be satisfied' % ms.spec)
-                return False
+        # Less aggressive pruning if the more aggressive form fails
+        if not completed:
+            if filtered:
+                valid.clear()
+                touched.clear()
+            for ms in specs:
+                notfound = []
+                if sum(touch(fn, notfound) for fn in self.find_matches(ms)) == 0:
+                    notfound = list(set(notfound)) 
+                    raise NoPackagesFound("Could not find some dependencies "
+                        "for %s: %s" % (ms, ', '.join(notfound)), [ms] + notfound)
 
-        self.filter_ = touched
-        self.get_pkgs_ = {}
-        return True
+        dists = {fn:Package(fn, info) for fn, info in iteritems(self.index) if touched.get(fn)}
+        return dists
 
-    def find_matches(self, ms, all=True):
-        for fn in self.groups[ms.name]:
-            if self.filter_[fn] and ms.match(fn):
+    def match(self, ms, fn):
+        rec = self.index.get(fn)
+        return rec and ms.match(rec)
+
+    def find_matches(self, ms):
+        for fn in self.groups.get(ms.name,[]):
+            if ms.match(self.index.get(fn)):
                 yield fn
 
     def ms_depends(self, fn):
         # We can't use @memoize here because this cache is modified
         # in update_with_features as well
-        try:
-            res = self.msd_cache[fn]
-        except KeyError:
+        res = self.msd_cache.get(fn)
+        if not res:
             if not 'depends' in self.index[fn]:
                 raise NoPackagesFound('Bad metadata for %s' % fn, [fn])
             depends = self.index[fn]['depends']
@@ -536,70 +558,18 @@ class Resolve(object):
     def track_features(self, fn):
         return set(self.index[fn].get('track_features', '').split())
 
-    # Changed to manual memoization so that we can reset if we add/change the filter.
-    def get_pkgs(self, ms, max_only=False):
-        key = (ms,max_only)
-        if key in self.get_pkgs_:
-            return self.get_pkgs_[key]
+    @memoize
+    def get_pkgs(self, ms, emptyok=False):
+        ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
-        if not pkgs:
+        if not pkgs and not emptyok:
             raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-        if max_only:
-            maxpkg = max(pkgs)
-            ret = []
-            for pkg in pkgs:
-                try:
-                    if (pkg.name, pkg.norm_version, pkg.build_number) == \
-                       (maxpkg.name, maxpkg.norm_version, maxpkg.build_number):
-                        ret.append(pkg)
-                except TypeError:
-                    # They are not equal
-                    pass
-            pkgs = ret
-        self.get_pkgs_[key] = pkgs
         return pkgs
-
-    def get_max_dists(self, ms):
-        pkgs = self.get_pkgs(ms, max_only=True)
-        if not pkgs:
-            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-        for pkg in pkgs:
-            yield pkg.fn
-
-    def all_deps(self, root_fn, max_only=False):
-        res = {}
-
-        def add_dependents(fn1, max_only=False):
-            for ms in self.ms_depends(fn1):
-                found = False
-                notfound = []
-                for pkg2 in self.get_pkgs(ms, max_only=max_only):
-                    if pkg2.fn in res:
-                        found = True
-                        continue
-                    res[pkg2.fn] = pkg2
-                    try:
-                        add_dependents(pkg2.fn, max_only=max_only)
-                    except NoPackagesFound as e:
-                        for pkg in e.pkgs:
-                            if pkg not in notfound:
-                                notfound.append(pkg)
-                        if pkg2.fn in res:
-                            del res[pkg2.fn]
-                    else:
-                        found = True
-
-                if not found:
-                    raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), [ms.spec] + notfound)
-
-        add_dependents(root_fn, max_only=max_only)
-        return res
 
     def gen_clauses(self, v, dists, specs, features):
         groups = defaultdict(list)  # map name to list of filenames
-        for fn in dists:
-            groups[self.index[fn]['name']].append(fn)
+        for fn, pkg in iteritems(dists):
+            groups[pkg.name].append(fn)
 
         for filenames in itervalues(groups):
             # ensure packages with the same name conflict
@@ -617,8 +587,8 @@ class Resolve(object):
                 # ensure dependencies are installed
                 # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
                 clause = [-v[fn1]]
-                for fn2 in self.find_matches(ms):
-                    if fn2 in dists:
+                for fn2 in groups[ms.name]:
+                    if self.match(ms, fn2):
                         clause.append(v[fn2])
                 assert len(clause) > 1, '%s %r' % (fn1, ms)
                 yield tuple(clause)
@@ -635,8 +605,8 @@ class Resolve(object):
                         yield tuple(clause)
 
                 # Don't install any package that has a feature that wasn't requested.
-                for fn in self.find_matches(ms):
-                    if fn in dists and self.features(fn) - features:
+                for fn in groups[ms.name]:
+                    if self.match(ms, fn) and self.features(fn) - features:
                         yield (-v[fn],)
 
         for spec in specs:
@@ -665,14 +635,16 @@ class Resolve(object):
     def generate_version_eq(self, v, dists, installed_dists, specs,
         include0=False, update_deps=True):
         groups = defaultdict(list)  # map name to list of filenames
-        for fn in sorted(dists):
-            groups[self.index[fn]['name']].append(fn)
+        for fn, pkg in iteritems(dists):
+            groups[pkg.name].append(fn)
+        specs = [MatchSpec(spec) for spec in specs]
 
         eq = []
         max_rhs = 0
-        for filenames in sorted(itervalues(groups)):
+        for name in sorted(groups):
+            filenames = groups[name]
             pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
-            if (not update_deps and not any(s.split()[0] == pkgs[0].rsplit('-', 2)[0] for s in specs)):
+            if (not update_deps and not any(ms.name == name for ms in specs)):
                 rearrange = True
                 for d in installed_dists:
                     if d in pkgs:
@@ -703,35 +675,6 @@ class Resolve(object):
 
         return eq, max_rhs
 
-    def get_dists(self, specs, max_only=False, filtered=False):
-        dists = {}
-        if filtered:
-            filtered = self.prune_packages(specs)
-        for spec in specs:
-            found = False
-            notfound = []
-            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
-                if pkg.fn in dists:
-                    found = True
-                    continue
-                try:
-                    dists.update(self.all_deps(pkg.fn, max_only=max_only))
-                except NoPackagesFound as e:
-                    # Ignore any package that has nonexisting dependencies.
-                    for pkg in e.pkgs:
-                        if pkg not in notfound:
-                            notfound.append(pkg)
-                else:
-                    dists[pkg.fn] = pkg
-                    found = True
-            if not found:
-                if filtered:
-                    self.clear_filter()
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
-        if filtered:
-            self.clear_filter()
-        return dists
-
     def graph_sort(self, must_have):
 
         def lookup(value):
@@ -757,55 +700,26 @@ class Resolve(object):
         return result
 
     def solve2(self, specs, features, installed=(), guess=True, alg='BDD',
-        returnall=False, minimal_hint=False, unsat_only=False, update_deps=True,
-        try_max_only=None):
+        returnall=False, minimal_hint=False, unsat_only=False, update_deps=True):
         log.debug("Solving for %s" % str(specs))
         log.debug("Features: %s" % str(features))
         log.debug("Installed: %s" % str(installed))
 
-        # This won't packages that aren't in the index, but there isn't much
+        # This won't fully catch packages that aren't in the index, but there isn't much
         # we can do with such packages here anyway.
-        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in
-            installed if pkg in self.index}
+        installed_specs = []
+        installed_dists = {}
+        snames = set(s.split(' ',1)[0] for s in specs)
+        for pkg in installed:
+            if pkg in self.index:
+                installed_dists[pkg] = Package(pkg, self.index[pkg])
+            name = pkg.split('-',1)[0]
+            if name not in snames:
+                installed_specs.append(name)
+                snames.add(name)
+        all_specs = list(specs) + installed_specs
 
-        if try_max_only is None:
-            if unsat_only or update_deps:
-                try_max_only = False
-            else:
-                try_max_only = True
-
-        # XXX: Should try_max_only use the filtered list?
-        if try_max_only:
-            try:
-                dists = self.get_dists(specs, max_only=True, filtered=False)
-            except NoPackagesFound:
-                # Handle packages that are not included because some dependencies
-                # couldn't be found.
-                pass
-            else:
-                v = {}  # map fn to variable number
-                w = {}  # map variable number to fn
-                i = -1  # in case the loop doesn't run
-                for i, fn in enumerate(sorted(dists)):
-                    v[fn] = i + 1
-                    w[i + 1] = fn
-                m = i + 1
-
-                dotlog.debug("Solving using max dists only")
-                clauses = set(self.gen_clauses(v, dists, specs, features))
-                try:
-                    solutions = min_sat(clauses, alg='iterate',
-                        raise_on_max_n=True)
-                except MaximumIterationsError:
-                    pass
-                else:
-                    if len(solutions) == 1:
-                        ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                        if returnall:
-                            return [ret]
-                        return ret
-
-        dists = self.get_dists(specs, filtered=True)
+        dists = self.get_dists(all_specs, features)
 
         v = {}  # map fn to variable number
         w = {}  # map variable number to fn
@@ -815,7 +729,7 @@ class Resolve(object):
             w[i + 1] = fn
         m = i + 1
 
-        clauses = set(self.gen_clauses(v, dists, specs, features))
+        clauses = set(self.gen_clauses(v, dists, all_specs, features))
         if not clauses:
             if returnall:
                 return [[]]
@@ -833,8 +747,7 @@ class Resolve(object):
                 if minimal_hint:
                     stderrlog.info('\nError: Unsatisfiable package '
                         'specifications.\nGenerating minimal hint: \n')
-                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
-            w))
+                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v, w))
                 else:
                     stderrlog.info('\nError: Unsatisfiable package '
                         'specifications.\nGenerating hint: \n')
@@ -977,9 +890,9 @@ Note that the following features are enabled:
 
     @memoize
     def sum_matches(self, fn1, fn2):
-        return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
+        return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
 
-    def find_substitute(self, installed, features, fn, max_only=False):
+    def find_substitute(self, installed, features, fn):
         """
         Find a substitute package for `fn` (given `installed` packages)
         which does *NOT* have `features`.  If found, the substitute will
@@ -989,7 +902,7 @@ Note that the following features are enabled:
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = {}
-        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version), max_only=max_only):
+        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
             fn1 = pkg.fn
             if self.features(fn1).intersection(features):
                 continue
@@ -1031,26 +944,25 @@ Note that the following features are enabled:
             d[ms.name] = ms
         self.msd_cache[fn] = d.values()
 
-    def solve(self, specs, installed=None, features=None, max_only=False,
+    def solve(self, specs, installed=None, features=None, 
               minimal_hint=False, update_deps=True):
         if installed is None:
             installed = []
         if features is None:
             features = self.installed_features(installed)
+
         for spec in specs:
             if sys.platform == 'win32' and spec == 'python':
                 continue
             # XXX: This does not work when a spec only contains the name,
             # and different versions of the package have different features.
             ms = MatchSpec(spec)
-            for pkg in self.get_pkgs(ms, max_only=max_only):
-                fn = pkg.fn
-                features.update(self.track_features(fn))
+            for pkg in self.get_pkgs(ms):
+                features.update(self.track_features(pkg.fn))
         log.debug('specs=%r  features=%r' % (specs, features))
         for spec in specs:
-            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
-                fn = pkg.fn
-                self.update_with_features(fn, features)
+            for pkg in self.get_pkgs(MatchSpec(spec)):
+                self.update_with_features(pkg.fn, features)
 
         stdoutlog.info("Solving package specifications: ")
         try:

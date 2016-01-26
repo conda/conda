@@ -3,6 +3,10 @@
   * resolve.py: properly escape periods in version numbers, #1926
   * support for pinning Lua by default, #1934
   * remove hard-coded test URLs, a module cio_test is now expected when CIO_TEST is set
+  * resolve.py: "conda update <package>" now performs any necessary updates to 
+    dependencies as well. Previously conda ignored the dependencies during the
+    update by default, potentially resulting in an inconsistent package set. To
+    revert to the old behavior, use "conda update --no-update-deps".
 
 
 2015-12-17   3.19.0:

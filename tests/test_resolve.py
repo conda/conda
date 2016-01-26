@@ -435,7 +435,7 @@ def test_generate_eq():
     r.msd_cache = {}
 
     specs = ['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*']
-    dists = r.get_dists(specs)
+    dists = r.get_dists(specs, filtered=False)
     v = {}
     w = {}
     for i, fn in enumerate(sorted(dists)):
@@ -452,7 +452,7 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
-    assert e == [
+    assert sorted(e) == sorted([
         (0, u'_license-1.1-py27_0.tar.bz2'),
         (0, u'anaconda-1.5.0-np16py26_0.tar.bz2'),
         (0, u'anaconda-1.5.0-np16py27_0.tar.bz2'),
@@ -939,7 +939,7 @@ def test_generate_eq():
         (0, u'zeromq-2.2.0-1.tar.bz2'),
         (1, u'zeromq-2.2.0-0.tar.bz2'),
         (0, u'zlib-1.2.7-0.tar.bz2')
-    ]
+    ])
 
     assert max_rhs == 1 + 2 + 3 + 2 + 1 + 1 + 2 + 2 + 3 + 11 + 5 + 1 + 20 + 2 + 1 + 4 + 1 + 1 + 1
 
@@ -947,7 +947,7 @@ def test_generate_eq():
     assert all(i > 0 for i, _ in eq)
     e = [(i, w[j]) for i, j in eq]
 
-    assert e == [
+    assert sorted(e) == sorted([
         (1, u'cairo-1.12.2-0.tar.bz2'),
         (1, u'dateutil-2.1-py26_0.tar.bz2'),
         (1, u'dateutil-2.1-py27_0.tar.bz2'),
@@ -1154,7 +1154,7 @@ def test_generate_eq():
         (1, u'six-1.2.0-py33_0.tar.bz2'),
         (1, u'system-5.8-0.tar.bz2'),
         (1, u'zeromq-2.2.0-0.tar.bz2')
-    ]
+    ])
 
     assert max_rhs == 1 + 2 + 3 + 2 + 1 + 1 + 2 + 2 + 3 + 11 + 5 + 1 + 20 + 2 + 1 + 4 + 1 + 1 + 1
 
@@ -1214,7 +1214,7 @@ def test_nonexistent_deps():
         'mypackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
     }
-    assert set(r.get_dists(['mypackage']).keys()) == {
+    assert set(r.get_dists(['mypackage'], filtered=False).keys()) == {
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.1.2-py26_0.tar.bz2',
         'nose-1.1.2-py27_0.tar.bz2',
@@ -1250,22 +1250,6 @@ def test_nonexistent_deps():
         'readline-6.2-0.tar.bz2',
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    }
-
-    assert set(r.get_dists(['mypackage'], max_only=True).keys()) == {
-        'mypackage-1.1-py33_0.tar.bz2',
-        'nose-1.3.0-py26_0.tar.bz2',
-        'nose-1.3.0-py27_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-2.6.8-6.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
@@ -1350,7 +1334,7 @@ def test_nonexistent_deps():
         'mypackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         }
-    assert set(r.get_dists(['mypackage']).keys()) == {
+    assert set(r.get_dists(['mypackage'], filtered=False).keys()) == {
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.1.2-py26_0.tar.bz2',
         'nose-1.1.2-py27_0.tar.bz2',
@@ -1390,8 +1374,6 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     }
-
-    assert raises(NoPackagesFound, lambda: r.get_dists(['mypackage'], max_only=True))
 
     assert r.solve(['mypackage']) == r.solve(['mypackage 1.0']) == [
         'mypackage-1.0-py33_0.tar.bz2',
@@ -1450,7 +1432,7 @@ def test_install_package_with_feature():
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
-        'name': 'mypackage',
+        'name': 'feature',
         'version': '1.0',
         'track_features': 'feature',
     }
@@ -1533,10 +1515,10 @@ def test_package_ordering():
 
     # The first four are a bit arbitrary. For now, we just test that it
     # doesn't prefer the mkl version.
-    assert not numpy < numpy_mkl
-    assert not numpy <= numpy_mkl
-    assert numpy > numpy_mkl
-    assert numpy >= numpy_mkl
+    assert not numpy > numpy_mkl
+    assert not numpy >= numpy_mkl
+    assert numpy < numpy_mkl
+    assert numpy <= numpy_mkl
     assert (numpy != numpy_mkl) is True
     assert (numpy == numpy_mkl) is False
 

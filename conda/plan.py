@@ -18,6 +18,7 @@ from os.path import abspath, basename, isfile, join, exists
 
 from conda import config
 from conda import install
+from conda.compat import itervalues
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
@@ -347,10 +348,7 @@ def add_defaults_to_specs(r, linked, specs):
             log.debug('H1 %s' % name)
             continue
 
-        any_depends_on = any(ms2.name == name
-                             for spec in specs
-                             for fn in r.get_max_dists(MatchSpec(spec))
-                             for ms2 in r.ms_depends(fn))
+        any_depends_on = any(pkg.name == name for pkg in itervalues(r.get_dists(specs)))
         log.debug('H2 %s %s' % (name, any_depends_on))
 
         if not any_depends_on and name not in names_ms:
