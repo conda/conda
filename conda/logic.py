@@ -29,6 +29,7 @@ from collections import defaultdict
 from functools import total_ordering, partial
 from itertools import chain
 import logging
+import pycosat
 
 from conda.compat import log2, ceil, range, zip
 from conda.utils import memoize
@@ -487,7 +488,7 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
 
     return C.clauses | additional_clauses
 
-def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_func=None):
+def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', trymin=True):
     """
     Bisect the solution space of a constraint, to minimize it.
 
@@ -501,106 +502,46 @@ def bisect_constraints(min_rhs, max_rhs, clauses, func, increment=10, evaluate_f
     If evalaute_func is given, it is used to evaluate solutions to aid in the bisection.
 
     """
-    lo, hi = [min_rhs, max_rhs]
-    while True:
-        mid = min([lo + increment, (lo + hi)//2])
+    if not objective:
+        dotlog.info('Empty objective, trivial solution')
+        return clauses, bestsol
+    dotlog.debug("Using alg %s" % alg)
+    m = len(bestsol)
+    bestcon = clauses
+    maxval = evaluate_eq(objective, bestsol)
+    dotlog.debug("Initial upper bound: %s" % maxval)
+    lo, hi = [minval, maxval]
+    while lo < hi:
+        mid = lo if trymin else min([lo + increment, (lo + hi)//2])
         rhs = [lo, mid]
-
-        dotlog.debug("Building the constraint with rhs: %s" % rhs)
-        constraints = func(*rhs)
-        if false in constraints: # build_BDD returns false if the rhs is
-                                 # too big to be satisfied. XXX: This
-            break                # probably indicates a bug.
-        if true in constraints:
-            constraints = set([])
-
-        dotlog.debug("Checking for solutions with rhs:  %s" % rhs)
-        solution = sat(chain(clauses, constraints))
-        if lo >= hi:
-            break
-        if solution:
-            if lo == mid:
-                break
-            # bisect good
-            hi = mid
-            if evaluate_func:
-                eval_hi = evaluate_func(solution)
-                log.debug("Evaluated value: %s" % eval_hi)
-                hi = min(eval_hi, hi)
+        trymin = False
+        if mid == 0:
+            constraints = set((-q[1],) for q in objective)
         else:
-            # bisect bad
+            constraints = set(generate_constraints(objective, m, [0, mid], alg=alg))
+            assert false not in constraints, 'Optimization error'
+            if true in constraints:
+                constraints = set([])
+        newcon = clauses | constraints
+        solution = pycosat.solve(newcon)
+        if solution == 'UNSAT' or solution == 'UNKNOWN':
+            dotlog.debug("Bisection range %s: failure" % rhs)
             lo = mid+1
-    return constraints
+        else:
+            bestcon = newcon
+            bestsol = solution
+            if trymin:
+                dotlog.debug("Minimum objective %d satisfiable" % lo)
+                break
+            hi = evaluate_eq(objective, solution)
+            dotlog.debug("Bisection range %s: success, value %s" % (rhs,hi))
+    return bestcon, bestsol
 
 class MaximumIterationsError(Exception):
     pass
 
-# TODO: alg='sorter' can be faster, especially when the main algorithm is sorter
-def min_sat(clauses, max_n=1000, N=None, alg='sorter', raise_on_max_n=False):
-    """
-    Calculate the SAT solutions for the `clauses` for which the number of true
-    literals from 1 to N is minimal.  Returned is the list of those solutions.
-    When the clauses are unsatisfiable, an empty list is returned.
-
-    alg can be any algorithm supported by generate_constraints, or 'iterate',
-    which iterates all solutions and finds the smallest.
-
-    max_n is the maximum number of iterations the algorithm will run
-    through. If raise_on_max_n=True, the function will raise
-    MaximumIterationsError if max_n solutions were found. In other words, in
-    this case, it is possible another minimal solution could be found if max_n
-    were larger.
-
-    """
-    log.debug("min_sat using alg: %s" % alg)
-    try:
-        import pycosat
-    except ImportError:
-        sys.exit('Error: could not import pycosat (required for dependency '
-                 'resolving)')
-
-    if not clauses:
-        return []
-    m = max(map(abs, chain(*clauses)))
-    if not N:
-        N = m
-    if alg == 'iterate':
-        min_tl, solutions = sys.maxsize, []
-        try:
-            pycosat.itersolve({(1,)})
-        except TypeError:
-            # Old versions of pycosat require lists. This conversion can be
-            # very slow, though, so only do it if we need to.
-            clauses = list(map(list, clauses))
-        i = -1
-        for sol, i in zip(pycosat.itersolve(clauses), range(max_n)):
-            tl = sum(lit > 0 for lit in sol[:N]) # number of true literals
-            if tl < min_tl:
-                min_tl, solutions = tl, [sol]
-            elif tl == min_tl:
-                solutions.append(sol)
-        log.debug("Iterate ran %s times" % (i + 1))
-        if i + 1 == max_n and raise_on_max_n:
-            raise MaximumIterationsError("min_sat ran max_n times")
-        return solutions
-    else:
-        solution = sat(clauses)
-        if not solution:
-            return []
-        eq = [(1, i) for i in range(1, N+1)]
-        def func(lo, hi):
-            return list(generate_constraints(eq, m,
-                [lo, hi], alg=alg))
-        evaluate_func = partial(evaluate_eq, eq)
-        # Since we have a solution, might as well make use of that fact
-        max_val = evaluate_func(solution)
-        log.debug("Using max_val %s. N=%s" % (max_val, N))
-        constraints = bisect_constraints(0, min(max_val, N), clauses, func,
-            evaluate_func=evaluate_func, increment=1000)
-
-        return min_sat(list(chain(clauses, constraints)), max_n=max_n, N=N, alg='iterate')
-
-def sat(clauses):
+sat = pycosat.solve
+def sat(clauses, iterator=False):
     """
     Calculate a SAT solution for `clauses`.
 
@@ -608,24 +549,11 @@ def sat(clauses):
     unsatisfiable, an empty list is returned.
 
     """
-    try:
-        import pycosat
-    except ImportError:
-        sys.exit('Error: could not import pycosat (required for dependency '
-                 'resolving)')
-
-    try:
-        pycosat.itersolve({(1,)})
-    except TypeError:
-        # Old versions of pycosat require lists. This conversion can be very
-        # slow, though, so only do it if we need to.
-        clauses = list(map(list, clauses))
-
+    if iterator:
+        return pycosat.itersolve(clauses)
     solution = pycosat.solve(clauses)
-    if solution == "UNSAT" or solution == "UNKNOWN": # wtf https://github.com/ContinuumIO/pycosat/issues/14
-        return []
-    # XXX: If solution == [] (i.e., clauses == []), the result will have
-    # boolean value of False even though the clauses are not unsatisfiable)
+    if solution == "UNSAT" or solution == "UNKNOWN": 
+        return None
     return solution
 
 def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
