@@ -481,7 +481,6 @@ class Resolve(object):
             name = match1.name
             group = self.groups.get(name,[])
             if not group:
-                print(bad_deps)
                 bad_deps.append((matches,top))
                 return False
 
@@ -617,7 +616,6 @@ class Resolve(object):
         if bad_deps:
             res = []
             specs = set()
-            print(bad_deps)
             for spec, src in bad_deps:
                 specs.update(spec)
                 res.append('  - %s: %s' % ('|'.join(map(str,src)),', '.join(map(str,spec))))
@@ -839,7 +837,6 @@ class Resolve(object):
 
     def minimal_unsatisfiable_subset(self, clauses, v, w):
         clauses = minimal_unsatisfiable_subset(clauses, log=True)
-        print(clauses)
 
         pretty_clauses = []
         for clause in clauses:
