@@ -514,7 +514,7 @@ class Resolve(object):
 
             reduced = nnew < nold
             if reduced:
-                dotlog.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
+                log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
                 if nnew == 0:
                     if notfound:
                         bad_deps.append((notfound,matches))
@@ -552,7 +552,7 @@ class Resolve(object):
                         if valid.get(fn, True):
                             feats.update(self.track_features(fn))
             pruned = False
-            dotlog.debug('Possible installed features: '+str(tuple(feats)))
+            log.debug('Possible installed features: '+str(tuple(feats)))
             for name, group in iteritems(self.groups):
                 nold =  npruned = 0
                 for fn in group:
@@ -563,7 +563,7 @@ class Resolve(object):
                             npruned += 1
                 if npruned:
                     pruned = True
-                    dotlog.debug('%s: pruned from %d -> %d for missing features'%(name,nold,nold-npruned))
+                    log.debug('%s: pruned from %d -> %d for missing features'%(name,nold,nold-npruned))
                     if npruned == nold:
                         for ms in specs:
                             if ms.name == name and not ms.optional:
@@ -633,6 +633,7 @@ class Resolve(object):
                 self.get_dists(specs, sat_only=True)
             stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
             hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
+            print(unsat,hint)
             hint = ['  - %s'%str(x) for x in set(chain(unsat, hint))]
             hint = (['The following specifications were found to be in conflict:'] + hint 
                 + ['Use "conda info <package>" to see the dependencies for each package.'])
@@ -946,12 +947,10 @@ Note that the following features are enabled:
     def solve(self, specs, installed=[], update_deps=True, returnall=False, 
               guess=True, minimal_hint=False, alg='BDD'):
 
-        dotlog.debug('Testing for explicit specification')
+        stdoutlog.info("Solving package specifications: ")
         res = self.explicit(specs)
         if res is not None:
-            dotlog.debug('Explicit spec found, exiting quickly')
             return res
-        stdoutlog.info("Solving package specifications: ")
 
         # If update_deps=True, set the target package in MatchSpec so that
         # the solver can minimize the version change. If update_deps=False,
@@ -1035,6 +1034,7 @@ Note that the following features are enabled:
         log.debug("Older versions in the solution(s):")
         for sol in solutions:
             log.debug([(i, w[j]) for i, j in eq_version if j in sol])
+        stdoutlog.info('\n')
         return map(sorted, psolutions) if returnall else sorted(psolutions[0])
 
 
@@ -1051,6 +1051,7 @@ if __name__ == '__main__':
     p.add_option("--mkl", action="store_true")
     opts, args = p.parse_args()
 
-    features = set(['mkl']) if opts.mkl else set()
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, [], features))
+    if opts.mkl:
+        specs += 'mkl@'
+    pprint(r.solve(specs, []))

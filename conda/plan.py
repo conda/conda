@@ -405,8 +405,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
+    if config.track_features:
+        specs.extend(x + '@' for x in config.track_features)
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
-                      config.track_features, minimal_hint=minimal_hint,
+                      minimal_hint=minimal_hint,
                       update_deps=update_deps):
         dist = fn[:-8]
         name = install.name_dist(dist)
