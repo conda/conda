@@ -201,6 +201,8 @@ def execute_search(args, parser):
 
     names = []
     for name in sorted(r.groups):
+        if '@' in name:
+            continue
         if args.reverse_dependency:
             ms_name = ms
             for pkg in r.groups[name]:
