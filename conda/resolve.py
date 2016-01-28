@@ -695,7 +695,7 @@ class Resolve(object):
     @memoize
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
-        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
+        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms) if '@' not in fn]
         if not pkgs and not emptyok:
             raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
         return pkgs
