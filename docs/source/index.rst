@@ -22,7 +22,7 @@ Conda is included in all versions of Anaconda, Miniconda, Anaconda Pro, Anaconda
 * Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise allow both system
   administrators and users to manage packages and environments on-site. Any
   software application stack can be managed, including Python, R, Node.js,
-  Java, and more. It is sold by Continuum Analytics.
+  Java, and more. These subscriptions are sold by Continuum Analytics.
 
 The `conda` command is the primary interface for managing `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations. It can query
