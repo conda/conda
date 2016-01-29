@@ -32,15 +32,17 @@ matrix:
 
 before_install:
   - '[[ $(uname -s) == "Darwin" ]] && source utils/travis_bootstrap_conda.sh || true'
-  - printenv
-  - python --version
   - uname -a
 
 install:
+  - printenv
+  - python --version
   - python setup.py sdist
   - travis_retry pip install -U tox
 
-script: tox -v
+script:
+  - printenv
+  - tox -v
 
 after_success:
   - pip install codecov
