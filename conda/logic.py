@@ -547,9 +547,7 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
             assert false not in constraints, 'Optimization error'
             if true in constraints:
                 constraints = set([])
-        print(len(clauses),len(constraints))
         newcon = clauses | constraints
-        print(len(newcon))
         newsol = sat(newcon)
         if newsol is None:
             log.debug("Bisection range %s: failure" % rhs)
@@ -652,12 +650,10 @@ def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
 
         # To display progress, every time we discard clauses, we update the
         # progress by that much.
-        # print("")
         if not sat(A + include):
             d += len(B)
             update(d, L)
             return minimal_unsat(A, include)
-        # print("")
         if not sat(B + include):
             d += len(A)
             update(d, L)
