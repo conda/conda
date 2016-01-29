@@ -39,6 +39,7 @@ install:
   - python --version
   - python setup.py sdist
   - pip install -U tox
+  - which -a tox
   - cat $HOME/.conda/envs/test-environment/bin/tox
 
 script:
