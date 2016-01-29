@@ -35,6 +35,7 @@ before_install:
   - uname -a
 
 install:
+  - conda install pycosat
   - conda install pycrypto
   - printenv
   - python --version
