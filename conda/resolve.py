@@ -445,13 +445,6 @@ def build_groups(index):
             groups.setdefault(info['name'],[]).append(fn)
             for feat in info.get('track_features','').split():
                 groups.setdefault(feat + '@',[]).append(fn)
-    def key(x):
-        rec = index[x]
-        if isinstance(rec, Package):
-            rec = rec.info
-        return (rec['name'], VersionOrder(rec['version']), len(rec.get('features','').split()), rec['build_number'], rec['build'])
-    #for name, group in iteritems(groups):
-    #    groups[name] = sorted(group, key=key, reverse=True)
     for fn, info in iteritems(feats):
         groups.setdefault(fn,[]).append(fn)
     return groups
@@ -722,6 +715,18 @@ class Resolve(object):
         return set(self.index[fn].get('track_features', '').split())
 
     @memoize
+    def package_triple(self, fn):
+        if not fn.endswith('.tar.bz2'):
+            return self.package_triple(fn + '.tar.bz2')
+        rec = self.index.get(fn, None)
+        if rec is not None:
+            return (rec['name'], rec['version'], rec['build'])
+        return fn[:-8].rsplit('-',2)[0]
+
+    def package_name(self, fn):
+        return self.package_triple(fn)[0]
+
+    @memoize
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms) if '@' not in fn]
@@ -978,16 +983,13 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         for pkg in installed:
-            rec = self.index.get(pkg)
-            if rec is None:
-                continue
-            name = rec['name']
+            name, version, build = self.package_triple(pkg)
             if name in snames:
                 continue
             if update_deps:
                 spec = MatchSpec(name, target=pkg)
             else:
-                spec = MatchSpec(name+' '+rec['version']+' '+rec['build'])
+                spec = MatchSpec('%s %s %s'%(name,version,build))
             specs.append(spec)
             snames.add(spec)
         dotlog.debug("Solving for %s" % specs)
