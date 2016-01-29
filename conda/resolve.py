@@ -4,13 +4,11 @@ import re
 import sys
 import logging
 from collections import defaultdict
-from functools import partial
 from itertools import chain
 
 from conda.utils import memoize
 from conda.compat import iterkeys, itervalues, iteritems, string_types, zip_longest
-from conda.logic import (sat, optimize, evaluate_eq, minimal_unsatisfiable_subset)
-import pycosat
+from conda.logic import (sat, optimize, minimal_unsatisfiable_subset)
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -24,6 +22,9 @@ setup_handlers()
 # normalized_version() is needed by conda-env
 def normalized_version(version):
     return VersionOrder(version)
+
+def dashlist(iter):
+    return ''.join('\n  - ' + str(x) for x in iter)
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
@@ -365,6 +366,8 @@ class MatchSpec(object):
 
     def __str__(self):
         res = self.spec
+        if res[-1] == '@' and self.strictness == 1:
+            res = 'feature "%s"'%res[1:]
         if self.target or self.optional or self.parent:
             mods = []
             if self.target:
@@ -735,7 +738,6 @@ class Resolve(object):
                 yield tuple(clause)
 
     def generate_feature_eq(self, v, groups, specs):
-        eq = []
         may_omit = set()
         sdict = {s.name:s for s in map(MatchSpec, specs)}
         for name in iterkeys(groups):
@@ -753,7 +755,6 @@ class Resolve(object):
 
     def generate_version_eq(self, v, groups, specs, include0=False):
         eq = []
-        max_rhs = 0
         sdict = {s.name:s for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
             if name[0] == '@':
@@ -878,13 +879,6 @@ Hint: the following packages conflict with each other:
   - %s
 
 Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - '.join(hint), hint[0].split()[0])
-
-        if False: # features:
-            ret += """
-
-Note that the following features are enabled:
-  - %s
-""" % ('\n  - '.join(features))
         return ret
 
     def explicit(self, specs):

@@ -6,7 +6,6 @@ from os.path import dirname, join
 import pytest
 
 from conda.resolve import ver_eval, build_groups, VersionSpec, MatchSpec, Package, Resolve, NoPackagesFound, VersionOrder, normalized_version
-from conda.compat import iteritems
 from tests.helpers import raises
 
 
