@@ -909,7 +909,7 @@ class Resolve(object):
 
     def solve(self, specs, len0=None, returnall=False):
         try:
-            stdoutlog.info("Solving package specifications: ")
+            stdoutlog.info("Solving package specifications ...")
             dotlog.debug("Solving for %s" % (specs,))
 
             # Find the compliant packages
