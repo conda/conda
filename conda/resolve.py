@@ -8,7 +8,7 @@ from itertools import chain
 
 from conda.utils import memoize
 from conda.compat import iterkeys, itervalues, iteritems, string_types, zip_longest
-from conda.logic import (sat, optimize, minimal_unsatisfiable_subset)
+from conda.logic import sat, optimize, evaluate_eq, minimal_unsatisfiable_subset
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -432,36 +432,55 @@ class Package(object):
     def __repr__(self):
         return '<Package %s>' % self.fn
 
-def build_groups(index, features=True):
+def build_groups(index):
     groups = {}
+    feats = {}
     for fn, info in iteritems(index):
         if isinstance(info, Package):
             info = info.info
-        nm = info['name']
-        groups.setdefault(nm,[]).append(fn)
-        tfeats = info.get('track_features','').split() if features else []
-        for feat in tfeats:
-            groups.setdefault('@'+feat,[]).append(fn)
+        if fn[-1] == '@':
+            assert info['name'] == fn and info.get('track_features','') == fn[:-1]
+            feats[fn] = info
+        else:
+            groups.setdefault(info['name'],[]).append(fn)
+            for feat in info.get('track_features','').split():
+                groups.setdefault(feat + '@',[]).append(fn)
+    def key(x):
+        rec = index[x]
+        if isinstance(rec, Package):
+            rec = rec.info
+        return (rec['name'], VersionOrder(rec['version']), len(rec.get('features','').split()), rec['build_number'], rec['build'])
+    #for name, group in iteritems(groups):
+    #    groups[name] = sorted(group, key=key, reverse=True)
+    for fn, info in iteritems(feats):
+        groups.setdefault(fn,[]).append(fn)
     return groups
 
 class Resolve(object):
 
+    def add_feature(self, feat, group=True):
+        if feat not in self.feats:
+            fpkg = feat + '@'
+            self.feats.add(feat)
+            self.index[fpkg] = {
+                'name':fpkg, 'version':'1.0', 
+                'build':'0', 'build_number':0,
+                'depends':[], 'track_features':feat
+            }
+            if group:
+                self.groups[fpkg].append(fpkg)
+
     def __init__(self, index):
         self.index = index.copy()
+        self.feats = set()
         for fn, info in iteritems(index):
             for fstr in info.get('track_features','').split():
-                if fstr not in index:
-                    self.index[fstr+'@'] = {
-                        'name':fstr+'@', 'version':'1.0', 
-                        'build':'0', 'build_number':0,
-                        'depends':[], 'track_features':fstr
-                    }
+                self.add_feature(fstr, False)
             for fstr in iterkeys(info.get('with_features_depends',{})):
                 fn2 = fn + '[' + fstr + ']'
                 self.index[fn2] = info
         self.groups = build_groups(self.index)
         self.ms_cache = {}
-
 
     def get_dists(self, specs, filtered=True, wrap=True, sat_only=False):
         log.debug('Beginning the pruning process')
@@ -541,7 +560,7 @@ class Resolve(object):
                 top = top if top else match1
                 if sum(filter_group(deps, top) for deps in itervalues(cdeps)):
                     reduced = True
-            return reduced        
+            return reduced
 
         # Look through all of the non-optional specs (which at this point
         # should include the installed packages) for any features which *might*
@@ -551,11 +570,13 @@ class Resolve(object):
             feats = set()
             for ms in specs:
                 if not ms.optional:
-                    for fn in self.groups.get(ms.name, []):
-                        if valid.get(fn, True):
-                            feats.update(self.track_features(fn))
+                    if ms.name[-1] == '@':
+                        feats.add(ms.name[:-1])
+                    else:
+                        for fn in self.groups.get(ms.name, []):
+                            if valid.get(fn, True):
+                                feats.update(self.track_features(fn))
             pruned = False
-            log.debug('Possible installed features: '+str(tuple(feats)))
             for name, group in iteritems(self.groups):
                 nold =  npruned = 0
                 for fn in group:
@@ -570,17 +591,24 @@ class Resolve(object):
                     if npruned == nold:
                         for ms in specs:
                             if ms.name == name and not ms.optional:
-                                bad_deps.append((ms,'@'+name))
+                                bad_deps.append((ms,name+'@'))
             return pruned
 
-        # Initial scan to rule out missing packages
+        # Initial scan to add tracked features and rule out missing packages
+        for feat in self.feats:
+            valid[feat + '@'] = False
         for ms in specs:
-            if not ms.optional and not any(True for _ in self.find_matches(ms)):
-                bad_deps.append(ms)
-            if bad_deps:
-                raise NoPackagesFound(
-                    "No packages found in current %s channels matching: %s" % 
-                    (config.subdir, ' '.join(map(str,bad_deps))), bad_deps)
+            if ms.name[-1] == '@':
+                feat = ms.name[:-1]
+                self.add_feature(feat)
+                valid[feat + '@'] = True
+            elif not ms.optional:
+                if not any(True for _ in self.find_matches(ms)):
+                    bad_deps.append(ms)
+        if bad_deps:
+            raise NoPackagesFound(
+                "No packages found in current %s channels matching: %s" % 
+                (config.subdir, ' '.join(map(str,bad_deps))), bad_deps)
 
         # Iterate in the filtering process until no more progress is made
         if filtered:
@@ -636,7 +664,6 @@ class Resolve(object):
                 self.get_dists(specs, sat_only=True)
             stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
             hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
-            print(unsat,hint)
             hint = ['  - %s'%str(x) for x in set(chain(unsat, hint))]
             hint = (['The following specifications were found to be in conflict:'] + hint 
                 + ['Use "conda info <package>" to see the dependencies for each package.'])
@@ -647,13 +674,12 @@ class Resolve(object):
             dists = {fn:Package(fn,info) for fn,info in iteritems(dists)}
         return dists, specs
 
-
     def match(self, ms, fn):
         ms = MatchSpec(ms)
         if fn[-1] == ']':
             fn = fn.rsplit('[',1)[0]
-        if ms.name[0] == '@':
-            return ms.name[1:] in self.track_features(fn)
+        if ms.name[-1] == '@':
+            return ms.name[:-1] in self.track_features(fn)
         return ms.match(self.index[fn])
 
     def find_matches(self, ms, groups=None):
@@ -673,7 +699,7 @@ class Resolve(object):
             deps = list(fdeps.values())
         else:
             deps = [MatchSpec(d) for d in self.index[fn].get('depends',[])]
-        deps.extend(MatchSpec('@' + feat) for feat in self.features(fn))
+        deps.extend(MatchSpec(feat + '@') for feat in self.features(fn))
         return deps
 
     @memoize
@@ -706,7 +732,7 @@ class Resolve(object):
     def gen_clauses(self, v, groups, specs):
         specs = list(map(MatchSpec, specs))
         for name, group in iteritems(groups):
-            if name[0] == '@':
+            if name[-1] == '@':
                 # Ensure at least one track feature package is installed
                 # if a dependency is activated
                 clause = [v[fn2] for fn2 in self.find_matches(MatchSpec(name), groups)]
@@ -722,7 +748,7 @@ class Resolve(object):
                 # Ensure each dependency is installed
                 # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
                 for ms in self.ms_depends(fn1):
-                    if ms.name[0] == '@':
+                    if ms.name[-1] == '@':
                         yield (nval, v[ms.name])
                     else:
                         clause = [v[fn2] for fn2 in self.find_matches(ms, groups)]
@@ -741,23 +767,23 @@ class Resolve(object):
         may_omit = set()
         sdict = {s.name:s for s in map(MatchSpec, specs)}
         for name in iterkeys(groups):
-            if name[0] == '@':
+            if name[-1] == '@':
                 if name not in sdict or sdict[name].optional:
-                    may_omit.add(name[1:])
+                    may_omit.add(name[:-1])
         if may_omit:
             for name, ms in iteritems(sdict):
-                if name[0] != '@' and not ms.optional:
+                if name[-1] != '@' and not ms.optional:
                     for fn in self.find_matches(ms, groups):
                         may_omit -= self.track_features(fn)
                         if not may_omit:
                             break
-        return [(1,v['@'+name]) for name in may_omit]
+        return [(1,v[name+'@']) for name in may_omit]
 
     def generate_version_eq(self, v, groups, specs, include0=False):
         eq = []
         sdict = {s.name:s for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
-            if name[0] == '@':
+            if name[-1] == '@':
                 continue
             pkg_ver = sorted([(self.version_key(p),p) for p in pkgs], reverse=True)
             # If the "target" field in the MatchSpec is supplied, that means we want
@@ -784,8 +810,8 @@ class Resolve(object):
         eq = []
         snames = {s.name for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
-            if name not in snames and name[0] != '@':
-                eq.extend((1,v[pkg]) for pkg in pkgs)
+            if name not in snames:
+                eq.extend((1,v[pkg]) for pkg in pkgs if pkg[-1] != '@')
         return eq
 
     def graph_sort(self, must_have):
@@ -817,7 +843,7 @@ class Resolve(object):
         w = {}  # map variable number to fn
         i = -1  # in case the loop doesn't run
         for name, group in iteritems(groups):
-            if name[0] == '@':
+            if name[-1] == '@':
                 i += 1
                 v[name] = i + 1
                 w[i + 1] = name
@@ -995,13 +1021,22 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
 
         dotlog.debug('Optimizing versions')
         eq_version = self.generate_version_eq(v, groups, new_specs)
+        print('Version metric in: %d, %d clauses'%(evaluate_eq(eq_version,solution),len(clauses)))
+        print(eq_version)
+        print([(q[1],q[1] in clauses) for q in eq_version])
         clauses, solution = optimize(eq_version, clauses, solution)
+        print('Version metric out: %d, %d clauses'%(evaluate_eq(eq_version,solution),len(clauses)))
 
         dotlog.debug('Optimizing dependency count')
         eq_packages = self.generate_package_count(v, groups, new_specs)
+        print('Dependency count in: %d, %d clauses'%(evaluate_eq(eq_packages,solution), len(clauses)))
         clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
+        print('Dependency count out: %d, %d clauses'%(evaluate_eq(eq_packages,solution), len(clauses)))
+        print('Version metric: %d'%evaluate_eq(eq_version,solution))
+        print('Feature count: %d'%evaluate_eq(eq_features,solution))
 
         dotlog.debug('Looking for alternate solutions')
+        solution = [s for s in solution if 0 < s <= m]
         solutions = [solution]
         nsol = 1
         while True:
@@ -1010,6 +1045,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             solution = sat(clauses)
             if solution is None:
                 break
+            solution = [s for s in solution if 0 < s <= m]
             nsol += 1
             if nsol > 10:
                 dotlog.debug('Too many solutions; terminating')
