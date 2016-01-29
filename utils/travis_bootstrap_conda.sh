@@ -28,6 +28,7 @@ travis_bootstrap_conda() {
         py35) python_version="3.5";;
         *)    python_version="3.5";;
     esac
+
     conda create -q -n test-environment python="$python_version" setuptools pip virtualenv
     source activate test-environment
 
@@ -35,6 +36,7 @@ travis_bootstrap_conda() {
         export LD_LIBRARY_PATH="$HOME/.conda/envs/test-environment/lib:$LD_LIBRARY_PATH"
     elif [[ $(uname -s) == "Darwin" ]]; then
         export DYLD_LIBRARY_PATH="$HOME/.conda/envs/test-environment/lib:$DYLD_LIBRARY_PATH"
+        conda install gcc
     fi
 
     conda info -a

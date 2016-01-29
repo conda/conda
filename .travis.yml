@@ -35,8 +35,8 @@ before_install:
   - uname -a
 
 install:
-#  - conda install pycosat
-#  - conda install pycrypto
+  - conda install pycosat
+  - conda install pycrypto
   - printenv
   - python --version
   - python setup.py sdist
