@@ -47,6 +47,8 @@ def run_conda_command(*args):
     p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, env=env)
     stdout, stderr = p.communicate()
+    assert isinstance(stdout, str)
+    assert isinstance(stderr, str)
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
         stderr.decode('utf-8').replace('\r\n', '\n'))
 
