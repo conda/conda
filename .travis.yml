@@ -31,10 +31,11 @@ matrix:
       env: TOXENV=py35
 
 before_install:
-  - '[[ $(uname -s) == "Darwin" ]] && source utils/travis_bootstrap_conda.sh || true'
+  - source utils/travis_bootstrap_conda.sh
   - uname -a
 
 install:
+  - conda install pycrypto
   - printenv
   - python --version
   - python setup.py sdist
