@@ -24,14 +24,12 @@ being used will only be used in the positive or the negative, respectively
 (e.g., you will only use x, not -x).  This will generate fewer clauses.
 
 """
-import sys
 from collections import defaultdict
-from functools import total_ordering, partial
-from itertools import chain
+from functools import total_ordering
 import logging
 import pycosat
 
-from conda.compat import log2, ceil, range, zip
+from conda.compat import log2, ceil, zip
 from conda.utils import memoize
 
 dotlog = logging.getLogger('dotupdate')
