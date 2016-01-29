@@ -66,6 +66,6 @@ setup(
     description = "package management tool",
     long_description = open('README.rst').read(),
     packages = ['conda', 'conda.cli', 'conda.progressbar'],
-    install_requires = ['pyyaml', 'requests'],
+    install_requires = ['pycosat', 'pyyaml', 'requests'],
     **kwds
 )

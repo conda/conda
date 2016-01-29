@@ -36,7 +36,6 @@ travis_bootstrap_conda() {
         export LD_LIBRARY_PATH="$HOME/.conda/envs/test-environment/lib:$LD_LIBRARY_PATH"
     elif [[ $(uname -s) == "Darwin" ]]; then
         export DYLD_LIBRARY_PATH="$HOME/.conda/envs/test-environment/lib:$DYLD_LIBRARY_PATH"
-        conda install gcc
     fi
 
     conda info -a
