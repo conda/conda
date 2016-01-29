@@ -49,6 +49,7 @@ install:
 
 script:
   - printenv
+  - which -a tox
   - tox -v
 
 after_success:
