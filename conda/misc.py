@@ -237,16 +237,11 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
             fo.write(data)
         shutil.copystat(src, dst)
 
-    must_have = {}
-    for dist in dists:
-        name = install.name_dist(dist)
-        must_have[name] = dist
-
     if index is None:
         index = get_index()
 
     r = Resolve(index)
-    sorted_dists = r.graph_sort(must_have)
+    sorted_dists = r.dependency_sort(dists)
 
     actions = ensure_linked_actions(sorted_dists, prefix2)
     execute_actions(actions, index=index, verbose=not quiet)
