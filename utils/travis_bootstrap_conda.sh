@@ -3,7 +3,7 @@
 
 
 travis_bootstrap_conda() {
-    if ! [[ -d ~/.conda ]]; then
+    if ! [[ -d $HOME/.conda ]]; then
         declare miniconda_url
         case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
             linux) miniconda_url="https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh";;
@@ -11,11 +11,11 @@ travis_bootstrap_conda() {
         esac
 
         curl -sS -o miniconda.sh "$miniconda_url"
-        bash miniconda.sh -bfp ~/.conda
+        bash miniconda.sh -bfp $HOME/.conda
         rm -rf miniconda.sh
     fi
 
-    export PATH="~/.conda/bin:$PATH"
+    export PATH="$HOME/.conda/bin:$PATH"
     hash -r
     conda config --set always_yes yes
     conda update -q conda
@@ -32,9 +32,9 @@ travis_bootstrap_conda() {
     source activate test-environment
 
     if [[ $(uname -s) == "Linux" ]]; then
-        export LD_LIBRARY_PATH="~/.conda/envs/test-environment/lib:$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH="$HOME/.conda/envs/test-environment/lib:$LD_LIBRARY_PATH"
     elif [[ $(uname -s) == "Darwin" ]]; then
-        export DYLD_LIBRARY_PATH="~/.conda/envs/test-environment/lib:$DYLD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$HOME/.conda/envs/test-environment/lib:$DYLD_LIBRARY_PATH"
     fi
 
     conda info -a

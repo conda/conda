@@ -38,7 +38,8 @@ install:
   - printenv
   - python --version
   - python setup.py sdist
-  - travis_retry pip install -U tox
+  - pip install -U tox
+  - cat $HOME/.conda/envs/test-environment/bin/tox
 
 script:
   - printenv
