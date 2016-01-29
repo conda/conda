@@ -8,7 +8,7 @@ from itertools import chain
 
 from conda.utils import memoize
 from conda.compat import iterkeys, itervalues, iteritems, string_types, zip_longest
-from conda.logic import sat, optimize, evaluate_eq, minimal_unsatisfiable_subset
+from conda.logic import sat, optimize, minimal_unsatisfiable_subset
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
