@@ -334,6 +334,13 @@ Packages required to build the package. Python and numpy must be listed explicit
 
 Some users may wish to build a recipe against different versions of NumPy and ensure that each version is part of the package dependencies, which can be done by listing ``numpy x.x`` as a requirement in meta.yaml and using ``conda build`` with a NumPy version option such as ``--numpy 1.7``.
 
+.. code-block:: yaml
+
+  requirements:
+    build:
+      - python
+      - numpy x.x
+
 Run
 ~~~
 
