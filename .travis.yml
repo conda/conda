@@ -38,6 +38,9 @@ install:
   - printenv
   - python --version
   - python setup.py sdist
+  - echo $PATH
+  - which -a python
+  - which -a pip
   - pip install -U tox
   - which -a tox
   - cat $HOME/.conda/envs/test-environment/bin/tox
