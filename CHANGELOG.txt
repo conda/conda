@@ -1,10 +1,18 @@
 2016-02-01 3.19.2:
 ------------------
   * remove hard-coded test URLs, a module cio_test is now expected when CIO_TEST is set
-  * resolve.py: "conda update <package>" now performs any necessary updates to 
-    dependencies as well. Previously conda ignored the dependencies during the
-    update by default, potentially resulting in an inconsistent package set. To
-    revert to the old behavior, use "conda update --no-update-deps".
+  * resolve.py: "conda update <package>" now handles depedencies properly according
+    to the setting of the "update_deps" configuration:
+        --update-deps: conda will also update any dependencies as needed to install
+            the latest verison of the requrested packages. The minimal set of changes
+            required to achieve this is sought.
+        --no-update-deps: conda will update the packages *only* to the extent that
+            no updates to the dependencies are required.
+    The previous behavior, which would update the packages without regard to their
+    dependencies, could result in a broken configuration, and has been removed.
+  * resolve.py: the solver has been retooled significantly. Performance should be
+    improved in most circumstances, and a number of issues involving feature conflicts
+    should be resolved.
 
 2016-02-01   3.19.1:
 --------------------
