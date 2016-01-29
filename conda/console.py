@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import sys
 import json
 import logging
@@ -7,7 +8,17 @@ import contextlib
 
 from conda.utils import memoized
 from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
-                               ProgressBar)
+                               ProgressBar as _ProgressBar)
+
+
+class ProgressBar(_ProgressBar):
+    def __init__(self, *args, **kwargs):
+        _ = kwargs.pop('fd', None)
+        try:
+            tty = open(os.ctermid(), 'w')
+        except IOError:
+            tty = sys.stderr
+        super(ProgressBar, self).__init__(*args, fd=tty, **kwargs)
 
 
 fetch_progress = ProgressBar(
