@@ -486,6 +486,29 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
 
     return C.clauses | additional_clauses
 
+try:
+    pycosat.itersolve({(1,)})
+    pycosat_prep = False
+except TypeError:
+    pycosat_prep = True
+
+def sat(clauses, iterator=False):
+    """
+    Calculate a SAT solution for `clauses`.
+
+    Returned is the list of those solutions.  When the clauses are
+    unsatisfiable, an empty list is returned.
+
+    """
+    if pycosat_prep:
+        clauses = list(map(list,clauses))
+    if iterator:
+        return pycosat.itersolve(clauses)
+    solution = pycosat.solve(clauses)
+    if solution == "UNSAT" or solution == "UNKNOWN": 
+        return None
+    return solution
+
 def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', trymin=True):
     """
     Bisect the solution space of a constraint, to minimize it.
@@ -521,8 +544,8 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
             if true in constraints:
                 constraints = set([])
         newcon = clauses | constraints
-        solution = pycosat.solve(newcon)
-        if solution == 'UNSAT' or solution == 'UNKNOWN':
+        solution = sat(newcon)
+        if solution is None:
             dotlog.debug("Bisection range %s: failure" % rhs)
             lo = mid+1
         else:
@@ -537,22 +560,6 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
 
 class MaximumIterationsError(Exception):
     pass
-
-sat = pycosat.solve
-def sat(clauses, iterator=False):
-    """
-    Calculate a SAT solution for `clauses`.
-
-    Returned is the list of those solutions.  When the clauses are
-    unsatisfiable, an empty list is returned.
-
-    """
-    if iterator:
-        return pycosat.itersolve(clauses)
-    solution = pycosat.solve(clauses)
-    if solution == "UNSAT" or solution == "UNKNOWN": 
-        return None
-    return solution
 
 def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
     """
