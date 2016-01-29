@@ -1052,7 +1052,7 @@ Note that the following features are enabled:
                 fn = pkg.fn
                 self.update_with_features(fn, features)
 
-        stdoutlog.info("Solving package specifications: ")
+        stdoutlog.info("Solving package specifications ...")
         try:
             return self.explicit(specs) or self.solve2(specs, features,
                 installed, minimal_hint=minimal_hint, update_deps=update_deps)
