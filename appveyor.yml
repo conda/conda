@@ -31,7 +31,6 @@ install:
   - "%PYTHON%/Scripts/pip install -U setuptools"
   - "%PYTHON%/Scripts/pip install tox"
   - "%PYTHON%/Scripts/pip install wheel"
-  - "%PYTHON%/Scripts/pip install pycrypto"
 
 test_script:
   - "%PYTHON%/Scripts/tox -e %TOX_ENV%"
