@@ -524,16 +524,20 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
 
     """
     if not objective:
-        dotlog.info('Empty objective, trivial solution')
+        print('Empty objective, trivial solution')
         return clauses, bestsol
-    dotlog.debug("Using alg %s" % alg)
+    print("Using alg %s" % alg)
     m = len(bestsol)
     bestcon = clauses
-    maxval = evaluate_eq(objective, bestsol)
-    dotlog.debug("Initial upper bound: %s" % maxval)
-    lo, hi = [minval, maxval]
+    bestval = evaluate_eq(objective, bestsol)
+    print("Initial upper bound: %s" % bestsol)
+    lo = minval
+    # If bestval = lo, we have a minimal solution, but we
+    # still need to run the loop at least once to generate
+    # the constraints to lock the solution in place.
+    hi = max([bestval, lo+1])
     while lo < hi:
-        mid = lo if trymin else min([lo + increment, (lo + hi)//2])
+        mid = lo if (trymin or lo == bestval) else min([lo + increment, (lo + hi)//2])
         rhs = [lo, mid]
         trymin = False
         if mid == 0:
@@ -543,19 +547,21 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
             assert false not in constraints, 'Optimization error'
             if true in constraints:
                 constraints = set([])
+        print(len(clauses),len(constraints))
         newcon = clauses | constraints
-        solution = sat(newcon)
-        if solution is None:
-            dotlog.debug("Bisection range %s: failure" % rhs)
+        print(len(newcon))
+        newsol = sat(newcon)
+        if newsol is None:
+            print("Bisection range %s: failure" % rhs)
             lo = mid+1
         else:
             bestcon = newcon
-            bestsol = solution
+            bestsol = newsol
             if trymin:
-                dotlog.debug("Minimum objective %d satisfiable" % lo)
+                print("Minimum objective %d satisfiable" % lo)
                 break
-            hi = evaluate_eq(objective, solution)
-            dotlog.debug("Bisection range %s: success, value %s" % (rhs,hi))
+            hi = evaluate_eq(objective, newsol)
+            print("Bisection range %s: success, value %s" % (rhs,hi))
     return bestcon, bestsol
 
 class MaximumIterationsError(Exception):
@@ -646,12 +652,12 @@ def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
 
         # To display progress, every time we discard clauses, we update the
         # progress by that much.
-        # dotlog.debug("")
+        # print("")
         if not sat(A + include):
             d += len(B)
             update(d, L)
             return minimal_unsat(A, include)
-        # dotlog.debug("")
+        # print("")
         if not sat(B + include):
             d += len(A)
             update(d, L)
