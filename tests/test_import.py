@@ -29,12 +29,19 @@ class TestImportAllConda(unittest.TestCase):
         # Import each module in given (sub)package
         for fname in os.listdir(prefix):
             # Discard files that are not of interest
+            print(fname)
             if fname.startswith('__'):
                 continue
             elif not fname.endswith('.py'):
                 continue
             elif fname.startswith('windows') and sys.platform != 'win32':
                 continue
+            elif fname == 'signature.py':
+                try:
+                    from Crypto.Hash import SHA256
+                except ImportError:
+                    # skip for now because pycrypto shouldn't be a hard dependency
+                    continue
             # Import
             modname = module_prefix + '.' + fname.split('.')[0]
             print('importing', modname)
