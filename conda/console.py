@@ -13,7 +13,7 @@ from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
 
 class ProgressBar(_ProgressBar):
     def __init__(self, *args, **kwargs):
-        _ = kwargs.pop('fd', None)
+        kwargs.pop('fd', None)
         try:
             tty = open(os.ctermid(), 'w')
         except IOError:
