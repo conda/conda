@@ -20,6 +20,7 @@ from conda.api import get_index
 from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from conda.plan import ensure_linked_actions, execute_actions
 from conda.compat import iteritems
+from conda.resolve import Resolve
 
 
 
@@ -236,9 +237,18 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
             fo.write(data)
         shutil.copystat(src, dst)
 
-    actions = ensure_linked_actions(dists, prefix2)
+    must_have = {}
+    for dist in dists:
+        name = install.name_dist(dist)
+        must_have[name] = dist
+
     if index is None:
         index = get_index()
+
+    r = Resolve(index)
+    sorted_dists = r.graph_sort(must_have)
+
+    actions = ensure_linked_actions(sorted_dists, prefix2)
     execute_actions(actions, index=index, verbose=not quiet)
 
     return actions, untracked_files
