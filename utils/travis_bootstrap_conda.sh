@@ -31,6 +31,12 @@ travis_bootstrap_conda() {
     conda create -q -n test-environment python="$python_version" setuptools pip virtualenv
     source activate test-environment
 
+    if [[ $(uname -s) == "Linux" ]]; then
+        export LD_LIBRARY_PATH="~/.conda/envs/test-environment/lib:$LD_LIBRARY_PATH"
+    elif [[ $(uname -s) == "Darwin" ]]; then
+        export DYLD_LIBRARY_PATH="~/.conda/envs/test-environment/lib:$DYLD_LIBRARY_PATH"
+    fi
+
     conda info -a
     conda list
 }
