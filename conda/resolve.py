@@ -819,29 +819,25 @@ class Resolve(object):
                 eq.extend((1,v[pkg]) for pkg in pkgs if pkg[-1] != '@')
         return eq
 
-    def graph_sort(self, must_have):
-
+    def dependency_sort(self, must_have):
         def lookup(value):
-            index_data = self.index.get('%s.tar.bz2' % value, {})
-            return {item.split(' ', 1)[0] for item in index_data.get('depends', [])}
-
+            return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
         digraph = {}
-
-        for key, value in must_have.items():
+        for key, value in iteritems(must_have):
             depends = lookup(value)
             digraph[key] = depends
-
         sorted_keys = toposort(digraph)
-
         must_have = must_have.copy()
         # Take all of the items in the sorted keys
         # Don't fail if the key does not exist
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
-
         # Take any key that were not sorted
         result.extend(must_have.values())
-
         return result
+
+    # name deprecated; use dependency_sort instead
+    def graph_sort(self, must_have):
+        return self.dependency_sort(must_have)
 
     def build_vw(self, groups):
         v = {}  # map fn to variable number
@@ -1023,19 +1019,11 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
 
         dotlog.debug('Optimizing versions')
         eq_version = self.generate_version_eq(v, groups, new_specs)
-        print('Version metric in: %d, %d clauses'%(evaluate_eq(eq_version,solution),len(clauses)))
-        print(eq_version)
-        print([(q[1],q[1] in clauses) for q in eq_version])
         clauses, solution = optimize(eq_version, clauses, solution)
-        print('Version metric out: %d, %d clauses'%(evaluate_eq(eq_version,solution),len(clauses)))
 
         dotlog.debug('Optimizing dependency count')
         eq_packages = self.generate_package_count(v, groups, new_specs)
-        print('Dependency count in: %d, %d clauses'%(evaluate_eq(eq_packages,solution), len(clauses)))
         clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
-        print('Dependency count out: %d, %d clauses'%(evaluate_eq(eq_packages,solution), len(clauses)))
-        print('Version metric: %d'%evaluate_eq(eq_version,solution))
-        print('Feature count: %d'%evaluate_eq(eq_features,solution))
 
         dotlog.debug('Looking for alternate solutions')
         solution = [s for s in solution if 0 < s <= m]

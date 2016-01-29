@@ -430,7 +430,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
             sys.exit("Error: 'conda' can only be installed into the "
                      "root environment")
 
-    smh = r.graph_sort(must_have)
+    smh = r.dependency_sort(must_have)
 
     if force:
         actions = force_linked_actions(smh, index, prefix)
