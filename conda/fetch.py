@@ -233,7 +233,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
     index = {}
-    stdoutlog.info("Fetching package metadata: ")
+    stdoutlog.info("Fetching package metadata ...")
     session = CondaSession()
     for url in reversed(channel_urls):
         if config.allowed_channels and url not in config.allowed_channels:

@@ -11,13 +11,15 @@ from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
                                ProgressBar as _ProgressBar)
 
 
+try:
+    tty = open(os.ctermid(), 'w')
+except IOError:
+    tty = sys.stderr
+
+
 class ProgressBar(_ProgressBar):
     def __init__(self, *args, **kwargs):
         kwargs.pop('fd', None)
-        try:
-            tty = open(os.ctermid(), 'w')
-        except IOError:
-            tty = sys.stderr
         super(ProgressBar, self).__init__(*args, fd=tty, **kwargs)
 
 
@@ -149,10 +151,9 @@ class PrintHandler(logging.Handler):
 class DotHandler(logging.Handler):
     def emit(self, record):
         try:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+            tty.write('.')
+            tty.flush()
         except IOError:
-            # sys.stdout.flush doesn't work in pythonw
             pass
 
 class SysStdoutWriteHandler(logging.Handler):
