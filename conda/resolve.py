@@ -466,7 +466,7 @@ class Resolve(object):
     def get_dists(self, specs, filtered=True, wrap=True, sat_only=False):
         log.debug('Beginning the pruning process')
 
-        specs = map(MatchSpec, specs)
+        specs = list(map(MatchSpec, specs))
         len0 = len(specs)
         bad_deps = []
         valid = {}
@@ -670,7 +670,7 @@ class Resolve(object):
             for dep in self.index[fn2]['with_features_depends'][fstr]:
                 dep = MatchSpec(dep)
                 fdeps[dep.name] = dep
-            deps = fdeps.values()
+            deps = list(fdeps.values())
         else:
             deps = [MatchSpec(d) for d in self.index[fn].get('depends',[])]
         deps.extend(MatchSpec('@' + feat) for feat in self.features(fn))
@@ -704,7 +704,7 @@ class Resolve(object):
         return pkgs
 
     def gen_clauses(self, v, groups, specs):
-        specs = map(MatchSpec, specs)
+        specs = list(map(MatchSpec, specs))
         for name, group in iteritems(groups):
             if name[0] == '@':
                 # Ensure at least one track feature package is installed
@@ -868,7 +868,7 @@ class Resolve(object):
         hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
         if not hint:
             return ''
-        hint = map(str, hint)
+        hint = list(map(str, hint))
         if len(hint) == 1:
             # TODO: Generate a hint from the dependencies.
             ret = (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
@@ -892,7 +892,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
              return the filenames of those (not thier dependencies)
           C. None in all other cases
         """
-        specs = map(MatchSpec, specs)
+        specs = list(map(MatchSpec, specs))
         if len(specs) == 1:
             ms = MatchSpec(specs[0])
             fn = ms.to_filename()
@@ -949,7 +949,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
         # If update_deps=True, set the target package in MatchSpec so that
         # the solver can minimize the version change. If update_deps=False,
         # fix the version and build so that no change is possible.
-        specs = map(MatchSpec, specs)
+        specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         for pkg in installed:
             rec = self.index.get(pkg)
@@ -1029,7 +1029,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
         for sol in solutions:
             log.debug([(i, w[j]) for i, j in eq_version if j in sol])
         stdoutlog.info('\n')
-        return map(sorted, psolutions) if returnall else sorted(psolutions[0])
+        return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
 
 
 if __name__ == '__main__':
