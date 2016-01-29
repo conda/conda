@@ -825,7 +825,7 @@ class Resolve(object):
                 for fn in group:
                     i += 1
                     v[fn] = i + 1
-                    w[i + 1] = fn
+                    w[i + 1] = fn.rsplit('[',1)[0]
         m = i + 1
         return m, v, w
 
