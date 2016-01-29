@@ -524,13 +524,13 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
 
     """
     if not objective:
-        print('Empty objective, trivial solution')
+        log.debug('Empty objective, trivial solution')
         return clauses, bestsol
-    print("Using alg %s" % alg)
+    log.debug("Using alg %s" % alg)
     m = len(bestsol)
     bestcon = clauses
     bestval = evaluate_eq(objective, bestsol)
-    print("Initial upper bound: %s" % bestsol)
+    log.debug("Initial upper bound: %s" % bestsol)
     lo = minval
     # If bestval = lo, we have a minimal solution, but we
     # still need to run the loop at least once to generate
@@ -552,16 +552,16 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
         print(len(newcon))
         newsol = sat(newcon)
         if newsol is None:
-            print("Bisection range %s: failure" % rhs)
+            log.debug("Bisection range %s: failure" % rhs)
             lo = mid+1
         else:
             bestcon = newcon
             bestsol = newsol
             if trymin:
-                print("Minimum objective %d satisfiable" % lo)
+                log.debug("Minimum objective %d satisfiable" % lo)
                 break
             hi = evaluate_eq(objective, newsol)
-            print("Bisection range %s: success, value %s" % (rhs,hi))
+            log.debug("Bisection range %s: success, value %s" % (rhs,hi))
     return bestcon, bestsol
 
 class MaximumIterationsError(Exception):
