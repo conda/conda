@@ -199,7 +199,8 @@ class TestJson(unittest.TestCase):
     #                                  '-n', 'testing2', '--json', '--quiet')
     #     self.assertJsonSuccess(res)
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
+    @pytest.mark.installed
     def test_run(self):
         res = capture_json_with_argv('conda', 'run', 'not_installed', '--json')
         self.assertJsonError(res)
@@ -207,6 +208,7 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda', 'run', 'not_installed-0.1-py27_0.tar.bz2', '--json')
         self.assertJsonError(res)
 
+    @pytest.mark.installed
     def test_list(self):
         res = capture_json_with_argv('conda', 'list', '--json')
         self.assertIsInstance(res, list)
@@ -224,7 +226,8 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda', 'list', '--name', 'nonexistent', '-r', '--json')
         self.assertJsonError(res)
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
+    @pytest.mark.installed
     def test_search(self):
         res = capture_json_with_argv('conda', 'search', '--json')
         self.assertIsInstance(res, dict)

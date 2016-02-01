@@ -23,7 +23,7 @@ import conda.misc as misc
 from conda.api import get_index
 from conda.cli import common
 from conda.cli.find_commands import find_executable
-from conda.resolve import NoPackagesFound, Resolve, MatchSpec
+from conda.resolve import NoPackagesFound, Resolve
 import conda.install as ci
 
 log = logging.getLogger(__name__)
@@ -271,7 +271,7 @@ def install(args, parser, command='install'):
                 else:
                     raise
 
-            pkgs = sorted(r.get_pkgs(MatchSpec(name)))
+            pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
                 # Shouldn't happen?
                 continue

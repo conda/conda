@@ -4,8 +4,7 @@ import pycosat
 import pytest
 
 from conda.compat import log2, ceil
-from conda.logic import (Linear, Clauses, true, false, sat, min_sat,
-    minimal_unsatisfiable_subset)
+from conda.logic import (Linear, Clauses, true, false, sat, minimal_unsatisfiable_subset)
 
 from tests.helpers import raises
 
@@ -794,22 +793,8 @@ def test_sorter():
 
 def test_sat():
     assert sat([[1]]) == [1]
-    assert sat([[1], [-1]]) == []
+    assert sat([[1], [-1]]) is None
     assert sat([]) == []
-
-def test_min_sat():
-    for alg in ['iterate', 'sorter', 'BDD', 'BDD_recursive']:
-        assert sorted([i[:4] for i in min_sat([[1, 2, 3, 4]], alg=alg)]) == [
-            [-1, -2, -3, 4],
-            [-1, -2, 3, -4],
-            [-1, 2, -3, -4],
-            [1, -2, -3, -4],
-        ]
-        assert sorted([i[:4] for i in min_sat([[1], [2, -4]], N=2, alg=alg)]) == [
-            [1, -2, -3, -4],
-            [1, -2, 3, -4],
-            ]
-        assert min_sat([[1], [-1]], alg=alg) == []
 
 def test_minimal_unsatisfiable_subset():
     assert raises(ValueError, lambda: minimal_unsatisfiable_subset([[1]]))
