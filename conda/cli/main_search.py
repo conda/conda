@@ -14,8 +14,8 @@ from conda.resolve import NoPackagesFound, Package
 from conda import config
 
 descr = """Search for packages and display their information. The input is a
-regular expression.  To perform a search with a search string that starts with
-a -, separate the search from the options with --, like 'conda search -- -h'.
+Python regular expression.  To perform a search with a search string that starts
+with a -, separate the search from the options with --, like 'conda search -- -h'.
 
 A * in the results means that package is installed in the current
 environment. A . means that package is not installed but is cached in the pkgs
@@ -106,7 +106,7 @@ package.""",
         metavar='regex',
         action="store",
         nargs="?",
-        help="""Package specification or regular expression to search for (default: display
+        help="""Package specification or Python regular expression to search for (default: display
         all packages).""",
     ).completer = common.Packages
     common.add_parser_offline(p)

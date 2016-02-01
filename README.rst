@@ -9,8 +9,9 @@ Conda
 .. image:: https://travis-ci.org/conda/conda.svg?branch=master
                :target: https://travis-ci.org/conda/conda
 
-.. image:: https://ci.appveyor.com/api/projects/status/eh1c75m890ttb3kd?svg=true
-           :target: https://ci.appveyor.com/project/msarahan/conda
+.. image:: https://badges.gitter.im/conda/conda.svg
+   :alt: Join the chat at https://gitter.im/conda/conda
+   :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
@@ -19,6 +20,8 @@ used for other systems as well.  Conda makes environments first-class
 citizens, making it easy to create independent environments even for C
 libraries. Conda is written entirely in Python, and is BSD licensed open
 source.
+
+Conda is enhanced by organizations, tools, and repositories created and managed by the amazing members of the conda community.  Some of them can be found `here <https://github.com/conda/conda/wiki/Conda-Community>`_.
 
 
 Installation

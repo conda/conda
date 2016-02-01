@@ -33,7 +33,6 @@ List keys, like
 
   channels:
     - conda
-
     - defaults
 
 are modified with the --add and --remove options. For example
@@ -44,9 +43,7 @@ on the above configuration would prepend the key 'r', giving
 
     channels:
       - r
-
       - conda
-
       - defaults
 
 Note that the key 'channels' implicitly contains the key 'defaults' if it has
@@ -90,9 +87,9 @@ Add the 'foo' Binstar channel:
 
     conda config --add channels foo
 
-Enable the 'show_channel_urls' option:
+Disable the 'show_channel_urls' option:
 
-    conda config --set show_channel_urls yes
+    conda config --set show_channel_urls no
 """
 
 class CouldntParse(NotImplementedError):
@@ -300,6 +297,8 @@ channels:
         if not isinstance(rc_config.get(key, []), list):
             raise CouldntParse("key %r should be a list, not %s." % (key,
                 rc_config[key].__class__.__name__))
+        if key == 'default_channels' and rc_path != config.sys_rc_path:
+            raise NotImplementedError("'default_channels' is only configurable for system installs")
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
             message = "Skipping %s: %s, item already exists" % (key, item)

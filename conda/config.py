@@ -29,7 +29,7 @@ force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
 # ----- operating system and architecture -----
 
 _sys_map = {'linux2': 'linux', 'linux': 'linux',
-            'darwin': 'osx', 'win32': 'win'}
+            'darwin': 'osx', 'win32': 'win', 'openbsd5': 'openbsd'}
 non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__
@@ -60,8 +60,9 @@ rc_list_keys = [
     'disallow',
     'create_default_packages',
     'track_features',
-    'envs_dirs'
-    ]
+    'envs_dirs',
+    'default_channels',
+]
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
@@ -269,11 +270,8 @@ offline = bool(rc.get('offline', False))
 
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
-        base_urls = ['http://filer/pkgs/pro',
-                     'http://filer/pkgs/free']
-        if os.getenv('CIO_TEST').strip() == '2':
-            base_urls.insert(0, 'http://filer/test-pkgs')
-        return normalize_urls(base_urls, platform=platform)
+        import cio_test
+        return normalize_urls(cio_test.base_urls, platform=platform)
 
     if 'channels' not in rc:
         base_urls = get_default_urls()
@@ -349,7 +347,8 @@ binstar_upload = rc.get('anaconda_upload',
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded
-show_channel_urls = bool(rc.get('show_channel_urls', False))
+show_channel_urls = rc.get(
+        'show_channel_urls', None) # None means letting conda decide
 # set packages disallowed to be installed
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default

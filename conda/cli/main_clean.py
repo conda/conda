@@ -151,9 +151,13 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
-            if verbose:
-                print("removing %s" % fn)
-            os.unlink(os.path.join(pkgs_dir, fn))
+            if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
+                if verbose:
+                    print("Removing %s" % fn)
+                os.unlink(os.path.join(pkgs_dir, fn))
+            else:
+                if verbose:
+                    print("WARNING: cannot remove, file permissions: %s" % fn)
 
 
 def find_pkgs():
@@ -163,6 +167,9 @@ def find_pkgs():
 
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in config.pkgs_dirs:
+        if not os.path.exists(pkgs_dir):
+            print("WARNING: {0} does not exist".format(pkgs_dir))
+            continue
         pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
             # Only include actual packages
             isdir(join(pkgs_dir, i, 'info'))]
