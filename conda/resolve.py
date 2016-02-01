@@ -4,13 +4,11 @@ import re
 import sys
 import logging
 from collections import defaultdict
-from functools import partial
+from itertools import chain
 
 from conda.utils import memoize
-from conda.compat import itervalues, iteritems, string_types, zip_longest
-from conda.logic import (false, true, sat, min_sat, generate_constraints,
-    bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
-    MaximumIterationsError)
+from conda.compat import iterkeys, itervalues, iteritems, string_types, zip_longest
+from conda.logic import sat, optimize, minimal_unsatisfiable_subset
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -21,9 +19,12 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
-    # normalized_version() is needed by conda-env
+# normalized_version() is needed by conda-env
 def normalized_version(version):
     return VersionOrder(version)
+
+def dashlist(iter):
+    return ''.join('\n  - ' + str(x) for x in iter)
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
@@ -301,9 +302,16 @@ class VersionSpec(object):
         return all(c.match(version) for c in self.constraints)
 
 
+_specs = {}
 class MatchSpec(object):
 
-    def __init__(self, spec):
+    def __new__(cls, spec, target=None, optional=False, parent=None):
+        if isinstance(spec, cls):
+            return spec
+        self = _specs.get((spec,target,optional,parent))
+        if self:
+            return self
+        self = object.__new__(cls)
         self.spec = spec
         parts = spec.split()
         self.strictness = len(parts)
@@ -313,10 +321,20 @@ class MatchSpec(object):
             self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
+        self.target = target
+        self.optional = optional
+        self.parent = parent
+        return self
 
-    def match(self, fn):
-        assert fn.endswith('.tar.bz2')
-        name, version, build = fn[:-8].rsplit('-', 2)
+    def match(self, info):
+        if isinstance(info, string_types):
+            name, version, build = info[:-8].rsplit('-',2)
+        else:
+            if isinstance(info, Package):
+                info = info.info
+            name = info.get('name')
+            version = info.get('version')
+            build = info.get('build')
         if name != self.name:
             return False
         if self.strictness == 1:
@@ -339,11 +357,27 @@ class MatchSpec(object):
         return hash(self.spec)
 
     def __repr__(self):
-        return 'MatchSpec(%r)' % (self.spec)
+        res = 'MatchSpec(' + self.spec
+        if self.target:
+            res += ',target=' + self.target
+        if self.optional:
+            res += ',optional'
+        return res + ')'
 
     def __str__(self):
-        return self.spec
-
+        res = self.spec
+        if res[-1] == '@' and self.strictness == 1:
+            res = 'feature "%s"'%res[1:]
+        if self.target or self.optional or self.parent:
+            mods = []
+            if self.target:
+                mods.append('target='+self.target)
+            if self.parent:
+                mods.append('parent='+self.parent)
+            if self.optional:
+                mods.append('optional')
+            res += ' (' + ','.join(mods) + ')'
+        return res
 
 class Package(object):
     """
@@ -352,10 +386,12 @@ class Package(object):
     """
     def __init__(self, fn, info):
         self.fn = fn
-        self.name = info['name']
-        self.version = info['version']
-        self.build_number = info['build_number']
-        self.build = info['build']
+        self.name = info.get('name')
+        self.version = info.get('version')
+        self.build = info.get('build')
+        if not (self.name and self.version and self.build):
+            self.name, self.version, self.build = fn.rsplit('-',2)
+        self.build_number = info.get('build_number')
         self.channel = info.get('channel')
         self.norm_version = VersionOrder(self.version)
         self.info = info
@@ -366,27 +402,12 @@ class Package(object):
         result['norm_version'] = str(self.norm_version)
         return result
 
-    # http://python3porting.com/problems.html#unorderable-types-cmp-and-cmp
-#     def __cmp__(self, other):
-#         if self.name != other.name:
-#             raise ValueError('cannot compare packages with different '
-#                              'names: %r %r' % (self.fn, other.fn))
-#         try:
-#             return cmp((self.norm_version, self.build_number),
-#                       (other.norm_version, other.build_number))
-#         except TypeError:
-#             return cmp((self.version, self.build_number),
-#                       (other.version, other.build_number))
-
     def __lt__(self, other):
         if self.name != other.name:
             raise TypeError('cannot compare packages with different '
                              'names: %r %r' % (self.fn, other.fn))
-        # FIXME: 'self.build' and 'other.build' are intentionally swapped
-        # FIXME: see https://github.com/conda/conda/commit/3cc3ecc662914abe1d98b8d9c4caaa7c932a838e
-        # FIXME: This should be reverted when the underlying problem is solved.
-        return ((self.norm_version, self.build_number, other.build) <
-                (other.norm_version, other.build_number, self.build))
+        return ((self.norm_version, self.build_number, self.build) <
+                (other.norm_version, other.build_number, other.build))
 
     def __eq__(self, other):
         if not isinstance(other, Package):
@@ -411,481 +432,429 @@ class Package(object):
     def __repr__(self):
         return '<Package %s>' % self.fn
 
+def build_groups(index):
+    groups = {}
+    feats = {}
+    for fn, info in iteritems(index):
+        if isinstance(info, Package):
+            info = info.info
+        if fn[-1] == '@':
+            assert info['name'] == fn and info.get('track_features','') == fn[:-1]
+            feats[fn] = info
+        else:
+            groups.setdefault(info['name'],[]).append(fn)
+            for feat in info.get('track_features','').split():
+                groups.setdefault(feat + '@',[]).append(fn)
+    for fn, info in iteritems(feats):
+        groups.setdefault(fn,[]).append(fn)
+    return groups
+
 class Resolve(object):
 
+    def add_feature(self, feat, group=True):
+        if feat not in self.feats:
+            fpkg = feat + '@'
+            self.feats.add(feat)
+            self.index[fpkg] = {
+                'name':fpkg, 'version':'1.0', 
+                'build':'0', 'build_number':0,
+                'depends':[], 'track_features':feat
+            }
+            if group:
+                self.groups[fpkg].append(fpkg)
+
     def __init__(self, index):
-        self.index = index
-        self.groups = defaultdict(list)  # map name to list of filenames
+        self.index = index.copy()
+        self.feats = set()
         for fn, info in iteritems(index):
-            self.groups[info['name']].append(fn)
-        self.msd_cache = {}
-        self.clear_filter()
+            for fstr in info.get('track_features','').split():
+                self.add_feature(fstr, False)
+            for fstr in iterkeys(info.get('with_features_depends',{})):
+                fn2 = fn + '[' + fstr + ']'
+                self.index[fn2] = info
+        self.groups = build_groups(self.index)
+        self.ms_cache = {}
 
-    def clear_filter(self):
-        self.filter_ = defaultdict(lambda:True)
-        self.get_pkgs_ = {}
-
-    def prune_packages(self, specs):
+    def get_dists(self, specs, filtered=True, wrap=True, sat_only=False):
         log.debug('Beginning the pruning process')
-        touched = defaultdict(bool)
-        valid = {}
 
-        def filter_group(matches):
+        specs = list(map(MatchSpec, specs))
+        len0 = len(specs)
+        bad_deps = []
+        valid = {}
+        unsat = []
+
+        def filter_group(matches, top):
+            # Ignore optional specifications
+            if any(ms.optional for ms in matches):
+                matches = [ms for ms in matches if not ms.optional]
+                if not matches:
+                    return False
+
+            # If no packages exist with this name, it's a fatal error
             match1 = next(x for x in matches)
             name = match1.name
+            group = self.groups.get(name,[])
+            if not group:
+                bad_deps.append((matches,top))
+                return False
 
-            first = False
+            # If we are here, then this dependency is mandatory,
+            # so add it to the master list. That way it is still
+            # participates in the pruning even if one of its 
+            # parents is pruned away
+            if all(name != ms.name for ms in specs):
+                specs.append(MatchSpec(name, parent=str(top)))
+
+            # Prune packages that don't match any of the patterns
+            # or which may be missing dependencies
             nold = nnew = 0
-            group = self.groups[name]
+            first = False
+            notfound = set()
             for fn in group:
                 sat = valid.get(fn, None)
                 if sat is None:
-                    first = sat = True
+                    first = sat = valid[fn] = True
                 nold += sat
-                # Prune packages that don't match any of the patterns
                 if sat:
-                    sat = any(m.match(fn) for m in matches)
-                # Prune packages with missing dependencies
+                    sat = any(self.match(ms, fn) for ms in matches)
                 if sat:
-                    sat = all(any(valid.get(f2, True) and ms.match(f2)
-                                  for f2 in self.find_matches(ms, True))
-                              for ms in self.ms_depends(fn) if ms.name in self.groups)
+                    sat = all(any(valid.get(f2, True)
+                                  for f2 in self.find_matches(ms))
+                              for ms in self.ms_depends(fn) if not ms.optional)
+                    if not sat:
+                        notfound.update(ms for ms in self.ms_depends(fn) if ms.name not in self.groups)
                 nnew += sat
                 valid[fn] = sat
 
             reduced = nnew < nold
             if reduced:
-                dotlog.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
+                log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
                 if nnew == 0:
+                    if notfound:
+                        bad_deps.append((notfound,matches))
+                    unsat.extend(matches)
                     return True
-            elif not first or nold == 0:
+            elif not first:
                 return False
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            cdeps = {}
+            cdeps = defaultdict(list)
             for fn in group:
                 if valid[fn]:
                     for m2 in self.ms_depends(fn):
-                        if m2.name in self.groups:
-                            cdeps.setdefault(m2.name,[]).append(m2)
-            for mname, deps in iteritems(cdeps):
-                if len(deps) == nnew:
-                    filter_group(deps)
+                        cdeps[m2.name].append(m2)
+            if top is None:
+                top = match1
+            cdeps = {mname:set(deps) for mname,deps in iteritems(cdeps) if len(deps)==nnew}
+            if cdeps:
+                top = top if top else match1
+                if sum(filter_group(deps, top) for deps in itervalues(cdeps)):
+                    reduced = True
             return reduced
 
-        def is_valid(fn):
-            val = valid.get(fn, None)
-            if val is None:
-                val = valid[fn] = True
-                for ms in self.ms_depends(fn):
-                    if not any(is_valid(f2) for f2 in self.find_matches(ms, True)):
-                        val = False
-                        break
-                valid[fn] = val
-            return val
+        # Look through all of the non-optional specs (which at this point
+        # should include the installed packages) for any features which *might*
+        # be installed. Prune away any packages that depend on features other
+        # than this subset.
+        def prune_features():
+            feats = set()
+            for ms in specs:
+                if not ms.optional:
+                    if ms.name[-1] == '@':
+                        feats.add(ms.name[:-1])
+                    else:
+                        for fn in self.groups.get(ms.name, []):
+                            if valid.get(fn, True):
+                                feats.update(self.track_features(fn))
+            pruned = False
+            for name, group in iteritems(self.groups):
+                nold =  npruned = 0
+                for fn in group:
+                    if valid.get(fn, True):
+                        nold += 1
+                        if self.features(fn) - feats:
+                            valid[fn] = False
+                            npruned += 1
+                if npruned:
+                    pruned = True
+                    log.debug('%s: pruned from %d -> %d for missing features'%(name,nold,nold-npruned))
+                    if npruned == nold:
+                        for ms in specs:
+                            if ms.name == name and not ms.optional:
+                                bad_deps.append((ms,name+'@'))
+            return pruned
 
-        def touch(fn, force=False):
-            val = touched.get(fn, None)
-            if val is None or (force and not val):
-                val = touched[fn] = force or is_valid(fn)
-                if val:
-                    for ms in self.ms_depends(fn):
-                        for f2 in self.find_matches(ms, True):
-                            touch(f2, force)
-            return val
+        # Initial scan to add tracked features and rule out missing packages
+        for feat in self.feats:
+            valid[feat + '@'] = False
+        for ms in specs:
+            if ms.name[-1] == '@':
+                feat = ms.name[:-1]
+                self.add_feature(feat)
+                valid[feat + '@'] = True
+            elif not ms.optional:
+                if not any(True for _ in self.find_matches(ms)):
+                    bad_deps.append(ms)
+        if bad_deps:
+            raise NoPackagesFound(
+                "No packages found in current %s channels matching: %s" % 
+                (config.subdir, ' '.join(map(str,bad_deps))), bad_deps)
 
         # Iterate in the filtering process until no more progress is made
-        mspecs = [MatchSpec(s) for s in specs]
-        while sum(filter_group([ms]) for ms in mspecs):
-            pass
+        if filtered:
+            pruned = True
+            while pruned:
+                pruned = prune_features()
+                for s in list(specs):
+                    pruned += filter_group([s], None)
 
-        # Now touch all of the packages to bring in the weak dependencies
-        for ms in mspecs:
-            if sum(touch(fn) for fn in self.find_matches(ms, True)) == 0:
-                dotlog.debug('Spec %s cannot be satisfied' % ms.spec)
-                return False
+        # Touch all packages
+        touched = {}
+        def is_valid(fn, notfound=None):
+            val = valid.get(fn)
+            if val is None or (notfound and not val):
+                valid[fn] = True # ensure cycles terminate
+                val = valid[fn] = all(any(is_valid(f2) 
+                                          for f2 in self.find_matches(ms))
+                                      for ms in self.ms_depends(fn))
+            if notfound and not val:
+                notfound.append(ms)
+            return val
+        def touch(fn, notfound=None):
+            val = touched.get(fn)
+            if val is None or (notfound is not None and not val):
+                val = touched[fn] = is_valid(fn, notfound)
+                if val:
+                    for ms in self.ms_depends(fn):
+                        for f2 in self.find_matches(ms):
+                            touch(f2, notfound)
+            return val
+        for ms in specs[:len0]:
+            notfound = []
+            if sum(touch(fn, notfound) for fn in self.find_matches(ms)) == 0 and not ms.optional and notfound:
+                bad_deps.extend((notfound,(ms)))
 
-        self.filter_ = touched
-        self.get_pkgs_ = {}
-        return True
+        if bad_deps:
+            res = []
+            specs = set()
+            for spec, src in bad_deps:
+                specs.update(spec)
+                res.append('  - %s: %s' % ('|'.join(map(str,src)),', '.join(map(str,spec))))
+            raise NoPackagesFound('\n'.join([
+                    "Could not find some dependencies for one or more packages:"]
+                    + res), specs)
 
-    def find_matches(self, ms, all=True):
-        for fn in self.groups[ms.name]:
-            if self.filter_[fn] and ms.match(fn):
+        # Throw an error for missing packages or dependencies
+        if sat_only and (unsat or bad_deps):
+            return False
+
+        # For weak dependency conflicts, generate a hint
+        if unsat:
+            def mysat(specs):
+                self.get_dists(specs, sat_only=True)
+            stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
+            hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
+            hint = ['  - %s'%str(x) for x in set(chain(unsat, hint))]
+            hint = (['The following specifications were found to be in conflict:'] + hint 
+                + ['Use "conda info <package>" to see the dependencies for each package.'])
+            sys.exit('\n'.join(hint))
+
+        dists = {fn:info for fn,info in iteritems(self.index) if touched.get(fn)}
+        if wrap:
+            dists = {fn:Package(fn,info) for fn,info in iteritems(dists)}
+        return dists, specs
+
+    def match(self, ms, fn):
+        ms = MatchSpec(ms)
+        if fn[-1] == ']':
+            fn = fn.rsplit('[',1)[0]
+        if ms.name[-1] == '@':
+            return ms.name[:-1] in self.track_features(fn)
+        return ms.match(self.index[fn])
+
+    def find_matches(self, ms, groups=None):
+        ms = MatchSpec(ms)
+        for fn in (groups or self.groups).get(ms.name, []):
+            if self.match(ms, fn):
                 yield fn
 
+    @memoize
     def ms_depends(self, fn):
-        # We can't use @memoize here because this cache is modified
-        # in update_with_features as well
-        try:
-            res = self.msd_cache[fn]
-        except KeyError:
-            if not 'depends' in self.index[fn]:
-                raise NoPackagesFound('Bad metadata for %s' % fn, [fn])
-            depends = self.index[fn]['depends']
-            res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
-        return res
+        if fn[-1] == ']':
+            fn2, fstr = fn[:-1].split('[')
+            fdeps = {d.name:d for d in self.ms_depends(fn2)}
+            for dep in self.index[fn2]['with_features_depends'][fstr]:
+                dep = MatchSpec(dep)
+                fdeps[dep.name] = dep
+            deps = list(fdeps.values())
+        else:
+            deps = [MatchSpec(d) for d in self.index[fn].get('depends',[])]
+        deps.extend(MatchSpec(feat + '@') for feat in self.features(fn))
+        return deps
+
+    @memoize
+    def version_key(self, fn):
+        rec = self.index.get(fn, None)
+        if rec is None:
+            return None
+        return (VersionOrder(rec['version']), len(self.features(fn)), rec['build_number'], rec['build'])
 
     @memoize
     def features(self, fn):
+        if fn[-1] == ']':
+            return self.features(fn.rsplit('[',1)[0])
         return set(self.index[fn].get('features', '').split())
 
     @memoize
     def track_features(self, fn):
+        if fn[-1] == ']':
+            return self.track_features(fn.rsplit('[',1)[0])
         return set(self.index[fn].get('track_features', '').split())
 
-    # Changed to manual memoization so that we can reset if we add/change the filter.
-    def get_pkgs(self, ms, max_only=False):
-        key = (ms,max_only)
-        if key in self.get_pkgs_:
-            return self.get_pkgs_[key]
-        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
-        if not pkgs:
+    @memoize
+    def package_triple(self, fn):
+        if not fn.endswith('.tar.bz2'):
+            return self.package_triple(fn + '.tar.bz2')
+        rec = self.index.get(fn, None)
+        if rec is not None:
+            return (rec['name'], rec['version'], rec['build'])
+        return fn[:-8].rsplit('-',2)[0]
+
+    def package_name(self, fn):
+        return self.package_triple(fn)[0]
+
+    @memoize
+    def get_pkgs(self, ms, emptyok=False):
+        ms = MatchSpec(ms)
+        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms) if '@' not in fn]
+        if not pkgs and not emptyok:
             raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-        if max_only:
-            maxpkg = max(pkgs)
-            ret = []
-            for pkg in pkgs:
-                try:
-                    if (pkg.name, pkg.norm_version, pkg.build_number) == \
-                       (maxpkg.name, maxpkg.norm_version, maxpkg.build_number):
-                        ret.append(pkg)
-                except TypeError:
-                    # They are not equal
-                    pass
-            pkgs = ret
-        self.get_pkgs_[key] = pkgs
         return pkgs
 
-    def get_max_dists(self, ms):
-        pkgs = self.get_pkgs(ms, max_only=True)
-        if not pkgs:
-            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
-        for pkg in pkgs:
-            yield pkg.fn
-
-    def all_deps(self, root_fn, max_only=False):
-        res = {}
-
-        def add_dependents(fn1, max_only=False):
-            for ms in self.ms_depends(fn1):
-                found = False
-                notfound = []
-                for pkg2 in self.get_pkgs(ms, max_only=max_only):
-                    if pkg2.fn in res:
-                        found = True
-                        continue
-                    res[pkg2.fn] = pkg2
-                    try:
-                        add_dependents(pkg2.fn, max_only=max_only)
-                    except NoPackagesFound as e:
-                        for pkg in e.pkgs:
-                            if pkg not in notfound:
-                                notfound.append(pkg)
-                        if pkg2.fn in res:
-                            del res[pkg2.fn]
-                    else:
-                        found = True
-
-                if not found:
-                    raise NoPackagesFound("Could not find some dependencies "
-                        "for %s: %s" % (ms, ', '.join(notfound)), [ms.spec] + notfound)
-
-        add_dependents(root_fn, max_only=max_only)
-        return res
-
-    def gen_clauses(self, v, dists, specs, features):
-        groups = defaultdict(list)  # map name to list of filenames
-        for fn in dists:
-            groups[self.index[fn]['name']].append(fn)
-
-        for filenames in itervalues(groups):
-            # ensure packages with the same name conflict
-            for fn1 in filenames:
-                v1 = v[fn1]
-                for fn2 in filenames:
-                    v2 = v[fn2]
-                    if v1 < v2:
-                        # NOT (fn1 AND fn2)
-                        # e.g. NOT (numpy-1.6 AND numpy-1.7)
-                        yield (-v1, -v2)
-
-        for fn1 in dists:
-            for ms in self.ms_depends(fn1):
-                # ensure dependencies are installed
+    def gen_clauses(self, v, groups, specs):
+        specs = list(map(MatchSpec, specs))
+        for name, group in iteritems(groups):
+            if name[-1] == '@':
+                # Ensure at least one track feature package is installed
+                # if a dependency is activated
+                clause = [v[fn2] for fn2 in self.find_matches(MatchSpec(name), groups)]
+                yield tuple([-v[name]] + clause)
+                continue
+            for k, fn1 in enumerate(group):
+                # Ensure two package with the same name are not installed
+                # e.g. for three packages fn1, fn2, f3:
+                # NOT fn1 OR NOT fn2, NOT fn1 OR NOT fn3, NOT fn2 OR NOT fn3
+                nval = -v[fn1]
+                for fn2 in group[k+1:]:
+                    yield (nval,-v[fn2])
+                # Ensure each dependency is installed
                 # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
-                clause = [-v[fn1]]
-                for fn2 in self.find_matches(ms):
-                    if fn2 in dists:
-                        clause.append(v[fn2])
-                assert len(clause) > 1, '%s %r' % (fn1, ms)
+                for ms in self.ms_depends(fn1):
+                    if ms.name[-1] == '@':
+                        yield (nval, v[ms.name])
+                    else:
+                        clause = [v[fn2] for fn2 in self.find_matches(ms, groups)]
+                        assert clause, '%s %r' % (fn1, ms)
+                        yield tuple([nval] + clause)
+
+        # Ensure that at least one package is installed matching each spec
+        # fn1 OR fn2 OR fn3 OR ... OR fnN
+        for ms in specs:
+            if not ms.optional:
+                clause = [v[fn] for fn in self.find_matches(ms, groups)]
+                assert len(clause) >= 1, ms
                 yield tuple(clause)
 
-                for feat in features:
-                    # ensure that a package (with required name) which has
-                    # the feature is installed
-                    # e.g. numpy-1.7 IMPLIES (numpy-1.8[mkl] OR numpy-1.7[mkl])
-                    clause = [-v[fn1]]
-                    for fn2 in groups[ms.name]:
-                         if feat in self.features(fn2):
-                             clause.append(v[fn2])
-                    if len(clause) > 1:
-                        yield tuple(clause)
+    def generate_feature_eq(self, v, groups, specs):
+        may_omit = set()
+        sdict = {s.name:s for s in map(MatchSpec, specs)}
+        for name in iterkeys(groups):
+            if name[-1] == '@':
+                if name not in sdict or sdict[name].optional:
+                    may_omit.add(name[:-1])
+        if may_omit:
+            for name, ms in iteritems(sdict):
+                if name[-1] != '@' and not ms.optional:
+                    for fn in self.find_matches(ms, groups):
+                        may_omit -= self.track_features(fn)
+                        if not may_omit:
+                            break
+        return [(1,v[name+'@']) for name in may_omit]
 
-                # Don't install any package that has a feature that wasn't requested.
-                for fn in self.find_matches(ms):
-                    if fn in dists and self.features(fn) - features:
-                        yield (-v[fn],)
-
-        for spec in specs:
-            ms = MatchSpec(spec)
-            # ensure that a matching package with the feature is installed
-            for feat in features:
-                # numpy-1.7[mkl] OR numpy-1.8[mkl]
-                clause = [v[fn] for fn in self.find_matches(ms)
-                          if fn in dists and feat in self.features(fn)]
-                if len(clause) > 0:
-                    yield tuple(clause)
-
-            # Don't install any package that has a feature that wasn't requested.
-            for fn in self.find_matches(ms):
-                if fn in dists and self.features(fn) - features:
-                    yield (-v[fn],)
-
-            # finally, ensure a matching package itself is installed
-            # numpy-1.7-py27 OR numpy-1.7-py26 OR numpy-1.7-py33 OR
-            # numpy-1.7-py27[mkl] OR ...
-            clause = [v[fn] for fn in self.find_matches(ms)
-                      if fn in dists]
-            assert len(clause) >= 1, ms
-            yield tuple(clause)
-
-    def generate_version_eq(self, v, dists, installed_dists, specs,
-        include0=False, update_deps=True):
-        groups = defaultdict(list)  # map name to list of filenames
-        for fn in sorted(dists):
-            groups[self.index[fn]['name']].append(fn)
-
+    def generate_version_eq(self, v, groups, specs, include0=False):
         eq = []
-        max_rhs = 0
-        for filenames in sorted(itervalues(groups)):
-            pkgs = sorted(filenames, key=lambda i: dists[i], reverse=True)
-            if (not update_deps and not any(s.split()[0] == pkgs[0].rsplit('-', 2)[0] for s in specs)):
-                rearrange = True
-                for d in installed_dists:
-                    if d in pkgs:
-                        break
-                else:
-                    # It isn't already installed
-                    rearrange = False
-                if rearrange:
-                    idx = pkgs.index(d)
-                    # For example, if the versions are 1.0, 2.0, 3.0, 4.0, and
-                    # 5.0, and 3.0 is installed, this prefers 3.0 > 4.0 > 5.0
-                    # > 2.0 > 1.0.
-                    pkgs = [d] + list(reversed(pkgs[:idx])) + pkgs[idx+1:]
+        sdict = {s.name:s for s in map(MatchSpec, specs)}
+        for name, pkgs in iteritems(groups):
+            if name[-1] == '@':
+                continue
+            pkg_ver = sorted([(self.version_key(p),p) for p in pkgs], reverse=True)
+            # If the "target" field in the MatchSpec is supplied, that means we want
+            # to minimize the changes to the currently installed package. We prefer
+            # any upgrade over any downgrade, but beyond that we want minimal change.
+            ms = sdict.get(name)
+            if ms and ms.target:
+                dkey = (self.version_key(ms.target),ms.target)
+                new_ver = [p for p in pkg_ver if p >= dkey]
+                new_ver.extend(reversed([p for p in pkg_ver if p < dkey]))
+                pkg_ver = new_ver
+            wgt = 1 if not ms or ms.optional else 4
             i = 0
-            prev = pkgs[0]
-            for pkg in pkgs:
-                try:
-                    if (dists[pkg].name, dists[pkg].norm_version,
-                        dists[pkg].build_number) != (dists[prev].name,
-                            dists[prev].norm_version, dists[prev].build_number):
-                        i += 1
-                except TypeError:
-                    i += 1
+            prev = None
+            for nkey, pkg in pkg_ver:
+                if prev and prev != nkey:
+                    i += wgt
                 if i or include0:
                     eq += [(i, v[pkg])]
-                prev = pkg
-            max_rhs += i
+                prev = nkey
+        return eq
 
-        return eq, max_rhs
+    def generate_package_count(self, v, groups, specs):
+        eq = []
+        snames = {s.name for s in map(MatchSpec, specs)}
+        for name, pkgs in iteritems(groups):
+            if name not in snames:
+                eq.extend((1,v[pkg]) for pkg in pkgs if pkg[-1] != '@')
+        return eq
 
-    def get_dists(self, specs, max_only=False, filtered=False):
-        dists = {}
-        if filtered:
-            filtered = self.prune_packages(specs)
-        for spec in specs:
-            found = False
-            notfound = []
-            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
-                if pkg.fn in dists:
-                    found = True
-                    continue
-                try:
-                    dists.update(self.all_deps(pkg.fn, max_only=max_only))
-                except NoPackagesFound as e:
-                    # Ignore any package that has nonexisting dependencies.
-                    for pkg in e.pkgs:
-                        if pkg not in notfound:
-                            notfound.append(pkg)
-                else:
-                    dists[pkg.fn] = pkg
-                    found = True
-            if not found:
-                if filtered:
-                    self.clear_filter()
-                raise NoPackagesFound("Could not find some dependencies for %s: %s" % (spec, ', '.join(notfound)), [spec] + notfound)
-        if filtered:
-            self.clear_filter()
-        return dists
-
-    def graph_sort(self, must_have):
-
+    def dependency_sort(self, must_have):
         def lookup(value):
-            index_data = self.index.get('%s.tar.bz2' % value, {})
-            return {item.split(' ', 1)[0] for item in index_data.get('depends', [])}
-
+            return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
         digraph = {}
-
-        for key, value in must_have.items():
+        for key, value in iteritems(must_have):
             depends = lookup(value)
             digraph[key] = depends
-
         sorted_keys = toposort(digraph)
-
         must_have = must_have.copy()
         # Take all of the items in the sorted keys
         # Don't fail if the key does not exist
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
-
         # Take any key that were not sorted
         result.extend(must_have.values())
-
         return result
 
-    def solve2(self, specs, features, installed=(), guess=True, alg='BDD',
-        returnall=False, minimal_hint=False, unsat_only=False, update_deps=True,
-        try_max_only=None):
-        log.debug("Solving for %s" % str(specs))
-        log.debug("Features: %s" % str(features))
-        log.debug("Installed: %s" % str(installed))
+    # name deprecated; use dependency_sort instead
+    def graph_sort(self, must_have):
+        return self.dependency_sort(must_have)
 
-        # This won't packages that aren't in the index, but there isn't much
-        # we can do with such packages here anyway.
-        installed_dists = {pkg: Package(pkg, self.index[pkg]) for pkg in
-            installed if pkg in self.index}
-
-        if try_max_only is None:
-            if unsat_only or update_deps:
-                try_max_only = False
-            else:
-                try_max_only = True
-
-        # XXX: Should try_max_only use the filtered list?
-        if try_max_only:
-            try:
-                dists = self.get_dists(specs, max_only=True, filtered=False)
-            except NoPackagesFound:
-                # Handle packages that are not included because some dependencies
-                # couldn't be found.
-                pass
-            else:
-                v = {}  # map fn to variable number
-                w = {}  # map variable number to fn
-                i = -1  # in case the loop doesn't run
-                for i, fn in enumerate(sorted(dists)):
-                    v[fn] = i + 1
-                    w[i + 1] = fn
-                m = i + 1
-
-                dotlog.debug("Solving using max dists only")
-                clauses = set(self.gen_clauses(v, dists, specs, features))
-                try:
-                    solutions = min_sat(clauses, alg='iterate',
-                        raise_on_max_n=True)
-                except MaximumIterationsError:
-                    pass
-                else:
-                    if len(solutions) == 1:
-                        ret = [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
-                        if returnall:
-                            return [ret]
-                        return ret
-
-        dists = self.get_dists(specs, filtered=True)
-
+    def build_vw(self, groups):
         v = {}  # map fn to variable number
         w = {}  # map variable number to fn
         i = -1  # in case the loop doesn't run
-        for i, fn in enumerate(sorted(dists)):
-            v[fn] = i + 1
-            w[i + 1] = fn
+        for name, group in iteritems(groups):
+            if name[-1] == '@':
+                i += 1
+                v[name] = i + 1
+                w[i + 1] = name
+            else:
+                for fn in group:
+                    i += 1
+                    v[fn] = i + 1
+                    w[i + 1] = fn.rsplit('[',1)[0]
         m = i + 1
-
-        clauses = set(self.gen_clauses(v, dists, specs, features))
-        if not clauses:
-            if returnall:
-                return [[]]
-            return []
-        eq, max_rhs = self.generate_version_eq(v, dists, installed_dists,
-            specs, update_deps=update_deps)
-
-
-        # Second common case, check if it's unsatisfiable
-        dotlog.debug("Checking for unsatisfiability")
-        solution = sat(clauses)
-
-        if not solution:
-            if guess:
-                if minimal_hint:
-                    stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating minimal hint: \n')
-                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v,
-            w))
-                else:
-                    stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating hint: \n')
-                    sys.exit(self.guess_bad_solve(specs, features))
-            raise RuntimeError("Unsatisfiable package specifications")
-
-        if unsat_only:
-            return True
-
-        log.debug("Using alg %s" % alg)
-
-        def version_constraints(lo, hi):
-            return set(generate_constraints(eq, m, [lo, hi], alg=alg))
-
-        log.debug("Bisecting the version constraint")
-        evaluate_func = partial(evaluate_eq, eq)
-        constraints = bisect_constraints(0, max_rhs, clauses,
-            version_constraints, evaluate_func=evaluate_func)
-
-        # Only relevant for build_BDD
-        if constraints and false in constraints:
-            # XXX: This should *never* happen. build_BDD only returns false
-            # when the linear constraint is unsatisfiable, but any linear
-            # constraint can equal 0, by setting all the variables to 0.
-            solution = []
-        else:
-            if constraints and true in constraints:
-                constraints = set([])
-
-        dotlog.debug("Finding the minimal solution")
-        try:
-            solutions = min_sat(clauses | constraints, N=m + 1, alg='iterate',
-                raise_on_max_n=True)
-        except MaximumIterationsError:
-            solutions = min_sat(clauses | constraints, N=m + 1, alg='sorter')
-        assert solutions, (specs, features)
-
-        if len(solutions) > 1:
-            stdoutlog.info('\nWarning: %s possible package resolutions (only showing differing packages):\n' % len(solutions))
-            pretty_solutions = [{w[lit] for lit in sol if 0 < lit <= m} for
-                sol in solutions]
-            common  = set.intersection(*pretty_solutions)
-            for sol in pretty_solutions:
-                stdoutlog.info('\t%s,\n' % sorted(sol - common))
-
-        log.debug("Older versions in the solution(s):")
-        for sol in solutions:
-            log.debug([(i, w[j]) for i, j in eq if j in sol])
-        if returnall:
-            return [[w[lit] for lit in sol if 0 < lit <= m] for sol in solutions]
-        return [w[lit] for lit in solutions.pop(0) if 0 < lit <= m]
+        return m, v, w
 
     @staticmethod
     def clause_pkg_name(i, w):
@@ -907,25 +876,26 @@ class Resolve(object):
                 pretty_clauses.append(' or '.join([self.clause_pkg_name(j, w) for j in clause]))
         return "The following set of clauses is unsatisfiable:\n\n%s" % '\n'.join(pretty_clauses)
 
-    def guess_bad_solve(self, specs, features):
+    def guess_bad_solve(self, specs):
         # TODO: Check features as well
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
 
+        def mysat(specs):
+            dists = self.get_dists(specs, wrap=False)
+            groups = build_groups(dists)
+            m, v, w = self.build_vw(groups)
+            clauses = set(self.gen_clauses(v, groups, specs))
+            return sat(clauses)
+
         # Don't show the dots from solve2 in normal mode but do show the
         # dotlog messages with --debug
         dotlog.setLevel(logging.INFO)
-
-        def sat(specs):
-            try:
-                self.solve2(specs, features, guess=False, unsat_only=True)
-            except RuntimeError:
-                return False
-            return True
-
-        hint = minimal_unsatisfiable_subset(specs, sat=sat, log=True)
+        specs = [s for s in specs if not s.optional]
+        hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
         if not hint:
             return ''
+        hint = list(map(str, hint))
         if len(hint) == 1:
             # TODO: Generate a hint from the dependencies.
             ret = (("\nHint: '{0}' has unsatisfiable dependencies (see 'conda "
@@ -936,13 +906,6 @@ Hint: the following packages conflict with each other:
   - %s
 
 Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - '.join(hint), hint[0].split()[0])
-
-        if features:
-            ret += """
-
-Note that the following features are enabled:
-  - %s
-""" % ('\n  - '.join(features))
         return ret
 
     def explicit(self, specs):
@@ -956,6 +919,7 @@ Note that the following features are enabled:
              return the filenames of those (not thier dependencies)
           C. None in all other cases
         """
+        specs = list(map(MatchSpec, specs))
         if len(specs) == 1:
             ms = MatchSpec(specs[0])
             fn = ms.to_filename()
@@ -966,20 +930,19 @@ Note that the following features are enabled:
             res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
             res.append(fn)
         else:
-            res = [MatchSpec(spec).to_filename() for spec in specs
-                   if spec != 'conda']
+            res = [spec.to_filename() for spec in specs if str(spec) != 'conda']
 
         if None in res:
             return None
         res.sort()
-        log.debug('explicit(%r) finished' % specs)
+        dotlog.debug('explicit(%r) finished' % specs)
         return res
 
     @memoize
     def sum_matches(self, fn1, fn2):
-        return sum(ms.match(fn2) for ms in self.ms_depends(fn1))
+        return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
 
-    def find_substitute(self, installed, features, fn, max_only=False):
+    def find_substitute(self, installed, features, fn):
         """
         Find a substitute package for `fn` (given `installed` packages)
         which does *NOT* have `features`.  If found, the substitute will
@@ -989,7 +952,7 @@ Note that the following features are enabled:
         """
         name, version, unused_build = fn.rsplit('-', 2)
         candidates = {}
-        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version), max_only=max_only):
+        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
             fn1 = pkg.fn
             if self.features(fn1).intersection(features):
                 continue
@@ -1002,63 +965,97 @@ Note that the following features are enabled:
         else:
             return None
 
-    def installed_features(self, installed):
-        """
-        Return the set of all features of all `installed` packages,
-        """
-        res = set()
-        for fn in installed:
-            try:
-                res.update(self.track_features(fn))
-            except KeyError:
-                pass
-        return res
-
-    def update_with_features(self, fn, features):
-        with_features = self.index[fn].get('with_features_depends')
-        if with_features is None:
-            return
-        key = ''
-        for fstr in with_features:
-            fs = set(fstr.split())
-            if fs <= features and len(fs) > len(set(key.split())):
-                key = fstr
-        if not key:
-            return
-        d = {ms.name: ms for ms in self.ms_depends(fn)}
-        for spec in with_features[key]:
-            ms = MatchSpec(spec)
-            d[ms.name] = ms
-        self.msd_cache[fn] = d.values()
-
-    def solve(self, specs, installed=None, features=None, max_only=False,
-              minimal_hint=False, update_deps=True):
-        if installed is None:
-            installed = []
-        if features is None:
-            features = self.installed_features(installed)
-        for spec in specs:
-            if sys.platform == 'win32' and spec == 'python':
-                continue
-            # XXX: This does not work when a spec only contains the name,
-            # and different versions of the package have different features.
-            ms = MatchSpec(spec)
-            for pkg in self.get_pkgs(ms, max_only=max_only):
-                fn = pkg.fn
-                features.update(self.track_features(fn))
-        log.debug('specs=%r  features=%r' % (specs, features))
-        for spec in specs:
-            for pkg in self.get_pkgs(MatchSpec(spec), max_only=max_only):
-                fn = pkg.fn
-                self.update_with_features(fn, features)
+    def solve(self, specs, installed=[], update_deps=True, returnall=False, 
+              guess=True, minimal_hint=False, alg='BDD'):
 
         stdoutlog.info("Solving package specifications: ")
+        res = self.explicit(specs)
+        if res is not None:
+            return res
+
+        # If update_deps=True, set the target package in MatchSpec so that
+        # the solver can minimize the version change. If update_deps=False,
+        # fix the version and build so that no change is possible.
+        specs = list(map(MatchSpec, specs))
+        snames = {s.name for s in specs}
+        for pkg in installed:
+            name, version, build = self.package_triple(pkg)
+            if name in snames:
+                continue
+            if update_deps:
+                spec = MatchSpec(name, target=pkg)
+            else:
+                spec = MatchSpec('%s %s %s'%(name,version,build))
+            specs.append(spec)
+            snames.add(spec)
+        dotlog.debug("Solving for %s" % specs)
+
         try:
-            return self.explicit(specs) or self.solve2(specs, features,
-                installed, minimal_hint=minimal_hint, update_deps=update_deps)
-        except RuntimeError:
-            stdoutlog.info('\n')
+            dists, new_specs = self.get_dists(specs, wrap=False)
+        except NoPackagesFound:
             raise
+
+        # Check if satisfiable
+        dotlog.debug('Checking satisfiability')
+        groups = build_groups(dists)
+        m, v, w = self.build_vw(groups)
+        clauses = set(self.gen_clauses(v, groups, specs))
+        solution = sat(clauses)
+        if not solution:
+            if guess:
+                if minimal_hint:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating minimal hint: \n')
+                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v, w))
+                else:
+                    stderrlog.info('\nError: Unsatisfiable package '
+                        'specifications.\nGenerating hint: \n')
+                    sys.exit(self.guess_bad_solve(specs))
+            raise RuntimeError("Unsatisfiable package specifications")
+
+        dotlog.debug('Optimizing feature count')
+        eq_features = self.generate_feature_eq(v, groups, new_specs)
+        clauses, solution = optimize(eq_features, clauses, solution)
+
+        dotlog.debug('Optimizing versions')
+        eq_version = self.generate_version_eq(v, groups, new_specs)
+        clauses, solution = optimize(eq_version, clauses, solution)
+
+        dotlog.debug('Optimizing dependency count')
+        eq_packages = self.generate_package_count(v, groups, new_specs)
+        clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
+
+        dotlog.debug('Looking for alternate solutions')
+        solution = [s for s in solution if 0 < s <= m]
+        solutions = [solution]
+        nsol = 1
+        while True:
+            nclause = tuple(-q for q in solution if 0 < q <= m)
+            clauses.add(nclause)
+            solution = sat(clauses)
+            if solution is None:
+                break
+            solution = [s for s in solution if 0 < s <= m]
+            nsol += 1
+            if nsol > 10:
+                dotlog.debug('Too many solutions; terminating')
+                break
+            solutions.append(solution)
+
+        psolutions = [set(w[lit] for lit in sol if 0 < lit <= m and '@' not in w[lit]) for sol in solutions]
+        if nsol > 1:
+            stdoutlog.info(
+                '\nWarning: %s possible package resolutions (only showing differing packages):\n' % 
+                ('>10' if nsol > 10 else nsol))
+            common  = set.intersection(*psolutions)
+            for sol in psolutions:
+                stdoutlog.info('\t%s,\n' % sorted(sol - common))
+
+        log.debug("Older versions in the solution(s):")
+        for sol in solutions:
+            log.debug([(i, w[j]) for i, j in eq_version if j in sol])
+        stdoutlog.info('\n')
+        return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
 
 
 if __name__ == '__main__':
@@ -1074,6 +1071,7 @@ if __name__ == '__main__':
     p.add_option("--mkl", action="store_true")
     opts, args = p.parse_args()
 
-    features = set(['mkl']) if opts.mkl else set()
     specs = [arg2spec(arg) for arg in args]
-    pprint(r.solve(specs, [], features))
+    if opts.mkl:
+        specs += 'mkl@'
+    pprint(r.solve(specs, []))
