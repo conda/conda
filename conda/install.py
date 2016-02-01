@@ -56,7 +56,7 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-on_win = bool(sys.platform.startswith("win"))
+on_win = sys.platform == "win32"
 
 if on_win:
     import ctypes

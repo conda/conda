@@ -9,7 +9,7 @@ import sys
 from conda.cli.common import find_prefix_name
 
 
-on_win = bool(sys.platform.startswith("win"))
+on_win = sys.platform == "win32"
 
 
 def help():
