@@ -22,4 +22,4 @@ if errorlevel 1 exit /b 1
 FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..setps1 "" "%PROMPT%"') DO set PROMPT=%%i
 if errorlevel 1 exit /b 1
 
-endlocal & set PROMPT=%PROMPT%& set PATH=%PATH%& set CONDA_ACTIVE_ENV=& set CONDA_OLD_PS1=
+endlocal & set PROMPT=%PROMPT%& set PATH=%PATH%& set CONDA_DEFAULT_ENV=& set CONDA_OLD_PS1=

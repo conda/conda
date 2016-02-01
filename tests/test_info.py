@@ -20,7 +20,7 @@ def test_info():
     conda_info_s_out, conda_info_s_err = run_conda_command('info', '-s')
     assert conda_info_s_err == ''
     for name in ['sys.version', 'sys.prefix', 'sys.executable', 'conda location',
-        'conda-build', 'CIO_TEST', 'CONDA_ACTIVE_ENV', 'PATH', 'PYTHONPATH']:
+        'conda-build', 'CIO_TEST', 'CONDA_DEFAULT_ENV', 'PATH', 'PYTHONPATH']:
         assert name in conda_info_s_out
     if config.platform == 'linux':
         assert 'LD_LIBRARY_PATH' in conda_info_s_out
