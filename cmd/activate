@@ -83,7 +83,7 @@ fi
 if (( $? == 0 )); then
     export PATH="$_NEW_PATH"
     # extract first PATH entry (should be full path prefix of our env)
-    export CONDA_ACTIVE_ENV=${PATH%%:*}
+    export CONDA_DEFAULT_ENV=${PATH%%:*}
 
     # Get first path and convert it to absolute
     ENV_BIN_DIR="$(echo $(echo $PATH | awk -F ':' '{print $1}'))"

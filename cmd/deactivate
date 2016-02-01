@@ -67,7 +67,7 @@ if [ "$(win_bash)" = true ]; then
 fi
 if (( $? == 0 )); then
     export PATH="$_NEW_PATH"
-    unset CONDA_ACTIVE_ENV
+    unset CONDA_DEFAULT_ENV
     unset CONDA_ENV_PATH
     _NEW_PS1=$("$_THIS_DIR/conda" ..setps1 "" "$CONDA_OLD_PS1")
     PS1="$_NEW_PS1"

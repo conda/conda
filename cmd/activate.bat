@@ -40,5 +40,5 @@ endlocal & (
     set "CONDA_OLD_PS1=%CONDA_OLD_PS1%"
     set "PROMPT=%PROMPT%"
     set "PATH=%PATH%"
-    set "CONDA_ACTIVE_ENV=%CONDA_NEW_ENV%"
+    set "CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%"
     )

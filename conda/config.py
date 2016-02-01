@@ -171,7 +171,7 @@ pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
 
 # ----- default environment prefix -----
 
-_default_env = os.getenv('CONDA_ACTIVE_ENV')
+_default_env = os.getenv('CONDA_DEFAULT_ENV')
 if _default_env in (None, root_env_name):
     default_prefix = root_dir
 elif os.sep in _default_env:

@@ -26,11 +26,11 @@ if sys.version_info[:2] < (2, 7) or sys.version_info > (3, 0) and sys.version_in
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  current version: %d.%d" % sys.version_info[:2])
 
 try:
-    if os.environ['CONDA_ACTIVE_ENV']:
+    if os.environ['CONDA_DEFAULT_ENV']:
         # Try to prevent accidentally installing conda into a non-root conda environment
         sys.exit("You appear to be in a non-root conda environment. Conda is only "
             "supported in the root environment. Deactivate and try again. If you believe "
-            "this message is in error, run CONDA_ACTIVE_ENV='' python setup.py.")
+            "this message is in error, run CONDA_DEFAULT_ENV='' python setup.py.")
 except KeyError:
     pass
 

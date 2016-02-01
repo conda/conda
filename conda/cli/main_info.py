@@ -277,7 +277,7 @@ Current conda install:
             print('                %s' % site_dir)
         print()
 
-        evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_ACTIVE_ENV',
+        evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
                  'CIO_TEST', 'CONDA_ENVS_PATH']
         if config.platform == 'linux':
             evars.append('LD_LIBRARY_PATH')

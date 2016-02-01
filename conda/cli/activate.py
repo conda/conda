@@ -89,8 +89,8 @@ def main():
 
     elif sys.argv[1] == '..deactivate':
         path = os.getenv("PATH")
-        if os.getenv("CONDA_ACTIVE_ENV"):
-            binpath = binpath_from_arg(os.getenv('CONDA_ACTIVE_ENV'))
+        if os.getenv("CONDA_DEFAULT_ENV"):
+            binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
             if binpath:
                 sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
             path = path.replace(os.pathsep.join(binpath)+os.pathsep, "", 1)

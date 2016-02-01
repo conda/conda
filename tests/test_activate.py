@@ -123,9 +123,9 @@ sys.exit(main())
 """
 printpath = '{echo} {var}'.format(echo=echo, var=var_format.format(var="PATH"))
 if sys.platform == "win32":
-    printdefaultenv = '{echo}.{var}'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
+    printdefaultenv = '{echo}.{var}'.format(echo=echo, var=var_format.format(var="CONDA_DEFAULT_ENV"))
 else:
-    printdefaultenv = '{echo} {var}'.format(echo=echo, var=var_format.format(var="CONDA_ACTIVE_ENV"))
+    printdefaultenv = '{echo} {var}'.format(echo=echo, var=var_format.format(var="CONDA_DEFAULT_ENV"))
 
 command_setup = """\
 set {ps_var}={raw_ps}
@@ -484,7 +484,7 @@ changeps1: no
 
 
 @pytest.mark.slow
-def test_CONDA_ACTIVE_ENV():
+def test_CONDA_DEFAULT_ENV():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
             commands = (command_setup + """
