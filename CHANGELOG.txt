@@ -1,4 +1,4 @@
-2016-02-XX   3.19.1:
+2016-02-01   3.19.1:
 --------------------
   * resolve.py: properly escape periods in version numbers, #1926
   * support for pinning Lua by default, #1934
