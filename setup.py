@@ -1,5 +1,5 @@
-﻿#!/usr/bin/env python
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
+#!/usr/bin/env python
+# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -22,17 +22,17 @@ from distutils.command.install import install as _install
 import versioneer
 
 
-if sys.version_info[:2] < (2, 7) or sys.version_info > (3, 0) and sys.version_info < (3, 3):
-    sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  current version: %d.%d" % sys.version_info[:2])
+if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
+    sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
+             "current version: %d.%d" % sys.version_info[:2])
 
-try:
-    if os.environ['CONDA_DEFAULT_ENV']:
-        # Try to prevent accidentally installing conda into a non-root conda environment
-        sys.exit("You appear to be in a non-root conda environment. Conda is only "
-            "supported in the root environment. Deactivate and try again. If you believe "
-            "this message is in error, run CONDA_DEFAULT_ENV='' python setup.py.")
-except KeyError:
-    pass
+if os.environ.get('CONDA_DEFAULT_ENV'):
+    # Try to prevent accidentally installing conda into a non-root conda environment
+    sys.exit("""
+You appear to be in a non-root conda environment. Conda is only supported in
+the root environment. Deactivate and try again.  If you believe this message
+is in error, run CONDA_DEFAULT_ENV='' python setup.py.
+""")
 
 versioneer.versionfile_source = 'conda/_version.py'
 versioneer.versionfile_build = 'conda/_version.py'

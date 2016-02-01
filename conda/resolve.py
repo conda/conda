@@ -280,7 +280,7 @@ class VersionSpecAtom(object):
             self.regex = False
         else:
             rx = spec.replace('.', r'\.')
-            rx = spec.replace('+', r'\+')
+            rx = rx.replace('+', r'\+')
             rx = rx.replace('*', r'.*')
             rx = r'(%s)$' % rx
             self.regex = re.compile(rx)
@@ -478,7 +478,7 @@ class Resolve(object):
         def is_valid(fn):
             val = valid.get(fn, None)
             if val is None:
-                val = True
+                val = valid[fn] = True
                 for ms in self.ms_depends(fn):
                     if not any(is_valid(f2) for f2 in self.find_matches(ms, True)):
                         val = False
@@ -579,8 +579,7 @@ class Resolve(object):
                         continue
                     res[pkg2.fn] = pkg2
                     try:
-                        if ms.strictness < 3:
-                            add_dependents(pkg2.fn, max_only=max_only)
+                        add_dependents(pkg2.fn, max_only=max_only)
                     except NoPackagesFound as e:
                         for pkg in e.pkgs:
                             if pkg not in notfound:
@@ -1039,6 +1038,8 @@ Note that the following features are enabled:
         if features is None:
             features = self.installed_features(installed)
         for spec in specs:
+            if sys.platform == 'win32' and spec == 'python':
+                continue
             # XXX: This does not work when a spec only contains the name,
             # and different versions of the package have different features.
             ms = MatchSpec(spec)

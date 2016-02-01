@@ -4,4 +4,5 @@
 build/
 dist/
 docs/build
+.cache/
 .idea/

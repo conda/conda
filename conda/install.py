@@ -151,6 +151,13 @@ def _remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
+def warn_failed_remove(function, path, exc_info):
+    if exc_info[1].errno == errno.EACCES:
+        log.warn("Cannot remove, permission denied: {0}".format(path))
+    elif exc_info[1].errno == errno.ENOTEMPTY:
+        log.warn("Cannot remove, not empty: {0}".format(path))
+    else:
+        log.warn("Cannot remove, unknown reason: {0}".format(path))
 
 def rm_rf(path, max_retries=5, trash=True):
     """
@@ -165,12 +172,15 @@ def rm_rf(path, max_retries=5, trash=True):
         # Note that we have to check if the destination is a link because
         # exists('/path/to/dead-link') will return False, although
         # islink('/path/to/dead-link') is True.
-        os.unlink(path)
+        try:
+            os.unlink(path)
+        except (OSError, IOError):
+            log.warn("Cannot remove, permission denied: {0}".format(path))
 
     elif isdir(path):
         for i in range(max_retries):
             try:
-                shutil.rmtree(path)
+                shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
                 return
             except OSError as e:
                 msg = "Unable to delete %s\n%s\n" % (path, e)
@@ -202,7 +212,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 log.debug(msg + "Retrying after %s seconds..." % i)
                 time.sleep(i)
         # Final time. pass exceptions to caller.
-        shutil.rmtree(path)
+        shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
 
 def rm_empty_dir(path):
     """
@@ -337,9 +347,9 @@ def mk_menus(prefix, files, remove=False):
 
     try:
         import menuinst
-    except ImportError as e:
+    except:
         logging.warn("Menuinst could not be imported:")
-        logging.warn(e.message)
+        logging.warn(traceback.format_exc())
         return
 
     env_name = (None if abspath(prefix) == abspath(sys.prefix) else
@@ -351,13 +361,7 @@ def mk_menus(prefix, files, remove=False):
 
     for f in menu_files:
         try:
-            if menuinst.__version__.startswith('1.0'):
-                menuinst.install(join(prefix, f), remove, prefix)
-            else:
-                menuinst.install(join(prefix, f), remove,
-                                 root_prefix=sys.prefix,
-                                 target_prefix=prefix, env_name=env_name,
-                                 env_setup_cmd=env_setup_cmd)
+            menuinst.install(join(prefix, f), remove, prefix)
         except:
             stdoutlog.error("menuinst Exception:")
             stdoutlog.error(traceback.format_exc())
@@ -380,8 +384,10 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         except KeyError:
             return False
     else:
-        args = ['/bin/bash', path]
+        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        args = [shell_path, path]
     env = os.environ
+    env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
     env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
                 str(dist).rsplit('-', 2)
@@ -768,99 +774,95 @@ def messages(prefix):
         rm_rf(path)
 
 
+def duplicates_to_remove(linked_dists, keep_dists):
+    """
+    Returns the (sorted) list of distributions to be removed, such that
+    only one distribution (for each name) remains.  `keep_dists` is an
+    interable of distributions (which are not allowed to be removed).
+    """
+    from collections import defaultdict
+
+    keep_dists = set(keep_dists)
+    ldists = defaultdict(set) # map names to set of distributions
+    for dist in linked_dists:
+        name = name_dist(dist)
+        ldists[name].add(dist)
+
+    res = set()
+    for dists in ldists.values():
+        # `dists` is the group of packages with the same name
+        if len(dists) == 1:
+            # if there is only one package, nothing has to be removed
+            continue
+        if dists & keep_dists:
+            # if the group has packages which are have to be kept, we just
+            # take the set of packages which are in group but not in the
+            # ones which have to be kept
+            res.update(dists - keep_dists)
+        else:
+            # otherwise, we take lowest (n-1) (sorted) packages
+            res.update(sorted(dists)[:-1])
+    return sorted(res)
+
+
 # =========================== end API functions ==========================
 
 
 def main():
-    from pprint import pprint
     from optparse import OptionParser
 
-    p = OptionParser(
-        usage="usage: %prog [options] [TARBALL/NAME]",
-        description="low-level conda install tool, by default extracts "
-                    "(if necessary) and links a TARBALL")
+    p = OptionParser(description="conda link tool used by installer")
 
-    p.add_option('-l', '--list',
-                 action="store_true",
-                 help="list all linked packages")
+    p.add_option('--file',
+                 action="store",
+                 help="path of a file containing distributions to link, "
+                      "by default all packages extracted in the cache are "
+                      "linked")
 
-    p.add_option('--extract',
-                 action="store_true",
-                 help="extract package in pkgs cache")
-
-    p.add_option('--link',
-                 action="store_true",
-                 help="link a package")
-
-    p.add_option('--unlink',
-                 action="store_true",
-                 help="unlink a package")
-
-    p.add_option('-p', '--prefix',
+    p.add_option('--prefix',
                  action="store",
                  default=sys.prefix,
                  help="prefix (defaults to %default)")
-
-    p.add_option('--pkgs-dir',
-                 action="store",
-                 default=join(sys.prefix, 'pkgs'),
-                 help="packages directory (defaults to %default)")
-
-    p.add_option('--link-all',
-                 action="store_true",
-                 help="link all extracted packages")
 
     p.add_option('-v', '--verbose',
                  action="store_true")
 
     opts, args = p.parse_args()
+    if args:
+        p.error('no arguments expected')
 
     logging.basicConfig()
 
-    if opts.list or opts.extract or opts.link_all:
-        if args:
-            p.error('no arguments expected')
-    else:
-        if len(args) == 1:
-            dist = basename(args[0])
-            if dist.endswith('.tar.bz2'):
-                dist = dist[:-8]
-        else:
-            p.error('exactly one argument expected')
-
-    pkgs_dir = opts.pkgs_dir
     prefix = opts.prefix
+    pkgs_dir = join(prefix, 'pkgs')
     if opts.verbose:
-        print("pkgs_dir: %r" % pkgs_dir)
-        print("prefix  : %r" % prefix)
+        print("prefix: %r" % prefix)
 
-    if opts.list:
-        pprint(sorted(linked(prefix)))
+    if opts.file:
+        idists = list(yield_lines(join(prefix, opts.file)))
+    else:
+        idists = sorted(extracted(pkgs_dir))
 
-    elif opts.link_all:
-        dists = sorted(extracted(pkgs_dir))
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dists[0]) else
-                    LINK_COPY)
-        if opts.verbose or linktype == LINK_COPY:
-            print("linktype: %s" % link_name_map[linktype])
-        for dist in dists:
-            if opts.verbose or linktype == LINK_COPY:
-                print("linking: %s" % dist)
-            link(pkgs_dir, prefix, dist, linktype)
-        messages(prefix)
+    linktype = (LINK_HARD
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
+                LINK_COPY)
+    if opts.verbose:
+        print("linktype: %s" % link_name_map[linktype])
 
-    elif opts.extract:
-        extract(pkgs_dir, dist)
-
-    elif opts.link:
-        linktype = (LINK_HARD
-                    if try_hard_link(pkgs_dir, prefix, dist) else
-                    LINK_COPY)
+    for dist in idists:
+        if opts.verbose:
+            print("linking: %s" % dist)
         link(pkgs_dir, prefix, dist, linktype)
 
-    elif opts.unlink:
-        unlink(prefix, dist)
+    messages(prefix)
+
+    for dist in duplicates_to_remove(linked(prefix), idists):
+        meta_path = join(prefix, 'conda-meta', dist + '.json')
+        print("WARNING: unlinking: %s" % meta_path)
+        try:
+            os.rename(meta_path, meta_path + '.bak')
+        except OSError:
+            rm_rf(meta_path)
 
 
 if __name__ == '__main__':

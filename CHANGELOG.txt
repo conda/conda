@@ -1,3 +1,58 @@
+2016-01-XX   3.19.1:
+--------------------
+  * resolve.py: properly escape periods in version numbers, #1926
+  * support for pinning Lua by default, #1934
+  * remove hard-coded test URLs, a module cio_test is now expected when CIO_TEST is set
+
+
+2015-12-17   3.19.0:
+--------------------
+  * OpenBSD 5.x support, #1891
+  * improve install CLI to make Miniconda -f work, #1905
+
+
+2015-12-10   3.18.9:
+--------------------
+  * allow chaning default_channels (only applies to "system" condarc), from
+    from CLI, #1886
+  * improve default for --show-channel-urls in conda list, #1900
+
+
+2015-12-03   3.18.8:
+--------------------
+  * always attempt to delete files in rm_rf, #1864
+
+
+2015-12-02   3.18.7:
+--------------------
+  * simplify call to menuinst.install()
+  * add menuinst as dependency on Windows
+  * add ROOT_PREFIX to post-link (and pre_unlink) environment
+
+
+2015-11-19   3.18.6:
+--------------------
+  * improve conda clean when user lacks permissions, #1807
+  * make show_channel_urls default to True, #1771
+  * cleaner write tests, #1735
+  * fix documentation, #1709
+  * improve conda clean when directories don't exist, #1808
+
+
+2015-11-11   3.18.5:
+--------------------
+  * fix bad menuinst exception handling, #1798
+  * add workaround for unresolved dependencies on Windows
+
+
+2015-11-09   3.18.4:
+--------------------
+  * allow explicit file to contain MD5 hashsums
+  * add --md5 option to "conda list --explicit"
+  * stop infinite recursion during certain resolve operations, #1749
+  * add dependencies even if strictness == 3, #1766
+
+
 2015-10-15   3.18.3:
 --------------------
   * added a pruning step for more efficient solves, #1702

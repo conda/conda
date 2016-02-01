@@ -77,6 +77,11 @@ def configure_parser(sub_parsers):
              "(output may be used by conda create --file).",
     )
     p.add_argument(
+        "--md5",
+        action="store_true",
+        help="Add MD5 hashsum when using --explicit",
+    )
+    p.add_argument(
         '-e', "--export",
         action="store_true",
         help="Output requirement string only (output may be used by "
@@ -122,6 +127,14 @@ def get_packages(installed, regex):
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=config.show_channel_urls):
     res = 1
+    if show_channel_urls is None and format == 'human':
+        show_channel_urls = False
+        for dist in get_packages(installed, regex):
+            info = install.is_linked(prefix, dist)
+            if info and config.canonical_channel_name(
+                               info.get('url')) != 'defaults':
+                show_channel_urls = True
+                break
 
     result = []
     for dist in get_packages(installed, regex):
@@ -180,7 +193,7 @@ Error: environment does not exist: %s
     return exitcode
 
 
-def print_explicit(prefix):
+def print_explicit(prefix, add_md5=False):
     import json
 
     if not isdir(prefix):
@@ -194,7 +207,11 @@ def print_explicit(prefix):
             continue
         with open(join(meta_dir, fn)) as fi:
             meta = json.load(fi)
-        print(meta.get('url') or '# no URL for: %s' % fn[:-5])
+        if not meta.get('url'):
+            print('# no URL for: %s' % fn[:-5])
+            continue
+        md5 = meta.get('md5')
+        print(meta['url'] + ('#%s' % md5 if add_md5 and md5 else ''))
 
 
 def execute(args, parser):
@@ -220,7 +237,7 @@ def execute(args, parser):
         return
 
     if args.explicit:
-        print_explicit(prefix)
+        print_explicit(prefix, args.md5)
         return
 
     if args.canonical:

@@ -4,6 +4,7 @@
 from __future__ import print_function, division, absolute_import
 
 import os
+import re
 import sys
 import shlex
 import shutil
@@ -53,6 +54,8 @@ def force_extract_and_link(dists, prefix, verbose=False):
     execute_actions(actions, verbose=verbose)
 
 
+url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
+                     r'(:?#(?P<md5>[0-9a-f]{32}))?$')
 def explicit(urls, prefix, verbose=True):
     import conda.fetch as fetch
     from conda.utils import md5_file
@@ -62,14 +65,22 @@ def explicit(urls, prefix, verbose=True):
         if url == '@EXPLICIT':
             continue
         print("Fetching: %s" % url)
-        channel_url, fn = url.rsplit('/', 1)
+        m = url_pat.match(url)
+        if m is None:
+            sys.exit("Error: Could not parse: %s" % url)
+        fn = m.group('fn')
         dists.append(fn[:-8])
-        index = fetch.fetch_index((channel_url + '/',))
-        info = index[fn]
+        index = fetch.fetch_index((m.group('url') + '/',))
+        try:
+            info = index[fn]
+        except KeyError:
+            sys.exit("Error: no package '%s' in index" % fn)
+        if m.group('md5') and m.group('md5') != info['md5']:
+            sys.exit("Error: MD5 in explicit files does not match index")
         pkg_path = join(config.pkgs_dirs[0], fn)
         if isfile(pkg_path):
             try:
-                if md5_file(pkg_path) != index[fn]['md5']:
+                if md5_file(pkg_path) != info['md5']:
                     install.rm_rf(pkg_path)
                     fetch.fetch_pkg(info)
             except KeyError:

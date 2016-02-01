@@ -187,7 +187,7 @@ def add_parser_no_use_index_cache(p):
         action="store_false",
         default=True,
         dest="use_index_cache",
-        help="Use cache of channel index files.",
+        help="Force fetching of channel index files.",
     )
 
 def add_parser_copy(p):
@@ -321,8 +321,7 @@ def add_parser_show_channel_urls(p):
         "--no-show-channel-urls",
         action="store_false",
         dest="show_channel_urls",
-        default=not config.show_channel_urls,
-        help="Don't show channel urls (default: %(default)s).",
+        help="Don't show channel urls.",
     )
 
 def ensure_override_channels_requires_channel(args, dashc=True, json=False):

@@ -28,9 +28,7 @@ conda provides the following commands:
     Packaging
     =========
 
-    build      : build a package from recipe
     package    : create a conda package in an environment
-    index      : updates repodata.json in channel directories
 
 Additional help for each command can be accessed by using:
 
@@ -49,27 +47,6 @@ def main():
             import conda.cli.activate as activate
             activate.main()
             return
-        if argv1 == 'pip':
-            sys.exit("""ERROR:
-The "conda pip" command has been removed from conda (as of version 1.8) for
-the following reasons:
-  * users get the wrong impression that you *must* use conda pip (instead
-    of simply pip) when using Anaconda
-  * there should only be one preferred way to build packages, and that is
-    the conda build command
-  * the command did too many things at once, i.e. build a package and
-    then also install it
-  * the command is Python centric, whereas conda (from a package management
-    perspective) is Python agnostic
-  * packages created with conda pip are not robust, i.e. they will maybe
-    not work on other people's systems
-
-In short:
-  * use "conda build" if you want to build a conda package
-  * use "conda install" if you want to install something
-  * use "pip" if you want to install something that is on PyPI for which there
-    isn't a conda package.
-""")
         if argv1 in ('activate', 'deactivate'):
             sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
             if sys.platform != 'win32':
