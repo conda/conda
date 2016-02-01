@@ -1,52 +1,57 @@
 language: python
-python:
-  # We don't actually use the system Python but this keeps it organized.
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-env:
-  -
-  - PYCOSAT=0.6.0
-matrix:
-  exclude:
-    - python: "3.5"
-      env: PYCOSAT=0.6.0
-
-install:
-  # TODO: Use a "latest" url
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda-3.5.2-Linux-x86_64.sh -O miniconda.sh;
-    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.0.0-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.5.2-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes
-  - bin/conda install --force --no-deps conda requests
-  - conda --version
-  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
-  - if [[ "$PYCOSAT" ]]; then
-      conda install pycosat=$PYCOSAT;
-    fi
-  - python setup.py install
-  - conda info -a
-
-script:
-  - shopt -s extglob globstar
-  - pyflakes conda/**/!(compat|__init__).py bin setup.py tests
-  - py.test
-  - conda --help
-
-notifications:
-    flowdock: ef3821a08a791106512ccfc04c92eccb
+sudo: false
 
 addons:
   apt:
     packages:
       - zsh
 
-sudo: false
+matrix:
+  include:
+    - os: linux
+      sudo: required
+      python: '2.7'
+      env: TOXENV=py27
+    - os: linux
+      sudo: required
+      python: '3.4'
+      env: TOXENV=py34
+    - os: linux
+      sudo: required
+      python: '3.5'
+      env: TOXENV=py35
+    - os: osx
+      language: generic
+      env: TOXENV=py27
+    - os: osx
+      language: generic
+      env: TOXENV=py34
+    - os: osx
+      language: generic
+      env: TOXENV=py35
+
+before_install:
+  - source utils/travis_bootstrap_conda.sh
+  - uname -a
+
+install:
+  - conda install pycosat
+  - conda install pycrypto
+  - printenv
+  - python --version
+  - python setup.py sdist
+  - echo $PATH
+  - which -a python
+  - which -a pip
+  - pip install -U tox
+  - which -a tox
+  - cat $HOME/.conda/envs/test-environment/bin/tox
+
+script:
+  - printenv
+  - which -a tox
+  - tox -v
+
+after_success:
+  - pip install codecov
+  - codecov --env TOX_ENV
