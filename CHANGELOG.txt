@@ -1,8 +1,9 @@
-2016-01-XX   3.19.1:
+2016-02-XX   3.19.1:
 --------------------
   * resolve.py: properly escape periods in version numbers, #1926
   * support for pinning Lua by default, #1934
-  * remove hard-coded test URLs, a module cio_test is now expected when CIO_TEST is set
+  * remove hard-coded test URLs, a module cio_test is now expected when
+    CIO_TEST is set
 
 
 2015-12-17   3.19.0:
