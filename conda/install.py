@@ -96,6 +96,13 @@ if on_win:
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
         dst = dst + '.bat'
+        try:
+            os.makedirs(os.path.dirname(dst))
+        except OSError as exc:  # Python >2.5
+            if exc.errno == errno.EEXIST and os.path.isdir(os.path.dirname(dst)):
+                pass
+            else:
+                raise
         with open(dst, 'w') as f:
             f.write('@echo off\n"%s" %%*\n' % src)
 
@@ -453,16 +460,19 @@ def symlink_conda(prefix, root_dir):
 
 
 def symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn):
-    scripts = ("conda", "activate", "deactivate")
-    for script in scripts:
-        root_file = join(root_dir, where, script)
-        prefix_file = join(prefix, where, script)
-        # try to kill stale links if they exist
-        if exists_fn(prefix_file):
-            rm_fn(prefix_file)
-        # if they're in use, they won't be killed.  Skip making new symlink.
-        if not exists_fn(prefix_file):
-            symlink_fn(root_file, prefix_file)
+    scripts = {where: ["conda"],
+               'cmd': ["activate", "deactivate"],
+               }
+    for where, files in scripts.items():
+        for f in files:
+            root_file = join(root_dir, where, f)
+            prefix_file = join(prefix, where, f)
+            # try to kill stale links if they exist
+            if exists_fn(prefix_file):
+                rm_fn(prefix_file)
+            # if they're in use, they won't be killed.  Skip making new symlink.
+            if not exists_fn(prefix_file):
+                symlink_fn(root_file, prefix_file)
 
 
 # ========================== begin API functions =========================

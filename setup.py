@@ -41,18 +41,16 @@ versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
 cmdclass = versioneer.get_cmdclass()
 
-if sys.platform == 'win32' and using_setuptools:
+if sys.platform == 'win32':
     kwds = {'entry_points': {"console_scripts":
                             ["conda = conda.cli.main:main"]},
-            'scripts':  [
-                'cmd/activate.bat',
-                'cmd/deactivate.bat',
-                'cmd/activate',
-                'cmd/deactivate'
-                ],
+            'data_files':  [ ("cmd", ["cmd/activate", "cmd/deactivate",
+                                      "cmd/activate.bat", "cmd/deactivate.bat"] ),]
             }
 else:
-    kwds = {'scripts': ['bin/conda', 'bin/activate', 'bin/deactivate'], }
+    kwds = {'scripts': ['bin/conda'],
+            'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"])],
+            }
 
 setup(
     name="conda",
