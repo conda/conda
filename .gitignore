@@ -1,8 +1,14 @@
 *~
 *.pyc
 *.egg-info
+MANIFEST
 build/
 dist/
 docs/build
 .cache/
 .idea/
+
+.tox/
+.coverage
+coverage.xml
+junit.xml
