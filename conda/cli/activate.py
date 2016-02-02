@@ -53,11 +53,13 @@ def binpath_from_arg(arg):
     prefix = prefix_from_arg(arg)
     if on_win:
         path = [prefix.rstrip("\\"),
+                join(prefix, 'cmd'),
                 join(prefix, 'Scripts'),
                 join(prefix, 'Library', 'bin'),
                ]
     else:
         path = [prefix.rstrip("/"),
+                join(prefix, 'cmd'),
                 join(prefix, 'bin'),
                 ]
     return path
@@ -77,6 +79,11 @@ def main():
     if '-h' in sys.argv or '--help' in sys.argv:
         help()
 
+    path = os.getenv("PATH")
+    # This one is because we force Library/bin to be on PATH on windows.  Strip it off here.
+    if on_win:
+        path = path.replace(join(sys.prefix, "Library", "bin")+os.pathsep, "", 1)
+
     if sys.argv[1] == '..activate':
         if len(sys.argv) == 2:
             binpath = binpath_from_arg("root")
@@ -85,10 +92,9 @@ def main():
         else:
             sys.exit("Error: did not expect more than one argument")
         sys.stderr.write("prepending %s to PATH\n" % pathlist_to_str(binpath))
-        path = os.pathsep.join([os.pathsep.join(binpath), os.getenv("PATH")])
+        path = os.pathsep.join([os.pathsep.join(binpath), path])
 
     elif sys.argv[1] == '..deactivate':
-        path = os.getenv("PATH")
         if os.getenv("CONDA_DEFAULT_ENV"):
             binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
             if binpath:
@@ -136,6 +142,7 @@ def main():
         # This means there is a bug in main.py
         raise ValueError("unexpected command")
 
+    # This print is actually what sets the PATH or PROMPT variable.  The shell script gets this value, and finishes the job.
     print(path)
 
 
