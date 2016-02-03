@@ -21,7 +21,8 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
-    # normalized_version() is needed by conda-env
+# normalized_version() is needed by conda-env
+# We could just import it from resolve but pyflakes would complain
 def normalized_version(version):
     return VersionOrder(version)
     
