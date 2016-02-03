@@ -454,11 +454,19 @@ def evaluate_eq(eq, sol):
     return t
 
 def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
+    # If a coefficient is larger than rhs then we know it has to be
+    # set to zero. That's a lot quicker than building it into the adder
+    ub = rhs[-1]
+    additional_clauses = set((-a,) for c,a in eq if c>rhs[1])
+    nz = len(additional_clauses)
+    if nz == len(eq):
+        return additional_clauses
+    elif nz:
+        eq = [q for q in eq if q[0]<=rhs[1]]
     l = Linear(eq, rhs)
     if not l:
-        return set()
+        return additional_clauses
     C = Clauses(m)
-    additional_clauses = set()
     if alg == 'BDD':
         additional_clauses.add((C.build_BDD(l, polarity=True),))
     elif alg == 'BDD_recursive':
