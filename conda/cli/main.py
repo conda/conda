@@ -189,6 +189,7 @@ def args_func(args, p):
 
 def print_issue_message(e, use_json=False):
     import os
+    import subprocess
     import traceback
 
     from conda.cli import common
