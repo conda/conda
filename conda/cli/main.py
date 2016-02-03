@@ -199,10 +199,22 @@ following traceback to the conda GitHub issue tracker at:
 
 Include the output of the command 'conda info' in your report.
 
-"""
+""" + traceback.format_exc()
+    if getattr(e, 'errno', None) == 13:
+        if os.name == 'nt':
+            proc = subprocess.Popen(['cmd', '\c', 'tasklist','/V'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT)
+            proc.wait()
+            message += """
+Review this tasklist output to find
+possible source of permissions error.
+One process may be holding onto the named file.
+
+""" + proc.stdout.read().decode()
     if use_json:
         import traceback
-        common.error_and_exit(message + traceback.format_exc(),
+        common.error_and_exit(message,
                               error_type="UnexpectedError", json=True)
     print(message)
 
