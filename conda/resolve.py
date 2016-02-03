@@ -6,7 +6,7 @@ from collections import defaultdict
 from itertools import chain
 
 from conda.utils import memoize
-from conda.compat import iterkeys, itervalues, iteritems, string_types, zip_longest
+from conda.compat import iterkeys, itervalues, iteritems, string_types
 from conda.logic import sat, optimize, minimal_unsatisfiable_subset
 from conda.version import VersionOrder, VersionSpec
 from conda.console import setup_handlers
@@ -345,6 +345,8 @@ class Resolve(object):
                 pruned = prune_features()
                 for s in list(specs):
                     pruned += filter_group([s], None)
+                    if unsat and sat_only:
+                        return False
 
         # Touch all packages
         touched = {}
@@ -703,7 +705,6 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
 
     def solve(self, specs, installed=[], update_deps=True, returnall=False, 
               guess=True, minimal_hint=False, alg='BDD'):
-
         try:
             stdoutlog.info("Solving package specifications: ")
             res = self.explicit(specs)
