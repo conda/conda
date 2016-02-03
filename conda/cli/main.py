@@ -224,7 +224,8 @@ def print_task_list():
         exe: {},
         cmdline: {},
         open_files: {}'''
-        print(template.format(proc.pid, exe, cmdline, open_files))
+        if exe:
+            print(template.format(proc.pid, exe, cmdline, open_files))
         if open_files:
             for f in open_files:
                 if f.startswith(sys.prefix):
