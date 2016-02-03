@@ -492,7 +492,7 @@ def extract(pkgs_dir, dist, json=False):
         check_perms_and_exit(tar_path, access=os.W_OK, json=json)
         t = tarfile.open(tar_path)
         for member in t.getmembers():
-            member_target = os.path.join(path, member.name)
+            member_target = os.path.join(path, os.path.join(*os.path.split(member.name)))
             print(member_target, file=sys.stderr)
             check_perms_and_exit(member_target, access=os.W_OK, json=json)
         t.extractall(path=path)
