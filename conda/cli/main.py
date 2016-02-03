@@ -207,7 +207,7 @@ Include the output of the command 'conda info' in your report.
 """ + traceback.format_exc()
     if getattr(e, 'errno', None) == 13:
         if os.name == 'nt':
-            proc = subprocess.Popen(['cmd', '\c', 'tasklist','/V'],
+            proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
             proc.wait()
