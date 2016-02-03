@@ -1,13 +1,12 @@
 from __future__ import print_function, division, absolute_import
 
-import re
 import sys
 import logging
 from collections import defaultdict
 from functools import partial
 
 from conda.utils import memoize
-from conda.compat import itervalues, iteritems, string_types, zip_longest
+from conda.compat import itervalues, iteritems
 from conda.logic import (false, true, sat, min_sat, generate_constraints,
     bisect_constraints, evaluate_eq, minimal_unsatisfiable_subset,
     MaximumIterationsError)

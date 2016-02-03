@@ -288,7 +288,6 @@ class VersionSpec(object):
         return s
 
     def __repr__(self):
-        s = self.spec
         return 'VersionSpec(%s)'%(self.str())
 
     def __and__(self, other):
