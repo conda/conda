@@ -1,12 +1,8 @@
 from __future__ import print_function, absolute_import
 import unittest
-from os.path import dirname, join
-
-import pytest
 
 from conda.version import ver_eval, VersionSpec, VersionOrder
 from conda.resolve import normalized_version
-from tests.helpers import raises
 
 class TestVersionSpec(unittest.TestCase):
 
