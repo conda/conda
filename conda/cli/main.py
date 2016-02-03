@@ -37,7 +37,9 @@ Additional help for each command can be accessed by using:
 
 from __future__ import print_function, division, absolute_import
 
+import os
 import sys
+import traceback
 
 def main():
     if len(sys.argv) > 1:
@@ -197,8 +199,6 @@ def print_task_list():
 
 
 def print_issue_message(e, use_json=False):
-    import os
-    import traceback
 
     from conda.cli import common
 
