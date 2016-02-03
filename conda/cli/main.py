@@ -188,8 +188,11 @@ def args_func(args, p):
         raise  # as if we did not catch it
 
 def print_issue_message(e, use_json=False):
-    from conda.cli import common
+    import os
     import traceback
+
+    from conda.cli import common
+
     message = ""
     if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
