@@ -177,9 +177,6 @@ activate it.
 
 def args_func(args, p):
     from conda.cli import common
-    if os.name == 'nt':
-        print('Debug: print tasklist /V before main func:')
-        print_task_list()
     use_json = getattr(args, 'json', False)
     try:
         args.func(args, p)
