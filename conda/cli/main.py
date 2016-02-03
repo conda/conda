@@ -225,6 +225,6 @@ Include the output of the command 'conda info' in your report.
     One process may be holding onto the named file.
 
 """)
-            print_task_list()
+        print_task_list()
 if __name__ == '__main__':
     main()
