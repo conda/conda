@@ -189,6 +189,7 @@ def args_func(args, p):
 
 def print_issue_message(e, use_json=False):
     from conda.cli import common
+    import traceback
     message = ""
     if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
@@ -213,7 +214,6 @@ One process may be holding onto the named file.
 
 """ + proc.stdout.read().decode()
     if use_json:
-        import traceback
         common.error_and_exit(message,
                               error_type="UnexpectedError", json=True)
     print(message)
