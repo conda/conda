@@ -491,6 +491,9 @@ def extract(pkgs_dir, dist, json=False):
         tar_path = path + '.tar.bz2'
         check_perms_and_exit(tar_path, access=os.W_OK, json=json)
         t = tarfile.open(tar_path)
+        for member in t.getmembers():
+            member_target = os.path.join(path, member.name)
+            check_perms_and_exit(member_target, access=os.W_OK, json=json)
         t.extractall(path=path)
         t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
