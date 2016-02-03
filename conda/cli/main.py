@@ -38,6 +38,7 @@ Additional help for each command can be accessed by using:
 from __future__ import print_function, division, absolute_import
 
 import os
+import subprocess
 import sys
 import traceback
 
@@ -194,17 +195,22 @@ def args_func(args, p):
 def print_task_list():
     if os.name != 'nt':
         return
-    import subprocess
     try:
         import psutil
     except ImportError:
-        proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
-        proc.wait()
+        psutil = None
+    print('tasklist /V')
+    proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
+    proc.wait()
+    if psutil is None:
+        return
     for proc in psutil.process_iter():
-
+        if proc.pid == os.getpid():
+            continue
         try:
             exe = proc.exe()
         except psutil.AccessDenied:
+            print('AccessDenied on ', proc.pid)
             exe = None
         try:
             cmdline = proc.cmdline()
@@ -215,9 +221,9 @@ def print_task_list():
         except psutil.AccessDenied:
             open_files = None
         template = '''{} {}
-    exe: {},\n
-    cmdline: {},\n
-    open_files: {}\n'''
+        exe: {},
+        cmdline: {},
+        open_files: {}'''
         if exe:
             startswith = exe.startswith(sys.prefix)
             if startswith:
