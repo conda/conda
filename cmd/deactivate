@@ -27,6 +27,10 @@ else
     _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")/../bin
 fi
 
+# export these so that Python subprocesses can see them (they may be shell-local)
+export PS1=$PS1
+export PROMPT=$PROMPT
+
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 # Also note that errors are ignored as `activate foo` doesn't generate a bad
@@ -38,14 +42,6 @@ instead of 'deactivate'.
     "$_CONDA_DIR/conda" ..deactivate -h
     exit 1
 fi
-
-# Provide a symlink-resovled script location
-_ABS_SCRIPT_LOCATION=$_SCRIPT_LOCATION
-while [ -h "$_ABS_SCRIPT_LOCATION" ]; do
-    _DIR="$( cd -P "$(dirname $_ABS_SCRIPT_LOCATION)" && pwd )"
-    _ABS_SCRIPT_LOCATION="$(readlink "$_ABS_SCRIPT_LOCATION")"
-    [[ $_ABS_SCRIPT_LOCATION != /* ]] && _ABS_SCRIPT_LOCATION="$_DIR/$_ABS_SCRIPT_LOCATION"
-done
 
 # Load common functions
 get_dirname() {
@@ -65,19 +61,20 @@ get_abs_filename() {
     echo "$(get_dirname "$1")/$(basename "$1")"
 }
 
+# Inverse of activation: run deactivate scripts prior to deactivating env
 run_scripts "deactivate"
 
-_NEW_PATH=$("$_CONDA_DIR/conda" ..deactivate "$@")
-if [ "$(win_bash)" = true ]; then
-    _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
-fi
 if (( $? == 0 )); then
-    export PATH="$_NEW_PATH"
     unset CONDA_DEFAULT_ENV
     unset CONDA_ENV_PATH
-    _NEW_PS1=$("$_CONDA_DIR/conda" ..setps1 "" "$CONDA_OLD_PS1")
-    PS1="$_NEW_PS1"
-    unset CONDA_OLD_PS1
+    if [[ -n $CONDA_PATH_BACKUP ]]; then
+        export PATH="$CONDA_PATH_BACKUP"
+        unset CONDA_PATH_BACKUP
+    fi
+    if [[ -n $CONDA_OLD_PS1 ]]; then
+        PS1="$CONDA_OLD_PS1"
+        unset CONDA_OLD_PS1
+    fi
 else
     return $?
 fi
@@ -86,7 +83,4 @@ if [[ -n $BASH_VERSION ]]; then
     hash -r
 elif [[ -n $ZSH_VERSION ]]; then
     rehash
-else
-    echo "Only bash and zsh are supported"
-    return 1
 fi

@@ -13,18 +13,12 @@ if not "%1" == "--help" goto skipusage
     exit /b 1
 :skipusage
 
-SET "CONDA_EXE=%~dp0\..\Scripts\conda.exe"
-
-REM activate conda root environment
-FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..deactivate') DO set "PATH=%%i"
-if errorlevel 1 exit /b 1
-
-FOR /F "delims=" %%i IN ('call "%CONDA_EXE%" ..setps1 "" "%PROMPT%"') DO set "PROMPT=%%i"
-if errorlevel 1 exit /b 1
+REM Deactivate a previous activation if it is live
+IF NOT "%CONDA_PATH_BACKUP%" == "" (SET "PATH=%CONDA_PATH_BACKUP%" && SET "CONDA_PATH_BACKUP=")
+IF NOT "%CONDA_OLD_PS1%" == "" (SET "PROMPT=%CONDA_OLD_PS1%" && SET "CONDA_OLD_PS1=")
 
 endlocal & (
-         set "PROMPT=%PROMPT%"
-         set "PATH=%PATH%"
-         set "CONDA_DEFAULT_ENV="
-         set "CONDA_OLD_PS1="
-         )
+            set "CONDA_DEFAULT_ENV="
+            set "PATH=%PATH%"
+            set "PROMPT=%PROMPT%"
+           )

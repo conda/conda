@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import errno
 import os
 from os.path import isdir, join, abspath
+import psutil
 import re
 import sys
 
@@ -11,15 +12,23 @@ from conda.cli.common import find_prefix_name
 
 on_win = sys.platform == "win32"
 
+def find_parent_shell():
+    process = psutil.Process()
+    while "conda" in process.parent().name():
+        process = process.parent()
+    return process.parent().name()
+
 
 def help():
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
+    # get grandparent process name to see which shell we're using
+    win_process = find_parent_shell()
     if sys.argv[1] in ('..activate', '..checkenv'):
-        if on_win:
+        if on_win and win_process in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: activate ENV
 
-adds the 'Scripts' and Library\bin directory of the environment ENV to the front of PATH.
+adds the 'Scripts' and 'Library\bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
 
@@ -30,7 +39,12 @@ adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
     else: # ..deactivate
-        sys.exit("""Usage: source deactivate
+        if on_win and win_process in ["cmd.exe", "powershell.exe"]:
+            sys.exit("""Usage: deactivate
+
+Removes the 'Scripts' and 'Library\bin' directory of the environment ENV to the front of PATH.""")
+        else:
+            sys.exit("""Usage: source deactivate
 
 removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
@@ -41,7 +55,7 @@ def prefix_from_arg(arg):
         if isdir(abspath(arg.strip("\""))):
             prefix = abspath(arg.strip("\""))
         else:
-            sys.exit('Error: no such directory: %s' % arg)
+            sys.exit('Error: could not find environment: %s' % arg)
     else:
         prefix = find_prefix_name(arg)
         if prefix is None:
@@ -95,11 +109,13 @@ def main():
         path = os.pathsep.join([os.pathsep.join(binpath), path])
 
     elif sys.argv[1] == '..deactivate':
-        if os.getenv("CONDA_DEFAULT_ENV"):
-            binpath = binpath_from_arg(os.getenv('CONDA_DEFAULT_ENV'))
-            if binpath:
-                sys.stderr.write("discarding %s from PATH\n" % pathlist_to_str(binpath))
-            path = path.replace(os.pathsep.join(binpath)+os.pathsep, "", 1)
+        path = os.getenv("CONDA_PATH_BACKUP", None)
+        sys.stderr.write("path:")
+        sys.stderr.write(path)
+        if path:
+            sys.stderr.write("Restoring PATH to deactivated state\n")
+        else:
+            path = os.getenv("PATH")  # effectively a no-op; just set PATH to what it already is
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:

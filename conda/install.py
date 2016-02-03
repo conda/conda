@@ -95,7 +95,6 @@ if on_win:
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        dst = dst + '.bat'
         try:
             os.makedirs(os.path.dirname(dst))
         except OSError as exc:  # Python >2.5
@@ -103,8 +102,15 @@ if on_win:
                 pass
             else:
                 raise
-        with open(dst, 'w') as f:
+        with open(dst+'.bat', 'w') as f:
             f.write('@echo off\n"%s" %%*\n' % src)
+        # This one is for bash
+        #try:
+        subprocess.check_call(["bash", "-c", 'ln -s $(cygpath -u {src}) $(cygpath -u {dst})'.format(
+            src=src.replace("\\", "/"), dst=os.path.dirname(dst).replace("\\", "/"))])
+        #except subprocess.CalledProcessError:
+        #    print("failed to create bash activate/deactivate symlink")
+        # TODO: probably need one here for powershell at some point
 
 
 log = logging.getLogger(__name__)
