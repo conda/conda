@@ -5,6 +5,12 @@ import re
 
 from conda.compat import zip_longest, string_types
 
+# normalized_version() is needed by conda-env
+# It is currently being pulled from resolve instead, but
+# eventually it ought to come from here
+def normalized_version(version):
+    return VersionOrder(version)
+
 def ver_eval(vtest, spec):
   return VersionSpec(spec).match(vtest)
 
