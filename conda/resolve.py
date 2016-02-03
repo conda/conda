@@ -6,7 +6,7 @@ from collections import defaultdict
 from itertools import chain
 
 from conda.utils import memoize
-from conda.compat import iterkeys, itervalues, iteritems, string_types
+from conda.compat import iterkeys, itervalues, iteritems, string_types, zip_longest
 from conda.logic import sat, optimize, minimal_unsatisfiable_subset
 from conda.version import VersionOrder, VersionSpec
 from conda.console import setup_handlers
@@ -31,7 +31,10 @@ def dashlist(iter):
 class NoPackagesFound(RuntimeError):
     def __init__(self, msg, pkgs):
         super(NoPackagesFound, self).__init__(msg)
-        self.pkgs = pkgs
+        if isinstance(pkgs, MatchSpec):
+            self.pkgs = [pkgs.spec]
+        else:
+            self.pkgs = [x.spec for x in pkgs]
 
 
 _specs = {}
@@ -453,7 +456,7 @@ class Resolve(object):
         rec = self.index.get(fn, None)
         if rec is not None:
             return (rec['name'], rec['version'], rec['build'])
-        return fn[:-8].rsplit('-',2)[0]
+        return fn[:-8].rsplit('-',2)
 
     def package_name(self, fn):
         return self.package_triple(fn)[0]
@@ -463,7 +466,8 @@ class Resolve(object):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms) if '@' not in fn]
         if not pkgs and not emptyok:
-            raise NoPackagesFound("No packages found in current %s channels matching: %s" % (config.subdir, ms), [ms.spec])
+            raise NoPackagesFound("No packages found in current %s channels matching: %s" % 
+                (config.subdir, ms), ms)
         return pkgs
 
     def gen_clauses(self, v, groups, specs):
@@ -700,94 +704,99 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
     def solve(self, specs, installed=[], update_deps=True, returnall=False, 
               guess=True, minimal_hint=False, alg='BDD'):
 
-        stdoutlog.info("Solving package specifications: ")
-        res = self.explicit(specs)
-        if res is not None:
-            return res
-
-        # If update_deps=True, set the target package in MatchSpec so that
-        # the solver can minimize the version change. If update_deps=False,
-        # fix the version and build so that no change is possible.
-        specs = list(map(MatchSpec, specs))
-        snames = {s.name for s in specs}
-        for pkg in installed:
-            name, version, build = self.package_triple(pkg)
-            if name in snames:
-                continue
-            if update_deps:
-                spec = MatchSpec(name, target=pkg)
-            else:
-                spec = MatchSpec('%s %s %s'%(name,version,build))
-            specs.append(spec)
-            snames.add(spec)
-        dotlog.debug("Solving for %s" % specs)
-
         try:
-            dists, new_specs = self.get_dists(specs, wrap=False)
-        except NoPackagesFound:
-            raise
+            stdoutlog.info("Solving package specifications: ")
+            res = self.explicit(specs)
+            if res is not None:
+                return res
 
-        # Check if satisfiable
-        dotlog.debug('Checking satisfiability')
-        groups = build_groups(dists)
-        m, v, w = self.build_vw(groups)
-        clauses = set(self.gen_clauses(v, groups, specs))
-        solution = sat(clauses)
-        if not solution:
-            if guess:
-                if minimal_hint:
-                    stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating minimal hint: \n')
-                    sys.exit(self.minimal_unsatisfiable_subset(clauses, v, w))
-                else:
-                    stderrlog.info('\nError: Unsatisfiable package '
-                        'specifications.\nGenerating hint: \n')
-                    sys.exit(self.guess_bad_solve(specs))
-            raise RuntimeError("Unsatisfiable package specifications")
+            # If update_deps=True, set the target package in MatchSpec so that
+            # the solver can minimize the version change. If update_deps=False,
+            # fix the version and build so that no change is possible.
+            specs = list(map(MatchSpec, specs))
+            snames = {s.name for s in specs}
+            for pkg in installed:
+                if pkg in self.index:
+                    name, version, build = self.package_triple(pkg)
+                    if name in snames:
+                        continue
+                    if update_deps:
+                        spec = MatchSpec(name, target=pkg)
+                    else:
+                        spec = MatchSpec('%s %s %s'%(name,version,build))
+                    specs.append(spec)
+                    snames.add(spec)
+            dotlog.debug("Solving for %s" % specs)
 
-        dotlog.debug('Optimizing feature count')
-        eq_features = self.generate_feature_eq(v, groups, new_specs)
-        clauses, solution = optimize(eq_features, clauses, solution)
+            try:
+                dists, new_specs = self.get_dists(specs, wrap=False)
+            except NoPackagesFound:
+                raise
 
-        dotlog.debug('Optimizing versions')
-        eq_version = self.generate_version_eq(v, groups, new_specs)
-        clauses, solution = optimize(eq_version, clauses, solution)
-
-        dotlog.debug('Optimizing dependency count')
-        eq_packages = self.generate_package_count(v, groups, new_specs)
-        clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
-
-        dotlog.debug('Looking for alternate solutions')
-        solution = [s for s in solution if 0 < s <= m]
-        solutions = [solution]
-        nsol = 1
-        while True:
-            nclause = tuple(-q for q in solution if 0 < q <= m)
-            clauses.add(nclause)
+            # Check if satisfiable
+            dotlog.debug('Checking satisfiability')
+            groups = build_groups(dists)
+            m, v, w = self.build_vw(groups)
+            clauses = set(self.gen_clauses(v, groups, specs))
             solution = sat(clauses)
-            if solution is None:
-                break
+            if not solution:
+                if guess:
+                    if minimal_hint:
+                        stderrlog.info('\nError: Unsatisfiable package '
+                            'specifications.\nGenerating minimal hint: \n')
+                        sys.exit(self.minimal_unsatisfiable_subset(clauses, v, w))
+                    else:
+                        stderrlog.info('\nError: Unsatisfiable package '
+                            'specifications.\nGenerating hint: \n')
+                        sys.exit(self.guess_bad_solve(specs))
+                raise RuntimeError("Unsatisfiable package specifications")
+
+            dotlog.debug('Optimizing feature count')
+            eq_features = self.generate_feature_eq(v, groups, new_specs)
+            clauses, solution = optimize(eq_features, clauses, solution)
+
+            dotlog.debug('Optimizing versions')
+            eq_version = self.generate_version_eq(v, groups, new_specs)
+            clauses, solution = optimize(eq_version, clauses, solution)
+
+            dotlog.debug('Optimizing dependency count')
+            eq_packages = self.generate_package_count(v, groups, new_specs)
+            clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
+
+            dotlog.debug('Looking for alternate solutions')
             solution = [s for s in solution if 0 < s <= m]
-            nsol += 1
-            if nsol > 10:
-                dotlog.debug('Too many solutions; terminating')
-                break
-            solutions.append(solution)
+            solutions = [solution]
+            nsol = 1
+            while True:
+                nclause = tuple(-q for q in solution if 0 < q <= m)
+                clauses.add(nclause)
+                solution = sat(clauses)
+                if solution is None:
+                    break
+                solution = [s for s in solution if 0 < s <= m]
+                nsol += 1
+                if nsol > 10:
+                    dotlog.debug('Too many solutions; terminating')
+                    break
+                solutions.append(solution)
 
-        psolutions = [set(w[lit] for lit in sol if 0 < lit <= m and '@' not in w[lit]) for sol in solutions]
-        if nsol > 1:
-            stdoutlog.info(
-                '\nWarning: %s possible package resolutions (only showing differing packages):\n' % 
-                ('>10' if nsol > 10 else nsol))
-            common  = set.intersection(*psolutions)
-            for sol in psolutions:
-                stdoutlog.info('\t%s,\n' % sorted(sol - common))
+            psolutions = [set(w[lit] for lit in sol if 0 < lit <= m and '@' not in w[lit]) for sol in solutions]
+            if nsol > 1:
+                stdoutlog.info(
+                    '\nWarning: %s possible package resolutions (only showing differing packages):\n' % 
+                    ('>10' if nsol > 10 else nsol))
+                common  = set.intersection(*psolutions)
+                for sol in psolutions:
+                    stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
-        log.debug("Older versions in the solution(s):")
-        for sol in solutions:
-            log.debug([(i, w[j]) for i, j in eq_version if j in sol])
-        stdoutlog.info('\n')
-        return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
+            log.debug("Older versions in the solution(s):")
+            for sol in solutions:
+                log.debug([(i, w[j]) for i, j in eq_version if j in sol])
+            stdoutlog.info('\n')
+            return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
+        except:
+            stdoutlog.info('\n')
+            raise
 
 
 if __name__ == '__main__':
