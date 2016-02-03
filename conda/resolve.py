@@ -716,16 +716,21 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             specs = list(map(MatchSpec, specs))
             snames = {s.name for s in specs}
             for pkg in installed:
-                if pkg in self.index:
-                    name, version, build = self.package_triple(pkg)
-                    if name in snames:
-                        continue
-                    if update_deps:
-                        spec = MatchSpec(name, target=pkg)
-                    else:
-                        spec = MatchSpec('%s %s %s'%(name,version,build))
-                    specs.append(spec)
-                    snames.add(spec)
+                name, version, build = self.package_triple(pkg)
+                if pkg not in self.index:
+                    self.index[pkg] = {
+                        'name':name, 'version':version, 
+                        'build':build, 'build_number':0
+                    }
+                    self.groups.setdefault(name,[]).append(pkg) 
+                if name in snames:
+                    continue
+                if update_deps:
+                    spec = MatchSpec(name, target=pkg)
+                else:
+                    spec = MatchSpec('%s %s %s'%(name,version,build))
+                specs.append(spec)
+                snames.add(spec)
             dotlog.debug("Solving for %s" % specs)
 
             try:
