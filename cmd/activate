@@ -60,29 +60,16 @@ get_abs_filename() {
     echo "$(get_dirname "$1")/$(basename "$1")"
 }
 
-win_bash() {
-    case "$(uname -s)" in
-        CYGWIN*|MINGW*|MSYS*)
-            echo true
-            ;;
-        *)
-            echo false
-            ;;
-    esac
-}
-
 if "$_CONDA_DIR/conda" ..checkenv "$@"; then
     # Ensure we deactivate any scripts from the old env
     run_scripts "deactivate"
 
-    _NEW_PATH=$("$_CONDA_DIR/conda" ..deactivate)
-    if [ $(win_bash) = true ]; then
-        _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
+    if [[ -n $CONDA_PATH_BACKUP ]]; then
+        export PATH="$CONDA_PATH_BACKUP"
+        unset CONDA_PATH_BACKUP
     fi
-    export PATH="$_NEW_PATH"
     if [[ -n $CONDA_OLD_PS1 ]]; then
-        _NEW_PS1=$("$_CONDA_DIR/conda" ..setps1 "" "$CONDA_OLD_PS1")
-        PS1="$_NEW_PS1"
+        export PS1="$CONDA_OLD_PS1"
         unset CONDA_OLD_PS1
     fi
 else
@@ -94,6 +81,12 @@ if [ $(win_bash) = true ]; then
     _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
 fi
 if (( $? == 0 )); then
+    if [ -z "$CONDA_PATH_BACKUP" ]; then
+        export CONDA_PATH_BACKUP="$PATH"
+    fi
+    if [ -z "$CONDA_OLD_PS1" ]; then
+        export CONDA_OLD_PS1="$PS1"
+    fi
     export PATH="$_NEW_PATH"
     # extract first PATH entry (should be full path prefix of our env)
     export CONDA_DEFAULT_ENV=${PATH%%:*}
@@ -102,14 +95,12 @@ if (( $? == 0 )); then
     ENV_BIN_DIR="$(echo $(echo $PATH | awk -F ':' '{print $1}'))"
     export CONDA_ENV_PATH="$(get_dirname "$ENV_BIN_DIR")"
 
-    _NEW_PS1=$("$_CONDA_DIR/conda" ..setps1 "$@" "$PS1")
-    CONDA_OLD_PS1="$PS1"
-    PS1="$_NEW_PS1"
+    export PS1=$("$_CONDA_DIR/conda" ..setps1 "$@" "$PS1")
 else
     return $?
 fi
 
-# Load any of the scripts found $PREFIX/etc/conda/activate.d
+# Load any of the scripts found $PREFIX/etc/conda/activate.d AFTER activation
 run_scripts "activate"
 
 if [[ -n $BASH_VERSION ]]; then
