@@ -28,10 +28,22 @@ import conda.install as ci
 
 log = logging.getLogger(__name__)
 
-def install_tar(prefix, tar_path, verbose=False):
+def check_perms_and_exit(path, access=os.W_OK, json=False):
+    if not os.path.exists(path):
+        common.error_and_exit(path + ' does not exist',
+                              json=json,
+                              error_type="RuntimeError")
+    if not os.access(path, access):
+        common.error_and_exit('No {} permissions for {}'.format(repr(access), path),
+                              json=json,
+                              error_type="RuntimeError")
+
+def install_tar(prefix, tar_path, verbose=False, json=False):
     if not exists(tar_path):
         sys.exit("File does not exist: %s" % tar_path)
     tmp_dir = tempfile.mkdtemp()
+    check_perms_and_exit(tmp_dir, access=os.W_OK, json=json)
+    check_perms_and_exit(tar_path, access=os.W_OK, json=json)
     t = tarfile.open(tar_path, 'r')
     t.extractall(path=tmp_dir)
     t.close()
@@ -42,7 +54,7 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    misc.install_local_packages(prefix, paths, verbose=verbose)
+    misc.install_local_packages(prefix, paths, verbose=verbose, json=json)
     shutil.rmtree(tmp_dir)
 
 
@@ -199,7 +211,8 @@ def install(args, parser, command='install'):
     if num_cp:
         if num_cp == len(args.packages):
             misc.install_local_packages(prefix, args.packages,
-                                        verbose=not args.quiet)
+                                        verbose=not args.quiet,
+                                        json=args.json)
             return
         else:
             common.error_and_exit(
@@ -211,7 +224,7 @@ def install(args, parser, command='install'):
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not args.quiet)
+            install_tar(prefix, tar_path, verbose=not args.quiet, json=args.json)
             return
 
     if args.use_local:

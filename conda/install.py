@@ -474,14 +474,19 @@ def extracted(pkgs_dir):
                if (isfile(join(pkgs_dir, dn, 'info', 'files')) and
                    isfile(join(pkgs_dir, dn, 'info', 'index.json'))))
 
-def extract(pkgs_dir, dist):
+def extract(pkgs_dir, dist, json=False):
     """
     Extract a package, i.e. make a package available for linkage.  We assume
     that the compressed packages is located in the packages directory.
     """
+    from conda.cli.install import check_perms_and_exit
+
     with Locked(pkgs_dir):
         path = join(pkgs_dir, dist)
-        t = tarfile.open(path + '.tar.bz2')
+        check_perms_and_exit(path, access=os.W_OK, json=json)
+        tar_path = path + '.tar.bz2'
+        check_perms_and_exit(tar_path, access=os.W_OK, json=json)
+        t = tarfile.open(tar_path)
         t.extractall(path=path)
         t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
