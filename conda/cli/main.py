@@ -220,19 +220,12 @@ def print_task_list():
             open_files = proc.open_files()
         except psutil.AccessDenied:
             open_files = None
-        template = '''{} {}
+        template = '''PID: {}
         exe: {},
         cmdline: {},
         open_files: {}'''
-        if exe:
-            startswith = exe.startswith(sys.prefix)
-            if startswith:
-                print(template.format(proc.pid,
-                                      'running on same prefix',
-                                      exe, cmdline, open_files))
+        print(template.format(proc.pid, exe, cmdline, open_files))
         if open_files:
-            print(template.format(proc.pid, 'has open files.',
-                                  exe, cmdline, open_files))
             for f in open_files:
                 if f.startswith(sys.prefix):
                     print('Open file: ', f, 'is on sys.prefix.')
