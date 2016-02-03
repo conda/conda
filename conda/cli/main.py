@@ -174,7 +174,9 @@ activate it.
 
 def args_func(args, p):
     from conda.cli import common
-
+    if os.name == 'nt':
+        print('Debug: print tasklist /V before main func:')
+        print_task_list()
     use_json = getattr(args, 'json', False)
     try:
         args.func(args, p)
@@ -187,9 +189,15 @@ def args_func(args, p):
         print_issue_message(e, use_json=use_json)
         raise  # as if we did not catch it
 
+def print_task_list():
+    import subprocess
+    if os.name == 'nt':
+        proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
+        proc.wait()
+
+
 def print_issue_message(e, use_json=False):
     import os
-    import subprocess
     import traceback
 
     from conda.cli import common
@@ -204,21 +212,19 @@ following traceback to the conda GitHub issue tracker at:
 
 Include the output of the command 'conda info' in your report.
 
-""" + traceback.format_exc()
+"""
     if use_json:
-        common.error_and_exit(message,
+        common.error_and_exit(message + traceback.format_exc(),
                               error_type="UnexpectedError", json=True)
     print(message)
     if getattr(e, 'errno', None) == 13:
-        if os.name == 'nt':
-            message += """
-    Review this tasklist output to find
+
+        print("""
+    Review this tasklist /V output to find
     possible source of permissions error.
     One process may be holding onto the named file.
 
-"""
-            proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
-            proc.wait()
-
+""")
+            print_task_list()
 if __name__ == '__main__':
     main()
