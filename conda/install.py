@@ -512,7 +512,6 @@ def is_extracted(pkgs_dir, dist):
 def rm_extracted(pkgs_dir, dist):
 
     with Locked(pkgs_dir):
-        from conda.cli.install import check_perms_and_exit
         path = join(pkgs_dir, dist)
         rm_rf(path)
 
