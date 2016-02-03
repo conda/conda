@@ -192,11 +192,44 @@ def args_func(args, p):
         raise  # as if we did not catch it
 
 def print_task_list():
+    if os.name != 'nt':
+        return
     import subprocess
-    if os.name == 'nt':
+    try:
+        import psutil
+    except ImportError:
         proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
         proc.wait()
+    for proc in psutil.process_iter():
 
+        try:
+            exe = proc.exe()
+        except psutil.AccessDenied:
+            exe = None
+        try:
+            cmdline = proc.cmdline()
+        except psutil.AccessDenied:
+            cmdline = None
+        try:
+            open_files = proc.open_files()
+        except psutil.AccessDenied:
+            open_files = None
+        template = '''{} {}
+    exe: {},\n
+    cmdline: {},\n
+    open_files: {}\n'''
+        if exe:
+            startswith = exe.startswith(sys.prefix)
+            if startswith:
+                print(template.format(proc.pid,
+                                      'running on same prefix',
+                                      exe, cmdline, open_files))
+        if open_files:
+            print(template.format(proc.pid, 'has open files.',
+                                  exe, cmdline, open_files))
+            for f in open_files:
+                if f.startswith(sys.prefix):
+                    print('Open file: ', f, 'is on sys.prefix.')
 
 def print_issue_message(e, use_json=False):
 
