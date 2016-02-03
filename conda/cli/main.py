@@ -205,6 +205,10 @@ following traceback to the conda GitHub issue tracker at:
 Include the output of the command 'conda info' in your report.
 
 """ + traceback.format_exc()
+    if use_json:
+        common.error_and_exit(message,
+                              error_type="UnexpectedError", json=True)
+    print(message)
     if getattr(e, 'errno', None) == 13:
         if os.name == 'nt':
             message += """
@@ -215,10 +219,6 @@ Include the output of the command 'conda info' in your report.
 """
             proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
             proc.wait()
-    if use_json:
-        common.error_and_exit(message,
-                              error_type="UnexpectedError", json=True)
-    print(message)
 
 if __name__ == '__main__':
     main()
