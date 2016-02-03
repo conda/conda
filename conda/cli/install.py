@@ -29,11 +29,7 @@ import conda.install as ci
 log = logging.getLogger(__name__)
 
 def check_perms_and_exit(path, access=os.W_OK, json=False):
-    if not os.path.exists(path):
-        common.error_and_exit(path + ' does not exist',
-                              json=json,
-                              error_type="RuntimeError")
-    if not os.access(path, access):
+    if os.path.exists(path) and not os.access(path, access):
         common.error_and_exit('No {} permissions for {}'.format(repr(access), path),
                               json=json,
                               error_type="RuntimeError")
