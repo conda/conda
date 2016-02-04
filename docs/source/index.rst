@@ -13,11 +13,11 @@ Linux, OS X and Windows, and was created for Python programs but can package and
 
 Conda is included in all versions of Anaconda, Miniconda, Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise, and is not available separately. 
 
-* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 200 
+* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 400 
   scientific packages and their dependencies can be installed individually from the Continuum repository with
   the “conda install” command.
-* Anaconda includes conda, conda-build, Python, and over 100 automatically installed scientific packages and
-  their dependencies. Like Miniconda, over 200 scientific packages can be installed individually with
+* Anaconda includes conda, conda-build, Python, and over 150 automatically installed scientific packages and
+  their dependencies. As with Miniconda, over 250 additional scientific packages can be installed individually with
   the “conda install” command.
 * Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise allow both system
   administrators and users to manage packages and environments on-site. Any
@@ -65,7 +65,7 @@ Presentations & Blog Posts
 Requirements
 ------------
 
-* python 2.7, 3.3, 3.4, or 3.5
+* python 2.7, 3.4, or 3.5
 * pycosat
 * pyyaml
 * requests

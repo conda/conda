@@ -66,7 +66,7 @@ After you are finished working in the snowflakes environment, to close it you ca
 Create Python 2 or 3 environments
 ---------------------------------
 
-Anaconda supports Python 2.6, 2.7, 3.3, 3.4, and 3.5.  The default is Python 2.7 or
+Anaconda supports Python 2.7, 3.4, and 3.5.  The default is Python 2.7 or
 3.5, depending on which installer you used. If the installer you used is Anaconda
 or Miniconda, the default is 2.7. If the installer you used is Anaconda3 or Miniconda3,
 the default is 3.5. 
@@ -86,14 +86,14 @@ meta-package that includes all of the actual Python packages comprising
 the Anaconda distribution.  When creating a new environment and installing Anaconda, 
 you can specify the exact package and Python versions, for example, ``numpy=1.7`` or ``python=3.5``.
 
-Create a Python 2.6 environment
+Create a Python 2.7 environment
 ````````````````````````````````
 
-In this example, we'll make a new environment for Python 2.6: 
+In this example, we'll make a new environment for Python 2.7: 
 
 .. code-block:: bash
 
-    $ conda create -n py26 python=2.6 anaconda
+    $ conda create -n py27 python=2.7 anaconda
 
 Update or Upgrade Python
 ------------------------

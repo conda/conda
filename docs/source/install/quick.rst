@@ -10,8 +10,8 @@ of **Anaconda, Anaconda Server**, and **Miniconda**.
 
 The fastest way to get and install conda is to `download Miniconda <http://conda.pydata.org/miniconda.html>`_, 
 a mini version of Anaconda that includes just conda, its dependencies, and Python. 
-Anaconda has all that plus over 100 open source packages that install at the same time, 
-and over 200 packages that can be installed with the simple ``conda install`` command. 
+Anaconda has all that plus over 150 open source packages that install at the same time, 
+and over 250 more packages that can be installed with the simple ``conda install`` command. 
 
 You can be using Python in two minutes or less with this quick install guide - including 
 install, update and uninstall. If you have any problems, please see the full installation instructions.

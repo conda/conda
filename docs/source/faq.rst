@@ -21,7 +21,7 @@ pip, zlib and a few others.
 
 3. What is Anaconda?
 
-Anaconda includes everything in Miniconda and a stable collection of over 100 standard
+Anaconda includes everything in Miniconda and a stable collection of over 150 standard
 open source packages for data analysis and scientific computing that have all been
 tested to work well together, including scipy, numpy and many others. These packages
 can all be installed automatically with one quick and convenient installation routine.

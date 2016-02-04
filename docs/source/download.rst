@@ -17,7 +17,7 @@ Should I download Anaconda or Miniconda?
 **Choose Anaconda if you:** 
 
 * Are new to conda or Python
-* Like the convenience of having Python and over 100 scientific packages automatically installed at once
+* Like the convenience of having Python and over 150 scientific packages automatically installed at once
 * Have the time and disk space (a few minutes and 3 GB), and/or
 * Don’t want to install each of the packages you want to use individually. 
 
@@ -26,7 +26,7 @@ Anaconda download: http://continuum.io/downloads
 **Choose Miniconda if you:**
 
 * Do not mind installing each of the packages you want to use individually
-* Do not have time or disk space to install over 100 packages at once, and/or
+* Do not have time or disk space to install over 150 packages at once, and/or
 * Just want fast access to Python and the conda commands, and wish to sort out the other programs later. 
 
 Miniconda download: http://conda.pydata.org/miniconda.html
@@ -50,7 +50,7 @@ What version of Python should I choose?
 
 * The latest version of Python 2 is 2.7, and that is included with Anaconda and Miniconda. 
 * The newest stable version of Python is 3.5, and that is included with Anaconda3 and Miniconda3. 
-* You can easily set up additional versions of Python such as 2.6 or 3.3 by downloading any version and creating a new environment with just a few clicks. (See our :doc:`test-drive`.)
+* You can easily set up additional versions of Python such as 3.4 by downloading any version and creating a new environment with just a few clicks. (See our :doc:`test-drive`.)
 
 What about cryptographic hash verification?
 -------------------------------------------
