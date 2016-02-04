@@ -10,7 +10,7 @@ may also be undesirable, as this can take a while, eating up a large chunk
 of the 50 minutes that Travis allows for each build. Using conda also lets
 you test the building of conda recipes on Travis.
 
-Conda is cross-platform, so it can be used for anything, not just Python, but
+Conda is language-agnostic, so it can be used for anything, not just Python, but
 the following guide shows how to use it to test a Python package on Travis CI.
 
 The .travis.yml file
