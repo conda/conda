@@ -53,7 +53,7 @@ class MatchSpec(object):
         assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
         if self.strictness == 2:
-            self.vspecs = [VersionSpec(s) for s in parts[1].split('|')]
+            self.vspecs = VersionSpec(parts[1])
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
         self.target = target
@@ -75,7 +75,7 @@ class MatchSpec(object):
         if self.strictness == 1:
             return True
         elif self.strictness == 2:
-            return any(vs.match(version) for vs in self.vspecs)
+            return self.vspecs.match(version)
         elif self.strictness == 3:
             return bool((version, build) == self.ver_build)
 
