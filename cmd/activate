@@ -10,6 +10,11 @@ else
     return 1
 fi
 
+if [ $# -gt 1 ]; then
+    echo "Error: did not expect more than one argument."
+    return 1
+fi
+
 win_bash() {
     case "$(uname -s)" in
         CYGWIN*|MINGW*|MSYS*)
@@ -39,7 +44,7 @@ if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "activate" ]]
 instead of 'activate envname'.
 "
     "$_CONDA_DIR/conda" ..activate -h
-    exit 1
+    return 1
 fi
 
 # Load common functions
@@ -77,15 +82,16 @@ else
 fi
 
 _NEW_PATH=$("$_CONDA_DIR/conda" ..activate "$@")
-if [ $(win_bash) = true ]; then
-    _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
-fi
 if (( $? == 0 )); then
     if [ -z "$CONDA_PATH_BACKUP" ]; then
         export CONDA_PATH_BACKUP="$PATH"
     fi
     if [ -z "$CONDA_OLD_PS1" ]; then
         export CONDA_OLD_PS1="$PS1"
+    fi
+
+    CYGPATH=$(which "cygpath" 2> /dev/null) && if [ -f  $CYGPATH ]; then
+        _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
     fi
     export PATH="$_NEW_PATH"
     # extract first PATH entry (should be full path prefix of our env)

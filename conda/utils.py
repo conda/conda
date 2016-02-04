@@ -7,6 +7,7 @@ import collections
 from functools import partial
 from os.path import abspath, isdir
 import os
+import re
 import tempfile
 
 
@@ -73,6 +74,25 @@ def url_path(path):
     if sys.platform == 'win32':
         path = '/' + path.replace(':', '|').replace('\\', '/')
     return 'file://%s' % path
+
+
+def win_path_to_unix(path, root_prefix=""):
+    """Convert a path or ;-separated string of paths into a unix representation
+
+    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+    """
+    path_re = re.compile('[a-zA-Z]:\\\\(?:[^:*?"<>|]+\\\\)*[^:*?"<>|;]+')
+    converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
+                       for _path in path_re.findall(path)]
+    return ":".join(converted_paths)
+
+
+def unix_path_to_win(path):
+    """Convert a path or :-separated string of paths into a Windows representation"""
+    path_re = re.compile('\/[a-zA-Z]\/(?:[^:*?"<>|]+\\\\)*[^:*?"<>|;]+')
+    converted_paths = [_path[1] + ":" + _path[2:].replace("/", "\\")
+                       for _path in path_re.findall(path)]
+    return ";".join(converted_paths)
 
 
 def human_bytes(n):

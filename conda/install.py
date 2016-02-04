@@ -56,6 +56,8 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
+from conda.utils import win_path_to_unix
+
 on_win = sys.platform == "win32"
 
 if on_win:
@@ -102,15 +104,19 @@ if on_win:
                 pass
             else:
                 raise
+
+        # bat file redirect
         with open(dst+'.bat', 'w') as f:
             f.write('@echo off\n"%s" %%*\n' % src)
-        # This one is for bash
-        #try:
-        subprocess.check_call(["bash", "-c", 'ln -s $(cygpath -u {src}) $(cygpath -u {dst})'.format(
-            src=src.replace("\\", "/"), dst=os.path.dirname(dst).replace("\\", "/"))])
-        #except subprocess.CalledProcessError:
-        #    print("failed to create bash activate/deactivate symlink")
+
         # TODO: probably need one here for powershell at some point
+
+        # This one is for bash
+        if src.endswith("conda"):
+            src = src + ".exe"
+
+        p = subprocess.check_call(["bash", "-l", "-c", "ln -sf {src} {dst}".format(
+            src=win_path_to_unix(src), dst=win_path_to_unix(dst))])
 
 
 log = logging.getLogger(__name__)
@@ -470,9 +476,12 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn):
                'cmd': ["activate", "deactivate"],
                }
     for where, files in scripts.items():
+        prefix_where = join(prefix, where)
+        if not isdir(prefix_where):
+            os.makedirs(prefix_where)
         for f in files:
             root_file = join(root_dir, where, f)
-            prefix_file = join(prefix, where, f)
+            prefix_file = join(prefix_where, f)
             # try to kill stale links if they exist
             if exists_fn(prefix_file):
                 rm_fn(prefix_file)
