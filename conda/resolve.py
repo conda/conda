@@ -89,7 +89,7 @@ class MatchSpec(object):
             return None
 
     def __eq__(self, other):
-        return self.spec == other.spec
+        return type(other) is MatchSpec and self.spec == other.spec
 
     def __hash__(self):
         return hash(self.spec)
@@ -255,7 +255,10 @@ class Resolve(object):
                     first = sat = valid[fn] = True
                 nold += sat
                 if sat:
-                    sat = any(self.match(ms, fn) for ms in matches)
+                    if name[-1] == '@':
+                        sat = name[:-1] in self.track_features(fn)
+                    else:
+                        sat = self.match_any(matches, fn)
                 if sat:
                     sat = all(any(valid.get(f2, True)
                                   for f2 in self.find_matches(ms))
@@ -407,6 +410,11 @@ class Resolve(object):
             dists = {fn:Package(fn,info) for fn,info in iteritems(dists)}
         return dists, specs
 
+    def match_any(self, mss, fn):
+        rec = self.index[fn]
+        n, v, b = rec['name'], rec['version'], rec['build']
+        return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
+
     def match(self, ms, fn):
         if fn[-1] == ']':
             fn = fn.rsplit('[',1)[0]
@@ -414,12 +422,16 @@ class Resolve(object):
             return ms.name[:-1] in self.track_features(fn)
         return ms.match(self.index[fn])
 
-    def find_matches(self, ms, groups=None):
+    def find_matches_group(self, ms, groups):
         ms = MatchSpec(ms)
-        for fn in (groups or self.groups).get(ms.name, []):
+        for fn in groups.get(ms.name, []):
             rec = self.index[fn]
             if ms.match_fast(rec['version'], rec['build']):
                 yield fn
+
+    @memoize
+    def find_matches(self, ms):
+        return tuple(self.find_matches_group(ms, self.groups))
 
     @memoize
     def ms_depends(self, fn):
@@ -496,7 +508,7 @@ class Resolve(object):
                     if ms.name[-1] == '@':
                         yield (nval, v[ms.name])
                     else:
-                        clause = [v[fn2] for fn2 in self.find_matches(ms, groups)]
+                        clause = [v[fn2] for fn2 in self.find_matches_group(ms, groups)]
                         assert clause, '%s %r' % (fn1, ms)
                         yield tuple([nval] + clause)
 
@@ -504,7 +516,7 @@ class Resolve(object):
         # fn1 OR fn2 OR fn3 OR ... OR fnN
         for ms in specs:
             if not ms.optional:
-                clause = [v[fn] for fn in self.find_matches(ms, groups)]
+                clause = [v[fn] for fn in self.find_matches_group(ms, groups)]
                 assert len(clause) >= 1, ms
                 yield tuple(clause)
 
@@ -518,7 +530,7 @@ class Resolve(object):
         if may_omit:
             for name, ms in iteritems(sdict):
                 if name[-1] != '@' and not ms.optional:
-                    for fn in self.find_matches(ms, groups):
+                    for fn in self.find_matches_group(ms, groups):
                         may_omit -= self.track_features(fn)
                         if not may_omit:
                             break
