@@ -94,11 +94,12 @@ def app_info_packages(fn, prefix=config.root_dir):
     index = get_index(prefix=prefix)
     r = Resolve(index)
     res = []
-    for fn2 in r.solve([_fn2fullspec(fn)]):
+    for fn2 in r.solve([_fn2fullspec(fn)], installed=install.linked(prefix)):
         info = index[fn2]
-        res.append((info['name'], info['version'], info['size'],
-                    any(install.is_fetched(pkgs_dir, fn2[:-8])
-                        for pkgs_dir in config.pkgs_dirs)))
+        if 'link' not in info:
+            res.append((info['name'], info['version'], info['size'],
+                        any(install.is_fetched(pkgs_dir, fn2[:-8])
+                            for pkgs_dir in config.pkgs_dirs)))
     return res
 
 
