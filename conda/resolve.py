@@ -61,6 +61,14 @@ class MatchSpec(object):
         self.parent = parent
         return self
 
+    def match_fast(self, version, build):
+        if self.strictness == 1:
+            return True
+        elif self.strictness == 2:
+            return self.vspecs.match(version)
+        else:
+            return bool((version, build) == self.ver_build)
+
     def match(self, info):
         if isinstance(info, string_types):
             name, version, build = info[:-8].rsplit('-',2)
@@ -72,12 +80,7 @@ class MatchSpec(object):
             build = info.get('build')
         if name != self.name:
             return False
-        if self.strictness == 1:
-            return True
-        elif self.strictness == 2:
-            return self.vspecs.match(version)
-        elif self.strictness == 3:
-            return bool((version, build) == self.ver_build)
+        return self.match_fast(version, build)
 
     def to_filename(self):
         if self.strictness == 3:
@@ -405,7 +408,6 @@ class Resolve(object):
         return dists, specs
 
     def match(self, ms, fn):
-        ms = MatchSpec(ms)
         if fn[-1] == ']':
             fn = fn.rsplit('[',1)[0]
         if ms.name[-1] == '@':
@@ -415,7 +417,8 @@ class Resolve(object):
     def find_matches(self, ms, groups=None):
         ms = MatchSpec(ms)
         for fn in (groups or self.groups).get(ms.name, []):
-            if self.match(ms, fn):
+            rec = self.index[fn]
+            if ms.match_fast(rec['version'], rec['build']):
                 yield fn
 
     @memoize
@@ -463,7 +466,6 @@ class Resolve(object):
     def package_name(self, fn):
         return self.package_triple(fn)[0]
 
-    @memoize
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms) if '@' not in fn]
@@ -478,7 +480,7 @@ class Resolve(object):
             if name[-1] == '@':
                 # Ensure at least one track feature package is installed
                 # if a dependency is activated
-                clause = [v[fn2] for fn2 in self.find_matches(MatchSpec(name), groups)]
+                clause = [v[fn2] for fn2 in group]
                 yield tuple([-v[name]] + clause)
                 continue
             for k, fn1 in enumerate(group):
