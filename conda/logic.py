@@ -457,7 +457,7 @@ def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
     # If a coefficient is larger than rhs then we know it has to be
     # set to zero. That's a lot quicker than building it into the adder
     ub = rhs[-1]
-    additional_clauses = set((-a,) for c,a in eq if c>rhs[1])
+    additional_clauses = set((-a,) for c,a in eq if c>ub)
     nz = len(additional_clauses)
     if nz == len(eq):
         return additional_clauses
