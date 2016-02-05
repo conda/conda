@@ -25,7 +25,7 @@ being used will only be used in the positive or the negative, respectively
 
 """
 from collections import defaultdict
-from functools import total_ordering
+from itertools import chain
 import logging
 import pycosat
 
@@ -34,51 +34,24 @@ log = logging.getLogger(__name__)
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
-@total_ordering
 class TrueClass(object):
     def __eq__(self, other):
-        return isinstance(other, TrueClass)
-
+        return other is true
     def __neg__(self):
         return false
-
     def __str__(self):
         return "true"
     __repr__ = __str__
+true = TrueClass()
 
-    def __hash__(self):
-        return 1
-
-    def __lt__(self, other):
-        if isinstance(other, TrueClass):
-            return False
-        if isinstance(other, FalseClass):
-            return False
-        return NotImplemented
-
-@total_ordering
 class FalseClass(object):
     def __eq__(self, other):
-        return isinstance(other, FalseClass)
-
+        return other is false
     def __neg__(self):
         return true
-
     def __str__(self):
         return "false"
     __repr__ = __str__
-
-    def __hash__(self):
-        return 0
-
-    def __lt__(self, other):
-        if isinstance(other, FalseClass):
-            return False
-        if isinstance(other, TrueClass):
-            return True
-        return NotImplemented
-
-true = TrueClass()
 false = FalseClass()
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
@@ -88,7 +61,7 @@ false = FalseClass()
 
 class Clauses(object):
     def __init__(self, MAX_N=0):
-        self.clauses = set()
+        self.clauses = []
         self.MAX_N = MAX_N
 
     def get_new_var(self):
@@ -128,14 +101,14 @@ class Clauses(object):
         # "Red" clauses are redundant, but they assist the unit propagation in the
         # SAT solver
         if polarity in {False, None}:
-            self.clauses.update((
+            self.clauses.extend((
                 # Negative
                 (-c, -t, x),
                 (c, -f, x),
                 (-t, -f, x), # Red
                 ))
         if polarity in {True, None}:
-            self.clauses.update((
+            self.clauses.extend((
                 # Positive
                 (-c, t, -x),
                 (c, f, -x),
@@ -164,14 +137,14 @@ class Clauses(object):
 
         x = self.get_new_var()
         if polarity in {True, None}:
-            self.clauses.update((
+            self.clauses.extend((
                 # positive
                 # ~f -> ~x, ~g -> ~x
                 (-x, f),
                 (-x, g),
                 ))
         if polarity in {False, None}:
-            self.clauses.add(
+            self.clauses.append(
             # negative
             # (f AND g) -> x
             (x, -f, -g),
@@ -207,13 +180,13 @@ class Clauses(object):
 
         x = self.get_new_var()
         if polarity in {True, None}:
-            self.clauses.update((
+            self.clauses.extend((
                 # Positive
                 (-x, f, g),
                 (-x, -f, -g),
             ))
         if polarity in {False, None}:
-            self.clauses.update((
+            self.clauses.extend((
                 # Negative
                 (x, -f, g),
                 (x, f, -g),
@@ -268,12 +241,13 @@ def generate_constraints(eq, m, rhs):
     # set to zero. That's a lot quicker than building it into the adder
     ub = rhs[-1]
     C = Clauses(m)
-    C.clauses.update((-a,) for c,a in eq if c>ub)
+    C.clauses.extend((-a,) for c,a in eq if c>ub)
     nz = len(C.clauses)
     if nz < len(eq):
         eq = [q for q in eq if q[0]<=rhs[1]]
-        C.clauses.add((C.build_BDD(eq, rhs[0], rhs[1], polarity=True),))
-    return C.clauses
+        C.clauses.append((C.build_BDD(eq, rhs[0], rhs[1], polarity=True),))
+    assert false not in C.clauses, 'Optimization error'
+    return [] if true in C.clauses else C.clauses
 
 try:
     pycosat.itersolve({(1,)})
@@ -316,7 +290,7 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, trymin=True, t
         log.debug('Empty objective, trivial solution')
         return clauses, bestsol
     m = len(bestsol)
-    bestcon = clauses
+    bestcon = []
     bestval = evaluate_eq(objective, bestsol)
     log.debug("Initial upper bound: %s" % bestval)
     lo = minval
@@ -331,29 +305,23 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, trymin=True, t
             mid = hi - 1
         else:
             mid = min([lo + increment, (lo + hi)//2])
-        rhs = [lo, mid]
         trymin = trymax = False
-        if mid == 0:
-            constraints = set((-q[1],) for q in objective)
-        else:
-            constraints = set(generate_constraints(objective, m, [0, mid]))
-            assert false not in constraints, 'Optimization error'
-            if true in constraints:
-                constraints = set([])
-        newcon = clauses | constraints
-        newsol = sat(newcon)
+        # Empirically, using [0,mid] instead of [lo,mid] is slightly faster
+        # And since we're minimizing it doesn't matter mathematically
+        constraints = generate_constraints(objective, m, [0, mid])
+        newsol = sat(chain(clauses,constraints))
         if newsol is None:
-            log.debug("Bisection range %s: failure" % rhs)
+            log.debug("Bisection range %s: failure" % (rhs,))
             lo = mid+1
         else:
-            bestcon = newcon
+            bestcon = constraints
             bestsol = newsol
             if trymin:
                 log.debug("Minimum objective %d satisfiable" % lo)
                 break
             hi = evaluate_eq(objective, newsol)
             log.debug("Bisection range %s: success, value %s" % (rhs,hi))
-    return bestcon, bestsol
+    return clauses + bestcon, bestsol
 
 class MaximumIterationsError(Exception):
     pass

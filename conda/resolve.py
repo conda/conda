@@ -744,7 +744,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             dotlog.debug('Checking satisfiability')
             groups = build_groups(dists)
             m, v, w = self.build_vw(groups)
-            clauses = set(self.gen_clauses(v, groups, specs))
+            clauses = list(self.gen_clauses(v, groups, specs))
             solution = sat(clauses)
             if not solution:
                 if guess:
@@ -780,7 +780,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             nsol = 1
             while True:
                 nclause = tuple(-q for q in solution if 0 < q <= m)
-                clauses.add(nclause)
+                clauses.append(nclause)
                 solution = sat(clauses)
                 if solution is None:
                     break
