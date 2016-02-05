@@ -88,9 +88,6 @@ class TestPackage(unittest.TestCase):
 
 class TestSolve(unittest.TestCase):
 
-    def setUp(self):
-        r.msd_cache = {}
-
     def assert_have_mkl(self, dists, names):
         for fn in dists:
             if fn.rsplit('-', 2)[0] in names:
@@ -201,9 +198,6 @@ class TestSolve(unittest.TestCase):
 
 class TestFindSubstitute(unittest.TestCase):
 
-    def setUp(self):
-        r.msd_cache = {}
-
     def test1(self):
         installed = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         for old, new in [('numpy-1.7.1-py27_p0.tar.bz2',
@@ -218,48 +212,39 @@ class TestFindSubstitute(unittest.TestCase):
 @pytest.mark.slow
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    for alg in ['sorter', 'BDD']: #, 'BDD_recursive']:
-        assert r.solve(['iopro', 'python 2.7*', 'numpy 1.5*'], 
-            alg=alg, returnall=True) == [[
-            'iopro-1.4.3-np15py27_p0.tar.bz2',
-            'numpy-1.5.1-py27_4.tar.bz2',
-            'openssl-1.0.1c-0.tar.bz2',
-            'python-2.7.5-0.tar.bz2',
-            'readline-6.2-0.tar.bz2',
-            'sqlite-3.7.13-0.tar.bz2',
-            'system-5.8-1.tar.bz2',
-            'tk-8.5.13-0.tar.bz2',
-            'unixodbc-2.3.1-0.tar.bz2',
-            'zlib-1.2.7-0.tar.bz2',
-        ]]
+    assert r.solve(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
+        'iopro-1.4.3-np15py27_p0.tar.bz2',
+        'numpy-1.5.1-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'unixodbc-2.3.1-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]
 
-    for alg in ['sorter', 'BDD']: #, 'BDD_recursive']:
-        assert r.solve(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'],
-            alg=alg, returnall=True) == [[
-            'iopro-1.4.3-np15py27_p0.tar.bz2',
-            'mkl-rt-11.0-p0.tar.bz2',
-            'numpy-1.5.1-py27_p4.tar.bz2',
-            'openssl-1.0.1c-0.tar.bz2',
-            'python-2.7.5-0.tar.bz2',
-            'readline-6.2-0.tar.bz2',
-            'sqlite-3.7.13-0.tar.bz2',
-            'system-5.8-1.tar.bz2',
-            'tk-8.5.13-0.tar.bz2',
-            'unixodbc-2.3.1-0.tar.bz2',
-            'zlib-1.2.7-0.tar.bz2',
-        ]]
+    assert r.solve(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+        'iopro-1.4.3-np15py27_p0.tar.bz2',
+        'mkl-rt-11.0-p0.tar.bz2',
+        'numpy-1.5.1-py27_p4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'unixodbc-2.3.1-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]
 
 def test_get_dists():
-    r.msd_cache = {}
     dists, _ = r.get_dists(["anaconda 1.5.0"])
     assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
     assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
-    for d in dists:
-        assert dists[d].fn == d
 
 def test_generate_eq():
-    r.msd_cache = {}
-
     specs = ['anaconda']
     dists, _ = r.get_dists(specs)
     groups = build_groups(dists)
@@ -744,8 +729,6 @@ def test_generate_eq():
     assert e2 == [q for q in e if q[0]>0]
 
 def test_unsat():
-    r.msd_cache = {}
-
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
     assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']), 'conflict')
     # numpy 1.5 does not have a python 3 package
@@ -753,8 +736,6 @@ def test_unsat():
     assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'numpy 1.6*']), 'conflict')
 
 def test_nonexistent():
-    r.msd_cache = {}
-
     assert raises(NoPackagesFound, lambda: r.solve(['notarealpackage 2.0*']), 'No packages found')
     # This exact version of NumPy does not exist
     assert raises(NoPackagesFound, lambda: r.solve(['numpy 1.5']), 'No packages found')
@@ -1108,8 +1089,6 @@ def test_package_ordering():
     assert (numpy == numpy_mkl) is False
 
 def test_irrational_version():
-    r.msd_cache = {}
-
     assert r.solve(['pytz 2012d', 'python 3*'], returnall=True) == [[
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -1122,9 +1101,6 @@ def test_irrational_version():
     ]]
 
 def test_no_features():
-    # Features that aren't specified shouldn't be selected.
-    r.msd_cache = {}
-
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     assert r.solve(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
         returnall=True) == [[

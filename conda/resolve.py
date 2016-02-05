@@ -174,8 +174,6 @@ def build_groups(index):
     groups = {}
     feats = {}
     for fn, info in iteritems(index):
-        if isinstance(info, Package):
-            info = info.info
         if fn[-1] == '@':
             assert info['name'] == fn and info.get('track_features','') == fn[:-1]
             feats[fn] = info
@@ -213,7 +211,7 @@ class Resolve(object):
         self.groups = build_groups(self.index)
         self.ms_cache = {}
 
-    def get_dists(self, specs, filtered=True, wrap=True, sat_only=False):
+    def get_dists(self, specs, filtered=True, sat_only=False):
         log.debug('Beginning the pruning process')
 
         specs = list(map(MatchSpec, specs))
@@ -223,12 +221,6 @@ class Resolve(object):
         unsat = []
 
         def filter_group(matches, top):
-            # Ignore optional specifications
-            if any(ms.optional for ms in matches):
-                matches = [ms for ms in matches if not ms.optional]
-                if not matches:
-                    return False
-
             # If no packages exist with this name, it's a fatal error
             match1 = next(x for x in matches)
             name = match1.name
@@ -350,9 +342,10 @@ class Resolve(object):
             while pruned:
                 pruned = prune_features()
                 for s in list(specs):
-                    pruned += filter_group([s], None)
-                    if unsat and sat_only:
-                        return False
+                    if not s.optional:
+                        pruned += filter_group([s], None)
+                        if unsat and sat_only:
+                            return False
 
         # Touch all packages
         touched = {}
@@ -406,8 +399,6 @@ class Resolve(object):
             sys.exit('\n'.join(hint))
 
         dists = {fn:info for fn,info in iteritems(self.index) if touched.get(fn)}
-        if wrap:
-            dists = {fn:Package(fn,info) for fn,info in iteritems(dists)}
         return dists, specs
 
     def match_any(self, mss, fn):
@@ -449,21 +440,16 @@ class Resolve(object):
 
     @memoize
     def version_key(self, fn):
-        rec = self.index.get(fn, None)
-        if rec is None:
-            return None
-        return (VersionOrder(rec['version']), len(self.features(fn)), rec['build_number'], rec['build'])
+        rec = self.index[fn]
+        feats = self.features(fn)
+        return (VersionOrder(rec['version']), len(feats), feats, rec['build_number'], rec['build'])
 
     @memoize
     def features(self, fn):
-        if fn[-1] == ']':
-            return self.features(fn.rsplit('[',1)[0])
         return set(self.index[fn].get('features', '').split())
 
     @memoize
     def track_features(self, fn):
-        if fn[-1] == ']':
-            return self.track_features(fn.rsplit('[',1)[0])
         return set(self.index[fn].get('track_features', '').split())
 
     @memoize
@@ -634,7 +620,7 @@ class Resolve(object):
         setup_verbose_handlers()
 
         def mysat(specs):
-            dists = self.get_dists(specs, wrap=False)
+            dists = self.get_dists(specs)
             groups = build_groups(dists)
             m, v, w = self.build_vw(groups)
             clauses = set(self.gen_clauses(v, groups, specs))
@@ -718,7 +704,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             return None
 
     def solve(self, specs, installed=[], update_deps=True, returnall=False, 
-              guess=True, minimal_hint=False, alg='BDD'):
+              guess=True, minimal_hint=False):
         try:
             stdoutlog.info("Solving package specifications: ")
             res = self.explicit(specs)
@@ -748,8 +734,9 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                 snames.add(spec)
             dotlog.debug("Solving for %s" % specs)
 
+            len0 = len(specs)
             try:
-                dists, new_specs = self.get_dists(specs, wrap=False)
+                dists, specs = self.get_dists(specs)
             except NoPackagesFound:
                 raise
 
@@ -772,15 +759,19 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                 raise RuntimeError("Unsatisfiable package specifications")
 
             dotlog.debug('Optimizing feature count')
-            eq_features = self.generate_feature_eq(v, groups, new_specs)
+            eq_features = self.generate_feature_eq(v, groups, specs)
             clauses, solution = optimize(eq_features, clauses, solution)
 
-            dotlog.debug('Optimizing versions')
-            eq_version = self.generate_version_eq(v, groups, new_specs)
+            dotlog.debug('Optimizing requested versions')
+            eq_version = self.generate_version_eq(v, groups, specs[:len0])
             clauses, solution = optimize(eq_version, clauses, solution)
 
+            dotlog.debug('Optimizing remaining versions')
+            eq_version = self.generate_version_eq(v, groups, specs[len0:])
+            clauses, solution = optimize(eq_version, clauses, solution, trymax=True)
+
             dotlog.debug('Optimizing dependency count')
-            eq_packages = self.generate_package_count(v, groups, new_specs)
+            eq_packages = self.generate_package_count(v, groups, specs)
             clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
 
             dotlog.debug('Looking for alternate solutions')
