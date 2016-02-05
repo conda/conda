@@ -123,7 +123,7 @@ def execute(args, parser):
 
 def execute_search(args, parser):
     import re
-    from conda.resolve import MatchSpec, Resolve
+    from conda.resolve import Resolve
 
     if args.reverse_dependency:
         if not args.regex:
@@ -135,7 +135,7 @@ def execute_search(args, parser):
     ms = None
     if args.regex:
         if args.spec:
-            ms = MatchSpec(' '.join(args.regex.split('=')))
+            ms = ' '.join(args.regex.split('='))
         else:
             regex = args.regex
             if args.full_name:
@@ -201,6 +201,8 @@ def execute_search(args, parser):
 
     names = []
     for name in sorted(r.groups):
+        if '@' in name:
+            continue
         if args.reverse_dependency:
             ms_name = ms
             for pkg in r.groups[name]:
@@ -216,7 +218,7 @@ def execute_search(args, parser):
             if ms:
                 ms_name = ms
             else:
-                ms_name = MatchSpec(name)
+                ms_name = name
 
             pkgs = sorted(r.get_pkgs(ms_name))
             names.append((name, pkgs))
