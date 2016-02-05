@@ -184,12 +184,12 @@ def execute_search(args, parser):
         index = common.get_index_trap(channel_urls=channel_urls,
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
-                                      unknown=args.unknown,
+                                      unknown=args.unknown, prefix=prefix,
                                       json=args.json, platform=args.platform, offline=args.offline)
     else:
         index = common.get_index_trap(channel_urls=channel_urls, prepend=not
                                       args.override_channels, platform=args.platform,
-                                      use_cache=args.use_index_cache,
+                                      use_cache=args.use_index_cache, prefix=prefix,
                                       unknown=args.unknown, json=args.json, offline=args.offline)
 
     r = Resolve(index)

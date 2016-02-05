@@ -236,7 +236,8 @@ def install(args, parser, command='install'):
                                   use_cache=args.use_index_cache,
                                   unknown=args.unknown,
                                   json=args.json,
-                                  offline=args.offline)
+                                  offline=args.offline,
+                                  prefix=prefix)
 
     if newenv and args.clone:
         if set(args.packages) - set(default_packages):
@@ -456,7 +457,7 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True,
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
-                          platform=platform)
+                          platform=platform, prefix=prefix)
         actions = plan.install_actions(prefix, index, specs, pinned=False,
                                        minimal_hint=minimal_hint)
         plan.display_actions(actions, index)

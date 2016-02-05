@@ -25,6 +25,7 @@ being used will only be used in the positive or the negative, respectively
 
 """
 from collections import defaultdict
+from functools import total_ordering
 from itertools import chain
 import logging
 import pycosat
@@ -34,6 +35,7 @@ log = logging.getLogger(__name__)
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
+@total_ordering
 class TrueClass(object):
     def __eq__(self, other):
         return other is true
@@ -41,9 +43,12 @@ class TrueClass(object):
         return false
     def __str__(self):
         return "true"
+    def __lt__(self, other):
+        return False
     __repr__ = __str__
 true = TrueClass()
 
+@total_ordering
 class FalseClass(object):
     def __eq__(self, other):
         return other is false
@@ -51,6 +56,8 @@ class FalseClass(object):
         return true
     def __str__(self):
         return "false"
+    def __gt__(self, other):
+        return False
     __repr__ = __str__
 false = FalseClass()
 
@@ -308,6 +315,7 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, trymin=True, t
         trymin = trymax = False
         # Empirically, using [0,mid] instead of [lo,mid] is slightly faster
         # And since we're minimizing it doesn't matter mathematically
+        rhs =  (lo,mid)
         constraints = generate_constraints(objective, m, [0, mid])
         newsol = sat(chain(clauses,constraints))
         if newsol is None:

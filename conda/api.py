@@ -26,20 +26,26 @@ def _fn2fullspec(fn):
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_cache=False, unknown=False, offline=False):
+              use_cache=False, unknown=False, offline=False,
+              prefix=None):
     """
     Return the index of packages available on the channels
 
     If prepend=False, only the channels passed in as arguments are used.
     If platform=None, then the current platform is used.
+    If prefix is supplied, then the packages installed in that prefix are added.
     """
     channel_urls = config.normalize_urls(channel_urls, platform=platform)
     if prepend:
         channel_urls += config.get_channel_urls(platform=platform)
     if offline:
         channel_urls = [url for url in channel_urls if url.startswith('file:')]
-    return fetch_index(tuple(channel_urls), use_cache=use_cache,
+    index = fetch_index(tuple(channel_urls), use_cache=use_cache,
                        unknown=unknown)
+    if prefix:
+        for fn, info in iteritems(install.linked_data(prefix)):
+            index[fn+'.tar.bz2'] = info
+    return index
 
 
 def app_get_index(all_version=False):
@@ -75,7 +81,7 @@ def app_get_icon_url(fn):
     return make_icon_url(info)
 
 
-def app_info_packages(fn):
+def app_info_packages(fn, prefix=config.root_dir):
     """
     given the filename of a package, return which packages (and their sizes)
     still need to be downloaded, in order to install the package.  That is,
@@ -85,14 +91,15 @@ def app_info_packages(fn):
     """
     from conda.resolve import Resolve
 
-    index = get_index()
+    index = get_index(prefix=prefix)
     r = Resolve(index)
     res = []
-    for fn2 in r.solve([_fn2fullspec(fn)]):
+    for fn2 in r.solve([_fn2fullspec(fn)], installed=install.linked(prefix)):
         info = index[fn2]
-        res.append((info['name'], info['version'], info['size'],
-                    any(install.is_fetched(pkgs_dir, fn2[:-8])
-                        for pkgs_dir in config.pkgs_dirs)))
+        if 'link' not in info:
+            res.append((info['name'], info['version'], info['size'],
+                        any(install.is_fetched(pkgs_dir, fn2[:-8])
+                            for pkgs_dir in config.pkgs_dirs)))
     return res
 
 
@@ -122,7 +129,7 @@ def app_install(fn, prefix=config.root_dir):
     """
     import conda.plan as plan
 
-    index = get_index()
+    index = get_index(prefix=prefix)
     actions = plan.install_actions(prefix, index, [_fn2spec(fn)])
     plan.execute_actions(actions, index)
 
@@ -149,7 +156,7 @@ def app_uninstall(fn, prefix=config.root_dir):
     import conda.cli.common as common
     import conda.plan as plan
 
-    index = None
+    index = get_index(prefix=prefix)
     specs = [_fn2spec(fn)]
     if (plan.is_root_prefix(prefix) and
         common.names_in_specs(common.root_no_rm, specs)):
