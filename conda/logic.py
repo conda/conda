@@ -29,9 +29,6 @@ from functools import total_ordering
 import logging
 import pycosat
 
-from conda.compat import log2, ceil, zip
-from conda.utils import memoize
-
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
 
@@ -87,7 +84,7 @@ false = FalseClass()
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
-# SAT," Eén and Sörensson).  The sorter code is in Hardware_sorters.cc.
+# SAT," Eén and Sörensson).
 
 class Clauses(object):
     def __init__(self, MAX_N=0):
@@ -98,8 +95,7 @@ class Clauses(object):
         self.MAX_N += 1
         return self.MAX_N
 
-    @memoize
-    def ITE(self, c, t, f, polarity=None, red=True):
+    def ITE(self, c, t, f, polarity=None):
         """
         if c then t else f
 
@@ -132,29 +128,22 @@ class Clauses(object):
         # "Red" clauses are redundant, but they assist the unit propagation in the
         # SAT solver
         if polarity in {False, None}:
-            self.clauses |= {
+            self.clauses.update((
                 # Negative
                 (-c, -t, x),
                 (c, -f, x),
-                }
-            if red:
-                self.clauses |= {
-                    (-t, -f, x), # Red
-                }
+                (-t, -f, x), # Red
+                ))
         if polarity in {True, None}:
-            self.clauses |= {
+            self.clauses.update((
                 # Positive
                 (-c, t, -x),
                 (c, f, -x),
-                }
-            if red:
-                self.clauses |= {
-                    (t, f, -x), # Red
-                }
+                (t, f, -x), # Red
+                ))
 
         return x
 
-    @memoize
     def And(self, f, g, polarity=None):
         if f == false or g == false:
             return false
@@ -175,28 +164,26 @@ class Clauses(object):
 
         x = self.get_new_var()
         if polarity in {True, None}:
-            self.clauses |= {
+            self.clauses.update((
                 # positive
                 # ~f -> ~x, ~g -> ~x
                 (-x, f),
                 (-x, g),
-                }
+                ))
         if polarity in {False, None}:
-            self.clauses |= {
+            self.clauses.add(
             # negative
             # (f AND g) -> x
             (x, -f, -g),
-            }
+            )
 
         return x
 
-    @memoize
     def Or(self, f, g, polarity=None):
         if polarity is not None:
             polarity = not polarity
         return -self.And(-f, -g, polarity=polarity)
 
-    @memoize
     def Xor(self, f, g, polarity=None):
         # Minisatp treats XOR as NOT EQUIV
         if f == false:
@@ -220,228 +207,51 @@ class Clauses(object):
 
         x = self.get_new_var()
         if polarity in {True, None}:
-            self.clauses |= {
+            self.clauses.update((
                 # Positive
                 (-x, f, g),
                 (-x, -f, -g),
-            }
+            ))
         if polarity in {False, None}:
-            self.clauses |= {
+            self.clauses.update((
                 # Negative
                 (x, -f, g),
                 (x, f, -g),
-            }
+            ))
         return x
 
-    # Memoization is done in the function itself
-    # TODO: This is a bit slower than the recursive version because it doesn't
-    # "jump back" to the call site.
-    def build_BDD(self, linear, sum=0, polarity=None):
-        call_stack = [(linear, sum)]
-        first_stack = call_stack[0]
+    def build_BDD(self, equation, lo, hi, polarity=None):
+        equation = sorted(equation)
+        total = sum(i for i,_ in equation)
+        first_stack = (len(equation)-1,0,total)
+        call_stack = [first_stack]
         ret = {}
+        csum = 0
         while call_stack:
-            linear, sum = call_stack[-1]
-            lower_limit = linear.lo - sum
-            upper_limit = linear.hi - sum
-            if lower_limit <= 0 and upper_limit >= linear.total:
+            ndx, csum, total = call_stack[-1]
+            lower_limit = lo - csum
+            upper_limit = hi - csum
+            if lower_limit <= 0 and upper_limit >= total:
                 ret[call_stack.pop()] = true
                 continue
-            if lower_limit > linear.total or upper_limit < 0:
+            if lower_limit > total or upper_limit < 0:
                 ret[call_stack.pop()] = false
                 continue
-
-            new_linear = linear[:-1]
-            LC = linear.LC
-            LA = linear.LA
-            # This is handled by the abs() call below. I think it's done this way to
-            # aid caching.
-            hi_sum = sum if LA < 0 else sum + LC
-            lo_sum = sum + LC if LA < 0 else sum
-            try:
-                hi = ret[(new_linear, hi_sum)]
-            except KeyError:
-                call_stack.append((new_linear, hi_sum))
+            LC, LA = equation[ndx]
+            ndx -= 1
+            total -= LC
+            hi_key = (ndx,csum if LA < 0 else csum + LC,total)
+            thi = ret.get(hi_key)
+            if thi is None:
+                call_stack.append(hi_key)
                 continue
-
-            try:
-                lo = ret[(new_linear, lo_sum)]
-            except KeyError:
-                call_stack.append((new_linear, lo_sum))
+            lo_key = (ndx,csum + LC if LA < 0 else csum,total)
+            tlo = ret.get(lo_key)
+            if tlo is None:
+                call_stack.append(lo_key)
                 continue
-
-            ret[call_stack.pop()] = self.ITE(abs(LA), hi, lo, polarity=polarity)
-
+            ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity=polarity)
         return ret[first_stack]
-
-    # Reference implementation for testing. The recursion depth gets exceeded
-    # for too long formulas, so we use the non-recursive version above.
-    @memoize
-    def build_BDD_recursive(self, linear, sum=0, polarity=None):
-        lower_limit = linear.lo - sum
-        upper_limit = linear.hi - sum
-        if lower_limit <= 0 and upper_limit >= linear.total:
-            return true
-        if lower_limit > linear.total or upper_limit < 0:
-            return false
-
-        new_linear = linear[:-1]
-        LC = linear.LC
-        LA = linear.LA
-        # This is handled by the abs() call below. I think it's done this way to
-        # aid caching.
-        hi_sum = sum if LA < 0 else sum + LC
-        lo_sum = sum + LC if LA < 0 else sum
-        hi = self.build_BDD_recursive(new_linear, hi_sum, polarity=polarity)
-        lo = self.build_BDD_recursive(new_linear, lo_sum, polarity=polarity)
-        ret = self.ITE(abs(LA), hi, lo, polarity=polarity)
-
-        return ret
-
-    @memoize
-    def Cmp(self, a, b):
-        """
-        Returns [max(a, b), min(a, b)].
-        """
-        return [self.Or(a, b), self.And(a, b)]
-
-    def odd_even_mergesort(self, A):
-        if len(A) == 1:
-            return A
-        if int(log2(len(A))) != log2(len(A)): # accurate to about 2**48
-            raise ValueError("Length of list must be a power of 2 to odd-even merge sort")
-
-        evens = A[::2]
-        odds = A[1::2]
-        sorted_evens = self.odd_even_mergesort(evens)
-        sorted_odds = self.odd_even_mergesort(odds)
-        return self.odd_even_merge(sorted_evens, sorted_odds)
-
-    def odd_even_merge(self, A, B):
-        if len(A) != len(B):
-            raise ValueError("Lists must be of the same length to odd-even merge")
-        if len(A) == 1:
-            return self.Cmp(A[0], B[0])
-
-        # Guaranteed to have the same length because len(A) is a power of 2
-        A_evens = A[::2]
-        A_odds = A[1::2]
-        B_evens = B[::2]
-        B_odds = B[1::2]
-        C = self.odd_even_merge(A_evens, B_odds)
-        D = self.odd_even_merge(A_odds, B_evens)
-        merged = []
-        for i, j in zip(C, D):
-            merged += self.Cmp(i, j)
-
-        return merged
-
-    def build_sorter(self, linear):
-        if not linear:
-            return []
-        sorter_input = []
-        for coeff, atom in linear.equation:
-            sorter_input += [atom]*coeff
-        next_power_of_2 = 2**ceil(log2(len(sorter_input)))
-        sorter_input += [false]*(next_power_of_2 - len(sorter_input))
-        return self.odd_even_mergesort(sorter_input)
-
-class Linear(object):
-    """
-    A (canonicalized) linear constraint
-
-    Canonicalized means all coefficients are positive.
-    """
-    def __init__(self, equation, rhs, total=None, sort=True):
-        """
-        Equation should be a list of tuples of the form (coeff, atom) (they must
-        be tuples so that the resulting object can be hashed). rhs is the
-        number on the right-hand side, or a list [lo, hi].
-
-        """
-        self.equation = equation
-        if sort:
-            self.equation = sorted(equation)
-        self.equation = tuple(self.equation)
-        self.rhs = rhs
-        if isinstance(rhs, int):
-            self.lo = self.hi = rhs
-        else:
-            self.lo, self.hi = rhs
-        self.total = total or sum([i for i, _ in equation])
-        if equation:
-            self.LC = self.equation[-1][0]
-            self.LA = self.equation[-1][1]
-        # self.lower_limit = self.lo - self.total
-        # self.upper_limit = self.hi - self.total
-
-    @property
-    def coeffs(self):
-        if hasattr(self, '_coeffs'):
-            return self._coeffs
-        self._coeffs = []
-        self._atoms = []
-        for coeff, atom in self.equation:
-            self._coeffs.append(coeff)
-            self._atoms.append(atom)
-        return self._coeffs
-
-    @property
-    def atoms(self):
-        if hasattr(self, '_atoms'):
-            return self._atoms
-        self._coeffs = []
-        self._atoms = []
-        for coeff, atom in self.equation:
-            self._coeffs.append(coeff)
-            self._atoms.append(atom)
-        return self._atoms
-
-    @property
-    def atom2coeff(self):
-        return defaultdict(int, {atom: coeff for coeff, atom in self.equation})
-
-    def __call__(self, sol):
-        """
-        Call a solution to see if it is satisfied
-        """
-        t = 0
-        for s in sol:
-            t += self.atom2coeff[s]
-        return self.lo <= t <= self.hi
-
-    def __len__(self):
-        return len(self.equation)
-
-    def __getitem__(self, key):
-        if not isinstance(key, slice):
-            raise NotImplementedError("Non-slice indices are not supported")
-        if key == slice(None, -1, None):
-            total = self.total - self.LC
-            sort = False
-        else:
-            total = None
-            sort = True
-        return self.__class__(self.equation.__getitem__(key), self.rhs,
-            total=total, sort=sort)
-
-    def __eq__(self, other):
-        if not isinstance(other, Linear):
-            return False
-        return (self.equation == other.equation and self.lo == other.lo and
-        self.hi == other.hi)
-
-    def __hash__(self):
-        try:
-            return self._hash
-        except AttributeError:
-            self._hash = hash((self.equation, self.lo, self.hi))
-            return self._hash
-
-    def __str__(self):
-        return "Linear(%r, %r)" % (self.equation, self.rhs)
-
-    __repr__ = __str__
 
 def evaluate_eq(eq, sol):
     """
@@ -453,46 +263,17 @@ def evaluate_eq(eq, sol):
         t += atom2coeff[s]
     return t
 
-def generate_constraints(eq, m, rhs, alg='BDD', sorter_cache={}):
+def generate_constraints(eq, m, rhs):
     # If a coefficient is larger than rhs then we know it has to be
     # set to zero. That's a lot quicker than building it into the adder
     ub = rhs[-1]
-    additional_clauses = set((-a,) for c,a in eq if c>ub)
-    nz = len(additional_clauses)
-    if nz == len(eq):
-        return additional_clauses
-    elif nz:
-        eq = [q for q in eq if q[0]<=rhs[1]]
-    l = Linear(eq, rhs)
-    if not l:
-        return additional_clauses
     C = Clauses(m)
-    if alg == 'BDD':
-        additional_clauses.add((C.build_BDD(l, polarity=True),))
-    elif alg == 'BDD_recursive':
-        additional_clauses.add((C.build_BDD_recursive(l, polarity=True),))
-    elif alg == 'sorter':
-        if l.equation in sorter_cache:
-            m, C = sorter_cache[l.equation]
-        else:
-            if sorter_cache:
-                sorter_cache.popitem()
-            m = C.build_sorter(l)
-            sorter_cache[l.equation] = m, C
-
-        if l.rhs[0]:
-            # Output must be between lower bound and upper bound, meaning
-            # the lower bound of the sorted output must be true and one more
-            # than the upper bound should be false.
-            additional_clauses.add((m[l.rhs[0]-1],))
-            additional_clauses.add((-m[l.rhs[1]],))
-        else:
-            # The lower bound is zero, which is always true.
-            additional_clauses.add((-m[l.rhs[1]],))
-    else:
-        raise ValueError("alg must be one of 'BDD', 'BDD_recursive', or 'sorter'")
-
-    return C.clauses | additional_clauses
+    C.clauses.update((-a,) for c,a in eq if c>ub)
+    nz = len(C.clauses)
+    if nz < len(eq):
+        eq = [q for q in eq if q[0]<=rhs[1]]
+        C.clauses.add((C.build_BDD(eq, rhs[0], rhs[1], polarity=True),))
+    return C.clauses
 
 try:
     pycosat.itersolve({(1,)})
@@ -517,7 +298,7 @@ def sat(clauses, iterator=False):
         return None
     return solution
 
-def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', trymin=True):
+def optimize(objective, clauses, bestsol, minval=0, increment=10, trymin=True, trymax=False):
     """
     Bisect the solution space of a constraint, to minimize it.
 
@@ -534,24 +315,28 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, alg='BDD', try
     if not objective:
         log.debug('Empty objective, trivial solution')
         return clauses, bestsol
-    log.debug("Using alg %s" % alg)
     m = len(bestsol)
     bestcon = clauses
     bestval = evaluate_eq(objective, bestsol)
-    log.debug("Initial upper bound: %s" % bestsol)
+    log.debug("Initial upper bound: %s" % bestval)
     lo = minval
     # If bestval = lo, we have a minimal solution, but we
     # still need to run the loop at least once to generate
     # the constraints to lock the solution in place.
     hi = max([bestval, lo+1])
     while lo < hi:
-        mid = lo if (trymin or lo == bestval) else min([lo + increment, (lo + hi)//2])
+        if lo == bestval or trymin and not trymax:
+            mid = lo
+        elif trymax:
+            mid = hi - 1
+        else:
+            mid = min([lo + increment, (lo + hi)//2])
         rhs = [lo, mid]
-        trymin = False
+        trymin = trymax = False
         if mid == 0:
             constraints = set((-q[1],) for q in objective)
         else:
-            constraints = set(generate_constraints(objective, m, [0, mid], alg=alg))
+            constraints = set(generate_constraints(objective, m, [0, mid]))
             assert false not in constraints, 'Optimization error'
             if true in constraints:
                 constraints = set([])
