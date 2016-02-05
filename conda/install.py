@@ -504,6 +504,21 @@ def rm_extracted(pkgs_dir, dist):
 
 # ------- linkage of packages
 
+def linked_data(prefix):
+    """
+    Return a dictionary of the linked packages in prefix.
+    """
+    res = {}
+    meta_dir = join(prefix, 'conda-meta')
+    if isdir(meta_dir):
+        for fn in os.listdir(meta_dir):
+            if fn.endswith('.json'):
+                try:
+                    res[fn[:-5]] = json.load(open(join(meta_dir,fn)))
+                except IOError:
+                    pass
+    return res
+
 def linked(prefix):
     """
     Return the (set of canonical names) of linked packages in prefix.
