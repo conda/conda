@@ -349,7 +349,7 @@ def add_defaults_to_specs(r, linked, specs):
 
         any_depends_on = any(ms2.name == name
                              for spec in specs
-                             for fn in r.get_max_dists(MatchSpec(spec))
+                             for fn in r.find_matches(spec)
                              for ms2 in r.ms_depends(fn))
         log.debug('H2 %s %s' % (name, any_depends_on))
 
@@ -407,8 +407,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
+    if config.track_features:
+        specs.extend(x + '@' for x in config.track_features)
     for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
-                      config.track_features, minimal_hint=minimal_hint,
+                      minimal_hint=minimal_hint,
                       update_deps=update_deps):
         dist = fn[:-8]
         name = install.name_dist(dist)
@@ -430,7 +432,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
             sys.exit("Error: 'conda' can only be installed into the "
                      "root environment")
 
-    smh = r.graph_sort(must_have)
+    smh = r.dependency_sort(must_have)
 
     if force:
         actions = force_linked_actions(smh, index, prefix)

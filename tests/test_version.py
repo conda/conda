@@ -1,8 +1,7 @@
 from __future__ import print_function, absolute_import
 import unittest
 
-from conda.version import ver_eval, VersionSpec, VersionOrder
-from conda.resolve import normalized_version
+from conda.version import ver_eval, VersionSpec, VersionOrder, normalized_version
 
 class TestVersionSpec(unittest.TestCase):
 
