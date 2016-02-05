@@ -8,6 +8,7 @@ from functools import partial
 from os.path import abspath, isdir
 import os
 import re
+import shlex
 import tempfile
 
 
@@ -81,19 +82,41 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = re.compile('[a-zA-Z]:\\\\(?:[^:*?"<>|]+\\\\)*[^:*?"<>|;]+')
+    path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
     converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
-                       for _path in path_re.findall(path)]
+                       for _path in re.findall(path_re, path)]
     return ":".join(converted_paths)
 
 
-def unix_path_to_win(path):
+def unix_path_to_win(path, root_prefix=""):
+    """Convert a path or :-separated string of paths into a Windows representation
+
+    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+    """
+    if ";" in path or (path[1] == ":" and path.count(":") == 1):
+        # already a windows path
+        return path.replace("/", "\\\\")
     """Convert a path or :-separated string of paths into a Windows representation"""
-    path_re = re.compile('\/[a-zA-Z]\/(?:[^:*?"<>|]+\\\\)*[^:*?"<>|;]+')
-    converted_paths = [_path[1] + ":" + _path[2:].replace("/", "\\")
-                       for _path in path_re.findall(path)]
+    path_re = root_prefix +'/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*'
+    converted_paths = [_path[len(root_prefix)+1] + ":" + _path[len(root_prefix)+2:].replace("/", "\\")
+                       for _path in re.findall(path_re, path)]
     return ";".join(converted_paths)
 
+
+# curry cygwin functions
+win_path_to_cygwin = lambda path : win_path_to_unix(path, "/cygdrive")
+cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
+
+
+def translate_stream(stream, translator):
+    translated_stream = ""
+    for line in stream.split("\n"):
+        for term in shlex.split(line):
+            if translator(term):
+                term = translator(term)
+            translated_stream = translated_stream + " " + term
+        translated_stream = translated_stream + "\n"
+    return translated_stream[1:-1]
 
 def human_bytes(n):
     """
