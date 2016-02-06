@@ -5,9 +5,8 @@ import logging
 from collections import defaultdict
 from itertools import chain
 
-from conda.utils import memoize
 from conda.compat import iterkeys, itervalues, iteritems, string_types
-from conda.logic import sat, optimize, minimal_unsatisfiable_subset
+from conda.logic import sat, optimize, minimal_unsatisfiable_subset, evaluate_eq
 from conda.version import VersionOrder, VersionSpec
 from conda.console import setup_handlers
 from conda import config
@@ -209,7 +208,8 @@ class Resolve(object):
                 fn2 = fn + '[' + fstr + ']'
                 self.index[fn2] = info
         self.groups = build_groups(self.index)
-        self.ms_cache = {}
+        self.find_matches_ = {}
+        self.ms_depends_ = {}
 
     def get_dists(self, specs, sat_only=False):
         log.debug('Beginning the pruning process')
@@ -424,38 +424,38 @@ class Resolve(object):
             if ms.match_fast(rec['version'], rec['build']):
                 yield fn
 
-    @memoize
     def find_matches(self, ms):
-        return tuple(self.find_matches_group(ms, self.groups))
+        res = self.find_matches_.get(ms,None)
+        if res is None:
+            res = self.find_matches_[ms] = tuple(self.find_matches_group(ms, self.groups))
+        return res
 
-    @memoize
     def ms_depends(self, fn):
-        if fn[-1] == ']':
-            fn2, fstr = fn[:-1].split('[')
-            fdeps = {d.name:d for d in self.ms_depends(fn2)}
-            for dep in self.index[fn2]['with_features_depends'][fstr]:
-                dep = MatchSpec(dep)
-                fdeps[dep.name] = dep
-            deps = list(fdeps.values())
-        else:
-            deps = [MatchSpec(d) for d in self.index[fn].get('depends',[])]
-        deps.extend(MatchSpec(feat + '@') for feat in self.features(fn))
+        deps = self.ms_depends_.get(fn,None)
+        if deps is None:
+            if fn[-1] == ']':
+                fn2, fstr = fn[:-1].split('[')
+                fdeps = {d.name:d for d in self.ms_depends(fn2)}
+                for dep in self.index[fn2]['with_features_depends'][fstr]:
+                    dep = MatchSpec(dep)
+                    fdeps[dep.name] = dep
+                deps = list(fdeps.values())
+            else:
+                deps = [MatchSpec(d) for d in self.index[fn].get('depends',[])]
+            deps.extend(MatchSpec(feat + '@') for feat in self.features(fn))
+            self.ms_depends_[fn] = deps
         return deps
 
-    @memoize
     def version_key(self, fn):
         rec = self.index[fn]
-        return (VersionOrder(rec['version']), rec['build_number'])
+        return (VersionOrder(rec['version']), rec['build_number'], len(self.features(fn)))
 
-    @memoize
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
 
-    @memoize
     def track_features(self, fn):
         return set(self.index[fn].get('track_features', '').split())
 
-    @memoize
     def package_triple(self, fn):
         if not fn.endswith('.tar.bz2'):
             return self.package_triple(fn + '.tar.bz2')
@@ -482,11 +482,11 @@ class Resolve(object):
                 # feat@ == fn1 OR fn2 OR fn3 OR fn4)
                 # If the track feature is active, at least one of its
                 # packages must be installed
-                yield tuple([-v[name]] + [v[fn2] for fn2 in group])
+                yield tuple([-v[name]] + [v[fn] for fn in group])
                 # If the track feature is not installed, none of its
                 # packages may be installed
                 for fn in group:
-                    yield (v[name],-v[fn2])
+                    yield (v[name],-v[fn])
                 continue
             for k, fn1 in enumerate(group):
                 # Ensure two package with the same name are not installed
@@ -514,27 +514,14 @@ class Resolve(object):
                 yield tuple(clause)
 
     def generate_feature_eq(self, v, groups, specs):
-        return [(1,v[name]) for name in iterkeys(groups) if name[-1] == '@']
-
-    def generate_feature_package_eq(self, v, groups, specs):
-        eq = []
-        max_rhs = 0
-        for name, group in iteritems(groups):
-            if name[-1] == '@':
-                continue
-            n_feat = 0
-            for fn in group:
-                tfeat = len(self.features(fn))
-                if tfeat != 0:
-                    eq.append((tfeat,v[fn]))
-                    n_feat = max((n_feat,tfeat))
-            max_rhs += n_feat
-        return eq, max_rhs
+        feats = {s.name for s in specs if s.name[-1] == '@' and not s.optional}
+        return [(1,v[name]) for name in iterkeys(groups) if name[-1] == '@' and name not in feats], len(feats)
 
     def generate_version_eq(self, v, groups, specs, include0=False):
         eq = []
         sdict = {}
         for s in specs:
+            s = MatchSpec(s) # needed for testing
             sdict.setdefault(s.name,[]).append(s)
         for name, mss in iteritems(sdict):
             if name[-1] == '@' or name not in groups:
@@ -693,7 +680,6 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
         dotlog.debug('explicit(%r) finished' % specs)
         return res
 
-    @memoize
     def sum_matches(self, fn1, fn2):
         return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
 
@@ -757,6 +743,10 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             except NoPackagesFound:
                 raise
 
+            # Clear out our caches to reduce memory usage before the solve
+            self.find_matches_.clear()
+            self.ms_depends_.clear()
+
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
             groups = build_groups(dists)
@@ -775,33 +765,31 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                         sys.exit(self.guess_bad_solve(specs))
                 raise RuntimeError("Unsatisfiable package specifications")
 
-            dotlog.debug('Optimizing feature count')
-            eq_features = self.generate_feature_eq(v, groups, specs)
-            clauses, solution, obj = optimize(eq_features, clauses, solution)
-            dotlog.debug('%d track features will be used.'%obj)
-
-            dotlog.debug('Optimizing featured package count')
-            eq_featpack, max_rhs = self.generate_feature_package_eq(v, groups, specs)
-            clauses, solution, obj = optimize(eq_featpack, clauses, solution, maximize=True, maxval=max_rhs)
-            dotlog.debug('%d package features will be installed.'%obj)
-
-            dotlog.debug('Optimizing requested packages')
             eq_version = self.generate_version_eq(v, groups, specs[:len0])
             clauses, solution, obj1 = optimize(eq_version, clauses, solution)
-            dotlog.debug('Requested package version metric: %d'%obj1)
+            dotlog.debug('Requested package metric: %d'%obj1)
 
-            dotlog.debug('Optimizing strong dependencies')
+            eq_features, n0 = self.generate_feature_eq(v, groups, specs)
+            clauses, solution, obj = optimize(eq_features, clauses, solution)
+            dotlog.debug('Feature count metric: %d'%(obj+n0))
+
             eq_version2 = self.generate_version_eq(v, groups, specs[len0:])
             clauses, solution, obj2 = optimize(eq_version2, clauses, solution)
-            dotlog.debug('Strong dependency version metric: %d'%obj2)
+            dotlog.debug('Strong dependency metric: %d'%obj2)
 
-            dotlog.debug('Optimizing weak dependencies')
             eq_version3 = self.generate_package_count(v, groups, specs)
             clauses, solution, obj3 = optimize(eq_version3, clauses, solution)
-            dotlog.debug('Weak dependency version metric: %d'%obj3)
+            dotlog.debug('Weak dependency metric: %d'%obj3)
+
+            dotlog.debug('Final metrics: (%d,%d,%d,%d)'%(
+                (n0+evaluate_eq(eq_features,solution),
+                    evaluate_eq(eq_version,solution),
+                    evaluate_eq(eq_version2,solution),
+                    evaluate_eq(eq_version3,solution))))
+
+            solution = [s for s in solution if 0 < s <= m]
 
             dotlog.debug('Looking for alternate solutions')
-            solution = [s for s in solution if 0 < s <= m]
             solutions = [solution]
             nsol = 1
             while True:
