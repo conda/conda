@@ -211,11 +211,10 @@ class Resolve(object):
         self.groups = build_groups(self.index)
         self.ms_cache = {}
 
-    def get_dists(self, specs, sat_only=False):
+    def get_dists(self, specs, filtered=True, sat_only=False):
         log.debug('Beginning the pruning process')
 
         specs = list(map(MatchSpec, specs))
-        active = self.feats.copy()
         len0 = len(specs)
         bad_deps = []
         valid = {}
@@ -296,16 +295,14 @@ class Resolve(object):
         def prune_features():
             feats = set()
             for ms in specs:
-                for fn in self.groups.get(ms.name, []):
-                    if valid.get(fn, True):
-                        feats.update(self.track_features(fn))
+                if not ms.optional:
+                    if ms.name[-1] == '@':
+                        feats.add(ms.name[:-1])
+                    else:
+                        for fn in self.groups.get(ms.name, []):
+                            if valid.get(fn, True):
+                                feats.update(self.track_features(fn))
             pruned = False
-            for feat in active - feats:
-                active.remove(feat)
-                for fn in self.groups[feat+'@']:
-                    if valid.get(fn,True):
-                        valid[fn] = False
-                        pruned = True
             for name, group in iteritems(self.groups):
                 nold =  npruned = 0
                 for fn in group:
@@ -340,16 +337,15 @@ class Resolve(object):
                 (config.subdir, ' '.join(map(str,bad_deps))), bad_deps)
 
         # Iterate in the filtering process until no more progress is made
-        pruned = True
-        while pruned:
-            pruned = False
-            for s in list(specs):
-                if not s.optional:
-                    pruned += filter_group([s], None)
-                    if unsat and sat_only:
-                        return False
-            pruned += prune_features()
-        log.debug('Potential feature set: %r'%(active,))
+        if filtered:
+            pruned = True
+            while pruned:
+                pruned = prune_features()
+                for s in list(specs):
+                    if not s.optional:
+                        pruned += filter_group([s], None)
+                        if unsat and sat_only:
+                            return False
 
         # Touch all packages
         touched = {}
@@ -445,7 +441,8 @@ class Resolve(object):
     @memoize
     def version_key(self, fn):
         rec = self.index[fn]
-        return (VersionOrder(rec['version']), rec['build_number'])
+        feats = self.features(fn)
+        return (VersionOrder(rec['version']), len(feats), feats, rec['build_number'], rec['build'])
 
     @memoize
     def features(self, fn):
@@ -479,14 +476,10 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         for name, group in iteritems(groups):
             if name[-1] == '@':
-                # feat@ == fn1 OR fn2 OR fn3 OR fn4)
-                # If the track feature is active, at least one of its
-                # packages must be installed
-                yield tuple([-v[name]] + [v[fn2] for fn2 in group])
-                # If the track feature is not installed, none of its
-                # packages may be installed
-                for fn in group:
-                    yield (v[name],-v[fn2])
+                # Ensure at least one track feature package is installed
+                # if a dependency is activated
+                clause = [v[fn2] for fn2 in group]
+                yield tuple([-v[name]] + clause)
                 continue
             for k, fn1 in enumerate(group):
                 # Ensure two package with the same name are not installed
@@ -514,46 +507,43 @@ class Resolve(object):
                 yield tuple(clause)
 
     def generate_feature_eq(self, v, groups, specs):
-        return [(1,v[name]) for name in iterkeys(groups) if name[-1] == '@']
-
-    def generate_feature_package_eq(self, v, groups, specs):
-        eq = []
-        max_rhs = 0
-        for name, group in iteritems(groups):
+        may_omit = set()
+        sdict = {s.name:s for s in map(MatchSpec, specs)}
+        for name in iterkeys(groups):
             if name[-1] == '@':
-                continue
-            n_feat = 0
-            for fn in group:
-                tfeat = len(self.features(fn))
-                if tfeat != 0:
-                    eq.append((tfeat,v[fn]))
-                    n_feat = max((n_feat,tfeat))
-            max_rhs += n_feat
-        return eq, max_rhs
+                if name not in sdict or sdict[name].optional:
+                    may_omit.add(name[:-1])
+        if may_omit:
+            for name, ms in iteritems(sdict):
+                if name[-1] != '@' and not ms.optional:
+                    for fn in self.find_matches_group(ms, groups):
+                        may_omit -= self.track_features(fn)
+                        if not may_omit:
+                            break
+        return [(1,v[name+'@']) for name in may_omit]
 
     def generate_version_eq(self, v, groups, specs, include0=False):
         eq = []
-        sdict = {}
-        for s in specs:
-            sdict.setdefault(s.name,[]).append(s)
-        for name, mss in iteritems(sdict):
-            if name[-1] == '@' or name not in groups:
+        sdict = {s.name:s for s in map(MatchSpec, specs)}
+        for name, pkgs in iteritems(groups):
+            if name[-1] == '@':
                 continue
-            pkg_ver = sorted([(self.version_key(p),p) for p in groups[name]], reverse=True)
+            pkg_ver = sorted([(self.version_key(p),p) for p in pkgs], reverse=True)
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
-            targets = [ms.target for ms in mss if ms.target]
-            if targets:
-                dkey = (self.version_key(targets[0]),targets[0])
-                new_ver = list(reversed([p for p in pkg_ver if p >= dkey]))
-                new_ver.extend(p for p in pkg_ver if p < dkey)
+            ms = sdict.get(name)
+            if ms and ms.target:
+                dkey = (self.version_key(ms.target),ms.target)
+                new_ver = [p for p in pkg_ver if p >= dkey]
+                new_ver.extend(reversed([p for p in pkg_ver if p < dkey]))
                 pkg_ver = new_ver
+            wgt = 1 if not ms or ms.optional else 4
             i = 0
             prev = None
             for nkey, pkg in pkg_ver:
                 if prev and prev != nkey:
-                    i += 1
+                    i += wgt
                 if i or include0:
                     eq += [(i, v[pkg])]
                 prev = nkey
@@ -563,15 +553,8 @@ class Resolve(object):
         eq = []
         snames = {s.name for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
-            if name not in snames and name[-1] != '@':
-                pkg_ver = sorted([(self.version_key(p),p) for p in groups[name]], reverse=True)
-                i = 1
-                prev = None
-                for nkey, pkg in pkg_ver:
-                    if prev and prev != nkey:
-                        i += 1
-                    eq += [(i, v[pkg])]
-                    prev = nkey
+            if name not in snames:
+                eq.extend((1,v[pkg]) for pkg in pkgs if pkg[-1] != '@')
         return eq
 
     def dependency_sort(self, must_have):
@@ -731,7 +714,6 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             # If update_deps=True, set the target package in MatchSpec so that
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
-            len0 = len(specs)
             specs = list(map(MatchSpec, specs))
             snames = {s.name for s in specs}
             for pkg in installed:
@@ -752,6 +734,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                 snames.add(spec)
             dotlog.debug("Solving for %s" % specs)
 
+            len0 = len(specs)
             try:
                 dists, specs = self.get_dists(specs)
             except NoPackagesFound:
@@ -777,28 +760,19 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
 
             dotlog.debug('Optimizing feature count')
             eq_features = self.generate_feature_eq(v, groups, specs)
-            clauses, solution, obj = optimize(eq_features, clauses, solution)
-            dotlog.debug('%d track features will be used.'%obj)
+            clauses, solution = optimize(eq_features, clauses, solution)
 
-            dotlog.debug('Optimizing featured package count')
-            eq_featpack, max_rhs = self.generate_feature_package_eq(v, groups, specs)
-            clauses, solution, obj = optimize(eq_featpack, clauses, solution, maximize=True, maxval=max_rhs)
-            dotlog.debug('%d package features will be installed.'%obj)
-
-            dotlog.debug('Optimizing requested packages')
+            dotlog.debug('Optimizing requested versions')
             eq_version = self.generate_version_eq(v, groups, specs[:len0])
-            clauses, solution, obj1 = optimize(eq_version, clauses, solution)
-            dotlog.debug('Requested package version metric: %d'%obj1)
+            clauses, solution = optimize(eq_version, clauses, solution)
 
-            dotlog.debug('Optimizing strong dependencies')
-            eq_version2 = self.generate_version_eq(v, groups, specs[len0:])
-            clauses, solution, obj2 = optimize(eq_version2, clauses, solution)
-            dotlog.debug('Strong dependency version metric: %d'%obj2)
+            dotlog.debug('Optimizing remaining versions')
+            eq_version = self.generate_version_eq(v, groups, specs[len0:])
+            clauses, solution = optimize(eq_version, clauses, solution, trymax=True)
 
-            dotlog.debug('Optimizing weak dependencies')
-            eq_version3 = self.generate_package_count(v, groups, specs)
-            clauses, solution, obj3 = optimize(eq_version3, clauses, solution)
-            dotlog.debug('Weak dependency version metric: %d'%obj3)
+            dotlog.debug('Optimizing dependency count')
+            eq_packages = self.generate_package_count(v, groups, specs)
+            clauses, solution = optimize(eq_packages, clauses, solution, trymin=False)
 
             dotlog.debug('Looking for alternate solutions')
             solution = [s for s in solution if 0 < s <= m]
@@ -826,13 +800,9 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                 for sol in psolutions:
                     stdoutlog.info('\t%s,\n' % sorted(sol - common))
 
-            if obj1 > 0 or obj2 > 0 or (obj3 > 0 and any(i>1 for i,_ in eq_version3)):
-                log.debug("Older versions in the solution(s):")
-                for sol in solutions:
-                    v = ([(i, w[j]) for i, j in eq_version if j in sol] +
-                         [(i, w[j]) for i, j in eq_version2 if j in sol] +
-                         [(i, w[j]) for i, j in eq_version3 if i>1 and j in sol])
-                    log.debug(v)
+            log.debug("Older versions in the solution(s):")
+            for sol in solutions:
+                log.debug([(i, w[j]) for i, j in eq_version if j in sol])
             stdoutlog.info('\n')
             return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
         except:
