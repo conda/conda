@@ -252,9 +252,15 @@ def generate_constraints(eq, m, rhs):
     nz = len(C.clauses)
     if nz < len(eq):
         eq = [q for q in eq if q[0]<=rhs[1]]
-        C.clauses.append((C.build_BDD(eq, rhs[0], rhs[1], polarity=True),))
-    assert false not in C.clauses, 'Optimization error'
-    return [] if true in C.clauses else C.clauses
+        res = C.build_BDD(eq, rhs[0], rhs[1], polarity=True)
+        if res is false:
+            # Impossible to satisfy, so just stuff a contradiciton in there
+            return [(m,),(-m,)]
+        elif res is true:
+            return []
+        else:
+            C.clauses.append((res,))
+    return C.clauses
 
 try:
     pycosat.itersolve({(1,)})
@@ -279,9 +285,10 @@ def sat(clauses, iterator=False):
         return None
     return solution
 
-def optimize(objective, clauses, bestsol, minval=0, increment=10, trymin=True, trymax=False):
+def optimize(objective, clauses, bestsol, minval=None, maxval=None, 
+    maximize=False, increment=10, trybest=True, tryworst=False):
     """
-    Bisect the solution space of a constraint, to minimize it.
+    Bisect the solution space of a constraint, to minimize or maximize it.
 
     func should be a function that is called with the arguments func(lo_rhs,
     hi_rhs) and returns a list of constraints.
@@ -290,46 +297,61 @@ def optimize(objective, clauses, bestsol, minval=0, increment=10, trymin=True, t
     To not use it, set a very large increment. The increment argument should
     be used if you expect the optimal solution to be near 0.
 
-    If evalaute_func is given, it is used to evaluate solutions to aid in the bisection.
-
     """
     if not objective:
         log.debug('Empty objective, trivial solution')
-        return clauses, bestsol
+        return clauses, bestsol, 0
+
     m = len(bestsol)
     bestcon = []
     bestval = evaluate_eq(objective, bestsol)
-    log.debug("Initial upper bound: %s" % bestval)
-    lo = minval
-    # If bestval = lo, we have a minimal solution, but we
-    # still need to run the loop at least once to generate
-    # the constraints to lock the solution in place.
-    hi = max([bestval, lo+1])
-    while lo < hi:
-        if lo == bestval or trymin and not trymax:
-            mid = lo
-        elif trymax:
-            mid = hi - 1
+
+    # If we got lucky and the initial solution is optimal, we still
+    # need to generate the constraints at least once
+    try0 = None
+    if maximize:
+        lo = bestval
+        hi = sum(c for c,_ in objective)
+        hi = min([hi, maxval]) if maxval else hi
+    else:
+        lo = max([0,minval]) if minval else 0
+        hi = bestval
+    if lo >= hi or trybest and not tryworst:
+        try0 = hi if maximize else lo
+    elif tryworst:
+        try0 = lo + 1 if maximize else hi - 1
+    else:
+        try0 = None
+
+    log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
+    while try0 is not None or lo < hi:
+        if try0 is None:
+            incr = min([increment,(hi-lo)//2])
+            mid = hi - incr if maximize else lo + incr
         else:
-            mid = min([lo + increment, (lo + hi)//2])
-        trymin = trymax = False
+            mid = try0
+            try0 = None
         # Empirically, using [0,mid] instead of [lo,mid] is slightly faster
         # And since we're minimizing it doesn't matter mathematically
-        rhs =  (lo,mid)
-        constraints = generate_constraints(objective, m, [0, mid])
+        rhs = (mid, hi) if maximize else (lo, mid)
+        constraints = generate_constraints(objective, m, rhs)
         newsol = sat(chain(clauses,constraints))
         if newsol is None:
             log.debug("Bisection range %s: failure" % (rhs,))
-            lo = mid+1
+            if maximize:
+                hi = mid - 1
+            else:
+                lo = mid + 1
         else:
             bestcon = constraints
             bestsol = newsol
-            if trymin:
-                log.debug("Minimum objective %d satisfiable" % lo)
-                break
-            hi = evaluate_eq(objective, newsol)
-            log.debug("Bisection range %s: success, value %s" % (rhs,hi))
-    return clauses + bestcon, bestsol
+            bestval = evaluate_eq(objective, newsol)
+            if maximize:
+                lo = bestval
+            else:
+                hi = bestval
+            log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
+    return clauses + bestcon, bestsol, bestval
 
 class MaximumIterationsError(Exception):
     pass
