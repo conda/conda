@@ -331,8 +331,6 @@ def optimize(objective, clauses, bestsol, minval=None, maxval=None,
         else:
             mid = try0
             try0 = None
-        # Empirically, using [0,mid] instead of [lo,mid] is slightly faster
-        # And since we're minimizing it doesn't matter mathematically
         rhs = (mid, hi) if maximize else (lo, mid)
         constraints = generate_constraints(objective, m, rhs)
         newsol = sat(chain(clauses,constraints))
@@ -347,9 +345,9 @@ def optimize(objective, clauses, bestsol, minval=None, maxval=None,
             bestsol = newsol
             bestval = evaluate_eq(objective, newsol)
             if maximize:
-                lo = bestval
+                lo = mid
             else:
-                hi = bestval
+                hi = mid
             log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
     return clauses + bestcon, bestsol, bestval
 
