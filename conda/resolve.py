@@ -775,7 +775,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
 
             eq_version = self.generate_version_eq(v, groups, specs[:len0], majoronly=True)
             clauses, solution, obj1 = optimize(eq_version, clauses, solution)
-            dotlog.debug('Requested package metric: %d'%obj1)
+            dotlog.debug('Requested version metric: %d'%obj1)
 
             eq_features, n0 = self.generate_feature_eq(v, groups, specs)
             clauses, solution, obj = optimize(eq_features, clauses, solution)
@@ -783,7 +783,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
 
             eq_version2 = self.generate_version_eq(v, groups, specs, majoronly=False)
             clauses, solution, obj2 = optimize(eq_version2, clauses, solution)
-            dotlog.debug('Version metric: %d'%obj2)
+            dotlog.debug('Total version metric: %d'%obj2)
 
             eq_version3 = self.generate_package_count(v, groups, specs)
             clauses, solution, obj3 = optimize(eq_version3, clauses, solution)
