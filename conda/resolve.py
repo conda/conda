@@ -446,9 +446,12 @@ class Resolve(object):
             self.ms_depends_[fn] = deps
         return deps
 
-    def version_key(self, fn):
+    def version_key(self, fn, majoronly=False):
         rec = self.index[fn]
-        return (VersionOrder(rec['version']), rec['build_number'], len(self.features(fn)))
+        if majoronly:
+            return VersionOrder(rec['version'])
+        else:
+            return (VersionOrder(rec['version']), len(self.features(fn)), rec['build_number'])
 
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
@@ -517,28 +520,31 @@ class Resolve(object):
         feats = {s.name for s in specs if s.name[-1] == '@' and not s.optional}
         return [(1,v[name]) for name in iterkeys(groups) if name[-1] == '@' and name not in feats], len(feats)
 
-    def generate_version_eq(self, v, groups, specs, include0=False):
+    def generate_version_eq(self, v, groups, specs, majoronly=False, include0=False):
         eq = []
         sdict = {}
         for s in specs:
             s = MatchSpec(s) # needed for testing
             sdict.setdefault(s.name,[]).append(s)
+        key = lambda x: self.version_key(x,majoronly)
         for name, mss in iteritems(sdict):
-            if name[-1] == '@' or name not in groups:
+            if name[-1] == '@' or all(ms.optional for ms in mss):
                 continue
-            pkg_ver = sorted([(self.version_key(p),p) for p in groups[name]], reverse=True)
+            pkgs = [(key(p),p) for p in groups[name]]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
             targets = [ms.target for ms in mss if ms.target]
             if targets:
-                dkey = (self.version_key(targets[0]),targets[0])
-                new_ver = list(reversed([p for p in pkg_ver if p >= dkey]))
-                new_ver.extend(p for p in pkg_ver if p < dkey)
-                pkg_ver = new_ver
+                v1 = sorted(((key(t),t) for t in targets), reverse=True)
+                v2 = sorted((p for p in pkgs if p > v1[0]))
+                v3 = sorted((p for p in pkgs if p < v1[0]), reverse=True)
+                pkgs = v1 + v2 + v3
+            else:
+                pkgs = sorted(pkgs, reverse=True)
             i = 0
             prev = None
-            for nkey, pkg in pkg_ver:
+            for nkey, pkg in pkgs:
                 if prev and prev != nkey:
                     i += 1
                 if i or include0:
@@ -550,7 +556,7 @@ class Resolve(object):
         eq = []
         snames = {s.name for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
-            if name not in snames and name[-1] != '@':
+            if name[-1] != '@' and name not in snames:
                 pkg_ver = sorted([(self.version_key(p),p) for p in groups[name]], reverse=True)
                 i = 1
                 prev = None
@@ -559,6 +565,8 @@ class Resolve(object):
                         i += 1
                     eq += [(i, v[pkg])]
                     prev = nkey
+                    if name == 'pytz':
+                        print(pkg,i)
         return eq
 
     def dependency_sort(self, must_have):
@@ -765,7 +773,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                         sys.exit(self.guess_bad_solve(specs))
                 raise RuntimeError("Unsatisfiable package specifications")
 
-            eq_version = self.generate_version_eq(v, groups, specs[:len0])
+            eq_version = self.generate_version_eq(v, groups, specs[:len0], majoronly=True)
             clauses, solution, obj1 = optimize(eq_version, clauses, solution)
             dotlog.debug('Requested package metric: %d'%obj1)
 
@@ -773,9 +781,9 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             clauses, solution, obj = optimize(eq_features, clauses, solution)
             dotlog.debug('Feature count metric: %d'%(obj+n0))
 
-            eq_version2 = self.generate_version_eq(v, groups, specs[len0:])
+            eq_version2 = self.generate_version_eq(v, groups, specs, majoronly=False)
             clauses, solution, obj2 = optimize(eq_version2, clauses, solution)
-            dotlog.debug('Strong dependency metric: %d'%obj2)
+            dotlog.debug('Version metric: %d'%obj2)
 
             eq_version3 = self.generate_package_count(v, groups, specs)
             clauses, solution, obj3 = optimize(eq_version3, clauses, solution)

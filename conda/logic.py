@@ -310,21 +310,23 @@ def optimize(objective, clauses, bestsol, minval=None, maxval=None,
     # need to generate the constraints at least once
     try0 = None
     if maximize:
-        lo = bestval
         hi = sum(c for c,_ in objective)
-        hi = min([hi, maxval]) if maxval else hi
+        hi = max([bestval, min([hi, maxval]) if maxval else hi])
+        lo = bestval
     else:
-        lo = max([0,minval]) if minval else 0
+        lo = min([bestval, max([0,minval]) if minval else 0])
         hi = bestval
-    if lo >= hi or trybest and not tryworst:
-        try0 = hi if maximize else lo
+    if lo == hi:
+        try0 = lo
     elif tryworst:
         try0 = lo + 1 if maximize else hi - 1
+    elif trybest:
+        try0 = hi if maximize else lo
     else:
         try0 = None
 
     log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
-    while try0 is not None or lo < hi:
+    while True:
         if try0 is None:
             incr = min([increment,(hi-lo)//2])
             mid = hi - incr if maximize else lo + incr
@@ -349,6 +351,8 @@ def optimize(objective, clauses, bestsol, minval=None, maxval=None,
             else:
                 hi = mid
             log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
+            if lo == hi:
+                break
     return clauses + bestcon, bestsol, bestval
 
 class MaximumIterationsError(Exception):
