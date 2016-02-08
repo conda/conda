@@ -14,7 +14,7 @@ def normalized_version(version):
 def ver_eval(vtest, spec):
   return VersionSpec(spec).match(vtest)
 
-version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
+version_check_re = re.compile(r'^[\-\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
 class VersionOrder(object):
     '''
@@ -136,7 +136,13 @@ class VersionOrder(object):
         # basic validity checks
         if version == '':
             raise ValueError("Empty version string.")
-        if not version_check_re.match(version):
+        invalid = not version_check_re.match(version)
+        if invalid and '-' in version and '_' not in version:
+            # Allow for dashes as long as there are no underscores
+            # as well, by converting the former to the latter.
+            version = version.replace('-','_')
+            invalid = not version_check_re.match(version)
+        if invalid:
             raise ValueError(message + "invalid character(s).")
         self.norm_version = version
 
