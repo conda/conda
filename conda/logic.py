@@ -281,11 +281,11 @@ def sat(clauses, iterator=False):
     if iterator:
         return pycosat.itersolve(clauses)
     solution = pycosat.solve(clauses)
-    if solution == "UNSAT" or solution == "UNKNOWN": 
+    if solution == "UNSAT" or solution == "UNKNOWN":
         return None
     return solution
 
-def optimize(objective, clauses, bestsol, minval=None, maxval=None, 
+def optimize(objective, clauses, bestsol, minval=None, maxval=None,
     maximize=False, increment=10, trybest=True, tryworst=False):
     """
     Bisect the solution space of a constraint, to minimize or maximize it.
