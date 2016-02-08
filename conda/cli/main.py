@@ -107,6 +107,10 @@ def main():
         action = "store_true",
         help = argparse.SUPPRESS,
     )
+    p.add_argument('--process-check',
+                  action='store_true',
+                  help="Check running PIDs for usage of "
+                       "same Python prefix on error (Windows)")
     sub_parsers = p.add_subparsers(
         metavar = 'command',
         dest = 'cmd',
@@ -182,11 +186,11 @@ def args_func(args, p):
         args.func(args, p)
     except RuntimeError as e:
         if 'maximum recursion depth exceeded' in str(e):
-            print_issue_message(e, use_json=use_json)
+            print_issue_message(args, e, use_json=use_json)
             raise
-        common.error_and_exit(str(e), json=use_json)
+        common.error_and_exit(args, str(e), json=use_json)
     except Exception as e:
-        print_issue_message(e, use_json=use_json)
+        print_issue_message(args, e, use_json=use_json)
         raise  # as if we did not catch it
 
 def print_task_list():
@@ -228,7 +232,7 @@ def print_task_list():
                 if f.startswith(sys.prefix):
                     print('Open file: ', f, 'is on sys.prefix.')
 
-def print_issue_message(e, use_json=False):
+def print_issue_message(args, e, use_json=False):
 
     from conda.cli import common
 
@@ -247,7 +251,7 @@ Include the output of the command 'conda info' in your report.
         common.error_and_exit(message + traceback.format_exc(),
                               error_type="UnexpectedError", json=True)
     print(message)
-    if getattr(e, 'errno', None) == 13:
+    if args.process_check and getattr(e, 'errno', None) == 13:
 
         print("""
     Review this tasklist /V output to find
