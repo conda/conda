@@ -104,7 +104,7 @@ def test_And_clauses():
     x = C.And(1, 1)
     xpos = Cpos.And(1, 1, polarity=True)
     xneg = Cneg.And(1, 1, polarity=False)
-    for sol in chain(my_itersolve([(x,)] + C.clauses), 
+    for sol in chain(my_itersolve([(x,)] + C.clauses),
         my_itersolve([(xpos,)] + Cpos.clauses)):
         f = 1 in sol
         assert (f and f)
@@ -207,7 +207,7 @@ def test_Or_clauses():
     x = C.Or(1, 1)
     xpos = Cpos.Or(1, 1, polarity=True)
     xneg = Cneg.Or(1, 1, polarity=False)
-    for sol in chain(my_itersolve([(x,)] + C.clauses), 
+    for sol in chain(my_itersolve([(x,)] + C.clauses),
         my_itersolve([(xpos,)] + Cpos.clauses)):
         f = 1 in sol
         assert (f or f)

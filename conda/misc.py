@@ -238,7 +238,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
 
     if index is None:
         index = get_index()
-        
+
     r = Resolve(index)
     sorted_dists = r.dependency_sort(dists)
 

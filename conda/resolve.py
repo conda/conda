@@ -22,7 +22,7 @@ setup_handlers()
 # We could just import it from resolve but pyflakes would complain
 def normalized_version(version):
     return VersionOrder(version)
-    
+
 def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
 
@@ -191,7 +191,7 @@ class Resolve(object):
             fpkg = feat + '@'
             self.feats.add(feat)
             self.index[fpkg] = {
-                'name':fpkg, 'version':'1.0', 
+                'name':fpkg, 'version':'1.0',
                 'build':'0', 'build_number':0,
                 'depends':[], 'track_features':feat
             }
@@ -232,7 +232,7 @@ class Resolve(object):
 
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
-            # participates in the pruning even if one of its 
+            # participates in the pruning even if one of its
             # parents is pruned away
             if all(name != ms.name for ms in specs):
                 specs.append(MatchSpec(name, parent=str(top)))
@@ -336,7 +336,7 @@ class Resolve(object):
                     bad_deps.append(ms)
         if bad_deps:
             raise NoPackagesFound(
-                "No packages found in current %s channels matching: %s" % 
+                "No packages found in current %s channels matching: %s" %
                 (config.subdir, ' '.join(map(str,bad_deps))), bad_deps)
 
         # Iterate in the filtering process until no more progress is made
@@ -357,7 +357,7 @@ class Resolve(object):
             val = valid.get(fn)
             if val is None or (notfound and not val):
                 valid[fn] = True # ensure cycles terminate
-                val = valid[fn] = all(any(is_valid(f2) 
+                val = valid[fn] = all(any(is_valid(f2)
                                           for f2 in self.find_matches(ms))
                                       for ms in self.ms_depends(fn))
             if notfound and not val:
@@ -398,7 +398,7 @@ class Resolve(object):
             stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
             hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
             hint = ['  - %s'%str(x) for x in set(chain(unsat, hint))]
-            hint = (['The following specifications were found to be in conflict:'] + hint 
+            hint = (['The following specifications were found to be in conflict:'] + hint
                 + ['Use "conda info <package>" to see the dependencies for each package.'])
             sys.exit('\n'.join(hint))
 
@@ -474,7 +474,7 @@ class Resolve(object):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms) if '@' not in fn]
         if not pkgs and not emptyok:
-            raise NoPackagesFound("No packages found in current %s channels matching: %s" % 
+            raise NoPackagesFound("No packages found in current %s channels matching: %s" %
                 (config.subdir, ms), ms)
         return pkgs
 
@@ -714,7 +714,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
         else:
             return None
 
-    def solve(self, specs, installed=[], update_deps=True, returnall=False, 
+    def solve(self, specs, installed=[], update_deps=True, returnall=False,
               guess=True, minimal_hint=False):
         try:
             stdoutlog.info("Solving package specifications: ")
@@ -732,10 +732,10 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
                 name, version, build = self.package_triple(pkg)
                 if pkg not in self.index:
                     self.index[pkg] = {
-                        'name':name, 'version':version, 
+                        'name':name, 'version':version,
                         'build':build, 'build_number':0
                     }
-                    self.groups.setdefault(name,[]).append(pkg) 
+                    self.groups.setdefault(name,[]).append(pkg)
                 if name in snames:
                     continue
                 if update_deps:
@@ -816,7 +816,7 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
             psolutions = [set(w[lit] for lit in sol if 0 < lit <= m and '@' not in w[lit]) for sol in solutions]
             if nsol > 1:
                 stdoutlog.info(
-                    '\nWarning: %s possible package resolutions (only showing differing packages):\n' % 
+                    '\nWarning: %s possible package resolutions (only showing differing packages):\n' %
                     ('>10' if nsol > 10 else nsol))
                 common  = set.intersection(*psolutions)
                 for sol in psolutions:
