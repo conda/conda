@@ -6,7 +6,6 @@ from os.path import isdir, join
 
 from conda import config
 from conda import install
-#from conda.utils import url_path
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
 from conda.resolve import MatchSpec, Package, Resolve
@@ -48,6 +47,10 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     return index
 
 
+##########################################################################
+# NOTE: All functions starting with 'app_' in this module are deprecated
+#       and should no longer be used.
+##########################################################################
 def app_get_index(all_version=False):
     """
     return the index of available applications on the channels
