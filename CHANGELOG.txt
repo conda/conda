@@ -1,3 +1,22 @@
+2016-XX-XX 3.20.0:
+------------------
+  * resolve.py: "conda update <package>" now handles depedencies properly
+    according to the setting of the "update_deps" configuration:
+        --update-deps: conda will also update any dependencies as needed
+                       to install the latest verison of the requrested
+                       packages.  The minimal set of changes required to
+                       achieve this is sought.
+        --no-update-deps: conda will update the packages *only* to the
+                       extent that no updates to the dependencies are
+                       required
+    The previous behavior, which would update the packages without regard to
+    their dependencies, could result in a broken configuration, and has been
+    removed.
+  * resolve.py: the solver has been retooled significantly. Performance
+    should be improved in most circumstances, and a number of issues
+    involving feature conflicts should be resolved.
+
+
 2016-02-01   3.19.1:
 --------------------
   * resolve.py: properly escape periods in version numbers, #1926
