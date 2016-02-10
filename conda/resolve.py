@@ -565,8 +565,6 @@ class Resolve(object):
                         i += 1
                     eq += [(i, v[pkg])]
                     prev = nkey
-                    if name == 'pytz':
-                        print(pkg,i)
         return eq
 
     def dependency_sort(self, must_have):
