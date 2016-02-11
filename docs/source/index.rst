@@ -36,10 +36,8 @@ conda environments.
         <iframe width="560" height="315" src="https://www.youtube.com/embed/UaIvrDWrIWM" frameborder="0" allowfullscreen></iframe>
 
 
-Table of Contents
------------------
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
    get-started
    using/index
@@ -69,10 +67,3 @@ Requirements
 * pycosat
 * pyyaml
 * requests
-
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`search`
