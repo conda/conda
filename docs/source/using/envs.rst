@@ -260,7 +260,7 @@ NOTE: Conda does not check architecture or dependencies when installing from an 
 Saved environment variables
 ---------------------------
 
-On Linux and OS X, conda environments can include saved environment variables. Suppose you want an environment 'analytics' to store the secret key needed to log in to a server and the path to a configuration file. First, locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Now enter that directory and create these subdirectories and files::
+On Linux and OS X, conda environments can include saved environment variables. Suppose you want an environment 'analytics' to store a secret key needed to log in to a server and a path to a configuration file. Locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Enter that directory and create these subdirectories and files::
 
   cd /home/jsmith/anaconda3/envs/analytics
   mkdir -p ./etc/conda/activate.d
@@ -268,7 +268,7 @@ On Linux and OS X, conda environments can include saved environment variables. S
   touch ./etc/conda/activate.d/env_vars.sh
   touch ./etc/conda/deactivate.d/env_vars.sh
 
-Now edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
+Edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
 
   #!/bin/sh
 
