@@ -257,4 +257,32 @@ The command ``conda install --name MyEnvironment --file explicit-spec-file.txt``
 
 NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file. To ensure the packages work correctly, be sure that the file was created from a working environment and that it is  used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
 
+Saved environment variables
+---------------------------
+
+On Linux and OS X, conda environments can include saved environment variables. Suppose you want an environment 'analytics' to store the secret key needed to log in to a server and the path to a configuration file. First, locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Now enter that directory and create these subdirectories and files::
+
+  cd /home/jsmith/anaconda3/envs/analytics
+  mkdir -p ./etc/conda/activate.d
+  mkdir -p ./etc/conda/deactivate.d
+  touch ./etc/conda/activate.d/env_vars.sh
+  touch ./etc/conda/deactivate.d/env_vars.sh
+
+Now edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
+
+  #!/bin/sh
+
+  export MY_KEY='secret-key-value'
+  export MY_FILE=/path/to/my/file/
+
+And ``./etc/conda/deactivate.d/env_vars.sh`` should have this::
+
+  #!/bin/sh
+
+  unset MY_KEY
+  unset MY_FILE
+
+Now when you use ``source activate analytics`` the environment variables MY_KEY and MY_FILE will be set to the values you wrote into the file, and when you use ``source deactivate`` those variables will be erased.
+
+
 Next, we'll take a look at :doc:`/py2or3`.
