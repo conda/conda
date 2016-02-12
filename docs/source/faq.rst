@@ -448,6 +448,7 @@ SEE ALSO: :doc:`/build_tutorials/pkgs` tutorial.
    help/silent
    travis
    help/conda-pip-virtualenv-translator.rst
+   winxp-proxy
 
 
 .. _pinning-packages:
