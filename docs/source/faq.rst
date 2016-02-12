@@ -490,3 +490,11 @@ Using conda with Travis CI
 ==========================
 
 Conda can be combined with :doc:`continuous integration systems <travis>` such as Travis CI and AppVeyor to provide frequent, automated testing of your code.
+
+Windows XP with proxy configuration
+===================================
+
+Although Windows XP mainstream support and Extended Support from Microsoft have 
+ended and Windows XP is no longer one of the target systems supported by Anaconda, 
+some users have successfully installed :doc:`Anaconda on Windows XP with proxy 
+configuration <winxp-proxy>`.
