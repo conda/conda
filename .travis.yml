@@ -6,12 +6,23 @@ addons:
     packages:
       - zsh
 
+env:
+  global: PYTHONUNBUFFERED=yes
+
 matrix:
   include:
     - os: linux
       sudo: required
       python: '2.7'
+      env: TOXENV=py27 PYCOSAT=0.6.1
+    - os: linux
+      sudo: required
+      python: '2.7'
       env: TOXENV=py27
+    - os: linux
+      sudo: required
+      python: '3.4'
+      env: TOXENV=py34 PYCOSAT=0.6.1
     - os: linux
       sudo: required
       python: '3.4'
@@ -22,7 +33,13 @@ matrix:
       env: TOXENV=py35
     - os: osx
       language: generic
+      env: TOXENV=py27 PYCOSAT=0.6.1
+    - os: osx
+      language: generic
       env: TOXENV=py27
+    - os: osx
+      language: generic
+      env: TOXENV=py34 PYCOSAT=0.6.1
     - os: osx
       language: generic
       env: TOXENV=py34
@@ -35,21 +52,10 @@ before_install:
   - uname -a
 
 install:
-  - conda install pycosat
+  - [[ "$PYCOSAT" ]] && conda install pycosat="$PYCOSAT"
   - conda install pycrypto
-  - printenv
-  - python --version
-  - python setup.py sdist
-  - echo $PATH
-  - which -a python
-  - which -a pip
-  - pip install -U tox
-  - which -a tox
-  - cat $HOME/.conda/envs/test-environment/bin/tox
 
 script:
-  - printenv
-  - which -a tox
   - tox -v
 
 after_success:
