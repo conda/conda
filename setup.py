@@ -8,7 +8,7 @@
 import sys
 import os
 
-if 'develop' in sys.argv:
+if 'develop' in sys.argv or True:
     from setuptools import setup
     using_setuptools = True
     print("Using setuptools")
@@ -25,13 +25,13 @@ if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
-if os.environ.get('CONDA_DEFAULT_ENV'):
-    # Try to prevent accidentally installing conda into a non-root conda environment
-    sys.exit("""
-You appear to be in a non-root conda environment. Conda is only supported in
-the root environment. Deactivate and try again.  If you believe this message
-is in error, run CONDA_DEFAULT_ENV='' python setup.py.
-""")
+# if os.environ.get('CONDA_DEFAULT_ENV'):
+#     # Try to prevent accidentally installing conda into a non-root conda environment
+#     sys.exit("""
+# You appear to be in a non-root conda environment. Conda is only supported in
+# the root environment. Deactivate and try again.  If you believe this message
+# is in error, run CONDA_DEFAULT_ENV='' python setup.py.
+# """)
 
 versioneer.versionfile_source = 'conda/_version.py'
 versioneer.versionfile_build = 'conda/_version.py'
@@ -61,8 +61,8 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
     ],
     description = "package management tool",
     long_description = open('README.rst').read(),
