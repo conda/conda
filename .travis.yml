@@ -14,15 +14,11 @@ matrix:
     - os: linux
       sudo: required
       python: '2.7'
-      env: TOXENV=py27 PYCOSAT=0.6.1 NO_CONDA=1
+      env: TOXENV=py27 PRE_INSTALL_CONDA=1
     - os: linux
       sudo: required
       python: '2.7'
       env: TOXENV=py27 PYCOSAT=0.6.1
-    - os: linux
-      sudo: required
-      python: '2.7'
-      env: TOXENV=py27 NO_CONDA=1
     - os: linux
       sudo: required
       python: '2.7'
@@ -38,7 +34,7 @@ matrix:
     - os: linux
       sudo: required
       python: '3.5'
-      env: TOXENV=py35  NO_CONDA=1
+      env: TOXENV=py35  PRE_INSTALL_CONDA=1
     - os: linux
       sudo: required
       python: '3.5'
@@ -60,15 +56,16 @@ matrix:
       env: TOXENV=py35
 
 before_install:
-  - '[[ "$NO_CONDA" ]] || source utils/travis_bootstrap_conda.sh'
+  - '[ -n "$PRE_INSTALL_CONDA" ] && source utils/travis_bootstrap_conda.sh'
   - uname -a
 
 install:
-  - '[[ "$PYCOSAT" ]] && conda install pycosat="$PYCOSAT"'
-  - conda install pycrypto
+  - '[ -n "$PYCOSAT" ] && conda install pycosat="$PYCOSAT"'
+  - '[ -n "$PRE_INSTALL_CONDA" ] && conda install pycrypto'
+  - pip install -U tox
 
 script:
-  - '[[ "$NO_CONDA" ]] && tox -v -- -m "not installed" || tox -v'
+  - '[ -n "$PRE_INSTALL_CONDA" ] && tox -v || tox -v -- -m "not installed"'
 
 after_success:
   - pip install codecov

@@ -29,7 +29,6 @@ class TestImportAllConda(unittest.TestCase):
         # Import each module in given (sub)package
         for fname in os.listdir(prefix):
             # Discard files that are not of interest
-            print(fname)
             if fname.startswith('__'):
                 continue
             elif not fname.endswith('.py'):
