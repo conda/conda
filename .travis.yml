@@ -14,7 +14,15 @@ matrix:
     - os: linux
       sudo: required
       python: '2.7'
+      env: TOXENV=py27 PYCOSAT=0.6.1 NO_CONDA=1
+    - os: linux
+      sudo: required
+      python: '2.7'
       env: TOXENV=py27 PYCOSAT=0.6.1
+    - os: linux
+      sudo: required
+      python: '2.7'
+      env: TOXENV=py27 NO_CONDA=1
     - os: linux
       sudo: required
       python: '2.7'
@@ -27,6 +35,10 @@ matrix:
       sudo: required
       python: '3.4'
       env: TOXENV=py34
+    - os: linux
+      sudo: required
+      python: '3.5'
+      env: TOXENV=py35  NO_CONDA=1
     - os: linux
       sudo: required
       python: '3.5'
@@ -48,15 +60,15 @@ matrix:
       env: TOXENV=py35
 
 before_install:
-  - source utils/travis_bootstrap_conda.sh
+  - '[[ "$NO_CONDA" ]] || source utils/travis_bootstrap_conda.sh'
   - uname -a
 
 install:
-  - [[ "$PYCOSAT" ]] && conda install pycosat="$PYCOSAT"
+  - '[[ "$PYCOSAT" ]] && conda install pycosat="$PYCOSAT"'
   - conda install pycrypto
 
 script:
-  - tox -v
+  - '[[ "$NO_CONDA" ]] && tox -v -- -m "not installed" || tox -v'
 
 after_success:
   - pip install codecov
