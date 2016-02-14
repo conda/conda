@@ -121,7 +121,7 @@ class History(object):
                 res[-1][1].add(line)
         return res
 
-    def get_requests(self):
+    def get_user_requests(self):
         """
         return a list of user requested items.  Each item is a dict with the
         following keys:
@@ -260,4 +260,4 @@ if __name__ == '__main__':
     from pprint import pprint
     with History(sys.prefix) as h:
         #h.print_log()
-        pprint(h.get_requests())
+        pprint(h.get_user_requests())
