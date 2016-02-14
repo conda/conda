@@ -122,6 +122,14 @@ class History(object):
         return res
 
     def get_requests(self):
+        """
+        return a list of user requested items.  Each item is a dict with the
+        following keys:
+        'date': the date and time running the command
+        'cmd': a list of argv of the actual command which was run
+        'action': install/remove/update
+        'specs': the specs being used
+        """
         res = []
         com_pat = re.compile(r'#\s*cmd:\s*(.+)')
         spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)')
@@ -138,7 +146,7 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = specs
+                    item['specs'] = eval(specs)
             if 'cmd' in item:
                 res.append(item)
         return res
@@ -249,7 +257,7 @@ class History(object):
                 fo.write('+%s\n' % fn)
 
 if __name__ == '__main__':
-    #from pprint import pprint
+    from pprint import pprint
     with History(sys.prefix) as h:
-        h.print_log()
-        #pprint(h.get_requests())
+        #h.print_log()
+        pprint(h.get_requests())
