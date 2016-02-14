@@ -121,6 +121,28 @@ class History(object):
                 res[-1][1].add(line)
         return res
 
+    def get_requests(self):
+        res = []
+        com_pat = re.compile(r'#\s*cmd:\s*(.+)')
+        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)')
+        for dt, unused_cont, comments in self.parse():
+            item = {'date': dt}
+            for line in comments:
+                m = com_pat.match(line)
+                if m:
+                    argv = m.group(1).split()
+                    if argv[0].endswith('conda'):
+                        argv[0] = 'conda'
+                    item['cmd'] = argv
+                m = spec_pat.match(line)
+                if m:
+                    action, specs = m.groups()
+                    item['action'] = action
+                    item['specs'] = specs
+            if 'cmd' in item:
+                res.append(item)
+        return res
+
     def construct_states(self):
         """
         return a list of tuples(datetime strings, set of distributions)
@@ -227,5 +249,7 @@ class History(object):
                 fo.write('+%s\n' % fn)
 
 if __name__ == '__main__':
+    #from pprint import pprint
     with History(sys.prefix) as h:
         h.print_log()
+        #pprint(h.get_requests())
