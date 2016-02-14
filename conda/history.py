@@ -100,7 +100,7 @@ class History(object):
     def parse(self):
         """
         parse the history file and return a list of
-        tuples(datetime strings, set of distributions/diffs)
+        tuples(datetime strings, set of distributions/diffs, comments)
         """
         res = []
         if not isfile(self.path):
@@ -110,12 +110,13 @@ class History(object):
             lines = f.read().splitlines()
         for line in lines:
             line = line.strip()
-            if not line or line.startswith('#'):
+            if not line:
                 continue
             m = sep_pat.match(line)
             if m:
-                dt = m.group(1)
-                res.append((dt, set()))
+                res.append((m.group(1), set(), []))
+            elif line.startswith('#'):
+                res[-1][2].append(line)
             else:
                 res[-1][1].add(line)
         return res
@@ -126,7 +127,7 @@ class History(object):
         """
         res = []
         cur = set([])
-        for dt, cont in self.parse():
+        for dt, cont, unused_com in self.parse():
             if not is_diff(cont):
                 cur = cont
             else:
@@ -153,7 +154,7 @@ class History(object):
         return pkgs[rev]
 
     def print_log(self):
-        for i, (date, content) in enumerate(self.parse()):
+        for i, (date, content, unused_com) in enumerate(self.parse()):
             print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
                 print('    %s' % line)
@@ -161,7 +162,7 @@ class History(object):
 
     def object_log(self):
         result = []
-        for i, (date, content) in enumerate(self.parse()):
+        for i, (date, content, unused_com) in enumerate(self.parse()):
             # Based on Mateusz's code; provides more details about the
             # history event
             event = {
