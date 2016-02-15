@@ -5,10 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
 
-import re
 import os
 import sys
-from copy import deepcopy
 
 import conda.config as config
 from conda.cli import common

@@ -284,17 +284,6 @@ changeps1: false
 # Here is a comment
 always_yes: true
 """
-        condarc_sanitized = """\
-channels:
-- test
-- defaults
-create_default_packages:
-- ipython
-- numpy
-changeps1: false
-# Here is a comment
-always_yes: true
-"""
         # First verify that this itself is valid YAML
         assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
             'create_default_packages': ['ipython', 'numpy'], 'changeps1':
