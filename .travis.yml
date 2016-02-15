@@ -65,7 +65,9 @@ install:
   - pip install -U tox
 
 script:
-  - '[ -n "$PRE_INSTALL_CONDA" ] || export PYTEST_ADDOPTS="-m \'not installed\'"'
+  - if [ -z "$PRE_INSTALL_CONDA" ]; then
+      export PYTEST_ADDOPTS="-m \'not installed\'"
+    fi
   - printenv
   - tox -v
 
