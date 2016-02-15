@@ -18,7 +18,7 @@ matrix:
     - os: linux
       sudo: required
       python: '2.7'
-      env: TOXENV=py27 PYCOSAT=0.6.1
+      env: TOXENV=py27 PRE_INSTALL_CONDA=1 PYCOSAT=0.6.1
     - os: linux
       sudo: required
       python: '2.7'
@@ -26,7 +26,7 @@ matrix:
     - os: linux
       sudo: required
       python: '3.4'
-      env: TOXENV=py34 PYCOSAT=0.6.1
+      env: TOXENV=py34 PRE_INSTALL_CONDA=1 PYCOSAT=0.6.1
     - os: linux
       sudo: required
       python: '3.4'
@@ -41,19 +41,19 @@ matrix:
       env: TOXENV=py35
     - os: osx
       language: generic
-      env: TOXENV=py27 PYCOSAT=0.6.1
+      env: TOXENV=py27 PRE_INSTALL_CONDA=1 PYCOSAT=0.6.1
     - os: osx
       language: generic
-      env: TOXENV=py27
+      env: TOXENV=py27 PRE_INSTALL_CONDA=1
     - os: osx
       language: generic
-      env: TOXENV=py34 PYCOSAT=0.6.1
+      env: TOXENV=py34 PRE_INSTALL_CONDA=1 PYCOSAT=0.6.1
     - os: osx
       language: generic
-      env: TOXENV=py34
+      env: TOXENV=py34 PRE_INSTALL_CONDA=1
     - os: osx
       language: generic
-      env: TOXENV=py35
+      env: TOXENV=py35 PRE_INSTALL_CONDA=1
 
 before_install:
   - '[ -z "$PRE_INSTALL_CONDA" ] || source utils/travis_bootstrap_conda.sh'
