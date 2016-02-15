@@ -68,7 +68,7 @@ script:
   - if [ -n "$PRE_INSTALL_CONDA" ]; then
       tox -v
     else
-      tox -v -- -m "not installed"
+      tox -v -- -m \'not installed\';
     fi
 
 after_success:
