@@ -65,7 +65,11 @@ install:
   - pip install -U tox
 
 script:
-  - '[ -n "$PRE_INSTALL_CONDA" ] && tox -v || tox -v -- -m "not installed"'
+  - if [ -n "$PRE_INSTALL_CONDA" ]; then
+      tox -v
+    else
+      tox -v -- -m "not installed"
+    fi
 
 after_success:
   - pip install codecov
