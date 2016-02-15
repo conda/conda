@@ -35,9 +35,14 @@ class TestImportAllConda(unittest.TestCase):
                 continue
             elif fname.startswith('windows') and sys.platform != 'win32':
                 continue
+            elif fname == 'signature.py':
+                try:
+                    from Crypto.Hash import SHA256
+                except ImportError:
+                    # skip for now because pycrypto shouldn't be a hard dependency
+                    continue
             # Import
             modname = module_prefix + '.' + fname.split('.')[0]
-            print('importing', modname)
             __import__(modname)
 
 
