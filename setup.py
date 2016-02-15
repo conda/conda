@@ -49,7 +49,7 @@ setup(
     description="OS-agnostic, system-level binary package manager.",
     long_description=open('README.rst').read(),
     packages=find_packages(exclude=['tests', 'tests.*']),
-    install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests'],
+    install_requires=['pycosat >=0.6.1', 'ruamel.yaml', 'requests'],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
