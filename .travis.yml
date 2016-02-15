@@ -56,12 +56,12 @@ matrix:
       env: TOXENV=py35
 
 before_install:
-  - '[ -n "$PRE_INSTALL_CONDA" ] && source utils/travis_bootstrap_conda.sh'
+  - '[ -n "$PRE_INSTALL_CONDA" ] && source utils/travis_bootstrap_conda.sh || true'
   - uname -a
 
 install:
-  - '[ -n "$PYCOSAT" ] && conda install pycosat="$PYCOSAT"'
-  - '[ -n "$PRE_INSTALL_CONDA" ] && conda install pycrypto'
+  - '[ -n "$PYCOSAT" ] && conda install pycosat="$PYCOSAT" || true'
+  - '[ -n "$PRE_INSTALL_CONDA" ] && conda install pycrypto || true'
   - pip install -U tox
 
 script:
