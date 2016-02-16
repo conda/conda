@@ -515,6 +515,7 @@ class Resolve(object):
                 yield fn
 
     def find_matches(self, ms):
+        ms = MatchSpec(ms)
         res = self.find_matches_.get(ms, None)
         if res is None:
             if ms.name[0] == '@':
