@@ -38,13 +38,14 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
-kwds = {'scripts': []}
+kwds = {'scripts': [],
+        'entry_points': {'console_scripts': []},
+        }
 if sys.platform == 'win32' and using_setuptools:
-    kwds['entry_points'] = dict(console_scripts =
-                                        ["conda = conda.cli.main:main"])
+    kwds['entry_points']['console_scripts'].append("conda = conda.cli.main:main")
 else:
     kwds['scripts'].append('bin/conda')
-
+kwds['entry_points']['console_scripts'].append("conda-env-helper = conda.env_helper:cli")
 
 setup(
     name = "conda",
