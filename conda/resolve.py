@@ -27,16 +27,25 @@ def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
 
 class Unsatisfiable(RuntimeError):
-    pass
+    def __init__(self, bad_deps):
+        bad_deps = dashlist([' -> '.join(map(str,c)) for c in bad_deps])
+        msg = '''The following specifications were found to be in conflict:%s
+Use "conda info <package>" to see the dependencies for each package.'''%bad_deps
+        super(Unsatisfiable, self).__init__(msg)
 
 class NoPackagesFound(RuntimeError):
-    def __init__(self, msg, pkgs):
-        super(NoPackagesFound, self).__init__(msg)
-        if isinstance(pkgs, MatchSpec):
-            self.pkgs = [pkgs.spec]
+    def __init__(self, bad_deps):
+        deps = set(q[-1].spec for q in bad_deps)
+        if all(len(q) > 1 for q in bad_deps):
+            what = "Dependencies" if len(bad_deps)>1 else "Dependency"
+        elif all(len(q) == 1 for q in bad_deps):
+            what = "Packages" if len(bad_deps)>1 else "Package"
         else:
-            self.pkgs = [x.spec for x in pkgs]
-
+            what = "Packages/dependencies"
+        bad_deps = dashlist(' -> '.join(map(str,q)) for q in bad_deps)
+        msg ='%s missing in current %s channels: %s'%(what, config.subdir, bad_deps)
+        super(NoPackagesFound, self).__init__(msg)
+        self.pkgs = deps
 
 class MatchSpec(object):
 
@@ -342,17 +351,7 @@ class Resolve(object):
         for ms in spec2:
             bad_deps.extend(self.invalid_chains(ms, features=feats))
         if bad_deps:
-            deps = set(q[-1] for q in bad_deps)
-            if all(len(q) > 1 for q in bad_deps):
-                what = "Dependencies" if len(bad_deps)>1 else "Dependency"
-            elif all(len(q) == 1 for q in bad_deps):
-                what = "Packages" if len(bad_deps)>1 else "Package"
-            else:
-                what = "Packages/dependencies"
-            bad_deps = dashlist(' -> '.join(map(str,q)) for q in bad_deps)
-            raise NoPackagesFound(
-                '%s missing in current %s channels: %s'%
-                (what, config.subdir, bad_deps), deps)
+            raise NoPackagesFound(bad_deps)
         return spec2, rems, opts, feats
 
     def verify_consistency(self, installed):
@@ -381,40 +380,54 @@ class Resolve(object):
         filter = {}
         touched = {}
         snames = set()
+        unsat = []
 
-        def filter_group(matches, top=None):
+        def filter_group(matches, chains=None):
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
             # participates in the pruning even if one of its
             # parents is pruned away
             match1 = next(ms for ms in matches)
             name = match1.name
-
-            # Prune packages that don't match any of the patterns
-            # or which may be missing dependencies
             first = name not in snames
             group = self.groups.get(name, [])
-            nnew = nold = 0
+
+            # Prune packages that don't match any of the patterns
+            # or which have unsatisfiable dependencies
+            nold = 0
+            bad_deps = []
             for fn in group:
-                sat = filter.get(fn, True)
-                if sat:
+                if filter.setdefault(fn, True):
                     nold += 1
                     sat = self.match_any(matches, fn)
-                    if sat:
-                        filter[fn] = None
-                        sat = all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                                  for ms in self.ms_depends(fn) if not ms.optional)
+                    sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
+                                      for ms in self.ms_depends(fn) if not ms.optional)
                     filter[fn] = sat
-                    nnew += sat
+                    if not sat:
+                        bad_deps.append(fn)
 
+            # Build dependency chains if we detect unsatisfiability
+            nnew = nold - len(bad_deps)
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
-                if nnew == 0:
-                    if not all(ms.optional for ms in matches):
-                        raise Unsatisfiable
-                    return True
-            elif not first:
+            if nnew == 0:
+                if name in snames:
+                    snames.remove(name)
+                if not all(ms.optional for ms in matches):
+                    bad_deps = [fn for fn in bad_deps if self.match_any(matches, fn)]
+                    matches = [(ms,) for ms in matches]
+                    chains = [a + b for a in chains for b in matches] if chains else matches
+                    if bad_deps:
+                        dep2 = set()
+                        for fn in bad_deps:
+                            for ms in self.ms_depends(fn):
+                                if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
+                                    dep2.add(ms)
+                        chains = [a + (b,) for a in chains for b in dep2]
+                    unsat.extend(chains)
+                    return nnew
+            if not reduced and not first:
                 return False
 
             # Perform the same filtering steps on any dependencies shared across
@@ -429,8 +442,10 @@ class Resolve(object):
                             cdeps[m2.name].append(m2)
             cdeps = {mname:set(deps) for mname,deps in iteritems(cdeps) if len(deps)==nnew}
             if cdeps:
-                top = top if top else match1
-                if sum(filter_group(deps, top) for deps in itervalues(cdeps)):
+                matches = [(ms,) for ms in matches]
+                if chains:
+                    matches = [a + b for a in chains for b in matches]
+                if sum(filter_group(deps, chains) for deps in itervalues(cdeps)):
                     reduced = True
 
             return reduced
@@ -446,11 +461,10 @@ class Resolve(object):
             slist = specs
             for iter in range(10):
                 first = True
-                try:
-                    while sum(filter_group([s], first) for s in slist):
-                        slist = map(MatchSpec, snames)
-                        first = False
-                except Unsatisfiable:
+                while sum(filter_group([s]) for s in slist):
+                    slist = list(map(MatchSpec, snames))
+                    first = False
+                if unsat:
                     return False
                 if first and iter:
                     return True
@@ -483,17 +497,16 @@ class Resolve(object):
         if sat_only:
             return res
         if not res:
+            save_unsat = set(unsat)
             def minsat_prune(specs):
                 return full_prune(specs, removes, [], features)
             stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
             hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=True)
-            sys.exit('%s%s\n%s' % (
-                'The following specifications were found to be in conflict:',
-                dashlist(hint),
-                'Use "conda info <package>" to see the dependencies for each package.'))
+            save_unsat.update((ms,) for ms in hint if all(ms != c[0] for c in save_unsat))
+            raise Unsatisfiable(save_unsat)
 
         dists = {fn:self.index[fn] for fn, val in iteritems(touched) if val}
-        return dists, map(MatchSpec,snames - {ms.name for ms in specs})
+        return dists, list(map(MatchSpec,snames - {ms.name for ms in specs}))
 
     def match_any(self, mss, fn):
         rec = self.index[fn]
@@ -568,8 +581,7 @@ class Resolve(object):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs and not emptyok:
-            raise NoPackagesFound("No packages found in current %s channels matching: %s" %
-                (config.subdir, ms), ms)
+            raise NoPackagesFound((ms,))
         return pkgs
 
     def gen_clauses(self, v, groups, features, specs, relax=False):
@@ -856,7 +868,7 @@ class Resolve(object):
             dotlog.debug("Solving for %s" % specs)
 
             # Find the compliant packages
-            specs = map(MatchSpec, specs)
+            specs = list(map(MatchSpec, specs))
             if len0 is None:
                 len0 = len(specs)
             dists, new_specs = self.get_dists(specs, sat_only=sat_only)

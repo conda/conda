@@ -23,7 +23,7 @@ import conda.misc as misc
 from conda.api import get_index
 from conda.cli import common
 from conda.cli.find_commands import find_executable
-from conda.resolve import NoPackagesFound, Resolve
+from conda.resolve import NoPackagesFound, Unsatisfiable, Resolve
 import conda.install as ci
 
 log = logging.getLogger(__name__)
@@ -384,7 +384,7 @@ environment does not exist: %s
                 error_message += "\n\n    %r" % pinned_specs
 
             common.error_and_exit(error_message, json=args.json)
-    except SystemExit as e:
+    except (Unsatisfiable,SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         error_type = 'UnsatisfiableSpecifications'
         if e.args and 'could not import' in e.args[0]:
