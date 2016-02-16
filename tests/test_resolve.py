@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, build_groups
+from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable, build_groups
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -323,15 +323,15 @@ def test_generate_eq():
 
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises((RuntimeError, SystemExit), lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']), 'conflict')
+    assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
     # numpy 1.5 does not have a python 3 package
-    assert raises((RuntimeError, SystemExit), lambda: r.install(['numpy 1.5*', 'python 3*']), 'conflict')
-    assert raises((RuntimeError, SystemExit), lambda: r.install(['numpy 1.5*', 'numpy 1.6*']), 'conflict')
+    assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'python 3*']))
+    assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
 
 def test_nonexistent():
-    assert raises(NoPackagesFound, lambda: r.install(['notarealpackage 2.0*']), 'Package missing')
+    assert raises(NoPackagesFound, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
-    assert raises(NoPackagesFound, lambda: r.install(['numpy 1.5']), 'Package missing')
+    assert raises(NoPackagesFound, lambda: r.install(['numpy 1.5']))
 
 def test_nonexistent_deps():
     index2 = index.copy()
