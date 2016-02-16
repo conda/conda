@@ -268,7 +268,7 @@ try:
 except TypeError:
     pycosat_prep = True
 
-def sat(clauses, iterator=False):
+def sat(clauses, m=None, iterator=False):
     """
     Calculate a SAT solution for `clauses`.
 
@@ -283,6 +283,9 @@ def sat(clauses, iterator=False):
     solution = pycosat.solve(clauses)
     if solution == "UNSAT" or solution == "UNKNOWN":
         return None
+    if m is not None and len(solution) < m:
+        solution = {abs(s):s for s in solution}
+        solution = [solution.get(s,s) for s in range(1,m+1)]
     return solution
 
 def optimize(objective, clauses, bestsol, minval=None, maxval=None,
@@ -335,7 +338,7 @@ def optimize(objective, clauses, bestsol, minval=None, maxval=None,
             try0 = None
         rhs = (mid, hi) if maximize else (lo, mid)
         constraints = generate_constraints(objective, m, rhs)
-        newsol = sat(chain(clauses,constraints))
+        newsol = sat(chain(clauses,constraints),m=m)
         if newsol is None:
             log.debug("Bisection range %s: failure" % (rhs,))
             if maximize:

@@ -116,20 +116,20 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
 
     def test_empty(self):
-        self.assertEqual(r.solve([]), [])
+        self.assertEqual(r.install([]), [])
 
     def test_anaconda_14(self):
         specs = ['anaconda 1.4.0 np17py33_0']
         res = r.explicit(specs)
         self.assertEqual(len(res), 51)
-        self.assertEqual(r.solve(specs), res)
+        self.assertEqual(r.install(specs), res)
         specs.append('python 3.3*')
         self.assertEqual(r.explicit(specs), None)
-        self.assertEqual(r.solve(specs), res)
+        self.assertEqual(r.install(specs), res)
 
     def test_iopro_nomkl(self):
         self.assertEqual(
-            r.solve(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True),
+            r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True),
             [['iopro-1.4.3-np17py27_p0.tar.bz2',
               'numpy-1.7.1-py27_0.tar.bz2',
               'openssl-1.0.1c-0.tar.bz2',
@@ -143,7 +143,7 @@ class TestSolve(unittest.TestCase):
 
     def test_iopro_mkl(self):
         self.assertEqual(
-            r.solve(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True),
+            r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True),
             [['iopro-1.4.3-np17py27_p0.tar.bz2',
               'mkl-rt-11.0-p0.tar.bz2',
               'numpy-1.7.1-py27_p0.tar.bz2',
@@ -157,39 +157,39 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_mkl(self):
-        self.assertEqual(r.solve(['mkl']),
-                         r.solve(['mkl', 'mkl@']))
+        self.assertEqual(r.install(['mkl']),
+                         r.install(['mkl', 'mkl@']))
 
     def test_accelerate(self):
         self.assertEqual(
-            r.solve(['accelerate']),
-            r.solve(['accelerate', 'mkl@']))
+            r.install(['accelerate']),
+            r.install(['accelerate', 'mkl@']))
 
     def test_scipy_mkl(self):
-        dists = r.solve(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
 
     def test_anaconda_nomkl(self):
-        dists = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
+        dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
         self.assertTrue('scipy-0.12.0-np17py27_0.tar.bz2' in dists)
 
     def test_anaconda_mkl_2(self):
         # to test "with_features_depends"
-        dists = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
         self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
         self.assertEqual(len(dists), 108)
 
-        dists2 = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl'])
+        dists2 = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl'])
         self.assertTrue(set(dists) <= set(dists2))
         self.assertEqual(len(dists2), 110)
 
     def test_anaconda_mkl_3(self):
         # to test "with_features_depends"
-        dists = r.solve(['anaconda 1.5.0', 'python 3*', 'mkl@'])
+        dists = r.install(['anaconda 1.5.0', 'python 3*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue('scipy-0.12.0-np17py33_p0.tar.bz2' in dists)
         self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
@@ -199,7 +199,7 @@ class TestSolve(unittest.TestCase):
 class TestFindSubstitute(unittest.TestCase):
 
     def test1(self):
-        installed = r.solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        installed = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         for old, new in [('numpy-1.7.1-py27_p0.tar.bz2',
                           'numpy-1.7.1-py27_0.tar.bz2'),
                          ('scipy-0.12.0-np17py27_p0.tar.bz2',
@@ -212,7 +212,7 @@ class TestFindSubstitute(unittest.TestCase):
 @pytest.mark.slow
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    assert r.solve(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'numpy-1.5.1-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -225,7 +225,7 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]
 
-    assert r.solve(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
         'numpy-1.5.1-py27_p4.tar.bz2',
@@ -240,16 +240,16 @@ def test_pseudo_boolean():
     ]]
 
 def test_get_dists():
-    dists, _ = r.get_dists(["anaconda 1.5.0"])
+    dists = r.get_dists(["anaconda 1.5.0"])[0]
     assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
     assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
 
 def test_generate_eq():
     specs = ['anaconda']
     dists, specs = r.get_dists(specs)
-    groups = build_groups(dists)
-    m, v, w = r.build_vw(groups)
-    eq = r.generate_version_eq(v, groups, specs, include0=True)
+    groups, trackers = build_groups(dists)
+    m, v, w = r.build_vw(groups, trackers)
+    eq = r.generate_version_metric(v, groups, specs)
     e = sorted(((i, w[j]) for i, j in eq), key=lambda i:i[1])
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
@@ -259,251 +259,79 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
-    assert e == [(1, u'anaconda-1.4.0-np15py26_0.tar.bz2'),
-                 (1, u'anaconda-1.4.0-np15py27_0.tar.bz2'),
-                 (1, u'anaconda-1.4.0-np16py26_0.tar.bz2'),
-                 (1, u'anaconda-1.4.0-np16py27_0.tar.bz2'),
-                 (1, u'anaconda-1.4.0-np17py26_0.tar.bz2'),
-                 (1, u'anaconda-1.4.0-np17py27_0.tar.bz2'),
-                 (1, u'anaconda-1.4.0-np17py33_0.tar.bz2'),
-                 (0, u'anaconda-1.5.0-np16py26_0.tar.bz2'),
-                 (0, u'anaconda-1.5.0-np16py27_0.tar.bz2'),
-                 (0, u'anaconda-1.5.0-np17py26_0.tar.bz2'),
-                 (0, u'anaconda-1.5.0-np17py27_0.tar.bz2'),
-                 (0, u'anaconda-1.5.0-np17py33_0.tar.bz2'),
-                 (1, u'astropy-0.2-np15py26_0.tar.bz2'),
-                 (1, u'astropy-0.2-np15py27_0.tar.bz2'),
+    assert e == [(1, u'astropy-0.2-np15py26_0.tar.bz2'),
                  (1, u'astropy-0.2-np16py26_0.tar.bz2'),
-                 (1, u'astropy-0.2-np16py27_0.tar.bz2'),
                  (1, u'astropy-0.2-np17py26_0.tar.bz2'),
-                 (1, u'astropy-0.2-np17py27_0.tar.bz2'),
                  (1, u'astropy-0.2-np17py33_0.tar.bz2'),
-                 (0, u'astropy-0.2.1-np16py26_0.tar.bz2'),
-                 (0, u'astropy-0.2.1-np16py27_0.tar.bz2'),
-                 (0, u'astropy-0.2.1-np17py26_0.tar.bz2'),
-                 (0, u'astropy-0.2.1-np17py27_0.tar.bz2'),
-                 (0, u'astropy-0.2.1-np17py33_0.tar.bz2'),
                  (1, u'bitarray-0.8.0-py26_0.tar.bz2'),
-                 (1, u'bitarray-0.8.0-py27_0.tar.bz2'),
                  (1, u'bitarray-0.8.0-py33_0.tar.bz2'),
-                 (0, u'bitarray-0.8.1-py26_0.tar.bz2'),
-                 (0, u'bitarray-0.8.1-py27_0.tar.bz2'),
-                 (0, u'bitarray-0.8.1-py33_0.tar.bz2'),
                  (1, u'cython-0.18-py26_0.tar.bz2'),
-                 (1, u'cython-0.18-py27_0.tar.bz2'),
                  (1, u'cython-0.18-py33_0.tar.bz2'),
-                 (0, u'cython-0.19-py26_0.tar.bz2'),
-                 (0, u'cython-0.19-py27_0.tar.bz2'),
-                 (0, u'cython-0.19-py33_0.tar.bz2'),
                  (1, u'dateutil-2.1-py26_0.tar.bz2'),
-                 (0, u'dateutil-2.1-py26_1.tar.bz2'),
-                 (1, u'dateutil-2.1-py27_0.tar.bz2'),
-                 (0, u'dateutil-2.1-py27_1.tar.bz2'),
                  (1, u'dateutil-2.1-py33_0.tar.bz2'),
-                 (0, u'dateutil-2.1-py33_1.tar.bz2'),
                  (1, u'distribute-0.6.34-py26_1.tar.bz2'),
-                 (1, u'distribute-0.6.34-py27_1.tar.bz2'),
                  (1, u'distribute-0.6.34-py33_1.tar.bz2'),
-                 (0, u'distribute-0.6.36-py26_1.tar.bz2'),
-                 (0, u'distribute-0.6.36-py27_1.tar.bz2'),
-                 (0, u'distribute-0.6.36-py33_1.tar.bz2'),
-                 (0, u'docutils-0.10-py26_0.tar.bz2'),
-                 (0, u'docutils-0.10-py27_0.tar.bz2'),
-                 (0, u'docutils-0.10-py33_0.tar.bz2'),
-                 (0, u'freetype-2.4.10-0.tar.bz2'),
-                 (0, u'greenlet-0.4.0-py26_0.tar.bz2'),
-                 (0, u'greenlet-0.4.0-py27_0.tar.bz2'),
-                 (0, u'greenlet-0.4.0-py33_0.tar.bz2'),
                  (1, u'ipython-0.13.1-py26_1.tar.bz2'),
-                 (1, u'ipython-0.13.1-py27_1.tar.bz2'),
                  (1, u'ipython-0.13.1-py33_1.tar.bz2'),
-                 (0, u'ipython-0.13.2-py26_0.tar.bz2'),
-                 (0, u'ipython-0.13.2-py27_0.tar.bz2'),
-                 (0, u'ipython-0.13.2-py33_0.tar.bz2'),
-                 (0, u'jinja2-2.6-py26_0.tar.bz2'),
-                 (0, u'jinja2-2.6-py27_0.tar.bz2'),
-                 (0, u'jinja2-2.6-py33_0.tar.bz2'),
-                 (0, u'libpng-1.5.13-1.tar.bz2'),
-                 (0, u'libxml2-2.9.0-0.tar.bz2'),
-                 (0, u'libxslt-1.1.28-0.tar.bz2'),
-                 (0, u'llvm-3.2-0.tar.bz2'),
                  (1, u'llvmpy-0.11.1-py26_0.tar.bz2'),
-                 (1, u'llvmpy-0.11.1-py27_0.tar.bz2'),
                  (1, u'llvmpy-0.11.1-py33_0.tar.bz2'),
-                 (0, u'llvmpy-0.11.2-py26_0.tar.bz2'),
-                 (0, u'llvmpy-0.11.2-py27_0.tar.bz2'),
-                 (0, u'llvmpy-0.11.2-py33_0.tar.bz2'),
                  (1, u'lxml-3.0.2-py26_0.tar.bz2'),
-                 (1, u'lxml-3.0.2-py27_0.tar.bz2'),
                  (1, u'lxml-3.0.2-py33_0.tar.bz2'),
-                 (0, u'lxml-3.2.0-py26_0.tar.bz2'),
-                 (0, u'lxml-3.2.0-py27_0.tar.bz2'),
-                 (0, u'lxml-3.2.0-py33_0.tar.bz2'),
                  (1, u'matplotlib-1.2.0-np15py26_1.tar.bz2'),
-                 (1, u'matplotlib-1.2.0-np15py27_1.tar.bz2'),
                  (1, u'matplotlib-1.2.0-np16py26_1.tar.bz2'),
-                 (1, u'matplotlib-1.2.0-np16py27_1.tar.bz2'),
                  (1, u'matplotlib-1.2.0-np17py26_1.tar.bz2'),
-                 (1, u'matplotlib-1.2.0-np17py27_1.tar.bz2'),
                  (1, u'matplotlib-1.2.0-np17py33_1.tar.bz2'),
-                 (0, u'matplotlib-1.2.1-np16py26_1.tar.bz2'),
-                 (0, u'matplotlib-1.2.1-np16py27_1.tar.bz2'),
-                 (0, u'matplotlib-1.2.1-np17py26_1.tar.bz2'),
-                 (0, u'matplotlib-1.2.1-np17py27_1.tar.bz2'),
-                 (0, u'matplotlib-1.2.1-np17py33_1.tar.bz2'),
-                 (0, u'mdp-3.3-np15py26_0.tar.bz2'),
-                 (0, u'mdp-3.3-np15py27_0.tar.bz2'),
-                 (0, u'mdp-3.3-np16py26_0.tar.bz2'),
-                 (0, u'mdp-3.3-np16py27_0.tar.bz2'),
-                 (0, u'mdp-3.3-np17py26_0.tar.bz2'),
-                 (0, u'mdp-3.3-np17py27_0.tar.bz2'),
-                 (0, u'mdp-3.3-np17py33_0.tar.bz2'),
-                 (0, u'networkx-1.7-py26_0.tar.bz2'),
-                 (0, u'networkx-1.7-py27_0.tar.bz2'),
-                 (0, u'networkx-1.7-py33_0.tar.bz2'),
                  (1, u'nose-1.2.1-py26_0.tar.bz2'),
-                 (1, u'nose-1.2.1-py27_0.tar.bz2'),
                  (1, u'nose-1.2.1-py33_0.tar.bz2'),
-                 (0, u'nose-1.3.0-py26_0.tar.bz2'),
-                 (0, u'nose-1.3.0-py27_0.tar.bz2'),
-                 (0, u'nose-1.3.0-py33_0.tar.bz2'),
                  (4, u'numpy-1.5.1-py26_3.tar.bz2'),
-                 (4, u'numpy-1.5.1-py27_3.tar.bz2'),
                  (3, u'numpy-1.6.2-py26_3.tar.bz2'),
                  (2, u'numpy-1.6.2-py26_4.tar.bz2'),
-                 (3, u'numpy-1.6.2-py27_3.tar.bz2'),
                  (2, u'numpy-1.6.2-py27_4.tar.bz2'),
                  (1, u'numpy-1.7.0-py26_0.tar.bz2'),
-                 (1, u'numpy-1.7.0-py27_0.tar.bz2'),
                  (1, u'numpy-1.7.0-py33_0.tar.bz2'),
-                 (0, u'numpy-1.7.1-py26_0.tar.bz2'),
-                 (0, u'numpy-1.7.1-py27_0.tar.bz2'),
-                 (0, u'numpy-1.7.1-py33_0.tar.bz2'),
-                 (0, u'openssl-1.0.1c-0.tar.bz2'),
                  (1, u'pip-1.2.1-py26_1.tar.bz2'),
-                 (1, u'pip-1.2.1-py27_1.tar.bz2'),
                  (1, u'pip-1.2.1-py33_1.tar.bz2'),
-                 (0, u'pip-1.3.1-py26_1.tar.bz2'),
-                 (0, u'pip-1.3.1-py27_1.tar.bz2'),
-                 (0, u'pip-1.3.1-py33_1.tar.bz2'),
-                 (0, u'ply-3.4-py26_0.tar.bz2'),
-                 (0, u'ply-3.4-py27_0.tar.bz2'),
-                 (0, u'ply-3.4-py33_0.tar.bz2'),
                  (1, u'psutil-0.6.1-py26_0.tar.bz2'),
-                 (1, u'psutil-0.6.1-py27_0.tar.bz2'),
                  (1, u'psutil-0.6.1-py33_0.tar.bz2'),
-                 (0, u'psutil-0.7.1-py26_0.tar.bz2'),
-                 (0, u'psutil-0.7.1-py27_0.tar.bz2'),
-                 (0, u'psutil-0.7.1-py33_0.tar.bz2'),
-                 (0, u'pycparser-2.9.1-py26_0.tar.bz2'),
-                 (0, u'pycparser-2.9.1-py27_0.tar.bz2'),
-                 (0, u'pycparser-2.9.1-py33_0.tar.bz2'),
-                 (0, u'pycrypto-2.6-py26_0.tar.bz2'),
-                 (0, u'pycrypto-2.6-py27_0.tar.bz2'),
-                 (0, u'pycrypto-2.6-py33_0.tar.bz2'),
                  (1, u'pyflakes-0.6.1-py26_0.tar.bz2'),
-                 (1, u'pyflakes-0.6.1-py27_0.tar.bz2'),
                  (1, u'pyflakes-0.6.1-py33_0.tar.bz2'),
-                 (0, u'pyflakes-0.7.2-py26_0.tar.bz2'),
-                 (0, u'pyflakes-0.7.2-py27_0.tar.bz2'),
-                 (0, u'pyflakes-0.7.2-py33_0.tar.bz2'),
-                 (0, u'pygments-1.6-py26_0.tar.bz2'),
-                 (0, u'pygments-1.6-py27_0.tar.bz2'),
-                 (0, u'pygments-1.6-py33_0.tar.bz2'),
-                 (4, u'python-2.6.8-6.tar.bz2'),
-                 (3, u'python-2.7.3-7.tar.bz2'),
+                 (3, u'python-2.6.8-6.tar.bz2'),
                  (2, u'python-2.7.4-0.tar.bz2'),
                  (1, u'python-3.3.0-4.tar.bz2'),
-                 (0, u'python-3.3.1-0.tar.bz2'),
                  (1, u'pytz-2012j-py26_0.tar.bz2'),
-                 (1, u'pytz-2012j-py27_0.tar.bz2'),
                  (1, u'pytz-2012j-py33_0.tar.bz2'),
-                 (0, u'pytz-2013b-py26_0.tar.bz2'),
-                 (0, u'pytz-2013b-py27_0.tar.bz2'),
-                 (0, u'pytz-2013b-py33_0.tar.bz2'),
-                 (0, u'pyyaml-3.10-py26_0.tar.bz2'),
-                 (0, u'pyyaml-3.10-py27_0.tar.bz2'),
-                 (0, u'pyyaml-3.10-py33_0.tar.bz2'),
                  (1, u'pyzmq-2.2.0.1-py26_0.tar.bz2'),
-                 (0, u'pyzmq-2.2.0.1-py26_1.tar.bz2'),
-                 (1, u'pyzmq-2.2.0.1-py27_0.tar.bz2'),
-                 (0, u'pyzmq-2.2.0.1-py27_1.tar.bz2'),
                  (1, u'pyzmq-2.2.0.1-py33_0.tar.bz2'),
-                 (0, u'pyzmq-2.2.0.1-py33_1.tar.bz2'),
-                 (0, u'readline-6.2-0.tar.bz2'),
                  (1, u'requests-0.13.9-py26_0.tar.bz2'),
-                 (1, u'requests-0.13.9-py27_0.tar.bz2'),
                  (1, u'requests-0.13.9-py33_0.tar.bz2'),
-                 (0, u'requests-1.2.0-py26_0.tar.bz2'),
-                 (0, u'requests-1.2.0-py27_0.tar.bz2'),
-                 (0, u'requests-1.2.0-py33_0.tar.bz2'),
                  (1, u'scipy-0.11.0-np15py26_3.tar.bz2'),
-                 (1, u'scipy-0.11.0-np15py27_3.tar.bz2'),
                  (1, u'scipy-0.11.0-np16py26_3.tar.bz2'),
-                 (1, u'scipy-0.11.0-np16py27_3.tar.bz2'),
                  (1, u'scipy-0.11.0-np17py26_3.tar.bz2'),
-                 (1, u'scipy-0.11.0-np17py27_3.tar.bz2'),
                  (1, u'scipy-0.11.0-np17py33_3.tar.bz2'),
-                 (0, u'scipy-0.12.0-np16py26_0.tar.bz2'),
-                 (0, u'scipy-0.12.0-np16py27_0.tar.bz2'),
-                 (0, u'scipy-0.12.0-np17py26_0.tar.bz2'),
-                 (0, u'scipy-0.12.0-np17py27_0.tar.bz2'),
-                 (0, u'scipy-0.12.0-np17py33_0.tar.bz2'),
                  (1, u'six-1.2.0-py26_0.tar.bz2'),
-                 (1, u'six-1.2.0-py27_0.tar.bz2'),
                  (1, u'six-1.2.0-py33_0.tar.bz2'),
-                 (0, u'six-1.3.0-py26_0.tar.bz2'),
-                 (0, u'six-1.3.0-py27_0.tar.bz2'),
-                 (0, u'six-1.3.0-py33_0.tar.bz2'),
                  (1, u'sphinx-1.1.3-py26_2.tar.bz2'),
-                 (0, u'sphinx-1.1.3-py26_3.tar.bz2'),
-                 (1, u'sphinx-1.1.3-py27_2.tar.bz2'),
-                 (0, u'sphinx-1.1.3-py27_3.tar.bz2'),
                  (1, u'sphinx-1.1.3-py33_2.tar.bz2'),
-                 (0, u'sphinx-1.1.3-py33_3.tar.bz2'),
                  (1, u'sqlalchemy-0.7.8-py26_0.tar.bz2'),
-                 (1, u'sqlalchemy-0.7.8-py27_0.tar.bz2'),
                  (1, u'sqlalchemy-0.7.8-py33_0.tar.bz2'),
-                 (0, u'sqlalchemy-0.8.1-py26_0.tar.bz2'),
-                 (0, u'sqlalchemy-0.8.1-py27_0.tar.bz2'),
-                 (0, u'sqlalchemy-0.8.1-py33_0.tar.bz2'),
-                 (0, u'sqlite-3.7.13-0.tar.bz2'),
                  (1, u'system-5.8-0.tar.bz2'),
-                 (0, u'system-5.8-1.tar.bz2'),
-                 (0, u'tk-8.5.13-0.tar.bz2'),
                  (1, u'tornado-2.4.1-py26_0.tar.bz2'),
-                 (1, u'tornado-2.4.1-py27_0.tar.bz2'),
                  (1, u'tornado-2.4.1-py33_0.tar.bz2'),
-                 (0, u'tornado-3.0.1-py26_0.tar.bz2'),
-                 (0, u'tornado-3.0.1-py27_0.tar.bz2'),
-                 (0, u'tornado-3.0.1-py33_0.tar.bz2'),
-                 (0, u'util-linux-2.21-0.tar.bz2'),
                  (1, u'xlrd-0.9.0-py26_0.tar.bz2'),
-                 (1, u'xlrd-0.9.0-py27_0.tar.bz2'),
                  (1, u'xlrd-0.9.0-py33_0.tar.bz2'),
-                 (0, u'xlrd-0.9.2-py26_0.tar.bz2'),
-                 (0, u'xlrd-0.9.2-py27_0.tar.bz2'),
-                 (0, u'xlrd-0.9.2-py33_0.tar.bz2'),
-                 (0, u'yaml-0.1.4-0.tar.bz2'),
-                 (1, u'zeromq-2.2.0-0.tar.bz2'),
-                 (0, u'zeromq-2.2.0-1.tar.bz2'),
-                 (0, u'zlib-1.2.7-0.tar.bz2')]
-
-    eq = r.generate_version_eq(v, groups, specs)
-    e2 = sorted(((i, w[j]) for i, j in eq), key=lambda i:i[1])
-    assert e2 == [q for q in e if q[0]>0]
+                 (1, u'zeromq-2.2.0-0.tar.bz2')]
 
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'scipy 0.12.0b1']), 'conflict')
+    assert raises((RuntimeError, SystemExit), lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']), 'conflict')
     # numpy 1.5 does not have a python 3 package
-    assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'python 3*']), 'conflict')
-    assert raises((RuntimeError, SystemExit), lambda: r.solve(['numpy 1.5*', 'numpy 1.6*']), 'conflict')
+    assert raises((RuntimeError, SystemExit), lambda: r.install(['numpy 1.5*', 'python 3*']), 'conflict')
+    assert raises((RuntimeError, SystemExit), lambda: r.install(['numpy 1.5*', 'numpy 1.6*']), 'conflict')
 
 def test_nonexistent():
-    assert raises(NoPackagesFound, lambda: r.solve(['notarealpackage 2.0*']), 'No packages found')
+    assert raises(NoPackagesFound, lambda: r.install(['notarealpackage 2.0*']), 'Package missing')
     # This exact version of NumPy does not exist
-    assert raises(NoPackagesFound, lambda: r.solve(['numpy 1.5']), 'No packages found')
+    assert raises(NoPackagesFound, lambda: r.install(['numpy 1.5']), 'Package missing')
 
 def test_nonexistent_deps():
     index2 = index.copy()
@@ -565,7 +393,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'}
 
-    assert r.solve(['mypackage']) == r.solve(['mypackage 1.1']) == [
+    assert r.install(['mypackage']) == r.install(['mypackage 1.1']) == [
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -576,9 +404,9 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.0']))
+    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0']))
 
-    assert r.solve(['anotherpackage 1.0']) == [
+    assert r.install(['anotherpackage 1.0']) == [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -591,7 +419,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
 
-    assert r.solve(['anotherpackage']) == [
+    assert r.install(['anotherpackage']) == [
         'anotherpackage-2.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -664,7 +492,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'}
 
-    assert r.solve(['mypackage']) == r.solve(['mypackage 1.0']) == [
+    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -675,10 +503,10 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(NoPackagesFound, lambda: r.solve(['mypackage 1.1']))
+    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.1']))
 
 
-    assert r.solve(['anotherpackage 1.0']) == [
+    assert r.install(['anotherpackage 1.0']) == [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -693,7 +521,7 @@ def test_nonexistent_deps():
 
     # If recursive checking is working correctly, this will give
     # anotherpackage 2.0, not anotherpackage 1.0
-    assert r.solve(['anotherpackage']) == [
+    assert r.install(['anotherpackage']) == [
         'anotherpackage-2.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -729,7 +557,7 @@ def test_install_package_with_feature():
     r = Resolve(index2)
 
     # It should not raise
-    r.solve(['mypackage'], installed=['feature-1.0-py33_0.tar.bz2'])
+    r.install(['mypackage'], installed=['feature-1.0-py33_0.tar.bz2'])
 
 
 def test_circular_dependencies():
@@ -759,8 +587,8 @@ def test_circular_dependencies():
         'package1-1.0-0.tar.bz2',
         'package2-1.0-0.tar.bz2',
     }
-    assert r.solve(['package1']) == r.solve(['package2']) == \
-        r.solve(['package1', 'package2']) == [
+    assert r.install(['package1']) == r.install(['package2']) == \
+        r.install(['package1', 'package2']) == [
         'package1-1.0-0.tar.bz2',
         'package2-1.0-0.tar.bz2',
     ]
@@ -812,7 +640,7 @@ def test_package_ordering():
     assert (numpy == numpy_mkl) is False
 
 def test_irrational_version():
-    assert r.solve(['pytz 2012d', 'python 3*'], returnall=True) == [[
+    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
         'pytz-2012d-py33_0.tar.bz2',
@@ -825,7 +653,7 @@ def test_irrational_version():
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
-    assert r.solve(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
+    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
         returnall=True) == [[
             'numpy-1.6.2-py26_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
@@ -838,7 +666,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]
 
-    assert r.solve(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
+    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
         returnall=True) == [[
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
@@ -928,8 +756,52 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]][0]
 
+def test_remove():
+    installed = r.install(['pandas', 'python 2.7*'])
+    assert installed == [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.7.1-py27_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.11.0-np17py27_1.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.12.0-np17py27_0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2']
+
+    assert r.remove(['pandas'], installed=installed) == [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.7.1-py27_0.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.12.0-np17py27_0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2']
+
+    # Pandas requires numpy
+    assert r.remove(['numpy'], installed=installed) == [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2']
+
 def test_update_deps():
-    installed = r.solve(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
+    installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
     assert installed == [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
@@ -948,7 +820,7 @@ def test_update_deps():
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
-    assert r.solve(['pandas', 'python 2.7*'], installed=installed,
+    assert r.install(['pandas', 'python 2.7*'], installed=installed,
         update_deps=True, returnall=True) == [[
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
@@ -966,7 +838,7 @@ def test_update_deps():
 
     # pandas should be updated here. However, it's going to try to not update
     # scipy, so it won't be updated to the latest version (0.11.0).
-    assert r.solve(['pandas', 'python 2.7*'], installed=installed,
+    assert r.install(['pandas', 'python 2.7*'], installed=installed,
         update_deps=False, returnall=True) == [[
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
