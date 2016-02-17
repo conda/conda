@@ -1,13 +1,12 @@
 from __future__ import print_function, division, absolute_import
 
-import sys
+import contextlib
 import json
 import logging
-import contextlib
+import sys
 
+from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from conda.utils import memoized
-from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
-                               ProgressBar)
 
 
 fetch_progress = ProgressBar(

@@ -42,7 +42,6 @@ automatically enable features like auto-resizing when the system supports it.
 
 from __future__ import print_function, division, absolute_import
 
-import math
 import os
 import signal
 import sys
@@ -55,8 +54,8 @@ try:
 except ImportError:
     pass
 
-from conda.progressbar.compat import *
-from conda.progressbar.widgets import *
+from .compat import *
+from .widgets import *
 
 
 __author__ = 'Nilton Volpato'
