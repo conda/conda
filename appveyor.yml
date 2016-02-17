@@ -41,7 +41,7 @@ install:
   - conda --version
   - conda install -c conda pytest requests mock pycrypto pyflakes pycosat python=%PYTHON_VERSION%
   - python --version
-  - python -c \"import struct; print(struct.calcsize('P') * 8)\"
+  - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install
 
 
