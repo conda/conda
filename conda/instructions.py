@@ -59,7 +59,8 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
-    install.extract(config.pkgs_dirs[0], arg)
+    if not install.is_extracted(config.pkgs_dirs[0], arg):
+        install.extract(config.pkgs_dirs[0], arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
