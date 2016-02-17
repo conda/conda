@@ -14,6 +14,7 @@ from conda.version import VersionOrder, VersionSpec
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
+from conda.install import name_dist
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -463,6 +464,10 @@ class Resolve(object):
         if filtered:
             self.clear_filter()
         return dists
+
+    def dependency_sort(self, dists):
+        sort_info = {name_dist(dist): dist for dist in dists}
+        return self.graph_sort(sort_info)
 
     def graph_sort(self, must_have):
 
