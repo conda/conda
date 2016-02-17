@@ -1,0 +1,39 @@
+package:
+  name: conda
+  version: {{ environ.get("GIT_DESCRIBE_TAG", "") }}
+
+source:
+  git_url: ../
+  git_tag: HEAD
+
+build:
+  # These are present when the new environment is created
+  # so we have to exempt them from the list of initial files
+  # for conda-build to realize they should be included.
+  always_include_files:
+    - bin/conda         [unix]
+  string: dev_py{{ environ.get("CONDA_PY", "") }}
+
+requirements:
+  build:
+    - python
+  run:
+    - python
+    - pycosat
+    - pyyaml
+    - requests
+    - conda-env
+    - menuinst   [win]
+
+test:
+  commands:
+    - conda --version
+    - conda info
+  imports:
+    - conda
+
+about:
+  home: http://conda.pydata.org/
+  license: BSD
+  license_file: LICENSE.txt
+  summary: cross-platform, Python-agnostic binary package manager
