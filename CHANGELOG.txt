@@ -1,5 +1,5 @@
-2016-XX-XX 3.20.0:
-------------------
+2016-XX-XX   3.20.0:
+--------------------
   * resolve.py: "conda update <package>" now handles depedencies properly
     according to the setting of the "update_deps" configuration:
         --update-deps: conda will also update any dependencies as needed
@@ -15,10 +15,16 @@
   * resolve.py: the solver has been retooled significantly. Performance
     should be improved in most circumstances, and a number of issues
     involving feature conflicts should be resolved.
+
+
+2016-XX-XX   3.19.2:
+--------------------
   * add basic activate/deactivate, conda activate/deactivate/ls for fish,
     see #545
   * remove error when CONDA_FORCE_32BIT is set on 32-bit systems, #1985
   * suppress help text for --unknown option, #2051
+  * fix issue with conda create --clone post-link scripts, #2007
+  * fix a permissions issue on windows, #2083
 
 
 2016-02-01   3.19.1:
