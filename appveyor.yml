@@ -39,7 +39,8 @@ install:
   - conda config --set always_yes yes
   - conda install --force --no-deps conda requests
   - conda --version
-  - conda install -c conda pytest requests mock pycrypto pyflakes pycosat python=%PYTHON_VERSION%
+  - conda install python=%PYTHON_VERSION%
+  - conda install -c conda pytest requests mock pycrypto pyflakes pycosat
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install
