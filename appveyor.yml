@@ -14,14 +14,6 @@ environment:
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python33_32"
-      PYTHON_VERSION: "3.3.0"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python33_64"
-      PYTHON_VERSION: "3.3.0"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python34_32"
       PYTHON_VERSION: "3.4.2"
       PYTHON_ARCH: "32"
@@ -38,13 +30,16 @@ environment:
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
 
+init:
+  - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%
+
 install:
   - powershell ./utils/install.ps1
   - set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
   - conda config --set always_yes yes
   - conda install --force --no-deps conda requests
   - conda --version
-  - conda install -c conda pytest requests mock pycrypto pyflakes python=$PYTHON_VERSION
+  - conda install -c conda pytest requests mock pycrypto pyflakes pycosat python=%PYTHON_VERSION%
   - python --version
   - python -c \"import struct; print(struct.calcsize('P') * 8)\"
   - python setup.py install
