@@ -1,39 +1,57 @@
-# Tell appveyor to not use msbuild
-build: false
-
 environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\appveyor\\run_with_env.cmd"
+
   matrix:
-    - PYTHON: 2.7
-    - PYTHON: 3.4
-    - PYTHON: 3.5
+    - PYTHON: "C:\\Python27_32"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "32"
 
-platform:
-  - x86
-  - x64
+    - PYTHON: "C:\\Python27_64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
 
-init:
-  - "ECHO %PYTHON%"
-  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x64"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda2-latest-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
-  - ps: if($env:PYTHON -eq "2.7" -and $env:Platform -eq "x86"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda2-latest-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
-  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x64"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
-  - ps: if($env:PYTHON -eq "3.4" -and $env:Platform -eq "x86"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
-  - ps: if($env:PYTHON -eq "3.5" -and $env:Platform -eq "x64"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe' C:\Miniconda.exe; echo "Done"}
-  - ps: if($env:PYTHON -eq "3.5" -and $env:Platform -eq "x86"){Start-FileDownload 'http://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86.exe' C:\Miniconda.exe; echo "Done"}
-  - cmd: C:\Miniconda.exe /S /D=C:\Miniconda
-  - ps: ls C:\Miniconda/Scripts
-  - C:\Miniconda\Scripts\conda config --set always_yes yes
-  # We need to do this first as other commands may not work with older versions of conda.
-  - C:\Miniconda\Scripts\conda update conda
-  - C:\Miniconda\Scripts\conda install -c conda pytest requests pycrypto mock conda-env pycosat --quiet
-  - cmd: if "%PYTHON%"=="2.7" C:\Miniconda\Scripts\conda install ndg-httpsclient
+    - PYTHON: "C:\\Python33_32"
+      PYTHON_VERSION: "3.3.0"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python33_64"
+      PYTHON_VERSION: "3.3.0"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python34_32"
+      PYTHON_VERSION: "3.4.2"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python34_64"
+      PYTHON_VERSION: "3.4.2"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python35_32"
+      PYTHON_VERSION: "3.5.0"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python35_64"
+      PYTHON_VERSION: "3.5.0"
+      PYTHON_ARCH: "64"
 
 install:
-  - C:\Miniconda\python.exe setup.py install
-  - C:\Miniconda\Scripts\conda info -a
-  - C:\Miniconda\Scripts\conda list
+  - powershell ./utils/install.ps1
+  - set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
+  - conda config --set always_yes yes
+  - conda install --force --no-deps conda requests
+  - conda --version
+  - conda install -c conda pytest requests mock pycrypto pyflakes python=$PYTHON_VERSION
+  - python --version
+  - python -c \"import struct; print(struct.calcsize('P') * 8)\"
+  - python setup.py install
+
+
+# Not a .NET project, we build scikit-image in the install step instead
+build: false
 
 test_script:
-  - C:\Miniconda\Scripts\py.test -vvv
-  - C:\Miniconda\Scripts\conda --help
-  - IF %PYTHON%==2.7 IF DEFINED PYCOSAT C:\Miniconda\Scripts\conda install -f menuinst ipython-notebook & echo "Finished menuinst test"
-
+  - py.test
