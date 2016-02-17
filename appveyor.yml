@@ -42,6 +42,10 @@ install:
   - conda config --set always_yes yes
   - conda install --force --no-deps conda requests
   - conda --version
+  - conda info python
+  - python -c "import sys; print(sys.version)"
+  - python -c "import sys; print(sys.executable)"
+  - python -c "import sys; print(sys.prefix)"
   - conda install python=%PYTHON_VERSION%
   - conda install -c conda pytest requests mock pycrypto pyflakes pycosat
   - python --version
