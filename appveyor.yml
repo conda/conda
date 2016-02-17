@@ -6,43 +6,41 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\appveyor\\run_with_env.cmd"
 
   matrix:
-#    - PYTHON: "C:\\Python27_32"
-#      PYTHON_VERSION: "2.7"
-#      PYTHON_ARCH: "32"
-#
-#    - PYTHON: "C:\\Python27_64"
-#      PYTHON_VERSION: "2.7"
-#      PYTHON_ARCH: "64"
-#
-#    - PYTHON: "C:\\Python34_32"
-#      PYTHON_VERSION: "3.4"
-#      PYTHON_ARCH: "32"
+    - PYTHON: "C:\\Python27_32"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python27_64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python34_32"
+      PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "32"
 
     - PYTHON: "C:\\Python34_64"
       PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python35_32"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python35_64"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "64"
+#    - PYTHON: "C:\\Python35_32"
+#      PYTHON_VERSION: "3.5"
+#      PYTHON_ARCH: "32"
+#
+#    - PYTHON: "C:\\Python35_64"
+#      PYTHON_VERSION: "3.5"
+#      PYTHON_ARCH: "64"
 
 init:
   - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%
 
 install:
-  - utils/win_build_env.cmd
+  # - utils/win_build_env.cmd
   - powershell ./utils/install.ps1
   - set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
   - conda info
-  - set PATH=%PYTHON%;%PYTHON%/bin;%PATH%
   - conda config --set always_yes yes
   - conda install --force --no-deps conda requests
-  - conda --version
-  - conda info python
+  # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
   - python -c "import sys; print(sys.prefix)"
