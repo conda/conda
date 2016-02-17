@@ -308,6 +308,7 @@ def optimize(objective, clauses, bestsol, minval=None, maxval=None,
     m = len(bestsol)
     bestcon = []
     bestval = evaluate_eq(objective, bestsol)
+    log.debug('Initial objective: %d'%bestval)
 
     # If we got lucky and the initial solution is optimal, we still
     # need to generate the constraints at least once

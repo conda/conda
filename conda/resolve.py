@@ -581,7 +581,7 @@ class Resolve(object):
         ms = MatchSpec(ms)
         pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
         if not pkgs and not emptyok:
-            raise NoPackagesFound((ms,))
+            raise NoPackagesFound([(ms,)])
         return pkgs
 
     def gen_clauses(self, v, groups, features, specs, relax=False):
@@ -598,11 +598,14 @@ class Resolve(object):
                 yield (v[name],-v[fn])
 
         for name, group in iteritems(groups):
+            gval = v['@@' + name]
+            yield tuple([-gval] + [v[fn] for fn in group])
             for k, fn1 in enumerate(group):
                 # Ensure two package with the same name are not installed
                 # e.g. for three packages fn1, fn2, f3:
                 # NOT fn1 OR NOT fn2, NOT fn1 OR NOT fn3, NOT fn2 OR NOT fn3
                 nval = -v[fn1]
+                yield (gval, nval)
                 for fn2 in group[k+1:]:
                     yield (nval,-v[fn2])
                 # Ensure each dependency is installed
@@ -643,18 +646,19 @@ class Resolve(object):
 
     def generate_optional_count(self, v, groups, specs):
         eq = []
-        sdict = {}
         max_rhs = 0
         for s in specs:
-            if s.optional:
-                sdict.setdefault(s.name,[]).append(s)
-        for s in specs:
-            if not s.optional and s.name in sdict:
-                del sdict[s.name]
-        for name, specs in iteritems(sdict):
-            olen = len(eq)
-            eq.extend((1,v[fn]) for fn in groups.get(name,[]) if self.match_any(specs, fn))
-            max_rhs += (len(eq) > olen)
+            if not s.optional or s.name[0] == '@' or s.name not in groups:
+                continue
+            group = groups[s.name]
+            fgroup = [(1,v[fn]) for fn in self.find_matches_group(s, groups)]
+            if len(fgroup) == 0:
+                continue
+            elif len(fgroup) == len(group):
+                eq.append((1,v['@@'+s.name]))
+            else:
+                eq.extend(fgroup)
+            max_rhs += 1
         return eq, max_rhs
 
     def generate_version_metric(self, v, groups, specs, majoronly=False):
@@ -732,6 +736,10 @@ class Resolve(object):
                 i += 1
                 v[fn] = i + 1
                 w[i + 1] = fn.rsplit('[',1)[0]
+            name = '@@' + name
+            i += 1
+            v[name] = i + 1
+            w[i + 1] = name
         for name in iterkeys(features):
             name = '@' + name
             i += 1
@@ -903,7 +911,7 @@ class Resolve(object):
             clauses, solution, obj1 = optimize(eq_requested_versions, clauses, solution)
             dotlog.debug('Requested version metric: %d'%obj1)
 
-            spec3 = [s for s in specs if s.optional]
+            spec3 = [s for s in specs if s.optional and (not s.negate or self.find_matches_group(s, groups))]
             eq_optional_count, max_rhs = self.generate_optional_count(v, groups, spec3)
             clauses, solution, obj2 = optimize(eq_optional_count, clauses, solution, maximize=True, maxval=max_rhs)
             dotlog.debug('Optional package count: %d'%obj2)
