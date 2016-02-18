@@ -79,12 +79,18 @@ def binpath_from_arg(arg):
     return path
 
 
-def pathlist_to_str(paths):
+def pathlist_to_str(paths, escape_backslashes=True):
     """
     Format a path list, e.g., of bin paths to be added or removed,
     for user-friendly output.
     """
-    return ' and '.join([path.replace("\\\\", "\\") for path in paths])
+    path = ' and '.join(paths)
+    if on_win and escape_backslashes:
+        # escape for printing to console - ends up as single \
+        path = re.sub(r'(?<!\\)\\(?!\\)', r'\\\\', path)
+    else:
+        path = path.replace("\\\\", "\\")
+    return path
 
 
 def main():
