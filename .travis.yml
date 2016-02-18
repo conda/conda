@@ -33,7 +33,7 @@ install:
       conda install pycosat=$PYCOSAT;
     fi
   - conda install pip
-  - pip install pytest-cov radon
+  - pip install flake8 pytest-cov radon
   - python setup.py install
   - conda info -a
   - printenv
