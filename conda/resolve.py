@@ -1,6 +1,5 @@
 from __future__ import print_function, division, absolute_import
 
-import sys
 import logging
 from collections import defaultdict
 from itertools import chain
@@ -27,10 +26,18 @@ def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
 
 class Unsatisfiable(RuntimeError):
-    def __init__(self, bad_deps):
-        bad_deps = dashlist([' -> '.join(map(str,c)) for c in bad_deps])
-        msg = '''The following specifications were found to be in conflict:%s
-Use "conda info <package>" to see the dependencies for each package.'''%bad_deps
+    def __init__(self, bad_deps, chains=True):
+        bad_deps = [map(str,dep) for dep in bad_deps]
+        if chains:
+            bad_deps = [' -> '.join(dep) for dep in bad_deps]
+            msg = '''The following specifications were found to be in conflict:%s
+Use "conda info <package>" to see the dependencies for each package.'''
+        else:
+            bad_deps = [', '.join(sorted(dep)) for dep in bad_deps]
+            msg = '''The following specifications were found to be incompatible with the
+others, or with the existing package set:%s
+Use "conda info <package>" to see the dependencies for each package.'''
+        msg = msg%dashlist(bad_deps)
         super(Unsatisfiable, self).__init__(msg)
 
 class NoPackagesFound(RuntimeError):
@@ -368,15 +375,10 @@ class Resolve(object):
         r = Resolve({fn:self.index[fn] for fn in installed if fn in self.index})
         return r.valid_specs(r.groups.keys())
 
-    def get_dists(self, specs, sat_only=False):
+    def get_dists(self, specs):
         log.debug('Retrieving packages for: %s'%specs)
 
-        try:
-            specs, removes, optional, features = self.verify_specs(specs)
-        except:
-            if sat_only:
-                return None, None
-            raise
+        specs, removes, optional, features = self.verify_specs(specs)
         filter = {}
         touched = {}
         snames = set()
@@ -493,10 +495,7 @@ class Resolve(object):
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        res = full_prune(specs, removes, optional, features)
-        if sat_only:
-            return res
-        if not res:
+        if not full_prune(specs, removes, optional, features):
             save_unsat = set(unsat)
             def minsat_prune(specs):
                 return full_prune(specs, removes, [], features)
@@ -520,12 +519,16 @@ class Resolve(object):
             return ms.name[:-1] in self.track_features(fn)
         return ms.match(self.index[fn])
 
-    def find_matches_group(self, ms, groups):
+    def find_matches_group(self, ms, groups, trackers=None):
         ms = MatchSpec(ms)
-        for fn in groups.get(ms.name, []):
-            rec = self.index[fn]
-            if ms.match_fast(rec['version'], rec['build']):
+        if ms.name[0] == '@' and trackers:
+            for fn in trackers.get(ms.name[1:], []):
                 yield fn
+        else:
+            for fn in groups.get(ms.name, []):
+                rec = self.index[fn]
+                if ms.match_fast(rec['version'], rec['build']):
+                    yield fn
 
     def find_matches(self, ms):
         ms = MatchSpec(ms)
@@ -584,53 +587,64 @@ class Resolve(object):
             raise NoPackagesFound([(ms,)])
         return pkgs
 
-    def gen_clauses(self, v, groups, features, specs, relax=False):
-        # Hardcoded features are always true
-        for name, group in iteritems(features):
-            name = '@' + name
-            # feat@ == fn1 OR fn2 OR fn3 OR fn4)
-            # If the track feature is active, at least one of its
-            # packages must be installed
-            yield tuple([-v[name]] + [v[fn] for fn in group])
-            # If the track feature is not installed, none of its
-            # packages may be installed
-            for fn in group:
-                yield (v[name],-v[fn])
+    @staticmethod
+    def ms_to_v(ms):
+        return 's@' + ms.spec + ('!' if ms.negate else '')
 
+    def gen_clauses(self, groups, trackers, specs):
+        w = {}
+        v = {'@':0}
+        clauses = []
+
+        def push_v(name, rev=True):
+            m = v['@'] = v['@'] + 1
+            v[name] = m
+            w[m] = name.rsplit('[',1)[0]
+            return m
+
+        def push_s(ms):
+            name = self.ms_to_v(ms)
+            m = v.get(name, None)
+            if not m:
+                m = push_v(name, False)
+                bb = [v[fn] for fn in self.find_matches_group(ms, groups, trackers)]
+                clauses.extend((m,-b) for b in bb)
+                bb.append(-m)
+                clauses.append(tuple(bb))
+            return m
+
+        # Create each variable and ensure only one from
+        # each group is true simultaneously
         for name, group in iteritems(groups):
-            gval = v['@@' + name]
-            yield tuple([-gval] + [v[fn] for fn in group])
-            for k, fn1 in enumerate(group):
-                # Ensure two package with the same name are not installed
-                # e.g. for three packages fn1, fn2, f3:
-                # NOT fn1 OR NOT fn2, NOT fn1 OR NOT fn3, NOT fn2 OR NOT fn3
-                nval = -v[fn1]
-                yield (gval, nval)
-                for fn2 in group[k+1:]:
-                    yield (nval,-v[fn2])
-                # Ensure each dependency is installed
-                # e.g. numpy-1.7 IMPLIES (python-2.7.3 OR python-2.7.4 OR ...)
-                for ms in self.ms_depends(fn1):
-                    if ms.name[0] == '@':
-                        assert ms.name in v, '%s %r' % (fn1, ms)
-                        yield (nval, v[ms.name])
-                    else:
-                        clause = [v[fn2] for fn2 in self.find_matches_group(ms, groups)]
-                        assert relax or clause, '%s %r' % (fn1, ms)
-                        yield tuple([nval] + clause)
+            vals = [push_v(fn) for fn in group]
+            if len(vals) > 1:
+                for k, v1 in enumerate(vals):
+                    for v2 in vals[:k]:
+                        clauses.append((-v1,-v2))
 
-        # Ensure that at least one package is installed matching each spec
-        # fn1 OR fn2 OR fn3 OR ... OR fnN
+        # Create feature variables
+        for name in iterkeys(trackers):
+            push_s(MatchSpec('@' + name))
+
+        # Add dependency relationships
+        for group in itervalues(groups):
+            for fn in group:
+                a = v[fn]
+                for ms in self.ms_depends(fn):
+                    if not ms.optional:
+                        clauses.append((-a,push_s(ms)))
+
+        # Create spec variables and ensure the mandatory ones are true
         for ms in specs:
-            ms = MatchSpec(ms)
-            if not ms.optional:
-                clause = [v[fn] for fn in self.find_matches_group(ms, groups)]
-                assert relax or len(clause) >= 1, ms
-                yield tuple(clause)
+            a = push_s(ms)
 
-    def generate_feature_count(self, v, groups, specs):
-        feats = {s.name for s in specs if s.name[-1] == '@' and not s.optional}
-        return [(1,v[name]) for name in iterkeys(groups) if name[-1] == '@' and name not in feats], len(feats)
+        return len(v), v, w, clauses
+
+    def generate_spec_constraints(self, v, specs):
+        return [(v[self.ms_to_v(ms)],) for ms in specs if not ms.optional]
+
+    def generate_feature_count(self, v, trackers):
+        return [(1,v[self.ms_to_v(MatchSpec('@'+name))]) for name in iterkeys(trackers)]
 
     def generate_feature_metric(self, v, groups, specs):
         eq = []
@@ -644,22 +658,8 @@ class Resolve(object):
             eq.extend((maxf-fc,v[fn]) for fn, fc in zip(group, nf) if fc < maxf)
         return eq
 
-    def generate_optional_count(self, v, groups, specs):
-        eq = []
-        max_rhs = 0
-        for s in specs:
-            if not s.optional or s.name[0] == '@' or s.name not in groups:
-                continue
-            group = groups[s.name]
-            fgroup = [(1,v[fn]) for fn in self.find_matches_group(s, groups)]
-            if len(fgroup) == 0:
-                continue
-            elif len(fgroup) == len(group):
-                eq.append((1,v['@@'+s.name]))
-            else:
-                eq.extend(fgroup)
-            max_rhs += 1
-        return eq, max_rhs
+    def generate_removal_count(self, v, specs):
+        return [(1,-v[self.ms_to_v(ms)]) for ms in specs]
 
     def generate_version_metric(self, v, groups, specs, majoronly=False):
         eq = []
@@ -727,27 +727,6 @@ class Resolve(object):
     def graph_sort(self, must_have):
         return self.dependency_sort(must_have)
 
-    def build_vw(self, groups, features):
-        v = {}  # map fn to variable number
-        w = {}  # map variable number to fn
-        i = -1  # in case the loop doesn't run
-        for name, group in iteritems(groups):
-            for fn in group:
-                i += 1
-                v[fn] = i + 1
-                w[i + 1] = fn.rsplit('[',1)[0]
-            name = '@@' + name
-            i += 1
-            v[name] = i + 1
-            w[i + 1] = name
-        for name in iterkeys(features):
-            name = '@' + name
-            i += 1
-            v[name] = i + 1
-            w[i + 1] = name
-        m = i + 1
-        return m, v, w
-
     def explicit(self, specs):
         """
         Given the specifications, return:
@@ -808,17 +787,18 @@ class Resolve(object):
         if not installed:
             return []
         dists = {fn:self.index[fn] for fn in installed}
-        groups, trackers = build_groups(dists)
-        if len(groups) < len(installed):
-            return False
         specs = [MatchSpec('%s %s %s'%(rec['name'],rec['version'],rec['build'])) for rec in itervalues(dists)]
-        m, v, w = self.build_vw(groups, trackers)
-        def minsat(specs):
-            return sat(self.gen_clauses(v, groups, trackers, specs, relax=True))
-        if minsat(specs):
+        groups, trackers = build_groups(dists)
+        m, v, w, clauses = self.gen_clauses(groups, trackers, specs)
+        constraints = self.generate_spec_constraints(v, specs)
+        solution = sat(chain(clauses, constraints), m)
+        if solution:
             return []
-        hint = minimal_unsatisfiable_subset(specs, sat=minsat, log=False)
-        return set(ms.name for ms in hint)
+        solution = [-q for q in range(1,m+1)]
+        eq_removal_count = self.generate_removal_count(v, specs)
+        clauses, solution, obj1 = optimize(eq_removal_count, clauses, solution)
+        solution = set(solution)
+        return set(s.name for s in specs if v[self.ms_to_v(s)] not in solution)
 
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
@@ -870,7 +850,7 @@ class Resolve(object):
         specs = self.remove_specs(specs, installed)
         return self.solve(specs)
 
-    def solve(self, specs, len0=None, returnall=False, sat_only=False):
+    def solve(self, specs, len0=None, returnall=False):
         try:
             stdoutlog.info("Solving package specifications: ")
             dotlog.debug("Solving for %s" % specs)
@@ -879,7 +859,7 @@ class Resolve(object):
             specs = list(map(MatchSpec, specs))
             if len0 is None:
                 len0 = len(specs)
-            dists, new_specs = self.get_dists(specs, sat_only=sat_only)
+            dists, new_specs = self.get_dists(specs)
             if not dists:
                 return False if dists is None else ([[]] if returnall else [])
 
@@ -889,21 +869,21 @@ class Resolve(object):
 
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
-            groups, feats = build_groups(dists)
-            m, v, w = self.build_vw(groups, feats)
-            clauses = list(self.gen_clauses(v, groups, feats, specs))
-            solution = sat(clauses,m)
-            if sat_only:
-                return bool(solution)
+            groups, trackers = build_groups(dists)
+            m, v, w, clauses = self.gen_clauses(groups, trackers, specs)
+            constraints = self.generate_spec_constraints(v, specs)
+            solution = sat(chain(clauses, constraints))
             if not solution:
-                def mysat(specs):
-                    return sat(self.gen_clauses(v, groups, feats, specs))
-                stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
-                hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=True)
-                sys.exit('%s%s\n%s' % (
-                    'The following specifications were found to be in conflict:',
-                    dashlist(hint),
-                    'Use "conda info <package>" to see the dependencies for each package.'))
+                # Find the largest set of specs that are satisfiable, and return
+                # the list of specs that are not in that set.
+                solution = [-q for q in range(1,m+1)]
+                spec2 = [s for s in specs if not s.optional]
+                eq_removal_count = self.generate_removal_count(v, spec2)
+                clauses, solution, obj1 = optimize(eq_removal_count, clauses, solution)
+                specsol = [(s,) for s in spec2 if v[self.ms_to_v(s)] not in solution]
+                raise Unsatisfiable(specsol, False)
+
+            clauses.extend(constraints)
 
             specs += new_specs
             spec2 = [s for s in specs[:len0] if not s.optional]
@@ -911,18 +891,18 @@ class Resolve(object):
             clauses, solution, obj1 = optimize(eq_requested_versions, clauses, solution)
             dotlog.debug('Requested version metric: %d'%obj1)
 
-            spec3 = [s for s in specs if s.optional and (not s.negate or self.find_matches_group(s, groups))]
-            eq_optional_count, max_rhs = self.generate_optional_count(v, groups, spec3)
-            clauses, solution, obj2 = optimize(eq_optional_count, clauses, solution, maximize=True, maxval=max_rhs)
-            dotlog.debug('Optional package count: %d'%obj2)
+            spec3 = [s for s in specs if s.optional]
+            eq_optional_count = self.generate_removal_count(v, spec3)
+            clauses, solution, obj2 = optimize(eq_optional_count, clauses, solution)
+            dotlog.debug('Optional package removal count: %d'%obj2)
 
             eq_optional_versions = self.generate_version_metric(v, groups, spec3, majoronly=True)
             clauses, solution, obj3 = optimize(eq_optional_versions, clauses, solution)
             dotlog.debug('Optional package version metric: %d'%obj3)
 
-            eq_feature_count, n0 = self.generate_feature_count(v, groups, specs)
+            eq_feature_count = self.generate_feature_count(v, trackers)
             clauses, solution, obj4 = optimize(eq_feature_count, clauses, solution)
-            dotlog.debug('Feature count metric: %d'%(obj4+n0))
+            dotlog.debug('Feature count metric: %d'%obj4)
 
             eq_feature_metric = self.generate_feature_metric(v, groups, specs)
             clauses, solution, obj5 = optimize(eq_feature_metric, clauses, solution)
@@ -938,9 +918,10 @@ class Resolve(object):
 
             dotlog.debug('Looking for alternate solutions')
             def clean(solution):
-                return [s for s in solution if 0 < s <= m and '@' not in w[s]]
+                return [s for s in solution if s in w and '@' not in w[s]]
             nsol = 1
-            solutions = [clean(solution)]
+            solution = clean(solution)
+            solutions = [solution]
             while True:
                 nclause = tuple(-q for q in solution)
                 clauses.append(nclause)
