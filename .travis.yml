@@ -59,4 +59,4 @@ sudo: false
 
 after_success:
   - pip install codecov
-  - codecov
+  - codecov --env TRAVIS_PYTHON_VERSION
