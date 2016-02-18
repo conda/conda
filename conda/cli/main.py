@@ -58,25 +58,6 @@ def main():
                                  ' '.join(sys.argv[1:]))
             sys.exit(1)
 
-        # for backwards compatibility of conda-api
-        if sys.argv[1:4] == ['share', '--json', '--prefix']:
-            import json
-            from os.path import abspath
-            from conda.share import old_create_bundle
-            prefix = sys.argv[4]
-            path, warnings = old_create_bundle(abspath(prefix))
-            json.dump(dict(path=path, warnings=warnings),
-                      sys.stdout, indent=2, sort_keys=True)
-            return
-        if sys.argv[1:4] == ['clone', '--json', '--prefix']:
-            import json
-            from os.path import abspath
-            from conda.share import old_clone_bundle
-            prefix, path = sys.argv[4:6]
-            old_clone_bundle(path, abspath(prefix))
-            json.dump(dict(warnings=[]), sys.stdout, indent=2)
-            return
-
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
