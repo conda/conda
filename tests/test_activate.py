@@ -111,11 +111,10 @@ def run_in(command, shell):
         raise NotImplementedError
     else:
         cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"].split(" ") + [translate_stream(command, shells[shell]["path_to"])]
-        print(cmd_bits)
         p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
     output_translator = shells[shell]["path_from"]
-    streams = [translate_stream(stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\'), output_translator)
+    streams = [u"%s" % translate_stream(stream.strip().decode('utf-8').replace('\r\n', '\n'), output_translator)
                       for stream in (stdout, stderr)]
     return streams
 
@@ -243,7 +242,7 @@ def test_activate_test1(shell):
 
         stdout, stderr = run_in(commands, shell)
         assert_equals(stderr, u'prepending {envpaths} to PATH'\
-                        .format(envpaths=pathlist_to_str(_envpaths(envs, 'test1'))), shell)
+                        .format(envpaths=pathlist_to_str(_envpaths(envs, 'test1'), False)), shell)
         assert_in(pathsep.join(_envpaths(envs, 'test1')), shells[shell]["path_from"](stdout), shell)
 
 
