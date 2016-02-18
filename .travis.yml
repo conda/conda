@@ -32,13 +32,19 @@ install:
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
+  - conda install pip
+  - pip install pytest-cov radon
   - python setup.py install
   - conda info -a
+  - printenv
 
 script:
   - shopt -s extglob globstar
   - pyflakes conda/**/!(compat|__init__).py bin setup.py tests
-  - py.test
+  - py.test --cov conda --cov-report xml tests
+  - radon cc --ignore "build,tests,ve,_vendor,progressbar" --no-assert -nb --total-average -s conda
+  - radon mi --ignore "build,tests,ve,_vendor,progressbar" -na -m -s conda
+  - flake8 --exit-zero --statistics
   - conda --help
 
 notifications:
@@ -50,3 +56,7 @@ addons:
       - zsh
 
 sudo: false
+
+after_success:
+  - pip install codecov
+  - codecov
