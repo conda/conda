@@ -248,7 +248,7 @@ def test_generate_eq():
     specs = ['anaconda']
     dists, specs = r.get_dists(specs)
     groups, trackers = build_groups(dists)
-    m, v, w = r.build_vw(groups, trackers)
+    m, v, w, clauses = r.gen_clauses(groups, trackers, specs)
     eq = r.generate_version_metric(v, groups, specs)
     e = sorted(((i, w[j]) for i, j in eq), key=lambda i:i[1])
     # Should satisfy the following criteria:
@@ -557,7 +557,7 @@ def test_install_package_with_feature():
     r = Resolve(index2)
 
     # It should not raise
-    r.install(['mypackage'], installed=['feature-1.0-py33_0.tar.bz2'])
+    r.install(['mypackage','feature 1.0'])
 
 
 def test_circular_dependencies():

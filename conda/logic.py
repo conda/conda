@@ -255,7 +255,7 @@ def generate_constraints(eq, m, rhs):
         res = C.build_BDD(eq, rhs[0], rhs[1], polarity=True)
         if res is false:
             # Impossible to satisfy, so just stuff a contradiciton in there
-            return [(m,),(-m,)]
+            return [(-m,),(m,)]
         elif res is true:
             return []
         else:
