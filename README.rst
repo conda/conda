@@ -7,7 +7,12 @@ Conda
 =====
 
 .. image:: https://travis-ci.org/conda/conda.svg?branch=master
-               :target: https://travis-ci.org/conda/conda
+   :alt: Travis-CI Build Status
+   :target: https://travis-ci.org/conda/conda
+
+.. image:: https://ci.appveyor.com/api/projects/status/9k80kxa9gra9cjr9/branch/master?svg=true
+   :alt: Appveyor Build Status
+   :target: https://ci.appveyor.com/project/ironmancio54716/conda/branch/master
 
 .. image:: https://badges.gitter.im/conda/conda.svg
    :alt: Join the chat at https://gitter.im/conda/conda
