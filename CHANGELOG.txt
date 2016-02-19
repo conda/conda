@@ -17,7 +17,7 @@
     involving feature conflicts should be resolved.
 
 
-2016-XX-XX   3.19.2:
+2016-02-19   3.19.2:
 --------------------
   * add basic activate/deactivate, conda activate/deactivate/ls for fish,
     see #545
