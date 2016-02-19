@@ -5,13 +5,6 @@ python:
   - "3.3"
   - "3.4"
   - "3.5"
-env:
-  -
-  - PYCOSAT=0.6.0
-matrix:
-  exclude:
-    - python: "3.5"
-      env: PYCOSAT=0.6.0
 
 install:
   # TODO: Use a "latest" url
@@ -26,12 +19,9 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - bin/conda install --force --no-deps conda requests
+  - bin/conda install --force --no-deps conda=3.19.1 requests
   - conda --version
-  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
-  - if [[ "$PYCOSAT" ]]; then
-      conda install pycosat=$PYCOSAT;
-    fi
+  - conda install -c conda conda=3.19.1 pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
   - conda install pip
   - pip install flake8 pytest-cov radon
   - python setup.py install
