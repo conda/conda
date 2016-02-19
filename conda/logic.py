@@ -290,15 +290,11 @@ class Clauses(object):
         if any(c > hi for c,a in equation):
             pvals = [-a for c,a in equation if c > hi]
             prune = self.All(pvals, polarity=polarity)
-            if prune is false:
-                prune = false
             equation = [(c,a) for c,a in equation if c <= hi]
-            if not equation and lo > 0:
-                prune = false
         else:
             prune = true
-        if prune is false:
-            res = false
+        if not equation:
+            res = true if lo == 0 else false
         else:
             equation = sorted(equation)
             total = sum(i for i,_ in equation)
@@ -330,7 +326,8 @@ class Clauses(object):
                     call_stack.append(lo_key)
                     continue
                 ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity=polarity)
-            res = self.And(prune, ret[first_stack], polarity=polarity)
+            res = ret[first_stack]
+        res = self.And(prune, res, polarity=polarity)
         if res is true or res is false:
             self.clauses = self.clauses[:nz]
         return res
