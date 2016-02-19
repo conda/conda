@@ -7,7 +7,7 @@ python:
   - "3.5"
 
 install:
-  # TODO: Use a "latest" url
+  - printenv
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget http://repo.continuum.io/miniconda/Miniconda-3.5.2-Linux-x86_64.sh -O miniconda.sh;
     elif [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
@@ -20,8 +20,9 @@ install:
   - hash -r
   - conda config --set always_yes yes
   - bin/conda install --force --no-deps conda requests
-  - conda --version
-  - conda install -c conda conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
+  - conda info
+  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
+  - conda install pycosat
   - conda install pip
   - pip install flake8 pytest-cov radon
   - python setup.py install
@@ -36,9 +37,6 @@ script:
   - radon mi --ignore "build,tests,ve,_vendor,progressbar" -na -m -s conda
   - flake8 --exit-zero --statistics
   - conda --help
-
-notifications:
-    flowdock: ef3821a08a791106512ccfc04c92eccb
 
 addons:
   apt:
