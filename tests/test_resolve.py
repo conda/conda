@@ -67,7 +67,9 @@ class TestMatchSpec(unittest.TestCase):
         self.assertNotEqual(c, d)
         self.assertNotEqual(hash(c), hash(d))
 
-
+    def test_string(self):
+        a = MatchSpec("foo1 >=1.3 2",optional=True,target='burg',parent='blah',negate=True)
+        assert str(a) == 'foo1 >=1.3 2 (target=burg, parent=blah, optional, negate)'
 
 class TestPackage(unittest.TestCase):
 
@@ -756,6 +758,19 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]][0]
 
+def test_multiple_solution():
+    index2 = index.copy()
+    fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
+    res1 = set([fn])
+    for k in range(1,15):
+        fn2 = '%s_%d.tar.bz2'%(fn[:-8],k)
+        index2[fn2] = index[fn]
+        res1.add(fn2)
+    r = Resolve(index2)
+    res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
+    res = set([x[3] for x in res])
+    assert res <= res1
+
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
     assert installed == [
@@ -847,6 +862,26 @@ def test_remove():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
+
+def test_graph_sort():
+    specs = ['pandas','python 2.7*','numpy 1.6*']
+    installed = r.install(specs)
+    must_have = {r.package_name(pkg):pkg[:-8] for pkg in installed}
+    installed = r.graph_sort(must_have)
+    assert installed == [
+        'openssl-1.0.1c-0',
+        'readline-6.2-0',
+        'sqlite-3.7.13-0',
+        'system-5.8-1',
+        'tk-8.5.13-0',
+        'zlib-1.2.7-0',
+        'python-2.7.5-0',
+        'numpy-1.6.2-py27_4',
+        'pytz-2013b-py27_0',
+        'six-1.3.0-py27_0',
+        'dateutil-2.1-py27_1',
+        'scipy-0.12.0-np16py27_0',
+        'pandas-0.11.0-np16py27_1']
 
 def test_update_deps():
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
