@@ -1,8 +1,6 @@
 from itertools import combinations, permutations, product
 
 import pycosat
-import pytest
-
 from conda.logic import (Clauses, true, false, evaluate_eq, minimal_unsatisfiable_subset)
 
 from tests.helpers import raises
@@ -104,27 +102,11 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                         qsol = Mfunc(*my_SOL(ij,sol))
                         assert qsol is false, (ij,sol,Cfunc.__name__,polarity,C.clauses)
 
-def test_AND():
-    my_TEST(my_AND, Clauses.And, 2,2, False)
-    my_TEST(my_AND, Clauses.All, 0,4, True)
-
-def test_OR():
-    my_TEST(my_OR,  Clauses.Or,  2,2, False)
-    my_TEST(my_OR,  Clauses.Any, 0,4, True)
-
-def test_XOR():
-    my_TEST(my_XOR, Clauses.Xor, 2,2, False)
-
-def test_ITE():
-    my_TEST(my_ITE, Clauses.ITE, 3,3, False)
-
-def test_AMONE():
-    my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
-
-def test_XONE():
-    my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
-
 def test_true_false():
+    assert str(true) == "true"
+    assert str(false) == "false"
+    assert hash(true) != hash(false)
+
     assert true == true
     assert false == false
     assert true != false
@@ -150,9 +132,37 @@ def test_true_false():
     assert false >= false
     assert true >= true
 
-@pytest.mark.slow
-def test_BDD():
+def test_AND():
+    my_TEST(my_AND, Clauses.And, 2,2, False)
+    my_TEST(my_AND, Clauses.All, 0,4, True)
+
+def test_OR():
+    my_TEST(my_OR,  Clauses.Or,  2,2, False)
+    my_TEST(my_OR,  Clauses.Any, 0,4, True)
+
+def test_XOR():
+    my_TEST(my_XOR, Clauses.Xor, 2,2, False)
+
+def test_ITE():
+    my_TEST(my_ITE, Clauses.ITE, 3,3, False)
+
+def test_AMONE():
+    my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
+
+def test_XONE():
+    my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
+
+def test_Require_False():
+    C = Clauses(1)
+    C.Require(C.And, 1, -1)
+    assert C.sat() is None
+
+def test_LinearBound():
     L = [
+        ([], [0,1], true),
+        ([], [1,2], false),
+        ([(2, 1), (2, 2)], [3, 3], false),
+        ([(2, 1), (2, 2)], [0, 1], 1000),
         ([(1, 1), (2, 2)], [0, 2], 1000),
         ([(1, 1), (2, -2)], [0, 2], 1000),
         ([(1, 1), (2, 2), (3, 3)], [3, 3], 1000),
@@ -196,13 +206,18 @@ def test_BDD():
         (57, 107), (58, 106)], [21, 40], 100)
         ]
     for eq, rhs, max_iter in L:
-        N = max(a for c,a in eq)
+        N = max([0]+[a for c,a in eq])
         C = Clauses(N)
         Cneg = Clauses(N)
         Cpos = Clauses(N)
         x = C.LinearBound(eq, rhs[0], rhs[1])
         xneg = Cneg.LinearBound(eq, rhs[0], rhs[1], polarity=False)
         xpos = Cpos.LinearBound(eq, rhs[0], rhs[1], polarity=True)
+        if max_iter is true or max_iter is false:
+            assert x == max_iter
+            assert xneg == max_iter
+            assert xpos == max_iter
+            continue
         for _, sol in zip(range(max_iter), my_itersolve([(x,)] + C.clauses)):
             assert rhs[0] <= evaluate_eq(eq,sol) <= rhs[1]
         for _, sol in zip(range(max_iter), my_itersolve([(xpos,)] + Cpos.clauses)):

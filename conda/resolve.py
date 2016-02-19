@@ -208,9 +208,6 @@ class Package(object):
     def __ge__(self, other):
         return not (self < other)
 
-    def __repr__(self):
-        return '<Package %s>' % self.fn
-
 def build_groups(index):
     groups = {}
     trackers = {}
@@ -248,17 +245,14 @@ class Resolve(object):
             filter.update({fstr+'@':True for fstr in features})
         return filter
 
-    def valid(self, spec, filter=None, features=None):
+    def valid(self, spec, filter):
         """Tests if a package, MatchSpec, or a list of both has satisfiable 
         dependencies, assuming cyclic dependencies are always valid.
 
         Args:
             fn: a package key, a MatchSpec, or an iterable of these.
-            features (optional): an iterable of active track_feature strings.
-            filter (optional): a dictionary of (fn,valid) pairs. If supplied, this
-                filter will be used to consider only a subset of dependencies. It
-                also supercedes the features argument, as it will be assumed that
-                the filter already includes the active feature information.
+            filter: a dictionary of (fn,valid) pairs, used to consider a subset
+                of dependencies, and to eliminate repeated searches.
 
         Returns:
             True if the full set of dependencies can be satisfied; False otherwise.
@@ -275,11 +269,9 @@ class Resolve(object):
                 filter[fn] = True
                 val = filter[fn] = all(v_ms_(ms) for ms in self.ms_depends(fn))
             return val
-        if filter is None:
-            filter = self.default_filter(features)
         return v_(spec)
 
-    def touch(self, spec, touched, filter=None, features=None):
+    def touch(self, spec, touched, filter):
         """Determines a conservative set of packages to be considered given a
            package, or a spec, or a list thereof. Cyclic dependencies are not
            solved, so there is no guarantee a solution exists.
@@ -288,13 +280,8 @@ class Resolve(object):
             fn: a package key or MatchSpec
             touched: a dict into which to accumulate the result. This is
                 useful when processing multiple specs.
-            filter (optional): a dictionary of (fn,valid) pairs to be used when
-                testing for package validity. This can be prepopulated with values
-                from a pruning process. If not supplied, a default filter is created.
-            features (optional): a list of features to assume are activated, 
-                regardless of the track_features touched by the packages. This is
-                ignored if filter is supplied, because it is assumed that any
-                hardcoded features are already built into the filter.
+            filter: a dictionary of (fn,valid) pairs to be used when
+                testing for package validity.
 
         This function works in two passes. First, it verifies that the package has
         satisfiable dependencies from among the filtered packages. If not, then it
@@ -304,7 +291,7 @@ class Resolve(object):
         def t_fn_(fn):
             val = touched.get(fn)
             if val is None:
-                val = touched[fn] = self.valid(fn, filter=filter)
+                val = touched[fn] = self.valid(fn, filter)
                 if val:
                     for ms in self.ms_depends(fn):
                         if ms.name[0] != '@':
@@ -312,11 +299,9 @@ class Resolve(object):
         def t_ms_(ms):
             for fn in self.find_matches(ms):
                 t_fn_(fn)
-        if filter is None:
-            filter = self.default_filter(features)
         return t_ms_(spec) if isinstance(spec, MatchSpec) else t_fn_(spec)
 
-    def invalid_chains(self, spec, filter=None, features=None):
+    def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
 
         A dependency chain is a tuple of MatchSpec objects, starting with
@@ -327,20 +312,14 @@ class Resolve(object):
 
         Args:
             spec: a package key or MatchSpec
-            filter (optional): a dictionary of (fn,valid) pairs to be used when
-                testing for package validity. This can be prepopulated with values
-                from a pruning process. If not supplied, a blank dictionary is used.
-                If it is supplied, the features argument is ignored, because it is
-                assumed that the filter has already been populated with them.
-            features (optional): an iterable of active track_features.
+            filter: a dictionary of (fn,valid) pairs to be used when
+                testing for package validity.
 
         Returns:
             A list of tuples, or an empty list if the MatchSpec is valid.
         """
-        if filter is None:
-            filter = self.default_filter(features)
         def chains_(spec, top=None):
-            if spec.name==top or self.valid(spec, filter=filter):
+            if spec.name==top or self.valid(spec, filter):
                 return []
             notfound = set()
             specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
@@ -378,25 +357,12 @@ class Resolve(object):
             elif any(self.find_matches(ms)):
                 opts.append(ms)
         for ms in spec2:
-        	if not self.valid(ms, features=feats):
-	            bad_deps.extend(self.invalid_chains(ms, features=feats))
+            filter = self.default_filter(feats)
+            if not self.valid(ms, filter):
+                bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFound(bad_deps)
         return spec2, rems, opts, feats
-
-    def verify_consistency(self, installed):
-        """Verifies that the given install list is consistent; that is, that
-        the dependencies are satisfied for all packages.
-
-        Args:
-            installed: An iterable of package keys.
-
-        Returns:
-            True if the packages are consistent with the dependencies, and
-            False if they are not.
-        """
-        r = Resolve({fn:self.index[fn] for fn in installed if fn in self.index})
-        return r.valid_specs(r.groups.keys())
 
     def get_dists(self, specs):
         log.debug('Retrieving packages for: %s'%specs)
@@ -477,7 +443,7 @@ class Resolve(object):
 
         # Iterate in the filtering process until no more progress is made
         def full_prune(specs, removes, optional, features):
-            self.default_filter(features, filter=filter)
+            self.default_filter(features, filter)
             for ms in removes:
                 for fn in self.find_matches(ms):
                     filter[fn] = False
@@ -497,7 +463,7 @@ class Resolve(object):
                 for fstr in features:
                     touched[fstr+'@'] = True
                 for spec in chain(specs, optional):
-                    self.touch(spec, touched, filter=filter)
+                    self.touch(spec, touched, filter)
                 nfeats = set()
                 for fn, val in iteritems(touched):
                     if val:
@@ -536,10 +502,6 @@ class Resolve(object):
         return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
 
     def match(self, ms, fn):
-        if fn[-1] == ']':
-            fn = fn.rsplit('[',1)[0]
-        if ms.name[-1] == '@':
-            return ms.name[:-1] in self.track_features(fn)
         return ms.match(self.index[fn])
 
     def find_matches_group(self, ms, groups, trackers=None):
@@ -596,9 +558,9 @@ class Resolve(object):
         if not fn.endswith('.tar.bz2'):
             return self.package_triple(fn + '.tar.bz2')
         rec = self.index.get(fn, None)
-        if rec is not None:
-            return (rec['name'], rec['version'], rec['build'])
-        return fn[:-8].rsplit('-',2)
+        if rec is None:
+            return fn[:-8].rsplit('-',2)
+        return (rec['name'], rec['version'], rec['build'])
 
     def package_name(self, fn):
         return self.package_triple(fn)[0]
@@ -811,19 +773,21 @@ class Resolve(object):
             return []
         solution = [-q for q in range(1,C.m+1)]
         eq_removal_count = self.generate_removal_count(C, specs)
-        solution, obj1 = C.optimize(eq_removal_count, solution)
+        solution, obj1 = C.minimize(eq_removal_count, solution)
         solution = set(solution)
         return set(s.name for s in specs if C.from_name(self.ms_to_v(s)) not in solution)
 
+    def restore_bad(self, pkgs, preserve):
+        if preserve:
+            sdict = {self.package_name(pkg):pkg for pkg in pkgs}
+            pkgs.extend(p for p in preserve if self.package_name(p) not in sdict)
+
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
-        if not installed:
-            return specs, True
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         bad_specs = self.bad_installed(installed)
-        if bad_specs:
-            log.debug('Current install is *not* satisfiable')
+        preserve = []
         for pkg in installed:
             assert pkg in self.index
             name, version, build = self.package_triple(pkg)
@@ -833,37 +797,41 @@ class Resolve(object):
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
             need_help = name in bad_specs
+            if need_help:
+                preserve.append(pkg)
             if update_deps or need_help:
                 spec = MatchSpec(name, target=pkg, optional=need_help)
             else:
                 spec = MatchSpec('%s %s %s'%(name,version,build))
             specs.append(spec)
-            snames.add(spec)
-        return specs, not need_help
+        return specs, bad_specs
 
     def install(self, specs, installed=[], update_deps=True, returnall=False):
         len0 = len(specs)
-        specs, isgood = self.install_specs(specs, installed, update_deps)
+        specs, preserve = self.install_specs(specs, installed, update_deps)
         pkgs = self.solve(specs, len0=len0, returnall=returnall)
-        if not isgood:
-            sdict = {self.package_name(pkg):pkg for pkg in installed}
-            sdict.update({self.package_name(pkg):pkg for pkg in pkgs})
-            pkgs = sdict.values()
+        self.restore_bad(pkgs, preserve)
         return pkgs
 
     def remove_specs(self, specs, installed):
         specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
         snames = {s.name for s in specs}
+        bad_specs = self.bad_installed(installed)
+        preserve = []
         for pkg in installed:
             assert pkg in self.index
             name, version, build = self.package_triple(pkg)
+            if name in bad_specs:
+                preserve.append(pkg)
             if name not in snames:
                 specs.append(MatchSpec(name, optional=True, target=pkg))
-        return specs
+        return specs, preserve
 
     def remove(self, specs, installed):
-        specs = self.remove_specs(specs, installed)
-        return self.solve(specs)
+        specs, preserve = self.remove_specs(specs, installed)
+        pkgs = self.solve(specs)
+        self.restore_bad(pkgs, preserve)
+        return pkgs
 
     def solve(self, specs, len0=None, returnall=False):
         try:
@@ -894,39 +862,39 @@ class Resolve(object):
                 solution = [-q for q in range(1,C.m+1)]
                 spec2 = [s for s in specs if not s.optional]
                 eq_removal_count = self.generate_removal_count(C, spec2)
-                solution, obj1 = C.optimize(eq_removal_count, solution)
+                solution, obj1 = C.minimize(eq_removal_count, solution)
                 specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
                 raise Unsatisfiable(specsol, False)
 
             spec2 = [s for s in specs[:len0] if not s.optional]
             eq_requested_versions = self.generate_version_metric(C, groups, spec2, majoronly=True)
-            solution, obj1 = C.optimize(eq_requested_versions, solution)
+            solution, obj1 = C.minimize(eq_requested_versions, solution)
             dotlog.debug('Requested version metric: %d'%obj1)
 
             specs = [s for s in chain(specs, new_specs) if not s.optional or any(self.find_matches_group(s, groups, trackers))]
             spec3 = [s for s in specs if s.optional]
             eq_optional_count = self.generate_removal_count(C, spec3)
-            solution, obj2 = C.optimize(eq_optional_count, solution)
+            solution, obj2 = C.minimize(eq_optional_count, solution)
             dotlog.debug('Optional package removal count: %d'%obj2)
 
             eq_optional_versions = self.generate_version_metric(C, groups, spec3, majoronly=True)
-            solution, obj3 = C.optimize(eq_optional_versions, solution)
+            solution, obj3 = C.minimize(eq_optional_versions, solution)
             dotlog.debug('Optional package version metric: %d'%obj3)
 
             eq_feature_count = self.generate_feature_count(C, trackers)
-            solution, obj4 = C.optimize(eq_feature_count, solution)
+            solution, obj4 = C.minimize(eq_feature_count, solution)
             dotlog.debug('Feature count metric: %d'%obj4)
 
             eq_feature_metric = self.generate_feature_metric(C, groups, specs)
-            solution, obj5 = C.optimize(eq_feature_metric, solution)
+            solution, obj5 = C.minimize(eq_feature_metric, solution)
             dotlog.debug('Feature package metric: %d'%obj5)
 
             eq_all_versions = self.generate_version_metric(C, groups, specs, majoronly=False)
-            solution, obj6 = C.optimize(eq_all_versions, solution)
+            solution, obj6 = C.minimize(eq_all_versions, solution)
             dotlog.debug('Total version metric: %d'%obj6)
 
             eq_package_count = self.generate_package_count(C, groups, specs)
-            solution, obj7 = C.optimize(eq_package_count, solution)
+            solution, obj7 = C.minimize(eq_package_count, solution)
             dotlog.debug('Weak dependency metric: %d'%obj7)
 
             dotlog.debug('Looking for alternate solutions')
