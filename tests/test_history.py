@@ -1,9 +1,11 @@
+from os.path import dirname
 import unittest
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
 
 from conda import history
+
 
 class HistoryTestCase(unittest.TestCase):
     def test_works_as_context_manager(self):
@@ -26,3 +28,24 @@ class HistoryTestCase(unittest.TestCase):
         with mock.patch.object(h, 'update'):
             with h as h2:
                 self.assertEqual(h, h2)
+
+
+class UserRequestsTestCase(unittest.TestCase):
+
+    h = history.History(dirname(__file__))
+    user_requests = h.get_user_requests()
+
+    def test_len(self):
+        self.assertEqual(len(self.user_requests), 6)
+
+    def test_0(self):
+        self.assertEqual(self.user_requests[0],
+                         {'cmd': ['conda', 'update', 'conda'],
+                          'date': '2016-02-16 13:31:33'})
+
+    def test_last(self):
+        self.assertEqual(self.user_requests[-1],
+                         {'action': 'install',
+                          'cmd': ['conda', 'install', 'pyflakes'],
+                          'date': '2016-02-18 22:53:20',
+                          'specs': ['pyflakes', 'conda', 'python 2.7*']})
