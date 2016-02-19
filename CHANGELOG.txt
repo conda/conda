@@ -17,6 +17,11 @@
     involving feature conflicts should be resolved.
 
 
+2016-02-19   3.19.3:
+--------------------
+  * fix critical issue, see #2106
+
+
 2016-02-19   3.19.2:
 --------------------
   * add basic activate/deactivate, conda activate/deactivate/ls for fish,
