@@ -1,3 +1,1 @@
-#!/bin/bash
-
-CONDA_DEFAULT_ENV='' $PYTHON setup.py install
+$PYTHON setup.py install --old-and-unmanageable
