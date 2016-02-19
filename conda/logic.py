@@ -161,7 +161,7 @@ class Clauses(object):
         if x is true or x is false:
             self.clauses = self.clauses[:nz]
         if x is false:
-            self.clauses.append((1,-1))
+            self.clauses.extend(((1,),(-1,)))
         elif x is not true:
             self.clauses.append((x,))
 
@@ -356,10 +356,9 @@ class Clauses(object):
             solution = [solution.get(s,s) for s in range(1,m+1)]
         return solution
 
-    def optimize(self, objective, bestsol, minval=None, maxval=None,
-        maximize=False, increment=10, trybest=True, tryworst=False):
+    def minimize(self, objective, bestsol, minval=None, increment=10):
         """
-        Bisect the solution space of a constraint, to minimize or maximize it.
+        Bisect the solution space of a constraint, to minimize it.
 
         func should be a function that is called with the arguments func(lo_rhs,
         hi_rhs) and returns a list of constraints.
@@ -381,50 +380,28 @@ class Clauses(object):
 
         # If we got lucky and the initial solution is optimal, we still
         # need to generate the constraints at least once
-        try0 = None
-        if maximize:
-            hi = sum(c for c,_ in objective)
-            hi = max([bestval, min([hi, maxval]) if maxval else hi])
-            lo = bestval
-        else:
-            lo = min([bestval, max([0,minval]) if minval else 0])
-            hi = bestval
-        if lo == hi:
-            try0 = lo
-        elif tryworst:
-            try0 = lo + 1 if maximize else hi - 1
-        elif trybest:
-            try0 = hi if maximize else lo
-        else:
-            try0 = None
+        try0 = lo = min([bestval, max([0,minval]) if minval else 0])
+        hi = bestval
 
         log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
         while True:
-            if try0 is None:
-                incr = min([increment,(hi-lo)//2])
-                mid = hi - incr if maximize else lo + incr
-            else:
+            if try0:
                 mid = try0
                 try0 = None
-            rhs = (mid, hi) if maximize else (lo, mid)
+            else:
+                mid = min([lo + increment,(lo+hi)//2])
             C2 = Clauses(m)
-            C2.Require(C2.LinearBound, objective, rhs[0], rhs[1])
+            C2.Require(C2.LinearBound, objective, lo, mid)
             newsol = self.sat(C2.clauses)
             if newsol is None:
-                log.debug("Bisection range %s: failure" % (rhs,))
-                if maximize:
-                    hi = mid - 1
-                else:
-                    lo = mid + 1
+                log.debug("Bisection range (%d,%d): failure" % (lo,mid))
+                lo = mid + 1
             else:
                 bestcon = C2.clauses
                 bestsol = newsol
                 bestval = evaluate_eq(odict, newsol)
-                if maximize:
-                    lo = mid
-                else:
-                    hi = mid
-                log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
+                hi = mid
+                log.debug("Bisection range (%d,%d): success, new best=%s" % (lo,mid,bestval))
                 if lo == hi:
                     break
         self.clauses.extend(bestcon)
