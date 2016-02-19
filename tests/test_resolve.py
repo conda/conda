@@ -248,9 +248,9 @@ def test_generate_eq():
     specs = ['anaconda']
     dists, specs = r.get_dists(specs)
     groups, trackers = build_groups(dists)
-    m, v, w, clauses = r.gen_clauses(groups, trackers, specs)
-    eq = r.generate_version_metric(v, groups, specs)
-    e = sorted(((i, w[j]) for i, j in eq), key=lambda i:i[1])
+    C = r.gen_clauses(groups, trackers, specs)
+    eq = r.generate_version_metric(C, groups, specs)
+    e = sorted(((i, C.from_index(j)) for i, j in eq), key=lambda i:i[1])
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.

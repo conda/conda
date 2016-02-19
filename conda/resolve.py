@@ -5,7 +5,7 @@ from collections import defaultdict
 from itertools import chain
 
 from conda.compat import iterkeys, itervalues, iteritems, string_types
-from conda.logic import sat, optimize, minimal_unsatisfiable_subset
+from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.version import VersionOrder, VersionSpec
 from conda.console import setup_handlers
 from conda import config
@@ -26,6 +26,18 @@ def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
 
 class Unsatisfiable(RuntimeError):
+    '''An exception to report unsatisfiable dependencies.
+
+    Args:
+    	bad_deps: a list of tuples of objects (likely MatchSpecs).
+    	chains: (optional) if True, the tuples are interpreted as chains
+    	    of dependencies, from top level to bottom. If False, the tuples
+    	    are interpreted as simple lists of conflicting specs.
+
+   	Returns:
+   		Raises an exception with a formatted message detailing the
+   		unsatisfiable specifications.
+    '''
     def __init__(self, bad_deps, chains=True):
         bad_deps = [map(str,dep) for dep in bad_deps]
         if chains:
@@ -41,6 +53,16 @@ Use "conda info <package>" to see the dependencies for each package.'''
         super(Unsatisfiable, self).__init__(msg)
 
 class NoPackagesFound(RuntimeError):
+    '''An exception to report that requested packages are missing.
+
+    Args:
+    	bad_deps: a list of tuples of MatchSpecs, assumed to be dependency
+    	chains, from top level to bottom.
+
+    Returns:
+    	Raises an exception with a formatted message detailing the
+    	missing packages and/or dependencies.
+    '''
     def __init__(self, bad_deps):
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
@@ -356,7 +378,8 @@ class Resolve(object):
             elif any(self.find_matches(ms)):
                 opts.append(ms)
         for ms in spec2:
-            bad_deps.extend(self.invalid_chains(ms, features=feats))
+        	if not self.valid(ms, features=feats):
+	            bad_deps.extend(self.invalid_chains(ms, features=feats))
         if bad_deps:
             raise NoPackagesFound(bad_deps)
         return spec2, rems, opts, feats
@@ -591,62 +614,54 @@ class Resolve(object):
     def ms_to_v(ms):
         return 's@' + ms.spec + ('!' if ms.negate else '')
 
-    def gen_clauses(self, groups, trackers, specs):
-        w = {}
-        v = {'@':0}
-        clauses = []
+    @staticmethod
+    def feat_to_v(feat):
+        return 's@@' + feat
 
-        def push_v(name, rev=True):
-            m = v['@'] = v['@'] + 1
-            v[name] = m
-            w[m] = name.rsplit('[',1)[0]
-            return m
+    def gen_clauses(self, groups, trackers, specs):
+        C = Clauses()
 
         def push_s(ms):
             name = self.ms_to_v(ms)
-            m = v.get(name, None)
-            if not m:
-                m = push_v(name, False)
-                bb = [v[fn] for fn in self.find_matches_group(ms, groups, trackers)]
-                clauses.extend((m,-b) for b in bb)
-                bb.append(-m)
-                clauses.append(tuple(bb))
+            m = C.from_name(name)
+            if m is None:
+                m = C.Any(C.from_name(fn) for fn in self.find_matches_group(ms, groups, trackers))
+                C.name_var(m, name)
             return m
 
-        # Create each variable and ensure only one from
-        # each group is true simultaneously
-        for name, group in iteritems(groups):
-            vals = [push_v(fn) for fn in group]
-            if len(vals) > 1:
-                for k, v1 in enumerate(vals):
-                    for v2 in vals[:k]:
-                        clauses.append((-v1,-v2))
+        # Create package variables
+        for group in itervalues(groups):
+            for fn in group:
+                C.new_var(fn)
 
         # Create feature variables
         for name in iterkeys(trackers):
             push_s(MatchSpec('@' + name))
 
+        # Create spec variables
+        for ms in specs:
+            push_s(ms)
+
         # Add dependency relationships
         for group in itervalues(groups):
+            vals = []
             for fn in group:
-                a = v[fn]
+                a = C.from_name(fn)
+                vals.append(a)
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
-                        clauses.append((-a,push_s(ms)))
+                        C.Require(C.Or, -a, push_s(ms))
+            C.Require(C.AtMostOne, vals)
 
-        # Create spec variables and ensure the mandatory ones are true
-        for ms in specs:
-            a = push_s(ms)
+        return C
 
-        return len(v), v, w, clauses
+    def generate_spec_constraints(self, C, specs):
+        return [(C.from_name(self.ms_to_v(ms)),) for ms in specs if not ms.optional]
 
-    def generate_spec_constraints(self, v, specs):
-        return [(v[self.ms_to_v(ms)],) for ms in specs if not ms.optional]
+    def generate_feature_count(self, C, trackers):
+        return [(1,C.from_name(self.feat_to_v(name))) for name in iterkeys(trackers)]
 
-    def generate_feature_count(self, v, trackers):
-        return [(1,v[self.ms_to_v(MatchSpec('@'+name))]) for name in iterkeys(trackers)]
-
-    def generate_feature_metric(self, v, groups, specs):
+    def generate_feature_metric(self, C, groups, specs):
         eq = []
         for name, group in iteritems(groups):
             nf = [len(self.features(fn)) for fn in group]
@@ -655,13 +670,13 @@ class Resolve(object):
                 continue
             if not any(ms.name == name for ms in specs if not ms.optional):
                 maxf += 1
-            eq.extend((maxf-fc,v[fn]) for fn, fc in zip(group, nf) if fc < maxf)
+            eq.extend((maxf-fc,C.from_name(fn)) for fn, fc in zip(group, nf) if fc < maxf)
         return eq
 
-    def generate_removal_count(self, v, specs):
-        return [(1,-v[self.ms_to_v(ms)]) for ms in specs]
+    def generate_removal_count(self, C, specs):
+        return [(1,-C.from_name(self.ms_to_v(ms))) for ms in specs]
 
-    def generate_version_metric(self, v, groups, specs, majoronly=False):
+    def generate_version_metric(self, C, groups, specs, majoronly=False):
         eq = []
         sdict = {}
         for s in specs:
@@ -687,11 +702,11 @@ class Resolve(object):
                 if prev and prev != nkey:
                     i += 1
                 if i:
-                    eq += [(i, v[pkg])]
+                    eq += [(i, C.from_name(pkg))]
                 prev = nkey
         return eq
 
-    def generate_package_count(self, v, groups, specs):
+    def generate_package_count(self, C, groups, specs):
         eq = []
         snames = {s.name for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
@@ -703,7 +718,7 @@ class Resolve(object):
             for nkey, pkg in pkg_ver:
                 if prev and prev != nkey:
                     i += 1
-                eq += [(i, v[pkg])]
+                eq += [(i, C.from_name(pkg))]
                 prev = nkey
         return eq
 
@@ -789,16 +804,16 @@ class Resolve(object):
         dists = {fn:self.index[fn] for fn in installed}
         specs = [MatchSpec('%s %s %s'%(rec['name'],rec['version'],rec['build'])) for rec in itervalues(dists)]
         groups, trackers = build_groups(dists)
-        m, v, w, clauses = self.gen_clauses(groups, trackers, specs)
-        constraints = self.generate_spec_constraints(v, specs)
-        solution = sat(chain(clauses, constraints), m)
+        C = self.gen_clauses(groups, trackers, specs)
+        constraints = self.generate_spec_constraints(C, specs)
+        solution = C.sat(constraints)
         if solution:
             return []
-        solution = [-q for q in range(1,m+1)]
-        eq_removal_count = self.generate_removal_count(v, specs)
-        clauses, solution, obj1 = optimize(eq_removal_count, clauses, solution)
+        solution = [-q for q in range(1,C.m+1)]
+        eq_removal_count = self.generate_removal_count(C, specs)
+        solution, obj1 = C.optimize(eq_removal_count, solution)
         solution = set(solution)
-        return set(s.name for s in specs if v[self.ms_to_v(s)] not in solution)
+        return set(s.name for s in specs if C.from_name(self.ms_to_v(s)) not in solution)
 
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
@@ -870,62 +885,59 @@ class Resolve(object):
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
             groups, trackers = build_groups(dists)
-            m, v, w, clauses = self.gen_clauses(groups, trackers, specs)
-            constraints = self.generate_spec_constraints(v, specs)
-            solution = sat(chain(clauses, constraints))
+            C = self.gen_clauses(groups, trackers, specs)
+            constraints = self.generate_spec_constraints(C, specs)
+            solution = C.sat(constraints, True)
             if not solution:
                 # Find the largest set of specs that are satisfiable, and return
                 # the list of specs that are not in that set.
-                solution = [-q for q in range(1,m+1)]
+                solution = [-q for q in range(1,C.m+1)]
                 spec2 = [s for s in specs if not s.optional]
-                eq_removal_count = self.generate_removal_count(v, spec2)
-                clauses, solution, obj1 = optimize(eq_removal_count, clauses, solution)
-                specsol = [(s,) for s in spec2 if v[self.ms_to_v(s)] not in solution]
+                eq_removal_count = self.generate_removal_count(C, spec2)
+                solution, obj1 = C.optimize(eq_removal_count, solution)
+                specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
                 raise Unsatisfiable(specsol, False)
 
-            clauses.extend(constraints)
-
-            specs += new_specs
             spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(v, groups, spec2, majoronly=True)
-            clauses, solution, obj1 = optimize(eq_requested_versions, clauses, solution)
+            eq_requested_versions = self.generate_version_metric(C, groups, spec2, majoronly=True)
+            solution, obj1 = C.optimize(eq_requested_versions, solution)
             dotlog.debug('Requested version metric: %d'%obj1)
 
+            specs = [s for s in chain(specs, new_specs) if not s.optional or any(self.find_matches_group(s, groups, trackers))]
             spec3 = [s for s in specs if s.optional]
-            eq_optional_count = self.generate_removal_count(v, spec3)
-            clauses, solution, obj2 = optimize(eq_optional_count, clauses, solution)
+            eq_optional_count = self.generate_removal_count(C, spec3)
+            solution, obj2 = C.optimize(eq_optional_count, solution)
             dotlog.debug('Optional package removal count: %d'%obj2)
 
-            eq_optional_versions = self.generate_version_metric(v, groups, spec3, majoronly=True)
-            clauses, solution, obj3 = optimize(eq_optional_versions, clauses, solution)
+            eq_optional_versions = self.generate_version_metric(C, groups, spec3, majoronly=True)
+            solution, obj3 = C.optimize(eq_optional_versions, solution)
             dotlog.debug('Optional package version metric: %d'%obj3)
 
-            eq_feature_count = self.generate_feature_count(v, trackers)
-            clauses, solution, obj4 = optimize(eq_feature_count, clauses, solution)
+            eq_feature_count = self.generate_feature_count(C, trackers)
+            solution, obj4 = C.optimize(eq_feature_count, solution)
             dotlog.debug('Feature count metric: %d'%obj4)
 
-            eq_feature_metric = self.generate_feature_metric(v, groups, specs)
-            clauses, solution, obj5 = optimize(eq_feature_metric, clauses, solution)
+            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
+            solution, obj5 = C.optimize(eq_feature_metric, solution)
             dotlog.debug('Feature package metric: %d'%obj5)
 
-            eq_all_versions = self.generate_version_metric(v, groups, specs, majoronly=False)
-            clauses, solution, obj6 = optimize(eq_all_versions, clauses, solution)
+            eq_all_versions = self.generate_version_metric(C, groups, specs, majoronly=False)
+            solution, obj6 = C.optimize(eq_all_versions, solution)
             dotlog.debug('Total version metric: %d'%obj6)
 
-            eq_package_count = self.generate_package_count(v, groups, specs)
-            clauses, solution, obj7 = optimize(eq_package_count, clauses, solution)
+            eq_package_count = self.generate_package_count(C, groups, specs)
+            solution, obj7 = C.optimize(eq_package_count, solution)
             dotlog.debug('Weak dependency metric: %d'%obj7)
 
             dotlog.debug('Looking for alternate solutions')
             def clean(solution):
-                return [s for s in solution if s in w and '@' not in w[s]]
+                return [s for s in solution if '@' not in C.from_index(s,'@')]
             nsol = 1
             solution = clean(solution)
             solutions = [solution]
             while True:
                 nclause = tuple(-q for q in solution)
-                clauses.append(nclause)
-                solution = sat(clauses,m)
+                solution = C.sat((nclause,), True)
                 if solution is None:
                     break
                 nsol += 1
@@ -935,7 +947,7 @@ class Resolve(object):
                 solution = clean(solution)
                 solutions.append(solution)
 
-            psolutions = [set(w[lit] for lit in sol) for sol in solutions]
+            psolutions = [set(C.from_index(lit).rsplit('[',1)[0] for lit in sol) for sol in solutions]
             if nsol > 1:
                 stdoutlog.info(
                     '\nWarning: %s possible package resolutions (only showing differing packages):\n' %
@@ -947,7 +959,7 @@ class Resolve(object):
             if obj6 > 0:
                 log.debug("Older versions in the solution(s):")
                 for sol in solutions:
-                    log.debug([(i, w[j]) for i, j in eq_all_versions if j in sol])
+                    log.debug([(i, C.from_index(j)) for i, j in eq_all_versions if j in sol])
             stdoutlog.info('\n')
             return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
         except:

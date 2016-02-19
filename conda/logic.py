@@ -24,14 +24,25 @@ being used will only be used in the positive or the negative, respectively
 (e.g., you will only use x, not -x).  This will generate fewer clauses.
 
 """
-from collections import defaultdict
 from functools import total_ordering
-from itertools import chain
+from itertools import chain, combinations
 import logging
 import pycosat
 
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
+
+#
+# Older versions of pycosat require lists instead of
+# iterators and tuples. Test this and be prepared to convert
+# if needed
+#
+
+try:
+    pycosat.itersolve({(1,)})
+    pycosat_prep = False
+except TypeError:
+    pycosat_prep = True
 
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
@@ -45,6 +56,8 @@ class TrueClass(object):
         return "true"
     def __lt__(self, other):
         return False
+    def __hash__(self):
+        return hash(True)
     __repr__ = __str__
 true = TrueClass()
 
@@ -56,6 +69,8 @@ class FalseClass(object):
         return true
     def __str__(self):
         return "false"
+    def __hash__(self):
+        return hash(False)
     def __gt__(self, other):
         return False
     __repr__ = __str__
@@ -67,13 +82,30 @@ false = FalseClass()
 # SAT," Eén and Sörensson).
 
 class Clauses(object):
-    def __init__(self, MAX_N=0):
+    def __init__(self, m=0):
         self.clauses = []
-        self.MAX_N = MAX_N
+        self.names = {}
+        self.indexes = {}
+        self.m = m
+        self.stack = []
 
-    def get_new_var(self):
-        self.MAX_N += 1
-        return self.MAX_N
+    def name_var(self, m, name):
+        self.names[name] = m
+        if m not in self.indexes:
+            self.indexes[m] = name
+
+    def new_var(self, name=None):
+        m = self.m + 1
+        self.m = m
+        if name:
+            self.name_var(m, name)
+        return m
+
+    def from_name(self, name, default=None):
+        return self.names.get(name, default)
+
+    def from_index(self, m, default=None):
+        return self.indexes.get(m, default)
 
     def ITE(self, c, t, f, polarity=None):
         """
@@ -82,29 +114,28 @@ class Clauses(object):
         In this function, if any of c, t, or f are True and False the resulting
         expression is resolved.
         """
-        if c == true:
+        if c is true:
             return t
-        if c == false:
+        if c is false:
             return f
-        if t == f:
+        if t is f:
             return t
-        if t == -f:
+        if t is -f:
             return self.Xor(c, f, polarity=polarity)
-        if t == false or t == -c:
+        if t is false or t is -c:
             return self.And(-c, f, polarity=polarity)
-        if t == true or t == c:
+        if t is true or t is c:
             return self.Or(c, f)
-        if f == false or f == c:
+        if f is false or f is c:
             return self.And(c, t, polarity=polarity)
-        if f == true or f == -c:
+        if f is true or f is -c:
             return self.Or(t, -c)
 
         if t < f:
-            t, f = f, t
-            c = -c
+            t, f, c = f, t, -c
 
         # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
-        x = self.get_new_var()
+        x = self.new_var()
         # "Red" clauses are redundant, but they assist the unit propagation in the
         # SAT solver
         if polarity in {False, None}:
@@ -124,245 +155,290 @@ class Clauses(object):
 
         return x
 
+    def Require(self, what, *args):
+        nz = len(self.clauses)
+        x = what.__get__(self,Clauses)(*args, polarity=True)
+        if x is true or x is false:
+            self.clauses = self.clauses[:nz]
+        if x is false:
+            self.clauses.append((1,-1))
+        elif x is not true:
+            self.clauses.append((x,))
+
     def And(self, f, g, polarity=None):
-        if f == false or g == false:
+        if f is false or g is false:
             return false
-        if f == true:
+        elif f is true:
             return g
-        if g == true:
+        elif g is true:
             return f
-        if f == g:
+        elif f is g:
             return f
-        if f == -g:
+        elif f is -g:
             return false
+        x = self.new_var()
+        if polarity is True:
+            self.clauses.extend(((-x,f),(-x,g)))
+        elif polarity is False:
+            self.clauses.append((x,-f,-g))
+        else:
+            self.clauses.extend(((-x,f),(-x,g),(x,-f,-g)))
+        return x
 
-        # if g < f:
-        #     swap(f, g)
-
-        if g < f:
-            f, g = g, f
-
-        x = self.get_new_var()
+    def All(self, iter, polarity=None, force=False):
+        vals = set()
+        for v in iter:
+            if v is false:
+                return false
+            elif v is true:
+                pass
+            elif -v in vals:
+                return false
+            elif v is not true:
+                vals.add(v)
+        nv = len(vals)
+        if nv == 0:
+            return true
+        elif nv == 1:
+            return next(v for v in vals)
+        x = self.new_var()
         if polarity in {True, None}:
-            self.clauses.extend((
-                # positive
-                # ~f -> ~x, ~g -> ~x
-                (-x, f),
-                (-x, g),
-                ))
+            self.clauses.extend((-x,v) for v in vals)
         if polarity in {False, None}:
-            self.clauses.append(
-            # negative
-            # (f AND g) -> x
-            (x, -f, -g),
-            )
-
+            self.clauses.append((x,) + tuple(-v for v in vals))
         return x
 
     def Or(self, f, g, polarity=None):
-        if polarity is not None:
-            polarity = not polarity
-        return -self.And(-f, -g, polarity=polarity)
+        if f is true or g is true:
+            return true
+        elif f is false:
+            return g
+        elif g is false:
+            return f
+        elif f is g:
+            return f
+        elif f is -g:
+            return true
+        x = self.new_var()
+        if polarity is True:
+            self.clauses.append((-x,f,g))
+        elif polarity is False:
+            self.clauses.extend(((x,-f),(x,-g)))
+        else:
+            self.clauses.extend(((x,-f),(x,-g),(-x,f,g)))
+        return x
+
+    def Any(self, iter, polarity=None):
+        vals = set()
+        for v in iter:
+            if v is true:
+                return true
+            elif v is false:
+                pass
+            elif -v in vals:
+                return true
+            elif v is not false:
+                vals.add(v)
+        nv = len(vals)
+        if nv == 0:
+            return false
+        elif nv == 1:
+            return next(v for v in vals)
+        x = self.new_var()
+        if polarity in {True, None}:
+            self.clauses.append((-x,) + tuple(vals))
+        if polarity in {False, None}:
+            self.clauses.extend((x,-f) for f in vals)
+        return x
 
     def Xor(self, f, g, polarity=None):
         # Minisatp treats XOR as NOT EQUIV
-        if f == false:
+        if f is false:
             return g
-        if f == true:
+        elif f is true:
             return -g
-        if g == false:
+        elif g is false:
             return f
-        if g == true:
+        elif g is true:
             return -f
-        if f == g:
+        elif f is g:
             return false
-        if f == -g:
+        elif f is -g:
             return true
-
-        # if g < f:
-        #     swap(f, g)
-
-        if g < f:
-            f, g = g, f
-
-        x = self.get_new_var()
-        if polarity in {True, None}:
-            self.clauses.extend((
-                # Positive
-                (-x, f, g),
-                (-x, -f, -g),
-            ))
-        if polarity in {False, None}:
-            self.clauses.extend((
-                # Negative
-                (x, -f, g),
-                (x, f, -g),
-            ))
+        x = self.new_var()
+        if polarity is True:
+            self.clauses.extend(((-x,f,g),(-x,-f,-g)))
+        elif polarity is False:
+            self.clauses.extend(((x,-f,g),(x,f,-g)))
+        else:
+            self.clauses.extend(((-x,f,g),(-x,-f,-g),(x,-f,g),(x,f,-g)))
         return x
 
-    def build_BDD(self, equation, lo, hi, polarity=None):
-        equation = sorted(equation)
-        total = sum(i for i,_ in equation)
-        first_stack = (len(equation)-1,0,total)
-        call_stack = [first_stack]
-        ret = {}
-        csum = 0
-        while call_stack:
-            ndx, csum, total = call_stack[-1]
-            lower_limit = lo - csum
-            upper_limit = hi - csum
-            if lower_limit <= 0 and upper_limit >= total:
-                ret[call_stack.pop()] = true
-                continue
-            if lower_limit > total or upper_limit < 0:
-                ret[call_stack.pop()] = false
-                continue
-            LC, LA = equation[ndx]
-            ndx -= 1
-            total -= LC
-            hi_key = (ndx,csum if LA < 0 else csum + LC,total)
-            thi = ret.get(hi_key)
-            if thi is None:
-                call_stack.append(hi_key)
-                continue
-            lo_key = (ndx,csum + LC if LA < 0 else csum,total)
-            tlo = ret.get(lo_key)
-            if tlo is None:
-                call_stack.append(lo_key)
-                continue
-            ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity=polarity)
-        return ret[first_stack]
+    def AtMostOne(self, iter, polarity=None):
+        vals = []
+        for v1, v2 in combinations(iter,2):
+            vals.append(self.Or(-v1, -v2, polarity=polarity))
+        return self.All(vals, polarity=polarity)
+
+    def ExactlyOne(self, vals, polarity=None):
+        vals = list(vals)
+        return self.And(self.AtMostOne(vals, polarity=polarity),
+                        self.Any(vals, polarity=polarity))
+
+    def LinearBound(self, equation, lo, hi, polarity=None):
+        nz = len(self.clauses)
+        if any(c > hi for c,a in equation):
+            pvals = [-a for c,a in equation if c > hi]
+            prune = self.All(pvals, polarity=polarity)
+            if prune is false:
+                prune = false
+            equation = [(c,a) for c,a in equation if c <= hi]
+            if not equation and lo > 0:
+                prune = false
+        else:
+            prune = true
+        if prune is false:
+            res = false
+        else:
+            equation = sorted(equation)
+            total = sum(i for i,_ in equation)
+            first_stack = (len(equation)-1,0,total)
+            call_stack = [first_stack]
+            ret = {}
+            csum = 0
+            while call_stack:
+                ndx, csum, total = call_stack[-1]
+                lower_limit = lo - csum
+                upper_limit = hi - csum
+                if lower_limit <= 0 and upper_limit >= total:
+                    ret[call_stack.pop()] = true
+                    continue
+                if lower_limit > total or upper_limit < 0:
+                    ret[call_stack.pop()] = false
+                    continue
+                LC, LA = equation[ndx]
+                ndx -= 1
+                total -= LC
+                hi_key = (ndx,csum if LA < 0 else csum + LC,total)
+                thi = ret.get(hi_key)
+                if thi is None:
+                    call_stack.append(hi_key)
+                    continue
+                lo_key = (ndx,csum + LC if LA < 0 else csum,total)
+                tlo = ret.get(lo_key)
+                if tlo is None:
+                    call_stack.append(lo_key)
+                    continue
+                ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity=polarity)
+            res = self.And(prune, ret[first_stack], polarity=polarity)
+        if res is true or res is false:
+            self.clauses = self.clauses[:nz]
+        return res
+
+    def sat(self, additional=None, includeIf=False):
+        """
+        Calculate a SAT solution for the current clause set.
+
+        Returned is the list of those solutions.  When the clauses are
+        unsatisfiable, an empty list is returned.
+
+        """
+        if additional:
+            clauses = chain(self.clauses, additional)
+        else:
+            clauses = self.clauses
+        if pycosat_prep:
+            clauses = list(map(list,clauses))
+        solution = pycosat.solve(clauses)
+        if solution == "UNSAT" or solution == "UNKNOWN":
+            return None
+        if additional and includeIf:
+            self.clauses.extend(additional)
+        if len(solution) < self.m:
+            solution = {abs(s):s for s in solution}
+            solution = [solution.get(s,s) for s in range(1,m+1)]
+        return solution
+
+    def optimize(self, objective, bestsol, minval=None, maxval=None,
+        maximize=False, increment=10, trybest=True, tryworst=False):
+        """
+        Bisect the solution space of a constraint, to minimize or maximize it.
+
+        func should be a function that is called with the arguments func(lo_rhs,
+        hi_rhs) and returns a list of constraints.
+
+        The midpoint of the bisection will not be more than lo_value + increment.
+        To not use it, set a very large increment. The increment argument should
+        be used if you expect the optimal solution to be near 0.
+
+        """
+        if not objective:
+            log.debug('Empty objective, trivial solution')
+            return bestsol, 0
+
+        odict = {atom:coeff for coeff, atom in objective}
+        m = len(bestsol)
+        bestcon = []
+        bestval = evaluate_eq(odict, bestsol)
+        log.debug('Initial objective: %d'%bestval)
+
+        # If we got lucky and the initial solution is optimal, we still
+        # need to generate the constraints at least once
+        try0 = None
+        if maximize:
+            hi = sum(c for c,_ in objective)
+            hi = max([bestval, min([hi, maxval]) if maxval else hi])
+            lo = bestval
+        else:
+            lo = min([bestval, max([0,minval]) if minval else 0])
+            hi = bestval
+        if lo == hi:
+            try0 = lo
+        elif tryworst:
+            try0 = lo + 1 if maximize else hi - 1
+        elif trybest:
+            try0 = hi if maximize else lo
+        else:
+            try0 = None
+
+        log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
+        while True:
+            if try0 is None:
+                incr = min([increment,(hi-lo)//2])
+                mid = hi - incr if maximize else lo + incr
+            else:
+                mid = try0
+                try0 = None
+            rhs = (mid, hi) if maximize else (lo, mid)
+            C2 = Clauses(m)
+            C2.Require(C2.LinearBound, objective, rhs[0], rhs[1])
+            newsol = self.sat(C2.clauses)
+            if newsol is None:
+                log.debug("Bisection range %s: failure" % (rhs,))
+                if maximize:
+                    hi = mid - 1
+                else:
+                    lo = mid + 1
+            else:
+                bestcon = C2.clauses
+                bestsol = newsol
+                bestval = evaluate_eq(odict, newsol)
+                if maximize:
+                    lo = mid
+                else:
+                    hi = mid
+                log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
+                if lo == hi:
+                    break
+        self.clauses.extend(bestcon)
+        return bestsol, bestval        
 
 def evaluate_eq(eq, sol):
-    """
-    Evaluate an equation at a solution
-    """
-    atom2coeff = defaultdict(int, {atom: coeff for coeff, atom in eq})
-    t = 0
-    for s in sol:
-        t += atom2coeff[s]
-    return t
+    if type(eq) is not dict:
+        eq = {c:v for v,c in eq}
+    return sum(eq.get(s,0) for s in sol)
 
-def generate_constraints(eq, m, rhs):
-    # If a coefficient is larger than rhs then we know it has to be
-    # set to zero. That's a lot quicker than building it into the adder
-    ub = rhs[-1]
-    C = Clauses(m)
-    C.clauses.extend((-a,) for c,a in eq if c>ub)
-    nz = len(C.clauses)
-    if nz < len(eq):
-        eq = [q for q in eq if q[0]<=rhs[1]]
-        res = C.build_BDD(eq, rhs[0], rhs[1], polarity=True)
-        if res is false:
-            # Impossible to satisfy, so just stuff a contradiciton in there
-            return [(-m,),(m,)]
-        elif res is true:
-            return []
-        else:
-            C.clauses.append((res,))
-    return C.clauses
-
-try:
-    pycosat.itersolve({(1,)})
-    pycosat_prep = False
-except TypeError:
-    pycosat_prep = True
-
-def sat(clauses, m=None, iterator=False):
-    """
-    Calculate a SAT solution for `clauses`.
-
-    Returned is the list of those solutions.  When the clauses are
-    unsatisfiable, an empty list is returned.
-
-    """
-    if pycosat_prep:
-        clauses = list(map(list,clauses))
-    if iterator:
-        return pycosat.itersolve(clauses)
-    solution = pycosat.solve(clauses)
-    if solution == "UNSAT" or solution == "UNKNOWN":
-        return None
-    if m is not None and len(solution) < m:
-        solution = {abs(s):s for s in solution}
-        solution = [solution.get(s,s) for s in range(1,m+1)]
-    return solution
-
-def optimize(objective, clauses, bestsol, minval=None, maxval=None,
-    maximize=False, increment=10, trybest=True, tryworst=False):
-    """
-    Bisect the solution space of a constraint, to minimize or maximize it.
-
-    func should be a function that is called with the arguments func(lo_rhs,
-    hi_rhs) and returns a list of constraints.
-
-    The midpoint of the bisection will not be more than lo_value + increment.
-    To not use it, set a very large increment. The increment argument should
-    be used if you expect the optimal solution to be near 0.
-
-    """
-    if not objective:
-        log.debug('Empty objective, trivial solution')
-        return clauses, bestsol, 0
-
-    m = len(bestsol)
-    bestcon = []
-    bestval = evaluate_eq(objective, bestsol)
-    log.debug('Initial objective: %d'%bestval)
-
-    # If we got lucky and the initial solution is optimal, we still
-    # need to generate the constraints at least once
-    try0 = None
-    if maximize:
-        hi = sum(c for c,_ in objective)
-        hi = max([bestval, min([hi, maxval]) if maxval else hi])
-        lo = bestval
-    else:
-        lo = min([bestval, max([0,minval]) if minval else 0])
-        hi = bestval
-    if lo == hi:
-        try0 = lo
-    elif tryworst:
-        try0 = lo + 1 if maximize else hi - 1
-    elif trybest:
-        try0 = hi if maximize else lo
-    else:
-        try0 = None
-
-    log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
-    while True:
-        if try0 is None:
-            incr = min([increment,(hi-lo)//2])
-            mid = hi - incr if maximize else lo + incr
-        else:
-            mid = try0
-            try0 = None
-        rhs = (mid, hi) if maximize else (lo, mid)
-        constraints = generate_constraints(objective, m, rhs)
-        newsol = sat(chain(clauses,constraints),m=m)
-        if newsol is None:
-            log.debug("Bisection range %s: failure" % (rhs,))
-            if maximize:
-                hi = mid - 1
-            else:
-                lo = mid + 1
-        else:
-            bestcon = constraints
-            bestsol = newsol
-            bestval = evaluate_eq(objective, newsol)
-            if maximize:
-                lo = mid
-            else:
-                hi = mid
-            log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
-            if lo == hi:
-                break
-    return clauses + bestcon, bestsol, bestval
-
-class MaximumIterationsError(Exception):
-    pass
-
-def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
+def minimal_unsatisfiable_subset(clauses, sat, log=False):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
