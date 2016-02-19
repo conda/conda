@@ -14,6 +14,14 @@ Conda
    :alt: Appveyor Build Status
    :target: https://ci.appveyor.com/project/ironmancio54716/conda/branch/master
 
+.. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
+   :alt: Codecov Status
+   :target: https://codecov.io/github/conda/conda?branch=master
+
+.. image:: https://scrutinizer-ci.com/g/conda/conda/badges/quality-score.png?b=master
+   :target: https://scrutinizer-ci.com/g/conda/conda/?branch=master
+   :alt: Scrutinizer Code Quality
+
 .. image:: https://badges.gitter.im/conda/conda.svg
    :alt: Join the chat at https://gitter.im/conda/conda
    :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
