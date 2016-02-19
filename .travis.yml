@@ -19,7 +19,7 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - bin/conda install --force --no-deps conda
+  - bin/conda install --force --no-deps conda=3.19.1
   - conda --version
   - conda info
   - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
