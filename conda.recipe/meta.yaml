@@ -22,7 +22,7 @@ requirements:
     - python
   run:
     - python
-    - pycosat
+    - pycosat >=0.6.1
     - pyyaml
     - requests
     - conda-env
