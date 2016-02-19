@@ -339,7 +339,7 @@ class Clauses(object):
             self.clauses.extend(additional)
         if len(solution) < self.m:
             solution = {abs(s):s for s in solution}
-            solution = [solution.get(s,s) for s in range(1,m+1)]
+            solution = [solution.get(s,s) for s in range(1,self.m+1)]
         return solution
 
     def minimize(self, objective, bestsol, minval=None, increment=10):
@@ -371,11 +371,11 @@ class Clauses(object):
 
         log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
         while True:
-            if try0:
+            if try0 is None:
+                mid = min([lo + increment,(lo+hi)//2])
+            else:
                 mid = try0
                 try0 = None
-            else:
-                mid = min([lo + increment,(lo+hi)//2])
             C2 = Clauses(m)
             C2.Require(C2.LinearBound, objective, lo, mid)
             newsol = self.sat(C2.clauses)

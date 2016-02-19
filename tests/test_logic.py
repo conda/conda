@@ -228,11 +228,11 @@ def test_LinearBound():
             assert not(rhs[0] <= evaluate_eq(eq,sol) <= rhs[1])
 
 def test_sat():
-    def sat(val):
-        return Clauses().sat(val)
+    def sat(val, m=1):
+        return Clauses(m).sat(val)
     assert sat([[1]]) == [1]
     assert sat([[1], [-1]]) is None
-    assert sat([]) == []
+    assert sat([]) == [1]
 
 def test_minimal_unsatisfiable_subset():
     def sat(val):
