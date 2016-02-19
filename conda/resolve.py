@@ -941,22 +941,3 @@ class Resolve(object):
         except:
             stdoutlog.info('\n')
             raise
-
-
-if __name__ == '__main__':
-    import json
-    from pprint import pprint
-    from optparse import OptionParser
-    from conda.cli.common import arg2spec
-
-    with open('../tests/index.json') as fi:
-        r = Resolve(json.load(fi))
-
-    p = OptionParser(usage="usage: %prog [options] SPEC(s)")
-    p.add_option("--mkl", action="store_true")
-    opts, args = p.parse_args()
-
-    specs = [arg2spec(arg) for arg in args]
-    if opts.mkl:
-        specs += 'mkl@'
-    pprint(r.solve(specs, []))
