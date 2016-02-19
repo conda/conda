@@ -821,7 +821,7 @@ class Resolve(object):
         for pkg in installed:
             assert pkg in self.index
             name, version, build = self.package_triple(pkg)
-            if name in bad_specs:
+            if name in bad_specs and name not in snames:
                 preserve.append(pkg)
             if name not in snames:
                 specs.append(MatchSpec(name, optional=True, target=pkg))
