@@ -32,43 +32,55 @@ import pycosat
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
 
+
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
 @total_ordering
 class TrueClass(object):
     def __eq__(self, other):
         return other is true
+
     def __neg__(self):
         return false
+
     def __str__(self):
         return "true"
+
     def __lt__(self, other):
         return False
+
     def __hash__(self):
         return hash(True)
+
     __repr__ = __str__
 true = TrueClass()
+
 
 @total_ordering
 class FalseClass(object):
     def __eq__(self, other):
         return other is false
+
     def __neg__(self):
         return true
+
     def __str__(self):
         return "false"
+
     def __hash__(self):
         return hash(False)
+
     def __gt__(self, other):
         return False
+
     __repr__ = __str__
 false = FalseClass()
+
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
-
 class Clauses(object):
     def __init__(self, m=0):
         self.clauses = []
@@ -131,25 +143,25 @@ class Clauses(object):
                 # Negative
                 (-c, -t, x),
                 (c, -f, x),
-                (-t, -f, x), # Red
+                (-t, -f, x),  # Red
                 ))
         if polarity in {True, None}:
             self.clauses.extend((
                 # Positive
                 (-c, t, -x),
                 (c, f, -x),
-                (t, f, -x), # Red
+                (t, f, -x),  # Red
                 ))
 
         return x
 
     def Require(self, what, *args):
         nz = len(self.clauses)
-        x = what.__get__(self,Clauses)(*args, polarity=True)
+        x = what.__get__(self, Clauses)(*args, polarity=True)
         if x is true or x is false:
             self.clauses = self.clauses[:nz]
         if x is false:
-            self.clauses.extend(((1,),(-1,)))
+            self.clauses.extend(((1,), (-1,)))
         elif x is not true:
             self.clauses.append((x,))
 
@@ -166,11 +178,11 @@ class Clauses(object):
             return false
         x = self.new_var()
         if polarity is True:
-            self.clauses.extend(((-x,f),(-x,g)))
+            self.clauses.extend(((-x, f), (-x, g)))
         elif polarity is False:
-            self.clauses.append((x,-f,-g))
+            self.clauses.append((x, -f, -g))
         else:
-            self.clauses.extend(((-x,f),(-x,g),(x,-f,-g)))
+            self.clauses.extend(((-x, f), (-x, g), (x, -f, -g)))
         return x
 
     def All(self, iter, polarity=None, force=False):
@@ -191,7 +203,7 @@ class Clauses(object):
             return next(v for v in vals)
         x = self.new_var()
         if polarity in {True, None}:
-            self.clauses.extend((-x,v) for v in vals)
+            self.clauses.extend((-x, v) for v in vals)
         if polarity in {False, None}:
             self.clauses.append((x,) + tuple(-v for v in vals))
         return x
@@ -209,11 +221,11 @@ class Clauses(object):
             return true
         x = self.new_var()
         if polarity is True:
-            self.clauses.append((-x,f,g))
+            self.clauses.append((-x, f, g))
         elif polarity is False:
-            self.clauses.extend(((x,-f),(x,-g)))
+            self.clauses.extend(((x, -f), (x, -g)))
         else:
-            self.clauses.extend(((x,-f),(x,-g),(-x,f,g)))
+            self.clauses.extend(((x, -f), (x, -g), (-x, f, g)))
         return x
 
     def Any(self, iter, polarity=None):
@@ -236,7 +248,7 @@ class Clauses(object):
         if polarity in {True, None}:
             self.clauses.append((-x,) + tuple(vals))
         if polarity in {False, None}:
-            self.clauses.extend((x,-f) for f in vals)
+            self.clauses.extend((x, -f) for f in vals)
         return x
 
     def Xor(self, f, g, polarity=None):
@@ -255,16 +267,16 @@ class Clauses(object):
             return true
         x = self.new_var()
         if polarity is True:
-            self.clauses.extend(((-x,f,g),(-x,-f,-g)))
+            self.clauses.extend(((-x, f, g), (-x, -f, -g)))
         elif polarity is False:
-            self.clauses.extend(((x,-f,g),(x,f,-g)))
+            self.clauses.extend(((x, -f, g), (x, f, -g)))
         else:
-            self.clauses.extend(((-x,f,g),(-x,-f,-g),(x,-f,g),(x,f,-g)))
+            self.clauses.extend(((-x, f, g), (-x, -f, -g), (x, -f, g), (x, f, -g)))
         return x
 
     def AtMostOne(self, iter, polarity=None):
         vals = []
-        for v1, v2 in combinations(iter,2):
+        for v1, v2 in combinations(iter, 2):
             vals.append(self.Or(-v1, -v2, polarity=polarity))
         return self.All(vals, polarity=polarity)
 
@@ -275,18 +287,18 @@ class Clauses(object):
 
     def LinearBound(self, equation, lo, hi, polarity=None):
         nz = len(self.clauses)
-        if any(c > hi for c,a in equation):
-            pvals = [-a for c,a in equation if c > hi]
+        if any(c > hi for c, a in equation):
+            pvals = [-a for c, a in equation if c > hi]
             prune = self.All(pvals, polarity=polarity)
-            equation = [(c,a) for c,a in equation if c <= hi]
+            equation = [(c, a) for c, a in equation if c <= hi]
         else:
             prune = true
         if not equation:
             res = true if lo == 0 else false
         else:
             equation = sorted(equation)
-            total = sum(i for i,_ in equation)
-            first_stack = (len(equation)-1,0,total)
+            total = sum(i for i, _ in equation)
+            first_stack = (len(equation)-1, 0, total)
             call_stack = [first_stack]
             ret = {}
             csum = 0
@@ -303,12 +315,12 @@ class Clauses(object):
                 LC, LA = equation[ndx]
                 ndx -= 1
                 total -= LC
-                hi_key = (ndx,csum if LA < 0 else csum + LC,total)
+                hi_key = (ndx, csum if LA < 0 else csum + LC, total)
                 thi = ret.get(hi_key)
                 if thi is None:
                     call_stack.append(hi_key)
                     continue
-                lo_key = (ndx,csum + LC if LA < 0 else csum,total)
+                lo_key = (ndx, csum + LC if LA < 0 else csum, total)
                 tlo = ret.get(lo_key)
                 if tlo is None:
                     call_stack.append(lo_key)
@@ -338,8 +350,8 @@ class Clauses(object):
         if additional and includeIf:
             self.clauses.extend(additional)
         if len(solution) < self.m:
-            solution = {abs(s):s for s in solution}
-            solution = [solution.get(s,s) for s in range(1,self.m+1)]
+            solution = {abs(s): s for s in solution}
+            solution = [solution.get(s, s) for s in range(1, self.m+1)]
         return solution
 
     def minimize(self, objective, bestsol, minval=None, increment=10):
@@ -358,21 +370,21 @@ class Clauses(object):
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
 
-        odict = {atom:coeff for coeff, atom in objective}
+        odict = {atom: coeff for coeff, atom in objective}
         m = len(bestsol)
         bestcon = []
         bestval = evaluate_eq(odict, bestsol)
-        log.debug('Initial objective: %d'%bestval)
+        log.debug('Initial objective: %d' % bestval)
 
         # If we got lucky and the initial solution is optimal, we still
         # need to generate the constraints at least once
-        try0 = lo = min([bestval, max([0,minval]) if minval else 0])
+        try0 = lo = min([bestval, max([0, minval]) if minval else 0])
         hi = bestval
 
-        log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
+        log.debug("Initial range (%d,%d,%d)" % (lo, bestval, hi))
         while True:
             if try0 is None:
-                mid = min([lo + increment,(lo+hi)//2])
+                mid = min([lo + increment, (lo+hi)//2])
             else:
                 mid = try0
                 try0 = None
@@ -380,23 +392,25 @@ class Clauses(object):
             C2.Require(C2.LinearBound, objective, lo, mid)
             newsol = self.sat(C2.clauses)
             if newsol is None:
-                log.debug("Bisection range (%d,%d): failure" % (lo,mid))
+                log.debug("Bisection range (%d,%d): failure" % (lo, mid))
                 lo = mid + 1
             else:
                 bestcon = C2.clauses
                 bestsol = newsol
                 bestval = evaluate_eq(odict, newsol)
                 hi = mid
-                log.debug("Bisection range (%d,%d): success, new best=%s" % (lo,mid,bestval))
+                log.debug("Bisection range (%d,%d): success, new best=%s" % (lo, mid, bestval))
                 if lo == hi:
                     break
         self.clauses.extend(bestcon)
-        return bestsol, bestval        
+        return bestsol, bestval
+
 
 def evaluate_eq(eq, sol):
     if type(eq) is not dict:
-        eq = {c:v for v,c in eq}
-    return sum(eq.get(s,0) for s in sol)
+        eq = {c: v for v, c in eq}
+    return sum(eq.get(s, 0) for s in sol)
+
 
 def minimal_unsatisfiable_subset(clauses, sat, log=False):
     """
@@ -443,9 +457,9 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
         update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
         stop = lambda: logging.getLogger('progress.stop').info(None)
     else:
-        start = lambda x: None
-        update = lambda x, y: None
-        stop = lambda: None
+        start = lambda x: None  # noqa
+        update = lambda x, y: None  # noqa
+        stop = lambda: None  # noqa
 
     clauses = tuple(clauses)
     if sat(clauses):
