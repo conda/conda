@@ -6,7 +6,7 @@ from itertools import chain
 
 from conda.compat import iterkeys, itervalues, iteritems, string_types
 from conda.logic import minimal_unsatisfiable_subset, Clauses
-from conda.version import VersionOrder, VersionSpec
+from conda.version import VersionSpec, normalized_version
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
@@ -16,12 +16,6 @@ dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
-
-
-# normalized_version() is needed by conda-env
-# We could just import it from resolve but pyflakes would complain
-def normalized_version(version):
-    return VersionOrder(version)
 
 
 def dashlist(iter):
@@ -114,8 +108,6 @@ class MatchSpec(object):
         if isinstance(info, string_types):
             name, version, build = info[:-8].rsplit('-', 2)
         else:
-            if isinstance(info, Package):
-                info = info.info
             name = info.get('name')
             version = info.get('version')
             build = info.get('build')
@@ -147,8 +139,6 @@ class MatchSpec(object):
 
     def __str__(self):
         res = self.spec
-        if res[-1] == '@' and self.strictness == 1:
-            res = 'feature "%s"' % res[1:]
         if self.target or self.optional or self.parent:
             mods = []
             if self.target:
@@ -159,7 +149,7 @@ class MatchSpec(object):
                 mods.append('optional')
             if self.negate:
                 mods.append('negate')
-            res += ' (' + ','.join(mods) + ')'
+            res += ' (' + ', '.join(mods) + ')'
         return res
 
 
@@ -173,11 +163,9 @@ class Package(object):
         self.name = info.get('name')
         self.version = info.get('version')
         self.build = info.get('build')
-        if not (self.name and self.version and self.build):
-            self.name, self.version, self.build = fn.rsplit('-', 2)
         self.build_number = info.get('build_number')
         self.channel = info.get('channel')
-        self.norm_version = VersionOrder(self.version)
+        self.norm_version = normalized_version(self.version)
         self.info = info
 
     def _asdict(self):
@@ -557,9 +545,9 @@ class Resolve(object):
     def version_key(self, fn, majoronly=False):
         rec = self.index[fn]
         if majoronly:
-            return VersionOrder(rec['version'])
+            return normalized_version(rec['version'])
         else:
-            return (VersionOrder(rec['version']), rec['build_number'])
+            return (normalized_version(rec['version']), rec['build_number'])
 
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
@@ -935,13 +923,14 @@ class Resolve(object):
             psolutions = [set(C.from_index(lit).rsplit('[', 1)[0] for lit in sol)
                           for sol in solutions]
             if nsol > 1:
+                common = set.intersection(*psolutions)
+                diffs = [sorted(sol - common) for sol in psolutions]
                 stdoutlog.info(
                     '\nWarning: %s possible package resolutions '
-                    '(only showing differing packages):\n' %
-                    ('>10' if nsol > 10 else nsol))
-                common = set.intersection(*psolutions)
-                for sol in psolutions:
-                    stdoutlog.info('\t%s,\n' % sorted(sol - common))
+                    '(only showing differing packages):%s%s' %
+                    ('>10' if nsol > 10 else nsol,
+                     dashlist(', '.join(diff) for diff in diffs),
+                     '\n  ... and others' if nsol > 10 else ''))
 
             if obj6 > 0:
                 log.debug("Older versions in the solution(s):")
