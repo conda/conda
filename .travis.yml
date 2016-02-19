@@ -19,9 +19,9 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - bin/conda install --force --no-deps conda=3.19.1 requests
+  - bin/conda install --force --no-deps conda requests
   - conda --version
-  - conda install -c conda conda=3.19.1 pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
+  - conda install -c conda conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
   - conda install pip
   - pip install flake8 pytest-cov radon
   - python setup.py install
