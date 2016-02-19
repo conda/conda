@@ -255,9 +255,7 @@ class Resolve(object):
         try:
             res = self.msd_cache[fn]
         except KeyError:
-            if not 'depends' in self.index[fn]:
-                raise NoPackagesFound('Bad metadata for %s' % fn, [fn])
-            depends = self.index[fn]['depends']
+            depends = self.index[fn].get('depends', [])
             res = self.msd_cache[fn] = [MatchSpec(d) for d in depends]
         return res
 
