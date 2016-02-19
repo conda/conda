@@ -32,18 +32,6 @@ import pycosat
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
 
-#
-# Older versions of pycosat require lists instead of
-# iterators and tuples. Test this and be prepared to convert
-# if needed
-#
-
-try:
-    pycosat.itersolve({(1,)})
-    pycosat_prep = False
-except TypeError:
-    pycosat_prep = True
-
 # Custom classes for true and false. Using True and False is too risky, since
 # True == 1, so it might be confused for the literal 1.
 @total_ordering
@@ -344,8 +332,6 @@ class Clauses(object):
             clauses = chain(self.clauses, additional)
         else:
             clauses = self.clauses
-        if pycosat_prep:
-            clauses = list(map(list,clauses))
         solution = pycosat.solve(clauses)
         if solution == "UNSAT" or solution == "UNKNOWN":
             return None
