@@ -130,7 +130,13 @@ class Package(object):
             self.name, self.version, self.build = fn.rsplit('-',2)
         self.build_number = info.get('build_number')
         self.channel = info.get('channel')
-        self.norm_version = VersionOrder(self.version)
+        try:
+            self.norm_version = VersionOrder(self.version)
+        except ValueError:
+            stderrlog.error("\nThe following stack trace is in reference to "
+                            "package:\n\n\t%s\n\n" % fn)
+            raise
+
         self.info = info
 
     def _asdict(self):
