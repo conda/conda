@@ -284,10 +284,10 @@ class Clauses(object):
     def AtMostOne_2(self, vals, polarity=None):
         return self.LinearBound([(1, k) for k in vals], 0, 1, polarity=polarity)
 
-    def AtMostOne(self, vals, BDD=None, polarity=None):
+    def AtMostOne(self, vals, polarity=None):
         vals = list(vals)
         nv = len(vals)
-        if not BDD or nv < 5 - (polarity is not True):
+        if nv < 5 - (polarity is not True):
             return self.AtMostOne_1(vals, polarity)
         else:
             return self.AtMostOne_2(vals, polarity)
@@ -303,31 +303,46 @@ class Clauses(object):
     def ExactlyOne(self, vals, BDD=None, polarity=None):
         vals = list(vals)
         nv = len(vals)
-        if not BDD or nv < 2:
+        if nv < 2:
             return self.ExactlyOne_1(vals, polarity)
         else:
             return self.ExactlyOne_2(vals, polarity)
 
     def LinearBound(self, equation, lo, hi, polarity=None):
-        if lo > hi:
-            return false
         nz = len(self.clauses)
-        if any(a is true or a is false for c, a in equation):
-            offset = sum(c for c, a in equation if a is true)
+        if any(c <= 0 or a is true or a is false for c, a in equation):
+            # Remove resolved terms and convert negative coefficients
+            # l <= c1 true + c2 false + S <= u
+            #    ---> l - c1 <= S <= u - c1
+            # l <= c x + S <= u, c < 0
+            #    ---> l <= c - c !x + S <= u
+            #    ---> l - c <= -c !x + S <= u
+            offset = sum(c for c, a in equation if a is true or c < 0)
+            equation = [(c, a) if c >= 0 else (-c, -a) for c, a in equation
+                        if c != 0 and a is not true and a is not false]
+            lo -= offset
             hi -= offset
-            lo = max([0, lo-offset])
-            if lo > hi:
-                return false
-            equation = [(c, a) for c, a in equation if a is not true and a is not false]
         if any(c > hi for c, a in equation):
+            # Prune coefficients that must be zero
             pvals = [-a for c, a in equation if c > hi]
             prune = self.All(pvals, polarity=polarity)
             equation = [(c, a) for c, a in equation if c <= hi]
         else:
             prune = true
-        if not equation:
+        # Tighten bounds
+        lo = max([lo, 0])
+        hi = min([hi, sum(c for c, a in equation)])
+        if lo > hi:
+            res = false
+        elif not equation:
             res = true if lo == 0 else false
         else:
+            # The equation is sorted in order of increasing coefficients.
+            # Then we take advantage of the following recurrence:
+            #                l      <= S + cN xN <= u
+            #  => IF xN THEN l - cN <= S         <= u - cN
+            #           ELSE l      <= S         <= u
+            # we use memoization to prune common subexpressions
             equation = sorted(equation)
             total = sum(i for i, _ in equation)
             first_stack = (len(equation)-1, 0, total)
