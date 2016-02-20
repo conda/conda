@@ -1,16 +1,7 @@
 from itertools import combinations, permutations, product
 
-import pycosat
 from conda.logic import (Clauses, true, false, evaluate_eq, minimal_unsatisfiable_subset)
-
 from tests.helpers import raises
-
-def my_itersolve(iterable):
-    """
-    Work around https://github.com/ContinuumIO/pycosat/issues/13
-    """
-    iterable = [[i for i in j] for j in iterable]
-    return pycosat.itersolve(iterable)
 
 # These routines implement logical tests with short-circuiting
 # and propogation of unknown values:
@@ -94,11 +85,11 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                     assert x == tsol, (ij,Cfunc.__name__,polarity,C.clauses)
                     continue
                 if polarity in {True, None}:
-                    for sol in my_itersolve([(x,)] + C.clauses):
+                    for sol in C.itersolve([(x,)],m):
                         qsol = Mfunc(*my_SOL(ij,sol))
                         assert qsol is true, (ij,sol,Cfunc.__name__,polarity,C.clauses)
                 if polarity in {False, None}:
-                    for sol in my_itersolve([(-x,)] + C.clauses):
+                    for sol in C.itersolve([(-x,)],m):
                         qsol = Mfunc(*my_SOL(ij,sol))
                         assert qsol is false, (ij,sol,Cfunc.__name__,polarity,C.clauses)
 
@@ -147,9 +138,13 @@ def test_ITE():
     my_TEST(my_ITE, Clauses.ITE, 3,3, False)
 
 def test_AMONE():
+    my_TEST(my_AMONE, Clauses.AtMostOne_1, 0,3, True)
+    my_TEST(my_AMONE, Clauses.AtMostOne_2, 0,3, True)
     my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
 
 def test_XONE():
+    my_TEST(my_XONE, Clauses.ExactlyOne_1, 0,3, True)
+    my_TEST(my_XONE, Clauses.ExactlyOne_2, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
 
 def test_Require_False():
@@ -218,13 +213,13 @@ def test_LinearBound():
             assert xneg == max_iter
             assert xpos == max_iter
             continue
-        for _, sol in zip(range(max_iter), my_itersolve([(x,)] + C.clauses)):
+        for _, sol in zip(range(max_iter), C.itersolve([(x,)],N)):
             assert rhs[0] <= evaluate_eq(eq,sol) <= rhs[1]
-        for _, sol in zip(range(max_iter), my_itersolve([(xpos,)] + Cpos.clauses)):
+        for _, sol in zip(range(max_iter), Cpos.itersolve([(xpos,)],N)):
             assert rhs[0] <= evaluate_eq(eq,sol) <= rhs[1]
-        for _, sol in zip(range(max_iter), my_itersolve([(-x,)] + C.clauses)):
+        for _, sol in zip(range(max_iter), C.itersolve([(-x,)],N)):
             assert not(rhs[0] <= evaluate_eq(eq,sol) <= rhs[1])
-        for _, sol in zip(range(max_iter), my_itersolve([(-xneg,)] + Cneg.clauses)):
+        for _, sol in zip(range(max_iter), C.itersolve([(-xneg,)],N)):
             assert not(rhs[0] <= evaluate_eq(eq,sol) <= rhs[1])
 
 def test_sat():
@@ -239,12 +234,11 @@ def test_minimal_unsatisfiable_subset():
         return Clauses().sat(val)
     assert raises(ValueError, lambda: minimal_unsatisfiable_subset([[1]], sat))
 
-    clauses = [[-10], [1], [5], [2, 3], [3, 4], [5, 2], [-7], [2], [3], [-2,
-        -3, 5], [7, 8, 9, 10], [-8], [-9]]
+    clauses = [[-10], [1], [5], [2, 3], [3, 4], [5, 2], [-7], [2], [3], 
+        [-2, -3, 5], [7, 8, 9, 10], [-8], [-9]]
     res = minimal_unsatisfiable_subset(clauses, sat)
     assert sorted(res) == [[-10], [-9], [-8], [-7], [7, 8, 9, 10]]
     assert not sat(res)
-
 
     clauses = [[1, 3], [2, 3], [-1], [4], [3], [-3]]
     for perm in permutations(clauses):

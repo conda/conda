@@ -274,19 +274,51 @@ class Clauses(object):
             self.clauses.extend(((-x, f, g), (-x, -f, -g), (x, -f, g), (x, f, -g)))
         return x
 
-    def AtMostOne(self, iter, polarity=None):
-        vals = []
-        for v1, v2 in combinations(iter, 2):
-            vals.append(self.Or(-v1, -v2, polarity=polarity))
-        return self.All(vals, polarity=polarity)
-
-    def ExactlyOne(self, vals, polarity=None):
+    def AtMostOne_1(self, vals, polarity=None):
         vals = list(vals)
-        return self.And(self.AtMostOne(vals, polarity=polarity),
-                        self.Any(vals, polarity=polarity))
+        combos = []
+        for v1, v2 in combinations(vals, 2):
+            combos.append(self.Or(-v1, -v2, polarity=polarity))
+        return self.All(combos, polarity=polarity)
+
+    def AtMostOne_2(self, vals, polarity=None):
+        return self.LinearBound([(1, k) for k in vals], 0, 1, polarity=polarity)
+
+    def AtMostOne(self, vals, BDD=None, polarity=None):
+        vals = list(vals)
+        nv = len(vals)
+        if not BDD or nv < 5 - (polarity is not True):
+            return self.AtMostOne_1(vals, polarity)
+        else:
+            return self.AtMostOne_2(vals, polarity)
+
+    def ExactlyOne_1(self, vals, polarity=None):
+        r1 = self.AtMostOne_1(vals, polarity=polarity)
+        r2 = self.Any(vals, polarity=polarity)
+        return self.And(r1, r2, polarity=polarity)
+
+    def ExactlyOne_2(self, vals, polarity=None):
+        return self.LinearBound([(1, k) for k in vals], 1, 1, polarity=polarity)
+
+    def ExactlyOne(self, vals, BDD=None, polarity=None):
+        vals = list(vals)
+        nv = len(vals)
+        if not BDD or nv < 2:
+            return self.ExactlyOne_1(vals, polarity)
+        else:
+            return self.ExactlyOne_2(vals, polarity)
 
     def LinearBound(self, equation, lo, hi, polarity=None):
+        if lo > hi:
+            return false
         nz = len(self.clauses)
+        if any(a is true or a is false for c, a in equation):
+            offset = sum(c for c, a in equation if a is true)
+            hi -= offset
+            lo = max([0, lo-offset])
+            if lo > hi:
+                return false
+            equation = [(c, a) for c, a in equation if a is not true and a is not false]
         if any(c > hi for c, a in equation):
             pvals = [-a for c, a in equation if c > hi]
             prune = self.All(pvals, polarity=polarity)
@@ -353,6 +385,23 @@ class Clauses(object):
             solution = {abs(s): s for s in solution}
             solution = [solution.get(s, s) for s in range(1, self.m+1)]
         return solution
+
+    def itersolve(self, constraints=None, m=None):
+        if constraints is None:
+            constraints = []
+        exclude = []
+        if m is None:
+            m = self.m
+        while True:
+            # We don't use pycosat.itersolve because it is more
+            # important to limit the number of terms added to the
+            # exclusion list, in our experience. Once we update
+            # pycosat to do this, this can use it.
+            sol = self.sat(chain(constraints, exclude))
+            if sol is None:
+                return
+            yield sol
+            exclude.append([-k for k in sol if -m <= k <= m])
 
     def minimize(self, objective, bestsol, minval=None, increment=10):
         """
