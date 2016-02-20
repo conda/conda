@@ -57,4 +57,10 @@ install:
 build: false
 
 test_script:
-  - py.test
+  - py.test --cov conda --cov-report xml tests
+
+on_success:
+  - pip install codecov
+  - codecov --env PYTHON_VERSION
+
+shallow_clone: true
