@@ -1,33 +1,27 @@
 language: python
+
 python:
   # We don't actually use the system Python but this keeps it organized.
   - "2.7"
-  - "3.3"
   - "3.4"
   - "3.5"
 
+os:
+  - linux
+  - osx
+
+env:
+  global:
+    - PYTHONUNBUFFERED=yes
+
 install:
   - printenv
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda-3.5.2-Linux-x86_64.sh -O miniconda.sh;
-    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.0.0-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.5.2-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes
-  - bin/conda install --force --no-deps conda requests
-  - conda info
-  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
-  - conda install pycosat
+  - source ./utils/travis-bootstrap-conda.sh
+  - conda install pycosat requests conda-env pycrypto python=$TRAVIS_PYTHON_VERSION
+  - conda install flake8 pytest mock pyflakes
   - conda install pip
-  - pip install flake8 pytest-cov radon
+  - pip install pytest-cov radon
   - python setup.py install
-  - conda info -a
-  - printenv
 
 script:
   - shopt -s extglob globstar
@@ -44,6 +38,9 @@ addons:
       - zsh
 
 sudo: false
+
+git:
+  depth: 3
 
 after_success:
   - pip install codecov
