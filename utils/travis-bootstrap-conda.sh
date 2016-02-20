@@ -3,7 +3,7 @@
 
 
 travis_bootstrap_conda() {
-    local py_major=${TRAVIS_PYTHON_VERSION:0:1}
+    local py_major=${PY_VERSION:0:1}
 
     if ! [[ -d $HOME/miniconda ]]; then
         declare miniconda_url

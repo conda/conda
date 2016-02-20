@@ -1,11 +1,3 @@
-language: python
-
-python:
-  # We don't actually use the system Python but this keeps it organized.
-  - "2.7"
-  - "3.4"
-  - "3.5"
-
 os:
   - linux
   - osx
@@ -13,11 +5,14 @@ os:
 env:
   global:
     - PYTHONUNBUFFERED=yes
+  matrix:
+    - PY_VERSION=2.7
+    - PY_VERSION=3.4
+    - PY_VERSION=3.5
 
 install:
   - printenv
   - source ./utils/travis-bootstrap-conda.sh
-  - conda install pycosat requests conda-env pycrypto python=$TRAVIS_PYTHON_VERSION
   - conda install flake8 pytest mock pyflakes
   - conda install pip
   - pip install pytest-cov radon
@@ -32,11 +27,6 @@ script:
   - flake8 --exit-zero --statistics
   - conda --help
 
-addons:
-  apt:
-    packages:
-      - zsh
-
 sudo: false
 
 git:
@@ -44,4 +34,4 @@ git:
 
 after_success:
   - pip install codecov
-  - codecov --env TRAVIS_PYTHON_VERSION
+  - codecov --env PY_VERSION
