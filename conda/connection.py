@@ -101,7 +101,9 @@ class S3Adapter(requests.adapters.BaseAdapter):
             import boto
         except ImportError:
             stderrlog.info('\nError: boto is required for S3 channels. '
-                           'Please install it with: conda install boto\n')
+                           'Please install it with `conda install boto`\n'
+                           'Make sure to run `source deactivate` if you '
+                           'are in a conda environment.\n')
             resp.status_code = 404
             return resp
 

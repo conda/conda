@@ -47,9 +47,9 @@ def find_commands(include_others=True):
         dir_paths = []
 
     if sys.platform == 'win32':
-        pat = re.compile(r'conda-(\w+)\.(exe|bat)$')
+        pat = re.compile(r'conda-([\w\-]+)\.(exe|bat)$')
     else:
-        pat = re.compile(r'conda-(\w+)$')
+        pat = re.compile(r'conda-([\w\-]+)$')
 
     res = set()
     for dir_path in dir_paths:
