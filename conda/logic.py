@@ -26,6 +26,7 @@ being used will only be used in the positive or the negative, respectively
 """
 from functools import total_ordering
 from itertools import chain, combinations
+from conda.compat import iteritems
 import logging
 import pycosat
 
@@ -90,9 +91,12 @@ class Clauses(object):
         self.stack = []
 
     def name_var(self, m, name):
+        nname = '!' + name
         self.names[name] = m
+        self.names[nname] = -m
         if m not in self.indexes:
             self.indexes[m] = name
+            self.indexes[-m] = nname
 
     def new_var(self, name=None):
         m = self.m + 1
@@ -101,11 +105,11 @@ class Clauses(object):
             self.name_var(m, name)
         return m
 
-    def from_name(self, name, default=None):
-        return self.names.get(name, default)
+    def from_name(self, name):
+        return self.names.get(name)
 
-    def from_index(self, m, default=None):
-        return self.indexes.get(m, default)
+    def from_index(self, m):
+        return self.indexes.get(m)
 
     def ITE(self, c, t, f, polarity=None):
         """
@@ -130,40 +134,47 @@ class Clauses(object):
             return self.And(c, t, polarity=polarity)
         if f is true or f is -c:
             return self.Or(t, -c)
-
-        if t < f:
-            t, f, c = f, t, -c
-
-        # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
         x = self.new_var()
-        # "Red" clauses are redundant, but they assist the unit propagation in the
-        # SAT solver
+        # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
+        # The third clause in each group is redundant but assists the unit
+        # propagation in the SAT solver.
         if polarity in {False, None}:
-            self.clauses.extend((
-                # Negative
-                (-c, -t, x),
-                (c, -f, x),
-                (-t, -f, x),  # Red
-                ))
+            self.clauses.extend(((-c, -t, x), (c, -f, x), (-t, -f, x)))
         if polarity in {True, None}:
-            self.clauses.extend((
-                # Positive
-                (-c, t, -x),
-                (c, f, -x),
-                (t, f, -x),  # Red
-                ))
-
+            self.clauses.extend(((-c, t, -x), (c, f, -x), (t, f, -x)))
         return x
 
-    def Require(self, what, *args):
+    def Enforce(self, direction, what, *args, **kwargs):
         nz = len(self.clauses)
-        x = what.__get__(self, Clauses)(*args, polarity=True)
+        direction = bool(direction)
+        kwargs.setdefault('polarity', direction)
+        x = what.__get__(self, Clauses)(*args, **kwargs)
         if x is true or x is false:
             self.clauses = self.clauses[:nz]
+        if not direction:
+            x = -x
         if x is false:
             self.clauses.extend(((1,), (-1,)))
         elif x is not true:
             self.clauses.append((x,))
+        return x
+
+    def Prevent(self, what, *args, **kwargs):
+        assert kwargs.get('polarity') is not True
+        return self.Enforce(False, what, *args, **kwargs)
+
+    def Require(self, what, *args, **kwargs):
+        assert kwargs.get('polarity') is not False
+        return self.Enforce(True, what, *args, **kwargs)
+
+    def Invert(self, what, *args, **kwargs):
+        pol = kwargs.get('polarity')
+        if pol:
+            kwargs['polarity'] = not pol
+        return - what.__get__(self, Clauses)(*args, **kwargs)
+
+    def Not(self, x, polarity=None):
+        return -x
 
     def And(self, f, g, polarity=None):
         if f is false or g is false:
@@ -284,10 +295,10 @@ class Clauses(object):
     def AtMostOne_2(self, vals, polarity=None):
         return self.LinearBound([(1, k) for k in vals], 0, 1, polarity=polarity)
 
-    def AtMostOne(self, vals, polarity=None):
+    def AtMostOne(self, vals, BDD=None, polarity=None):
         vals = list(vals)
         nv = len(vals)
-        if nv < 5 - (polarity is not True):
+        if BDD is False or nv < 5 - (polarity is not True):
             return self.AtMostOne_1(vals, polarity)
         else:
             return self.AtMostOne_2(vals, polarity)
@@ -303,13 +314,15 @@ class Clauses(object):
     def ExactlyOne(self, vals, BDD=None, polarity=None):
         vals = list(vals)
         nv = len(vals)
-        if nv < 2:
+        if BDD is False or nv < 2:
             return self.ExactlyOne_1(vals, polarity)
         else:
             return self.ExactlyOne_2(vals, polarity)
 
     def LinearBound(self, equation, lo, hi, polarity=None):
         nz = len(self.clauses)
+        if type(equation) is dict:
+            equation = [(v, self.from_name(k)) for k, v in iteritems(equation)]
         if any(c <= 0 or a is true or a is false for c, a in equation):
             # Remove resolved terms and convert negative coefficients
             # l <= c1 true + c2 false + S <= u
@@ -434,7 +447,11 @@ class Clauses(object):
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
 
-        odict = {atom: coeff for coeff, atom in objective}
+        if type(objective) is dict:
+            odict = {self.from_name(k): v for k, v in iteritems(objective)}
+            objective = [(v, k) for k, v in iteritems(odict)]
+        else:
+            odict = {atom: coeff for coeff, atom in objective}
         m = len(bestsol)
         bestcon = []
         bestval = evaluate_eq(odict, bestsol)
