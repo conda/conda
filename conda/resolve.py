@@ -575,11 +575,11 @@ class Resolve(object):
 
     @staticmethod
     def ms_to_v(ms):
-        return 's@' + ms.spec + ('!' if ms.negate else '')
+        return '@s@' + ms.spec + ('!' if ms.negate else '')
 
     @staticmethod
     def feat_to_v(feat):
-        return 's@@' + feat
+        return '@s@@' + feat
 
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
@@ -622,10 +622,10 @@ class Resolve(object):
         return [(C.from_name(self.ms_to_v(ms)),) for ms in specs if not ms.optional]
 
     def generate_feature_count(self, C, trackers):
-        return [(1, C.from_name(self.feat_to_v(name))) for name in iterkeys(trackers)]
+        return {self.feat_to_v(name): 1 for name in iterkeys(trackers)}
 
     def generate_feature_metric(self, C, groups, specs):
-        eq = []
+        eq = {}
         for name, group in iteritems(groups):
             nf = [len(self.features(fn)) for fn in group]
             maxf = max(nf)
@@ -633,14 +633,14 @@ class Resolve(object):
                 continue
             if not any(ms.name == name for ms in specs if not ms.optional):
                 maxf += 1
-            eq.extend((maxf-fc, C.from_name(fn)) for fn, fc in zip(group, nf) if fc < maxf)
+            eq.update({fn: maxf-fc for fn, fc in zip(group, nf) if fc < maxf})
         return eq
 
     def generate_removal_count(self, C, specs):
-        return [(1, -C.from_name(self.ms_to_v(ms))) for ms in specs]
+        return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
     def generate_version_metric(self, C, groups, specs, majoronly=False):
-        eq = []
+        eq = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
@@ -665,12 +665,12 @@ class Resolve(object):
                 if prev and prev != nkey:
                     i += 1
                 if i:
-                    eq += [(i, C.from_name(pkg))]
+                    eq[pkg] = i
                 prev = nkey
         return eq
 
     def generate_package_count(self, C, groups, specs):
-        eq = []
+        eq = {}
         snames = {s.name for s in map(MatchSpec, specs)}
         for name, pkgs in iteritems(groups):
             if name in snames:
@@ -682,7 +682,7 @@ class Resolve(object):
             for nkey, pkg in pkg_ver:
                 if prev and prev != nkey:
                     i += 1
-                eq += [(i, C.from_name(pkg))]
+                eq[pkg] = i
                 prev = nkey
         return eq
 
@@ -903,13 +903,19 @@ class Resolve(object):
 
             dotlog.debug('Looking for alternate solutions')
 
-            def clean(solution):
-                return [s for s in solution if '@' not in C.from_index(s, '@')]
+            def clean(sol):
+                return [q for q in (C.from_index(s) for s in sol)
+                        if q and q[0] != '!' and '@' not in q]
+
+            def renumerate(sol):
+                return [C.from_name(q) for q in sol]
+
             nsol = 1
-            solution = clean(solution)
-            solutions = [solution]
+            psolutions = []
+            psolution = clean(solution)
+            psolutions.append(psolution)
             while True:
-                nclause = tuple(-q for q in solution)
+                nclause = tuple(-C.from_name(q) for q in psolution)
                 solution = C.sat((nclause,), True)
                 if solution is None:
                     break
@@ -917,14 +923,13 @@ class Resolve(object):
                 if nsol > 10:
                     dotlog.debug('Too many solutions; terminating')
                     break
-                solution = clean(solution)
-                solutions.append(solution)
+                psolution = clean(solution)
+                psolutions.append(psolution)
 
-            psolutions = [set(C.from_index(lit).rsplit('[', 1)[0] for lit in sol)
-                          for sol in solutions]
             if nsol > 1:
-                common = set.intersection(*psolutions)
-                diffs = [sorted(sol - common) for sol in psolutions]
+                psols2 = list(map(set, psolutions))
+                common = set.intersection(*psols2)
+                diffs = [sorted(set(sol) - common) for sol in psols2]
                 stdoutlog.info(
                     '\nWarning: %s possible package resolutions '
                     '(only showing differing packages):%s%s' %
@@ -934,8 +939,8 @@ class Resolve(object):
 
             if obj6 > 0:
                 log.debug("Older versions in the solution(s):")
-                for sol in solutions:
-                    log.debug([(i, C.from_index(j)) for i, j in eq_all_versions if j in sol])
+                for sol in psolutions:
+                    log.debug([(i, p) for i, p in iteritems(eq_all_versions) if p in sol])
             stdoutlog.info('\n')
             return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
         except:

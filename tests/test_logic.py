@@ -69,7 +69,7 @@ def my_EVAL(eq, sol):
 # all logical branches of the function. Test negative, positive, and full
 # polarities for each.
 
-def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
+def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter, **kwargs):
     for m in range(mmin,mmax+1):
         if m == 0:
             ijprod = [()]
@@ -78,24 +78,40 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
             ijprod = product(ijprod, repeat=m)
         for ij in ijprod:
             tsol = Mfunc(*ij)
-            for polarity in (True, False, None):
-                C = Clauses(m)
-                Cmethod = Cfunc.__get__(C,Clauses)
-                if is_iter:
-                    x = Cmethod(ij, polarity=polarity)
-                else:
-                    x = Cmethod(*ij, polarity=polarity)
-                if tsol is not None:
-                    assert x == tsol, (ij,Cfunc.__name__,polarity,C.clauses)
-                    continue
-                if polarity in {True, None}:
-                    for sol in C.itersolve([(x,)],m):
-                        qsol = Mfunc(*my_SOL(ij,sol))
-                        assert qsol is true, (ij,sol,Cfunc.__name__,polarity,C.clauses)
-                if polarity in {False, None}:
-                    for sol in C.itersolve([(-x,)],m):
-                        qsol = Mfunc(*my_SOL(ij,sol))
-                        assert qsol is false, (ij,sol,Cfunc.__name__,polarity,C.clauses)
+            C = Clauses(m)
+            Cpos = Clauses(m)
+            Cneg = Clauses(m)
+            Cneg2 = Clauses(m)
+            Cmethod = Cfunc.__get__(C,Clauses)
+            if is_iter:
+                x = Cmethod(ij, **kwargs)
+                xpos = Cpos.Require(Cfunc, ij, **kwargs)
+                xneg = Cneg.Prevent(Cfunc, ij, **kwargs)
+                xneg2 = Cneg2.Require(Cneg2.Invert, Cfunc, ij, **kwargs)
+            else:
+                x = Cmethod(*ij, **kwargs)
+                xpos = Cpos.Require(Cfunc, *ij, **kwargs)
+                xneg = Cneg.Prevent(Cfunc, *ij, **kwargs)
+                xneg2 = Cneg2.Require(Cneg2.Invert, Cfunc, *ij, **kwargs)
+            if tsol is not None:
+                assert (x == tsol and xpos == tsol and 
+                        -xneg == tsol and -xneg2 == tsol), (ij,Cfunc.__name__,C.clauses)
+                continue
+            for sol in C.itersolve([(x,)],m):
+                qsol = Mfunc(*my_SOL(ij,sol))
+                assert qsol is true, (ij,sol,Cfunc.__name__,C.clauses)
+            for sol in Cpos.itersolve([],m):
+                qsol = Mfunc(*my_SOL(ij,sol))
+                assert qsol is true, (ij,sol,Cfunc.__name__,Cpos.clauses)
+            for sol in C.itersolve([(-x,)],m):
+                qsol = Mfunc(*my_SOL(ij,sol))
+                assert qsol is false, (ij,sol,Cfunc.__name__,C.clauses)
+            for sol in Cneg.itersolve([],m):
+                qsol = Mfunc(*my_SOL(ij,sol))
+                assert qsol is false, (ij,sol,Cfunc.__name__,Cneg.clauses)
+            for sol in Cneg2.itersolve([],m):
+                qsol = Mfunc(*my_SOL(ij,sol))
+                assert qsol is false, (ij,sol,Cfunc.__name__,Cneg.clauses)
 
 def test_true_false():
     assert str(true) == "true"
@@ -127,6 +143,9 @@ def test_true_false():
     assert false >= false
     assert true >= true
 
+def test_NOT():
+    my_TEST(my_NOT, Clauses.Not, 1, 1, False)
+
 def test_AND():
     my_TEST(my_AND, Clauses.And, 2,2, False)
     my_TEST(my_AND, Clauses.All, 0,4, True)
@@ -142,19 +161,14 @@ def test_ITE():
     my_TEST(my_ITE, Clauses.ITE, 3,3, False)
 
 def test_AMONE():
-    my_TEST(my_AMONE, Clauses.AtMostOne_1, 0,3, True)
-    my_TEST(my_AMONE, Clauses.AtMostOne_2, 0,3, True)
+    my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True, BDD=True)
+    my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True, BDD=False)
     my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
 
 def test_XONE():
-    my_TEST(my_XONE, Clauses.ExactlyOne_1, 0,3, True)
-    my_TEST(my_XONE, Clauses.ExactlyOne_2, 0,3, True)
+    my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True, BDD=True)
+    my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True, BDD=False)
     my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
-
-def test_Require_False():
-    C = Clauses(1)
-    C.Require(C.And, 1, -1)
-    assert C.sat() is None
 
 def test_LinearBound():
     L = [
@@ -180,24 +194,22 @@ def test_LinearBound():
     for eq, rhs, max_iter in L:
         N = max([0]+[a for c,a in eq if a is not true and a is not false])
         C = Clauses(N)
-        Cneg = Clauses(N)
         Cpos = Clauses(N)
+        Cneg = Clauses(N)
         x = C.LinearBound(eq, rhs[0], rhs[1])
-        xneg = Cneg.LinearBound(eq, rhs[0], rhs[1], polarity=False)
-        xpos = Cpos.LinearBound(eq, rhs[0], rhs[1], polarity=True)
+        xpos = Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
+        xneg = Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
         if max_iter is true or max_iter is false:
-            assert x == max_iter
-            assert xneg == max_iter
-            assert xpos == max_iter
+            assert x == max_iter and xpos == max_iter and xneg == -max_iter
             continue
         for _, sol in zip(range(max_iter), C.itersolve([(x,)],N)):
-            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1]
-        for _, sol in zip(range(max_iter), Cpos.itersolve([(xpos,)],N)):
-            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1]
+            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], C.clauses
         for _, sol in zip(range(max_iter), C.itersolve([(-x,)],N)):
-            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1])
-        for _, sol in zip(range(max_iter), C.itersolve([(-xneg,)],N)):
-            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1])
+            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), C.clauses
+        for _, sol in zip(range(max_iter), Cpos.itersolve([],N)):
+            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], ('Cpos',Cpos.clauses)
+        for _, sol in zip(range(max_iter), Cneg.itersolve([],N)):
+            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
 
 def test_sat():
     def sat(val, m=1):
