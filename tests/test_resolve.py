@@ -6,7 +6,6 @@ from os.path import dirname, join
 import pytest
 
 from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable, build_groups
-from conda.compat import iteritems
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
