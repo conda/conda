@@ -197,7 +197,8 @@ def url_to_path(url):
     path = urlparse.unquote(path)
     if _url_drive_re.match(path):
         path = path[0] + ':' + path[2:]
-    else:
+    elif not path.startswith(r'\\'):
+        # if not a Windows UNC path
         path = '/' + path
     return path
 
