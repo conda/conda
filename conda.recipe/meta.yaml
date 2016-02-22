@@ -12,6 +12,8 @@ build:
   # for conda-build to realize they should be included.
   always_include_files:
     - bin/conda  [unix]
+    - bin/activate [unix]
+    - bin/deactivate [unix]
 
   entry_points:
     - conda = conda.cli:main
