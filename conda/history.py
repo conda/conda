@@ -100,7 +100,7 @@ class History(object):
     def parse(self):
         """
         parse the history file and return a list of
-        tuples(datetime strings, set of distributions/diffs)
+        tuples(datetime strings, set of distributions/diffs, comments)
         """
         res = []
         if not isfile(self.path):
@@ -110,14 +110,45 @@ class History(object):
             lines = f.read().splitlines()
         for line in lines:
             line = line.strip()
-            if not line or line.startswith('#'):
+            if not line:
                 continue
             m = sep_pat.match(line)
             if m:
-                dt = m.group(1)
-                res.append((dt, set()))
+                res.append((m.group(1), set(), []))
+            elif line.startswith('#'):
+                res[-1][2].append(line)
             else:
                 res[-1][1].add(line)
+        return res
+
+    def get_user_requests(self):
+        """
+        return a list of user requested items.  Each item is a dict with the
+        following keys:
+        'date': the date and time running the command
+        'cmd': a list of argv of the actual command which was run
+        'action': install/remove/update
+        'specs': the specs being used
+        """
+        res = []
+        com_pat = re.compile(r'#\s*cmd:\s*(.+)')
+        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)')
+        for dt, unused_cont, comments in self.parse():
+            item = {'date': dt}
+            for line in comments:
+                m = com_pat.match(line)
+                if m:
+                    argv = m.group(1).split()
+                    if argv[0].endswith('conda'):
+                        argv[0] = 'conda'
+                    item['cmd'] = argv
+                m = spec_pat.match(line)
+                if m:
+                    action, specs = m.groups()
+                    item['action'] = action
+                    item['specs'] = eval(specs)
+            if 'cmd' in item:
+                res.append(item)
         return res
 
     def construct_states(self):
@@ -126,7 +157,7 @@ class History(object):
         """
         res = []
         cur = set([])
-        for dt, cont in self.parse():
+        for dt, cont, unused_com in self.parse():
             if not is_diff(cont):
                 cur = cont
             else:
@@ -153,7 +184,7 @@ class History(object):
         return pkgs[rev]
 
     def print_log(self):
-        for i, (date, content) in enumerate(self.parse()):
+        for i, (date, content, unused_com) in enumerate(self.parse()):
             print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
                 print('    %s' % line)
@@ -161,7 +192,7 @@ class History(object):
 
     def object_log(self):
         result = []
-        for i, (date, content) in enumerate(self.parse()):
+        for i, (date, content, unused_com) in enumerate(self.parse()):
             # Based on Mateusz's code; provides more details about the
             # history event
             event = {
@@ -226,5 +257,7 @@ class History(object):
                 fo.write('+%s\n' % fn)
 
 if __name__ == '__main__':
+    from pprint import pprint
     with History(sys.prefix) as h:
-        h.print_log()
+        #h.print_log()
+        pprint(h.get_user_requests())
