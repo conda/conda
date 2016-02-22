@@ -14,11 +14,12 @@ build:
     - bin/conda  [unix]
 
   entry_points:
-    - conda = conda.cli.main:main
+    - conda = conda.cli:main
 
 requirements:
   build:
     - python
+    - setuptools
   run:
     - python
     - pycosat
