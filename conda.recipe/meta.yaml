@@ -13,6 +13,9 @@ build:
   always_include_files:
     - bin/conda  [unix]
 
+  entry_points:
+    - conda = conda.cli.main:main
+
 requirements:
   build:
     - python
