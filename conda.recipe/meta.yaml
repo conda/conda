@@ -1,10 +1,10 @@
 package:
   name: conda
-  version: 3.19.1
+  version: {{ environ.get("GIT_DESCRIBE_TAG", "") }}
 
 source:
-  git_url: https://github.com/conda/conda.git
-  git_tag: 3.19.1
+  git_url: ../
+  git_tag: {{ environ.get("GIT_DESCRIBE_TAG", "") }}
 
 build:
   # These are present when the new environment is created
@@ -17,11 +17,19 @@ build:
 
   entry_points:
     - conda = conda.cli:main
+  
+  string: py{{ environ.get("CONDA_PY", "") }}_{{ environ.get("GIT_BUILD_STR", "") }}
+  number: {{ environ.get("GIT_DESCRIBE_NUMBER", 0) }}
 
 requirements:
   build:
     - python
     - setuptools
+    - requests
+    - pyyaml
+    - conda-env
+    - pycosat
+    - menuinst  [win]
   run:
     - python
     - pycosat
