@@ -470,7 +470,8 @@ class Clauses(object):
             objective = [(v, k) for k, v in iteritems(odict)]
         else:
             odict = {self.varnum(atom): coeff for coeff, atom in objective}
-        m = len(bestsol)
+
+        bestm = self.m
         bestcon = []
         bestval = evaluate_eq(odict, bestsol)
         log.debug('Initial objective: %d' % bestval)
@@ -487,7 +488,7 @@ class Clauses(object):
             else:
                 mid = try0
                 try0 = None
-            C2 = Clauses(m)
+            C2 = Clauses(self.m)
             C2.Require(C2.LinearBound, objective, lo, mid)
             log.debug('Bisection range: (%d,%d), (%d+%d) clauses' %
                       (lo, mid, len(self.clauses), len(C2.clauses)))
@@ -496,6 +497,7 @@ class Clauses(object):
                 log.debug("Bisection failure")
                 lo = mid + 1
             else:
+                bestm = C2.m
                 bestcon = C2.clauses
                 bestsol = newsol
                 bestval = evaluate_eq(odict, newsol)
@@ -504,48 +506,50 @@ class Clauses(object):
                 if lo == hi:
                     break
 
-        lfixed = len(self.fixed)
+        # lfixed = len(self.fixed)
         self.clauses.extend(bestcon)
-        nnew = 0
-        for c in self.clauses[self.last_prune:]:
-            if len(c) == 1:
-                self.fixed[c[0]] = 1
-                self.fixed[-c[0]] = 0
-                nnew += 1
-        self.last_prune = len(self.clauses)
-        for c, a in objective:
-            if c > bestval and a not in self.fixed:
-                self.fixed[a] = 0
-                self.fixed[-a] = 1
-                self.clauses.append((-a,))
-                nnew += 1
-        if nnew:
-            log.debug('Fixing %d variables' % nnew)
+        self.m = bestm
 
-        if lfixed < len(self.fixed):
-            clauses2 = []
-            f = self.fixed
-            nnew = nold = 0
-            for clause in self.clauses:
-                if len(clause) == 1:
-                    clauses2.append(clause)
-                    continue
-                nold += 1
-                if len(clause) > 1 and any(cc in f for cc in clause):
-                    if any(f.get(cc, 0) == 1 for cc in clause):
-                        cdrop = tuple(cc for cc in clause if f.get(cc, 0) == 1)
-                        continue
-                    oclause = clause
-                    clause = tuple(cc for cc in clause if cc not in f)
-                    if len(clause) == 1:
-                        f[clause[0]] = 1
-                        f[-clause[0]] = 0
-                    else:
-                        nnew += 1
-                clauses2.append(clause)
-            log.debug('Reducing non-trivial clauses from %d -> %d' % (nold, nnew))
-            self.last_prune = len(clauses2)
-            self.clauses = clauses2
+        # nnew = 0
+        # for c in self.clauses[self.last_prune:]:
+        #     if len(c) == 1:
+        #         self.fixed[c[0]] = 1
+        #         self.fixed[-c[0]] = 0
+        #         nnew += 1
+        # self.last_prune = len(self.clauses)
+        # for c, a in objective:
+        #     if c > bestval and a not in self.fixed:
+        #         self.fixed[a] = 0
+        #         self.fixed[-a] = 1
+        #         self.clauses.append((-a,))
+        #         nnew += 1
+        # if nnew:
+        #     log.debug('Fixing %d variables' % nnew)
+
+        # if lfixed < len(self.fixed):
+        #     clauses2 = []
+        #     f = self.fixed
+        #     nnew = nold = 0
+        #     for clause in self.clauses:
+        #         if len(clause) == 1:
+        #             clauses2.append(clause)
+        #             continue
+        #         nold += 1
+        #         if len(clause) > 1 and any(cc in f for cc in clause):
+        #             if any(f.get(cc, 0) == 1 for cc in clause):
+        #                 cdrop = tuple(cc for cc in clause if f.get(cc, 0) == 1)
+        #                 continue
+        #             oclause = clause
+        #             clause = tuple(cc for cc in clause if cc not in f)
+        #             if len(clause) == 1:
+        #                 f[clause[0]] = 1
+        #                 f[-clause[0]] = 0
+        #             else:
+        #                 nnew += 1
+        #         clauses2.append(clause)
+        #     log.debug('Reducing non-trivial clauses from %d -> %d' % (nold, nnew))
+        #     self.last_prune = len(clauses2)
+        #     self.clauses = clauses2
 
         return bestsol, bestval
 
