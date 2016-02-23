@@ -589,12 +589,11 @@ class Resolve(object):
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
 
-        def push_s(ms):
+        def push_MatchSpec(ms):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
-                m = C.Any(C.from_name(fn) for fn in self.find_matches_group(ms, groups, trackers))
-                C.name_var(m, name)
+                m = C.Any(self.find_matches_group(ms, groups, trackers), name=name)
             return m
 
         # Create package variables
@@ -604,27 +603,24 @@ class Resolve(object):
 
         # Create feature variables
         for name in iterkeys(trackers):
-            push_s(MatchSpec('@' + name))
+            push_MatchSpec(MatchSpec('@' + name))
 
         # Create spec variables
         for ms in specs:
-            push_s(ms)
+            push_MatchSpec(ms)
 
         # Add dependency relationships
         for group in itervalues(groups):
-            vals = []
             for fn in group:
-                a = C.from_name(fn)
-                vals.append(a)
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
-                        C.Require(C.Or, -a, push_s(ms))
-            C.Require(C.AtMostOne, vals)
+                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms), polarity=None)
+            C.Require(C.AtMostOne, group)
 
         return C
 
     def generate_spec_constraints(self, C, specs):
-        return [(C.from_name(self.ms_to_v(ms)),) for ms in specs if not ms.optional]
+        return [(self.ms_to_v(ms),) for ms in specs if not ms.optional]
 
     def generate_feature_count(self, C, trackers):
         return {self.feat_to_v(name): 1 for name in iterkeys(trackers)}
@@ -779,7 +775,7 @@ class Resolve(object):
         solution = C.sat(constraints)
         if solution:
             return []
-        solution = [-q for q in range(1, C.m+1)]
+        solution = [C.Not(q) for q in range(1, C.m+1)]
         eq_removal_count = self.generate_removal_count(C, specs)
         solution, obj1 = C.minimize(eq_removal_count, solution)
         solution = set(solution)
@@ -867,7 +863,7 @@ class Resolve(object):
             if not solution:
                 # Find the largest set of specs that are satisfiable, and return
                 # the list of specs that are not in that set.
-                solution = [-q for q in range(1, C.m+1)]
+                solution = [C.Not(q) for q in range(1, C.m+1)]
                 spec2 = [s for s in specs if not s.optional]
                 eq_removal_count = self.generate_removal_count(C, spec2)
                 solution, obj1 = C.minimize(eq_removal_count, solution)
@@ -920,7 +916,7 @@ class Resolve(object):
             psolution = clean(solution)
             psolutions.append(psolution)
             while True:
-                nclause = tuple(-C.from_name(q) for q in psolution)
+                nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
                 solution = C.sat((nclause,), True)
                 if solution is None:
                     break

@@ -6,76 +6,33 @@ expression expr, we replace it with x and add expr <-> x to the clauses,
 where x is a new variable, and expr <-> x is recursively evaluated in the
 same way, so that the final clauses are ORs of atoms.
 
-To us this, create a new Clauses object with the max var, for instance, if you
+To use this, create a new Clauses object with the max var, for instance, if you
 already have [[1, 2, -3]], you would use C = Clause(3).  All functions return
-a new literal, which represents that function, or true or false, which are
-custom objects defined in this module, which means that the expression is
-identically true or false.. They may also add new clauses to C.clauses, which
-should be added to the clauses of the SAT solver.
+a new literal, which represents that function, or True or False if the expression
+can be resolved fully. They may also add new clauses to C.clauses, which
+will then be delivered to the SAT solver.
 
 All functions take atoms as arguments (an atom is an integer, representing a
-literal or a negated literal, or the true or false objects defined in this
-module), that is, it is the callers' responsibility to do the conversion of
-expressions recursively. This is done because we do not have data structures
+literal or a negated literal, or boolean constants True or False; that is,
+it is the callers' responsibility to do the conversion of expressions
+recursively. This is done because we do not have data structures
 representing the various logical classes, only atoms.
 
 The polarity argument can be set to True or False if you know that the literal
 being used will only be used in the positive or the negative, respectively
-(e.g., you will only use x, not -x).  This will generate fewer clauses.
+(e.g., you will only use x, not -x).  This will generate fewer clauses. It
+is probably best if you do not take advantage of this directly, but rather
+through the Require and Prevent functions.
 
 """
 from functools import total_ordering
 from itertools import chain, combinations
-from conda.compat import iteritems
+from conda.compat import iteritems, string_types
 import logging
 import pycosat
 
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
-
-
-# Custom classes for true and false. Using True and False is too risky, since
-# True == 1, so it might be confused for the literal 1.
-@total_ordering
-class TrueClass(object):
-    def __eq__(self, other):
-        return other is true
-
-    def __neg__(self):
-        return false
-
-    def __str__(self):
-        return "true"
-
-    def __lt__(self, other):
-        return False
-
-    def __hash__(self):
-        return hash(True)
-
-    __repr__ = __str__
-true = TrueClass()
-
-
-@total_ordering
-class FalseClass(object):
-    def __eq__(self, other):
-        return other is false
-
-    def __neg__(self):
-        return true
-
-    def __str__(self):
-        return "false"
-
-    def __hash__(self):
-        return hash(False)
-
-    def __gt__(self, other):
-        return False
-
-    __repr__ = __str__
-false = FalseClass()
 
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
@@ -86,7 +43,9 @@ class Clauses(object):
     def __init__(self, m=0):
         self.clauses = []
         self.names = {}
-        self.indexes = {}
+        self.indices = {}
+        self.fixed = {}
+        self.last_prune = 0
         self.m = m
         self.stack = []
 
@@ -94,9 +53,10 @@ class Clauses(object):
         nname = '!' + name
         self.names[name] = m
         self.names[nname] = -m
-        if m not in self.indexes:
-            self.indexes[m] = name
-            self.indexes[-m] = nname
+        if type(m) is not bool and m not in self.indices:
+            self.indices[m] = name
+            self.indices[-m] = nname
+        return m
 
     def new_var(self, name=None):
         m = self.m + 1
@@ -109,31 +69,28 @@ class Clauses(object):
         return self.names.get(name)
 
     def from_index(self, m):
-        return self.indexes.get(m)
+        return self.indices.get(m)
 
-    def ITE(self, c, t, f, polarity=None):
-        """
-        if c then t else f
+    def varnum(self, x):
+        return self.names[x] if isinstance(x, string_types) else x
 
-        In this function, if any of c, t, or f are True and False the resulting
-        expression is resolved.
-        """
-        if c is true:
+    def ITE_(self, c, t, f, polarity):
+        if c is True:
             return t
-        if c is false:
+        if c is False:
             return f
+        if t is True or t is c:
+            return self.Or_(c, f, polarity)
+        if t is False or t is -c:
+            return self.And_(-c, f, polarity)
+        if f is False or f is c:
+            return self.And_(c, t, polarity)
+        if f is True or f is -c:
+            return self.Or_(t, -c, polarity)
         if t is f:
             return t
         if t is -f:
-            return self.Xor(c, f, polarity=polarity)
-        if t is false or t is -c:
-            return self.And(-c, f, polarity=polarity)
-        if t is true or t is c:
-            return self.Or(c, f)
-        if f is false or f is c:
-            return self.And(c, t, polarity=polarity)
-        if f is true or f is -c:
-            return self.Or(t, -c)
+            return self.Xor_(c, f, polarity)
         x = self.new_var()
         # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
         # The third clause in each group is redundant but assists the unit
@@ -144,20 +101,36 @@ class Clauses(object):
             self.clauses.extend(((-c, t, -x), (c, f, -x), (t, f, -x)))
         return x
 
+    def ITE(self, c, t, f, polarity=None, name=None):
+        """
+        if c then t else f
+
+        In this function, if any of c, t, or f are True and False the resulting
+        expression is resolved.
+        """
+        c = self.varnum(c)
+        t = self.varnum(t)
+        f = self.varnum(f)
+        x = self.ITE_(c, t, f, polarity)
+        return self.name_var(x, name) if name else x
+
     def Enforce(self, direction, what, *args, **kwargs):
         nz = len(self.clauses)
-        direction = bool(direction)
         kwargs.setdefault('polarity', direction)
+        name = kwargs.get('name')
+        if name:
+            del kwargs['name']
         x = what.__get__(self, Clauses)(*args, **kwargs)
-        if x is true or x is false:
+        if type(x) is bool:
             self.clauses = self.clauses[:nz]
-        if not direction:
-            x = -x
-        if x is false:
-            self.clauses.extend(((1,), (-1,)))
-        elif x is not true:
+            x = (x == direction)
+            if x is False:
+                self.clauses.extend(((1,), (-1,)))
+        else:
+            if not direction:
+                x = -x
             self.clauses.append((x,))
-        return x
+        return self.name_var(x, name) if name else x
 
     def Prevent(self, what, *args, **kwargs):
         assert kwargs.get('polarity') is not True
@@ -171,22 +144,26 @@ class Clauses(object):
         pol = kwargs.get('polarity')
         if pol:
             kwargs['polarity'] = not pol
-        return - what.__get__(self, Clauses)(*args, **kwargs)
+        return self.Not(what.__get__(self, Clauses)(*args, **kwargs))
 
     def Not(self, x, polarity=None):
+        if type(x) is bool:
+            return not x
+        if isinstance(x, string_types):
+            return x[1:] if x[0] == '!' else '!' + x
         return -x
 
-    def And(self, f, g, polarity=None):
-        if f is false or g is false:
-            return false
-        elif f is true:
+    def And_(self, f, g, polarity):
+        if f is False or g is False:
+            return False
+        if f is True:
             return g
-        elif g is true:
+        if g is True:
             return f
-        elif f is g:
+        if f is g:
             return f
-        elif f is -g:
-            return false
+        if f is -g:
+            return False
         x = self.new_var()
         if polarity is True:
             self.clauses.extend(((-x, f), (-x, g)))
@@ -196,40 +173,51 @@ class Clauses(object):
             self.clauses.extend(((-x, f), (-x, g), (x, -f, -g)))
         return x
 
-    def All(self, iter, polarity=None, force=False):
-        vals = set()
-        for v in iter:
-            if v is false:
-                return false
-            elif v is true:
-                pass
-            elif -v in vals:
-                return false
-            elif v is not true:
-                vals.add(v)
-        nv = len(vals)
-        if nv == 0:
-            return true
-        elif nv == 1:
-            return next(v for v in vals)
-        x = self.new_var()
-        if polarity in {True, None}:
-            self.clauses.extend((-x, v) for v in vals)
-        if polarity in {False, None}:
-            self.clauses.append((x,) + tuple(-v for v in vals))
-        return x
+    def And(self, f, g, polarity=None, name=None):
+        f = self.varnum(f)
+        g = self.varnum(g)
+        x = self.And_(f, g, polarity)
+        return self.name_var(x, name) if name else x
 
-    def Or(self, f, g, polarity=None):
-        if f is true or g is true:
-            return true
-        elif f is false:
+    def All(self, iter, polarity=None, name=None):
+        vals = set()
+        x = None
+        for v in iter:
+            v = self.varnum(v)
+            if v is False:
+                x = False
+                break
+            if v is True:
+                continue
+            if -v in vals:
+                x = False
+                break
+            vals.add(v)
+        if x is None:
+            nv = len(vals)
+            if nv == 0:
+                x = True
+            elif nv == 1:
+                x = next(v for v in vals)
+        if x is None:
+            x = self.new_var()
+            if polarity in {True, None}:
+                self.clauses.extend((-x, v) for v in vals)
+            if polarity in {False, None}:
+                self.clauses.append((x,) + tuple(-v for v in vals))
+        return self.name_var(x, name) if name else x
+
+    def Or_(self, f, g, polarity):
+        if f is True or g is True:
+            return True
+        if f is False:
             return g
-        elif g is false:
+        if g is False:
             return f
-        elif f is g:
+        if f is g:
             return f
-        elif f is -g:
-            return true
+        if f is -g:
+            return True
         x = self.new_var()
         if polarity is True:
             self.clauses.append((-x, f, g))
@@ -239,43 +227,53 @@ class Clauses(object):
             self.clauses.extend(((x, -f), (x, -g), (-x, f, g)))
         return x
 
-    def Any(self, iter, polarity=None):
-        vals = set()
-        for v in iter:
-            if v is true:
-                return true
-            elif v is false:
-                pass
-            elif -v in vals:
-                return true
-            elif v is not false:
-                vals.add(v)
-        nv = len(vals)
-        if nv == 0:
-            return false
-        elif nv == 1:
-            return next(v for v in vals)
-        x = self.new_var()
-        if polarity in {True, None}:
-            self.clauses.append((-x,) + tuple(vals))
-        if polarity in {False, None}:
-            self.clauses.extend((x, -f) for f in vals)
-        return x
+    def Or(self, f, g, polarity=None, name=None):
+        f = self.varnum(f)
+        g = self.varnum(g)
+        x = self.Or_(f, g, polarity)
+        return self.name_var(x, name) if name else x
 
-    def Xor(self, f, g, polarity=None):
-        # Minisatp treats XOR as NOT EQUIV
-        if f is false:
+    def Any(self, iter, polarity=None, name=None):
+        vals = set()
+        x = None
+        for v in iter:
+            v = self.varnum(v)
+            if v is True:
+                x = True
+                break
+            if v is False:
+                continue
+            if -v in vals:
+                x = True
+                break
+            vals.add(v)
+        if x is None:
+            nv = len(vals)
+            if nv == 0:
+                x = False
+            elif nv == 1:
+                x = next(v for v in vals)
+        if x is None:
+            x = self.new_var()
+            if polarity in {True, None}:
+                self.clauses.append((-x,) + tuple(vals))
+            if polarity in {False, None}:
+                self.clauses.extend((x, -f) for f in vals)
+        return self.name_var(x, name) if name else x
+
+    def Xor_(self, f, g, polarity):
+        if f is False:
             return g
-        elif f is true:
-            return -g
-        elif g is false:
+        if f is True:
+            return self.Not(g)
+        if g is False:
             return f
-        elif g is true:
+        if g is True:
             return -f
-        elif f is g:
-            return false
-        elif f is -g:
-            return true
+        if f is g:
+            return False
+        if f is -g:
+            return True
         x = self.new_var()
         if polarity is True:
             self.clauses.extend(((-x, f, g), (-x, -f, -g)))
@@ -285,70 +283,87 @@ class Clauses(object):
             self.clauses.extend(((-x, f, g), (-x, -f, -g), (x, -f, g), (x, f, -g)))
         return x
 
-    def AtMostOne_1(self, vals, polarity=None):
-        vals = list(vals)
+    def Xor(self, f, g, polarity=None, name=None):
+        f = self.varnum(f)
+        g = self.varnum(g)
+        x = self.Xor_(f, g, polarity)
+        return self.name_var(x, name) if name else x
+
+    def AtMostOne_1(self, vals, polarity=None, name=None):
         combos = []
-        for v1, v2 in combinations(vals, 2):
-            combos.append(self.Or(-v1, -v2, polarity=polarity))
-        return self.All(combos, polarity=polarity)
+        for v1, v2 in combinations(map(self.Not, map(self.varnum, vals)), 2):
+            combos.append(self.Or(v1, v2, polarity))
+        return self.All(combos, polarity=polarity, name=name)
 
-    def AtMostOne_2(self, vals, polarity=None):
-        return self.LinearBound([(1, k) for k in vals], 0, 1, polarity=polarity)
+    def AtMostOne_2(self, vals, polarity=None, name=None):
+        return self.LinearBound([(1, self.varnum(k)) for k in vals],
+                                0, 1, polarity=polarity, name=name)
 
-    def AtMostOne(self, vals, BDD=None, polarity=None):
+    def AtMostOne(self, vals, BDD=None, polarity=None, name=None):
         vals = list(vals)
         nv = len(vals)
         if BDD is False or nv < 5 - (polarity is not True):
-            return self.AtMostOne_1(vals, polarity)
+            return self.AtMostOne_1(vals, polarity, name)
         else:
-            return self.AtMostOne_2(vals, polarity)
+            return self.AtMostOne_2(vals, polarity, name)
 
-    def ExactlyOne_1(self, vals, polarity=None):
+    def ExactlyOne_1(self, vals, polarity=None, name=None):
         r1 = self.AtMostOne_1(vals, polarity=polarity)
         r2 = self.Any(vals, polarity=polarity)
-        return self.And(r1, r2, polarity=polarity)
+        return self.And(r1, r2, polarity=polarity, name=name)
 
-    def ExactlyOne_2(self, vals, polarity=None):
-        return self.LinearBound([(1, k) for k in vals], 1, 1, polarity=polarity)
+    def ExactlyOne_2(self, vals, polarity=None, name=None):
+        return self.LinearBound([(1, self.varnum(k)) for k in vals],
+                                1, 1, polarity=polarity, name=name)
 
-    def ExactlyOne(self, vals, BDD=None, polarity=None):
+    def ExactlyOne(self, vals, BDD=None, polarity=None, name=None):
         vals = list(vals)
         nv = len(vals)
         if BDD is False or nv < 2:
-            return self.ExactlyOne_1(vals, polarity)
+            return self.ExactlyOne_1(vals, polarity, name)
         else:
-            return self.ExactlyOne_2(vals, polarity)
+            return self.ExactlyOne_2(vals, polarity, name)
 
-    def LinearBound(self, equation, lo, hi, polarity=None):
+    def LinearBound(self, equation, lo, hi, polarity=None, name=None):
         nz = len(self.clauses)
         if type(equation) is dict:
-            equation = [(v, self.from_name(k)) for k, v in iteritems(equation)]
-        if any(c <= 0 or a is true or a is false for c, a in equation):
+            equation = [(c, self.varnum(a)) for a, c in iteritems(equation)]
+        if any(type(a) is bool or a in self.fixed for c, a in equation):
+            olen = len(equation)
+            offset = sum(c * (1 if a is True else self.fixed[a])
+                         for c, a in equation if a is True or a in self.fixed)
+            equation = ((c, a) for c, a in equation
+                        if type(a) is not bool and a not in self.fixed)
+            log.debug('Eliminating %d fixed terms' % (len(equation)-olen))
+        if any(c <= 0 for c, a in equation):
             # Remove resolved terms and convert negative coefficients
-            # l <= c1 true + c2 false + S <= u
+            # l <= c1 True + c2 False + S <= u
             #    ---> l - c1 <= S <= u - c1
             # l <= c x + S <= u, c < 0
             #    ---> l <= c - c !x + S <= u
             #    ---> l - c <= -c !x + S <= u
-            offset = sum(c for c, a in equation if a is true or c < 0)
-            equation = [(c, a) if c >= 0 else (-c, -a) for c, a in equation
-                        if c != 0 and a is not true and a is not false]
+            offset = sum(c for c, a in equation if c < 0)
+            equation = [(c, a) if c > 0 else (-c, -a) for c, a in equation if c]
+            log.debug('Correcting negative terms')
             lo -= offset
             hi -= offset
         if any(c > hi for c, a in equation):
             # Prune coefficients that must be zero
+            olen = len(equation)
             pvals = [-a for c, a in equation if c > hi]
             prune = self.All(pvals, polarity=polarity)
             equation = [(c, a) for c, a in equation if c <= hi]
+            log.debug('Eliminating %d/%d terms for bound violation' %
+                      (olen-len(equation), olen))
         else:
-            prune = true
+            prune = True
         # Tighten bounds
         lo = max([lo, 0])
         hi = min([hi, sum(c for c, a in equation)])
         if lo > hi:
-            res = false
+            res = False
         elif not equation:
-            res = true if lo == 0 else false
+            res = True if lo == 0 else False
         else:
             # The equation is sorted in order of increasing coefficients.
             # Then we take advantage of the following recurrence:
@@ -367,10 +382,10 @@ class Clauses(object):
                 lower_limit = lo - csum
                 upper_limit = hi - csum
                 if lower_limit <= 0 and upper_limit >= total:
-                    ret[call_stack.pop()] = true
+                    ret[call_stack.pop()] = True
                     continue
                 if lower_limit > total or upper_limit < 0:
-                    ret[call_stack.pop()] = false
+                    ret[call_stack.pop()] = False
                     continue
                 LC, LA = equation[ndx]
                 ndx -= 1
@@ -385,14 +400,14 @@ class Clauses(object):
                 if tlo is None:
                     call_stack.append(lo_key)
                     continue
-                ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity=polarity)
+                ret[call_stack.pop()] = self.ITE_(abs(LA), thi, tlo, polarity)
             res = ret[first_stack]
         res = self.And(prune, res, polarity=polarity)
-        if res is true or res is false:
+        if res is True or res is False:
             self.clauses = self.clauses[:nz]
-        return res
+        return self.name_var(res, name) if name else res
 
-    def sat(self, additional=None, includeIf=False):
+    def sat(self, additional=None, includeIf=False, names=False):
         """
         Calculate a SAT solution for the current clause set.
 
@@ -401,6 +416,7 @@ class Clauses(object):
 
         """
         if additional:
+            additional = list(map(lambda x: tuple(map(self.varnum, x)), additional))
             clauses = chain(self.clauses, additional)
         else:
             clauses = self.clauses
@@ -412,6 +428,8 @@ class Clauses(object):
         if len(solution) < self.m:
             solution = {abs(s): s for s in solution}
             solution = [solution.get(s, s) for s in range(1, self.m+1)]
+        if names:
+            return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
         return solution
 
     def itersolve(self, constraints=None, m=None):
@@ -448,10 +466,10 @@ class Clauses(object):
             return bestsol, 0
 
         if type(objective) is dict:
-            odict = {self.from_name(k): v for k, v in iteritems(objective)}
+            odict = {self.varnum(k): v for k, v in iteritems(objective)}
             objective = [(v, k) for k, v in iteritems(odict)]
         else:
-            odict = {atom: coeff for coeff, atom in objective}
+            odict = {self.varnum(atom): coeff for coeff, atom in objective}
         m = len(bestsol)
         bestcon = []
         bestval = evaluate_eq(odict, bestsol)
@@ -471,26 +489,71 @@ class Clauses(object):
                 try0 = None
             C2 = Clauses(m)
             C2.Require(C2.LinearBound, objective, lo, mid)
+            log.debug('Bisection range: (%d,%d), (%d+%d) clauses' %
+                      (lo, mid, len(self.clauses), len(C2.clauses)))
             newsol = self.sat(C2.clauses)
             if newsol is None:
-                log.debug("Bisection range (%d,%d): failure" % (lo, mid))
+                log.debug("Bisection failure")
                 lo = mid + 1
             else:
                 bestcon = C2.clauses
                 bestsol = newsol
                 bestval = evaluate_eq(odict, newsol)
                 hi = mid
-                log.debug("Bisection range (%d,%d): success, new best=%s" % (lo, mid, bestval))
+                log.debug("Bisection success, new best=(%d,%d,%d)" % (lo, mid, bestval))
                 if lo == hi:
                     break
+
+        lfixed = len(self.fixed)
         self.clauses.extend(bestcon)
+        nnew = 0
+        for c in self.clauses[self.last_prune:]:
+            if len(c) == 1:
+                self.fixed[c[0]] = 1
+                self.fixed[-c[0]] = 0
+                nnew += 1
+        self.last_prune = len(self.clauses)
+        for c, a in objective:
+            if c > bestval and a not in self.fixed:
+                self.fixed[a] = 0
+                self.fixed[-a] = 1
+                self.clauses.append((-a,))
+                nnew += 1
+        if nnew:
+            log.debug('Fixing %d variables' % nnew)
+
+        if lfixed < len(self.fixed):
+            clauses2 = []
+            f = self.fixed
+            nnew = nold = 0
+            for clause in self.clauses:
+                if len(clause) == 1:
+                    clauses2.append(clause)
+                    continue
+                nold += 1
+                if len(clause) > 1 and any(cc in f for cc in clause):
+                    if any(f.get(cc, 0) == 1 for cc in clause):
+                        cdrop = tuple(cc for cc in clause if f.get(cc, 0) == 1)
+                        continue
+                    oclause = clause
+                    clause = tuple(cc for cc in clause if cc not in f)
+                    if len(clause) == 1:
+                        f[clause[0]] = 1
+                        f[-clause[0]] = 0
+                    else:
+                        nnew += 1
+                clauses2.append(clause)
+            log.debug('Reducing non-trivial clauses from %d -> %d' % (nold, nnew))
+            self.last_prune = len(clauses2)
+            self.clauses = clauses2
+
         return bestsol, bestval
 
 
 def evaluate_eq(eq, sol):
     if type(eq) is not dict:
-        eq = {c: v for v, c in eq}
-    return sum(eq.get(s, 0) for s in sol)
+        eq = {c: v for v, c in eq if type(c) is not bool}
+    return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
 
 
 def minimal_unsatisfiable_subset(clauses, sat, log=False):

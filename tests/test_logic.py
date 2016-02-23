@@ -1,13 +1,14 @@
 from itertools import combinations, permutations, product
 
-from conda.logic import (Clauses, true, false, evaluate_eq, minimal_unsatisfiable_subset)
+from conda.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
 from tests.helpers import raises
+from conda.compat import string_types
 
 # These routines implement logical tests with short-circuiting
 # and propogation of unknown values:
 #    - positive integers are variables
 #    - negative integers are negations of positive variables
-#    - lowercase true and false are fixed values
+#    - lowercase True and False are fixed values
 #    - None reprents an indeterminate value
 # If a fixed result is not determinable, the result is None, which
 # propagates through the result.
@@ -17,27 +18,42 @@ from tests.helpers import raises
 # Peformance is not an issue.
 
 def my_NOT(x):
-    return None if x is None else -x
+    if isinstance(x, bool):
+        return not x
+    if isinstance(x, int):
+        return -x
+    if isinstance(x, string_types):
+        return x[1:] if x[0] == '!' else '!' + x
+    return None
+
+def my_ABS(x):
+    if isinstance(x, bool):
+        return True
+    if isinstance(x, int):
+        return abs(x)
+    if isinstance(x, string_types):
+        return x[1:] if x[0] == '!' else x
+    return None
 
 def my_OR(*args):
     '''Implements a logical OR according to the logic:
             - positive integers are variables
             - negative integers are negations of positive variables
-            - lowercase true and false are fixed values
+            - lowercase True and False are fixed values
             - None is an unknown value
-       true  OR x -> true
-       false OR x -> false
+       True  OR x -> True
+       False OR x -> False
        None  OR x -> None
        x     OR y -> None'''
-    if any(v is true for v in args):
-        return true
-    args = set([v for v in args if v is not false])
+    if any(v is True for v in args):
+        return True
+    args = set([v for v in args if v is not False])
     if len(args) == 0:
-        return false
+        return False
     if len(args) == 1:
         return next(v for v in args)
-    if len(set([v if v is None else abs(v) for v in args])) < len(args):
-        return true
+    if len(set([v if v is None else my_ABS(v) for v in args])) < len(args):
+        return True
     return None
 
 def my_AND(*args):
@@ -45,10 +61,10 @@ def my_AND(*args):
     return my_NOT(my_OR(*args))
 
 def my_XOR(i,j):
-    return my_OR(my_AND(i,-j),my_AND(-i,j))
+    return my_OR(my_AND(i,my_NOT(j)),my_AND(my_NOT(i),j))
 
 def my_ITE(c,t,f):
-    return my_OR(my_AND(c,t),my_AND(-c,f))
+    return my_OR(my_AND(c,t),my_AND(my_NOT(c),f))
 
 def my_AMONE(*args):
     args = [my_NOT(v) for v in args]
@@ -58,14 +74,14 @@ def my_XONE(*args):
     return my_AND(my_OR(*args),my_AMONE(*args))
 
 def my_SOL(ij, sol):
-    return (v if v in (true, false) else (true if v in sol else false) for v in ij)
+    return (v if type(v) is bool else (True if v in sol else False) for v in ij)
 
 def my_EVAL(eq, sol):
-    # evaluate_eq doesn't handle true/false entries
-    return evaluate_eq(eq, sol) + sum(c for c, a in eq if a is true)
+    # evaluate_eq doesn't handle True/False entries
+    return evaluate_eq(eq, sol) + sum(c for c, a in eq if a is True)
 
 # Testing strategy: mechanically construct a all possible permutations of
-# true, false, variables from 1 to m, and their negations, in order to exercise
+# True, False, variables from 1 to m, and their negations, in order to exercise
 # all logical branches of the function. Test negative, positive, and full
 # polarities for each.
 
@@ -74,7 +90,7 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter, **kwargs):
         if m == 0:
             ijprod = [()]
         else:
-            ijprod = (true,false)+sum(((k,-k) for k in range(1,m+1)),())
+            ijprod = (True,False)+sum(((k,my_NOT(k)) for k in range(1,m+1)),())
             ijprod = product(ijprod, repeat=m)
         for ij in ijprod:
             tsol = Mfunc(*ij)
@@ -94,54 +110,24 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter, **kwargs):
                 xneg = Cneg.Prevent(Cfunc, *ij, **kwargs)
                 xneg2 = Cneg2.Require(Cneg2.Invert, Cfunc, *ij, **kwargs)
             if tsol is not None:
-                assert (x == tsol and xpos == tsol and 
-                        -xneg == tsol and -xneg2 == tsol), (ij,Cfunc.__name__,C.clauses)
+                assert (x == tsol and xpos == tsol and Cneg.Not(xneg) == tsol and
+                        Cneg2.Not(xneg2) == tsol), (ij,Cfunc.__name__,C.clauses)
                 continue
             for sol in C.itersolve([(x,)],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is true, (ij,sol,Cfunc.__name__,C.clauses)
+                assert qsol is True, (ij,sol,Cfunc.__name__,C.clauses)
             for sol in Cpos.itersolve([],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is true, (ij,sol,Cfunc.__name__,Cpos.clauses)
-            for sol in C.itersolve([(-x,)],m):
+                assert qsol is True, (ij,sol,Cfunc.__name__,Cpos.clauses)
+            for sol in C.itersolve([(C.Not(x),)],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is false, (ij,sol,Cfunc.__name__,C.clauses)
+                assert qsol is False, (ij,sol,Cfunc.__name__,C.clauses)
             for sol in Cneg.itersolve([],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is false, (ij,sol,Cfunc.__name__,Cneg.clauses)
+                assert qsol is False, (ij,sol,Cfunc.__name__,Cneg.clauses)
             for sol in Cneg2.itersolve([],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is false, (ij,sol,Cfunc.__name__,Cneg.clauses)
-
-def test_true_false():
-    assert str(true) == "true"
-    assert str(false) == "false"
-    assert hash(true) != hash(false)
-
-    assert true == true
-    assert false == false
-    assert true != false
-    assert false != true
-    assert -true == false
-    assert -false == true
-
-    assert false < true
-    assert not (true < false)
-    assert not (false < false)
-    assert not (true < true)
-    assert false <= true
-    assert true <= true
-    assert false <= false
-    assert true <= true
-
-    assert not (false > true)
-    assert true > false
-    assert not (false > false)
-    assert not (true > true)
-    assert not (false >= true)
-    assert (true >= true)
-    assert false >= false
-    assert true >= true
+                assert qsol is False, (ij,sol,Cfunc.__name__,Cneg.clauses)
 
 def test_NOT():
     my_TEST(my_NOT, Clauses.Not, 1, 1, False)
@@ -172,16 +158,16 @@ def test_XONE():
 
 def test_LinearBound():
     L = [
-        ([], [0, 1], true),
-        ([], [1, 2], false),
-        ([(2, 1), (2, 2)], [3, 3], false),
+        ([], [0, 1], True),
+        ([], [1, 2], False),
+        ([(2, 1), (2, 2)], [3, 3], False),
         ([(2, 1), (2, 2)], [0, 1], 1000),
         ([(1, 1), (2, 2)], [0, 2], 1000),
         ([(1, 1), (2, -2)], [0, 2], 1000),
         ([(1, 1), (2, 2), (3, 3)], [3, 3], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7)], [0, 2], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7), 
-          (3, false), (2, true)], [2, 4], 1000),
+          (3, False), (2, True)], [2, 4], 1000),
         ([(1, 15), (2, 16), (3, 17), (4, 18), (5, 6), (5, 19), (6, 7),
           (6, 20), (7, 8), (7, 21), (7, 28), (8, 9), (8, 22), (8, 29), (8, 41), (9,
           10), (9, 23), (9, 30), (9, 42), (10, 1), (10, 11), (10, 24), (10, 31),
@@ -192,19 +178,19 @@ def test_LinearBound():
           (12, 54)], [192, 204], 100),
         ]
     for eq, rhs, max_iter in L:
-        N = max([0]+[a for c,a in eq if a is not true and a is not false])
+        N = max([0]+[a for c,a in eq if a is not True and a is not False])
         C = Clauses(N)
         Cpos = Clauses(N)
         Cneg = Clauses(N)
         x = C.LinearBound(eq, rhs[0], rhs[1])
         xpos = Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
         xneg = Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
-        if max_iter is true or max_iter is false:
-            assert x == max_iter and xpos == max_iter and xneg == -max_iter
+        if max_iter is True or max_iter is False:
+            assert x == max_iter and xpos == max_iter and xneg == Cneg.Not(max_iter)
             continue
         for _, sol in zip(range(max_iter), C.itersolve([(x,)],N)):
             assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], C.clauses
-        for _, sol in zip(range(max_iter), C.itersolve([(-x,)],N)):
+        for _, sol in zip(range(max_iter), C.itersolve([(C.Not(x),)],N)):
             assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), C.clauses
         for _, sol in zip(range(max_iter), Cpos.itersolve([],N)):
             assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], ('Cpos',Cpos.clauses)
