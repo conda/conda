@@ -5,3 +5,4 @@ include README.rst
 include setup.cfg
 include setup.py
 include versioneer.py
+include conda/_version.py
