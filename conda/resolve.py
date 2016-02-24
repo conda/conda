@@ -588,12 +588,14 @@ class Resolve(object):
 
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
+        polarities = {}
 
-        def push_MatchSpec(ms):
+        def push_MatchSpec(ms, polarity=None):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
-                m = C.Any(self.find_matches_group(ms, groups, trackers), name=name)
+                m = C.Any(self.find_matches_group(ms, groups, trackers),
+                          polarity=polarity, name=name)
             return m
 
         # Create package variables
@@ -607,15 +609,15 @@ class Resolve(object):
 
         # Create spec variables
         for ms in specs:
-            push_MatchSpec(ms)
+            push_MatchSpec(ms, polarity=None if ms.optional else True)
 
         # Add dependency relationships
         for group in itervalues(groups):
+            C.Require(C.AtMostOne, group)
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
-                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms), polarity=None)
-            C.Require(C.AtMostOne, group)
+                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms, polarity=True))
 
         return C
 
