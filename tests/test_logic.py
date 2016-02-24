@@ -85,7 +85,7 @@ def my_EVAL(eq, sol):
 # all logical branches of the function. Test negative, positive, and full
 # polarities for each.
 
-def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter, **kwargs):
+def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
     for m in range(mmin,mmax+1):
         if m == 0:
             ijprod = [()]
@@ -93,51 +93,55 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter, **kwargs):
             ijprod = (True,False)+sum(((k,my_NOT(k)) for k in range(1,m+1)),())
             ijprod = product(ijprod, repeat=m)
         for ij in ijprod:
-            tsol = Mfunc(*ij)
-            C = Clauses(m)
-            Cpos = Clauses(m)
-            Cneg = Clauses(m)
-            Cneg2 = Clauses(m)
-            Cmethod = Cfunc.__get__(C,Clauses)
+            C = Clauses()
+            Cpos = Clauses()
+            Cneg = Clauses()
+            for k in range(1,m+1):
+                nm = 'x%d' % k
+                C.new_var(nm)
+                Cpos.new_var(nm)
+                Cneg.new_var(nm)
+            ij2 = tuple(C.from_index(k) if type(k) is int else k for k in ij)
             if is_iter:
-                x = Cmethod(ij, **kwargs)
-                xpos = Cpos.Require(Cfunc, ij, **kwargs)
-                xneg = Cneg.Prevent(Cfunc, ij, **kwargs)
-                xneg2 = Cneg2.Require(Cneg2.Invert, Cfunc, ij, **kwargs)
+                x = Cfunc.__get__(C,Clauses)(ij2)
+                Cpos.Require(Cfunc.__get__(Cpos,Clauses), ij)
+                Cneg.Prevent(Cfunc.__get__(Cneg,Clauses), ij)
             else:
-                x = Cmethod(*ij, **kwargs)
-                xpos = Cpos.Require(Cfunc, *ij, **kwargs)
-                xneg = Cneg.Prevent(Cfunc, *ij, **kwargs)
-                xneg2 = Cneg2.Require(Cneg2.Invert, Cfunc, *ij, **kwargs)
-            if tsol is not None:
-                assert (x == tsol and xpos == tsol and Cneg.Not(xneg) == tsol and
-                        Cneg2.Not(xneg2) == tsol), (ij,Cfunc.__name__,C.clauses)
+                x = Cfunc.__get__(C,Clauses)(*ij2)
+                Cpos.Require(Cfunc.__get__(Cpos,Clauses), *ij)
+                Cneg.Prevent(Cfunc.__get__(Cneg,Clauses), *ij)
+            tsol = Mfunc(*ij)
+            if type(tsol) is bool:
+                assert x is tsol, (ij2, Cfunc.__name__, C.clauses)
+                assert Cpos.unsat == (not tsol) and not Cpos.clauses, (ij, 'Require(%s)')
+                assert Cneg.unsat == tsol and not Cneg.clauses, (ij, 'Prevent(%s)')
                 continue
             for sol in C.itersolve([(x,)],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is True, (ij,sol,Cfunc.__name__,C.clauses)
+                assert qsol is True, (ij2, sol, Cfunc.__name__, C.clauses)
             for sol in Cpos.itersolve([],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is True, (ij,sol,Cfunc.__name__,Cpos.clauses)
+                assert qsol is True, (ij, sol,'Require(%s)' % Cfunc.__name__, Cpos.clauses)
             for sol in C.itersolve([(C.Not(x),)],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is False, (ij,sol,Cfunc.__name__,C.clauses)
+                assert qsol is False, (ij2, sol, Cfunc.__name__, C.clauses)
             for sol in Cneg.itersolve([],m):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is False, (ij,sol,Cfunc.__name__,Cneg.clauses)
-            for sol in Cneg2.itersolve([],m):
-                qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is False, (ij,sol,Cfunc.__name__,Cneg.clauses)
+                assert qsol is False, (ij, sol,'Prevent(%s)' % Cfunc.__name__, Cneg.clauses)
 
 def test_NOT():
     my_TEST(my_NOT, Clauses.Not, 1, 1, False)
 
 def test_AND():
     my_TEST(my_AND, Clauses.And, 2,2, False)
-    my_TEST(my_AND, Clauses.All, 0,4, True)
+
+def test_ALL():
+    my_TEST(my_AND, Clauses.All, 0, 4, True)
 
 def test_OR():
     my_TEST(my_OR,  Clauses.Or,  2,2, False)
+
+def test_ANY():
     my_TEST(my_OR,  Clauses.Any, 0,4, True)
 
 def test_XOR():
@@ -147,13 +151,13 @@ def test_ITE():
     my_TEST(my_ITE, Clauses.ITE, 3,3, False)
 
 def test_AMONE():
-    my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True, BDD=True)
-    my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True, BDD=False)
+    my_TEST(my_AMONE, Clauses.AtMostOne_NSQ, 0,3, True)
+    my_TEST(my_AMONE, Clauses.AtMostOne_BDD, 0,3, True)
     my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
 
 def test_XONE():
-    my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True, BDD=True)
-    my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True, BDD=False)
+    my_TEST(my_XONE, Clauses.ExactlyOne_NSQ, 0,3, True)
+    my_TEST(my_XONE, Clauses.ExactlyOne_BDD, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
 
 def test_LinearBound():
@@ -183,10 +187,12 @@ def test_LinearBound():
         Cpos = Clauses(N)
         Cneg = Clauses(N)
         x = C.LinearBound(eq, rhs[0], rhs[1])
-        xpos = Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
-        xneg = Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
-        if max_iter is True or max_iter is False:
-            assert x == max_iter and xpos == max_iter and xneg == Cneg.Not(max_iter)
+        Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
+        Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
+        if type(max_iter) is bool:
+            assert x is max_iter, (ij, Cfunc.__name__, C.clauses)
+            assert Cpos.unsat == (not max_iter) and not Cpos.clauses, (ij, 'Require(%s)')
+            assert Cneg.unsat == max_iter and not Cneg.clauses, (ij, 'Prevent(%s)')
             continue
         for _, sol in zip(range(max_iter), C.itersolve([(x,)],N)):
             assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], C.clauses
