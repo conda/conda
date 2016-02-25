@@ -110,4 +110,4 @@ And this command will upgrade Python to another branch such as 3.5 by installing
 
     $ conda install python=3.5
 
-Next, let's take a look at :doc:`r-and-r-essentials`.
+Next, let's take a look at :doc:`using/pkgs`.

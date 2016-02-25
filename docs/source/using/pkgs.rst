@@ -168,3 +168,5 @@ Confirm that the package has been removed:
 .. code::
 
    conda list
+
+Next, let's take a look at :doc:`/r-with-conda`.
