@@ -146,7 +146,7 @@ Which of these environments are you using right now -- snowflakes or bunnies? To
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parentheses) in front of your prompt:
+Conda displays the list of all environments, with the current environment shown in (parentheses) or [brackets] in front of your prompt:
 
 .. code::
 
@@ -251,8 +251,11 @@ To verify that the snakes environment has now been added, type the command:
 
    conda info --envs
 
-Conda displays the list of all environments, with the current environment shown in (parentheses)
-in front of your prompt:  ``(snakes)``
+Conda displays the list of all environments, with the current environment shown in (parentheses) or [brackets] in front of your prompt:
+
+.. code::
+
+   (snakes)
 
 **Verify Python version in new environment**
 
