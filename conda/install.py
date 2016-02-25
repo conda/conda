@@ -86,6 +86,19 @@ if on_win:
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
 
+    def win_conda_bat_redirect(src, dst):
+        """Special function for Windows XP where the `CreateSymbolicLink`
+        function is not available.
+
+        Simply creates a `.bat` file at `dst` which calls `src` together with
+        all command line arguments.
+
+        Works of course only with callable files, e.g. `.bat` or `.exe` files.
+        """
+        dst = dst + '.bat'
+        with open(dst, 'w') as f:
+            f.write('@echo off\n"%s" %%*\n' % src)
+
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -413,20 +426,29 @@ def read_no_link(info_dir):
 
 # Should this be an API function?
 def symlink_conda(prefix, root_dir):
-    root_conda = join(root_dir, 'bin', 'conda')
-    root_activate = join(root_dir, 'bin', 'activate')
-    root_deactivate = join(root_dir, 'bin', 'deactivate')
-    prefix_conda = join(prefix, 'bin', 'conda')
-    prefix_activate = join(prefix, 'bin', 'activate')
-    prefix_deactivate = join(prefix, 'bin', 'deactivate')
-    if not os.path.lexists(join(prefix, 'bin')):
-        os.makedirs(join(prefix, 'bin'))
-    if not os.path.lexists(prefix_conda):
-        os.symlink(root_conda, prefix_conda)
-    if not os.path.lexists(prefix_activate):
-        os.symlink(root_activate, prefix_activate)
-    if not os.path.lexists(prefix_deactivate):
-        os.symlink(root_deactivate, prefix_deactivate)
+    if on_win:
+        where = 'Scripts'
+        symlink_fn = win_conda_bat_redirect
+    else:
+        where = 'bin'
+        symlink_fn = os.symlink
+    symlink_conda_hlp(prefix,root_dir,where,symlink_fn)
+
+def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
+    root_conda = join(root_dir, where, 'conda')
+    root_activate = join(root_dir, where, 'activate')
+    root_deactivate = join(root_dir, where, 'deactivate')
+    prefix_conda = join(prefix, where, 'conda')
+    prefix_activate = join(prefix, where, 'activate')
+    prefix_deactivate = join(prefix, where, 'deactivate')
+    if not os.path.exists(join(prefix, where)):
+        os.makedirs(join(prefix, where))
+    if not os.path.exists(prefix_conda):
+        symlink_fn(root_conda, prefix_conda)
+    if not os.path.exists(prefix_activate):
+        symlink_fn(root_activate, prefix_activate)
+    if not os.path.exists(prefix_deactivate):
+        symlink_fn(root_deactivate, prefix_deactivate)
 
 # ========================== begin API functions =========================
 
