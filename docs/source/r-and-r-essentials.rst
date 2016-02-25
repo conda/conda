@@ -73,8 +73,8 @@ MKL installation on Linux
 4. Copy all the .so files from ``$REVOMATH/mkl/libs/*.so`` to ``$PREFIX/R/lib`` . (This overwrites libRblas.so and libRlapack.so.)
 5. Edit ``$PREFIX/R/etc/Rprofile.site`` and add the following two lines to the top::
 
-   Sys.setenv("MKL_INTERFACE_LAYER"="GNU,LP64")
-   Sys.setenv("MKL_THREADING_LAYER"="GNU")
+     Sys.setenv("MKL_INTERFACE_LAYER"="GNU,LP64")
+     Sys.setenv("MKL_THREADING_LAYER"="GNU")
 
 6. Execute this: ``R CMD INSTALL $REVOMATH/RevoUtilsMath.tar.gz``
 
