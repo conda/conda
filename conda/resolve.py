@@ -718,8 +718,10 @@ Use 'conda info %s' etc. to see the dependencies for each package.""" % ('\n  - 
         else:
             return None
 
-    def solve(self, specs, installed=[], update_deps=True, returnall=False,
+    def solve(self, specs, installed=None, update_deps=True, returnall=False,
               guess=True, minimal_hint=False):
+        if installed is None:
+            installed = []
         try:
             stdoutlog.info("Solving package specifications: ")
             res = self.explicit(specs)
