@@ -1,6 +1,6 @@
-===================================
-Using R and R Essentials with conda
-===================================
+==================
+Using R with conda
+==================
 
 For Linux, OS X and Windows
 
@@ -23,9 +23,9 @@ Create and share your own custom R bundle
 
 Building and sharing your own custom R bundles with others is like building and sharing conda packages.
 
-For example, create a simple custom R bundle meta-package named "Custom-R-Bundle" containing several popular programs and their dependencies with the command:
+For example, create a simple custom R bundle meta-package named "Custom-R-Bundle" containing several popular programs and their dependencies with the command::
 
-``conda metapackage custom-r-bundle 0.1.0 --dependencies r-irkernel jupyter r-ggplot2 r-dplyr --summary "My custom R bundle"``
+  conda metapackage custom-r-bundle 0.1.0 --dependencies r-irkernel jupyter r-ggplot2 r-dplyr --summary "My custom R bundle"
 
 Now you can easily share your new meta-package with friends and colleagues by uploading it to your channel on `Anaconda Cloud <https://anaconda.org>`_::
 
@@ -33,10 +33,30 @@ Now you can easily share your new meta-package with friends and colleagues by up
   anaconda login
   anaconda upload path/to/custom-r-bundle-0.1.0-0.tar.bz2
 
-Your friends and colleagues now have access to your Custom-R-Bundle from any computer with the command:
+Your friends and colleagues now have access to your Custom-R-Bundle from any computer with the command::
 
-``conda install -c <your anaconda.org username> custom-r-bundle``
+  conda install -c <your anaconda.org username> custom-r-bundle
 
 For more information, see Christine Doig's blog post `Jupyter and conda for R <https://www.continuum.io/blog/developer/jupyter-and-conda-r>`_.
+
+Microsoft R Open
+================
+
+`Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ is available through conda for 64-bit Windows, 64-bit OS X, and 64-bit Linux, on the conda channel "mro".
+
+There are two ways to install MRO and other R packages. The first is to add the "mro" channel to your :doc:`.condarc configuration file<config>` and then use ``conda install r`` and use conda to install other packages. The second is to specify the "mro" channel on the command line each time you use the conda install command: ``conda install -c mro r``
+
+The Intel Math Kernel Library (MKL) extensions are also available for MRO on Windows and Linux, while the Accelerate library is used instead on OS X. Just `download the MKL package for your platform <https://mran.revolutionanalytics.com/download/#download>`_ and install it according to the instructions.
+
+NOTE: Installing the MKL package constitutes implicit agreement to the `MKL license <https://mran.revolutionanalytics.com/assets/text/mkl-eula.txt>`_.
+
+When MKL is not installed, each time the R interpreter starts it will display a message saying so, such as "No performance acceleration libraries were detected. To take advantage of the available processing power, also install MKL for MRO 3.2.3. Visit http://go.microsoft.com/fwlink/?LinkID=698301 for more details." Once the MKL extensions are properly installed, each time the R interpreter starts it will display a message stating that MKL is enabled, such as "Multithreaded BLAS/LAPACK libraries detected." (BLAS/LAPACK libraries such as MKL are implementations of the Basic Linear Algebra Subprograms specification of the LAPACK Linear Algebra PACKage.)
+
+It is possible to install R packages through the Comprehensive R Archive Network (CRAN) and not conda. These R packages will install into the currently active conda environment.
+
+To use MRO or R packages, activate the conda environment where they are installed to set your environment variables properly. Executing the programs at the pathname in that environment without activating the environment may cause errors.
+
+Each conda environment may have packages installed from the conda channel "r" or the conda channel "mro", but no conda environment should contain packages from both channels, which may cause errors. If this occurs, you may use ``conda remove`` to remove the packages that were installed incorrectly, or create a new environment and install the correct packages there.
+
 
 Next, let's take a look at :doc:`using/pkgs`.
