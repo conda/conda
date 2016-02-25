@@ -812,9 +812,9 @@ class Resolve(object):
             specs.append(spec)
         return specs, bad_specs
 
-    def install(self, specs, installed=[], update_deps=True, returnall=False):
+    def install(self, specs, installed=None, update_deps=True, returnall=False):
         len0 = len(specs)
-        specs, preserve = self.install_specs(specs, installed, update_deps)
+        specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, len0=len0, returnall=returnall)
         self.restore_bad(pkgs, preserve)
         return pkgs
