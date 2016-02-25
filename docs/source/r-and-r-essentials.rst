@@ -46,17 +46,37 @@ Microsoft R Open
 
 There are two ways to install MRO and other R packages. The first is to add the "mro" channel to your :doc:`.condarc configuration file<config>` and then use ``conda install r`` and use conda to install other packages. The second is to specify the "mro" channel on the command line each time you use the conda install command: ``conda install -c mro r``
 
+It is possible to install R packages through the Comprehensive R Archive Network (CRAN) and not conda. These R packages will install into the currently active conda environment.
+
+To use MRO or R packages, activate the conda environment where they are installed to set your environment variables properly. Executing the programs at the pathname in that environment without activating the environment may cause errors.
+
+Each conda environment may have packages installed from the conda channel "r" or the conda channel "mro", but no conda environment should contain packages from both channels, which may cause errors. If this occurs, you may use ``conda remove`` to remove the packages that were installed incorrectly, or create a new environment and install the correct packages there.
+
+Installing the Intel Math Kernel Library (MKL) with Microsoft R Open
+====================================================================
+
 The Intel Math Kernel Library (MKL) extensions are also available for MRO on Windows and Linux, while the Accelerate library is used instead on OS X. Just `download the MKL package for your platform <https://mran.revolutionanalytics.com/download/>`_ and install it according to the instructions.
 
 NOTE: Installing the MKL package constitutes implicit agreement to the `MKL license <https://mran.revolutionanalytics.com/assets/text/mkl-eula.txt>`_.
 
 When MKL is not installed, each time the R interpreter starts it will display a message saying so, such as "No performance acceleration libraries were detected. To take advantage of the available processing power, also install MKL for MRO 3.2.3. Visit http://go.microsoft.com/fwlink/?LinkID=698301 for more details." Once the MKL extensions are properly installed, each time the R interpreter starts it will display a message stating that MKL is enabled, such as "Multithreaded BLAS/LAPACK libraries detected." (BLAS/LAPACK libraries such as MKL are implementations of the Basic Linear Algebra Subprograms specification of the LAPACK Linear Algebra PACKage.)
 
-It is possible to install R packages through the Comprehensive R Archive Network (CRAN) and not conda. These R packages will install into the currently active conda environment.
+MKL installation on Linux
+-------------------------
 
-To use MRO or R packages, activate the conda environment where they are installed to set your environment variables properly. Executing the programs at the pathname in that environment without activating the environment may cause errors.
+1. Download and extract the proper MKL package to a temporary folder, which we will call $REVOMATH .
 
-Each conda environment may have packages installed from the conda channel "r" or the conda channel "mro", but no conda environment should contain packages from both channels, which may cause errors. If this occurs, you may use ``conda remove`` to remove the packages that were installed incorrectly, or create a new environment and install the correct packages there.
+   NOTE: You must select the correct MKL package for your Linux distribution.
+
+2. Determine where R is located. The path will have the form of ``/path/to/anaconda/envs/<r environment>`` , which we will call $PREFIX . Ensure that you have write permissions to $PREFIX.
+3. Make backups of ``$PREFIX/R/lib/libRblas.so`` and ``$PREFIX/R/lib/libRlapack.so`` .
+4. Copy all the .so files from ``$REVOMATH/mkl/libs/*.so`` to ``$PREFIX/R/lib`` . (This overwrites libRblas.so and libRlapack.so.)
+5. Edit ``$PREFIX/R/etc/Rprofile.site`` and add the following two lines to the top::
+
+   Sys.setenv("MKL_INTERFACE_LAYER"="GNU,LP64")
+   Sys.setenv("MKL_THREADING_LAYER"="GNU")
+
+6. Execute this: ``R CMD INSTALL $REVOMATH/RevoUtilsMath.tar.gz``
 
 
 Next, let's take a look at :doc:`using/pkgs`.
