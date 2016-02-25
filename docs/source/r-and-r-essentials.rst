@@ -42,7 +42,7 @@ For more information, see Christine Doig's blog post `Jupyter and conda for R <h
 Microsoft R Open
 ================
 
-`Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ is available through conda for 64-bit Windows, 64-bit OS X, and 64-bit Linux, on the conda channel "mro".
+You can install `Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ with conda on 64-bit Windows, 64-bit OS X, and 64-bit Linux, from the Anaconda.org channel "mro".
 
 There are two ways to install MRO and other R packages. The first is to add the "mro" channel to your :doc:`.condarc configuration file<config>` and then use ``conda install r`` and use conda to install other packages. The second is to specify the "mro" channel on the command line each time you use the conda install command: ``conda install -c mro r``
 
@@ -50,7 +50,7 @@ It is possible to install R packages through the Comprehensive R Archive Network
 
 To use MRO or R packages, activate the conda environment where they are installed to set your environment variables properly. Executing the programs at the pathname in that environment without activating the environment may cause errors.
 
-Each conda environment may have packages installed from the conda channel "r" or the conda channel "mro", but no conda environment should contain packages from both channels, which may cause errors. If this occurs, you may use ``conda remove`` to remove the packages that were installed incorrectly, or create a new environment and install the correct packages there.
+Each conda environment may have packages installed from the conda channel "r" or the Anaconda.org channel "mro", but no conda environment should contain packages from both channels, which may cause errors. If this occurs, you may use ``conda remove`` to remove the packages that were installed incorrectly, or create a new environment and install the correct packages there.
 
 Installing the Intel Math Kernel Library (MKL) with Microsoft R Open
 ====================================================================
