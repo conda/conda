@@ -46,7 +46,7 @@ Microsoft R Open
 
 There are two ways to install MRO and other R packages. The first is to add the "mro" channel to your :doc:`.condarc configuration file<config>` and then use ``conda install r`` and use conda to install other packages. The second is to specify the "mro" channel on the command line each time you use the conda install command: ``conda install -c mro r``
 
-The Intel Math Kernel Library (MKL) extensions are also available for MRO on Windows and Linux, while the Accelerate library is used instead on OS X. Just `download the MKL package for your platform <https://mran.revolutionanalytics.com/download/#download>`_ and install it according to the instructions.
+The Intel Math Kernel Library (MKL) extensions are also available for MRO on Windows and Linux, while the Accelerate library is used instead on OS X. Just `download the MKL package for your platform <https://mran.revolutionanalytics.com/download/>`_ and install it according to the instructions.
 
 NOTE: Installing the MKL package constitutes implicit agreement to the `MKL license <https://mran.revolutionanalytics.com/assets/text/mkl-eula.txt>`_.
 
