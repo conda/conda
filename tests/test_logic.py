@@ -208,7 +208,7 @@ def test_sat():
         return Clauses(m).sat(val)
     assert sat([[1]]) == [1]
     assert sat([[1], [-1]]) is None
-    assert sat([]) == [1]
+    assert sat([]) in ([1],[-1])
 
 def test_minimal_unsatisfiable_subset():
     def sat(val):

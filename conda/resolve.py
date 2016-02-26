@@ -603,17 +603,17 @@ class Resolve(object):
             for fn in group:
                 C.new_var(fn)
 
-        # Create feature variables
-        for name in iterkeys(trackers):
-            push_MatchSpec(MatchSpec('@' + name))
-
         # Create spec variables
         for ms in specs:
             push_MatchSpec(ms, polarity=None if ms.optional else True)
 
+        # Create feature variables
+        for name in iterkeys(trackers):
+            push_MatchSpec(MatchSpec('@' + name), polarity=True)
+
         # Add dependency relationships
         for group in itervalues(groups):
-            C.Require(C.AtMostOne, group)
+            C.Require(C.AtMostOne_NSQ, group)
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
@@ -650,7 +650,8 @@ class Resolve(object):
             sdict.setdefault(s.name, []).append(s)
         key = lambda x: self.version_key(x, majoronly)
         for name, mss in iteritems(sdict):
-            pkgs = [(key(p), p) for p in groups.get(name, [])]
+            pkgs = groups.get(name, [])
+            pkgs = [(key(p), p) for p in pkgs]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
@@ -672,14 +673,14 @@ class Resolve(object):
                 prev = nkey
         return eq
 
-    def generate_package_count(self, C, groups, specs):
+    def generate_package_count(self, C, groups, specs, majoronly=False):
         eq = {}
         snames = {s.name for s in map(MatchSpec, specs)}
+        key = lambda x: self.version_key(x, majoronly)
         for name, pkgs in iteritems(groups):
-            if name in snames:
+            if name in snames or not pkgs:
                 continue
-            pkg_ver = sorted([(self.version_key(p), p)
-                             for p in groups.get(name, [])], reverse=True)
+            pkg_ver = sorted([(key(p), p) for p in groups.get(name, [])], reverse=True)
             i = 1
             prev = None
             for nkey, pkg in pkg_ver:
@@ -765,7 +766,7 @@ class Resolve(object):
         else:
             return None
 
-    def bad_installed(self, installed):
+    def bad_installed(self, installed, new_specs):
         if not installed:
             return []
         dists = {fn: self.index[fn] for fn in installed}
@@ -777,11 +778,19 @@ class Resolve(object):
         solution = C.sat(constraints)
         if solution:
             return []
-        solution = [C.Not(q) for q in range(1, C.m+1)]
-        eq_removal_count = self.generate_removal_count(C, specs)
-        solution, obj1 = C.minimize(eq_removal_count, solution)
-        solution = set(solution)
-        return set(s.name for s in specs if C.from_name(self.ms_to_v(s)) not in solution)
+
+        def get_(name, snames):
+            if name not in snames:
+                snames.add(name)
+                for fn in self.groups.get(name, []):
+                    for ms in self.ms_depends(fn):
+                        get_(ms.name, snames)
+        snames = set()
+        for spec in new_specs:
+            get_(MatchSpec(spec).name, snames)
+        print(snames)
+
+        return set(s.name for s in specs if s.name not in snames)
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
@@ -792,7 +801,7 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
-        bad_specs = self.bad_installed(installed)
+        bad_specs = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
             assert pkg in self.index
@@ -822,7 +831,7 @@ class Resolve(object):
     def remove_specs(self, specs, installed):
         specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
         snames = {s.name for s in specs}
-        bad_specs = self.bad_installed(installed)
+        bad_specs = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
             assert pkg in self.index
@@ -872,37 +881,34 @@ class Resolve(object):
                 specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
                 raise Unsatisfiable(specsol, False)
 
+            specs.extend(new_specs)
             spec2 = [s for s in specs[:len0] if not s.optional]
             eq_requested_versions = self.generate_version_metric(C, groups, spec2, majoronly=True)
             solution, obj1 = C.minimize(eq_requested_versions, solution)
-            dotlog.debug('Requested version metric: %d' % obj1)
+            dotlog.debug('Requested major version metric: %d' % obj1)
 
-            specs = [s for s in chain(specs, new_specs) if not s.optional or
+            eq_feature_count = self.generate_feature_count(C, trackers)
+            solution, obj2 = C.minimize(eq_feature_count, solution)
+            dotlog.debug('Feature count metric: %d' % obj2)
+
+            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
+            solution, obj3 = C.minimize(eq_feature_metric, solution)
+            dotlog.debug('Feature package metric: %d' % obj3)
+
+            specs = [s for s in specs if not s.optional or
                      any(self.find_matches_group(s, groups, trackers))]
             spec3 = [s for s in specs if s.optional]
             eq_optional_count = self.generate_removal_count(C, spec3)
-            solution, obj2 = C.minimize(eq_optional_count, solution)
-            dotlog.debug('Optional package removal count: %d' % obj2)
-
-            eq_optional_versions = self.generate_version_metric(C, groups, spec3, majoronly=True)
-            solution, obj3 = C.minimize(eq_optional_versions, solution)
-            dotlog.debug('Optional package version metric: %d' % obj3)
-
-            eq_feature_count = self.generate_feature_count(C, trackers)
-            solution, obj4 = C.minimize(eq_feature_count, solution)
-            dotlog.debug('Feature count metric: %d' % obj4)
-
-            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
-            solution, obj5 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Feature package metric: %d' % obj5)
+            solution, obj4 = C.minimize(eq_optional_count, solution)
+            dotlog.debug('Optional package removal count: %d' % obj4)
 
             eq_all_versions = self.generate_version_metric(C, groups, specs, majoronly=False)
-            solution, obj6 = C.minimize(eq_all_versions, solution)
-            dotlog.debug('Total version metric: %d' % obj6)
+            solution, obj5 = C.minimize(eq_all_versions, solution)
+            dotlog.debug('Final version metric: %d' % obj5)
 
             eq_package_count = self.generate_package_count(C, groups, specs)
-            solution, obj7 = C.minimize(eq_package_count, solution)
-            dotlog.debug('Weak dependency metric: %d' % obj7)
+            solution, obj6 = C.minimize(eq_package_count, solution)
+            dotlog.debug('Weak dependency metric: %d' % obj6)
 
             dotlog.debug('Looking for alternate solutions')
 

@@ -788,7 +788,6 @@ def test_broken_install():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
     installed[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
-    assert r.bad_installed(installed) == {'numpy','scipy','pandas'}
     installed2 = r.install([], installed)
     assert installed2 == [
         'dateutil-2.1-py27_1.tar.bz2',
