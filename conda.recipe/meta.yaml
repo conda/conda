@@ -17,7 +17,7 @@ build:
 
   entry_points:
     - conda = conda.cli:main
-  
+
   string: py{{ environ.get("CONDA_PY", "") }}_{{ environ.get("GIT_BUILD_STR", "") }}
   number: {{ environ.get("GIT_DESCRIBE_NUMBER", 0) }}
 
