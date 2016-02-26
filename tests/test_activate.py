@@ -266,6 +266,7 @@ def test_activate_help():
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(True, reason="because refactor asap PR #1727")
 def test_activate_symlinking():
     for shell in shells:
         with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
