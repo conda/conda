@@ -14,7 +14,7 @@ def normalized_version(version):
 def ver_eval(vtest, spec):
   return VersionSpec(spec).match(vtest)
 
-version_check_re = re.compile(r'^[\-\*\.\+!_0-9a-z]+$')
+version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
 class VersionOrder(object):
     '''
