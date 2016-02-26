@@ -37,8 +37,8 @@ MKL installation on Linux
    NOTE: You must select the correct MKL package for your Linux distribution.
 
 2. Determine where R is located. The path will have the form of ``/path/to/anaconda/envs/<r environment>`` , which we will call $PREFIX . Ensure that you have write permissions to $PREFIX.
-3. Make backups of ``$PREFIX/R/lib/libRblas.so`` and ``$PREFIX/R/lib/libRlapack.so`` .
-4. Copy all the .so files from ``$REVOMATH/mkl/libs/*.so`` to ``$PREFIX/R/lib`` . (This may prompt you to overwrite libRblas.so and libRlapack.so.)
+3. Make backups of ``$PREFIX/lib/R/lib/libRblas.so`` and ``$PREFIX/lib/R/lib/libRlapack.so`` .
+4. Copy all the .so files from ``$REVOMATH/mkl/libs/*.so`` to ``$PREFIX/lib/R/lib`` . (This may prompt you to overwrite libRblas.so and libRlapack.so.)
 5. Edit ``$PREFIX/R/etc/Rprofile.site`` and add the following two lines to the top::
 
      Sys.setenv("MKL_INTERFACE_LAYER"="GNU,LP64")
