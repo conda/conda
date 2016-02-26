@@ -788,7 +788,6 @@ class Resolve(object):
         snames = set()
         for spec in new_specs:
             get_(MatchSpec(spec).name, snames)
-        print(snames)
 
         return set(s.name for s in specs if s.name not in snames)
 
