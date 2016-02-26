@@ -36,16 +36,10 @@ def run_in(command, shell='bash'):
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
         stderr.decode('utf-8').replace('\r\n', '\n'))
 
-python = sys.executable
-conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
-
 def run_conda_command(*args):
     env = os.environ.copy()
-    # Make sure bin/conda imports *this* conda.
-    env['PYTHONPATH'] = os.path.dirname(os.path.dirname(__file__))
-    env['CONDARC'] = ' '
-    p= subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, env=env)
+    p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, env=env)
     stdout, stderr = p.communicate()
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
         stderr.decode('utf-8').replace('\r\n', '\n'))
@@ -111,5 +105,5 @@ def capture_json_with_argv(*argv):
     try:
         return json.loads(stdout)
     except ValueError:
-        print(stdout, stderr)
+        print(str(stdout), str(stderr))
         raise
