@@ -535,11 +535,12 @@ class Clauses(object):
                 log.debug("Bisection failure")
                 lo = mid + 1
             else:
+                done = lo == hi
                 bestsol = newsol
                 bestval = evaluate_eq(odict, newsol)
                 hi = bestval
                 log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
-                if lo == hi:
+                if done:
                     break
             self.m = m_orig
             if len(self.clauses) > nz:
