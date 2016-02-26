@@ -123,13 +123,15 @@ class Clauses(object):
     def Require(self, what, *args):
         return what.__get__(self, Clauses)(*args, polarity=True, name=False)
 
-    def Not_(self, x, polarity=None):
+    @staticmethod
+    def Not_(x, polarity=None):
         return (not x) if type(x) is bool else -x
 
     def Not(self, x, polarity=None, name=None):
         return self.Eval_(self.Not_, (x,), polarity, name)
 
-    def And_(self, f, g, polarity=None):
+    @staticmethod
+    def And_(f, g, polarity=None):
         if f is False or g is False:
             return False
         if f is True:
@@ -145,7 +147,8 @@ class Clauses(object):
     def And(self, f, g, polarity=None, name=None):
         return self.Eval_(self.And_, (f, g), polarity, name)
 
-    def Or_(self, f, g, polarity):
+    @staticmethod
+    def Or_(f, g, polarity):
         if f is True or g is True:
             return True
         if f is False:
@@ -214,7 +217,8 @@ class Clauses(object):
         """
         return self.Eval_(self.ITE_, (c, t, f), polarity, name)
 
-    def All_(self, iter, polarity=None):
+    @staticmethod
+    def All_(iter, polarity=None):
         vals = set()
         for v in iter:
             if v is True:
@@ -234,7 +238,8 @@ class Clauses(object):
     def All(self, iter, polarity=None, name=None):
         return self.Eval_(self.All_, (iter,), polarity, name)
 
-    def Any_(self, iter, polarity):
+    @staticmethod
+    def Any_(iter, polarity):
         vals = set()
         for v in iter:
             if v is False:
@@ -403,7 +408,7 @@ class Clauses(object):
         else:
             clauses = self.clauses
         solution = pycosat.solve(clauses)
-        if solution == "UNSAT" or solution == "UNKNOWN":
+        if solution in ("UNSAT", "UNKNOWN"):
             return None
         if additional and includeIf:
             self.clauses.extend(additional)
