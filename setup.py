@@ -21,10 +21,6 @@ the root environment. Deactivate and try again.  If you believe this message
 is in error, run CONDA_DEFAULT_ENV='' python setup.py.
 """)
 
-versioneer.versionfile_source = 'conda/_version.py'
-versioneer.versionfile_build = 'conda/_version.py'
-versioneer.tag_prefix = '' # tags are like 1.2.0
-versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
 
 setup(
