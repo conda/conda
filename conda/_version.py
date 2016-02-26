@@ -187,7 +187,8 @@ tag_prefix = ""
 parentdir_prefix = "conda-"
 versionfile_source = "conda/_version.py"
 
-def get_versions(default={"version": "unknown", "full": ""}, verbose=False):
+
+def get_versions(default=None, verbose=False):
     variables = { "refnames": git_refnames, "full": git_full }
     ver = versions_from_expanded_variables(variables, tag_prefix, verbose)
     if not ver:
@@ -196,6 +197,6 @@ def get_versions(default={"version": "unknown", "full": ""}, verbose=False):
         ver = versions_from_parentdir(parentdir_prefix, versionfile_source,
                                       verbose)
     if not ver:
-        ver = default
+        ver = default or {"version": "unknown", "full": ""}
     return ver
 

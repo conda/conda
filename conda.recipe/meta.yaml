@@ -1,10 +1,9 @@
 package:
   name: conda
-  version: {{ environ.get("GIT_DESCRIBE_TAG", "") }}
+  version: '{{ environ.get("GIT_DESCRIBE_TAG", "") }}'
 
 source:
-  git_url: ../
-  git_tag: {{ environ.get("GIT_DESCRIBE_TAG", "") }}
+  path: ../
 
 build:
   # These are present when the new environment is created
@@ -14,12 +13,10 @@ build:
     - bin/conda  [unix]
     - bin/activate [unix]
     - bin/deactivate [unix]
-
   entry_points:
     - conda = conda.cli:main
-
-  string: py{{ environ.get("CONDA_PY", "") }}_{{ environ.get("GIT_BUILD_STR", "") }}
-  number: {{ environ.get("GIT_DESCRIBE_NUMBER", 0) }}
+  string: 'py{{ environ.get("CONDA_PY", "") }}_{{ environ.get("GIT_BUILD_STR", 0) }}'
+  number: '{{ environ.get("GIT_DESCRIBE_NUMBER", 0) }}'
 
 requirements:
   build:
@@ -32,11 +29,11 @@ requirements:
     - menuinst  [win]
   run:
     - python
-    - pycosat
+    - pycosat >=0.6.1
     - pyyaml
     - requests
     - conda-env
-    - menuinst       [win]
+    - menuinst  [win]
 
 test:
   commands:

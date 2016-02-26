@@ -6,359 +6,557 @@ expression expr, we replace it with x and add expr <-> x to the clauses,
 where x is a new variable, and expr <-> x is recursively evaluated in the
 same way, so that the final clauses are ORs of atoms.
 
-To us this, create a new Clauses object with the max var, for instance, if you
+To use this, create a new Clauses object with the max var, for instance, if you
 already have [[1, 2, -3]], you would use C = Clause(3).  All functions return
-a new literal, which represents that function, or true or false, which are
-custom objects defined in this module, which means that the expression is
-identically true or false.. They may also add new clauses to C.clauses, which
-should be added to the clauses of the SAT solver.
+a new literal, which represents that function, or True or False if the expression
+can be resolved fully. They may also add new clauses to C.clauses, which
+will then be delivered to the SAT solver.
 
 All functions take atoms as arguments (an atom is an integer, representing a
-literal or a negated literal, or the true or false objects defined in this
-module), that is, it is the callers' responsibility to do the conversion of
-expressions recursively. This is done because we do not have data structures
+literal or a negated literal, or boolean constants True or False; that is,
+it is the callers' responsibility to do the conversion of expressions
+recursively. This is done because we do not have data structures
 representing the various logical classes, only atoms.
 
 The polarity argument can be set to True or False if you know that the literal
 being used will only be used in the positive or the negative, respectively
-(e.g., you will only use x, not -x).  This will generate fewer clauses.
+(e.g., you will only use x, not -x).  This will generate fewer clauses. It
+is probably best if you do not take advantage of this directly, but rather
+through the Require and Prevent functions.
 
 """
-from collections import defaultdict
 from functools import total_ordering
-from itertools import chain
+from itertools import chain, combinations
+from conda.compat import iteritems, string_types, ceil, log2
 import logging
 import pycosat
 
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
 
-# Custom classes for true and false. Using True and False is too risky, since
-# True == 1, so it might be confused for the literal 1.
-@total_ordering
-class TrueClass(object):
-    def __eq__(self, other):
-        return other is true
-    def __neg__(self):
-        return false
-    def __str__(self):
-        return "true"
-    def __lt__(self, other):
-        return False
-    __repr__ = __str__
-true = TrueClass()
-
-@total_ordering
-class FalseClass(object):
-    def __eq__(self, other):
-        return other is false
-    def __neg__(self):
-        return true
-    def __str__(self):
-        return "false"
-    def __gt__(self, other):
-        return False
-    __repr__ = __str__
-false = FalseClass()
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
-
 class Clauses(object):
-    def __init__(self, MAX_N=0):
+    def __init__(self, m=0):
         self.clauses = []
-        self.MAX_N = MAX_N
+        self.names = {}
+        self.indices = {}
+        self.fixed = {}
+        self.fsize = 0
+        self.unsat = False
+        self.m = m
 
-    def get_new_var(self):
-        self.MAX_N += 1
-        return self.MAX_N
+    def name_var(self, m, name):
+        nname = '!' + name
+        self.names[name] = m
+        self.names[nname] = -m
+        if type(m) is not bool and m not in self.indices:
+            self.indices[m] = name
+            self.indices[-m] = nname
+        return m
 
-    def ITE(self, c, t, f, polarity=None):
+    def new_var(self, name=None):
+        m = self.m + 1
+        self.m = m
+        if name:
+            self.name_var(m, name)
+        return m
+
+    def from_name(self, name):
+        return self.names.get(name)
+
+    def from_index(self, m):
+        return self.indices.get(m)
+
+    def varnum(self, x):
+        return self.names[x] if isinstance(x, string_types) else x
+
+    def Assign_(self, vals, name=None):
+        if type(vals) is tuple:
+            x = self.new_var()
+            self.clauses.extend((-x,) + y for y in vals[0])
+            self.clauses.extend((x,) + y for y in vals[1])
+        else:
+            x = vals
+        return self.name_var(x, name) if name else x
+
+    def Convert_(self, x):
+        if isinstance(x, string_types):
+            return self.names[x]
+        tx = type(x)
+        if tx in (tuple, list):
+            return tx(map(self.Convert_, x))
+        return x
+
+    def Eval_(self, func, args, polarity, name, conv=True):
+        if conv:
+            args = self.Convert_(args)
+        nz = len(self.clauses)
+        vals = func(*args, polarity=polarity)
+        if name is not False:
+            return self.Assign_(vals, name)
+        tvals = type(vals)
+        if tvals is tuple:
+            self.clauses.extend(vals[0])
+            self.clauses.extend(vals[1])
+        elif tvals is not bool:
+            self.clauses.append((vals if polarity else -vals,))
+        else:
+            self.clauses = self.clauses[:nz]
+            self.unsat = self.unsat or polarity != vals
+
+    def Combine_(self, args, polarity):
+        if any(v is False for v in args):
+            return False
+        args = [v for v in args if v is not True]
+        nv = len(args)
+        if nv == 0:
+            return True
+        if nv == 1:
+            return args[0]
+        if all(type(v) is tuple for v in args):
+            return (sum((v[0] for v in args), []), sum((v[1] for v in args), []))
+        else:
+            return self.All_(map(self.Assign_, args), polarity)
+
+    def Prevent(self, what, *args):
+        return what.__get__(self, Clauses)(*args, polarity=False, name=False)
+
+    def Require(self, what, *args):
+        return what.__get__(self, Clauses)(*args, polarity=True, name=False)
+
+    def Not_(self, x, polarity=None):
+        return (not x) if type(x) is bool else -x
+
+    def Not(self, x, polarity=None, name=None):
+        return self.Eval_(self.Not_, (x,), polarity, name)
+
+    def And_(self, f, g, polarity=None):
+        if f is False or g is False:
+            return False
+        if f is True:
+            return g
+        if g is True or f is g:
+            return f
+        if f is -g:
+            return False
+        if g < f:
+            f, g = g, f
+        pval = [(f,), (g,)] if polarity in (True, None) else []
+        nval = [(-f, -g)] if polarity in (False, None) else []
+        return pval, nval
+
+    def And(self, f, g, polarity=None, name=None):
+        return self.Eval_(self.And_, (f, g), polarity, name)
+
+    def Or_(self, f, g, polarity):
+        if f is True or g is True:
+            return True
+        if f is False:
+            return g
+        if g is False or f is g:
+            return f
+        if f is -g:
+            return True
+        if g < f:
+            f, g = g, f
+        pval = [(f, g)] if polarity in (True, None) else []
+        nval = [(-f,), (-g,)] if polarity in (False, None) else []
+        return pval, nval
+
+    def Or(self, f, g, polarity=None, name=None):
+        return self.Eval_(self.Or_, (f, g), polarity, name)
+
+    def Xor_(self, f, g, polarity):
+        if f is False:
+            return g
+        if f is True:
+            return self.Not_(g, polarity)
+        if g is False:
+            return f
+        if g is True:
+            return -f
+        if f is g:
+            return False
+        if f is -g:
+            return True
+        if g < f:
+            f, g = g, f
+        pval = [(f, g), (-f, -g)] if polarity in (True, None) else []
+        nval = [(-f, g), (f, -g)] if polarity in (False, None) else []
+        return pval, nval
+
+    def Xor(self, f, g, polarity=None, name=None):
+        return self.Eval_(self.Xor_, (f, g), polarity, name)
+
+    def ITE_(self, c, t, f, polarity):
+        if c is True:
+            return t
+        if c is False:
+            return f
+        if t is True or t is c:
+            return self.Or_(c, f, polarity)
+        if t is False or t is -c:
+            return self.And_(-c, f, polarity)
+        if f is False or f is c:
+            return self.And_(c, t, polarity)
+        if f is True or f is -c:
+            return self.Or_(t, -c, polarity)
+        if t is f:
+            return t
+        if t is -f:
+            return self.Xor_(c, f, polarity)
+        if t < f:
+            t, f, c = f, t, -c
+        # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
+        # The third clause in each group is redundant but assists the unit
+        # propagation in the SAT solver.
+        pval = [(-c, t), (c, f), (t, f)] if polarity in (True, None) else []
+        nval = [(-c, -t), (c, -f), (-t, -f)] if polarity in (False, None) else []
+        return pval, nval
+
+    def ITE(self, c, t, f, polarity=None, name=None):
         """
         if c then t else f
 
         In this function, if any of c, t, or f are True and False the resulting
         expression is resolved.
         """
-        if c == true:
-            return t
-        if c == false:
-            return f
-        if t == f:
-            return t
-        if t == -f:
-            return self.Xor(c, f, polarity=polarity)
-        if t == false or t == -c:
-            return self.And(-c, f, polarity=polarity)
-        if t == true or t == c:
-            return self.Or(c, f)
-        if f == false or f == c:
-            return self.And(c, t, polarity=polarity)
-        if f == true or f == -c:
-            return self.Or(t, -c)
+        return self.Eval_(self.ITE_, (c, t, f), polarity, name)
 
-        if t < f:
-            t, f = f, t
-            c = -c
+    def All_(self, iter, polarity=None):
+        vals = set()
+        for v in iter:
+            if v is True:
+                continue
+            if v is False or -v in vals:
+                return False
+            vals.add(v)
+        nv = len(vals)
+        if nv == 0:
+            return True
+        elif nv == 1:
+            return next(v for v in vals)
+        pval = [(v,) for v in vals] if polarity in (True, None) else []
+        nval = [tuple(-v for v in vals)] if polarity in (False, None) else []
+        return pval, nval
 
-        # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
-        x = self.get_new_var()
-        # "Red" clauses are redundant, but they assist the unit propagation in the
-        # SAT solver
-        if polarity in {False, None}:
-            self.clauses.extend((
-                # Negative
-                (-c, -t, x),
-                (c, -f, x),
-                (-t, -f, x), # Red
-                ))
-        if polarity in {True, None}:
-            self.clauses.extend((
-                # Positive
-                (-c, t, -x),
-                (c, f, -x),
-                (t, f, -x), # Red
-                ))
+    def All(self, iter, polarity=None, name=None):
+        return self.Eval_(self.All_, (iter,), polarity, name)
 
-        return x
+    def Any_(self, iter, polarity):
+        vals = set()
+        for v in iter:
+            if v is False:
+                continue
+            elif v is True or -v in vals:
+                return True
+            vals.add(v)
+        nv = len(vals)
+        if nv == 0:
+            return False
+        elif nv == 1:
+            return next(v for v in vals)
+        pval = [tuple(vals)] if polarity in (True, None) else []
+        nval = [(-v,) for v in vals] if polarity in (False, None) else []
+        return pval, nval
 
-    def And(self, f, g, polarity=None):
-        if f == false or g == false:
-            return false
-        if f == true:
-            return g
-        if g == true:
-            return f
-        if f == g:
-            return f
-        if f == -g:
-            return false
+    def Any(self, vals, polarity=None, name=None):
+        return self.Eval_(self.Any_, (list(vals),), polarity, name)
 
-        # if g < f:
-        #     swap(f, g)
+    def AtMostOne_NSQ_(self, vals, polarity):
+        combos = []
+        for v1, v2 in combinations(map(self.Not_, vals), 2):
+            combos.append(self.Or_(v1, v2, polarity))
+        return self.Combine_(combos, polarity)
 
-        if g < f:
-            f, g = g, f
+    def AtMostOne_NSQ(self, vals, polarity=None, name=None):
+        return self.Eval_(self.AtMostOne_NSQ_, (list(vals),), polarity, name)
 
-        x = self.get_new_var()
-        if polarity in {True, None}:
-            self.clauses.extend((
-                # positive
-                # ~f -> ~x, ~g -> ~x
-                (-x, f),
-                (-x, g),
-                ))
-        if polarity in {False, None}:
-            self.clauses.append(
-            # negative
-            # (f AND g) -> x
-            (x, -f, -g),
-            )
+    def AtMostOne_BDD_(self, vals, polarity=None, name=None):
+        vals = [(1, v) for v in vals]
+        return self.LinearBound_(vals, 0, 1, True, polarity)
 
-        return x
+    def AtMostOne_BDD(self, vals, polarity=None, name=None):
+        return self.Eval_(self.AtMostOne_BDD_, (list(vals),), polarity, name)
 
-    def Or(self, f, g, polarity=None):
-        if polarity is not None:
-            polarity = not polarity
-        return -self.And(-f, -g, polarity=polarity)
+    def AtMostOne(self, vals, polarity=None, name=None):
+        vals = list(vals)
+        nv = len(vals)
+        if nv < 5 - (polarity is not True):
+            what = self.AtMostOne_NSQ
+        else:
+            what = self.AtMostOne_BDD
+        return self.Eval_(what, (vals,), polarity, name)
 
-    def Xor(self, f, g, polarity=None):
-        # Minisatp treats XOR as NOT EQUIV
-        if f == false:
-            return g
-        if f == true:
-            return -g
-        if g == false:
-            return f
-        if g == true:
-            return -f
-        if f == g:
-            return false
-        if f == -g:
-            return true
+    def ExactlyOne_NSQ_(self, vals, polarity):
+        vals = list(vals)
+        v1 = self.AtMostOne_NSQ_(vals, polarity)
+        v2 = self.Any_(vals, polarity)
+        return self.Combine_((v1, v2), polarity)
 
-        # if g < f:
-        #     swap(f, g)
+    def ExactlyOne_NSQ(self, vals, polarity=None, name=None):
+        return self.Eval_(self.ExactlyOne_NSQ_, (list(vals),), polarity, name)
 
-        if g < f:
-            f, g = g, f
+    def ExactlyOne_BDD_(self, vals, polarity):
+        vals = [(1, v) for v in vals]
+        return self.LinearBound_(vals, 1, 1, True, polarity)
 
-        x = self.get_new_var()
-        if polarity in {True, None}:
-            self.clauses.extend((
-                # Positive
-                (-x, f, g),
-                (-x, -f, -g),
-            ))
-        if polarity in {False, None}:
-            self.clauses.extend((
-                # Negative
-                (x, -f, g),
-                (x, f, -g),
-            ))
-        return x
+    def ExactlyOne_BDD(self, vals, polarity=None, name=None):
+        return self.Eval_(self.ExactlyOne_BDD_, (list(vals),), polarity, name)
 
-    def build_BDD(self, equation, lo, hi, polarity=None):
+    def ExactlyOne(self, vals, polarity=None, name=None):
+        vals = list(vals)
+        nv = len(vals)
+        if nv < 2:
+            what = self.ExactlyOne_NSQ
+        else:
+            what = self.ExactlyOne_BDD
+        return self.Eval_(what, (vals,), polarity, name)
+
+    def LB_Preprocess_(self, equation):
+        if type(equation) is dict:
+            equation = [(c, self.varnum(a)) for a, c in iteritems(equation)]
+        if any(c <= 0 or type(a) is bool for c, a in equation):
+            offset = sum(c for c, a in equation if a is True or a is not False and c <= 0)
+            equation = [(c, a) if c > 0 else (-c, -a) for c, a in equation
+                        if type(a) is not bool and c]
+        else:
+            offset = 0
         equation = sorted(equation)
-        total = sum(i for i,_ in equation)
-        first_stack = (len(equation)-1,0,total)
-        call_stack = [first_stack]
-        ret = {}
-        csum = 0
-        while call_stack:
-            ndx, csum, total = call_stack[-1]
-            lower_limit = lo - csum
-            upper_limit = hi - csum
-            if lower_limit <= 0 and upper_limit >= total:
-                ret[call_stack.pop()] = true
-                continue
-            if lower_limit > total or upper_limit < 0:
-                ret[call_stack.pop()] = false
-                continue
-            LC, LA = equation[ndx]
-            ndx -= 1
-            total -= LC
-            hi_key = (ndx,csum if LA < 0 else csum + LC,total)
-            thi = ret.get(hi_key)
-            if thi is None:
-                call_stack.append(hi_key)
-                continue
-            lo_key = (ndx,csum + LC if LA < 0 else csum,total)
-            tlo = ret.get(lo_key)
-            if tlo is None:
-                call_stack.append(lo_key)
-                continue
-            ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity=polarity)
-        return ret[first_stack]
+        return equation, offset
+
+    def LinearBound_(self, equation, lo, hi, preprocess, polarity):
+        if preprocess:
+            equation, offset = self.LB_Preprocess_(equation)
+            lo -= offset
+            hi -= offset
+        nterms = len(equation)
+        if nterms and equation[-1][0] > hi:
+            nprune = sum(c > hi for c, a in equation)
+            log.debug('Eliminating %d/%d terms for bound violation' % (nprune, nterms))
+            nterms -= nprune
+        else:
+            nprune = 0
+        # Tighten bounds
+        if preprocess:
+            lo = max([lo, 0])
+            hi = min([hi, sum(c for c, a in equation[:nterms])])
+        if lo > hi:
+            return False
+        if nterms == 0:
+            res = lo == 0
+        else:
+            # The equation is sorted in order of increasing coefficients.
+            # Then we take advantage of the following recurrence:
+            #                l      <= S + cN xN <= u
+            #  => IF xN THEN l - cN <= S         <= u - cN
+            #           ELSE l      <= S         <= u
+            # we use memoization to prune common subexpressions
+            total = sum(i for i, _ in equation)
+            target = (nterms-1, 0, total)
+            call_stack = [target]
+            ret = {}
+            csum = 0
+            while call_stack:
+                ndx, csum, total = call_stack[-1]
+                lower_limit = lo - csum
+                upper_limit = hi - csum
+                if lower_limit <= 0 and upper_limit >= total:
+                    ret[call_stack.pop()] = True
+                    continue
+                if lower_limit > total or upper_limit < 0:
+                    ret[call_stack.pop()] = False
+                    continue
+                LC, LA = equation[ndx]
+                ndx -= 1
+                total -= LC
+                hi_key = (ndx, csum if LA < 0 else csum + LC, total)
+                thi = ret.get(hi_key)
+                if thi is None:
+                    call_stack.append(hi_key)
+                    continue
+                lo_key = (ndx, csum + LC if LA < 0 else csum, total)
+                tlo = ret.get(lo_key)
+                if tlo is None:
+                    call_stack.append(lo_key)
+                    continue
+                ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
+            res = ret[target]
+        if nprune:
+            prune = self.All_([-a for c, a in equation[nterms:]], polarity)
+            res = self.Combine_((res, prune), polarity)
+        return res
+
+    def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
+        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
+                          polarity, name, conv=False)
+
+    def sat(self, additional=None, includeIf=False, names=False, limit=0):
+        """
+        Calculate a SAT solution for the current clause set.
+
+        Returned is the list of those solutions.  When the clauses are
+        unsatisfiable, an empty list is returned.
+
+        """
+        if self.unsat:
+            return None
+        if additional:
+            additional = list(map(lambda x: tuple(map(self.varnum, x)), additional))
+            clauses = chain(self.clauses, additional)
+        else:
+            clauses = self.clauses
+        solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
+        if solution in ("UNSAT", "UNKNOWN"):
+            return None
+        if len(solution) < self.m:
+            solution.extend(k for k in range(len(solution), self.m+1))
+        if additional and includeIf:
+            self.clauses.extend(additional)
+        if names:
+            return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
+        return solution
+
+    def itersolve(self, constraints=None, m=None):
+        if constraints is None:
+            constraints = []
+        exclude = []
+        if m is None:
+            m = self.m
+        while True:
+            # We don't use pycosat.itersolve because it is more
+            # important to limit the number of terms added to the
+            # exclusion list, in our experience. Once we update
+            # pycosat to do this, this can use it.
+            sol = self.sat(chain(constraints, exclude))
+            if sol is None:
+                return
+            yield sol
+            exclude.append([-k for k in sol if -m <= k <= m])
+
+    def scan_fixed(self):
+        if len(self.clauses) == self.fsize:
+            return
+        fx = self.fixed
+        nfx = ofx = len(fx) // 2
+        onc = self.fsize
+        otot = len(self.clauses)
+        singletons = self.clauses[:ofx]
+        oclauses = self.clauses[ofx:onc]
+        nclauses = self.clauses[onc:]
+        simp = False
+        while True:
+            clause2 = []
+            for clause in nclauses:
+                nc = len(clause)
+                if nc > 1 and any(c in fx for c in clause):
+                    simp = True
+                    if any(fx.get(c) for c in clause):
+                        continue
+                    clause = [c for c in clause if c not in fx]
+                    nc = len(clause)
+                if nc == 1:
+                    c = clause[0]
+                    if c in fx:
+                        self.unsat = self.unsat or fx[c] == 0
+                        continue
+                    fx[c] = 1
+                    fx[-c] = 0
+                    singletons.append((c,))
+                else:
+                    clause2.append(tuple(clause))
+            nclauses = clause2
+            if len(singletons) == nfx:
+                break
+            nfx = len(singletons)
+            nclauses = oclauses + nclauses
+            oclauses = []
+        if simp:
+            self.clauses = singletons + oclauses + nclauses
+            self.lfixed = len(self.clauses)
+            log.debug('Pruning: %d -> %d singletons, %d -> %d complex' %
+                      (ofx, len(singletons), otot - ofx, len(oclauses) + len(nclauses)))
+
+    def minimize(self, objective, bestsol, minval=None, increment=100):
+        """
+        Bisect the solution space of a constraint, to minimize it.
+
+        func should be a function that is called with the arguments func(lo_rhs,
+        hi_rhs) and returns a list of constraints.
+
+        The midpoint of the bisection will not be more than lo_value + increment.
+        To not use it, set a very large increment. The increment argument should
+        be used if you expect the optimal solution to be near 0.
+
+        """
+        if not objective:
+            log.debug('Empty objective, trivial solution')
+            return bestsol, 0
+
+        if type(objective) is dict:
+            odict = {self.varnum(k): v for k, v in iteritems(objective)}
+            objective = [(v, k) for k, v in iteritems(odict)]
+        else:
+            odict = {self.varnum(atom): coeff for coeff, atom in objective}
+
+        objective, offset = self.LB_Preprocess_(objective)
+        minval = minval and minval - offset
+
+        if self.unsat:
+            log.debug('Constraints are unsatisfiable')
+            return bestsol, sum(objective) + offset + 1
+
+        m_orig = bestm = self.m
+        nz = len(self.clauses)
+        bestval = evaluate_eq(odict, bestsol)
+
+        # If we got lucky and the initial solution is optimal, we still
+        # need to generate the constraints at least once
+        try0 = lo = min([bestval, max([0, minval]) if minval else 0])
+        mval = sum(c for c, a in objective)
+        hi = bestval
+
+        log.debug("Initial range (%d,%d)" % (lo, hi))
+        while True:
+            if try0 is None:
+                mid = min([lo + increment, (lo+hi)//2])
+            else:
+                mid = try0
+                try0 = None
+            self.Require(self.LinearBound, objective, lo, mid, False)
+            log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
+                      (lo, mid, nz, len(self.clauses)-nz))
+            newsol = self.sat()
+            if newsol is None:
+                log.debug("Bisection failure")
+                lo = mid + 1
+            else:
+                done = lo == hi
+                bestsol = newsol
+                bestval = evaluate_eq(odict, newsol)
+                hi = bestval
+                log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
+                if done:
+                    break
+            self.m = m_orig
+            if len(self.clauses) > nz:
+                self.clauses = self.clauses[:nz]
+            self.unsat = False
+
+        return newsol, bestval
+
 
 def evaluate_eq(eq, sol):
-    """
-    Evaluate an equation at a solution
-    """
-    atom2coeff = defaultdict(int, {atom: coeff for coeff, atom in eq})
-    t = 0
-    for s in sol:
-        t += atom2coeff[s]
-    return t
+    if type(eq) is not dict:
+        eq = {c: v for v, c in eq if type(c) is not bool}
+    return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
 
-def generate_constraints(eq, m, rhs):
-    # If a coefficient is larger than rhs then we know it has to be
-    # set to zero. That's a lot quicker than building it into the adder
-    ub = rhs[-1]
-    C = Clauses(m)
-    C.clauses.extend((-a,) for c,a in eq if c>ub)
-    nz = len(C.clauses)
-    if nz < len(eq):
-        eq = [q for q in eq if q[0]<=rhs[1]]
-        res = C.build_BDD(eq, rhs[0], rhs[1], polarity=True)
-        if res is false:
-            # Impossible to satisfy, so just stuff a contradiciton in there
-            return [(m,),(-m,)]
-        elif res is true:
-            return []
-        else:
-            C.clauses.append((res,))
-    return C.clauses
 
-try:
-    pycosat.itersolve({(1,)})
-    pycosat_prep = False
-except TypeError:
-    pycosat_prep = True
-
-def sat(clauses, iterator=False):
-    """
-    Calculate a SAT solution for `clauses`.
-
-    Returned is the list of those solutions.  When the clauses are
-    unsatisfiable, an empty list is returned.
-
-    """
-    if pycosat_prep:
-        clauses = list(map(list,clauses))
-    if iterator:
-        return pycosat.itersolve(clauses)
-    solution = pycosat.solve(clauses)
-    if solution == "UNSAT" or solution == "UNKNOWN":
-        return None
-    return solution
-
-def optimize(objective, clauses, bestsol, minval=None, maxval=None,
-    maximize=False, increment=10, trybest=True, tryworst=False):
-    """
-    Bisect the solution space of a constraint, to minimize or maximize it.
-
-    func should be a function that is called with the arguments func(lo_rhs,
-    hi_rhs) and returns a list of constraints.
-
-    The midpoint of the bisection will not be more than lo_value + increment.
-    To not use it, set a very large increment. The increment argument should
-    be used if you expect the optimal solution to be near 0.
-
-    """
-    if not objective:
-        log.debug('Empty objective, trivial solution')
-        return clauses, bestsol, 0
-
-    m = len(bestsol)
-    bestcon = []
-    bestval = evaluate_eq(objective, bestsol)
-
-    # If we got lucky and the initial solution is optimal, we still
-    # need to generate the constraints at least once
-    try0 = None
-    if maximize:
-        hi = sum(c for c,_ in objective)
-        hi = max([bestval, min([hi, maxval]) if maxval else hi])
-        lo = bestval
-    else:
-        lo = min([bestval, max([0,minval]) if minval else 0])
-        hi = bestval
-    if lo == hi:
-        try0 = lo
-    elif tryworst:
-        try0 = lo + 1 if maximize else hi - 1
-    elif trybest:
-        try0 = hi if maximize else lo
-    else:
-        try0 = None
-
-    log.debug("Initial range (%d,%d,%d)"%(lo,bestval,hi))
-    while True:
-        if try0 is None:
-            incr = min([increment,(hi-lo)//2])
-            mid = hi - incr if maximize else lo + incr
-        else:
-            mid = try0
-            try0 = None
-        rhs = (mid, hi) if maximize else (lo, mid)
-        constraints = generate_constraints(objective, m, rhs)
-        newsol = sat(chain(clauses,constraints))
-        if newsol is None:
-            log.debug("Bisection range %s: failure" % (rhs,))
-            if maximize:
-                hi = mid - 1
-            else:
-                lo = mid + 1
-        else:
-            bestcon = constraints
-            bestsol = newsol
-            bestval = evaluate_eq(objective, newsol)
-            if maximize:
-                lo = mid
-            else:
-                hi = mid
-            log.debug("Bisection range %s: success, new best=%s" % (rhs,bestval))
-            if lo == hi:
-                break
-    return clauses + bestcon, bestsol, bestval
-
-class MaximumIterationsError(Exception):
-    pass
-
-def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
+def minimal_unsatisfiable_subset(clauses, sat, log=False):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
@@ -403,9 +601,9 @@ def minimal_unsatisfiable_subset(clauses, sat=sat, log=False):
         update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
         stop = lambda: logging.getLogger('progress.stop').info(None)
     else:
-        start = lambda x: None
-        update = lambda x, y: None
-        stop = lambda: None
+        start = lambda x: None  # noqa
+        update = lambda x, y: None  # noqa
+        stop = lambda: None  # noqa
 
     clauses = tuple(clauses)
     if sat(clauses):
