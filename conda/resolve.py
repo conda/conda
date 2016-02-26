@@ -693,6 +693,7 @@ class Resolve(object):
     def dependency_sort(self, must_have):
         def lookup(value):
             return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
+        log.debug('Sorting:%s' % dashlist(must_have))
         digraph = {}
         for key, value in iteritems(must_have):
             depends = lookup(value)
@@ -921,6 +922,7 @@ class Resolve(object):
             nsol = 1
             psolutions = []
             psolution = clean(solution)
+            log.debug('Solution:%s' % dashlist(psolution))
             psolutions.append(psolution)
             while True:
                 nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
