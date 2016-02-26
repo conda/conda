@@ -16,14 +16,13 @@ install:
   - conda install flake8 pytest mock
   - conda install pip
   - pip install pytest-cov radon
-  - python setup.py install
 
 script:
   - py.test --cov conda --cov-report xml tests
   - radon cc --ignore "build,tests,ve,_vendor,progressbar" --no-assert -nb --total-average -s conda
   - radon mi --ignore "build,tests,ve,_vendor,progressbar" -na -m -s conda
   - flake8 --exit-zero --statistics
-  - conda --help
+  - bash tests/integration.bash
 
 sudo: false
 
