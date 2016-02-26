@@ -22,9 +22,7 @@ script:
   - radon cc --ignore "build,tests,ve,_vendor,progressbar" --no-assert -nb --total-average -s conda
   - radon mi --ignore "build,tests,ve,_vendor,progressbar" -na -m -s conda
   - flake8 --exit-zero --statistics
-  - if [[ $PY_VERSION = 3.5 ]]; then
-        ./tests/run-integration
-    fi
+  - "[[ $PY_VERSION = 3.5 ]] || ./tests/run-integration"
 
 sudo: false
 
