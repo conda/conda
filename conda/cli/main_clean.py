@@ -12,13 +12,6 @@ from collections import defaultdict
 from os.path import join, getsize, isdir
 from os import lstat, walk, listdir
 
-try:
-    import ctypes
-    from ctypes import POINTER, WinError
-    from ctypes.wintypes import DWORD, HANDLE, BOOL
-except ImportError:
-    pass
-    
 from conda.cli import common
 import conda.config as config
 from conda.utils import human_bytes
@@ -75,62 +68,91 @@ def configure_parser(sub_parsers):
 # work-around for python bug on Windows prior to python 3.2
 # https://bugs.python.org/issue10027
 # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-try:
-    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
-    CreateFile = ctypes.windll.kernel32.CreateFileW
-    CreateFile.argtypes = [ctypes.c_wchar_p, DWORD, DWORD, ctypes.c_void_p,
-                        DWORD, DWORD, HANDLE]
-    CreateFile.restype = HANDLE
-
-    # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
-    CloseHandle = ctypes.windll.kernel32.CloseHandle
-    CloseHandle.argtypes = [HANDLE]
-    CloseHandle.restype = BOOL
-
-    class FILETIME(ctypes.Structure):
-        _fields_ = [("dwLowDateTime", DWORD),
-                    ("dwHighDateTime", DWORD)]
-
-    class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
-        _fields_ = [("dwFileAttributes", DWORD),
-                    ("ftCreationTime", FILETIME),
-                    ("ftLastAccessTime", FILETIME),
-                    ("ftLastWriteTime", FILETIME),
-                    ("dwVolumeSerialNumber", DWORD),
-                    ("nFileSizeHigh", DWORD),
-                    ("nFileSizeLow", DWORD),
-                    ("nNumberOfLinks", DWORD),
-                    ("nFileIndexHigh", DWORD),
-                    ("nFileIndexLow", DWORD)]
-
-    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
-    GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
-    GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
-    GetFileInformationByHandle.restype = BOOL
-except Exception:
-    pass
-
-
-def cross_platform_st_nlink(path):
-    stat = lstat(path)
-    if os.name != 'nt' or stat.st_nlink != 0:
-        return stat.st_nlink
-    # cannot trust python on Windows when st_nlink == 0
-    # get value using windows libraries to be sure of its true value
-    # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-    GENERIC_READ = 0x80000000
-    FILE_SHARE_READ = 0x00000001
-    OPEN_EXISTING = 3
-    hfile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None, OPEN_EXISTING, 0, None)
-    if hfile is None:
-        raise WinError()
-    info = BY_HANDLE_FILE_INFORMATION()
-    rv = GetFileInformationByHandle(hfile, info)
-    CloseHandle(hfile)
-    if rv == 0:
-        raise WinError()
-    return info.nNumberOfLinks
+class CrossPlatformStLink(object):
+    _st_nlink = None
     
+    def __call__(self, path):
+        return self.st_nlink(path)
+
+    @classmethod
+    def st_nlink(cls, path):
+        if cls._st_nlink is None:
+            cls._initialize()
+        return cls._st_nlink(path)
+
+    @classmethod
+    def _standard_st_nlink(cls, path):
+        return lstat(path).st_nlink
+
+    @classmethod
+    def _windows_st_nlink(cls, path):
+        st_nlink = cls._standard_st_nlink(path)
+        if st_nlink != 0:
+            return st_nlink
+        else:
+            # cannot trust python on Windows when st_nlink == 0
+            # get value using windows libraries to be sure of its true value
+            # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
+            GENERIC_READ = 0x80000000
+            FILE_SHARE_READ = 0x00000001
+            OPEN_EXISTING = 3
+            hfile = cls.CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None, 
+                                   OPEN_EXISTING, 0, None)
+            if hfile is None:
+                from ctypes import WinError
+                raise WinError()
+            info = cls.BY_HANDLE_FILE_INFORMATION()
+            rv = cls.GetFileInformationByHandle(hfile, info)
+            cls.CloseHandle(hfile)
+            if rv == 0:
+                from ctypes import WinError
+                raise WinError()
+            return info.nNumberOfLinks
+
+    @classmethod
+    def _initialize(cls):
+        if os.name != 'nt':
+            cls._st_nlink = cls._standard_st_nlink
+        else:
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
+            import ctypes
+            from ctypes import POINTER, WinError
+            from ctypes.wintypes import DWORD, HANDLE, BOOL
+
+            cls.CreateFile = ctypes.windll.kernel32.CreateFileW
+            cls.CreateFile.argtypes = [ctypes.c_wchar_p, DWORD, DWORD, ctypes.c_void_p,
+                                       DWORD, DWORD, HANDLE]
+            cls.CreateFile.restype = HANDLE
+
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
+            cls.CloseHandle = ctypes.windll.kernel32.CloseHandle
+            cls.CloseHandle.argtypes = [HANDLE]
+            cls.CloseHandle.restype = BOOL
+
+            class FILETIME(ctypes.Structure):
+                _fields_ = [("dwLowDateTime", DWORD),
+                            ("dwHighDateTime", DWORD)]
+
+            class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
+                _fields_ = [("dwFileAttributes", DWORD),
+                            ("ftCreationTime", FILETIME),
+                            ("ftLastAccessTime", FILETIME),
+                            ("ftLastWriteTime", FILETIME),
+                            ("dwVolumeSerialNumber", DWORD),
+                            ("nFileSizeHigh", DWORD),
+                            ("nFileSizeLow", DWORD),
+                            ("nNumberOfLinks", DWORD),
+                            ("nFileIndexHigh", DWORD),
+                            ("nFileIndexLow", DWORD)]
+            cls.BY_HANDLE_FILE_INFORMATION = BY_HANDLE_FILE_INFORMATION
+
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
+            cls.GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
+            cls.GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
+            cls.GetFileInformationByHandle.restype = BOOL
+            
+            cls._st_nlink = cls._windows_st_nlink
+
 
 def find_lock():
     from os.path import join
@@ -231,7 +253,8 @@ def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
-
+    
+    cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in config.pkgs_dirs:
         if not os.path.exists(pkgs_dir):
