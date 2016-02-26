@@ -43,7 +43,13 @@ def get_index(channel_urls=(), prepend=True, platform=None,
                        unknown=unknown)
     if prefix:
         for fn, info in iteritems(install.linked_data(prefix)):
-            index[fn+'.tar.bz2'] = info
+            fn = fn + '.tar.bz2'
+            orec = index.get(fn)
+            if orec is not None:
+                if orec.get('md5',None) == info.get('md5',None):
+                    continue
+                info.setdefault('depends',orec.get('depends',[]))
+            index[fn] = info
     return index
 
 
@@ -58,8 +64,13 @@ def app_get_index(all_version=False):
     By default only the latest version of each app is included in the result,
     unless all_version is set to True.
     """
+    import sys
+    pyxx = 'py%d%d' % sys.version_info[:2]
+    def filter_build(build):
+        return bool(pyxx in build) if 'py' in build else True
+
     index = {fn: info for fn, info in iteritems(get_index())
-             if info.get('type') == 'app'}
+             if info.get('type') == 'app' and filter_build(info['build'])}
     if all_version:
         return index
 
