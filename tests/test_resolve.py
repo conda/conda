@@ -331,6 +331,7 @@ def test_unsat():
     assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
 
 def test_nonexistent():
+    assert raises(NoPackagesFound, lambda: r.get_pkgs('notarealpackage 2.0*'))
     assert raises(NoPackagesFound, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
     assert raises(NoPackagesFound, lambda: r.install(['numpy 1.5']))
@@ -788,6 +789,7 @@ def test_broken_install():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
     installed[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
+    installed.append('notarealpackage-2.0-0.tar.bz2')
     installed2 = r.install([], installed)
     assert installed2 == [
         'dateutil-2.1-py27_1.tar.bz2',
@@ -802,7 +804,8 @@ def test_broken_install():
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']
+        'zlib-1.2.7-0.tar.bz2',
+        'notarealpackage-2.0-0.tar.bz2']
     installed3 = r.remove(['pandas'], installed)
     assert installed3 == [
         'dateutil-2.1-py27_1.tar.bz2',
@@ -816,7 +819,8 @@ def test_broken_install():
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']
+        'zlib-1.2.7-0.tar.bz2',
+        'notarealpackage-2.0-0.tar.bz2']
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
