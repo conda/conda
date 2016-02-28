@@ -154,6 +154,11 @@ def test_AMONE():
     my_TEST(my_AMONE, Clauses.AtMostOne_NSQ, 0,3, True)
     my_TEST(my_AMONE, Clauses.AtMostOne_BDD, 0,3, True)
     my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
+    C1 = Clauses(10)
+    x1 = C1.AtMostOne_BDD((1,2,3,4,5,6,7,8,9,10))
+    C2 = Clauses(10)
+    x2 = C2.AtMostOne((1,2,3,4,5,6,7,8,9,10))
+    assert x1 == x2 and C1.clauses == C2.clauses
 
 def test_XONE():
     my_TEST(my_XONE, Clauses.ExactlyOne_NSQ, 0,3, True)
@@ -216,18 +221,31 @@ def test_LinearBound():
             assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
 
 def test_sat():
-    assert Clauses(1).sat([[1]]) == [1]
-    assert Clauses(1).sat([[1],[-1]]) is None
-    assert Clauses(1).sat([]) in ([1],[-1])
-    assert len(Clauses(10).sat([[1]])) == 10
-    C = Clauses(1)
-    C.unsat = True
-    return C.sat() is None
-    C.unsat = False
+    C = Clauses()
     C.new_var('x1')
     C.new_var('x2')
-    assert 'x1' in set(C.sat([(1,)], names=True))
-    assert 'x1' not in set(C.sat([(-1,)], names=True))
+    assert C.sat([(+1,),(+2,)], names=True) == {'x1','x2'}
+    assert C.sat([(-1,),(+2,)], names=True) == {'x2'}
+    assert C.sat([(-1,),(-2,)], names=True) == set()
+    assert C.sat([(+1,),(-1,)], names=True) is None
+    C.unsat = True
+    assert C.sat() is None
+    assert len(Clauses(10).sat([[1]])) == 10
+
+def test_minimize():
+    # minimize    x1 + 2 x2 + 3 x3 + ... + 10 x10
+    # subject to  x1 + x2 + x3 + x4 + x5  == 1
+    #             x6 + x7 + x8 + x9 + x10 == 1
+    C = Clauses(10)
+    C.Require(C.ExactlyOne, range(1,6))
+    C.Require(C.ExactlyOne, range(6,11))
+    objective = [(k,k) for k in range(1,11)]
+    sol = C.sat()
+    C.unsat = True
+    assert C.minimize(objective, sol)[1] == 56
+    C.unsat = False
+    sol2, sval = C.minimize(objective, sol)
+    assert C.minimize(objective, sol)[1] == 7, (objective, sol2, sval)
 
 def test_minimal_unsatisfiable_subset():
     def sat(val):
