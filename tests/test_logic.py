@@ -2,7 +2,7 @@ from itertools import combinations, permutations, product
 
 from conda.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
 from tests.helpers import raises
-from conda.compat import string_types
+from conda.compat import string_types, iteritems
 
 # These routines implement logical tests with short-circuiting
 # and propogation of unknown values:
@@ -116,16 +116,16 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 assert Cpos.unsat == (not tsol) and not Cpos.clauses, (ij, 'Require(%s)')
                 assert Cneg.unsat == tsol and not Cneg.clauses, (ij, 'Prevent(%s)')
                 continue
-            for sol in C.itersolve([(x,)],m):
+            for sol in C.itersolve([(x,)]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is True, (ij2, sol, Cfunc.__name__, C.clauses)
-            for sol in Cpos.itersolve([],m):
+            for sol in Cpos.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is True, (ij, sol,'Require(%s)' % Cfunc.__name__, Cpos.clauses)
-            for sol in C.itersolve([(C.Not(x),)],m):
+            for sol in C.itersolve([(C.Not(x),)]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is False, (ij2, sol, Cfunc.__name__, C.clauses)
-            for sol in Cneg.itersolve([],m):
+            for sol in Cneg.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is False, (ij, sol,'Prevent(%s)' % Cfunc.__name__, Cneg.clauses)
 
@@ -164,10 +164,10 @@ def test_LinearBound():
     L = [
         ([], [0, 1], True),
         ([], [1, 2], False),
-        ([(2, 1), (2, 2)], [3, 3], False),
-        ([(2, 1), (2, 2)], [0, 1], 1000),
-        ([(1, 1), (2, 2)], [0, 2], 1000),
-        ([(1, 1), (2, -2)], [0, 2], 1000),
+        ({'x1':2, 'x2':2}, [3, 3], False),
+        ({'x1':2, 'x2':2}, [0, 1], 1000),
+        ({'x1':1, 'x2':2}, [0, 2], 1000),
+        ({'x1':2, '!x2':2}, [0, 2], 1000),
         ([(1, 1), (2, 2), (3, 3)], [3, 3], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7)], [0, 2], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7), 
@@ -182,10 +182,22 @@ def test_LinearBound():
           (12, 54)], [192, 204], 100),
         ]
     for eq, rhs, max_iter in L:
-        N = max([0]+[a for c,a in eq if a is not True and a is not False])
+        if isinstance(eq, dict):
+            N = len(eq)
+        else:
+            N = max([0]+[a for c,a in eq if a is not True and a is not False])
         C = Clauses(N)
         Cpos = Clauses(N)
         Cneg = Clauses(N)
+        if isinstance(eq, dict):
+            for k in range(1,N+1):
+                nm = 'x%d'%k
+                C.name_var(k, nm)
+                Cpos.name_var(k, nm)
+                Cneg.name_var(k, nm)
+            eq2 = [(v,C.from_name(c)) for c,v in iteritems(eq)]
+        else:
+            eq2 = eq
         x = C.LinearBound(eq, rhs[0], rhs[1])
         Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
         Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
@@ -195,20 +207,27 @@ def test_LinearBound():
             assert Cneg.unsat == max_iter and not Cneg.clauses, (ij, 'Prevent(%s)')
             continue
         for _, sol in zip(range(max_iter), C.itersolve([(x,)],N)):
-            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], C.clauses
+            assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], C.clauses
         for _, sol in zip(range(max_iter), C.itersolve([(C.Not(x),)],N)):
-            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), C.clauses
+            assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), C.clauses
         for _, sol in zip(range(max_iter), Cpos.itersolve([],N)):
-            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], ('Cpos',Cpos.clauses)
+            assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], ('Cpos',Cpos.clauses)
         for _, sol in zip(range(max_iter), Cneg.itersolve([],N)):
-            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
+            assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
 
 def test_sat():
-    def sat(val, m=1):
-        return Clauses(m).sat(val)
-    assert sat([[1]]) == [1]
-    assert sat([[1], [-1]]) is None
-    assert sat([]) in ([1],[-1])
+    assert Clauses(1).sat([[1]]) == [1]
+    assert Clauses(1).sat([[1],[-1]]) is None
+    assert Clauses(1).sat([]) in ([1],[-1])
+    assert len(Clauses(10).sat([[1]])) == 10
+    C = Clauses(1)
+    C.unsat = True
+    return C.sat() is None
+    C.unsat = False
+    C.new_var('x1')
+    C.new_var('x2')
+    assert 'x1' in set(C.sat([(1,)], names=True))
+    assert 'x1' not in set(C.sat([(-1,)], names=True))
 
 def test_minimal_unsatisfiable_subset():
     def sat(val):
