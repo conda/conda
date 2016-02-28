@@ -801,25 +801,25 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
-        bad_specs = self.bad_installed(installed, specs)
+        use_pkgs = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
             assert pkg in self.index
             name, version, build = self.package_triple(pkg)
             if name in snames:
                 continue
+            if use_pkgs and name not in use_pkgs:
+                preserve.append(pkg)
+                continue
             # If update_deps=True, set the target package in MatchSpec so that
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
-            need_help = name in bad_specs
-            if need_help:
-                preserve.append(pkg)
-            if update_deps or need_help:
-                spec = MatchSpec(name, target=pkg, optional=need_help)
+            if update_deps:
+                spec = MatchSpec(name, target=pkg)
             else:
                 spec = MatchSpec(' % s %s %s' % (name, version, build))
             specs.append(spec)
-        return specs, bad_specs
+        return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         len0 = len(specs)
@@ -831,15 +831,15 @@ class Resolve(object):
     def remove_specs(self, specs, installed):
         specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
         snames = {s.name for s in specs}
-        bad_specs = self.bad_installed(installed, specs)
+        bad_env = bool(self.bad_installed(installed, specs))
         preserve = []
         for pkg in installed:
-            assert pkg in self.index
-            name, version, build = self.package_triple(pkg)
-            if name in bad_specs and name not in snames:
+            if self.package_name(pkg) in snames:
+                continue
+            elif bad_env:
                 preserve.append(pkg)
-            if name not in snames:
-                specs.append(MatchSpec(name, optional=True, target=pkg))
+            else:
+                specs.append(MatchSpec(self.package_name(pkg), optional=True, target=pkg))
         return specs, preserve
 
     def remove(self, specs, installed):
