@@ -418,8 +418,6 @@ class Clauses(object):
         return solution
 
     def itersolve(self, constraints=None, m=None):
-        if constraints is None:
-            constraints = []
         exclude = []
         if m is None:
             m = self.m

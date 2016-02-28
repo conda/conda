@@ -916,9 +916,6 @@ class Resolve(object):
                 return [q for q in (C.from_index(s) for s in sol)
                         if q and q[0] != '!' and '@' not in q]
 
-            def renumerate(sol):
-                return [C.from_name(q) for q in sol]
-
             nsol = 1
             psolutions = []
             psolution = clean(solution)
