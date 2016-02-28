@@ -327,7 +327,8 @@ channels:
 
     # config.rc_keys
     with open(rc_path, 'w') as rc:
-        rc.write(yaml.dump(rc_config, Dumper=yaml.RoundTripDumper))
+        rc.write(yaml.dump(rc_config, Dumper=yaml.RoundTripDumper, default_flow_style=False, indent=4,
+                           block_seq_indent=2))
 
     if args.json:
         common.stdout_json_success(
