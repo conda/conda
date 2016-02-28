@@ -120,8 +120,8 @@ def test_config_command_basics():
         assert stdout == stderr == ''
         assert _read_test_condarc() == """\
 channels:
-- test
-- defaults
+  - test
+  - defaults
 """
         os.unlink(test_condarc)
 
@@ -131,8 +131,8 @@ channels:
         assert stdout == stderr == ''
         assert _read_test_condarc() == """\
 channels:
-- defaults
-- test
+  - defaults
+  - test
 """
         os.unlink(test_condarc)
 
@@ -146,14 +146,14 @@ channels:
         assert stderr == "Skipping channels: test, item already exists\n"
         assert _read_test_condarc() == """\
 channels:
-- test
-- defaults
+  - test
+  - defaults
 """
         os.unlink(test_condarc)
 
         # Test creating a new file with --set
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-        '--set', 'always_yes', 'yes')
+        '--set', 'always_yes', 'true')
         assert stdout == stderr == ''
         assert _read_test_condarc() == """\
 always_yes: true
@@ -195,7 +195,7 @@ channel_alias: http://alpha.conda.anaconda.org
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
         assert stdout == """\
 --set always_yes True
---set changeps1 False
+--set changeps1 no
 --set channel_alias http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
@@ -217,7 +217,7 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'changeps1')
 
         assert stdout == """\
---set changeps1 False
+--set changeps1 no
 """
         assert stderr == ""
 
@@ -225,7 +225,7 @@ channel_alias: http://alpha.conda.anaconda.org
             '--get', 'changeps1', 'channels')
 
         assert stdout == """\
---set changeps1 False
+--set changeps1 no
 --add channels 'defaults'
 --add channels 'test'
 """
@@ -277,10 +277,13 @@ def test_config_command_parser():
 channels:
   - test
   - defaults
+
 create_default_packages :
   -  ipython
   -  numpy
+
 changeps1: false
+
 # Here is a comment
 always_yes: true
 """
@@ -311,31 +314,37 @@ always_yes: true
 
         assert _read_test_condarc() == """\
 channels:
-- mychannel
-- test
-- defaults
+  - mychannel
+  - test
+  - defaults
+
 create_default_packages:
-- ipython
-- numpy
+  - ipython
+  - numpy
+
 changeps1: false
+
 # Here is a comment
 always_yes: true
 """
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-            '--set', 'changeps1', 'yes')
+            '--set', 'changeps1', 'true')
 
         assert stdout == stderr == ''
 
         assert _read_test_condarc() == """\
 channels:
-- mychannel
-- test
-- defaults
+  - mychannel
+  - test
+  - defaults
+
 create_default_packages:
-- ipython
-- numpy
+  - ipython
+  - numpy
+
 changeps1: true
+
 # Here is a comment
 always_yes: true
 """
@@ -346,8 +355,9 @@ always_yes: true
         # doesn't work yet with odd whitespace
         condarc = """\
 channels:
-- test
-- defaults
+  - test
+  - defaults
+
 always_yes: true
 """
 
@@ -359,7 +369,7 @@ always_yes: true
         assert stdout == stderr == ''
         assert _read_test_condarc() == condarc + """\
 disallow:
-- perl
+  - perl
 """
         os.unlink(test_condarc)
 
@@ -380,7 +390,7 @@ def test_config_command_remove_force():
         run_conda_command('config', '--file', test_condarc, '--add',
             'channels', 'test')
         run_conda_command('config', '--file', test_condarc, '--set',
-            'always_yes', 'yes')
+            'always_yes', 'true')
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove', 'channels', 'test')
         assert stdout == stderr == ''
@@ -497,7 +507,7 @@ def test_set_rc_string():
         assert stderr == ''
 
         verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
-        assert verify == True
+        assert verify == 'yes'
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
                                            '--set', 'ssl_verify', 'test_string.crt')
