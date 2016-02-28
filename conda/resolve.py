@@ -768,29 +768,41 @@ class Resolve(object):
             return None
 
     def bad_installed(self, installed, new_specs):
+        log.debug('Checking if the current environment is consistent')
         if not installed:
-            return []
-        dists = {fn: self.index[fn] for fn in installed}
-        specs = [MatchSpec(' % s %s %s' % (rec['name'], rec['version'], rec['build']))
-                 for rec in itervalues(dists)]
+            return None, []
+        xtra = []
+        dists = {}
+        specs = []
+        for fn in installed:
+            rec = self.index.get(fn)
+            if rec is None:
+                xtra.append(fn)
+            else:
+                dists[fn] = rec
+                specs.append(MatchSpec(' '.join(self.package_triple(fn))))
+        if xtra:
+            log.debug('Installed packages missing from index:%s' % dashlist(xtra))
         groups, trackers = build_groups(dists)
         C = self.gen_clauses(groups, trackers, specs)
         constraints = self.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
-        if solution:
-            return []
-
-        def get_(name, snames):
-            if name not in snames:
-                snames.add(name)
-                for fn in self.groups.get(name, []):
-                    for ms in self.ms_depends(fn):
-                        get_(ms.name, snames)
-        snames = set()
-        for spec in new_specs:
-            get_(MatchSpec(spec).name, snames)
-
-        return set(s.name for s in specs if s.name not in snames)
+        limit = None
+        if not solution or xtra:
+            def get_(name, snames):
+                if name not in snames:
+                    snames.add(name)
+                    for fn in self.groups.get(name, []):
+                        for ms in self.ms_depends(fn):
+                            get_(ms.name, snames)
+            snames = set()
+            for spec in new_specs:
+                get_(MatchSpec(spec).name, snames)
+            xtra = [x for x in xtra if x not in snames]
+            if xtra or not (solution or all(s.name in snames for s in specs)):
+                limit = set(s.name for s in specs if s.name not in snames)
+                log.debug('Limiting solver to the following packages:%s' % dashlist(limit))
+        return limit, xtra
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
@@ -801,14 +813,14 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
-        use_pkgs = self.bad_installed(installed, specs)
-        preserve = []
+        limit, preserve = self.bad_installed(installed, specs)
         for pkg in installed:
-            assert pkg in self.index
+            if pkg not in self.index:
+                continue
             name, version, build = self.package_triple(pkg)
             if name in snames:
                 continue
-            if use_pkgs and name not in use_pkgs:
+            if limit and name not in limit:
                 preserve.append(pkg)
                 continue
             # If update_deps=True, set the target package in MatchSpec so that
@@ -831,12 +843,11 @@ class Resolve(object):
     def remove_specs(self, specs, installed):
         specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
         snames = {s.name for s in specs}
-        bad_env = bool(self.bad_installed(installed, specs))
-        preserve = []
+        limit, preserve = self.bad_installed(installed, specs)
         for pkg in installed:
-            if self.package_name(pkg) in snames:
+            if pkg not in self.index or self.package_name(pkg) in snames:
                 continue
-            elif bad_env:
+            elif limit:
                 preserve.append(pkg)
             else:
                 specs.append(MatchSpec(self.package_name(pkg), optional=True, target=pkg))
