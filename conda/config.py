@@ -118,7 +118,7 @@ def load_condarc(path):
         sys.exit('Error: could not import ruamel.yaml (required to read .condarc '
                  'config file: %s)' % path)
     with open(path) as f:
-        return yaml.load(f, Loader=yaml.RoundTripLoader) or {}
+        return yaml.load(f, Loader=yaml.RoundTripLoader, version="1.1") or {}
 
 rc = load_condarc(rc_path)
 sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
