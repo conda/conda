@@ -56,7 +56,19 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-from conda.utils import win_path_to_unix
+try:
+    from conda.utils import win_path_to_unix
+except ImportError:
+    def win_path_to_unix(path, root_prefix=""):
+        """Convert a path or ;-separated string of paths into a unix representation
+
+        Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+        """
+        path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
+        converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
+                        for _path in re.findall(path_re, path)]
+        return ":".join(converted_paths)
+
 
 on_win = sys.platform == "win32"
 
