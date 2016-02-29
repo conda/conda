@@ -137,7 +137,7 @@ def gen_test_env_paths(envs, shell, num_test_folders=3):
     """
     paths = [join(envs, "test{}".format(test_folder+1)) for test_folder in range(num_test_folders)]
     for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
-        symlink_conda(path, sys.prefix)
+        symlink_conda(path, sys.prefix, shell)
     converter = shells[shell]["path_to"]
     paths = [converter(path) for path in paths]
     return paths
@@ -296,7 +296,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
 
 
 @pytest.mark.slow
-def test_activate_deactivate():
+def test_activate_deactivate(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """

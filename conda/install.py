@@ -28,6 +28,7 @@ the standard library).
 from __future__ import print_function, division, absolute_import
 
 import errno
+import functools
 import json
 import logging
 import os
@@ -100,7 +101,7 @@ if on_win:
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
 
-    def win_conda_bat_redirect(src, dst):
+    def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
 
@@ -117,21 +118,29 @@ if on_win:
             else:
                 raise
 
-        # bat file redirect
-        with open(dst+'.bat', 'w') as f:
-            f.write('@echo off\n"%s" %%*\n' % src)
+        if 'cmd.exe' in shell.lower():
+            # bat file redirect
+            with open(dst+'.bat', 'w') as f:
+                f.write('@echo off\n"%s" %%*\n' % src)
 
-        # TODO: probably need one here for powershell at some point
+        elif 'powershell' in shell.lower():
+            # TODO: probably need one here for powershell at some point
+            pass
 
-        # This one is for bash
-        if src.endswith("conda"):
-            src = src + ".exe"
+        else:
+            # This one is for bash/cygwin/msys
+            if src.endswith("conda"):
+                src = src + ".exe"
 
-        src=win_path_to_unix(src)
-        dst=win_path_to_unix(dst)
+            path_prefix = ""
+            if 'cygwin' in shell.lower():
+                path_prefix = '/cygdrive'
 
-        p = subprocess.check_call(["bash", "-l", "-c", "ln -sf {src} {dst}".format(
-            src=src, dst=dst)])
+            src = win_path_to_unix(src, path_prefix)
+            dst = win_path_to_unix(dst, path_prefix)
+
+            p = subprocess.check_call(["bash", "-l", "-c", "ln -sf {src} {dst}".format(
+                src=src, dst=dst)])
 
 
 log = logging.getLogger(__name__)
@@ -467,13 +476,13 @@ def read_no_link(info_dir):
 
 # Should this be an API function?
 
-def symlink_conda(prefix, root_dir):
+def symlink_conda(prefix, root_dir, shell):
     # do not symlink root env - this clobbers activate incorrectly.
     if normpath(prefix) == normpath(sys.prefix):
         return
     if on_win:
         where = 'Scripts'
-        symlink_fn = win_conda_bat_redirect
+        symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
         exists_fn = os.path.isfile
         rm_fn = os.remove
     else:
