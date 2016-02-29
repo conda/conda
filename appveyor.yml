@@ -46,11 +46,8 @@ install:
   - python -c "import sys; print(sys.prefix)"
   - conda install python=%PYTHON_VERSION%
   - conda install -c conda pytest requests mock pycrypto pyflakes pycosat
-<<<<<<< HEAD
   - conda install pip
   - pip install flake8 pytest-cov
-=======
->>>>>>> origin/3.x
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install
@@ -60,7 +57,6 @@ install:
 build: false
 
 test_script:
-<<<<<<< HEAD
   - py.test --cov conda --cov-report xml tests
 
 on_success:
@@ -68,6 +64,3 @@ on_success:
   - codecov --env PYTHON_VERSION
 
 shallow_clone: true
-=======
-  - py.test
->>>>>>> origin/3.x
