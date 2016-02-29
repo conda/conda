@@ -44,12 +44,12 @@ cmdclass = versioneer.get_cmdclass()
 if sys.platform == 'win32':
     kwds = {'entry_points': {"console_scripts":
                              ["conda = conda.cli.main:main"]},
-            'data_files':  [ ("cmd", ["cmd/activate", "cmd/deactivate",
-                                      "cmd/activate.bat", "cmd/deactivate.bat"] ),]
+            'data_files': [("cmd", ["cmd/activate", "cmd/deactivate",
+                                    "cmd/activate.bat", "cmd/deactivate.bat"]), ]
             }
 else:
     kwds = {'scripts': ['bin/conda'],
-            'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"])],
+            'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"]), ]
             }
 
 setup(
@@ -73,6 +73,6 @@ setup(
     description="package management tool",
     long_description=open('README.rst').read(),
     packages=['conda', 'conda.cli', 'conda.progressbar'],
-    install_requires=['pycosat', 'pyyaml', 'requests'],
+    install_requires=['pycosat', 'pyyaml', 'requests', 'psutil'],
     **kwds
 )
