@@ -101,7 +101,9 @@ class S3Adapter(requests.adapters.BaseAdapter):
             import boto
         except ImportError:
             stderrlog.info('\nError: boto is required for S3 channels. '
-                           'Please install it with: conda install boto\n')
+                           'Please install it with `conda install boto`\n'
+                           'Make sure to run `source deactivate` if you '
+                           'are in a conda environment.\n')
             resp.status_code = 404
             return resp
 
@@ -109,14 +111,19 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
         bucket_name, key_string = url_to_S3_info(request.url)
 
+        # Get the bucket without validation that it exists and that we have
+        # permissions to list its contents.
+        bucket = conn.get_bucket(bucket_name, validate=False)
+
         try:
-            bucket = conn.get_bucket(bucket_name)
+            key = bucket.get_key(key_string)
         except boto.exception.S3ResponseError as exc:
+            # This exception will occur if the bucket does not exist or if the
+            # user does not have permission to list its contents.
             resp.status_code = 404
             resp.raw = exc
             return resp
 
-        key = bucket.get_key(key_string)
         if key and key.exists:
             modified = key.last_modified
             content_type = key.content_type or "text/plain"
@@ -195,7 +202,8 @@ def url_to_path(url):
     path = urlparse.unquote(path)
     if _url_drive_re.match(path):
         path = path[0] + ':' + path[2:]
-    else:
+    elif not path.startswith(r'\\'):
+        # if not a Windows UNC path
         path = '/' + path
     return path
 
