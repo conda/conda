@@ -835,15 +835,16 @@ class Resolve(object):
     def remove_specs(self, specs, installed):
         specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
         snames = {s.name for s in specs}
-        limit, preserve = self.bad_installed(installed, specs)
+        limit, _ = self.bad_installed(installed, specs)
+        preserve = []
         for pkg in installed:
             nm = self.package_name(pkg)
             if nm in snames:
                 continue
-            elif limit is not None and nm in limit:
-                preserve.append(pkg)
-            else:
+            elif limit is None:
                 specs.append(MatchSpec(self.package_name(pkg), optional=True, target=pkg))
+            else:
+                preserve.append(pkg)
         return specs, preserve
 
     def remove(self, specs, installed):
