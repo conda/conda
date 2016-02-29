@@ -41,7 +41,7 @@ unix_shell_base = dict(ps_var="PS1",
                        shell_args="-l -c",
                        path_from=path_identity,
                        path_to=path_identity,
-                       slash_convert=(u"\\", u"/"),
+                       slash_convert=("\\", "/"),
 )
 
 if platform.startswith("win"):
@@ -63,7 +63,7 @@ if platform.startswith("win"):
         #    exe="powershell.exe",
         #    path_from=path_identity,
         #    path_to=path_identity,
-        #    slash_convert = (u"/", u"\\"),
+        #    slash_convert = ("/", "\\"),
         #),
         "cmd.exe": dict(
             echo="echo",
@@ -85,7 +85,7 @@ if platform.startswith("win"):
             shell_args="/d /c",
             path_from=path_identity,
             path_to=path_identity,
-            slash_convert = (u"/", u"\\"),
+            slash_convert = ("/", "\\"),
         ),
         "cygwin": dict(unix_shell_base, exe="c:\\cygwin\\bin\\bash", path_from=cygwin_path_to_win, path_to=win_path_to_cygwin),
         "msys": dict(unix_shell_base, exe="C:\\msys\\1.0\\bin\\bash", path_from=unix_path_to_win, path_to=win_path_to_unix),
@@ -166,8 +166,6 @@ echo = "echo"
 escape_curly = lambda x: x.replace("{", "{{").replace("}", "}}")
 
 cmd_path = '/cmd/'
-if sys.platform == 'win32':
-    cmd_path = cmd_path.replace('/', '\\')
 
 working_shells = {}
 for shell in shells:
@@ -195,6 +193,7 @@ from conda.cli import main
 sys.exit(main())
 """
 
+
 def _format_vars(shell):
     shelldict = shells[shell]
     command_setup = """\
@@ -220,16 +219,21 @@ set CONDARC=
         'binpath': shelldict['binpath'],
         'shell_suffix': shelldict['shell_suffix'],
         'syspath': sys.prefix,
-        'cmd_path': cmd_path,
+        'cmd_path': cmd_path.replace(*shelldict["slash_convert"]),
         'command_setup': command_setup,
         'base_path': base_path,
 }
 
+
 def test_path_translation():
+    test_cygwin_path = "/usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd"
     test_unix_path = "/usr/bin:/z/documents (x86)/code/conda/tests/envskhkzts/test1:/z/documents/code/conda/tests/envskhkzts/test1/cmd"
     test_win_path = "z:\\documents (x86)\\code\\conda\\tests\\envskhkzts\\test1;z:\\documents\\code\\conda\\tests\\envskhkzts\\test1\\cmd"
     assert_equals(test_win_path, unix_path_to_win(test_unix_path))
     assert_equals(test_unix_path.replace("/usr/bin:", ""), win_path_to_unix(test_win_path))
+    assert_equals(test_cygwin_path.replace("/usr/bin:", ""), win_path_to_cygwin(test_win_path))
+    assert_equals(test_win_path, cygwin_path_to_win(test_cygwin_path))
+
 
 @pytest.mark.slow
 def test_activate_test1(shell):
@@ -288,8 +292,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]["path_to"](pathsep.join(_envpaths(envs, 'test1'))),
-                  stdout)
+        assert_in(pathsep.join(_envpaths(envs, 'test1')),shells[shell]["path_from"](stdout))
 
 
 @pytest.mark.slow
@@ -298,7 +301,7 @@ def test_activate_deactivate():
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}" {nul}
-        {source} {syspath}{cmd_path}deactivate
+        {source} "{syspath}{cmd_path}deactivate"
         {printpath}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
@@ -316,11 +319,11 @@ def test_activate_root(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(pathsep.join(_envpaths(root_dir)), stdout)
+        assert_in(shells[shell]["path_to"](pathsep.join(_envpaths(root_dir))), stdout)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{cmd_path}activate" root
-        {source} {syspath}{cmd_path}deactivate
+        {source} "{syspath}{cmd_path}deactivate"
         {printpath}
         """).format(envs=envs, **shell_vars)
 

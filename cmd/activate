@@ -90,9 +90,6 @@ if (( $? == 0 )); then
         export CONDA_OLD_PS1="$PS1"
     fi
 
-    CYGPATH=$(which "cygpath" 2> /dev/null) && if [ -f  $CYGPATH ]; then
-        _NEW_PATH=$(cygpath -u -p "$_NEW_PATH")
-    fi
     export PATH="$_NEW_PATH"
     # extract first PATH entry (should be full path prefix of our env)
     export CONDA_DEFAULT_ENV=${PATH%%:*}

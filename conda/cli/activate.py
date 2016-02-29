@@ -8,15 +8,22 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
+from conda.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin
 
 
 on_win = sys.platform == "win32"
 
-def find_parent_shell():
+def find_parent_shell(path=False):
+    """return process name or path of parent.  Default is to return only name of process."""
     process = psutil.Process()
     while "conda" in process.parent().name():
         process = process.parent()
+    if path:
+        return process.parent().exe()
     return process.parent().name()
+
+
+on_win = sys.platform == "win32"
 
 
 def help():
@@ -108,7 +115,16 @@ def main():
         if len(sys.argv) == 2:
             binpath = binpath_from_arg("root")
         elif len(sys.argv) == 3:
-            binpath = binpath_from_arg(sys.argv[2])
+            base_path = sys.argv[2]
+            parent_shell = find_parent_shell(path=True)
+            if any([shell in parent_shell for shell in ["cmd.exe", "powershell.exe"]]):
+                base_path = translate_stream(base_path, unix_path_to_win)
+            elif 'cygwin' in parent_shell:
+                # this should be harmless to unix paths, but converts win paths to unix for bash on win (msys, cygwin)
+                base_path = translate_stream(base_path, win_path_to_cygwin)
+            else:
+                base_path = translate_stream(base_path, win_path_to_unix)
+            binpath = binpath_from_arg(base_path)
         else:
             sys.exit("Error: did not expect more than one argument")
         sys.stderr.write("prepending %s to PATH\n" % pathlist_to_str(binpath))
