@@ -410,10 +410,11 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     if config.track_features:
         specs.extend(x + '@' for x in config.track_features)
 
-    for fn in r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps):
+    pkgs = r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps)
+    for fn in pkgs:
         dist = fn[:-8]
         name = install.name_dist(dist)
-        if only_names and name not in only_names:
+        if not name or only_names and name not in only_names:
             continue
         must_have[name] = dist
 

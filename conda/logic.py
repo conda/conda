@@ -44,8 +44,6 @@ class Clauses(object):
         self.clauses = []
         self.names = {}
         self.indices = {}
-        self.fixed = {}
-        self.fsize = 0
         self.unsat = False
         self.m = m
 
@@ -75,10 +73,14 @@ class Clauses(object):
         return self.names[x] if isinstance(x, string_types) else x
 
     def Assign_(self, vals, name=None):
-        if type(vals) is tuple:
+        tvals = type(vals)
+        if tvals is tuple:
             x = self.new_var()
             self.clauses.extend((-x,) + y for y in vals[0])
             self.clauses.extend((x,) + y for y in vals[1])
+        elif tvals is bool and name:
+            x = self.new_var()
+            self.clauses.append((x,) if vals else (-x,))
         else:
             x = vals
         return self.name_var(x, name) if name else x
@@ -413,8 +415,6 @@ class Clauses(object):
         solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         if solution in ("UNSAT", "UNKNOWN"):
             return None
-        if len(solution) < self.m:
-            solution.extend(k for k in range(len(solution), self.m+1))
         if additional and includeIf:
             self.clauses.extend(additional)
         if names:
@@ -422,8 +422,6 @@ class Clauses(object):
         return solution
 
     def itersolve(self, constraints=None, m=None):
-        if constraints is None:
-            constraints = []
         exclude = []
         if m is None:
             m = self.m
@@ -438,50 +436,7 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def scan_fixed(self):
-        if len(self.clauses) == self.fsize:
-            return
-        fx = self.fixed
-        nfx = ofx = len(fx) // 2
-        onc = self.fsize
-        otot = len(self.clauses)
-        singletons = self.clauses[:ofx]
-        oclauses = self.clauses[ofx:onc]
-        nclauses = self.clauses[onc:]
-        simp = False
-        while True:
-            clause2 = []
-            for clause in nclauses:
-                nc = len(clause)
-                if nc > 1 and any(c in fx for c in clause):
-                    simp = True
-                    if any(fx.get(c) for c in clause):
-                        continue
-                    clause = [c for c in clause if c not in fx]
-                    nc = len(clause)
-                if nc == 1:
-                    c = clause[0]
-                    if c in fx:
-                        self.unsat = self.unsat or fx[c] == 0
-                        continue
-                    fx[c] = 1
-                    fx[-c] = 0
-                    singletons.append((c,))
-                else:
-                    clause2.append(tuple(clause))
-            nclauses = clause2
-            if len(singletons) == nfx:
-                break
-            nfx = len(singletons)
-            nclauses = oclauses + nclauses
-            oclauses = []
-        if simp:
-            self.clauses = singletons + oclauses + nclauses
-            self.lfixed = len(self.clauses)
-            log.debug('Pruning: %d -> %d singletons, %d -> %d complex' %
-                      (ofx, len(singletons), otot - ofx, len(oclauses) + len(nclauses)))
-
-    def minimize(self, objective, bestsol, minval=None, increment=100):
+    def minimize(self, objective, bestsol, minval=None, increment=10):
         """
         Bisect the solution space of a constraint, to minimize it.
 
@@ -496,6 +451,9 @@ class Clauses(object):
         if not objective:
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
+        elif self.unsat:
+            log.debug('Constraints are unsatisfiable')
+            return bestsol, sum(abs(c) for c, a in objective) + 1
 
         if type(objective) is dict:
             odict = {self.varnum(k): v for k, v in iteritems(objective)}
@@ -505,10 +463,6 @@ class Clauses(object):
 
         objective, offset = self.LB_Preprocess_(objective)
         minval = minval and minval - offset
-
-        if self.unsat:
-            log.debug('Constraints are unsatisfiable')
-            return bestsol, sum(objective) + offset + 1
 
         m_orig = bestm = self.m
         nz = len(self.clauses)
