@@ -73,10 +73,14 @@ class Clauses(object):
         return self.names[x] if isinstance(x, string_types) else x
 
     def Assign_(self, vals, name=None):
-        if type(vals) is tuple:
+        tvals = type(vals)
+        if tvals is tuple:
             x = self.new_var()
             self.clauses.extend((-x,) + y for y in vals[0])
             self.clauses.extend((x,) + y for y in vals[1])
+        elif tvals is bool and name:
+            x = self.new_var()
+            self.clauses.append((x,) if vals else (-x,))
         else:
             x = vals
         return self.name_var(x, name) if name else x
@@ -432,7 +436,7 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def minimize(self, objective, bestsol, minval=None, increment=100):
+    def minimize(self, objective, bestsol, minval=None, increment=10):
         """
         Bisect the solution space of a constraint, to minimize it.
 

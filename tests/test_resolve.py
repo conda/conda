@@ -790,37 +790,10 @@ def test_broken_install():
         'zlib-1.2.7-0.tar.bz2']
     installed[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
     installed.append('notarealpackage-2.0-0.tar.bz2')
-    installed2 = r.install([], installed)
-    assert installed2 == [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.7.1-py27_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.11.0-np17py27_1.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np17py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-        'notarealpackage-2.0-0.tar.bz2']
+    assert r.install([], installed) == installed
+    installed2 = r.install(['numpy'], installed)
     installed3 = r.remove(['pandas'], installed)
-    assert installed3 == [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.7.1-py27_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np17py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-        'notarealpackage-2.0-0.tar.bz2']
+    assert set(installed3) == set(installed[:3] + installed[4:])
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
