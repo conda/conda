@@ -21,13 +21,26 @@ NOTE: By using our install process, we assume that you have already agreed to th
 
 When MKL is not installed, each time the R interpreter starts it will display a message saying so, such as::
 
-  No performance acceleration libraries were detected. To take advantage of the available processing power, also install MKL for MRO 3.2.3. Visit http://go.microsoft.com/fwlink/?LinkID=698301 for more details.
+  No performance acceleration libraries were detected. To take advantage of the 
+  available processing power, also install MKL for MRO 3.2.3. Visit 
+  http://go.microsoft.com/fwlink/?LinkID=698301 for more details.
 
 When the MKL extensions are properly installed, each time the R interpreter starts it will display a message stating that MKL is enabled, such as::
 
   Multithreaded BLAS/LAPACK libraries detected.
 
 (BLAS/LAPACK libraries such as MKL are implementations of the Basic Linear Algebra Subprograms specification of the LAPACK Linear Algebra PACKage.)
+
+MKL installation on Windows
+---------------------------
+
+1. Download the proper MKL installer file.
+2. Determine where R is located. Look in the current user's home directory, then in the Anaconda or Miniconda directory, then in the environments directory, and then in the directory for the current environment, for a directory called "R". For example, an Anaconda user on Windows 8 with the username jsmith and an environment named my-r-env might find ``C:\Users\jsmith\Anaconda\envs\my-r-env\R`` .
+3. When the installer says "Enter a path to MRO", enter this path to R.
+
+Starting the R interpreter should now display the message showing that MKL is enabled.
+
+If you wish to uninstall MKL on Windows and continue using R, uninstall MKL with the Windows Control Panel.
 
 MKL installation on Linux
 -------------------------
