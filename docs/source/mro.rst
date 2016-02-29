@@ -36,7 +36,7 @@ MKL installation on Windows
 
 1. Download the proper MKL installer file.
 2. Determine where R is located. Look in the current user's home directory, then in the Anaconda or Miniconda directory, then in the environments directory, and then in the directory for the current environment, for a directory called "R". For example, an Anaconda user on Windows 8 with the username jsmith and an environment named my-r-env might find ``C:\Users\jsmith\Anaconda\envs\my-r-env\R`` .
-3. When the installer says "Enter a path to MRO", enter this path to R.
+3. Run the installer, and enter the path when it says "Enter a path to MRO".
 
 Starting the R interpreter should now display the message showing that MKL is enabled.
 
