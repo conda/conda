@@ -10,6 +10,7 @@ from conda.version import VersionSpec, normalized_version
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
+from conda.install import name_dist
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -621,7 +622,6 @@ class Resolve(object):
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
                         C.Require(C.Or, C.Not(fn), push_MatchSpec(ms, polarity=True))
-
         return C
 
     def generate_spec_constraints(self, C, specs):
