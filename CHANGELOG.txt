@@ -1,5 +1,8 @@
-2016-XX-XX   3.20.0:
+2016-XX-XX   4.0.0:
 --------------------
+  * resolve.py: the solver has been retooled significantly. Performance
+    should be improved in most circumstances, and a number of issues
+    involving feature conflicts should be resolved.
   * resolve.py: "conda update <package>" now handles depedencies properly
     according to the setting of the "update_deps" configuration:
         --update-deps: conda will also update any dependencies as needed
@@ -12,9 +15,8 @@
     The previous behavior, which would update the packages without regard to
     their dependencies, could result in a broken configuration, and has been
     removed.
-  * resolve.py: the solver has been retooled significantly. Performance
-    should be improved in most circumstances, and a number of issues
-    involving feature conflicts should be resolved.
+  * fix `conda clean --packages` on Windows, #1944
+  * conda sub-commands now support dashes in names, #1840
 
 
 2016-02-19   3.19.3:
@@ -24,16 +26,12 @@
 
 2016-02-19   3.19.2:
 --------------------
->>>>>>> origin/3.x
   * add basic activate/deactivate, conda activate/deactivate/ls for fish,
     see #545
   * remove error when CONDA_FORCE_32BIT is set on 32-bit systems, #1985
   * suppress help text for --unknown option, #2051
-<<<<<<< HEAD
-=======
   * fix issue with conda create --clone post-link scripts, #2007
   * fix a permissions issue on windows, #2083
->>>>>>> origin/3.x
 
 
 2016-02-01   3.19.1:
