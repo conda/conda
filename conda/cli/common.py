@@ -167,9 +167,7 @@ def add_parser_known(p):
         action="store_true",
         default=False,
         dest='unknown',
-        help="Use index metadata from the local package cache, "
-             "which are from unknown channels (installing local packages "
-             "directly implies this option).",
+        help=argparse.SUPPRESS,
     )
 
 def add_parser_use_index_cache(p):

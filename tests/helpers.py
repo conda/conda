@@ -19,6 +19,7 @@ from contextlib import contextmanager
 import conda.cli as cli
 from conda.compat import StringIO
 
+
 def raises(exception, func, string=None):
     try:
         a = func()
@@ -29,22 +30,28 @@ def raises(exception, func, string=None):
         return True
     raise Exception("did not raise, gave %s" % a)
 
-python = sys.executable
-conda = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'conda')
+
+def run_in(command, shell='bash'):
+    p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    return (stdout.decode('utf-8').replace('\r\n', '\n'),
+        stderr.decode('utf-8').replace('\r\n', '\n'))
+
 
 def run_conda_command(*args):
     env = os.environ.copy()
-    # Make sure bin/conda imports *this* conda.
-    env['PYTHONPATH'] = os.path.dirname(os.path.dirname(__file__))
-    env['CONDARC'] = ' '
-    p = subprocess.Popen((python, conda,) + args, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, env=env)
+    p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, env=env)
+
     stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
                       for stream in p.communicate()]
     return stdout, stderr
 
+
 class CapturedText(object):
     pass
+
 
 @contextmanager
 def captured(disallow_stderr=True):
@@ -104,5 +111,5 @@ def capture_json_with_argv(*argv):
     try:
         return json.loads(stdout)
     except ValueError:
-        print(stdout, stderr)
+        print(str(stdout), str(stderr))
         raise

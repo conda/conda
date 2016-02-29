@@ -54,25 +54,6 @@ def main():
                                  ' '.join(sys.argv[1:]))
             sys.exit(1)
 
-        # for backwards compatibility of conda-api
-        if sys.argv[1:4] == ['share', '--json', '--prefix']:
-            import json
-            from os.path import abspath
-            from conda.share import old_create_bundle
-            prefix = sys.argv[4]
-            path, warnings = old_create_bundle(abspath(prefix))
-            json.dump(dict(path=path, warnings=warnings),
-                      sys.stdout, indent=2, sort_keys=True)
-            return
-        if sys.argv[1:4] == ['clone', '--json', '--prefix']:
-            import json
-            from os.path import abspath
-            from conda.share import old_clone_bundle
-            prefix, path = sys.argv[4:6]
-            old_clone_bundle(path, abspath(prefix))
-            json.dump(dict(warnings=[]), sys.stdout, indent=2)
-            return
-
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
@@ -131,22 +112,6 @@ def main():
     if args.debug:
         logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
-
-    from conda.cli import main_init
-    if (not main_init.is_initialized() and
-        'init' not in sys.argv and 'info' not in sys.argv):
-        if hasattr(args, 'name') and hasattr(args, 'prefix'):
-            import conda.config as config
-            from conda.cli import common
-            if common.get_prefix(args) == config.root_dir:
-                sys.exit("""\
-Error: This installation of conda is not initialized. Use 'conda create -n
-envname' to create a conda environment and 'source activate envname' to
-activate it.
-
-# Note that pip installing conda is not the recommended way for setting up your
-# system.  The recommended way for setting up a conda system is by installing
-# Miniconda, see: http://repo.continuum.io/miniconda/index.html""")
 
     args_func(args, p)
 

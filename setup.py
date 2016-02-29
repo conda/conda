@@ -1,26 +1,13 @@
-#!/usr/bin/env python
 # (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
-import sys
+from setuptools import setup, find_packages
 import os
-
-if 'develop' in sys.argv:
-    from setuptools import setup
-    using_setuptools = True
-    print("Using setuptools")
-else:
-    from distutils.core import setup
-    using_setuptools = False
-    print("Not using setuptools")
-
-from distutils.command.install import install as _install
+import sys
 
 import versioneer
-
 
 if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
@@ -39,29 +26,23 @@ versioneer.versionfile_build = 'conda/_version.py'
 versioneer.tag_prefix = '' # tags are like 1.2.0
 versioneer.parentdir_prefix = 'conda-' # dirname like 'myproject-1.2.0'
 
-cmdclass = versioneer.get_cmdclass()
-
 if sys.platform == 'win32':
-    kwds = {'entry_points': {"console_scripts":
-                             ["conda = conda.cli.main:main"]},
-            'data_files':  [ ("cmd", ["cmd/activate", "cmd/deactivate",
-                                      "cmd/activate.bat", "cmd/deactivate.bat"] ),]
+    kwds = {'data_files': [("cmd", ["cmd/activate", "cmd/deactivate",
+                                    "cmd/activate.bat", "cmd/deactivate.bat"]), ]
             }
 else:
-    kwds = {'scripts': ['bin/conda'],
-            'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"])],
-            }
+    kwds = {'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"]), ]}
 
 setup(
     name="conda",
     version=versioneer.get_version(),
-    cmdclass=cmdclass,
+    cmdclass=versioneer.get_cmdclass(),
     author="Continuum Analytics, Inc.",
-    author_email="ilan@continuum.io",
+    author_email="conda@continuum.io",
     url="https://github.com/conda/conda",
     license="BSD",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 2",
@@ -69,10 +50,17 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
     ],
-    description="package management tool",
+    description="OS-agnostic, system-level binary package manager.",
     long_description=open('README.rst').read(),
-    packages=['conda', 'conda.cli', 'conda.progressbar'],
-    install_requires=['pycosat', 'pyyaml', 'requests'],
+    packages=find_packages(exclude=['tests', 'tests.*']),
+    install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests', 'psutil'],
+    entry_points={
+        'console_scripts': [
+            "conda = conda.cli.main:main"
+        ],
+    },
+    zip_safe=False,
     **kwds
 )
