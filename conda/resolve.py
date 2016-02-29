@@ -547,9 +547,11 @@ class Resolve(object):
             self.ms_depends_[fn] = deps
         return deps
 
-    def version_key(self, fn, majoronly=False):
+    def version_key(self, fn, vtype=None):
         rec = self.index[fn]
-        if majoronly:
+        if vtype == 'build':
+            return rec['build_number']
+        elif vtype == 'version':
             return normalized_version(rec['version'])
         else:
             return (normalized_version(rec['version']), rec['build_number'])
@@ -594,6 +596,7 @@ class Resolve(object):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
+                libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
                 m = C.Any(self.find_matches_group(ms, groups, trackers),
                           polarity=polarity, name=name)
             return m
@@ -642,15 +645,19 @@ class Resolve(object):
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
-    def generate_version_metric(self, C, groups, specs, majoronly=False):
+    def generate_version_metric(self, C, groups, specs, vtype=None,
+                                allpkgs=False, missing=False):
         eq = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             sdict.setdefault(s.name, []).append(s)
-        key = lambda x: self.version_key(x, majoronly)
-        for name, mss in iteritems(sdict):
-            pkgs = groups.get(name, [])
+        key = lambda x: self.version_key(x, vtype)
+        for name, pkgs in iteritems(groups):
+            mss = sdict.get(name, [])
+            bmss = bool(mss)
+            if not allpkgs and (bmss == missing):
+                continue
             pkgs = [(key(p), p) for p in pkgs]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
@@ -658,35 +665,18 @@ class Resolve(object):
             targets = [ms.target for ms in mss if ms.target]
             if targets:
                 v1 = sorted(((key(t), t) for t in targets), reverse=True)
-                v2 = sorted((p for p in pkgs if p > v1[0]))
+                v2 = sorted((p for p in pkgs if p >= v1[0] and p[1] not in targets))
                 v3 = sorted((p for p in pkgs if p < v1[0]), reverse=True)
                 pkgs = v1 + v2 + v3
             else:
                 pkgs = sorted(pkgs, reverse=True)
-            i = 0
+            i = 1 if missing and not bmss else 0
             prev = None
             for nkey, pkg in pkgs:
                 if prev and prev != nkey:
                     i += 1
                 if i:
                     eq[pkg] = i
-                prev = nkey
-        return eq
-
-    def generate_package_count(self, C, groups, specs, majoronly=False):
-        eq = {}
-        snames = {s.name for s in map(MatchSpec, specs)}
-        key = lambda x: self.version_key(x, majoronly)
-        for name, pkgs in iteritems(groups):
-            if name in snames or not pkgs:
-                continue
-            pkg_ver = sorted([(key(p), p) for p in groups.get(name, [])], reverse=True)
-            i = 1
-            prev = None
-            for nkey, pkg in pkg_ver:
-                if prev and prev != nkey:
-                    i += 1
-                eq[pkg] = i
                 prev = nkey
         return eq
 
@@ -768,29 +758,46 @@ class Resolve(object):
             return None
 
     def bad_installed(self, installed, new_specs):
+        dotlog.debug('Checking if the current environment is consistent')
         if not installed:
-            return []
-        dists = {fn: self.index[fn] for fn in installed}
-        specs = [MatchSpec(' % s %s %s' % (rec['name'], rec['version'], rec['build']))
-                 for rec in itervalues(dists)]
+            return None, []
+        xtra = []
+        dists = {}
+        specs = []
+        for fn in installed:
+            rec = self.index.get(fn)
+            if rec is None:
+                xtra.append(fn)
+            else:
+                dists[fn] = rec
+                specs.append(MatchSpec(' '.join(self.package_triple(fn))))
+        if xtra:
+            dotlog.debug('Packages missing from index: %s' % ', '.join(xtra))
         groups, trackers = build_groups(dists)
         C = self.gen_clauses(groups, trackers, specs)
         constraints = self.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
-        if solution:
-            return []
-
-        def get_(name, snames):
-            if name not in snames:
-                snames.add(name)
-                for fn in self.groups.get(name, []):
-                    for ms in self.ms_depends(fn):
-                        get_(ms.name, snames)
-        snames = set()
-        for spec in new_specs:
-            get_(MatchSpec(spec).name, snames)
-
-        return set(s.name for s in specs if s.name not in snames)
+        limit = None
+        if not solution or xtra:
+            def get_(name, snames):
+                if name not in snames:
+                    snames.add(name)
+                    for fn in self.groups.get(name, []):
+                        for ms in self.ms_depends(fn):
+                            get_(ms.name, snames)
+            snames = set()
+            for spec in new_specs:
+                get_(MatchSpec(spec).name, snames)
+            xtra = [x for x in xtra if x not in snames]
+            if xtra or not (solution or all(s.name in snames for s in specs)):
+                limit = set(s.name for s in specs if s.name in snames)
+                xtra = [fn for fn in installed if self.package_name(fn) not in snames]
+                dotlog.debug(
+                    'Limiting solver to the following packages: %s' %
+                    ', '.join(limit))
+        if xtra:
+            dotlog.debug('Packages to be preserved: %s' % ', '.join(xtra))
+        return limit, xtra
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
@@ -801,25 +808,22 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
-        bad_specs = self.bad_installed(installed, specs)
-        preserve = []
+        limit, preserve = self.bad_installed(installed, specs)
         for pkg in installed:
-            assert pkg in self.index
+            if pkg not in self.index:
+                continue
             name, version, build = self.package_triple(pkg)
-            if name in snames:
+            if name in snames or limit is not None and name not in limit:
                 continue
             # If update_deps=True, set the target package in MatchSpec so that
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
-            need_help = name in bad_specs
-            if need_help:
-                preserve.append(pkg)
-            if update_deps or need_help:
-                spec = MatchSpec(name, target=pkg, optional=need_help)
+            if update_deps:
+                spec = MatchSpec(name, target=pkg)
             else:
                 spec = MatchSpec(' % s %s %s' % (name, version, build))
             specs.append(spec)
-        return specs, bad_specs
+        return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         len0 = len(specs)
@@ -831,15 +835,15 @@ class Resolve(object):
     def remove_specs(self, specs, installed):
         specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
         snames = {s.name for s in specs}
-        bad_specs = self.bad_installed(installed, specs)
-        preserve = []
+        limit, preserve = self.bad_installed(installed, specs)
         for pkg in installed:
-            assert pkg in self.index
-            name, version, build = self.package_triple(pkg)
-            if name in bad_specs and name not in snames:
+            nm = self.package_name(pkg)
+            if nm in snames:
+                continue
+            elif limit is not None and nm in limit:
                 preserve.append(pkg)
-            if name not in snames:
-                specs.append(MatchSpec(name, optional=True, target=pkg))
+            else:
+                specs.append(MatchSpec(self.package_name(pkg), optional=True, target=pkg))
         return specs, preserve
 
     def remove(self, specs, installed):
@@ -882,43 +886,55 @@ class Resolve(object):
                 raise Unsatisfiable(specsol, False)
 
             specs.extend(new_specs)
+
+            # Requested packages: maximize versions, then builds
             spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2, majoronly=True)
-            solution, obj1 = C.minimize(eq_requested_versions, solution)
-            dotlog.debug('Requested major version metric: %d' % obj1)
+            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
+            eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            solution, obj3 = C.minimize(eq_requested_versions, solution)
+            solution, obj4 = C.minimize(eq_requested_builds, solution)
+            dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
+            # Minimize the number of installed track_features, maximize featured package count
             eq_feature_count = self.generate_feature_count(C, trackers)
-            solution, obj2 = C.minimize(eq_feature_count, solution)
-            dotlog.debug('Feature count metric: %d' % obj2)
-
             eq_feature_metric = self.generate_feature_metric(C, groups, specs)
-            solution, obj3 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Feature package metric: %d' % obj3)
+            solution, obj1 = C.minimize(eq_feature_count, solution)
+            solution, obj2 = C.minimize(eq_feature_metric, solution)
+            dotlog.debug('Feature count/package metrics: %d/%d' % (obj1, obj2))
 
-            specs = [s for s in specs if not s.optional or
-                     any(self.find_matches_group(s, groups, trackers))]
-            spec3 = [s for s in specs if s.optional]
-            eq_optional_count = self.generate_removal_count(C, spec3)
-            solution, obj4 = C.minimize(eq_optional_count, solution)
-            dotlog.debug('Optional package removal count: %d' % obj4)
+            # Required packages: maximize versions, then builds
+            spec2 = [s for s in specs[len0:] if not s.optional]
+            eq_required_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
+            eq_required_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            solution, obj5 = C.minimize(eq_required_versions, solution)
+            solution, obj6 = C.minimize(eq_required_builds, solution)
+            dotlog.debug('Required package version/build metrics: %d/%d' % (obj5, obj6))
 
-            eq_all_versions = self.generate_version_metric(C, groups, specs, majoronly=False)
-            solution, obj5 = C.minimize(eq_all_versions, solution)
-            dotlog.debug('Final version metric: %d' % obj5)
+            # Optional packages: maximize count, then versions, then builds
+            specs = [s for s in specs if any(self.find_matches_group(s, groups, trackers))]
+            spec2 = [s for s in specs if s.optional]
+            eq_optional_count = self.generate_removal_count(C, spec2)
+            eq_optional_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
+            eq_optional_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            solution, obj7 = C.minimize(eq_optional_count, solution)
+            solution, obj8 = C.minimize(eq_optional_versions, solution)
+            solution, obj9 = C.minimize(eq_optional_builds, solution)
+            dotlog.debug('Optional package removal/version/build metrics: %d/%d/%d' %
+                         (obj7, obj8, obj9))
 
-            eq_package_count = self.generate_package_count(C, groups, specs)
-            solution, obj6 = C.minimize(eq_package_count, solution)
-            dotlog.debug('Weak dependency metric: %d' % obj6)
-
-            dotlog.debug('Looking for alternate solutions')
+            # All other packages: maximize versions (favoring none), then builds
+            eq_remaining_versions = self.generate_version_metric(C, groups, specs,
+                                                                 missing=True, vtype='version')
+            eq_remaining_builds = self.generate_version_metric(C, groups, specs,
+                                                               missing=True, vtype='build')
+            solution, obj10 = C.minimize(eq_remaining_versions, solution)
+            solution, obj11 = C.minimize(eq_remaining_builds, solution)
+            dotlog.debug('Additional package version/build metrics: %d/%d' % (obj10, obj11))
 
             def clean(sol):
                 return [q for q in (C.from_index(s) for s in sol)
                         if q and q[0] != '!' and '@' not in q]
-
-            def renumerate(sol):
-                return [C.from_name(q) for q in sol]
-
+            dotlog.debug('Looking for alternate solutions')
             nsol = 1
             psolutions = []
             psolution = clean(solution)
@@ -947,10 +963,12 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
-            if obj6 > 0:
-                log.debug("Older versions in the solution(s):")
-                for sol in psolutions:
-                    log.debug([(i, p) for i, p in iteritems(eq_all_versions) if p in sol])
+            if obj1 + obj2 + obj5 + obj6 + obj8 + obj9 > 0:
+                older = self.generate_version_metric(C, groups, specs, allpkgs=True)
+                older = [(i, p) for i, p in iteritems(older) if p in psolutions[0]]
+                if older:
+                    log.debug("Older versions/builds in the solution:%s" %
+                              dashlist('%s: %d' % (p, i) for i, p in older))
             stdoutlog.info('\n')
             return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
         except:
