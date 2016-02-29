@@ -13,9 +13,11 @@ function RunCommand ($command, $command_args) {
 
 function DownloadMiniconda ($python_version, $platform_suffix) {
     $webclient = New-Object System.Net.WebClient
-    if ($python_version -eq "3.4") {
+    if ($python_version -like "2.*") {
+        $filename = "Miniconda2-latest-Windows-" + $platform_suffix + ".exe"
+    } ElseIf ($python_version -like "3.*") {
         $filename = "Miniconda3-latest-Windows-" + $platform_suffix + ".exe"
-    } else {
+    } Else {
         $filename = "Miniconda-latest-Windows-" + $platform_suffix + ".exe"
     }
     $url = $MINICONDA_URL + $filename
@@ -90,7 +92,7 @@ function InstallMinicondaPip ($python_home) {
 
 function main () {
     InstallMiniconda $env:PYTHON_VERSION $env:PYTHON_ARCH $env:PYTHON
-    InstallMinicondaPip $env:PYTHON
+    # InstallMinicondaPip $env:PYTHON
 }
 
 main

@@ -1,0 +1,54 @@
+==> 2016-02-16 13:31:33 <==
+# cmd: /home/ilan/minonda/bin/conda update conda
+conda-3.19.0-py27_0
+conda-env-2.4.5-py27_0
+openssl-1.0.2d-0
+pip-7.1.2-py27_0
+pycosat-0.6.1-py27_0
+pycrypto-2.6.1-py27_0
+python-2.7.11-0
+pyyaml-3.11-py27_1
+readline-6.2-2
+requests-2.9.0-py27_0
+setuptools-18.8.1-py27_0
+sqlite-3.8.4.1-1
+tk-8.5.18-0
+wheel-0.26.0-py27_1
+yaml-0.1.6-0
+zlib-1.2.8-0
+==> 2016-02-16 13:31:41 <==
+# cmd: /home/ilan/minonda/bin/conda update conda
+-conda-3.19.0-py27_0
+-openssl-1.0.2d-0
+-pip-7.1.2-py27_0
+-requests-2.9.0-py27_0
+-setuptools-18.8.1-py27_0
+-sqlite-3.8.4.1-1
+-wheel-0.26.0-py27_1
++conda-3.19.1-py27_0
++openssl-1.0.2f-0
++pip-8.0.2-py27_0
++requests-2.9.1-py27_0
++setuptools-19.6.2-py27_0
++sqlite-3.9.2-0
++wheel-0.29.0-py27_0
+# update specs: ['conda', 'conda', 'python 2.7*']
+==> 2016-02-16 13:34:30 <==
+# cmd: /home/ilan/minonda/bin/conda install cas-mirror
++cas-mirror-1.4.0-py27_x0
++cheetah-2.4.4-py27_0
++lighttpd-1.4.36-0
+# install specs: ['cas-mirror', 'conda', 'python 2.7*']
+==> 2016-02-16 14:17:47 <==
+# cmd: /home/ilan/minonda/bin/conda update cas-mirror
+-cas-mirror-1.4.0-py27_x0
++cas-mirror-1.4.1-py27_x0
+# update specs: ['cas-mirror', 'conda', 'python 2.7*']
+==> 2016-02-16 17:19:39 <==
+# cmd: /home/ilan/minonda/bin/conda install grin
++grin-1.2.1-py27_1
+# install specs: ['grin', 'conda', 'python 2.7*']
+==> 2016-02-18 22:53:20 <==
+# cmd: /home/ilan/minonda/bin/conda install pyflakes
++pyflakes-1.0.0-py27_0
+# install specs: ['pyflakes', 'conda', 'python 2.7*']

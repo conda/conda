@@ -6,10 +6,9 @@ from os.path import isdir, join
 
 from conda import config
 from conda import install
-#from conda.utils import url_path
 from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import Package, Resolve
 
 
 def _name_fn(fn):
@@ -26,22 +25,38 @@ def _fn2fullspec(fn):
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_cache=False, unknown=False, offline=False):
+              use_cache=False, unknown=False, offline=False,
+              prefix=None):
     """
     Return the index of packages available on the channels
 
     If prepend=False, only the channels passed in as arguments are used.
     If platform=None, then the current platform is used.
+    If prefix is supplied, then the packages installed in that prefix are added.
     """
     channel_urls = config.normalize_urls(channel_urls, platform=platform)
     if prepend:
         channel_urls += config.get_channel_urls(platform=platform)
     if offline:
         channel_urls = [url for url in channel_urls if url.startswith('file:')]
-    return fetch_index(tuple(channel_urls), use_cache=use_cache,
+    index = fetch_index(tuple(channel_urls), use_cache=use_cache,
                        unknown=unknown)
+    if prefix:
+        for fn, info in iteritems(install.linked_data(prefix)):
+            fn = fn + '.tar.bz2'
+            orec = index.get(fn)
+            if orec is not None:
+                if orec.get('md5',None) == info.get('md5',None):
+                    continue
+                info.setdefault('depends',orec.get('depends',[]))
+            index[fn] = info
+    return index
 
 
+##########################################################################
+# NOTE: All functions starting with 'app_' in this module are deprecated
+#       and should no longer be used.
+##########################################################################
 def app_get_index(all_version=False):
     """
     return the index of available applications on the channels
@@ -49,8 +64,13 @@ def app_get_index(all_version=False):
     By default only the latest version of each app is included in the result,
     unless all_version is set to True.
     """
+    import sys
+    pyxx = 'py%d%d' % sys.version_info[:2]
+    def filter_build(build):
+        return bool(pyxx in build) if 'py' in build else True
+
     index = {fn: info for fn, info in iteritems(get_index())
-             if info.get('type') == 'app'}
+             if info.get('type') == 'app' and filter_build(info['build'])}
     if all_version:
         return index
 
@@ -75,7 +95,7 @@ def app_get_icon_url(fn):
     return make_icon_url(info)
 
 
-def app_info_packages(fn):
+def app_info_packages(fn, prefix=config.root_dir):
     """
     given the filename of a package, return which packages (and their sizes)
     still need to be downloaded, in order to install the package.  That is,
@@ -85,14 +105,15 @@ def app_info_packages(fn):
     """
     from conda.resolve import Resolve
 
-    index = get_index()
+    index = get_index(prefix=prefix)
     r = Resolve(index)
     res = []
-    for fn2 in r.solve([_fn2fullspec(fn)]):
+    for fn2 in r.solve([_fn2fullspec(fn)], installed=install.linked(prefix)):
         info = index[fn2]
-        res.append((info['name'], info['version'], info['size'],
-                    any(install.is_fetched(pkgs_dir, fn2[:-8])
-                        for pkgs_dir in config.pkgs_dirs)))
+        if 'link' not in info:
+            res.append((info['name'], info['version'], info['size'],
+                        any(install.is_fetched(pkgs_dir, fn2[:-8])
+                            for pkgs_dir in config.pkgs_dirs)))
     return res
 
 
@@ -122,7 +143,7 @@ def app_install(fn, prefix=config.root_dir):
     """
     import conda.plan as plan
 
-    index = get_index()
+    index = get_index(prefix=prefix)
     actions = plan.install_actions(prefix, index, [_fn2spec(fn)])
     plan.execute_actions(actions, index)
 
@@ -149,7 +170,7 @@ def app_uninstall(fn, prefix=config.root_dir):
     import conda.cli.common as common
     import conda.plan as plan
 
-    index = None
+    index = get_index(prefix=prefix)
     specs = [_fn2spec(fn)]
     if (plan.is_root_prefix(prefix) and
         common.names_in_specs(common.root_no_rm, specs)):
@@ -167,10 +188,7 @@ def app_uninstall(fn, prefix=config.root_dir):
 def get_package_versions(package, offline=False):
     index = get_index(offline=offline)
     r = Resolve(index)
-    if package in r.groups:
-        return r.get_pkgs(MatchSpec(package))
-    else:
-        return []
+    return r.get_pkgs(package, emptyok=True)
 
 
 if __name__ == '__main__':

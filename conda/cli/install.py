@@ -23,7 +23,7 @@ import conda.misc as misc
 from conda.api import get_index
 from conda.cli import common
 from conda.cli.find_commands import find_executable
-from conda.resolve import NoPackagesFound, Resolve, MatchSpec
+from conda.resolve import NoPackagesFound, Unsatisfiable, Resolve
 import conda.install as ci
 
 log = logging.getLogger(__name__)
@@ -236,7 +236,8 @@ def install(args, parser, command='install'):
                                   use_cache=args.use_index_cache,
                                   unknown=args.unknown,
                                   json=args.json,
-                                  offline=args.offline)
+                                  offline=args.offline,
+                                  prefix=prefix)
 
     if newenv and args.clone:
         if set(args.packages) - set(default_packages):
@@ -271,7 +272,7 @@ def install(args, parser, command='install'):
                 else:
                     raise
 
-            pkgs = sorted(r.get_pkgs(MatchSpec(name)))
+            pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
                 # Shouldn't happen?
                 continue
@@ -383,7 +384,7 @@ environment does not exist: %s
                 error_message += "\n\n    %r" % pinned_specs
 
             common.error_and_exit(error_message, json=args.json)
-    except SystemExit as e:
+    except (Unsatisfiable,SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         error_type = 'UnsatisfiableSpecifications'
         if e.args and 'could not import' in e.args[0]:
@@ -456,7 +457,7 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True,
         prefix = tempfile.mkdtemp('conda')
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
-                          platform=platform)
+                          platform=platform, prefix=prefix)
         actions = plan.install_actions(prefix, index, specs, pinned=False,
                                        minimal_hint=minimal_hint)
         plan.display_actions(actions, index)
