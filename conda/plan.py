@@ -349,7 +349,7 @@ def add_defaults_to_specs(r, linked, specs):
 
         any_depends_on = any(ms2.name == name
                              for spec in specs
-                             for fn in r.get_max_dists(MatchSpec(spec))
+                             for fn in r.find_matches(spec)
                              for ms2 in r.ms_depends(fn))
         log.debug('H2 %s %s' % (name, any_depends_on))
 
@@ -390,7 +390,6 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
-
 def install_actions(prefix, index, specs, force=False, only_names=None,
                     pinned=True, minimal_hint=False, update_deps=True):
     r = Resolve(index)
@@ -403,13 +402,15 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
-        # TODO: Improve error messages here
+
+    # TODO: Improve error messages here
     add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
-    for fn in r.solve(specs, [d + '.tar.bz2' for d in linked],
-                      config.track_features, minimal_hint=minimal_hint,
-                      update_deps=update_deps):
+    if config.track_features:
+        specs.extend(x + '@' for x in config.track_features)
+
+    for fn in r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps):
         dist = fn[:-8]
         name = install.name_dist(dist)
         if only_names and name not in only_names:
@@ -430,7 +431,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
             sys.exit("Error: 'conda' can only be installed into the "
                      "root environment")
 
-    smh = r.graph_sort(must_have)
+    smh = r.dependency_sort(must_have)
 
     if force:
         actions = force_linked_actions(smh, index, prefix)
@@ -448,40 +449,37 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     return actions
 
 
-def remove_actions(prefix, specs, index=None, pinned=True):
-    linked = install.linked(prefix)
+def remove_actions(prefix, specs, index, force=False, pinned=True):
+    r = Resolve(index)
+    linked = [d+'.tar.bz2' for d in install.linked(prefix)]
+    mss = list(map(MatchSpec, specs))
 
-    mss = [MatchSpec(spec) for spec in specs]
-
-    if index:
-        r = Resolve(index)
+    if force:
+        nlinked = {r.package_name(fn):fn for fn in linked if not any(r.match(ms, fn) for ms in mss)}
     else:
-        r = None
+        if pinned:
+            pinned_specs = get_pinned_specs(prefix)
+            log.debug("Pinned specs=%s" % pinned_specs)
+        if config.track_features:
+            specs.extend(x + '@' for x in config.track_features)
+        nlinked = {r.package_name(fn):fn[:-8] for fn in r.remove(specs, linked)}
+    linked = {r.package_name(fn):fn[:-8] for fn in linked}
 
-    pinned_specs = get_pinned_specs(prefix)
-
-    actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
-    for dist in sorted(linked):
-        fn = dist + '.tar.bz2'
-        if any(ms.match(fn) for ms in mss):
-            if pinned and any(MatchSpec(spec).match('%s.tar.bz2' % dist)
-                              for spec in pinned_specs):
-                raise RuntimeError(
-                    "Cannot remove %s because it is pinned. Use --no-pin "
-                    "to override." % dist)
-
-            add_unlink(actions, dist)
-            if r and fn in index and r.track_features(fn):
-                features_actions = remove_features_actions(
-                    prefix, index, r.track_features(fn))
-                for action in features_actions:
-                    if isinstance(actions[action], list):
-                        for item in features_actions[action]:
-                            if item not in actions[action]:
-                                actions[action].append(item)
-                    else:
-                        assert actions[action] == features_actions[action]
+    actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
+    for old_fn in reversed(r.dependency_sort(linked)):
+        dist = old_fn + '.tar.bz2'
+        name = r.package_name(dist)
+        if old_fn == nlinked.get(name,''):
+            continue
+        if pinned and any(r.match(ms, dist) for ms in pinned_specs):
+            raise RuntimeError(
+                "Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
+        if name == 'conda' and name not in nlinked:
+            if any(ms.name == 'conda' for ms in mss):
+                sys.exit("Error: 'conda' cannot be removed from the root environment")
+            else:
+                sys.exit("Error: this 'remove' command cannot be executed because it\nwould require removing 'conda' dependencies.")
+        add_unlink(actions, old_fn)
 
     return actions
 

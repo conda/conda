@@ -121,13 +121,13 @@ def run_in(command, shell):
 
 def assert_equals(a, b, output=""):
     output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
-    assert a.lower() == b.lower(), output
+    assert(a.lower() == b.lower(), output)
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower())
+    assert (a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower()))
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+    assert (a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower()))
 
 
 def gen_test_env_paths(envs, shell, num_test_folders=3):
@@ -431,12 +431,12 @@ def test_activate_symlinking(shell):
                         assert os.path.exists(file_path)
                         s = os.lstat(file_path)
                         assert stat.S_ISLNK(s.st_mode)
-                        assert os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, "bin", f))
+                        assert os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, where, f))
 
         if platform != 'win':
             # Test activate when there are no write permissions in the
             # env.
-            prefix_bin_path = gen_test_env_paths(envs, shell)[2] + binpath
+            prefix_bin_path = join(gen_test_env_paths(envs, shell)[2], 'bin')
             commands = (shell_vars['command_setup'] + """
             mkdir -p {prefix_bin_path}
             chmod 000 {prefix_bin_path}
@@ -448,7 +448,7 @@ def test_activate_symlinking(shell):
             assert_in("do not have write access", stderr)
 
             # restore permissions so the dir will get cleaned up
-            run_in("chmod 777 {prefix_bin_path}".format(prefix_bin_path=prefix_bin_path))
+            run_in("chmod 777 {prefix_bin_path}".format(prefix_bin_path=prefix_bin_path), shell)
 
 
 def test_PS1(shell):

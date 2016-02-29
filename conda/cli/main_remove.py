@@ -121,13 +121,15 @@ def execute(args, parser):
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       json=args.json,
-                                      offline=args.offline)
+                                      offline=args.offline,
+                                      prefix=prefix)
     else:
         index = common.get_index_trap(channel_urls=channel_urls,
                                       prepend=not args.override_channels,
                                       use_cache=args.use_index_cache,
                                       json=args.json,
-                                      offline=args.offline)
+                                      offline=args.offline,
+                                      prefix=prefix)
     specs = None
     if args.features:
         features = set(args.package_names)
