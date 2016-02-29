@@ -115,8 +115,11 @@ if on_win:
         if src.endswith("conda"):
             src = src + ".exe"
 
+        src=win_path_to_unix(src)
+        dst=win_path_to_unix(dst)
+
         p = subprocess.check_call(["bash", "-l", "-c", "ln -sf {src} {dst}".format(
-            src=win_path_to_unix(src), dst=win_path_to_unix(dst))])
+            src=src, dst=dst)])
 
 
 log = logging.getLogger(__name__)
@@ -760,17 +763,10 @@ def unlink(prefix, dist):
         for f in meta['files']:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
-            try:
+            if on_win and os.path.exists(join(prefix, f)):
+                move_path_to_trash(dst)
+            else:
                 os.unlink(dst)
-            except OSError:  # file might not exist
-                log.debug("could not remove file: '%s'" % dst)
-                if on_win and os.path.exists(join(prefix, f)):
-                    try:
-                        log.debug("moving to trash")
-                        move_path_to_trash(dst)
-                    except ImportError:
-                        # This shouldn't be an issue in the installer anyway
-                        pass
 
         # remove the meta-file last
         os.unlink(meta_path)
