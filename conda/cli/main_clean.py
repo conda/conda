@@ -70,7 +70,7 @@ def configure_parser(sub_parsers):
 # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
 class CrossPlatformStLink(object):
     _st_nlink = None
-    
+
     def __call__(self, path):
         return self.st_nlink(path)
 
@@ -96,7 +96,7 @@ class CrossPlatformStLink(object):
             GENERIC_READ = 0x80000000
             FILE_SHARE_READ = 0x00000001
             OPEN_EXISTING = 3
-            hfile = cls.CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None, 
+            hfile = cls.CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None,
                                    OPEN_EXISTING, 0, None)
             if hfile is None:
                 from ctypes import WinError
@@ -150,7 +150,7 @@ class CrossPlatformStLink(object):
             cls.GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
             cls.GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
             cls.GetFileInformationByHandle.restype = BOOL
-            
+
             cls._st_nlink = cls._windows_st_nlink
 
 
@@ -253,7 +253,7 @@ def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
-    
+
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in config.pkgs_dirs:
