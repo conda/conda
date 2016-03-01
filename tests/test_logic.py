@@ -2,7 +2,7 @@ from itertools import combinations, permutations, product
 
 from conda.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
 from tests.helpers import raises
-from conda.compat import string_types
+from conda.compat import string_types, iteritems
 
 # These routines implement logical tests with short-circuiting
 # and propogation of unknown values:
@@ -116,16 +116,16 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 assert Cpos.unsat == (not tsol) and not Cpos.clauses, (ij, 'Require(%s)')
                 assert Cneg.unsat == tsol and not Cneg.clauses, (ij, 'Prevent(%s)')
                 continue
-            for sol in C.itersolve([(x,)],m):
+            for sol in C.itersolve([(x,)]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is True, (ij2, sol, Cfunc.__name__, C.clauses)
-            for sol in Cpos.itersolve([],m):
+            for sol in Cpos.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is True, (ij, sol,'Require(%s)' % Cfunc.__name__, Cpos.clauses)
-            for sol in C.itersolve([(C.Not(x),)],m):
+            for sol in C.itersolve([(C.Not(x),)]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is False, (ij2, sol, Cfunc.__name__, C.clauses)
-            for sol in Cneg.itersolve([],m):
+            for sol in Cneg.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is False, (ij, sol,'Prevent(%s)' % Cfunc.__name__, Cneg.clauses)
 
@@ -154,6 +154,11 @@ def test_AMONE():
     my_TEST(my_AMONE, Clauses.AtMostOne_NSQ, 0,3, True)
     my_TEST(my_AMONE, Clauses.AtMostOne_BDD, 0,3, True)
     my_TEST(my_AMONE, Clauses.AtMostOne, 0,3, True)
+    C1 = Clauses(10)
+    x1 = C1.AtMostOne_BDD((1,2,3,4,5,6,7,8,9,10))
+    C2 = Clauses(10)
+    x2 = C2.AtMostOne((1,2,3,4,5,6,7,8,9,10))
+    assert x1 == x2 and C1.clauses == C2.clauses
 
 def test_XONE():
     my_TEST(my_XONE, Clauses.ExactlyOne_NSQ, 0,3, True)
@@ -164,13 +169,13 @@ def test_LinearBound():
     L = [
         ([], [0, 1], True),
         ([], [1, 2], False),
-        ([(2, 1), (2, 2)], [3, 3], False),
-        ([(2, 1), (2, 2)], [0, 1], 1000),
-        ([(1, 1), (2, 2)], [0, 2], 1000),
-        ([(1, 1), (2, -2)], [0, 2], 1000),
+        ({'x1':2, 'x2':2}, [3, 3], False),
+        ({'x1':2, 'x2':2}, [0, 1], 1000),
+        ({'x1':1, 'x2':2}, [0, 2], 1000),
+        ({'x1':2, '!x2':2}, [0, 2], 1000),
         ([(1, 1), (2, 2), (3, 3)], [3, 3], 1000),
         ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7)], [0, 2], 1000),
-        ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7), 
+        ([(0, 1), (1, 2), (2, 3), (0, 4), (1, 5), (0, 6), (1, 7),
           (3, False), (2, True)], [2, 4], 1000),
         ([(1, 15), (2, 16), (3, 17), (4, 18), (5, 6), (5, 19), (6, 7),
           (6, 20), (7, 8), (7, 21), (7, 28), (8, 9), (8, 22), (8, 29), (8, 41), (9,
@@ -182,10 +187,22 @@ def test_LinearBound():
           (12, 54)], [192, 204], 100),
         ]
     for eq, rhs, max_iter in L:
-        N = max([0]+[a for c,a in eq if a is not True and a is not False])
+        if isinstance(eq, dict):
+            N = len(eq)
+        else:
+            N = max([0]+[a for c,a in eq if a is not True and a is not False])
         C = Clauses(N)
         Cpos = Clauses(N)
         Cneg = Clauses(N)
+        if isinstance(eq, dict):
+            for k in range(1,N+1):
+                nm = 'x%d'%k
+                C.name_var(k, nm)
+                Cpos.name_var(k, nm)
+                Cneg.name_var(k, nm)
+            eq2 = [(v,C.from_name(c)) for c,v in iteritems(eq)]
+        else:
+            eq2 = eq
         x = C.LinearBound(eq, rhs[0], rhs[1])
         Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
         Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
@@ -195,27 +212,47 @@ def test_LinearBound():
             assert Cneg.unsat == max_iter and not Cneg.clauses, (ij, 'Prevent(%s)')
             continue
         for _, sol in zip(range(max_iter), C.itersolve([(x,)],N)):
-            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], C.clauses
+            assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], C.clauses
         for _, sol in zip(range(max_iter), C.itersolve([(C.Not(x),)],N)):
-            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), C.clauses
+            assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), C.clauses
         for _, sol in zip(range(max_iter), Cpos.itersolve([],N)):
-            assert rhs[0] <= my_EVAL(eq,sol) <= rhs[1], ('Cpos',Cpos.clauses)
+            assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], ('Cpos',Cpos.clauses)
         for _, sol in zip(range(max_iter), Cneg.itersolve([],N)):
-            assert not(rhs[0] <= my_EVAL(eq,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
+            assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
 
 def test_sat():
-    def sat(val, m=1):
-        return Clauses(m).sat(val)
-    assert sat([[1]]) == [1]
-    assert sat([[1], [-1]]) is None
-    assert sat([]) in ([1],[-1])
+    C = Clauses()
+    C.new_var('x1')
+    C.new_var('x2')
+    assert C.sat([(+1,),(+2,)], names=True) == {'x1','x2'}
+    assert C.sat([(-1,),(+2,)], names=True) == {'x2'}
+    assert C.sat([(-1,),(-2,)], names=True) == set()
+    assert C.sat([(+1,),(-1,)], names=True) is None
+    C.unsat = True
+    assert C.sat() is None
+    assert len(Clauses(10).sat([[1]])) == 10
+
+def test_minimize():
+    # minimize    x1 + 2 x2 + 3 x3 + ... + 10 x10
+    # subject to  x1 + x2 + x3 + x4 + x5  == 1
+    #             x6 + x7 + x8 + x9 + x10 == 1
+    C = Clauses(10)
+    C.Require(C.ExactlyOne, range(1,6))
+    C.Require(C.ExactlyOne, range(6,11))
+    objective = [(k,k) for k in range(1,11)]
+    sol = C.sat()
+    C.unsat = True
+    assert C.minimize(objective, sol)[1] == 56
+    C.unsat = False
+    sol2, sval = C.minimize(objective, sol)
+    assert C.minimize(objective, sol)[1] == 7, (objective, sol2, sval)
 
 def test_minimal_unsatisfiable_subset():
     def sat(val):
         return Clauses().sat(val)
     assert raises(ValueError, lambda: minimal_unsatisfiable_subset([[1]], sat))
 
-    clauses = [[-10], [1], [5], [2, 3], [3, 4], [5, 2], [-7], [2], [3], 
+    clauses = [[-10], [1], [5], [2, 3], [3, 4], [5, 2], [-7], [2], [3],
         [-2, -3, 5], [7, 8, 9, 10], [-8], [-9]]
     res = minimal_unsatisfiable_subset(clauses, sat)
     assert sorted(res) == [[-10], [-9], [-8], [-7], [7, 8, 9, 10]]

@@ -3,7 +3,10 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from setuptools import setup, find_packages
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 import os
 import sys
 
@@ -54,7 +57,11 @@ setup(
     ],
     description="OS-agnostic, system-level binary package manager.",
     long_description=open('README.rst').read(),
-    packages=find_packages(exclude=['tests', 'tests.*']),
+    packages=[
+        'conda',
+        'conda.cli',
+        'conda.progressbar'
+    ],
     install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests', 'psutil'],
     entry_points={
         'console_scripts': [
