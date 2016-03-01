@@ -194,7 +194,6 @@ sys.exit(main())
 
 
 def _format_vars(shell):
-    print(shells)
     shelldict = shells[shell]
     command_setup = """\
 set {ps_var}={raw_ps}
