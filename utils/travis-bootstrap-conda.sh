@@ -20,7 +20,7 @@ travis_bootstrap_conda() {
     export PATH="$HOME/miniconda/bin:$PATH"
     hash -r
     conda config --set always_yes yes
-    conda update conda
+    conda update -q conda
 
     # TODO: on hold until we get virtualenvs working
     # declare python_version
