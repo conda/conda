@@ -62,5 +62,3 @@ test_script:
 on_success:
   - pip install codecov
   - codecov --env PYTHON_VERSION
-
-shallow_clone: true
