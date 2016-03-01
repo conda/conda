@@ -2,6 +2,11 @@ os:
   - linux
   - osx
 
+addons:
+  apt:
+    packages:
+    - zsh
+
 env:
   global:
     - PYTHONUNBUFFERED=yes
