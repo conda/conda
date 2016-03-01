@@ -11,7 +11,8 @@ import pytest
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
-from conda.utils import win_path_to_unix, unix_path_to_win, win_path_to_cygwin, cygwin_path_to_win, translate_stream
+from conda.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin,
+                         cygwin_path_to_win, translate_stream)
 from conda.cli.activate import pathlist_to_str
 import subprocess
 import tempfile
@@ -44,7 +45,7 @@ unix_shell_base = dict(ps_var="PS1",
                        slash_convert=("\\", "/"),
 )
 
-if platform.startswith("win"):
+if sys.platform == "win32":
     shells = {
         #"powershell": dict(
         #    echo="echo",
@@ -87,15 +88,23 @@ if platform.startswith("win"):
             path_to=path_identity,
             slash_convert = ("/", "\\"),
         ),
-        "cygwin": dict(unix_shell_base, exe="c:\\cygwin\\bin\\bash", path_from=cygwin_path_to_win, path_to=win_path_to_cygwin),
-        "msys": dict(unix_shell_base, exe="C:\\msys\\1.0\\bin\\bash", path_from=unix_path_to_win, path_to=win_path_to_unix),
-        "msys2": dict(unix_shell_base, exe="C:\\msys\\2.0\\usr\\bin\\bash", path_from=unix_path_to_win, path_to=win_path_to_unix),
+        "cygwin": dict(unix_shell_base,
+                       exe="c:\\cygwin\\bin\\bash",
+                       path_from=cygwin_path_to_win,
+                       path_to=win_path_to_cygwin),
+        "git_bash": dict(unix_shell_base,
+                         exe=join(sys.prefix, "Library", "bin", "bash.exe"),
+                         path_from=unix_path_to_win,
+                         path_to=win_path_to_unix),
     }
 
 else:
     shells = {
         "bash": dict(unix_shell_base, exe="bash"),
         "zsh": dict(unix_shell_base, exe="zsh"),
+        #"fish": dict(unix_shell_base, exe="fish",
+        #             shell_suffix=".fish",
+        #             source_setup=""),
     }
 
 def run_in(command, shell):
@@ -171,23 +180,9 @@ escape_curly = lambda x: x.replace("{", "{{").replace("}", "}}")
 
 cmd_path = '/cmd/'
 
-working_shells = {}
-for shell in shells:
-    try:
-        stdout, stderr = run_in('echo' + shells[shell]['test_echo_extra'], shell)
-    except OSError:
-        print("shell %s failed with path %s" % (shell, shells[shell]["exe"]))
-    else:
-        if not stderr:
-            working_shells[shell]=shells[shell]
-        else:
-            print("shell %s failed with path %s" % (shell, shells[shell]["exe"]))
-            print(stderr)
-
-shells = working_shells
-
 def print_ps1(env_dirs, shell, number):
     return u" ".join([u"(({}))".format(os.path.split(env_dirs[number])[-1]), escape_curly(os.getenv(shells[shell]["ps_var"], ""))]).strip()
+
 
 CONDA_ENTRY_POINT = """\
 #!{syspath}/python
@@ -199,6 +194,7 @@ sys.exit(main())
 
 
 def _format_vars(shell):
+    print(shells)
     shelldict = shells[shell]
     command_setup = """\
 set {ps_var}={raw_ps}
