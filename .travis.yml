@@ -26,9 +26,6 @@ script:
 
 sudo: false
 
-git:
-  depth: 3
-
 after_success:
   - pip install codecov
   - codecov --env PY_VERSION
