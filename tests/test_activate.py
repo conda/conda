@@ -429,7 +429,7 @@ def test_activate_symlinking(shell):
                         file_path = shells[shell]["path_from"](file_path)
                         assert(os.path.exists(file_path))
                     else:
-                        file_path = join([env, where, f])
+                        file_path = join(env, where, f)
                         assert(os.path.lexists(file_path))
                         assert(os.path.exists(file_path))
                         s = os.lstat(file_path)

@@ -483,19 +483,15 @@ def symlink_conda(prefix, root_dir, shell):
     if on_win:
         where = 'Scripts'
         symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
-        exists_fn = os.path.isfile
-        rm_fn = os.remove
     else:
         where = 'bin'
         symlink_fn = os.symlink
-        exists_fn = os.path.exists
-        rm_fn = os.unlink
     if not isdir(join(prefix, where)):
         os.makedirs(join(prefix, where))
-    symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn)
+    symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
-def symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn):
+def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
     scripts = {where: ["conda"],
                'cmd': ["activate", "deactivate"],
                }
@@ -507,10 +503,10 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn, exists_fn, rm_fn):
             root_file = join(root_dir, where, f)
             prefix_file = join(prefix_where, f)
             # try to kill stale links if they exist
-            if exists_fn(prefix_file):
-                rm_fn(prefix_file)
+            if os.path.lexists(prefix_file):
+                os.remove(prefix_file)
             # if they're in use, they won't be killed.  Skip making new symlink.
-            if not exists_fn(prefix_file):
+            if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
 
 
