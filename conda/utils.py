@@ -111,7 +111,11 @@ cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
 def translate_stream(stream, translator):
     translated_stream = ""
     for line in stream.split("\n"):
-        for term in shlex.split(line.replace("\\", "\\\\")):
+        lex = shlex.shlex(line.replace("\\", "\\\\"))
+        lex.quotes = '"'
+        lex.whitespace_split = True
+        lex.commenters = ''
+        for term in list(lex):
             if translator(term):
                 term = translator(term)
             translated_stream = translated_stream + " " + term
