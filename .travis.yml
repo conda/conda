@@ -15,6 +15,7 @@ install:
   - source ./utils/travis-bootstrap-conda.sh
   - conda install flake8 pytest mock
   - conda install pip
+  - conda install psutil
   - pip install pytest-cov radon
 
 script:
