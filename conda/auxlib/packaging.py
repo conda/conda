@@ -53,7 +53,7 @@ def _get_version_from_git_tag():
     if m.group('dev') or _is_git_dirty():
         dev = (m.group('dev') or 0).decode('utf-8')
         hash_ = (m.group('hash') or _get_git_hash()).decode('utf-8')
-        version += ".dev{dev}.{hash_}".format(dev=dev, hash_=hash_)
+        version += ".dev{dev}+{hash_}".format(dev=dev, hash_=hash_)
     return version
 
 
