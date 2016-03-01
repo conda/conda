@@ -228,18 +228,18 @@ class TestJson(unittest.TestCase):
     def test_search(self):
         res = capture_json_with_argv('conda', 'search', '--json')
         self.assertIsInstance(res, dict)
-        self.assertIsInstance(res['_license'], list)
-        self.assertIsInstance(res['_license'][0], dict)
+        self.assertIsInstance(res['conda'], list)
+        self.assertIsInstance(res['conda'][0], dict)
         keys = ('build', 'channel', 'extracted', 'features', 'fn',
                 'installed', 'version')
         for key in keys:
-            self.assertIn(key, res['_license'][0])
+            self.assertIn(key, res['conda'][0])
         for res in (capture_json_with_argv('conda', 'search', 'ipython', '--json'),
             capture_json_with_argv('conda', 'search', '--unknown', '--json'),
             capture_json_with_argv('conda', 'search', '--use-index-cache', '--json'),
             capture_json_with_argv('conda', 'search', '--outdated', '--json'),
-            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/asmeurer', '--json'),
-            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/asmeurer', '--override-channels', '--json'),
+            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/conda', '--json'),
+            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/conda', '--override-channels', '--json'),
             capture_json_with_argv('conda', 'search', '--platform', 'win-32', '--json'),):
             self.assertIsInstance(res, dict)
 
