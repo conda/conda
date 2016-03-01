@@ -1,6 +1,6 @@
 import sys
 
-win_default_shells = ["cmd.exe", "powershell", "msys", "msys2", "cygwin"]
+win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
 shells = ["bash", "zsh"]
 
 if sys.platform == "win32":
