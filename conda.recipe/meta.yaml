@@ -25,6 +25,7 @@ requirements:
     - requests
     - pyyaml
     - conda-env
+    - psutil
     - pycosat
     - menuinst  [win]
   run:
@@ -34,6 +35,7 @@ requirements:
     - requests
     - conda-env
     - menuinst  [win]
+    - psutil
 
 test:
   commands:
