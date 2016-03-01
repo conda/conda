@@ -38,7 +38,7 @@ unix_shell_base = dict(ps_var="PS1",
                        printdefaultenv='echo $CONDA_DEFAULT_ENV',
                        printpath="echo $PATH",
                        raw_ps=os.getenv("PS1", ""),
-                       shell_args="-l -c",
+                       shell_args=["-l", "-c"],
                        path_from=path_identity,
                        path_to=path_identity,
                        slash_convert=("\\", "/"),
@@ -82,7 +82,7 @@ if platform.startswith("win"):
             printpath="echo %PATH%",
             raw_ps=os.getenv("PROMPT", ""),
             exe="cmd.exe",
-            shell_args="/d /c",
+            shell_args=["/d", "/c"],
             path_from=path_identity,
             path_to=path_identity,
             slash_convert = ("/", "\\"),
@@ -103,14 +103,16 @@ def run_in(command, shell):
         cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
         cmd_script.write(command)
         cmd_script.close()
-        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"].split(" ") + [cmd_script.name]
-        p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        os.unlink(cmd_script.name)
+        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
+        try:
+            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+        finally:
+            os.unlink(cmd_script.name)
     elif shell == 'powershell':
         raise NotImplementedError
     else:
-        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"].split(" ") + [translate_stream(command, shells[shell]["path_to"])]
+        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [translate_stream(command, shells[shell]["path_to"])]
         p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
     output_translator = shells[shell]["path_from"]
@@ -143,6 +145,8 @@ def gen_test_env_paths(envs, shell, num_test_folders=3):
     return paths
 
 def _envpaths(env_root, env_name=""):
+    """Supply the appropriate platform executable folders.  rstrip on root removes
+       trailing slash if env_name is empty (the default)"""
     if 'win' in platform:
         paths = [join(env_root, env_name).rstrip("\\"),
                 join(env_root, env_name, 'cmd'),
@@ -405,6 +409,8 @@ def test_activate_help(shell):
 
 @pytest.mark.slow
 def test_activate_symlinking(shell):
+    """Symlinks or bat file redirects are created at activation time.  Make sure that the
+    files/links exist, and that they point where they should."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -422,18 +428,18 @@ def test_activate_symlinking(shell):
             }
             for where, files in scripts.items():
                 for f in files:
-                    if platform.startswith('win'):
-                        file_path = join(env, where, f + ".bat")
-                        assert os.path.exists(file_path)
-                        with open(file_path) as batfile:
-                            assert root_dir in "".join(batfile.readlines())
+                    if sys.platform == "win32":
+                        file_path = shells[shell]["slash_convert"][1].join([env, where, f + shells[shell]["shell_suffix"]])
+                        # must translate path to windows representation for Python's sake
+                        file_path = shells[shell]["path_from"](file_path)
+                        assert(os.path.exists(file_path))
                     else:
-                        file_path = join(env, where, f)
-                        assert os.path.lexists(file_path)
-                        assert os.path.exists(file_path)
+                        file_path = join([env, where, f])
+                        assert(os.path.lexists(file_path))
+                        assert(os.path.exists(file_path))
                         s = os.lstat(file_path)
-                        assert stat.S_ISLNK(s.st_mode)
-                        assert os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, where, f))
+                        assert(stat.S_ISLNK(s.st_mode))
+                        assert(os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, where, f)))
 
         if platform != 'win':
             # Test activate when there are no write permissions in the
