@@ -48,7 +48,7 @@ install:
   - conda install -q --yes -c conda pytest requests mock pycrypto pyflakes pycosat
   - conda install -q --yes pip
   # for msys installation
-  - conda install -q --yes git
+  - conda install -q --yes git psutil
   - pip install flake8 pytest-cov
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
