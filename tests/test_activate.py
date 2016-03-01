@@ -427,11 +427,10 @@ def test_activate_symlinking(shell):
                         file_path = shells[shell]["slash_convert"][1].join([env, where, f + shells[shell]["shell_suffix"]])
                         # must translate path to windows representation for Python's sake
                         file_path = shells[shell]["path_from"](file_path)
-                        assert(os.path.exists(file_path))
+                        assert(os.path.lexists(file_path))
                     else:
                         file_path = join(env, where, f)
                         assert(os.path.lexists(file_path))
-                        assert(os.path.exists(file_path))
                         s = os.lstat(file_path)
                         assert(stat.S_ISLNK(s.st_mode))
                         assert(os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, where, f)))
