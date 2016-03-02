@@ -758,7 +758,7 @@ class Resolve(object):
             return None
 
     def bad_installed(self, installed, new_specs):
-        dotlog.debug('Checking if the current environment is consistent')
+        log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
         xtra = []
@@ -772,7 +772,7 @@ class Resolve(object):
                 dists[fn] = rec
                 specs.append(MatchSpec(' '.join(self.package_triple(fn))))
         if xtra:
-            dotlog.debug('Packages missing from index: %s' % ', '.join(xtra))
+            log.debug('Packages missing from index: %s' % ', '.join(xtra))
         groups, trackers = build_groups(dists)
         C = self.gen_clauses(groups, trackers, specs)
         constraints = self.generate_spec_constraints(C, specs)
@@ -792,11 +792,11 @@ class Resolve(object):
             if xtra or not (solution or all(s.name in snames for s in specs)):
                 limit = set(s.name for s in specs if s.name in snames)
                 xtra = [fn for fn in installed if self.package_name(fn) not in snames]
-                dotlog.debug(
+                log.debug(
                     'Limiting solver to the following packages: %s' %
                     ', '.join(limit))
         if xtra:
-            dotlog.debug('Packages to be preserved: %s' % ', '.join(xtra))
+            log.debug('Packages to be preserved: %s' % ', '.join(xtra))
         return limit, xtra
 
     def restore_bad(self, pkgs, preserve):
@@ -888,6 +888,31 @@ class Resolve(object):
 
             specs.extend(new_specs)
 
+            nz = len(C.clauses)
+            nv = C.m
+
+            # Requested packages: maximize versions, then builds
+            spec2 = [s for s in specs[:len0] if not s.optional]
+            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
+            eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            solution, obj3 = C.minimize(eq_requested_versions, solution)
+            solution, obj4 = C.minimize(eq_requested_builds, solution)
+            dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
+
+            # Minimize the number of installed track_features, maximize featured package count
+            eq_feature_count = self.generate_feature_count(C, trackers)
+            solution, obj1 = C.minimize(eq_feature_count, solution)
+            dotlog.debug('Feature count: %d' % obj1)
+
+            # Now that we have the feature count, lock it in and re-optimize
+            C.clauses = C.clauses[:nz]
+            C.m = nv
+            C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
+            solution = C.sat()
+            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
+            solution, obj2 = C.minimize(eq_feature_metric, solution)
+            dotlog.debug('Package feature metric: %d/%d' % (obj1, obj2))
+
             # Requested packages: maximize versions, then builds
             spec2 = [s for s in specs[:len0] if not s.optional]
             eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
@@ -895,13 +920,7 @@ class Resolve(object):
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
-
-            # Minimize the number of installed track_features, maximize featured package count
-            eq_feature_count = self.generate_feature_count(C, trackers)
-            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
-            solution, obj1 = C.minimize(eq_feature_count, solution)
-            solution, obj2 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Feature count/package metrics: %d/%d' % (obj1, obj2))
+            print(eq_requested_versions)
 
             # Required packages: maximize versions, then builds
             spec2 = [s for s in specs[len0:] if not s.optional]
