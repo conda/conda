@@ -59,7 +59,7 @@ install:
 build: false
 
 test_script:
-  - py.test --cov conda --cov-report xml tests --shell=cmd.exe --shell=git_bash
+  - py.test --cov conda --cov-report xml tests --shell=cmd.exe --shell=bash
 
 on_success:
   - pip install codecov
