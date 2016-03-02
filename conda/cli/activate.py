@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import errno
 import os
 from os.path import isdir, join, abspath
-import psutil
 import re
 import sys
 
