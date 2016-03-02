@@ -8,19 +8,7 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin
-
-
-on_win = sys.platform == "win32"
-
-def find_parent_shell(path=False):
-    """return process name or path of parent.  Default is to return only name of process."""
-    process = psutil.Process()
-    while "conda" in process.parent().name():
-        process = process.parent()
-    if path:
-        return process.parent().exe()
-    return process.parent().name()
+from conda.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin, find_parent_shell
 
 
 on_win = sys.platform == "win32"

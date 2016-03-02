@@ -189,3 +189,13 @@ class memoize(object): # 577452
         except KeyError:
             res = cache[key] = self.func(*args, **kw)
         return res
+
+
+def find_parent_shell(path=False):
+    """return process name or path of parent.  Default is to return only name of process."""
+    process = psutil.Process()
+    while "conda" in process.parent().name():
+        process = process.parent()
+    if path:
+        return process.parent().exe()
+    return process.parent().name()
