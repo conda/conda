@@ -98,24 +98,37 @@ def main():
     if on_win:
         path = path.replace(join(sys.prefix, "Library", "bin")+os.pathsep, "", 1)
 
+    parent_shell = find_parent_shell(path=True)
     if sys.argv[1] == '..activate':
-        if len(sys.argv) == 2:
+        if len(sys.argv) == 2 or sys.argv[2].lower() == "root":
             binpath = binpath_from_arg("root")
+            rootpath = None
         elif len(sys.argv) == 3:
             base_path = sys.argv[2]
-            parent_shell = find_parent_shell(path=True)
-            if any([shell in parent_shell for shell in ["cmd.exe", "powershell.exe"]]):
-                base_path = translate_stream(base_path, unix_path_to_win)
-            elif 'cygwin' in parent_shell:
-                # this should be harmless to unix paths, but converts win paths to unix for bash on win (msys, cygwin)
-                base_path = translate_stream(base_path, win_path_to_cygwin)
-            else:
-                base_path = translate_stream(base_path, win_path_to_unix)
             binpath = binpath_from_arg(base_path)
+            rootpath = os.pathsep.join(binpath_from_arg("root"))
         else:
             sys.exit("Error: did not expect more than one argument")
         sys.stderr.write("prepending %s to PATH\n" % pathlist_to_str(binpath))
         path = os.pathsep.join([os.pathsep.join(binpath), path])
+
+        if any([shell in parent_shell for shell in ["cmd.exe", "powershell.exe"]]):
+            path = translate_stream(path, unix_path_to_win)
+            # Clear the root path if it is present
+            if rootpath:
+                path = path.replace(translate_stream(rootpath, unix_path_to_win), "")
+        elif 'cygwin' in parent_shell:
+            # this should be harmless to unix paths, but converts win paths to unix for bash on win (msys, cygwin)
+            path = translate_stream(path, win_path_to_cygwin)
+            # Clear the root path if it is present
+            if rootpath:
+                path = path.replace(translate_stream(rootpath, win_path_to_cygwin), "")
+        else:
+            path = translate_stream(path, win_path_to_unix)
+            # Clear the root path if it is present
+            if rootpath:
+                path = path.replace(translate_stream(rootpath, win_path_to_unix), "")
+
 
     elif sys.argv[1] == '..deactivate':
         path = os.getenv("CONDA_PATH_BACKUP", "")
