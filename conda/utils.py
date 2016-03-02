@@ -11,6 +11,8 @@ import re
 import shlex
 import tempfile
 
+import psutil
+
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
