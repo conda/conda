@@ -57,7 +57,7 @@ setup(
     ],
     packages=[
         'conda',
-        'conda.auxlib'
+        'conda.auxlib',
         'conda.cli',
         'conda.progressbar'
     ],
