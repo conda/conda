@@ -84,10 +84,11 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '(?:[ ;:])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]*)'
+    path_re = '(?<![:/])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
     translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
         .replace(":", "").replace(";", ":")
     return re.sub(path_re, translation, path)
+
 
 def unix_path_to_win(path, root_prefix=""):
     """Convert a path or :-separated string of paths into a Windows representation
