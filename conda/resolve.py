@@ -10,7 +10,6 @@ from conda.version import VersionSpec, normalized_version
 from conda.console import setup_handlers
 from conda import config
 from conda.toposort import toposort
-from conda.install import name_dist
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -591,7 +590,6 @@ class Resolve(object):
 
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
-        polarities = {}
 
         def push_MatchSpec(ms):
             name = self.ms_to_v(ms)
@@ -651,7 +649,9 @@ class Resolve(object):
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             sdict.setdefault(s.name, []).append(s)
-        key = lambda x: self.version_key(x, vtype)
+
+        def key(x):
+            return self.version_key(x, vtype)
         for name, pkgs in iteritems(groups):
             mss = sdict.get(name, [])
             bmss = bool(mss)
