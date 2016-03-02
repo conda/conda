@@ -716,8 +716,8 @@ def test_activate_does_not_leak_echo_setting(shell):
 
 @pytest.mark.slow
 def test_activate_non_ascii_char_in_path(shell):
-    if sys.platform == "win32" and shell.lower() not in ["cmd.exe", "powershell"]:
-        pytest.xfail("subprocess with python 2.7 on windows is broken with unicode")
+    if shell.lower() not in ["cmd.exe", "powershell"]:
+        pytest.xfail("subprocess with python 2.7 is broken with unicode")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """

@@ -84,11 +84,10 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '[a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]*'
-    converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
-                       for _path in re.findall(path_re, path)]
-    return ":".join(converted_paths)
-
+    path_re = '([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]*)'
+    translation = lambda found_path: root_prefix + "/" + found_path.group(0).replace("\\", "/")\
+        .replace(":", "")
+    return re.sub(path_re, translation, path).replace(";", ":")
 
 def unix_path_to_win(path, root_prefix=""):
     """Convert a path or :-separated string of paths into a Windows representation
@@ -99,10 +98,12 @@ def unix_path_to_win(path, root_prefix=""):
         # already a windows path
         return path.replace("/", "\\")
     """Convert a path or :-separated string of paths into a Windows representation"""
-    path_re = root_prefix +'/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*'
-    converted_paths = [_path[len(root_prefix)+1] + ":" + _path[len(root_prefix)+2:].replace("/", "\\")
-                       for _path in re.findall(path_re, path)]
-    return ";".join(converted_paths)
+    path_re = root_prefix +'(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+    translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
+                  found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
+    translation = re.sub(path_re, translation, path)
+    translation = re.sub(":([a-zA-Z]):", lambda match: ";" + match.group(0)[1] + ":", translation)
+    return translation
 
 
 # curry cygwin functions
@@ -111,19 +112,7 @@ cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
 
 
 def translate_stream(stream, translator):
-    translated_stream = ""
-    for line in stream.split("\n"):
-        lex = shlex.shlex(line.replace("\\", "\\\\"))
-        # http://stackoverflow.com/questions/6868382/python-shlex-split-ignore-single-quotes
-        lex.quotes = '"'
-        lex.whitespace_split = True
-        lex.commenters = ''
-        for term in list(lex):
-            if translator(term):
-                term = translator(term)
-            translated_stream = translated_stream + " " + term
-        translated_stream = translated_stream + "\n"
-    return translated_stream[1:-1]
+    return "\n".join([translator(line) for line in stream.split("\n")])
 
 
 def human_bytes(n):
