@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
 
 import os
@@ -30,12 +30,13 @@ def path_identity(path):
 unix_shell_base = dict(ps_var="PS1",
                        echo="echo",
                        test_echo_extra="",
-                       var_format="${var}",
+                       var_format="${}",
                        binpath="/bin/",  # mind the trailing slash.
                        source_setup="source",
                        nul='2>/dev/null',
                        set_var='export ',
                        shell_suffix="",
+                       env_script_suffix=".sh",
                        printps1='echo $PS1',
                        printdefaultenv='echo $CONDA_DEFAULT_ENV',
                        printpath="echo $PATH",
@@ -58,6 +59,7 @@ if sys.platform == "win32":
         #    nul='2>/dev/null',
         #    set_var='export ',
         #    shell_suffix=".ps",
+        #    env_script_suffix=".ps",
         #    printps1='echo $PS1',
         #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
         #    printpath="echo %PATH%",
@@ -77,6 +79,7 @@ if sys.platform == "win32":
             nul='1>NUL 2>&1',
             set_var='set ',
             shell_suffix=".bat",
+            env_script_suffix=".bat",
             printps1="echo %PROMPT%",
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
                             'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
@@ -209,6 +212,7 @@ set CONDARC=
     base_path, _ = run_in(command_setup + shelldict['printpath'], shell)
 
     return {
+        'echo': shelldict['echo'],
         'nul': shelldict['nul'],
         'printpath': shelldict['printpath'],
         'printdefaultenv': shelldict['printdefaultenv'],
@@ -706,7 +710,7 @@ def test_activate_relative_path(shell):
 
 # known failure.  Should be fixed, but not in scope of PR 1727
 @pytest.mark.slow
-@pytest.mark.xfail(run=False)
+@pytest.mark.xfail(run=True)
 def test_activate_non_ascii_char_in_path(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
@@ -715,5 +719,52 @@ def test_activate_non_ascii_char_in_path(shell):
         {source} "{env_dirs[0]}{cmd_path}deactivate"
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, u'', stderr)
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(sys.platform != "win32" and shell != "cmd.exe",
+                    reason="test only relevant for cmd.exe on win")
+def test_activate_does_not_leak_echo_setting(shell):
+    """Test that activate's setting of echo to off does not disrupt later echo calls"""
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        commands = (shell_vars['command_setup'] + """
+        @echo on
+        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
+        @echo
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, u'ECHO is on.', stderr)
+
+
+@pytest.mark.slow
+def test_activate_has_extra_env_vars(shell):
+    """Test that environment variables in activate.d show up when activated"""
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs=gen_test_env_paths(envs, shell)
+        act_path = shells[shell]["path_from"](join(env_dirs[0], "etc", "conda", "activate.d"))
+        deact_path = shells[shell]["path_from"](join(env_dirs[0], "etc", "conda", "deactivate.d"))
+        os.makedirs(act_path)
+        os.makedirs(deact_path)
+        with open(join(act_path, "test" + shells[shell]["env_script_suffix"]), "w") as f:
+            f.write(shells[shell]["set_var"] + "TEST_VAR=test\n")
+        commands = (shell_vars['command_setup'] + """
+        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
+        {echo} {var}
+        """).format(envs=envs, env_dirs=env_dirs, var=shells[shell]["var_format"].format("TEST_VAR"), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, u'test', stderr)
+
+        # Make sure the variable is reset after deactivation
+        with open(join(deact_path, "test" + shells[shell]["env_script_suffix"]), "w") as f:
+            f.write(shells[shell]["set_var"] + "TEST_VAR=\n")
+        commands = (shell_vars['command_setup'] + """
+        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
+        {source} "{env_dirs[0]}{cmd_path}deactivate"
+        {echo} {var}
+        """).format(envs=envs, env_dirs=env_dirs, var=shells[shell]["var_format"].format("TEST_VAR"), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, u'', stderr)
