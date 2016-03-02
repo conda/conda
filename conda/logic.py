@@ -477,17 +477,12 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def minimize(self, objective, bestsol, minval=None, increment=10):
+    def minimize(self, objective, bestsol):
         """
-        Bisect the solution space of a constraint, to minimize it.
-
-        func should be a function that is called with the arguments func(lo_rhs,
-        hi_rhs) and returns a list of constraints.
-
-        The midpoint of the bisection will not be more than lo_value + increment.
-        To not use it, set a very large increment. The increment argument should
-        be used if you expect the optimal solution to be near 0.
-
+        Minimize the objective function given either by (coeff, integer)
+        tuple pairs, or a dictionary of varname: coeff values. The actual
+        minimization is multiobjective: first, we minimize the largest
+        active coefficient value, then we minimize the sum.
         """
         if not objective:
             log.debug('Empty objective, trivial solution')
@@ -497,52 +492,74 @@ class Clauses(object):
             return bestsol, sum(abs(c) for c, a in objective) + 1
 
         if type(objective) is dict:
-            odict = {self.varnum(k): v for k, v in iteritems(objective)}
-            objective = [(v, k) for k, v in iteritems(odict)]
-        else:
-            odict = {self.varnum(atom): coeff for coeff, atom in objective}
+            objective = [(v, self.varnum(k)) for k, v in iteritems(objective)]
 
         objective, offset = self.LB_Preprocess_(objective)
-        minval = minval and minval - offset
+        maxval = max(c for c, a in objective)
 
-        m_orig = bestm = self.m
-        nz = len(self.clauses)
-        bestval = evaluate_eq(odict, bestsol)
+        def peak_val(sol, odict):
+            return max(odict.get(s, 0) for s in sol)
 
-        # If we got lucky and the initial solution is optimal, we still
-        # need to generate the constraints at least once
-        try0 = lo = min([bestval, max([0, minval]) if minval else 0])
-        mval = sum(c for c, a in objective)
-        hi = bestval
+        def sum_val(sol, odict):
+            return sum(odict.get(s, 0) for s in sol)
 
-        log.debug("Initial range (%d,%d)" % (lo, hi))
-        while True:
-            if try0 is None:
-                mid = min([lo + increment, (lo+hi)//2])
+        for peak in ((True, False) if maxval > 1 else (False,)):
+            if peak:
+                log.debug('Beginning peak minimization')
+                objval = peak_val
             else:
-                mid = try0
-                try0 = None
-            self.Require(self.LinearBound, objective, lo, mid, False)
-            log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
-                      (lo, mid, nz, len(self.clauses)-nz))
-            newsol = self.sat()
-            if newsol is None:
-                log.debug("Bisection failure")
-                lo = mid + 1
-            else:
-                done = lo == hi
-                bestsol = newsol
-                bestval = evaluate_eq(odict, newsol)
-                hi = bestval
-                log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
-                if done:
-                    break
-            self.m = m_orig
-            if len(self.clauses) > nz:
-                self.clauses = self.clauses[:nz]
-            self.unsat = False
+                log.debug('Beginning sum minimization')
+                objval = sum_val
 
-        return newsol, bestval
+            odict = {a: c for c, a in objective}
+            bestval = objval(bestsol, odict)
+
+            # If we got lucky and the initial solution is optimal, we still
+            # need to generate the constraints at least once
+            try0 = lo = 0
+            hi = bestval
+            m_orig = self.m
+            nz = len(self.clauses)
+
+            log.debug("Initial range (%d,%d)" % (lo, hi))
+            while True:
+                if try0 is None:
+                    mid = (lo+hi) // 2
+                else:
+                    mid = try0
+                    try0 = None
+                if peak:
+                    self.Prevent(self.Any, tuple(a for c, a in objective if c > mid))
+                else:
+                    self.Require(self.LinearBound, objective, 0, mid, False)
+                log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
+                          (lo, mid, nz, len(self.clauses)-nz))
+                newsol = self.sat()
+                if newsol is None:
+                    lo = mid + 1
+                    log.debug("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                else:
+                    done = lo == mid
+                    bestsol = newsol
+                    bestval = objval(newsol, odict)
+                    hi = bestval
+                    log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
+                    if done:
+                        break
+                self.m = m_orig
+                if len(self.clauses) > nz:
+                    self.clauses = self.clauses[:nz]
+                self.unsat = False
+
+            log.debug('Final %s objective: %d' % ('peak' if peak else 'sum', bestval))
+            if bestval == 0:
+                break
+            elif peak:
+                objective = [(c, a) for c, a in objective if c <= bestval]
+            else:
+                log.debug('New peak objective: %d' % peak_val(bestsol, odict))
+
+        return bestsol, bestval
 
 
 def evaluate_eq(eq, sol):
@@ -596,9 +613,9 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
         update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
         stop = lambda: logging.getLogger('progress.stop').info(None)
     else:
-        start = lambda x: None  # noqa
-        update = lambda x, y: None  # noqa
-        stop = lambda: None  # noqa
+        start = lambda x: None
+        update = lambda x, y: None
+        stop = lambda: None
 
     clauses = tuple(clauses)
     if sat(clauses):
