@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 from __future__ import print_function, absolute_import
 
 import os
@@ -664,6 +665,51 @@ def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        commands = (shell_vars['command_setup'] + """
+        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
+        {source} "{env_dirs[0]}{cmd_path}deactivate"
+        {printdefaultenv}
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, u'', stderr)
+
+
+@pytest.mark.slow
+def test_activate_deactivate_with_space_in_path(shell):
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='env s', dir=dirname(__file__)) as envs:
+        commands = (shell_vars['command_setup'] + """
+        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
+        {source} "{env_dirs[0]}{cmd_path}deactivate"
+        {printdefaultenv}
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, u'', stderr)
+
+
+@pytest.mark.slow
+def test_activate_relative_path(shell):
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        start_dir = os.getcwd()
+        env_dirs = gen_test_env_paths(envs, shell)
+        os.chdir(os.path.dirname(env_dirs[0]))
+        env_dir = os.path.basename(env_dirs[0])
+        commands = (shell_vars['command_setup'] + """
+        {source} "{syspath}{cmd_path}activate" "{env_dir}"
+        {printdefaultenv}
+        """).format(envs=envs, env_dir=env_dir, **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        os.chdir(start_dir)
+        assert_equals(stdout, u'{env_dirs[0]}'.format(envs=envs, env_dirs=env_dirs), stderr)
+
+
+# known failure.  Should be fixed, but not in scope of PR 1727
+@pytest.mark.slow
+@pytest.mark.xfail(run=False)
+def test_activate_non_ascii_char_in_path(shell):
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
         {source} "{env_dirs[0]}{cmd_path}deactivate"

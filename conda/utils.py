@@ -112,6 +112,7 @@ def translate_stream(stream, translator):
     translated_stream = ""
     for line in stream.split("\n"):
         lex = shlex.shlex(line.replace("\\", "\\\\"))
+        # http://stackoverflow.com/questions/6868382/python-shlex-split-ignore-single-quotes
         lex.quotes = '"'
         lex.whitespace_split = True
         lex.commenters = ''
