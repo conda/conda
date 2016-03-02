@@ -118,7 +118,7 @@ def main():
         path = os.pathsep.join([os.pathsep.join(binpath), path])
 
     elif sys.argv[1] == '..deactivate':
-        path = os.getenv("CONDA_PATH_BACKUP", None)
+        path = os.getenv("CONDA_PATH_BACKUP", "")
         sys.stderr.write("path:")
         sys.stderr.write(path)
         if path:
