@@ -93,13 +93,15 @@ if sys.platform == "win32":
             slash_convert = ("/", "\\"),
         ),
         "cygwin": dict(unix_shell_base,
-                       exe="c:\\cygwin\\bin\\bash",
+                       exe="bash",
                        path_from=cygwin_path_to_win,
                        path_to=win_path_to_cygwin),
-        "git_bash": dict(unix_shell_base,
-                         exe=join(sys.prefix, "Library", "bin", "bash.exe"),
-                         path_from=unix_path_to_win,
-                         path_to=win_path_to_unix),
+        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin entry instead.
+        # The only major difference is that it handle's cywin's /cygdrive filesystem root.
+        "bash": dict(unix_shell_base,
+                     exe="bash",
+                     path_from=unix_path_to_win,
+                     path_to=win_path_to_unix),
     }
 
 else:
@@ -150,7 +152,7 @@ def gen_test_env_paths(envs, shell, num_test_folders=3):
 
     Also encapsulates paths in double quotes.
     """
-    paths = [join(envs, "test{}".format(test_folder+1)) for test_folder in range(num_test_folders)]
+    paths = [join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
     for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
         symlink_conda(path, sys.prefix, shell)
     converter = shells[shell]["path_to"]
@@ -679,19 +681,6 @@ def test_deactivate_from_env(shell):
 
 
 @pytest.mark.slow
-def test_activate_deactivate_with_space_in_path(shell):
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='env s', dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
-        {source} "{env_dirs[0]}{cmd_path}deactivate"
-        {printdefaultenv}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'', stderr)
-
-
-@pytest.mark.slow
 def test_activate_relative_path(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -708,10 +697,27 @@ def test_activate_relative_path(shell):
         assert_equals(stdout, u'{env_dirs[0]}'.format(envs=envs, env_dirs=env_dirs), stderr)
 
 
-# known failure.  Should be fixed, but not in scope of PR 1727
 @pytest.mark.slow
-@pytest.mark.xfail(run=True)
+def test_activate_does_not_leak_echo_setting(shell):
+    """Test that activate's setting of echo to off does not disrupt later echo calls"""
+
+    if sys.platform != "win32" or shell != "cmd.exe":
+        pytest.skip("test only relevant for cmd.exe on win")
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        commands = (shell_vars['command_setup'] + """
+        @echo on
+        call "{syspath}{cmd_path}activate.bat" "{env_dirs[0]}"
+        @echo
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, u'ECHO is on.', stderr)
+
+
+@pytest.mark.slow
 def test_activate_non_ascii_char_in_path(shell):
+    if sys.platform == "win32" and shell.lower() not in ["cmd.exe", "powershell"]:
+        pytest.xfail("subprocess with python 2.7 on windows is broken with unicode")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -721,22 +727,6 @@ def test_activate_non_ascii_char_in_path(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, u'', stderr)
-
-
-@pytest.mark.slow
-@pytest.mark.skipif(sys.platform != "win32" and shell != "cmd.exe",
-                    reason="test only relevant for cmd.exe on win")
-def test_activate_does_not_leak_echo_setting(shell):
-    """Test that activate's setting of echo to off does not disrupt later echo calls"""
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        @echo on
-        {source} "{syspath}{cmd_path}activate" "{env_dirs[0]}"
-        @echo
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'ECHO is on.', stderr)
 
 
 @pytest.mark.slow
