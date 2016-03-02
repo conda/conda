@@ -58,6 +58,12 @@ def configure_parser(sub_parsers):
         default=None,
         nargs='?'
     )
+    p.add_argument(
+        '--select',
+        action='append',
+        help="toggle preprocessing selectors. pass multiple times to toggle multiple selectors. pass 'all' to toggle all selectors",
+        metavar="SELECTORS",
+    )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
@@ -67,7 +73,7 @@ def execute(args, parser):
 
     try:
         spec = install_specs.detect(name=name, filename=args.file,
-                                    directory=os.getcwd())
+                                    directory=os.getcwd(), selectors=args.select)
         env = spec.environment
     except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
