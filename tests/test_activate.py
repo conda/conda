@@ -693,7 +693,7 @@ def test_activate_relative_path(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         start_dir = os.getcwd()
         env_dirs = gen_test_env_paths(envs, shell)
-        os.chdir(os.path.dirname(env_dirs[0]))
+        os.chdir(envs)
         env_dir = os.path.basename(env_dirs[0])
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{cmd_path}activate" "{env_dir}"
