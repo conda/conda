@@ -10,9 +10,7 @@ load base
 
 @test "test conda command has correct version" {
     run conda --version
-    assert_output "conda unknown"
-    # TODO: need to fix versioneer
-    # assert_output "$(python -c 'import conda; print(conda.__version__)'"
+    assert_output "conda $(CONDA_DEFAULT_ENV='' python setup.py --version 2> /dev/null)"
 }
 
 @test "test we have activate and deactivate" {

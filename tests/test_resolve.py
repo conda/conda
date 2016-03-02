@@ -160,7 +160,7 @@ class TestSolve(unittest.TestCase):
 
     def test_mkl(self):
         self.assertEqual(r.install(['mkl']),
-                         r.install(['mkl', 'mkl@']))
+                         r.install(['mkl 11*', 'mkl@']))
 
     def test_accelerate(self):
         self.assertEqual(
