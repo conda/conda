@@ -12,3 +12,4 @@ MANIFEST
 coverage.xml
 .tox/
 junit.xml
+.version
