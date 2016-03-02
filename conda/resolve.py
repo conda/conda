@@ -593,13 +593,12 @@ class Resolve(object):
         C = Clauses()
         polarities = {}
 
-        def push_MatchSpec(ms, polarity=None):
+        def push_MatchSpec(ms):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
                 libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
-                m = C.Any(self.find_matches_group(ms, groups, trackers),
-                          polarity=polarity, name=name)
+                m = C.Any(libs, polarity=None if ms.optional else True, name=name)
             return m
 
         # Create package variables
@@ -609,11 +608,11 @@ class Resolve(object):
 
         # Create spec variables
         for ms in specs:
-            push_MatchSpec(ms, polarity=None if ms.optional else True)
+            push_MatchSpec(ms)
 
         # Create feature variables
         for name in iterkeys(trackers):
-            push_MatchSpec(MatchSpec('@' + name), polarity=True)
+            push_MatchSpec(MatchSpec('@' + name))
 
         # Add dependency relationships
         for group in itervalues(groups):
@@ -621,7 +620,7 @@ class Resolve(object):
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
-                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms, polarity=True))
+                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms))
         return C
 
     def generate_spec_constraints(self, C, specs):
@@ -646,7 +645,7 @@ class Resolve(object):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
     def generate_version_metric(self, C, groups, specs, vtype=None,
-                                allpkgs=False, missing=False):
+                                missing=False, start0=True):
         eq = {}
         sdict = {}
         for s in specs:
@@ -656,7 +655,7 @@ class Resolve(object):
         for name, pkgs in iteritems(groups):
             mss = sdict.get(name, [])
             bmss = bool(mss)
-            if not allpkgs and (bmss == missing):
+            if bmss == missing:
                 continue
             pkgs = [(key(p), p) for p in pkgs]
             # If the "target" field in the MatchSpec is supplied, that means we want
@@ -670,10 +669,11 @@ class Resolve(object):
                 pkgs = v1 + v2 + v3
             else:
                 pkgs = sorted(pkgs, reverse=True)
-            i = 1 if missing and not bmss else 0
             prev = None
             for nkey, pkg in pkgs:
-                if prev and prev != nkey:
+                if prev is None:
+                    i = 0 if start0 else 1
+                elif prev != nkey:
                     i += 1
                 if i:
                     eq[pkg] = i
@@ -888,12 +888,19 @@ class Resolve(object):
 
             specs.extend(new_specs)
 
+            # Optional packages: maximize count, then versions, then builds
+            speco = [s for s in specs if s.optional and
+                     any(self.find_matches_group(s, groups, trackers))]
+            eq_optional_count = self.generate_removal_count(C, speco)
+            solution, obj7 = C.minimize(eq_optional_count, solution)
+            dotlog.debug('Package removal metric: %d' % obj7)
+
             nz = len(C.clauses)
             nv = C.m
 
             # Requested packages: maximize versions, then builds
             spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
+            eq_requested_versions = self.generate_version_metric(C, groups, spec2)
             eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
@@ -920,7 +927,6 @@ class Resolve(object):
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
-            print(eq_requested_versions)
 
             # Required packages: maximize versions, then builds
             spec2 = [s for s in specs[len0:] if not s.optional]
@@ -931,11 +937,8 @@ class Resolve(object):
             dotlog.debug('Required package version/build metrics: %d/%d' % (obj5, obj6))
 
             # Optional packages: maximize count, then versions, then builds
-            specs = [s for s in specs if any(self.find_matches_group(s, groups, trackers))]
-            spec2 = [s for s in specs if s.optional]
-            eq_optional_count = self.generate_removal_count(C, spec2)
-            eq_optional_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
-            eq_optional_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            eq_optional_versions = self.generate_version_metric(C, groups, speco, vtype='version')
+            eq_optional_builds = self.generate_version_metric(C, groups, speco, vtype='build')
             solution, obj7 = C.minimize(eq_optional_count, solution)
             solution, obj8 = C.minimize(eq_optional_versions, solution)
             solution, obj9 = C.minimize(eq_optional_builds, solution)
@@ -943,10 +946,10 @@ class Resolve(object):
                          (obj7, obj8, obj9))
 
             # All other packages: maximize versions (favoring none), then builds
-            eq_remaining_versions = self.generate_version_metric(C, groups, specs,
-                                                                 missing=True, vtype='version')
-            eq_remaining_builds = self.generate_version_metric(C, groups, specs,
-                                                               missing=True, vtype='build')
+            eq_remaining_versions = self.generate_version_metric(
+                C, groups, specs, missing=True, vtype='version', start0=False)
+            eq_remaining_builds = self.generate_version_metric(
+                C, groups, specs, missing=True, vtype='build')
             solution, obj10 = C.minimize(eq_remaining_versions, solution)
             solution, obj11 = C.minimize(eq_remaining_builds, solution)
             dotlog.debug('Additional package version/build metrics: %d/%d' % (obj10, obj11))
@@ -984,7 +987,8 @@ class Resolve(object):
                      '\n  ... and others' if nsol > 10 else ''))
 
             if obj1 + obj2 + obj5 + obj6 + obj8 + obj9 > 0:
-                older = self.generate_version_metric(C, groups, specs, allpkgs=True)
+                spec2 = [MatchSpec(s) for s in groups]
+                older = self.generate_version_metric(C, groups, spec2)
                 older = [(i, p) for i, p in iteritems(older) if p in psolutions[0]]
                 if older:
                     log.debug("Older versions/builds in the solution:%s" %
