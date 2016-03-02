@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import os
+import sys
 import random
 import textwrap
 import unittest
@@ -42,6 +43,70 @@ class from_file_TestCase(unittest.TestCase):
         self.assert_('pip' in e.dependencies)
         self.assert_('foo' in e.dependencies['pip'])
         self.assert_('baz' in e.dependencies['pip'])
+
+    def test_with_selectors(self):
+        e = env.from_file(utils.support_file('selectors.yml'))
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' not in e.dependencies['conda'])
+        self.assert_('sphinx' not in e.dependencies['conda'])
+        self.assert_('doctest' not in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['test'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' in e.dependencies['conda'])
+        self.assert_('sphinx' not in e.dependencies['conda'])
+        self.assert_('doctest' not in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['docs'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' not in e.dependencies['conda'])
+        self.assert_('sphinx' in e.dependencies['conda'])
+        self.assert_('doctest' not in e.dependencies['conda'])
+
+        e = env.from_file(utils.support_file('selectors.yml'), ['docs', 'test'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' in e.dependencies['conda'])
+        self.assert_('sphinx' in e.dependencies['conda'])
+        self.assert_('doctest' in e.dependencies['conda'])
+
+    def test_with_selectors_all(self):
+        e = env.from_file(utils.support_file('selectors.yml'), ['all'])
+        self.assert_('conda' in e.dependencies)
+        self.assert_('python' in e.dependencies['conda'])
+        self.assert_('pytest' in e.dependencies['conda'])
+        self.assert_('sphinx' in e.dependencies['conda'])
+        self.assert_('doctest' in e.dependencies['conda'])
+    
+    def test_with_selectors_platform(self):
+        e = env.from_file(utils.support_file('selectors.yml'))
+        self.assert_('conda' in e.dependencies)
+        if sys.platform.startswith('win32'):
+            self.assert_('pywin32' in e.dependencies['conda'])
+            self.assert_('foo' not in e.dependencies['conda'])
+            self.assert_('bar' not in e.dependencies['conda'])
+        elif sys.platform.startswith('darwin'):
+            self.assert_('pywin32' not in e.dependencies['conda'])
+            self.assert_('foo' in e.dependencies['conda'])
+            self.assert_('bar' not in e.dependencies['conda'])
+        elif sys.platform.startswith('linux'):
+            self.assert_('pywin32' not in e.dependencies['conda'])
+            self.assert_('foo' not in e.dependencies['conda'])
+            self.assert_('bar' in e.dependencies['conda'])
+            
+    def test_with_selectors_architecture(self):
+        e = env.from_file(utils.support_file('selectors.yml'))
+        is_x64 = sys.maxsize > 2**32  # from https://docs.python.org/2/library/platform.html#cross-platform
+        self.assert_('conda' in e.dependencies)
+        if is_x64:
+            self.assert_('baz' in e.dependencies['conda'])
+            self.assert_('quux' not in e.dependencies['conda'])
+        else:
+            self.assert_('baz' not in e.dependencies['conda'])
+            self.assert_('quux' in e.dependencies['conda'])
 
 
 class EnvironmentTestCase(unittest.TestCase):
