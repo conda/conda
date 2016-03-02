@@ -518,7 +518,7 @@ class Clauses(object):
             # need to generate the constraints at least once
             try0 = lo = 0
             hi = bestval
-            m_orig = bestm = self.m
+            m_orig = self.m
             nz = len(self.clauses)
 
             log.debug("Initial range (%d,%d)" % (lo, hi))
@@ -613,9 +613,9 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
         update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
         stop = lambda: logging.getLogger('progress.stop').info(None)
     else:
-        start = lambda x: None  # noqa
-        update = lambda x, y: None  # noqa
-        stop = lambda: None  # noqa
+        start = lambda x: None
+        update = lambda x, y: None
+        stop = lambda: None
 
     clauses = tuple(clauses)
     if sat(clauses):
