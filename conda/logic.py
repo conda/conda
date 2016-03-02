@@ -280,7 +280,7 @@ class Clauses(object):
 
     def AtMostOne_BDD_(self, vals, polarity=None, name=None):
         vals = [(1, v) for v in vals]
-        return self.LinearBound_(vals, 0, 1, True, polarity)
+        return self.LinearBound_(vals, 0, 1, True, 'BDD', polarity)
 
     def AtMostOne_BDD(self, vals, polarity=None, name=None):
         return self.Eval_(self.AtMostOne_BDD_, (list(vals),), polarity, name)
@@ -305,7 +305,7 @@ class Clauses(object):
 
     def ExactlyOne_BDD_(self, vals, polarity):
         vals = [(1, v) for v in vals]
-        return self.LinearBound_(vals, 1, 1, True, polarity)
+        return self.LinearBound_(vals, 1, 1, True, 'BDD', polarity)
 
     def ExactlyOne_BDD(self, vals, polarity=None, name=None):
         return self.Eval_(self.ExactlyOne_BDD_, (list(vals),), polarity, name)
@@ -331,7 +331,74 @@ class Clauses(object):
         equation = sorted(equation)
         return equation, offset
 
-    def LinearBound_(self, equation, lo, hi, preprocess, polarity):
+    def Sorter_(self, equation, polarity=None):
+        explode = sum(([a] * c for c, a in equation), [])
+        nterms = len(explode)
+        explode.extend([False] * (2**ceil(log2(nterms)) - nterms))
+
+        def cmp(a, b):
+            aa, bb = explode[a], explode[b]
+            explode[a], explode[b] = self.Or(aa, bb, polarity), self.And(aa, bb, polarity)
+
+        def merge(lo, hi, r):
+            step = r * 2
+            if step < hi - lo:
+                merge(lo, hi, step)
+                merge(lo + r, hi, step)
+                for i in range(lo + r, hi - r, step):
+                    cmp(i, i + r)
+            else:
+                cmp(lo, lo + r)
+
+        def sort(lo, hi):
+            if hi - lo >= 1:
+                mid = lo + ((hi - lo) // 2)
+                sort(lo, mid)
+                sort(mid + 1, hi)
+                merge(lo, hi, 1)
+
+        sort(0, len(explode) - 1)
+        return explode
+
+    def BDD_(self, equation, nterms, lo, hi, polarity):
+        # The equation is sorted in order of increasing coefficients.
+        # Then we take advantage of the following recurrence:
+        #                l      <= S + cN xN <= u
+        #  => IF xN THEN l - cN <= S         <= u - cN
+        #           ELSE l      <= S         <= u
+        # we use memoization to prune common subexpressions
+        total = sum(c for c, _ in equation[:nterms])
+        target = (nterms-1, 0, total)
+        call_stack = [target]
+        ret = {}
+        csum = 0
+        while call_stack:
+            ndx, csum, total = call_stack[-1]
+            lower_limit = lo - csum
+            upper_limit = hi - csum
+            if lower_limit <= 0 and upper_limit >= total:
+                ret[call_stack.pop()] = True
+                continue
+            if lower_limit > total or upper_limit < 0:
+                ret[call_stack.pop()] = False
+                continue
+            LC, LA = equation[ndx]
+            ndx -= 1
+            total -= LC
+            hi_key = (ndx, csum if LA < 0 else csum + LC, total)
+            thi = ret.get(hi_key)
+            if thi is None:
+                call_stack.append(hi_key)
+                continue
+            lo_key = (ndx, csum + LC if LA < 0 else csum, total)
+            tlo = ret.get(lo_key)
+            if tlo is None:
+                call_stack.append(lo_key)
+                continue
+            ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
+        return ret[target]
+
+    def LinearBound_(self, equation, lo, hi, preprocess, alg, polarity):
         if preprocess:
             equation, offset = self.LB_Preprocess_(equation)
             lo -= offset
@@ -344,57 +411,28 @@ class Clauses(object):
         else:
             nprune = 0
         # Tighten bounds
+        total = sum(c for c, _ in equation[:nterms])
         if preprocess:
             lo = max([lo, 0])
-            hi = min([hi, sum(c for c, a in equation[:nterms])])
+            hi = min([hi, total])
         if lo > hi:
             return False
         if nterms == 0:
             res = lo == 0
+        elif alg == 'BDD':
+            res = self.BDD_(equation, nterms, lo, hi, polarity)
         else:
-            # The equation is sorted in order of increasing coefficients.
-            # Then we take advantage of the following recurrence:
-            #                l      <= S + cN xN <= u
-            #  => IF xN THEN l - cN <= S         <= u - cN
-            #           ELSE l      <= S         <= u
-            # we use memoization to prune common subexpressions
-            total = sum(i for i, _ in equation)
-            target = (nterms-1, 0, total)
-            call_stack = [target]
-            ret = {}
-            csum = 0
-            while call_stack:
-                ndx, csum, total = call_stack[-1]
-                lower_limit = lo - csum
-                upper_limit = hi - csum
-                if lower_limit <= 0 and upper_limit >= total:
-                    ret[call_stack.pop()] = True
-                    continue
-                if lower_limit > total or upper_limit < 0:
-                    ret[call_stack.pop()] = False
-                    continue
-                LC, LA = equation[ndx]
-                ndx -= 1
-                total -= LC
-                hi_key = (ndx, csum if LA < 0 else csum + LC, total)
-                thi = ret.get(hi_key)
-                if thi is None:
-                    call_stack.append(hi_key)
-                    continue
-                lo_key = (ndx, csum + LC if LA < 0 else csum, total)
-                tlo = ret.get(lo_key)
-                if tlo is None:
-                    call_stack.append(lo_key)
-                    continue
-                ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
-            res = ret[target]
+            spol = False if lo == 0 else (None if hi < total else True)
+            sorter = self.Sorter_(equation, spol)
+            res = self.And(True if lo == 0 else sorter[lo-1],
+                           self.Not(sorter[hi]) if hi < total else True, True)
         if nprune:
             prune = self.All_([-a for c, a in equation[nterms:]], polarity)
             res = self.Combine_((res, prune), polarity)
         return res
 
-    def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
-        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
+    def LinearBound(self, equation, lo, hi, preprocess=True, alg='BDD', polarity=None, name=None):
+        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess, alg),
                           polarity, name, conv=False)
 
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
@@ -407,11 +445,14 @@ class Clauses(object):
         """
         if self.unsat:
             return None
+        if not self.m:
+            return set() if names else []
         if additional:
             additional = list(map(lambda x: tuple(map(self.varnum, x)), additional))
             clauses = chain(self.clauses, additional)
         else:
             clauses = self.clauses
+        clauses = list(clauses)
         solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         if solution in ("UNSAT", "UNKNOWN"):
             return None
@@ -436,17 +477,12 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def minimize(self, objective, bestsol, minval=None, increment=10):
+    def minimize(self, objective, bestsol):
         """
-        Bisect the solution space of a constraint, to minimize it.
-
-        func should be a function that is called with the arguments func(lo_rhs,
-        hi_rhs) and returns a list of constraints.
-
-        The midpoint of the bisection will not be more than lo_value + increment.
-        To not use it, set a very large increment. The increment argument should
-        be used if you expect the optimal solution to be near 0.
-
+        Minimize the objective function given either by (coeff, integer)
+        tuple pairs, or a dictionary of varname: coeff values. The actual
+        minimization is multiobjective: first, we minimize the largest
+        active coefficient value, then we minimize the sum.
         """
         if not objective:
             log.debug('Empty objective, trivial solution')
@@ -456,52 +492,74 @@ class Clauses(object):
             return bestsol, sum(abs(c) for c, a in objective) + 1
 
         if type(objective) is dict:
-            odict = {self.varnum(k): v for k, v in iteritems(objective)}
-            objective = [(v, k) for k, v in iteritems(odict)]
-        else:
-            odict = {self.varnum(atom): coeff for coeff, atom in objective}
+            objective = [(v, self.varnum(k)) for k, v in iteritems(objective)]
 
         objective, offset = self.LB_Preprocess_(objective)
-        minval = minval and minval - offset
+        maxval = max(c for c, a in objective)
 
-        m_orig = bestm = self.m
-        nz = len(self.clauses)
-        bestval = evaluate_eq(odict, bestsol)
+        def peak_val(sol, odict):
+            return max(odict.get(s, 0) for s in sol)
 
-        # If we got lucky and the initial solution is optimal, we still
-        # need to generate the constraints at least once
-        try0 = lo = min([bestval, max([0, minval]) if minval else 0])
-        mval = sum(c for c, a in objective)
-        hi = bestval
+        def sum_val(sol, odict):
+            return sum(odict.get(s, 0) for s in sol)
 
-        log.debug("Initial range (%d,%d)" % (lo, hi))
-        while True:
-            if try0 is None:
-                mid = min([lo + increment, (lo+hi)//2])
+        for peak in ((True, False) if maxval > 1 else (False,)):
+            if peak:
+                log.debug('Beginning peak minimization')
+                objval = peak_val
             else:
-                mid = try0
-                try0 = None
-            self.Require(self.LinearBound, objective, lo, mid, False)
-            log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
-                      (lo, mid, nz, len(self.clauses)-nz))
-            newsol = self.sat()
-            if newsol is None:
-                log.debug("Bisection failure")
-                lo = mid + 1
-            else:
-                done = lo == hi
-                bestsol = newsol
-                bestval = evaluate_eq(odict, newsol)
-                hi = bestval
-                log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
-                if done:
-                    break
-            self.m = m_orig
-            if len(self.clauses) > nz:
-                self.clauses = self.clauses[:nz]
-            self.unsat = False
+                log.debug('Beginning sum minimization')
+                objval = sum_val
 
-        return newsol, bestval
+            odict = {a: c for c, a in objective}
+            bestval = objval(bestsol, odict)
+
+            # If we got lucky and the initial solution is optimal, we still
+            # need to generate the constraints at least once
+            try0 = lo = 0
+            hi = bestval
+            m_orig = self.m
+            nz = len(self.clauses)
+
+            log.debug("Initial range (%d,%d)" % (lo, hi))
+            while True:
+                if try0 is None:
+                    mid = (lo+hi) // 2
+                else:
+                    mid = try0
+                    try0 = None
+                if peak:
+                    self.Prevent(self.Any, tuple(a for c, a in objective if c > mid))
+                else:
+                    self.Require(self.LinearBound, objective, 0, mid, False)
+                log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
+                          (lo, mid, nz, len(self.clauses)-nz))
+                newsol = self.sat()
+                if newsol is None:
+                    lo = mid + 1
+                    log.debug("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                else:
+                    done = lo == mid
+                    bestsol = newsol
+                    bestval = objval(newsol, odict)
+                    hi = bestval
+                    log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
+                    if done:
+                        break
+                self.m = m_orig
+                if len(self.clauses) > nz:
+                    self.clauses = self.clauses[:nz]
+                self.unsat = False
+
+            log.debug('Final %s objective: %d' % ('peak' if peak else 'sum', bestval))
+            if bestval == 0:
+                break
+            elif peak:
+                objective = [(c, a) for c, a in objective if c <= bestval]
+            else:
+                log.debug('New peak objective: %d' % peak_val(bestsol, odict))
+
+        return bestsol, bestval
 
 
 def evaluate_eq(eq, sol):
@@ -555,9 +613,9 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
         update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
         stop = lambda: logging.getLogger('progress.stop').info(None)
     else:
-        start = lambda x: None  # noqa
-        update = lambda x, y: None  # noqa
-        stop = lambda: None  # noqa
+        start = lambda x: None
+        update = lambda x, y: None
+        stop = lambda: None
 
     clauses = tuple(clauses)
     if sat(clauses):
