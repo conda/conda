@@ -36,13 +36,40 @@ class Unsatisfiable(RuntimeError):
         unsatisfiable specifications.
     '''
     def __init__(self, bad_deps, chains=True):
-        bad_deps = [map(str, dep) for dep in bad_deps]
+        bad_deps = [list(map(str, dep)) for dep in bad_deps]
         if chains:
-            bad_deps = [' -> '.join(dep) for dep in bad_deps]
+            chains = {}
+            for dep in sorted(bad_deps, key=len, reverse=True):
+                dep1 = [str(MatchSpec(s)).partition(' ') for s in dep[1:]]
+                key = (dep[0],) + tuple(v[0] for v in dep1)
+                vals = ('',) + tuple(v[2] for v in dep1)
+                found = False
+                for key2, csets in iteritems(chains):
+                    if key2[:len(key)] == key:
+                        for cset, val in zip(csets, vals):
+                            cset.add(val)
+                        found = True
+                if not found:
+                    chains[key] = [{val} for val in vals]
+            bad_deps = []
+            for key, csets in iteritems(chains):
+                deps = []
+                for name, cset in zip(key, csets):
+                    if '' not in cset:
+                        pass
+                    elif len(cset) == 1:
+                        cset.clear()
+                    else:
+                        cset.remove('')
+                        cset.add('*')
+                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
+                chains[key] = ' -> '.join(deps)
+            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
             msg = '''The following specifications were found to be in conflict:%s
 Use "conda info <package>" to see the dependencies for each package.'''
         else:
-            bad_deps = [', '.join(sorted(dep)) for dep in bad_deps]
+            bad_deps = [sorted(dep) for dep in bad_deps]
+            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
             msg = '''The following specifications were found to be incompatible with the
 others, or with the existing package set:%s
 Use "conda info <package>" to see the dependencies for each package.'''
@@ -455,10 +482,11 @@ class Resolve(object):
             feats = set(self.trackers.keys())
             snames.clear()
             slist = specs
+            onames = set(s.name for s in specs)
             for iter in range(10):
                 first = True
                 while sum(filter_group([s]) for s in slist):
-                    slist = list(map(MatchSpec, snames))
+                    slist = list(specs) + [MatchSpec(n) for n in snames - onames]
                     first = False
                 if unsat:
                     return False
@@ -493,10 +521,10 @@ class Resolve(object):
             def minsat_prune(specs):
                 return full_prune(specs, removes, [], features)
 
-            save_unsat = set(unsat)
-            stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
-            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=True)
-            save_unsat.update((ms,) for ms in hint if all(ms != c[0] for c in save_unsat))
+            save_unsat = set(s for s in unsat if s[0] in specs)
+            stderrlog.info('...')
+            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
+            save_unsat.update((ms,) for ms in hint)
             raise Unsatisfiable(save_unsat)
 
         dists = {fn: self.index[fn] for fn, val in iteritems(touched) if val}
