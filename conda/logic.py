@@ -280,7 +280,7 @@ class Clauses(object):
 
     def AtMostOne_BDD_(self, vals, polarity=None, name=None):
         vals = [(1, v) for v in vals]
-        return self.LinearBound_(vals, 0, 1, True, 'BDD', polarity)
+        return self.LinearBound_(vals, 0, 1, True, polarity)
 
     def AtMostOne_BDD(self, vals, polarity=None, name=None):
         return self.Eval_(self.AtMostOne_BDD_, (list(vals),), polarity, name)
@@ -305,7 +305,7 @@ class Clauses(object):
 
     def ExactlyOne_BDD_(self, vals, polarity):
         vals = [(1, v) for v in vals]
-        return self.LinearBound_(vals, 1, 1, True, 'BDD', polarity)
+        return self.LinearBound_(vals, 1, 1, True, polarity)
 
     def ExactlyOne_BDD(self, vals, polarity=None, name=None):
         return self.Eval_(self.ExactlyOne_BDD_, (list(vals),), polarity, name)
@@ -330,35 +330,6 @@ class Clauses(object):
             offset = 0
         equation = sorted(equation)
         return equation, offset
-
-    def Sorter_(self, equation, polarity=None):
-        explode = sum(([a] * c for c, a in equation), [])
-        nterms = len(explode)
-        explode.extend([False] * (2**ceil(log2(nterms)) - nterms))
-
-        def cmp(a, b):
-            aa, bb = explode[a], explode[b]
-            explode[a], explode[b] = self.Or(aa, bb, polarity), self.And(aa, bb, polarity)
-
-        def merge(lo, hi, r):
-            step = r * 2
-            if step < hi - lo:
-                merge(lo, hi, step)
-                merge(lo + r, hi, step)
-                for i in range(lo + r, hi - r, step):
-                    cmp(i, i + r)
-            else:
-                cmp(lo, lo + r)
-
-        def sort(lo, hi):
-            if hi - lo >= 1:
-                mid = lo + ((hi - lo) // 2)
-                sort(lo, mid)
-                sort(mid + 1, hi)
-                merge(lo, hi, 1)
-
-        sort(0, len(explode) - 1)
-        return explode
 
     def BDD_(self, equation, nterms, lo, hi, polarity):
         # The equation is sorted in order of increasing coefficients.
@@ -398,7 +369,7 @@ class Clauses(object):
             ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
         return ret[target]
 
-    def LinearBound_(self, equation, lo, hi, preprocess, alg, polarity):
+    def LinearBound_(self, equation, lo, hi, preprocess, polarity):
         if preprocess:
             equation, offset = self.LB_Preprocess_(equation)
             lo -= offset
@@ -419,20 +390,15 @@ class Clauses(object):
             return False
         if nterms == 0:
             res = lo == 0
-        elif alg == 'BDD':
-            res = self.BDD_(equation, nterms, lo, hi, polarity)
         else:
-            spol = False if lo == 0 else (None if hi < total else True)
-            sorter = self.Sorter_(equation, spol)
-            res = self.And(True if lo == 0 else sorter[lo-1],
-                           self.Not(sorter[hi]) if hi < total else True, True)
+            res = self.BDD_(equation, nterms, lo, hi, polarity)
         if nprune:
             prune = self.All_([-a for c, a in equation[nterms:]], polarity)
             res = self.Combine_((res, prune), polarity)
         return res
 
-    def LinearBound(self, equation, lo, hi, preprocess=True, alg='BDD', polarity=None, name=None):
-        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess, alg),
+    def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
+        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
                           polarity, name, conv=False)
 
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
@@ -503,6 +469,8 @@ class Clauses(object):
         def sum_val(sol, odict):
             return sum(odict.get(s, 0) for s in sol)
 
+        lo = 0
+        try0 = 0
         for peak in ((True, False) if maxval > 1 else (False,)):
             if peak:
                 log.debug('Beginning peak minimization')
@@ -516,7 +484,6 @@ class Clauses(object):
 
             # If we got lucky and the initial solution is optimal, we still
             # need to generate the constraints at least once
-            try0 = lo = 0
             hi = bestval
             m_orig = self.m
             nz = len(self.clauses)
@@ -527,17 +494,22 @@ class Clauses(object):
                     mid = (lo+hi) // 2
                 else:
                     mid = try0
-                    try0 = None
                 if peak:
                     self.Prevent(self.Any, tuple(a for c, a in objective if c > mid))
+                    temp = tuple(a for c, a in objective if lo <= c <= mid)
+                    if temp:
+                        self.Require(self.Any, temp)
                 else:
-                    self.Require(self.LinearBound, objective, 0, mid, False)
+                    self.Require(self.LinearBound, objective, lo, mid, False)
                 log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
                           (lo, mid, nz, len(self.clauses)-nz))
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
                     log.debug("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    # If this was a failure of the first test after peak minimization,
+                    # then it means that the peak minimizer is "tight" and we don't need
+                    # any further constraints.
                 else:
                     done = lo == mid
                     bestsol = newsol
@@ -550,12 +522,19 @@ class Clauses(object):
                 if len(self.clauses) > nz:
                     self.clauses = self.clauses[:nz]
                 self.unsat = False
+                try0 = None
 
             log.debug('Final %s objective: %d' % ('peak' if peak else 'sum', bestval))
             if bestval == 0:
                 break
             elif peak:
+                # Now that we've minimized the peak value, we can drop any terms
+                # with coefficients larger than this. Furthermore, since we know
+                # at least one peak will be active, our lower bound for the sum
+                # equals the peak.
                 objective = [(c, a) for c, a in objective if c <= bestval]
+                try0 = sum_val(bestsol, odict)
+                lo = bestval
             else:
                 log.debug('New peak objective: %d' % peak_val(bestsol, odict))
 
