@@ -68,8 +68,8 @@ class TestMatchSpec(unittest.TestCase):
         self.assertNotEqual(hash(c), hash(d))
 
     def test_string(self):
-        a = MatchSpec("foo1 >=1.3 2",optional=True,target='burg',parent='blah',negate=True)
-        assert str(a) == 'foo1 >=1.3 2 (target=burg, parent=blah, optional, negate)'
+        a = MatchSpec("foo1 >=1.3 2",optional=True,target='burg',negate=True)
+        assert str(a) == 'foo1 >=1.3 2 (target=burg, optional, negate)'
 
 class TestPackage(unittest.TestCase):
 
@@ -408,6 +408,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
     assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0']))
+    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
     assert r.install(['anotherpackage 1.0']) == [
         'anotherpackage-1.0-py33_0.tar.bz2',
@@ -769,7 +770,7 @@ def test_multiple_solution():
         res1.add(fn2)
     r = Resolve(index2)
     res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-    res = set([x[3] for x in res])
+    res = set([y for x in res for y in x if y.startswith('pandas')])
     assert res <= res1
 
 def test_broken_install():

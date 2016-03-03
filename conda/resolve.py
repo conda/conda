@@ -103,7 +103,7 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=False, negate=False, parent=None):
+    def __new__(cls, spec, target=None, optional=False, negate=False):
         if isinstance(spec, cls):
             return spec
         self = object.__new__(cls)
@@ -119,7 +119,6 @@ class MatchSpec(object):
         self.target = target
         self.optional = optional
         self.negate = negate
-        self.parent = parent
         return self
 
     def match_fast(self, version, build):
@@ -143,7 +142,7 @@ class MatchSpec(object):
         return self.match_fast(version, build)
 
     def to_filename(self):
-        if self.strictness == 3 and not self.optional and not self.negate and not self.parent:
+        if self.strictness == 3 and not self.optional and not self.negate:
             return self.name + '-%s-%s.tar.bz2' % self.ver_build
         else:
             return None
@@ -166,12 +165,10 @@ class MatchSpec(object):
 
     def __str__(self):
         res = self.spec
-        if self.target or self.optional or self.parent:
+        if self.target or self.optional:
             mods = []
             if self.target:
                 mods.append('target='+str(self.target))
-            if self.parent:
-                mods.append('parent='+str(self.parent))
             if self.optional:
                 mods.append('optional')
             if self.negate:
@@ -403,6 +400,7 @@ class Resolve(object):
         filter = {}
         touched = {}
         snames = set()
+        nspecs = set()
         unsat = []
 
         def filter_group(matches, chains=None):
@@ -456,7 +454,10 @@ class Resolve(object):
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            snames.add(name)
+            if first:
+                snames.add(name)
+                if match1 not in specs:
+                    nspecs.add(MatchSpec(name))
             cdeps = defaultdict(list)
             for fn in group:
                 if filter[fn]:
@@ -642,7 +643,7 @@ class Resolve(object):
 
         # Add dependency relationships
         for group in itervalues(groups):
-            C.Require(C.AtMostOne_NSQ, group)
+            C.Require(C.AtMostOne, group)
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
@@ -711,7 +712,6 @@ class Resolve(object):
     def dependency_sort(self, must_have):
         def lookup(value):
             return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
-        log.debug('Sorting:%s' % dashlist(must_have))
         digraph = {}
         for key, value in iteritems(must_have):
             depends = lookup(value)
@@ -970,7 +970,7 @@ class Resolve(object):
             solution, obj7 = C.minimize(eq_optional_count, solution)
             solution, obj8 = C.minimize(eq_optional_versions, solution)
             solution, obj9 = C.minimize(eq_optional_builds, solution)
-            dotlog.debug('Optional package removal/version/build metrics: %d/%d/%d' %
+            dotlog.debug('Optional package version/build metrics: %d/%d/%d' %
                          (obj7, obj8, obj9))
 
             # All other packages: maximize versions (favoring none), then builds
@@ -989,7 +989,6 @@ class Resolve(object):
             nsol = 1
             psolutions = []
             psolution = clean(solution)
-            log.debug('Solution:%s' % dashlist(psolution))
             psolutions.append(psolution)
             while True:
                 nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
