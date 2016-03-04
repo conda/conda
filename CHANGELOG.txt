@@ -1,9 +1,9 @@
-2016-XX-XX   4.0.0:
---------------------
+2016-03-04   4.0.0:
+-------------------
   * The solver has been retooled significantly. Performance
     should be improved in most circumstances, and a number of issues
     involving feature conflicts should be resolved.
-  * `conda update <package>`` now handles depedencies properly
+  * `conda update <package>` now handles depedencies properly
     according to the setting of the "update_deps" configuration:
         --update-deps: conda will also update any dependencies as needed
                        to install the latest verison of the requrested
