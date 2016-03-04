@@ -508,7 +508,7 @@ class Resolve(object):
         return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
 
     def match(self, ms, fn):
-        return ms.match(self.index[fn])
+        return MatchSpec(ms).match(self.index[fn])
 
     def find_matches_group(self, ms, groups, trackers=None):
         ms = MatchSpec(ms)
