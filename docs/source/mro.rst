@@ -2,7 +2,7 @@
 Using Microsoft R Open
 ======================
 
-You can install `Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ with conda on 64-bit Windows, 64-bit OS X, and 64-bit Linux, from the Anaconda.org channel "mro". The supported Windows versions are Windows® 7.0 (SP1), 8.1, 10, and Windows Server® 2008 R2 (SP1) and 2012, and the supported OS X versions are Mavericks (10.9), Yosemite (10.10), and El Capitan (10.11).
+You can install `Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ with conda on 64-bit Windows, 64-bit OS X, and 64-bit Linux, from the Anaconda.org channel "mro". The supported Windows versions are Windows® 7.0 (SP1), 8.1, 10, and Windows Server® 2008 R2 (SP1) and 2012, the supported OS X versions are Mavericks (10.9), Yosemite (10.10), and El Capitan (10.11), and the supported Linux versions are Ubuntu 12.04, 14.04, and 15.04, CentOS and Red Hat Enterprise Linux 5.8, 6.5, and 7.1, SUSE Linux Enterprise Server 10 and 11, and OpenSUSE 13.1.
 
 There are two ways to install MRO and other R packages. The first is to add the "mro" channel to your :doc:`.condarc configuration file<config>` above the "r" channel, and then use ``conda install r`` and use conda to install other packages. The second is to specify the "mro" channel on the command line each time you use the conda install command: ``conda install -c mro r``
 
