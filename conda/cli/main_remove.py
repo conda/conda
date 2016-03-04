@@ -67,8 +67,9 @@ def configure_parser(sub_parsers, name='remove'):
     p.add_argument(
         "--force",
         action="store_true",
-        help="Force package removal, even when doing so will bring environment into "
-             "a broken, inconsistent state.",
+        help="Forces removal of a package without removing packages that depend on it. "
+             "Using this option will usually leave your environment in a broken and "
+             "inconsistent state.",
     )
     common.add_parser_no_pin(p)
     common.add_parser_channels(p)
