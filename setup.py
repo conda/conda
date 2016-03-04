@@ -10,6 +10,8 @@ except ImportError:
 import os
 import sys
 
+import auxlib  # a build-time dependency only
+
 if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
@@ -28,7 +30,6 @@ here = os.path.abspath(os.path.dirname(__file__))
 src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
 import conda  # NOQA
-from conda.auxlib.packaging import BuildPyCommand, SDistCommand  # NOQA
 
 
 with open(os.path.join(here, "README.rst")) as f:
@@ -57,13 +58,12 @@ setup(
     ],
     packages=[
         'conda',
-        'conda.auxlib',
         'conda.cli',
         'conda.progressbar'
     ],
     cmdclass={
-        'build_py': BuildPyCommand,
-        'sdist': SDistCommand,
+        'build_py': auxlib.BuildPyCommand,
+        'sdist': auxlib.SDistCommand,
     },
     install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests'],
     entry_points={
