@@ -3,8 +3,9 @@
    directory and run ``make html; make live``
 
 
-.. image:: https://s3.amazonaws.com/conda-dev/conda_logo_350x72.png
+.. image:: https://s3.amazonaws.com/conda-dev/conda_logo.svg
    :alt: Conda
+   :height: 72px
 
 ------------------------------------------
 
