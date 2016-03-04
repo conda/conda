@@ -64,6 +64,12 @@ def configure_parser(sub_parsers, name='remove'):
         action="store_true",
         help="%s features (instead of packages)." % name.capitalize(),
     )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="Force package removal, even when doing so will bring environment into "
+             "a broken, inconsistent state.",
+    )
     common.add_parser_no_pin(p)
     common.add_parser_channels(p)
     common.add_parser_prefix(p)
@@ -154,7 +160,8 @@ def execute(args, parser):
                                   ', '.join(common.root_no_rm),
                                   json=args.json,
                                   error_type="CantRemoveFromRoot")
-        actions = plan.remove_actions(prefix, specs, index=index, pinned=args.pinned)
+        actions = plan.remove_actions(prefix, specs, index=index,
+                                      force=args.force, pinned=args.pinned)
 
     if plan.nothing_to_do(actions):
         if args.all:
