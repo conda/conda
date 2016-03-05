@@ -44,12 +44,11 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     if prefix:
         for fn, info in iteritems(install.linked_data(prefix)):
             fn = fn + '.tar.bz2'
-            orec = index.get(fn)
-            if orec is not None:
-                if orec.get('md5',None) == info.get('md5',None):
-                    continue
-                info.setdefault('depends',orec.get('depends',[]))
-            index[fn] = info
+            if fn not in index:
+                # only if the package in not in the repodata, use the local
+                # metadata (with 'depends' defaulting to [])
+                info.setdefault('depends', [])
+                index[fn] = info
     return index
 
 
