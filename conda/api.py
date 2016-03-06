@@ -45,8 +45,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         for fn, info in iteritems(install.linked_data(prefix)):
             fn = fn + '.tar.bz2'
             if fn not in index:
-                # only if the package in not in the repodata, use the local
-                # metadata (with 'depends' defaulting to [])
+                # only if the package in not in the repodata, use local
+                # conda-meta (with 'depends' defaulting to [])
                 info.setdefault('depends', [])
                 index[fn] = info
     return index
