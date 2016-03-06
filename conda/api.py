@@ -40,10 +40,10 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     if offline:
         channel_urls = [url for url in channel_urls if url.startswith('file:')]
     index = fetch_index(tuple(channel_urls), use_cache=use_cache,
-                       unknown=unknown)
+                        unknown=unknown)
     if prefix:
-        for fn, info in iteritems(install.linked_data(prefix)):
-            fn = fn + '.tar.bz2'
+        for dist, info in iteritems(install.linked_data(prefix)):
+            fn = dist + '.tar.bz2'
             if fn not in index:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
