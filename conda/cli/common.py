@@ -436,10 +436,10 @@ def check_write(command, prefix, json=False):
 
 # -------------------------------------------------------------------------
 
-def arg2spec(arg, json=False):
+def arg2spec(arg, json=False, update=False):
     spec = spec_from_line(arg)
     if spec is None:
-        error_and_exit('Invalid package specification: %s' % arg,
+        error_and_exit('invalid package specification: %s' % arg,
                        json=json,
                        error_type="ValueError")
     parts = spec.split()
@@ -448,6 +448,12 @@ def arg2spec(arg, json=False):
         error_and_exit("specification '%s' is disallowed" % name,
                        json=json,
                        error_type="ValueError")
+    if len(parts) > 1 and update:
+        error_and_exit("""version specifications not allowed with 'update'; use
+    conda update  %s%s  or
+    conda install %s""" % (name, ' ' * (len(arg)-len(name)), arg),
+            json=json,
+            error_type="ValueError")
     if len(parts) == 2:
         ver = parts[1]
         if not ver.startswith(('=', '>', '<', '!')):

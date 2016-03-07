@@ -328,7 +328,7 @@ def dist2spec3v(dist):
     return '%s %s*' % (name, version[:3])
 
 
-def add_defaults_to_specs(r, linked, specs):
+def add_defaults_to_specs(r, linked, specs, update=False):
     # TODO: This should use the pinning mechanism. But don't change the API:
     # cas uses it.
     if r.explicit(specs):
@@ -370,7 +370,10 @@ def add_defaults_to_specs(r, linked, specs):
             # if Python/Numpy is already linked, we add that instead of the
             # default
             log.debug('H3 %s' % name)
-            specs.append(dist2spec3v(names_linked[name]))
+            spec = dist2spec3v(names_linked[name])
+            if update:
+                spec = '%s (target=%s.tar.bz2)' % (spec,names_linked[name])
+            specs.append(spec)
             continue
 
         if (name, def_ver) in [('python', '3.3'), ('python', '3.4'),
@@ -402,9 +405,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
-
-    # TODO: Improve error messages here
-    add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
     if config.track_features:
