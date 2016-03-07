@@ -1,6 +1,7 @@
 2016-03-XX   4.0.1:
 -------------------
   * simplify get_index() prefix behavior, fixes #2179
+  * remove auxlib build dependency, #2188
 
 
 2016-03-04   4.0.0:
