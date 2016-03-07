@@ -1,6 +1,6 @@
-2016-03-XX   4.0.1:
+2016-03-07   4.0.1:
 -------------------
-  * simplify get_index() prefix behavior, fixes #2179
+  * fixes an install issue caused by md5 checksum mismatches, #2183
   * remove auxlib build dependency, #2188
 
 
