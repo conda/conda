@@ -1,3 +1,8 @@
+2016-03-XX   4.0.1:
+-------------------
+  * simplify get_index() prefix behavior, fixes #2179
+
+
 2016-03-04   4.0.0:
 -------------------
   * The solver has been retooled significantly. Performance
