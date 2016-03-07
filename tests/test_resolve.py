@@ -58,9 +58,17 @@ class TestMatchSpec(unittest.TestCase):
 
     def test_hash(self):
         a, b = MatchSpec('numpy 1.7*'), MatchSpec('numpy 1.7*')
+        # optional should not change the hash, but negate should
+        c, d = MatchSpec('numpy 1.7* (negate)'), MatchSpec('numpy 1.7* (optional)')
         self.assertTrue(a is not b)
+        self.assertTrue(a is not c)
+        self.assertTrue(a is not d)
         self.assertEqual(a, b)
+        self.assertNotEqual(a, c)
+        self.assertNotEqual(a, d)
         self.assertEqual(hash(a), hash(b))
+        self.assertNotEqual(hash(a), hash(c))
+        self.assertEqual(hash(a), hash(d))
         c, d = MatchSpec('python'), MatchSpec('python 2.7.4')
         self.assertNotEqual(a, c)
         self.assertNotEqual(hash(a), hash(c))
@@ -68,8 +76,8 @@ class TestMatchSpec(unittest.TestCase):
         self.assertNotEqual(hash(c), hash(d))
 
     def test_string(self):
-        a = MatchSpec("foo1 >=1.3 2",optional=True,target='burg',negate=True)
-        assert str(a) == 'foo1 >=1.3 2 (target=burg, optional, negate)'
+        a = MatchSpec("foo1 >=1.3 2 (optional,negate,target=burg)")
+        assert a.optional and a.negate and a.target=='burg'
 
 class TestPackage(unittest.TestCase):
 
