@@ -218,6 +218,9 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
             os.unlink(dst_dir)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
+        if islink(src):
+            os.symlink(os.readlink(src), dst)
+            continue
 
         try:
             with open(src, 'rb') as fi:
