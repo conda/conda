@@ -571,7 +571,7 @@ class Resolve(object):
                     fdeps[dep.name] = dep
                 deps = list(fdeps.values())
             else:
-                deps = [MatchSpec(d) for d in self.index[fn].get('depends', [])]
+                deps = [MatchSpec(d) for d in self.index.get(fn, {}).get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(fn))
             self.ms_depends_[fn] = deps
         return deps
