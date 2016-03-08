@@ -1,6 +1,11 @@
-2016-03-09   4.0.2:
+2016-03-08   4.0.2:
 -------------------
-  * fix track_features in ~/.condarc being a list, see also #2203
+  * fixes track_features in ~/.condarc being a list, see also #2203
+  * fixes incorrect path in lock file error #2195
+  * fixes issues with cloning environments, #2193, #2194
+  * fixes a strange interaction between features and versions, #2206
+  * fixes a bug in low-level SAT clause generation creating a
+    preference for older versions, #2199
 
 
 2016-03-07   4.0.1:
