@@ -181,7 +181,7 @@ def install(args, parser, command='install'):
             name, ver, build = pkg.rsplit('-', 2)
             if name in getattr(args, '_skip', ['anaconda']):
                 continue
-            if name == 'python' and ver.startswith('2'):
+            if name == 'python' and ver.startswith('2') and not 'python' in [i.split('=')[0] for i in args.packages]:
                 # Oh Python 2...
                 specs.append('%s >=%s,<3' % (name, ver))
             else:
