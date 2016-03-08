@@ -620,12 +620,12 @@ class Resolve(object):
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
 
-        def push_MatchSpec(ms):
+        def push_MatchSpec(ms, polarity):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
                 libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
-                m = C.Any(libs, polarity=None if ms.optional else True, name=name)
+                m = C.Any(libs, polarity=polarity, name=name)
             return m
 
         # Create package variables
@@ -633,13 +633,16 @@ class Resolve(object):
             for fn in group:
                 C.new_var(fn)
 
-        # Create spec variables
+        # Create spec variables. If the spec is optional, some passes may attempt to force
+        # them to be fase, so we need to set their polarity to None. Otherwise, we can set
+        # their polarity to True to save complexity
         for ms in specs:
-            push_MatchSpec(ms)
+            push_MatchSpec(ms, None if ms.optional else True)
 
-        # Create feature variables
+        # Create feature variables. They need to be polarity=None because we may
+        # need to assert they are false
         for name in iterkeys(trackers):
-            push_MatchSpec(MatchSpec('@' + name))
+            push_MatchSpec(MatchSpec('@' + name), None)
 
         # Add dependency relationships
         for group in itervalues(groups):
@@ -647,7 +650,7 @@ class Resolve(object):
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
-                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms))
+                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms, True))
         return C
 
     def generate_spec_constraints(self, C, specs):
@@ -946,10 +949,9 @@ class Resolve(object):
             solution = C.sat()
             eq_feature_metric = self.generate_feature_metric(C, groups, specs)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Package feature metric: %d/%d' % (obj1, obj2))
+            dotlog.debug('Package feature metric: %d' % obj2)
 
             # Requested packages: maximize versions, then builds
-            spec2 = [s for s in specs[:len0] if not s.optional]
             eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
             eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
             solution, obj3 = C.minimize(eq_requested_versions, solution)
