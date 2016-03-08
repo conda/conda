@@ -713,6 +713,8 @@ class Resolve(object):
         def lookup(value):
             return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
         digraph = {}
+        if not isinstance(must_have, dict):
+            must_have = {self.package_name(dist): dist for dist in must_have}
         for key, value in iteritems(must_have):
             depends = lookup(value)
             digraph[key] = depends
