@@ -356,6 +356,6 @@ update_dependencies = bool(rc.get('update_dependencies', True))
 ssl_verify = rc.get('ssl_verify', True)
 
 try:
-    track_features = set(rc['track_features'].split())
+    track_features = set(rc['track_features'])
 except KeyError:
     track_features = None
