@@ -620,37 +620,47 @@ class Resolve(object):
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
 
-        def push_MatchSpec(ms, polarity):
+        # Creates a variable that represents the proposition:
+        #     Does the package set include a package that matches MatchSpec "ms"?
+        def push_MatchSpec(ms):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
                 libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
-                m = C.Any(libs, polarity=polarity, name=name)
+                # If the MatchSpec is optional, then there may be cases where we want
+                # to assert that it is *not* True. This requires polarity=None.
+                m = C.Any(libs, polarity=None if ms.optional else True, name=name)
             return m
 
-        # Create package variables
+        # Creates a variable that represents the proposition:
+        #     Does the package set include package "fn"?
         for group in itervalues(groups):
             for fn in group:
                 C.new_var(fn)
-
-        # Create spec variables. If the spec is optional, some passes may attempt to force
-        # them to be fase, so we need to set their polarity to None. Otherwise, we can set
-        # their polarity to True to save complexity
-        for ms in specs:
-            push_MatchSpec(ms, None if ms.optional else True)
-
-        # Create feature variables. They need to be polarity=None because we may
-        # need to assert they are false
-        for name in iterkeys(trackers):
-            push_MatchSpec(MatchSpec('@' + name), None)
-
-        # Add dependency relationships
-        for group in itervalues(groups):
+            # Install no more than one version of each package
             C.Require(C.AtMostOne, group)
+
+        # Create a variable that represents the proposition:
+        #     Is the feature "name" active in this package set?
+        # We mark this as "optional" below because sometimes we need to be able to
+        # assert the proposition is False during the feature minimization pass.
+        for name in iterkeys(trackers):
+            ms = MatchSpec('@' + name)
+            ms.optional = True
+            push_MatchSpec(ms)
+
+        # Create a variable that represents the proposition:
+        #     Is the MatchSpec "ms" satisfied by the current package set?
+        for ms in specs:
+            push_MatchSpec(ms)
+
+        # Create propositions that assert:
+        #     If package "fn" is installed, its dependencie must be satisfied
+        for group in itervalues(groups):
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
-                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms, True))
+                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms))
         return C
 
     def generate_spec_constraints(self, C, specs):
