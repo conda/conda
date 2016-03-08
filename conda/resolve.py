@@ -671,15 +671,13 @@ class Resolve(object):
 
     def generate_feature_metric(self, C, groups, specs):
         eq = {}
+        total = 0
         for name, group in iteritems(groups):
             nf = [len(self.features(fn)) for fn in group]
             maxf = max(nf)
-            if min(nf) == maxf:
-                continue
-            if not any(ms.name == name for ms in specs if not ms.optional):
-                maxf += 1
             eq.update({fn: maxf-fc for fn, fc in zip(group, nf) if fc < maxf})
-        return eq
+            total += maxf
+        return eq, total
 
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
@@ -943,7 +941,7 @@ class Resolve(object):
 
             # Requested packages: maximize versions, then builds
             spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2)
+            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
             eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
@@ -952,20 +950,19 @@ class Resolve(object):
             # Minimize the number of installed track_features, maximize featured package count
             eq_feature_count = self.generate_feature_count(C, trackers)
             solution, obj1 = C.minimize(eq_feature_count, solution)
-            dotlog.debug('Feature count: %d' % obj1)
+            dotlog.debug('Track feature count: %d' % obj1)
 
             # Now that we have the feature count, lock it in and re-optimize
             C.clauses = C.clauses[:nz]
             C.m = nv
             C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
             solution = C.sat()
-            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
+            eq_feature_metric, ftotal = self.generate_feature_metric(C, groups, specs)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Package feature metric: %d' % obj2)
+            obj2 = ftotal - obj2
+            dotlog.debug('Package feature count: %d' % obj2)
 
-            # Requested packages: maximize versions, then builds
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
-            eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            # Re-optimize requested packages: maximize versions, then builds
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
