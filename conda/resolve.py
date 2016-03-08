@@ -620,30 +620,43 @@ class Resolve(object):
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
 
+        # Creates a variable that represents the proposition:
+        #     Does the package set include a package that matches MatchSpec "ms"?
         def push_MatchSpec(ms):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
                 libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
+                # If the MatchSpec is optional, then there may be cases where we want
+                # to assert that it is *not* True. This requires polarity=None.
                 m = C.Any(libs, polarity=None if ms.optional else True, name=name)
             return m
 
-        # Create package variables
+        # Creates a variable that represents the proposition:
+        #     Does the package set include package "fn"?
         for group in itervalues(groups):
             for fn in group:
                 C.new_var(fn)
+            # Install no more than one version of each package
+            C.Require(C.AtMostOne, group)
 
-        # Create spec variables
+        # Create a variable that represents the proposition:
+        #     Is the feature "name" active in this package set?
+        # We mark this as "optional" below because sometimes we need to be able to
+        # assert the proposition is False during the feature minimization pass.
+        for name in iterkeys(trackers):
+            ms = MatchSpec('@' + name)
+            ms.optional = True
+            push_MatchSpec(ms)
+
+        # Create a variable that represents the proposition:
+        #     Is the MatchSpec "ms" satisfied by the current package set?
         for ms in specs:
             push_MatchSpec(ms)
 
-        # Create feature variables
-        for name in iterkeys(trackers):
-            push_MatchSpec(MatchSpec('@' + name))
-
-        # Add dependency relationships
+        # Create propositions that assert:
+        #     If package "fn" is installed, its dependencie must be satisfied
         for group in itervalues(groups):
-            C.Require(C.AtMostOne, group)
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
@@ -948,10 +961,9 @@ class Resolve(object):
             solution = C.sat()
             eq_feature_metric = self.generate_feature_metric(C, groups, specs)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Package feature metric: %d/%d' % (obj1, obj2))
+            dotlog.debug('Package feature metric: %d' % obj2)
 
             # Requested packages: maximize versions, then builds
-            spec2 = [s for s in specs[:len0] if not s.optional]
             eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
             eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
             solution, obj3 = C.minimize(eq_requested_versions, solution)
