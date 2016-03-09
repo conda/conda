@@ -57,6 +57,7 @@ setup(
     packages=[
         'conda',
         'conda.cli',
+        'conda.common',
         'conda.progressbar'
     ],
     cmdclass={
