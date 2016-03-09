@@ -7,7 +7,7 @@
 import os
 import unittest
 from os.path import dirname, join, exists
-import yaml
+import ruamel.yaml as yaml
 
 import pytest
 
@@ -153,13 +153,12 @@ channels:
 
         # Test creating a new file with --set
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-        '--set', 'always_yes', 'yes')
+        '--set', 'always_yes', 'true')
         assert stdout == stderr == ''
         assert _read_test_condarc() == """\
-always_yes: yes
+always_yes: true
 """
         os.unlink(test_condarc)
-
 
     finally:
         try:
@@ -186,7 +185,7 @@ create_default_packages:
 
 changeps1: no
 
-always_yes: yes
+always_yes: true
 
 invalid_key: yes
 
@@ -196,7 +195,7 @@ channel_alias: http://alpha.conda.anaconda.org
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
         assert stdout == """\
 --set always_yes True
---set changeps1 False
+--set changeps1 no
 --set channel_alias http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
@@ -218,7 +217,7 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'changeps1')
 
         assert stdout == """\
---set changeps1 False
+--set changeps1 no
 """
         assert stderr == ""
 
@@ -226,7 +225,7 @@ channel_alias: http://alpha.conda.anaconda.org
             '--get', 'changeps1', 'channels')
 
         assert stdout == """\
---set changeps1 False
+--set changeps1 no
 --add channels 'defaults'
 --add channels 'test'
 """
@@ -272,22 +271,24 @@ channel_alias: http://alpha.conda.anaconda.org
 def test_config_command_parser():
     try:
         # Now test the YAML "parser"
+        # Channels is normal content.
+        # create_default_packages has extra spaces in list items
         condarc = """\
- channels : \n\
-   -  test
-   -  defaults \n\
+channels:
+  - test
+  - defaults
 
- create_default_packages:
-    - ipython
-    - numpy
+create_default_packages :
+  -  ipython
+  -  numpy
 
- changeps1 :  no
+changeps1: false
 
 # Here is a comment
- always_yes: yes \n\
+always_yes: true
 """
         # First verify that this itself is valid YAML
-        assert yaml.load(condarc) == {'channels': ['test', 'defaults'],
+        assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
             'create_default_packages': ['ipython', 'numpy'], 'changeps1':
             False, 'always_yes': True}
 
@@ -296,6 +297,7 @@ def test_config_command_parser():
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
 
+        '''
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
@@ -305,107 +307,49 @@ def test_config_command_parser():
 --add create_default_packages 'ipython'
 """
         assert stderr == ''
-
-        # List keys with nonstandard whitespace are not yet supported. For
-        # now, just test that it doesn't muck up the file.
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
-            'create_default_packages', 'sympy')
-        assert stdout == ''
-        assert stderr == """\
-Error: Could not parse the yaml file. Use -f to use the
-yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: modified yaml doesn't match what it should be
-"""
-        assert _read_test_condarc() == condarc
-
-#         assert _read_test_condarc() == """\
-#  channels : \n\
-#    -  test
-#    -  defaults \n\
-#
-#  create_default_packages:
-#     - sympy
-#     - ipython
-#     - numpy
-#
-#  changeps1 :  no
-#
-# # Here is a comment
-#  always_yes: yes \n\
-# """
-
-        # New keys when the keys are indented are not yet supported either.
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
-            'disallow', 'perl')
-        assert stdout == ''
-        assert stderr == """\
-Error: Could not parse the yaml file. Use -f to use the
-yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: couldn't parse modified yaml
-"""
-        assert _read_test_condarc() == condarc
-
-#         assert _read_test_condarc() == """\
-#  channels : \n\
-#    -  test
-#    -  defaults \n\
-#
-#  create_default_packages:
-#     - sympy
-#     - ipython
-#     - numpy
-#
-#  changeps1 :  no
-#
-# # Here is a comment
-#  always_yes: yes \n\
-#  disallow:
-#    - perl
-# """
-
+'''
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
             'channels', 'mychannel')
         assert stdout == stderr == ''
 
         assert _read_test_condarc() == """\
- channels : \n\
-   - mychannel
-   -  test
-   -  defaults \n\
+channels:
+  - mychannel
+  - test
+  - defaults
 
- create_default_packages:
-    - ipython
-    - numpy
+create_default_packages:
+  - ipython
+  - numpy
 
- changeps1 :  no
+changeps1: false
 
 # Here is a comment
- always_yes: yes \n\
+always_yes: true
 """
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-            '--set', 'changeps1', 'yes')
+            '--set', 'changeps1', 'true')
 
         assert stdout == stderr == ''
 
         assert _read_test_condarc() == """\
- channels : \n\
-   - mychannel
-   -  test
-   -  defaults \n\
+channels:
+  - mychannel
+  - test
+  - defaults
 
- create_default_packages:
-    - ipython
-    - numpy
+create_default_packages:
+  - ipython
+  - numpy
 
- changeps1 :  yes
+changeps1: true
 
 # Here is a comment
- always_yes: yes \n\
+always_yes: true
 """
 
         os.unlink(test_condarc)
-
 
         # Test adding a new list key. We couldn't test this above because it
         # doesn't work yet with odd whitespace
@@ -414,7 +358,7 @@ channels:
   - test
   - defaults
 
-always_yes: yes
+always_yes: true
 """
 
         with open(test_condarc, 'w') as f:
@@ -424,7 +368,6 @@ always_yes: yes
             'disallow', 'perl')
         assert stdout == stderr == ''
         assert _read_test_condarc() == condarc + """\
-
 disallow:
   - perl
 """
@@ -443,16 +386,15 @@ disallow:
 @pytest.mark.slow
 def test_config_command_remove_force():
     try:
-        # Finally, test --remove, --remove-key, and --force (right now
-        # --remove and --remove-key require --force)
+        # Finally, test --remove, --remove-key
         run_conda_command('config', '--file', test_condarc, '--add',
             'channels', 'test')
         run_conda_command('config', '--file', test_condarc, '--set',
-            'always_yes', 'yes')
+            'always_yes', 'true')
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-            '--remove', 'channels', 'test', '--force')
+            '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc()) == {'channels': ['defaults'],
+        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults'],
             'always_yes': True}
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -468,7 +410,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc()) == {'channels': ['defaults']}
+        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults']}
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
@@ -564,15 +506,15 @@ def test_set_rc_string():
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(test_condarc, 'r'))['ssl_verify']
-        assert verify == True
+        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
+        assert verify == 'yes'
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
                                            '--set', 'ssl_verify', 'test_string.crt')
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(test_condarc, 'r'))['ssl_verify']
+        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
         assert verify == 'test_string.crt'
 
 
