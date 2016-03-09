@@ -19,9 +19,8 @@ from logging import getLogger
 
 import requests
 
-import conda
+from conda import __version__ as CONDA_VERSION
 from conda.common.compat import urlparse, StringIO
-from conda.config import get_proxy_servers, ssl_verify
 
 RETRIES = 3
 
@@ -57,12 +56,13 @@ class CondaSession(requests.Session):
 
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop('retries', RETRIES)
+        verify = kwargs.pop('ssl_verify', True)
+        proxy_servers = kwargs.pop('proxy_servers', {})
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        proxies = get_proxy_servers()
-        if proxies:
-            self.proxies = proxies
+        if proxy_servers:
+            self.proxies = proxy_servers
 
         # Configure retries
         if retries:
@@ -80,9 +80,10 @@ class CondaSession(requests.Session):
         self.mount("s3://", S3Adapter())
 
         self.headers['User-Agent'] = "conda/%s %s" % (
-                          conda.__version__, self.headers['User-Agent'])
+                          CONDA_VERSION, self.headers['User-Agent'])
 
-        self.verify = ssl_verify
+        self.verify = verify
+
 
 class S3Adapter(requests.adapters.BaseAdapter):
 

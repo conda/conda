@@ -19,10 +19,10 @@ import requests
 
 from conda import config
 from conda.common.compat import itervalues
+from conda.common.connection import CondaSession
 from conda.common.download import (add_http_value_to_dict, dotlog_on_return, handle_proxy_407,
                                    download)
 from conda.common.utils import memoized
-from conda.connection import CondaSession
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -56,7 +56,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             warnings.simplefilter('ignore', InsecureRequestWarning)
 
-    session = session or CondaSession()
+    session = session or CondaSession(ssl_verify=config.ssl_verify,
+                                      proxy_servers=config.get_proxy_servers())
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
@@ -247,7 +248,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True,
-             ssl_verify=config.ssl_verify)
+             ssl_verify=config.ssl_verify, proxy_servers=config.get_proxy_servers())
     if info.get('sig'):
         from conda.signature import verify, SignatureError
 
@@ -255,7 +256,8 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/') + '/') + fn2
         log.debug("signature url=%r" % url)
-        download(url, join(dst_dir, fn2), session=session, ssl_verify=config.ssl_verify)
+        download(url, join(dst_dir, fn2), session=session, ssl_verify=config.ssl_verify,
+                 proxy_servers=config.get_proxy_servers())
         try:
             if verify(path):
                 return

@@ -15,9 +15,9 @@ from os.path import dirname, basename, join
 import requests
 
 from conda.common.compat import input, urllib_quote
+from conda.common.connection import unparse_url, CondaSession, RETRIES
 from conda.common.lock import Locked
 from conda.common.utils import memoized
-from conda.connection import unparse_url, CondaSession, RETRIES
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -76,12 +76,12 @@ def get_proxy_username_and_pass(scheme):
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
-             retries=None, ssl_verify=True):
+             retries=None, ssl_verify=True, proxy_servers=None):
     pp = dst_path + '.part'
     dst_dir = dirname(dst_path)
-    session = session or CondaSession()
+    session = session or CondaSession(ssl_verify=ssl_verify, proxy_servers=proxy_servers)
 
-    if not config.ssl_verify:
+    if not ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
         except ImportError:
@@ -100,7 +100,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 handle_proxy_407(url, session)
                 # Try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries, ssl_verify=ssl_verify)
+                                urlstxt=urlstxt, retries=retries, ssl_verify=ssl_verify,
+                                proxy_servers=proxy_servers)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
@@ -115,7 +116,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 handle_proxy_407(url, session)
                 # try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries, ssl_verify=ssl_verify)
+                                urlstxt=urlstxt, retries=retries, ssl_verify=ssl_verify,
+                                proxy_servers=proxy_servers)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
@@ -156,7 +158,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 # try again
                 log.debug("%s, trying again" % e)
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries-1, ssl_verify=ssl_verify)
+                                urlstxt=urlstxt, retries=retries-1, ssl_verify=ssl_verify,
+                                proxy_servers=proxy_servers)
             raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
         if size:
@@ -168,7 +171,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 log.debug("MD5 sums mismatch for download: %s (%s != %s), "
                           "trying again" % (url, h.hexdigest(), md5))
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries-1, ssl_verify=ssl_verify)
+                                urlstxt=urlstxt, retries=retries-1, ssl_verify=ssl_verify,
+                                proxy_servers=proxy_servers)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
 
