@@ -218,7 +218,7 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'changeps1')
 
         assert stdout == """\
---set changeps1 no
+--set changeps1 no\
 """
         assert stderr == ""
 
@@ -286,7 +286,7 @@ create_default_packages :
 changeps1: false
 
 # Here is a comment
- always_yes: yes
+always_yes: yes
 """
         # First verify that this itself is valid YAML
         assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
@@ -324,7 +324,7 @@ create_default_packages:
 changeps1: false
 
 # Here is a comment
- always_yes: yes
+always_yes: yes
 """
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
