@@ -37,6 +37,12 @@ def configure_parser(sub_parsers):
     common.add_parser_yes(p)
     common.add_parser_json(p)
     p.add_argument(
+        "-a", "--all",
+        action="store_true",
+        help="Remove index cache, lock files, tarballs, "
+             "unused cache packages, and source cache.",
+    )
+    p.add_argument(
         "-i", "--index-cache",
         action="store_true",
         help="Remove index cache.",
@@ -409,14 +415,14 @@ def execute(args, parser):
         'success': True
     }
 
-    if args.lock:
+    if args.lock or args.all:
         locks = list(find_lock())
         json_result['lock'] = {
             'files': locks
         }
         rm_lock(locks, verbose=not args.json)
 
-    if args.tarballs:
+    if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
@@ -427,13 +433,13 @@ def execute(args, parser):
         }
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not args.json)
 
-    if args.index_cache:
+    if args.index_cache or args.all:
         json_result['index_cache'] = {
             'files': [join(config.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
 
-    if args.packages:
+    if args.packages or args.all:
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['packages'] = {
@@ -447,14 +453,15 @@ def execute(args, parser):
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
                 verbose=not args.json)
 
-    if args.source_cache:
+    if args.source_cache or args.all:
         json_result['source_cache'] = find_source_cache()
         rm_source_cache(args, **json_result['source_cache'])
 
-    if not (args.lock or args.tarballs or args.index_cache or args.packages or
-        args.source_cache):
+    if not any((args.lock, args.tarballs, args.index_cache, args.packages,
+                args.source_cache, args.all)):
         common.error_and_exit(
-            "One of {--lock, --tarballs, --index-cache, --packages, --source-cache} required",
+            "One of {--lock, --tarballs, --index-cache, --packages, "
+            "--source-cache, --all} required",
             error_type="ValueError")
 
     if args.json:

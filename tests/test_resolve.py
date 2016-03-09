@@ -68,8 +68,8 @@ class TestMatchSpec(unittest.TestCase):
         self.assertNotEqual(hash(c), hash(d))
 
     def test_string(self):
-        a = MatchSpec("foo1 >=1.3 2",optional=True,target='burg',parent='blah',negate=True)
-        assert str(a) == 'foo1 >=1.3 2 (target=burg, parent=blah, optional, negate)'
+        a = MatchSpec("foo1 >=1.3 2",optional=True,target='burg',negate=True)
+        assert str(a) == 'foo1 >=1.3 2 (target=burg, optional, negate)'
 
 class TestPackage(unittest.TestCase):
 
@@ -251,7 +251,7 @@ def test_generate_eq():
     dists, specs = r.get_dists(specs)
     groups, trackers = build_groups(dists)
     C = r.gen_clauses(groups, trackers, specs)
-    eq = r.generate_version_metric(C, groups, specs)
+    eqv, eqb = r.generate_version_metrics(C, groups, specs)
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -260,7 +260,7 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
-    assert eq == {
+    assert eqv == {
         'astropy-0.2-np15py26_0.tar.bz2': 1,
         'astropy-0.2-np16py26_0.tar.bz2': 1,
         'astropy-0.2-np17py26_0.tar.bz2': 1,
@@ -269,8 +269,6 @@ def test_generate_eq():
         'bitarray-0.8.0-py33_0.tar.bz2': 1,
         'cython-0.18-py26_0.tar.bz2': 1,
         'cython-0.18-py33_0.tar.bz2': 1,
-        'dateutil-2.1-py26_0.tar.bz2': 1,
-        'dateutil-2.1-py33_0.tar.bz2': 1,
         'distribute-0.6.34-py26_1.tar.bz2': 1,
         'distribute-0.6.34-py33_1.tar.bz2': 1,
         'ipython-0.13.1-py26_1.tar.bz2': 1,
@@ -285,8 +283,8 @@ def test_generate_eq():
         'matplotlib-1.2.0-np17py33_1.tar.bz2': 1,
         'nose-1.2.1-py26_0.tar.bz2': 1,
         'nose-1.2.1-py33_0.tar.bz2': 1,
-        'numpy-1.5.1-py26_3.tar.bz2': 4,
-        'numpy-1.6.2-py26_3.tar.bz2': 3,
+        'numpy-1.5.1-py26_3.tar.bz2': 3,
+        'numpy-1.6.2-py26_3.tar.bz2': 2,
         'numpy-1.6.2-py26_4.tar.bz2': 2,
         'numpy-1.6.2-py27_4.tar.bz2': 2,
         'numpy-1.7.0-py26_0.tar.bz2': 1,
@@ -302,8 +300,6 @@ def test_generate_eq():
         'python-3.3.0-4.tar.bz2': 1,
         'pytz-2012j-py26_0.tar.bz2': 1,
         'pytz-2012j-py33_0.tar.bz2': 1,
-        'pyzmq-2.2.0.1-py26_0.tar.bz2': 1,
-        'pyzmq-2.2.0.1-py33_0.tar.bz2': 1,
         'requests-0.13.9-py26_0.tar.bz2': 1,
         'requests-0.13.9-py33_0.tar.bz2': 1,
         'scipy-0.11.0-np15py26_3.tar.bz2': 1,
@@ -312,15 +308,21 @@ def test_generate_eq():
         'scipy-0.11.0-np17py33_3.tar.bz2': 1,
         'six-1.2.0-py26_0.tar.bz2': 1,
         'six-1.2.0-py33_0.tar.bz2': 1,
-        'sphinx-1.1.3-py26_2.tar.bz2': 1,
-        'sphinx-1.1.3-py33_2.tar.bz2': 1,
         'sqlalchemy-0.7.8-py26_0.tar.bz2': 1,
         'sqlalchemy-0.7.8-py33_0.tar.bz2': 1,
-        'system-5.8-0.tar.bz2': 1,
         'tornado-2.4.1-py26_0.tar.bz2': 1,
         'tornado-2.4.1-py33_0.tar.bz2': 1,
         'xlrd-0.9.0-py26_0.tar.bz2': 1,
-        'xlrd-0.9.0-py33_0.tar.bz2': 1,
+        'xlrd-0.9.0-py33_0.tar.bz2': 1}
+    assert eqb == {
+        'dateutil-2.1-py26_0.tar.bz2': 1,
+        'dateutil-2.1-py33_0.tar.bz2': 1,
+        'numpy-1.6.2-py26_3.tar.bz2': 1,
+        'pyzmq-2.2.0.1-py26_0.tar.bz2': 1,
+        'pyzmq-2.2.0.1-py33_0.tar.bz2': 1,
+        'sphinx-1.1.3-py26_2.tar.bz2': 1,
+        'sphinx-1.1.3-py33_2.tar.bz2': 1,
+        'system-5.8-0.tar.bz2': 1,
         'zeromq-2.2.0-0.tar.bz2': 1}
 
 def test_unsat():
@@ -408,6 +410,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
     assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0']))
+    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
     assert r.install(['anotherpackage 1.0']) == [
         'anotherpackage-1.0-py33_0.tar.bz2',
@@ -769,7 +772,7 @@ def test_multiple_solution():
         res1.add(fn2)
     r = Resolve(index2)
     res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-    res = set([x[3] for x in res])
+    res = set([y for x in res for y in x if y.startswith('pandas')])
     assert res <= res1
 
 def test_broken_install():

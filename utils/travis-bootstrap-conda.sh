@@ -2,6 +2,19 @@
 # NOTE: this script should be sourced instead of executed
 
 
+travis_build_and_upload() {
+    if [[ "$TRAVIS_BRANCH" == master ]]; then
+        set -e
+        conda install -y conda-build anaconda-client
+        conda build --python $PY_VERSION conda.recipe | tee build.log
+        local tarball="$(grep 'anaconda upload' build.log | tail -1 | cut -d' ' -f5)"
+        echo "uploading..."
+        echo " > anaconda upload --user conda --label dev $tarball"
+        anaconda --token $ANACONDA_TOKEN upload --user conda --label dev "$tarball"
+    fi
+}
+
+
 travis_bootstrap_conda() {
     local py_major=${PY_VERSION:0:1}
 

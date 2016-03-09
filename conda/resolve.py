@@ -36,13 +36,40 @@ class Unsatisfiable(RuntimeError):
         unsatisfiable specifications.
     '''
     def __init__(self, bad_deps, chains=True):
-        bad_deps = [map(str, dep) for dep in bad_deps]
+        bad_deps = [list(map(str, dep)) for dep in bad_deps]
         if chains:
-            bad_deps = [' -> '.join(dep) for dep in bad_deps]
+            chains = {}
+            for dep in sorted(bad_deps, key=len, reverse=True):
+                dep1 = [str(MatchSpec(s)).partition(' ') for s in dep[1:]]
+                key = (dep[0],) + tuple(v[0] for v in dep1)
+                vals = ('',) + tuple(v[2] for v in dep1)
+                found = False
+                for key2, csets in iteritems(chains):
+                    if key2[:len(key)] == key:
+                        for cset, val in zip(csets, vals):
+                            cset.add(val)
+                        found = True
+                if not found:
+                    chains[key] = [{val} for val in vals]
+            bad_deps = []
+            for key, csets in iteritems(chains):
+                deps = []
+                for name, cset in zip(key, csets):
+                    if '' not in cset:
+                        pass
+                    elif len(cset) == 1:
+                        cset.clear()
+                    else:
+                        cset.remove('')
+                        cset.add('*')
+                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
+                chains[key] = ' -> '.join(deps)
+            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
             msg = '''The following specifications were found to be in conflict:%s
 Use "conda info <package>" to see the dependencies for each package.'''
         else:
-            bad_deps = [', '.join(sorted(dep)) for dep in bad_deps]
+            bad_deps = [sorted(dep) for dep in bad_deps]
+            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
             msg = '''The following specifications were found to be incompatible with the
 others, or with the existing package set:%s
 Use "conda info <package>" to see the dependencies for each package.'''
@@ -76,7 +103,7 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=False, negate=False, parent=None):
+    def __new__(cls, spec, target=None, optional=False, negate=False):
         if isinstance(spec, cls):
             return spec
         self = object.__new__(cls)
@@ -92,7 +119,6 @@ class MatchSpec(object):
         self.target = target
         self.optional = optional
         self.negate = negate
-        self.parent = parent
         return self
 
     def match_fast(self, version, build):
@@ -116,7 +142,7 @@ class MatchSpec(object):
         return self.match_fast(version, build)
 
     def to_filename(self):
-        if self.strictness == 3 and not self.optional and not self.negate and not self.parent:
+        if self.strictness == 3 and not self.optional and not self.negate:
             return self.name + '-%s-%s.tar.bz2' % self.ver_build
         else:
             return None
@@ -139,12 +165,10 @@ class MatchSpec(object):
 
     def __str__(self):
         res = self.spec
-        if self.target or self.optional or self.parent:
+        if self.target or self.optional:
             mods = []
             if self.target:
                 mods.append('target='+str(self.target))
-            if self.parent:
-                mods.append('parent='+str(self.parent))
             if self.optional:
                 mods.append('optional')
             if self.negate:
@@ -376,6 +400,7 @@ class Resolve(object):
         filter = {}
         touched = {}
         snames = set()
+        nspecs = set()
         unsat = []
 
         def filter_group(matches, chains=None):
@@ -397,7 +422,7 @@ class Resolve(object):
                     nold += 1
                     sat = self.match_any(matches, fn)
                     sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                                      for ms in self.ms_depends(fn) if not ms.optional)
+                                      for ms in self.ms_depends(fn))
                     filter[fn] = sat
                     if not sat:
                         bad_deps.append(fn)
@@ -410,26 +435,28 @@ class Resolve(object):
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
-                if not all(ms.optional for ms in matches):
-                    bad_deps = [fn for fn in bad_deps if self.match_any(matches, fn)]
-                    matches = [(ms,) for ms in matches]
-                    chains = [a + b for a in chains for b in matches] if chains else matches
-                    if bad_deps:
-                        dep2 = set()
-                        for fn in bad_deps:
-                            for ms in self.ms_depends(fn):
-                                if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
-                                    dep2.add(ms)
-                        chains = [a + (b,) for a in chains for b in dep2]
-                    unsat.extend(chains)
-                    return nnew
+                bad_deps = [fn for fn in bad_deps if self.match_any(matches, fn)]
+                matches = [(ms,) for ms in matches]
+                chains = [a + b for a in chains for b in matches] if chains else matches
+                if bad_deps:
+                    dep2 = set()
+                    for fn in bad_deps:
+                        for ms in self.ms_depends(fn):
+                            if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
+                                dep2.add(ms)
+                    chains = [a + (b,) for a in chains for b in dep2]
+                unsat.extend(chains)
+                return nnew
             if not reduced and not first:
                 return False
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            snames.add(name)
+            if first:
+                snames.add(name)
+                if match1 not in specs:
+                    nspecs.add(MatchSpec(name))
             cdeps = defaultdict(list)
             for fn in group:
                 if filter[fn]:
@@ -454,11 +481,12 @@ class Resolve(object):
                     filter[fn] = False
             feats = set(self.trackers.keys())
             snames.clear()
-            slist = specs
+            specs = slist = list(specs)
+            onames = set(s.name for s in specs)
             for iter in range(10):
                 first = True
                 while sum(filter_group([s]) for s in slist):
-                    slist = list(map(MatchSpec, snames))
+                    slist = specs + [MatchSpec(n) for n in snames - onames]
                     first = False
                 if unsat:
                     return False
@@ -493,10 +521,10 @@ class Resolve(object):
             def minsat_prune(specs):
                 return full_prune(specs, removes, [], features)
 
-            save_unsat = set(unsat)
-            stderrlog.info('\nError: Unsatisfiable package specifications.\nGenerating hint: \n')
-            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=True)
-            save_unsat.update((ms,) for ms in hint if all(ms != c[0] for c in save_unsat))
+            save_unsat = set(s for s in unsat if s[0] in specs)
+            stderrlog.info('...')
+            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
+            save_unsat.update((ms,) for ms in hint)
             raise Unsatisfiable(save_unsat)
 
         dists = {fn: self.index[fn] for fn, val in iteritems(touched) if val}
@@ -508,7 +536,7 @@ class Resolve(object):
         return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
 
     def match(self, ms, fn):
-        return ms.match(self.index[fn])
+        return MatchSpec(ms).match(self.index[fn])
 
     def find_matches_group(self, ms, groups, trackers=None):
         ms = MatchSpec(ms)
@@ -549,12 +577,7 @@ class Resolve(object):
 
     def version_key(self, fn, vtype=None):
         rec = self.index[fn]
-        if vtype == 'build':
-            return rec['build_number']
-        elif vtype == 'version':
-            return normalized_version(rec['version'])
-        else:
-            return (normalized_version(rec['version']), rec['build_number'])
+        return (normalized_version(rec['version']), rec['build_number'])
 
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
@@ -591,30 +614,43 @@ class Resolve(object):
     def gen_clauses(self, groups, trackers, specs):
         C = Clauses()
 
+        # Creates a variable that represents the proposition:
+        #     Does the package set include a package that matches MatchSpec "ms"?
         def push_MatchSpec(ms):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
                 libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
+                # If the MatchSpec is optional, then there may be cases where we want
+                # to assert that it is *not* True. This requires polarity=None.
                 m = C.Any(libs, polarity=None if ms.optional else True, name=name)
             return m
 
-        # Create package variables
+        # Creates a variable that represents the proposition:
+        #     Does the package set include package "fn"?
         for group in itervalues(groups):
             for fn in group:
                 C.new_var(fn)
+            # Install no more than one version of each package
+            C.Require(C.AtMostOne, group)
 
-        # Create spec variables
+        # Create a variable that represents the proposition:
+        #     Is the feature "name" active in this package set?
+        # We mark this as "optional" below because sometimes we need to be able to
+        # assert the proposition is False during the feature minimization pass.
+        for name in iterkeys(trackers):
+            ms = MatchSpec('@' + name)
+            ms.optional = True
+            push_MatchSpec(ms)
+
+        # Create a variable that represents the proposition:
+        #     Is the MatchSpec "ms" satisfied by the current package set?
         for ms in specs:
             push_MatchSpec(ms)
 
-        # Create feature variables
-        for name in iterkeys(trackers):
-            push_MatchSpec(MatchSpec('@' + name))
-
-        # Add dependency relationships
+        # Create propositions that assert:
+        #     If package "fn" is installed, its dependencie must be satisfied
         for group in itervalues(groups):
-            C.Require(C.AtMostOne_NSQ, group)
             for fn in group:
                 for ms in self.ms_depends(fn):
                     if not ms.optional:
@@ -629,62 +665,67 @@ class Resolve(object):
 
     def generate_feature_metric(self, C, groups, specs):
         eq = {}
+        total = 0
         for name, group in iteritems(groups):
             nf = [len(self.features(fn)) for fn in group]
             maxf = max(nf)
-            if min(nf) == maxf:
-                continue
-            if not any(ms.name == name for ms in specs if not ms.optional):
-                maxf += 1
             eq.update({fn: maxf-fc for fn, fc in zip(group, nf) if fc < maxf})
-        return eq
+            total += maxf
+        return eq, total
 
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
-    def generate_version_metric(self, C, groups, specs, vtype=None,
-                                missing=False, start0=True):
-        eq = {}
+    def generate_version_metrics(self, C, groups, specs,
+                                 missing=False, start0=True):
+        eqv = {}
+        eqb = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             sdict.setdefault(s.name, []).append(s)
 
-        def key(x):
-            return self.version_key(x, vtype)
         for name, pkgs in iteritems(groups):
             mss = sdict.get(name, [])
             bmss = bool(mss)
             if bmss == missing:
                 continue
-            pkgs = [(key(p), p) for p in pkgs]
+            pkgs = [(self.version_key(p), p) for p in pkgs]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
             targets = [ms.target for ms in mss if ms.target]
             if targets:
-                v1 = sorted(((key(t), t) for t in targets), reverse=True)
-                v2 = sorted((p for p in pkgs if p >= v1[0] and p[1] not in targets))
-                v3 = sorted((p for p in pkgs if p < v1[0]), reverse=True)
+                tver = max(self.version_key(p) for p in targets)
+                v1 = [p for p in pkgs if p[1] in targets]
+                v2 = sorted((p for p in pkgs if p[0] >= tver and p[-1] not in targets))
+                v3 = sorted((p for p in pkgs if p[0] < tver), reverse=True)
                 pkgs = v1 + v2 + v3
             else:
                 pkgs = sorted(pkgs, reverse=True)
-            prev = None
-            for nkey, pkg in pkgs:
-                if prev is None:
-                    i = 0 if start0 else 1
-                elif prev != nkey:
-                    i += 1
-                if i:
-                    eq[pkg] = i
-                prev = nkey
-        return eq
+            pkey = ppkg = None
+            for nkey, npkg in pkgs:
+                if pkey is None:
+                    iv = 0 if start0 else 1
+                    ib = 0
+                elif pkey[0] != nkey[0]:
+                    iv += 1
+                    ib = 0
+                elif pkey[1] != nkey[1]:
+                    ib += 1
+                if iv:
+                    eqv[npkg] = iv
+                if ib:
+                    eqb[npkg] = ib
+                pkey, ppkg = nkey, npkg
+        return eqv, eqb
 
     def dependency_sort(self, must_have):
         def lookup(value):
             return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
-        log.debug('Sorting:%s' % dashlist(must_have))
         digraph = {}
+        if not isinstance(must_have, dict):
+            must_have = {self.package_name(dist): dist for dist in must_have}
         for key, value in iteritems(must_have):
             depends = lookup(value)
             digraph[key] = depends
@@ -856,7 +897,7 @@ class Resolve(object):
     def solve(self, specs, len0=None, returnall=False):
         try:
             stdoutlog.info("Solving package specifications: ")
-            dotlog.debug("Solving for %s" % specs)
+            dotlog.debug("Solving for %s" % (specs,))
 
             # Find the compliant packages
             specs = list(map(MatchSpec, specs))
@@ -865,10 +906,6 @@ class Resolve(object):
             dists, new_specs = self.get_dists(specs)
             if not dists:
                 return False if dists is None else ([[]] if returnall else [])
-
-            # Clear out our caches to reduce memory usage before the solve
-            self.find_matches_.clear()
-            self.ms_depends_.clear()
 
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
@@ -899,9 +936,8 @@ class Resolve(object):
             nv = C.m
 
             # Requested packages: maximize versions, then builds
-            spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2)
-            eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            eq_requested_versions, eq_requested_builds = self.generate_version_metrics(
+                C, groups, (s for s in specs[:len0] if not s.optional))
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
             dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
@@ -909,47 +945,40 @@ class Resolve(object):
             # Minimize the number of installed track_features, maximize featured package count
             eq_feature_count = self.generate_feature_count(C, trackers)
             solution, obj1 = C.minimize(eq_feature_count, solution)
-            dotlog.debug('Feature count: %d' % obj1)
+            dotlog.debug('Track feature count: %d' % obj1)
 
             # Now that we have the feature count, lock it in and re-optimize
             C.clauses = C.clauses[:nz]
             C.m = nv
             C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
             solution = C.sat()
-            eq_feature_metric = self.generate_feature_metric(C, groups, specs)
+            eq_feature_metric, ftotal = self.generate_feature_metric(C, groups, specs)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
-            dotlog.debug('Package feature metric: %d/%d' % (obj1, obj2))
+            obj2 = ftotal - obj2
+            dotlog.debug('Package feature count: %d' % obj2)
 
-            # Requested packages: maximize versions, then builds
-            spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
-            eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            # Re-optimize requested packages: maximize versions, then builds
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
             # Required packages: maximize versions, then builds
-            spec2 = [s for s in specs[len0:] if not s.optional]
-            eq_required_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
-            eq_required_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            eq_required_versions, eq_required_builds = self.generate_version_metrics(
+                C, groups, (s for s in specs[len0:] if not s.optional))
             solution, obj5 = C.minimize(eq_required_versions, solution)
             solution, obj6 = C.minimize(eq_required_builds, solution)
             dotlog.debug('Required package version/build metrics: %d/%d' % (obj5, obj6))
 
             # Optional packages: maximize count, then versions, then builds
-            eq_optional_versions = self.generate_version_metric(C, groups, speco, vtype='version')
-            eq_optional_builds = self.generate_version_metric(C, groups, speco, vtype='build')
-            solution, obj7 = C.minimize(eq_optional_count, solution)
+            eq_optional_versions, eq_optional_builds = self.generate_version_metrics(
+                C, groups, speco)
             solution, obj8 = C.minimize(eq_optional_versions, solution)
             solution, obj9 = C.minimize(eq_optional_builds, solution)
-            dotlog.debug('Optional package removal/version/build metrics: %d/%d/%d' %
-                         (obj7, obj8, obj9))
+            dotlog.debug('Optional package version/build metrics: %d/%d' % (obj8, obj9))
 
             # All other packages: maximize versions (favoring none), then builds
-            eq_remaining_versions = self.generate_version_metric(
-                C, groups, specs, missing=True, vtype='version', start0=False)
-            eq_remaining_builds = self.generate_version_metric(
-                C, groups, specs, missing=True, vtype='build')
+            eq_remaining_versions, eq_remaining_builds = self.generate_version_metrics(
+                C, groups, specs, missing=True, start0=False)
             solution, obj10 = C.minimize(eq_remaining_versions, solution)
             solution, obj11 = C.minimize(eq_remaining_builds, solution)
             dotlog.debug('Additional package version/build metrics: %d/%d' % (obj10, obj11))
@@ -961,7 +990,6 @@ class Resolve(object):
             nsol = 1
             psolutions = []
             psolution = clean(solution)
-            log.debug('Solution:%s' % dashlist(psolution))
             psolutions.append(psolution)
             while True:
                 nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
@@ -986,13 +1014,6 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
-            if obj1 + obj2 + obj5 + obj6 + obj8 + obj9 > 0:
-                spec2 = [MatchSpec(s) for s in groups]
-                older = self.generate_version_metric(C, groups, spec2)
-                older = [(i, p) for i, p in iteritems(older) if p in psolutions[0]]
-                if older:
-                    log.debug("Older versions/builds in the solution:%s" %
-                              dashlist('%s: %d' % (p, i) for i, p in older))
             stdoutlog.info('\n')
             return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
         except:

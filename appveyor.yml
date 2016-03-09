@@ -44,12 +44,11 @@ install:
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
   - python -c "import sys; print(sys.prefix)"
-  - conda install -q --yes python=%PYTHON_VERSION%
-  - conda install -q --yes -c conda pytest requests mock pycrypto pyflakes pycosat
-  - conda install -q --yes pip
-  # for msys installation
-  - conda install -q --yes git psutil
-  - pip install flake8 pytest-cov
+  - conda install -q python=%PYTHON_VERSION%
+  - conda install -q -c conda pytest requests mock pycrypto pyflakes pycosat
+  - conda install -q pip
+  - conda install -q git psutil
+  - pip install auxlib flake8 pytest-cov
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install --old-and-unmanageable

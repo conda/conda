@@ -27,8 +27,8 @@ is in error, run CONDA_DEFAULT_ENV='' python setup.py.
 here = os.path.abspath(os.path.dirname(__file__))
 src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
+import auxlib  # a build-time dependency only
 import conda  # NOQA
-from conda.auxlib.packaging import BuildPyCommand, SDistCommand  # NOQA
 
 
 with open(os.path.join(here, "README.rst")) as f:
@@ -57,21 +57,19 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
     packages=[
         'conda',
-        'conda.auxlib',
         'conda.cli',
         'conda.progressbar'
     ],
     cmdclass={
-        'build_py': BuildPyCommand,
-        'sdist': SDistCommand,
+        'build_py': auxlib.BuildPyCommand,
+        'sdist': auxlib.SDistCommand,
     },
-    install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests', 'psutil'],
+    install_requires=['pycosat >=0.6.1', 'ruamel.yaml', 'requests', 'psutil'],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
