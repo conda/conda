@@ -410,10 +410,11 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     if config.track_features:
         specs.extend(x + '@' for x in config.track_features)
 
-    for fn in r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps):
+    pkgs = r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps)
+    for fn in pkgs:
         dist = fn[:-8]
         name = install.name_dist(dist)
-        if only_names and name not in only_names:
+        if not name or only_names and name not in only_names:
             continue
         must_have[name] = dist
 
@@ -455,14 +456,16 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     mss = list(map(MatchSpec, specs))
 
     if force:
-        nlinked = {r.package_name(fn):fn for fn in linked if not any(r.match(ms, fn) for ms in mss)}
+        nlinked = {r.package_name(fn):fn[:-8] for fn in linked if not any(r.match(ms, fn) for ms in mss)}
     else:
-        if pinned:
-            pinned_specs = get_pinned_specs(prefix)
-            log.debug("Pinned specs=%s" % pinned_specs)
         if config.track_features:
             specs.extend(x + '@' for x in config.track_features)
         nlinked = {r.package_name(fn):fn[:-8] for fn in r.remove(specs, linked)}
+
+    if pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        log.debug("Pinned specs=%s" % pinned_specs)
+
     linked = {r.package_name(fn):fn[:-8] for fn in linked}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)

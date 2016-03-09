@@ -47,7 +47,7 @@ install:
   - conda install python=%PYTHON_VERSION%
   - conda install -c conda pytest requests mock pycrypto pyflakes pycosat
   - conda install pip
-  - pip install flake8 pytest-cov
+  - pip install auxlib flake8 pytest-cov
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install
@@ -62,5 +62,3 @@ test_script:
 on_success:
   - pip install codecov
   - codecov --env PYTHON_VERSION
-
-shallow_clone: true
