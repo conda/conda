@@ -114,6 +114,8 @@ link_name_map = {
 }
 
 def _link(src, dst, linktype=LINK_HARD):
+    from conda.cli.install import check_perms_and_exit
+    check_perms_and_exit(dst, access=os.W_OK, json=False)
     if linktype == LINK_HARD:
         if on_win:
             win_hard_link(src, dst)
@@ -155,6 +157,8 @@ def rm_rf(path, max_retries=5, trash=True):
 
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
+    from conda.cli.install import check_perms_and_exit
+    check_perms_and_exit(path, access=os.W_OK, json=False)
     if islink(path) or isfile(path):
         # Note that we have to check if the destination is a link because
         # exists('/path/to/dead-link') will return False, although
@@ -474,14 +478,22 @@ def extracted(pkgs_dir):
                if (isfile(join(pkgs_dir, dn, 'info', 'files')) and
                    isfile(join(pkgs_dir, dn, 'info', 'index.json'))))
 
-def extract(pkgs_dir, dist):
+def extract(pkgs_dir, dist, json=False):
     """
     Extract a package, i.e. make a package available for linkage.  We assume
     that the compressed packages is located in the packages directory.
     """
+    from conda.cli.install import check_perms_and_exit
+
     with Locked(pkgs_dir):
         path = join(pkgs_dir, dist)
-        t = tarfile.open(path + '.tar.bz2')
+        check_perms_and_exit(path, access=os.W_OK, json=json)
+        tar_path = path + '.tar.bz2'
+        check_perms_and_exit(tar_path, access=os.W_OK, json=json)
+        t = tarfile.open(tar_path)
+        for member in t.getmembers():
+            member_target = os.path.join(path, os.path.normpath(member.name))
+            check_perms_and_exit(member_target, access=os.W_OK, json=json)
         t.extractall(path=path)
         t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
@@ -498,6 +510,7 @@ def is_extracted(pkgs_dir, dist):
             isfile(join(pkgs_dir, dist, 'info', 'index.json')))
 
 def rm_extracted(pkgs_dir, dist):
+
     with Locked(pkgs_dir):
         path = join(pkgs_dir, dist)
         rm_rf(path)

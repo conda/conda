@@ -37,7 +37,10 @@ Additional help for each command can be accessed by using:
 
 from __future__ import print_function, division, absolute_import
 
+import os
+import subprocess
 import sys
+import traceback
 
 def main():
     if len(sys.argv) > 1:
@@ -85,6 +88,10 @@ def main():
         action = "store_true",
         help = argparse.SUPPRESS,
     )
+    p.add_argument('--process-check',
+                  action='store_true',
+                  help="Check running PIDs for usage of "
+                       "same Python prefix on error (Windows)")
     sub_parsers = p.add_subparsers(
         metavar = 'command',
         dest = 'cmd',
@@ -140,21 +147,61 @@ def main():
 
 def args_func(args, p):
     from conda.cli import common
-
     use_json = getattr(args, 'json', False)
     try:
         args.func(args, p)
     except RuntimeError as e:
         if 'maximum recursion depth exceeded' in str(e):
-            print_issue_message(e, use_json=use_json)
+            print_issue_message(args, e, use_json=use_json)
             raise
-        common.error_and_exit(str(e), json=use_json)
+        common.error_and_exit(args, str(e), json=use_json)
     except Exception as e:
-        print_issue_message(e, use_json=use_json)
+        print_issue_message(args, e, use_json=use_json)
         raise  # as if we did not catch it
 
-def print_issue_message(e, use_json=False):
+def print_task_list():
+    if os.name != 'nt':
+        return
+    try:
+        import psutil
+    except ImportError:
+        psutil = None
+    print('tasklist /V')
+    proc = subprocess.Popen(['cmd', '/c', 'tasklist','/V'])
+    proc.wait()
+    if psutil is None:
+        return
+    for proc in psutil.process_iter():
+        if proc.pid == os.getpid():
+            continue
+        try:
+            exe = proc.exe()
+        except psutil.AccessDenied:
+            print('AccessDenied on ', proc.pid)
+            exe = None
+        try:
+            cmdline = proc.cmdline()
+        except psutil.AccessDenied:
+            cmdline = None
+        try:
+            open_files = proc.open_files()
+        except psutil.AccessDenied:
+            open_files = None
+        template = '''PID: {}
+        exe: {},
+        cmdline: {},
+        open_files: {}'''
+        if exe:
+            print(template.format(proc.pid, exe, cmdline, open_files))
+        if open_files:
+            for f in open_files:
+                if f.startswith(sys.prefix):
+                    print('Open file: ', f, 'is on sys.prefix.')
+
+def print_issue_message(args, e, use_json=False):
+
     from conda.cli import common
+
     message = ""
     if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
@@ -167,10 +214,17 @@ Include the output of the command 'conda info' in your report.
 
 """
     if use_json:
-        import traceback
         common.error_and_exit(message + traceback.format_exc(),
                               error_type="UnexpectedError", json=True)
     print(message)
+    if args.process_check and getattr(e, 'errno', None) == 13:
 
+        print("""
+    Review this tasklist /V output to find
+    possible source of permissions error.
+    One process may be holding onto the named file.
+
+""")
+        print_task_list()
 if __name__ == '__main__':
     main()
