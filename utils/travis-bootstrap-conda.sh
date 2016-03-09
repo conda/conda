@@ -4,6 +4,7 @@
 
 travis_build_and_upload() {
     if [[ "$TRAVIS_BRANCH" == master ]]; then
+        set -e
         conda install -y conda-build anaconda-client
         conda build conda.recipe
         anaconda --token $ANACONDA_TOKEN upload --user conda --label dev "$(conda build conda.recipe --output)"
