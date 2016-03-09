@@ -1,9 +1,34 @@
-2016-XX-XX   4.0.0:
---------------------
-  * resolve.py: the solver has been retooled significantly. Performance
+2016-03-XX   4.0.3:
+-------------------
+  * adds a `conda clean --all` feature, #2211
+  * solver performance improvements, #2209
+  * fixes conda list for pip packages on windows, #2216
+  * quiets some logging for package downloads under python 3, #2217
+  * more urls for `conda list --explicit`, #1855
+
+
+2016-03-08   4.0.2:
+-------------------
+  * fixes track_features in ~/.condarc being a list, see also #2203
+  * fixes incorrect path in lock file error #2195
+  * fixes issues with cloning environments, #2193, #2194
+  * fixes a strange interaction between features and versions, #2206
+  * fixes a bug in low-level SAT clause generation creating a
+    preference for older versions, #2199
+
+
+2016-03-07   4.0.1:
+-------------------
+  * fixes an install issue caused by md5 checksum mismatches, #2183
+  * remove auxlib build dependency, #2188
+
+
+2016-03-04   4.0.0:
+-------------------
+  * The solver has been retooled significantly. Performance
     should be improved in most circumstances, and a number of issues
     involving feature conflicts should be resolved.
-  * resolve.py: "conda update <package>" now handles depedencies properly
+  * `conda update <package>` now handles depedencies properly
     according to the setting of the "update_deps" configuration:
         --update-deps: conda will also update any dependencies as needed
                        to install the latest verison of the requrested
@@ -15,8 +40,9 @@
     The previous behavior, which would update the packages without regard to
     their dependencies, could result in a broken configuration, and has been
     removed.
-  * fix `conda clean --packages` on Windows, #1944
-  * conda sub-commands now support dashes in names, #1840
+  * Conda finally has an official logo.
+  * Fix `conda clean --packages` on Windows, #1944
+  * Conda sub-commands now support dashes in names, #1840
 
 
 2016-02-19   3.19.3:

@@ -2,10 +2,14 @@
 from __future__ import print_function, division, absolute_import
 from distutils.sysconfig import get_python_lib
 from logging import getLogger
-import pkg_resources
-from os.path import (abspath, dirname, exists, expanduser, expandvars, join, normpath, sep)
+from os import chdir, getcwd
+from os.path import (abspath, dirname, exists, expanduser, expandvars, isdir, isfile, join,
+                     normpath, sep)
+try:
+    import pkg_resources
+except ImportError:
+    pkg_resources = None
 import sys
-
 
 log = getLogger(__name__)
 
@@ -38,6 +42,22 @@ class PackageFile(object):
         self.file_handle.close()
 
 
+class ChangePath(object):
+
+    def __init__(self, path):
+        self.dirpath = dirname(path) if isfile(path) else path
+        if not isdir(self.dirpath):
+            raise IOError('File or directory not found: {0}'.format(path))
+
+    def __enter__(self):
+        self.cwd = getcwd()
+        chdir(self.dirpath)
+        return self
+
+    def __exit__(self, *args):
+        chdir(self.cwd)
+
+
 def open_package_file(file_path, package_name):
     file_path = expand(file_path)
 
@@ -47,7 +67,8 @@ def open_package_file(file_path, package_name):
         return open(file_path)
 
     # look for file in package resources
-    if package_name and pkg_resources.resource_exists(package_name, file_path):
+    if (package_name and pkg_resources is not None
+        and pkg_resources.resource_exists(package_name, file_path)):
         log.info("found package resource file {0} for package {1}".format(file_path, package_name))
         return pkg_resources.resource_stream(package_name, file_path)
 

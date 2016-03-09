@@ -192,35 +192,26 @@ def test_LinearBound():
         else:
             N = max([0]+[a for c,a in eq if a is not True and a is not False])
         C = Clauses(N)
-        C2 = Clauses(N)
         Cpos = Clauses(N)
         Cneg = Clauses(N)
         if isinstance(eq, dict):
             for k in range(1,N+1):
                 nm = 'x%d'%k
                 C.name_var(k, nm)
-                C2.name_var(k, nm)
                 Cpos.name_var(k, nm)
                 Cneg.name_var(k, nm)
             eq2 = [(v,C.from_name(c)) for c,v in iteritems(eq)]
         else:
             eq2 = eq
         x = C.LinearBound(eq, rhs[0], rhs[1])
-        x2 = C2.LinearBound(eq, rhs[0], rhs[1], 'sorter')
         Cpos.Require(Cpos.LinearBound, eq, rhs[0], rhs[1])
         Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
         if x is not False:
             for _, sol in zip(range(max_iter), C.itersolve([] if x is True else [(x,)],N)):
                 assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], C.clauses
-        if x2 is not False:
-            for _, sol in zip(range(max_iter), C2.itersolve([] if x2 is True else [(x2,)],N)):
-                assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], C2.clauses
         if x is not True:
             for _, sol in zip(range(max_iter), C.itersolve([] if x is True else [(C.Not(x),)],N)):
                 assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), C.clauses
-        if x2 is not True:
-            for _, sol in zip(range(max_iter), C2.itersolve([] if x is True else [(C2.Not(x),)],N)):
-                assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), C2.clauses
         for _, sol in zip(range(max_iter), Cpos.itersolve([],N)):
             assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], ('Cpos',Cpos.clauses)
         for _, sol in zip(range(max_iter), Cneg.itersolve([],N)):
