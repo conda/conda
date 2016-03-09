@@ -4,6 +4,7 @@
   * solver performance improvements, #2209
   * fixes conda list for pip packages on windows, #2216
   * quiets some logging for package downloads under python 3, #2217
+  * more urls for `conda list --explicit`, #1855
 
 
 2016-03-08   4.0.2:
