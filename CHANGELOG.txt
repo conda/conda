@@ -1,6 +1,25 @@
-2016-XX-XX 3.20.0:
-------------------
-  * resolve.py: "conda update <package>" now handles depedencies properly
+2016-03-08   4.0.2:
+-------------------
+  * fixes track_features in ~/.condarc being a list, see also #2203
+  * fixes incorrect path in lock file error #2195
+  * fixes issues with cloning environments, #2193, #2194
+  * fixes a strange interaction between features and versions, #2206
+  * fixes a bug in low-level SAT clause generation creating a
+    preference for older versions, #2199
+
+
+2016-03-07   4.0.1:
+-------------------
+  * fixes an install issue caused by md5 checksum mismatches, #2183
+  * remove auxlib build dependency, #2188
+
+
+2016-03-04   4.0.0:
+-------------------
+  * The solver has been retooled significantly. Performance
+    should be improved in most circumstances, and a number of issues
+    involving feature conflicts should be resolved.
+  * `conda update <package>` now handles depedencies properly
     according to the setting of the "update_deps" configuration:
         --update-deps: conda will also update any dependencies as needed
                        to install the latest verison of the requrested
@@ -12,13 +31,24 @@
     The previous behavior, which would update the packages without regard to
     their dependencies, could result in a broken configuration, and has been
     removed.
-  * resolve.py: the solver has been retooled significantly. Performance
-    should be improved in most circumstances, and a number of issues
-    involving feature conflicts should be resolved.
+  * Conda finally has an official logo.
+  * Fix `conda clean --packages` on Windows, #1944
+  * Conda sub-commands now support dashes in names, #1840
+
+
+2016-02-19   3.19.3:
+--------------------
+  * fix critical issue, see #2106
+
+
+2016-02-19   3.19.2:
+--------------------
   * add basic activate/deactivate, conda activate/deactivate/ls for fish,
     see #545
   * remove error when CONDA_FORCE_32BIT is set on 32-bit systems, #1985
   * suppress help text for --unknown option, #2051
+  * fix issue with conda create --clone post-link scripts, #2007
+  * fix a permissions issue on windows, #2083
 
 
 2016-02-01   3.19.1:
