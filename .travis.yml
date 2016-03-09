@@ -29,6 +29,4 @@ sudo: false
 after_success:
   - pip install codecov
   - codecov --env PY_VERSION
-  - conda install conda-build anaconda-client
-  - conda build .
-  - anaconda --token $ANACONDA_TOKEN upload --user conda --label dev $(conda build . --output)
+  - travis_build_and_upload
