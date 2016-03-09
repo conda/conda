@@ -17,6 +17,7 @@ install:
   - conda install flake8 pytest mock
   - conda install pip
   - pip install auxlib pytest-cov radon
+  - pip install ruamel.yaml
 
 script:
   - py.test --cov conda --cov-report xml tests

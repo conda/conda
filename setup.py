@@ -63,7 +63,7 @@ setup(
         'build_py': auxlib.BuildPyCommand,
         'sdist': auxlib.SDistCommand,
     },
-    install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests'],
+    install_requires=['pycosat >=0.6.1', 'ruamel.yaml', 'requests'],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
