@@ -14,7 +14,7 @@ def pip_args(prefix):
     is not installed
     """
     if sys.platform == 'win32':
-        pip_path = join(prefix, 'Scripts', 'pip-script.py')
+        pip_path = join(prefix, 'Scripts', 'pip.exe')
         py_path = join(prefix, 'python.exe')
     else:
         pip_path = join(prefix, 'bin', 'pip')
