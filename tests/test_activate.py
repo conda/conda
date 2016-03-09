@@ -1,14 +1,14 @@
 from __future__ import print_function, absolute_import
 
 import os
-from os.path import dirname, join
 import shutil
 import stat
 import subprocess
+from os.path import dirname, join
 
 import pytest
 
-from conda.compat import TemporaryDirectory
+from conda.common.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from tests.helpers import run_in
 

@@ -1,9 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
 """
 Tools for working with locks
 
@@ -15,17 +10,18 @@ globally (such as downloading packages).
 
 We don't raise an error if the lock is named with the current PID
 """
+from __future__ import absolute_import, division, print_function
 
-import os
-import logging
-from os.path import join
 import glob
+import os
+from logging import getLogger
+from os.path import join
 from time import sleep
 
+log = getLogger(__name__)
+stdoutlog = getLogger('stdoutlog')
+
 LOCKFN = '.conda_lock'
-
-
-stdoutlog = logging.getLogger('stdoutlog')
 
 
 class Locked(object):

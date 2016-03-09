@@ -3,9 +3,7 @@ import unittest
 import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
-
-from conda.compat import text_type
-
+from conda.common.compat import text_type
 from tests.helpers import capture_json_with_argv
 
 
