@@ -59,6 +59,7 @@ url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
 def explicit(urls, prefix, verbose=True):
     import conda.fetch as fetch
     from conda.utils import md5_file
+    from conda.cli import check_perms_and_exit
 
     dists = []
     for url in urls:
@@ -79,6 +80,7 @@ def explicit(urls, prefix, verbose=True):
             sys.exit("Error: MD5 in explicit files does not match index")
         pkg_path = join(config.pkgs_dirs[0], fn)
         if isfile(pkg_path):
+            check_perms_and_exit(pkg_path, access=os.W_OK, json=False)
             try:
                 if md5_file(pkg_path) != info['md5']:
                     install.rm_rf(pkg_path)
@@ -251,9 +253,11 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
     return actions, untracked_files
 
 
-def install_local_packages(prefix, paths, verbose=False):
+def install_local_packages(prefix, paths, verbose=False, json=False):
     # copy packages to pkgs dir
+    from conda.cli.install import check_perms_and_exit
     pkgs_dir = config.pkgs_dirs[0]
+    check_perms_and_exit(pkgs_dir, access=os.W_OK, json=json)
     dists = []
     for src_path in paths:
         assert src_path.endswith('.tar.bz2')
@@ -262,6 +266,7 @@ def install_local_packages(prefix, paths, verbose=False):
         dst_path = join(pkgs_dir, fn)
         if abspath(src_path) == abspath(dst_path):
             continue
+        check_perms_and_exit(dst_path, access=os.W_OK, json=json)
         shutil.copyfile(src_path, dst_path)
 
     force_extract_and_link(dists, prefix, verbose=verbose)
