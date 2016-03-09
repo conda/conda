@@ -422,7 +422,7 @@ class Resolve(object):
                     nold += 1
                     sat = self.match_any(matches, fn)
                     sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                                      for ms in self.ms_depends(fn) if not ms.optional)
+                                      for ms in self.ms_depends(fn))
                     filter[fn] = sat
                     if not sat:
                         bad_deps.append(fn)
@@ -435,19 +435,18 @@ class Resolve(object):
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
-                if not all(ms.optional for ms in matches):
-                    bad_deps = [fn for fn in bad_deps if self.match_any(matches, fn)]
-                    matches = [(ms,) for ms in matches]
-                    chains = [a + b for a in chains for b in matches] if chains else matches
-                    if bad_deps:
-                        dep2 = set()
-                        for fn in bad_deps:
-                            for ms in self.ms_depends(fn):
-                                if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
-                                    dep2.add(ms)
-                        chains = [a + (b,) for a in chains for b in dep2]
-                    unsat.extend(chains)
-                    return nnew
+                bad_deps = [fn for fn in bad_deps if self.match_any(matches, fn)]
+                matches = [(ms,) for ms in matches]
+                chains = [a + b for a in chains for b in matches] if chains else matches
+                if bad_deps:
+                    dep2 = set()
+                    for fn in bad_deps:
+                        for ms in self.ms_depends(fn):
+                            if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
+                                dep2.add(ms)
+                    chains = [a + (b,) for a in chains for b in dep2]
+                unsat.extend(chains)
+                return nnew
             if not reduced and not first:
                 return False
 
@@ -482,12 +481,12 @@ class Resolve(object):
                     filter[fn] = False
             feats = set(self.trackers.keys())
             snames.clear()
-            slist = specs
+            specs = slist = list(specs)
             onames = set(s.name for s in specs)
             for iter in range(10):
                 first = True
                 while sum(filter_group([s]) for s in slist):
-                    slist = list(specs) + [MatchSpec(n) for n in snames - onames]
+                    slist = specs + [MatchSpec(n) for n in snames - onames]
                     first = False
                 if unsat:
                     return False
@@ -578,12 +577,7 @@ class Resolve(object):
 
     def version_key(self, fn, vtype=None):
         rec = self.index[fn]
-        if vtype == 'build':
-            return rec['build_number']
-        elif vtype == 'version':
-            return normalized_version(rec['version'])
-        else:
-            return (normalized_version(rec['version']), rec['build_number'])
+        return (normalized_version(rec['version']), rec['build_number'])
 
     def features(self, fn):
         return set(self.index[fn].get('features', '').split())
@@ -682,43 +676,49 @@ class Resolve(object):
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
-    def generate_version_metric(self, C, groups, specs, vtype=None,
-                                missing=False, start0=True):
-        eq = {}
+    def generate_version_metrics(self, C, groups, specs,
+                                 missing=False, start0=True):
+        eqv = {}
+        eqb = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             sdict.setdefault(s.name, []).append(s)
 
-        def key(x):
-            return self.version_key(x, vtype)
         for name, pkgs in iteritems(groups):
             mss = sdict.get(name, [])
             bmss = bool(mss)
             if bmss == missing:
                 continue
-            pkgs = [(key(p), p) for p in pkgs]
+            pkgs = [(self.version_key(p), p) for p in pkgs]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
             targets = [ms.target for ms in mss if ms.target]
             if targets:
-                v1 = sorted(((key(t), t) for t in targets), reverse=True)
-                v2 = sorted((p for p in pkgs if p >= v1[0] and p[1] not in targets))
-                v3 = sorted((p for p in pkgs if p < v1[0]), reverse=True)
+                tver = max(self.version_key(p) for p in targets)
+                v1 = [p for p in pkgs if p[1] in targets]
+                v2 = sorted((p for p in pkgs if p[0] >= tver and p[-1] not in targets))
+                v3 = sorted((p for p in pkgs if p[0] < tver), reverse=True)
                 pkgs = v1 + v2 + v3
             else:
                 pkgs = sorted(pkgs, reverse=True)
-            prev = None
-            for nkey, pkg in pkgs:
-                if prev is None:
-                    i = 0 if start0 else 1
-                elif prev != nkey:
-                    i += 1
-                if i:
-                    eq[pkg] = i
-                prev = nkey
-        return eq
+            pkey = ppkg = None
+            for nkey, npkg in pkgs:
+                if pkey is None:
+                    iv = 0 if start0 else 1
+                    ib = 0
+                elif pkey[0] != nkey[0]:
+                    iv += 1
+                    ib = 0
+                elif pkey[1] != nkey[1]:
+                    ib += 1
+                if iv:
+                    eqv[npkg] = iv
+                if ib:
+                    eqb[npkg] = ib
+                pkey, ppkg = nkey, npkg
+        return eqv, eqb
 
     def dependency_sort(self, must_have):
         def lookup(value):
@@ -907,10 +907,6 @@ class Resolve(object):
             if not dists:
                 return False if dists is None else ([[]] if returnall else [])
 
-            # Clear out our caches to reduce memory usage before the solve
-            self.find_matches_.clear()
-            self.ms_depends_.clear()
-
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
             groups, trackers = build_groups(dists)
@@ -940,9 +936,8 @@ class Resolve(object):
             nv = C.m
 
             # Requested packages: maximize versions, then builds
-            spec2 = [s for s in specs[:len0] if not s.optional]
-            eq_requested_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
-            eq_requested_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            eq_requested_versions, eq_requested_builds = self.generate_version_metrics(
+                C, groups, (s for s in specs[:len0] if not s.optional))
             solution, obj3 = C.minimize(eq_requested_versions, solution)
             solution, obj4 = C.minimize(eq_requested_builds, solution)
             dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
@@ -968,27 +963,22 @@ class Resolve(object):
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
             # Required packages: maximize versions, then builds
-            spec2 = [s for s in specs[len0:] if not s.optional]
-            eq_required_versions = self.generate_version_metric(C, groups, spec2, vtype='version')
-            eq_required_builds = self.generate_version_metric(C, groups, spec2, vtype='build')
+            eq_required_versions, eq_required_builds = self.generate_version_metrics(
+                C, groups, (s for s in specs[len0:] if not s.optional))
             solution, obj5 = C.minimize(eq_required_versions, solution)
             solution, obj6 = C.minimize(eq_required_builds, solution)
             dotlog.debug('Required package version/build metrics: %d/%d' % (obj5, obj6))
 
             # Optional packages: maximize count, then versions, then builds
-            eq_optional_versions = self.generate_version_metric(C, groups, speco, vtype='version')
-            eq_optional_builds = self.generate_version_metric(C, groups, speco, vtype='build')
-            solution, obj7 = C.minimize(eq_optional_count, solution)
+            eq_optional_versions, eq_optional_builds = self.generate_version_metrics(
+                C, groups, speco)
             solution, obj8 = C.minimize(eq_optional_versions, solution)
             solution, obj9 = C.minimize(eq_optional_builds, solution)
-            dotlog.debug('Optional package version/build metrics: %d/%d/%d' %
-                         (obj7, obj8, obj9))
+            dotlog.debug('Optional package version/build metrics: %d/%d' % (obj8, obj9))
 
             # All other packages: maximize versions (favoring none), then builds
-            eq_remaining_versions = self.generate_version_metric(
-                C, groups, specs, missing=True, vtype='version', start0=False)
-            eq_remaining_builds = self.generate_version_metric(
-                C, groups, specs, missing=True, vtype='build')
+            eq_remaining_versions, eq_remaining_builds = self.generate_version_metrics(
+                C, groups, specs, missing=True, start0=False)
             solution, obj10 = C.minimize(eq_remaining_versions, solution)
             solution, obj11 = C.minimize(eq_remaining_builds, solution)
             dotlog.debug('Additional package version/build metrics: %d/%d' % (obj10, obj11))
@@ -1024,13 +1014,6 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
-            if obj1 + obj2 + obj5 + obj6 + obj8 + obj9 > 0:
-                spec2 = [MatchSpec(s) for s in groups]
-                older = self.generate_version_metric(C, groups, spec2)
-                older = [(i, p) for i, p in iteritems(older) if p in psolutions[0]]
-                if older:
-                    log.debug("Older versions/builds in the solution:%s" %
-                              dashlist('%s: %d' % (p, i) for i, p in older))
             stdoutlog.info('\n')
             return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
         except:
