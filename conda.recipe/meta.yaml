@@ -1,6 +1,5 @@
 package:
   name: conda
-  version: '{{ environ.get("GIT_DESCRIBE_TAG", "") }}'
 
 source:
   path: ../
@@ -15,8 +14,6 @@ build:
     - bin/deactivate [unix]
   entry_points:
     - conda = conda.cli:main
-  string: 'py{{ environ.get("CONDA_PY", "") }}_{{ environ.get("GIT_BUILD_STR", 0) }}'
-  number: '{{ environ.get("GIT_DESCRIBE_NUMBER", 0) }}'
 
 requirements:
   build:
