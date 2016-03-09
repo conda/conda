@@ -14,13 +14,11 @@ def pip_args(prefix):
     is not installed
     """
     if sys.platform == 'win32':
-        pip_path = join(prefix, 'Scripts', 'pip-script.py')
-        py_path = join(prefix, 'python.exe')
+        pip_path = join(prefix, 'pip.exe')
     else:
         pip_path = join(prefix, 'bin', 'pip')
-        py_path = join(prefix, 'bin', 'python')
-    if isfile(pip_path) and isfile(py_path):
-        ret = [py_path, pip_path]
+    if isfile(pip_path):
+        ret = [pip_path]
 
         # Check the version of pip
         # --disable-pip-version-check was introduced in pip 6.0
