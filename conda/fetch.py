@@ -18,11 +18,12 @@ import sys
 import getpass
 import warnings
 from functools import wraps
+from collections import defaultdict
 
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.compat import itervalues, input, urllib_quote
+from conda.compat import iteritems, itervalues, input, urllib_quote
 from conda.lock import Locked
 
 import requests
@@ -264,13 +265,18 @@ Allowed channels are:
                                      use_cache=use_cache, session=session)),
                         reversed(channel_urls))
 
+    channels = defaultdict(list)
+
     for url, repodata in repodatas:
         if repodata is None:
             continue
         new_index = repodata['packages']
-        for info in itervalues(new_index):
+        for fn, info in iteritems(new_index):
             info['channel'] = url
+            channels[fn].insert(0, url)
         index.update(new_index)
+    for fn in channels:
+        index[fn]['channels'] = channels[fn]
 
     stdoutlog.info('\n')
     if unknown:
@@ -279,8 +285,7 @@ Allowed channels are:
         add_pip_dependency(index)
     return index
 
-
-def fetch_pkg(info, dst_dir=None, session=None):
+def fetch_pkg(info, channel=None, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
@@ -288,6 +293,8 @@ def fetch_pkg(info, dst_dir=None, session=None):
         dst_dir = config.pkgs_dirs[0]
 
     session = session or CondaSession()
+
+    channel = channel or info['channel']
 
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn

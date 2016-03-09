@@ -112,6 +112,10 @@ class MatchSpec(object):
         self.strictness = len(parts)
         assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
+        if '/' in self.name:
+            self.channel, self.name = self.name.rsplit('/', 1)
+        else:
+            self.channel = None
         if self.strictness == 2:
             self.vspecs = VersionSpec(parts[1])
         elif self.strictness == 3:
