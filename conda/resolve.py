@@ -676,10 +676,10 @@ class Resolve(object):
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
-    def generate_version_metrics(self, C, groups, specs,
-                                 missing=False, start0=True):
+    def generate_version_metrics(self, C, groups, specs, missing=False):
         eqv = {}
         eqb = {}
+        eqc = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
@@ -706,8 +706,7 @@ class Resolve(object):
             pkey = ppkg = None
             for nkey, npkg in pkgs:
                 if pkey is None:
-                    iv = 0 if start0 else 1
-                    ib = 0
+                    iv = ib = 0
                 elif pkey[0] != nkey[0]:
                     iv += 1
                     ib = 0
@@ -717,8 +716,10 @@ class Resolve(object):
                     eqv[npkg] = iv
                 if ib:
                     eqb[npkg] = ib
+                if missing:
+                    eqc[npkg] = 1
                 pkey, ppkg = nkey, npkg
-        return eqv, eqb
+        return (eqv, eqb, eqc) if missing else (eqv, eqb)
 
     def dependency_sort(self, must_have):
         def lookup(value):
@@ -977,11 +978,13 @@ class Resolve(object):
             dotlog.debug('Optional package version/build metrics: %d/%d' % (obj8, obj9))
 
             # All other packages: maximize versions (favoring none), then builds
-            eq_remaining_versions, eq_remaining_builds = self.generate_version_metrics(
-                C, groups, specs, missing=True, start0=False)
-            solution, obj10 = C.minimize(eq_remaining_versions, solution)
-            solution, obj11 = C.minimize(eq_remaining_builds, solution)
-            dotlog.debug('Additional package version/build metrics: %d/%d' % (obj10, obj11))
+            eq_remain_v, eq_remain_b, eq_remain_c = self.generate_version_metrics(
+                C, groups, specs, missing=True)
+            solution, obj10 = C.minimize(eq_remain_v, solution)
+            solution, obj11 = C.minimize(eq_remain_b, solution)
+            solution, obj12 = C.minimize(eq_remain_c, solution, trymax=True)
+            dotlog.debug('Additional package version/build/count metrics: %d/%d/%d' %
+                         (obj10, obj11, obj12))
 
             def clean(sol):
                 return [q for q in (C.from_index(s) for s in sol)
