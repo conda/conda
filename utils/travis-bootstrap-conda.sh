@@ -6,8 +6,9 @@ travis_build_and_upload() {
     if [[ "$TRAVIS_BRANCH" == master ]]; then
         set -e
         conda install -y conda-build anaconda-client
-        conda build conda.recipe
-        anaconda --token $ANACONDA_TOKEN upload --user conda --label dev "$(conda build conda.recipe --output)"
+        conda build conda.recipe | tee build.log
+        local tarball="$(grep 'anaconda upload' build.log | tail -1 | cut -d' ' -f5)"
+        anaconda --token $ANACONDA_TOKEN upload --user conda --label dev "$tarball"
     fi
 }
 
