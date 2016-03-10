@@ -84,8 +84,11 @@ def split_linkarg(arg):
 
 
 def link(prefix, arg, index=None):
-    dist, pkgs_dir, lt = split_linkarg(arg)
-    install.link(pkgs_dir, prefix, dist, lt, index=index)
+    dist, pkgs_dir, linktype = split_linkarg(arg)
+    linktype = (install.LINK_HARD
+                 if install.try_hard_link(pkgs_dir, prefix, dist) else
+                 install.LINK_COPY)
+    install.link(pkgs_dir, prefix, dist, linktype, index=index)
 
 
 def LINK_CMD(state, arg):
