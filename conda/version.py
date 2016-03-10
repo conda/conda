@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import operator as op
 import re
 
-from conda.compat import zip_longest, string_types
+from conda.common.compat import zip_longest, string_types
 
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but

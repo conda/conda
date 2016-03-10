@@ -6,11 +6,12 @@
 from __future__ import print_function, division, absolute_import
 
 import os
+import re
 import sys
 
 import conda.config as config
 from conda.cli import common
-from conda.compat import string_types
+from conda.common.compat import string_types
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git

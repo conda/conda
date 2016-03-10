@@ -6,25 +6,25 @@
 
 from __future__ import print_function, division, absolute_import
 
+import errno
+import logging
 import os
-import sys
 import shutil
+import sys
 import tarfile
 import tempfile
-from os.path import isdir, join, basename, exists, abspath
 from difflib import get_close_matches
-import logging
-import errno
+from os.path import isdir, join, basename, exists, abspath
 
 import conda.config as config
-import conda.plan as plan
+import conda.install as ci
 import conda.instructions as inst
 import conda.misc as misc
+import conda.plan as plan
 from conda.api import get_index
 from conda.cli import common
 from conda.cli.find_commands import find_executable
 from conda.resolve import NoPackagesFound, Unsatisfiable, Resolve
-import conda.install as ci
 
 log = logging.getLogger(__name__)
 
@@ -119,6 +119,8 @@ def install(args, parser, command='install'):
     conda install, conda update, and conda create
     """
     newenv = bool(command == 'create')
+    isupdate = bool(command == 'update')
+    isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
     prefix = common.get_prefix(args, search=not newenv)
@@ -127,27 +129,22 @@ def install(args, parser, command='install'):
     if config.force_32bit and plan.is_root_prefix(prefix):
         common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
 
-    if command == 'update':
-        if not args.file:
-            if not args.all and len(args.packages) == 0:
-                common.error_and_exit("""no package names supplied
+    if isupdate and not (args.file or args.all or args.packages):
+        common.error_and_exit("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
 """ % prefix,
-                                      json=args.json,
-                                      error_type="ValueError")
+                              json=args.json,
+                              error_type="ValueError")
 
-    if command == 'update' and not args.all:
-        linked = ci.linked(prefix)
+    linked = ci.linked(prefix)
+    lnames = {ci.name_dist(d) for d in linked}
+    if isupdate and not args.all:
         for name in args.packages:
-            common.arg2spec(name, json=args.json)
-            if '=' in name:
-                common.error_and_exit("Invalid package name: '%s'" % (name),
-                                      json=args.json,
-                                      error_type="ValueError")
-            if name not in set(ci.name_dist(d) for d in linked):
-                common.error_and_exit("package '%s' is not installed in %s" %
+            common.arg2spec(name, json=args.json, update=True)
+            if name not in lnames:
+                common.error_and_exit("Package '%s' is not installed in %s" %
                                       (name, prefix),
                                       json=args.json,
                                       error_type="ValueError")
@@ -173,22 +170,13 @@ def install(args, parser, command='install'):
             misc.explicit(specs, prefix)
             return
     elif getattr(args, 'all', False):
-        linked = ci.linked(prefix)
         if not linked:
             common.error_and_exit("There are no packages installed in the "
                 "prefix %s" % prefix)
-        for pkg in linked:
-            name, ver, build = pkg.rsplit('-', 2)
-            if name in getattr(args, '_skip', ['anaconda']):
-                continue
-            if name == 'python' and ver.startswith('2'):
-                # Oh Python 2...
-                specs.append('%s >=%s,<3' % (name, ver))
-            else:
-                specs.append('%s' % name)
+        specs.extend(nm for nm in lnames)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
-    if command == 'install' and args.revision:
+    if isinstall and args.revision:
         get_revision(args.revision, json=args.json)
     elif not (newenv and args.clone):
         common.check_specs(prefix, specs, json=args.json,
@@ -216,7 +204,7 @@ def install(args, parser, command='install'):
 
     if args.use_local:
         from conda.fetch import fetch_index
-        from conda.utils import url_path
+        from conda.common.utils import url_path
         try:
             from conda_build.config import croot
         except ImportError:
@@ -238,6 +226,8 @@ def install(args, parser, command='install'):
                                   json=args.json,
                                   offline=args.offline,
                                   prefix=prefix)
+    r = Resolve(index)
+    plan.add_defaults_to_specs(r, linked, specs, update=isupdate)
 
     if newenv and args.clone:
         if set(args.packages) - set(default_packages):
@@ -252,8 +242,7 @@ def install(args, parser, command='install'):
         return
 
     # Don't update packages that are already up-to-date
-    if command == 'update' and not (args.all or args.force):
-        r = Resolve(index)
+    if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
         for name in orig_packages:
             installed_metadata = [ci.is_linked(prefix, dist)
@@ -321,11 +310,10 @@ environment does not exist: %s
                                   error_type="NoEnvironmentFound")
 
     try:
-        if command == 'install' and args.revision:
+        if isinstall and args.revision:
             actions = plan.revert_actions(prefix, get_revision(args.revision))
         else:
             with common.json_progress_bars(json=args.json and not args.quiet):
-
                 actions = plan.install_actions(prefix, index, specs,
                                                force=args.force,
                                                only_names=only_names,
@@ -342,7 +330,7 @@ environment does not exist: %s
     except NoPackagesFound as e:
         error_message = e.args[0]
 
-        if command == 'update' and args.all:
+        if isupdate and args.all:
             # Packages not found here just means they were installed but
             # cannot be found any more. Just skip them.
             if not args.json:
@@ -458,6 +446,8 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True,
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform, prefix=prefix)
+        linked = ci.linked(prefix)
+        plan.add_defaults_to_specs(Resolve(index), linked, specs)
         actions = plan.install_actions(prefix, index, specs, pinned=False,
                                        minimal_hint=minimal_hint)
         plan.display_actions(actions, index)
