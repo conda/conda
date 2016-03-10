@@ -18,6 +18,8 @@ from conda.cli.activate import pathlist_to_str
 import subprocess
 import tempfile
 
+from tests.helpers import assert_equals, assert_in, assert_not_in
+
 # make pathsep unicode for sake of windows backslash string formatting
 pathsep = u"%s" % pathsep
 
@@ -134,16 +136,6 @@ def run_in(command, shell):
     streams = [u"%s" % translate_stream(stream.strip().decode('utf-8').replace('\r\n', '\n'), output_translator)
                       for stream in (stdout, stderr)]
     return streams
-
-def assert_equals(a, b, output=""):
-    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
-    assert(a.lower() == b.lower(), output)
-
-def assert_not_in(a, b, output=""):
-    assert (a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower()))
-
-def assert_in(a, b, output=""):
-    assert (a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower()))
 
 
 def gen_test_env_paths(envs, shell, num_test_folders=3):
