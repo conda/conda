@@ -671,7 +671,7 @@ class Resolve(object):
     def generate_feature_count(self, C, trackers):
         return {self.feat_to_v(name): 1 for name in iterkeys(trackers)}
 
-    def generate_feature_metric(self, C, groups, specs):
+    def generate_feature_metric(self, C, groups):
         eq = {}
         total = 0
         for name, group in iteritems(groups):
@@ -684,21 +684,21 @@ class Resolve(object):
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
-    def generate_version_metrics(self, C, groups, specs,
-                                 missing=False, start0=True):
+    def generate_package_count(self, C, groups, missing):
+        eq = {}
+        for name in missing:
+            eq.update({fn: 1 for fn in groups.get(name, [])})
+        return eq
+
+    def generate_version_metrics(self, C, groups, specs):
         eqv = {}
         eqb = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             sdict.setdefault(s.name, []).append(s)
-
-        for name, pkgs in iteritems(groups):
-            mss = sdict.get(name, [])
-            bmss = bool(mss)
-            if bmss == missing:
-                continue
-            pkgs = [(self.version_key(p), p) for p in pkgs]
+        for name, mss in iteritems(sdict):
+            pkgs = [(self.version_key(p), p) for p in groups.get(name, [])]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
@@ -714,8 +714,7 @@ class Resolve(object):
             pkey = ppkg = None
             for nkey, npkg in pkgs:
                 if pkey is None:
-                    iv = 0 if start0 else 1
-                    ib = 0
+                    iv = ib = 0
                 elif pkey[0] != nkey[0]:
                     iv += 1
                     ib = 0
@@ -931,26 +930,35 @@ class Resolve(object):
                 specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
                 raise Unsatisfiable(specsol, False)
 
-            specs.extend(new_specs)
+            speco = []  # optional packages
+            specr = []  # requested packages
+            speca = []  # all other packages
+            specm = set(groups)  # missing from specs
+            for k, s in enumerate(chain(specs, new_specs)):
+                if s.name in specm:
+                    specm.remove(s.name)
+                if not s.optional:
+                    (specr if k < len0 else speca).append(s)
+                elif any(self.find_matches_group(s, groups, trackers)):
+                    speco.append(s)
+                    speca.append(s)
+            speca.extend(MatchSpec(s) for s in specm)
 
-            # Optional packages: maximize count, then versions, then builds
-            speco = [s for s in specs if s.optional and
-                     any(self.find_matches_group(s, groups, trackers))]
-            eq_optional_count = self.generate_removal_count(C, speco)
-            solution, obj7 = C.minimize(eq_optional_count, solution)
+            # Removed packages: minimize count
+            eq_optional_c = self.generate_removal_count(C, speco)
+            solution, obj7 = C.minimize(eq_optional_c, solution)
             dotlog.debug('Package removal metric: %d' % obj7)
 
             nz = len(C.clauses)
             nv = C.m
 
             # Requested packages: maximize versions, then builds
-            eq_requested_versions, eq_requested_builds = self.generate_version_metrics(
-                C, groups, (s for s in specs[:len0] if not s.optional))
-            solution, obj3 = C.minimize(eq_requested_versions, solution)
-            solution, obj4 = C.minimize(eq_requested_builds, solution)
+            eq_req_v, eq_req_b = self.generate_version_metrics(C, groups, specr)
+            solution, obj3 = C.minimize(eq_req_v, solution)
+            solution, obj4 = C.minimize(eq_req_b, solution)
             dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
 
-            # Minimize the number of installed track_features, maximize featured package count
+            # Track features: minimize count
             eq_feature_count = self.generate_feature_count(C, trackers)
             solution, obj1 = C.minimize(eq_feature_count, solution)
             dotlog.debug('Track feature count: %d' % obj1)
@@ -960,36 +968,28 @@ class Resolve(object):
             C.m = nv
             C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
             solution = C.sat()
-            eq_feature_metric, ftotal = self.generate_feature_metric(C, groups, specs)
+
+            # Featured packages: maximize count
+            eq_feature_metric, ftotal = self.generate_feature_metric(C, groups)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             obj2 = ftotal - obj2
             dotlog.debug('Package feature count: %d' % obj2)
 
             # Re-optimize requested packages: maximize versions, then builds
-            solution, obj3 = C.minimize(eq_requested_versions, solution)
-            solution, obj4 = C.minimize(eq_requested_builds, solution)
+            solution, obj3 = C.minimize(eq_req_v, solution)
+            solution, obj4 = C.minimize(eq_req_b, solution)
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
-            # Required packages: maximize versions, then builds
-            eq_required_versions, eq_required_builds = self.generate_version_metrics(
-                C, groups, (s for s in specs[len0:] if not s.optional))
-            solution, obj5 = C.minimize(eq_required_versions, solution)
-            solution, obj6 = C.minimize(eq_required_builds, solution)
-            dotlog.debug('Required package version/build metrics: %d/%d' % (obj5, obj6))
+            # Remaining packages: maximize versions, then builds, then count
+            eq_v, eq_b = self.generate_version_metrics(C, groups, speca)
+            solution, obj5 = C.minimize(eq_v, solution)
+            solution, obj6 = C.minimize(eq_b, solution)
+            dotlog.debug('Additional package version/build metrics: %d/%d' % (obj5, obj6))
 
-            # Optional packages: maximize count, then versions, then builds
-            eq_optional_versions, eq_optional_builds = self.generate_version_metrics(
-                C, groups, speco)
-            solution, obj8 = C.minimize(eq_optional_versions, solution)
-            solution, obj9 = C.minimize(eq_optional_builds, solution)
-            dotlog.debug('Optional package version/build metrics: %d/%d' % (obj8, obj9))
-
-            # All other packages: maximize versions (favoring none), then builds
-            eq_remaining_versions, eq_remaining_builds = self.generate_version_metrics(
-                C, groups, specs, missing=True, start0=False)
-            solution, obj10 = C.minimize(eq_remaining_versions, solution)
-            solution, obj11 = C.minimize(eq_remaining_builds, solution)
-            dotlog.debug('Additional package version/build metrics: %d/%d' % (obj10, obj11))
+            # Prune unnecessary packages
+            eq_c = self.generate_package_count(C, groups, specm)
+            solution, obj7 = C.minimize(eq_c, solution, trymax=True)
+            dotlog.debug('Weak dependency count: %d' % obj7)
 
             def clean(sol):
                 return [q for q in (C.from_index(s) for s in sol)
@@ -1022,8 +1022,13 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
+            def stripfeat(sol):
+                return sol.split('[')[0]
             stdoutlog.info('\n')
-            return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
+            if returnall:
+                return [sorted(map(stripfeat, psol)) for psol in psolutions]
+            else:
+                return sorted(map(stripfeat, psolutions[0]))
         except:
             stdoutlog.info('\n')
             raise
