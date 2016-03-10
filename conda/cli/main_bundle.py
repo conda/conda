@@ -54,8 +54,7 @@ def execute(args, parser):
     import json
 
     import conda.bundle as bundle
-    from conda.fetch import TmpDownload
-
+    from conda.common.download import TmpDownload
 
     if not (args.create or args.extract or args.metadump):
         sys.exit("""Error:

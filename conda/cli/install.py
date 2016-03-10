@@ -6,25 +6,25 @@
 
 from __future__ import print_function, division, absolute_import
 
+import errno
+import logging
 import os
-import sys
 import shutil
+import sys
 import tarfile
 import tempfile
-from os.path import isdir, join, basename, exists, abspath
 from difflib import get_close_matches
-import logging
-import errno
+from os.path import isdir, join, basename, exists, abspath
 
 import conda.config as config
-import conda.plan as plan
+import conda.install as ci
 import conda.instructions as inst
 import conda.misc as misc
+import conda.plan as plan
 from conda.api import get_index
 from conda.cli import common
 from conda.cli.find_commands import find_executable
 from conda.resolve import NoPackagesFound, Unsatisfiable, Resolve
-import conda.install as ci
 
 log = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ def install(args, parser, command='install'):
 
     if args.use_local:
         from conda.fetch import fetch_index
-        from conda.utils import url_path
+        from conda.common.utils import url_path
         try:
             from conda_build.config import croot
         except ImportError:
