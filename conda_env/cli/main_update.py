@@ -47,6 +47,12 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
     p.add_argument(
+        '--prune',
+        action='store_true',
+        default=False,
+        help='remove installed packages not defined in environment.yml',
+    )
+    p.add_argument(
         '-q', '--quiet',
         action='store_true',
         default=False,
@@ -109,7 +115,7 @@ def execute(args, parser):
     for installer_type, specs in env.dependencies.items():
         try:
             installer = get_installer(installer_type)
-            installer.install(prefix, specs, args, env)
+            installer.install(prefix, specs, args, env, prune=args.prune)
         except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
