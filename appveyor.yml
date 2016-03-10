@@ -44,20 +44,21 @@ install:
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
   - python -c "import sys; print(sys.prefix)"
-  - conda install python=%PYTHON_VERSION%
-  - conda install -c conda pytest requests mock pycrypto pyflakes pycosat
-  - conda install pip
-  - pip install auxlib flake8 pytest-cov
+  - conda install -q python=%PYTHON_VERSION%
+  - conda install -q -c conda pytest requests mock pycrypto pyflakes pycosat
+  - conda install -q pip
+  - conda install -q git psutil
+  - pip install auxlib flake8 pytest-cov ruamel.yaml
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
-  - python setup.py install
+  - python setup.py install --old-and-unmanageable
 
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
 
 test_script:
-  - py.test --cov conda --cov-report xml tests
+  - py.test --cov conda --cov-report xml tests --shell=cmd.exe --shell=bash
 
 on_success:
   - pip install codecov

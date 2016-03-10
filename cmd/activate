@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# Determine the directory containing this script
+if [[ -n $BASH_VERSION ]]; then
+    _SCRIPT_LOCATION=${BASH_SOURCE[0]}
+elif [[ -n $ZSH_VERSION ]]; then
+    _SCRIPT_LOCATION=${funcstack[1]}
+else
+    echo "Only bash and zsh are supported"
+    return 1
+fi
+
+if [ $# -gt 1 ]; then
+    echo "Error: did not expect more than one argument."
+    return 1
+fi
+
+win_bash() {
+    case "$(uname -s)" in
+        CYGWIN*|MINGW*|MSYS*)
+            echo true
+            ;;
+        *)
+            echo false
+            ;;
+    esac
+}
+
+if [ $(win_bash) = true ]; then
+    _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")/../Scripts
+else
+    _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")/../bin
+fi
+
+# export these so that Python subprocesses can see them (they may be shell-local)
+export PS1=$PS1
+export PROMPT=$PROMPT
+
+# Ensure that this script is sourced, not executed
+# Also note that errors are ignored as `activate foo` doesn't generate a bad
+# value for $0 which would cause errors.
+if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "activate" ]]; then
+    >&2 echo "Error: activate must be sourced. Run 'source activate envname'
+instead of 'activate envname'.
+"
+    "$_CONDA_DIR/conda" ..activate -h
+    return 1
+fi
+
+# Load common functions
+get_dirname() {
+    echo "$(cd "$(dirname "$1")" && pwd)"
+}
+
+run_scripts() {
+    _PREFIX="$(echo $(echo $PATH | awk -F ':' '{print $1}')/..)"
+    _CONDA_D="${_PREFIX}/etc/conda/$1.d"
+    if [[ -d $_CONDA_D ]]; then
+        for f in $(find $_CONDA_D -name "*.sh"); do source $f; done
+    fi
+}
+
+# http://stackoverflow.com/a/21188136/161801
+get_abs_filename() {
+    echo "$(get_dirname "$1")/$(basename "$1")"
+}
+
+if "$_CONDA_DIR/conda" ..checkenv "$@"; then
+    # Ensure we deactivate any scripts from the old env
+    run_scripts "deactivate"
+
+    if [[ -n $CONDA_PATH_BACKUP ]]; then
+        export PATH="$CONDA_PATH_BACKUP"
+        unset CONDA_PATH_BACKUP
+    fi
+    if [[ -n $CONDA_OLD_PS1 ]]; then
+        export PS1="$CONDA_OLD_PS1"
+        unset CONDA_OLD_PS1
+    fi
+else
+    return 1
+fi
+
+_NEW_PATH=$("$_CONDA_DIR/conda" ..activate "$@")
+if (( $? == 0 )); then
+    if [ -z "$CONDA_PATH_BACKUP" ]; then
+        export CONDA_PATH_BACKUP="$PATH"
+    fi
+    if [ -z "$CONDA_OLD_PS1" ]; then
+        export CONDA_OLD_PS1="$PS1"
+    fi
+
+    export PATH="$_NEW_PATH"
+    # extract first PATH entry (should be full path prefix of our env)
+    export CONDA_DEFAULT_ENV=${PATH%%:*}
+
+    # Get first path and convert it to absolute
+    ENV_BIN_DIR="$(echo $(echo $PATH | awk -F ':' '{print $1}'))"
+    export CONDA_ENV_PATH="$(get_dirname "$ENV_BIN_DIR")"
+
+    export PS1=$("$_CONDA_DIR/conda" ..setps1 "$@" "$PS1")
+else
+    return $?
+fi
+
+# Load any of the scripts found $PREFIX/etc/conda/activate.d AFTER activation
+run_scripts "activate"
+
+if [[ -n $BASH_VERSION ]]; then
+    hash -r
+elif [[ -n $ZSH_VERSION ]]; then
+    rehash
+else
+    echo "Only bash and zsh are supported"
+    return 1
+fi

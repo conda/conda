@@ -28,6 +28,7 @@ the standard library).
 from __future__ import print_function, division, absolute_import
 
 import errno
+import functools
 import json
 import logging
 import os
@@ -39,7 +40,7 @@ import sys
 import tarfile
 import time
 import traceback
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath, normpath
 
 try:
     from conda.common.lock import Locked
@@ -56,7 +57,21 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-on_win = bool(sys.platform == 'win32')
+try:
+    from conda.common.utils import win_path_to_unix
+except ImportError:
+    def win_path_to_unix(path, root_prefix=""):
+        """Convert a path or ;-separated string of paths into a unix representation
+
+        Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+        """
+        path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
+        converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
+                        for _path in re.findall(path_re, path)]
+        return ":".join(converted_paths)
+
+
+on_win = sys.platform == "win32"
 
 if on_win:
     import ctypes
@@ -85,6 +100,47 @@ if on_win:
             raise OSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise OSError('win32 soft link failed')
+
+    def win_conda_bat_redirect(src, dst, shell):
+        """Special function for Windows XP where the `CreateSymbolicLink`
+        function is not available.
+
+        Simply creates a `.bat` file at `dst` which calls `src` together with
+        all command line arguments.
+
+        Works of course only with callable files, e.g. `.bat` or `.exe` files.
+        """
+        try:
+            os.makedirs(os.path.dirname(dst))
+        except OSError as exc:  # Python >2.5
+            if exc.errno == errno.EEXIST and os.path.isdir(os.path.dirname(dst)):
+                pass
+            else:
+                raise
+
+        if 'cmd.exe' in shell.lower():
+            # bat file redirect
+            with open(dst+'.bat', 'w') as f:
+                f.write('@echo off\n"%s" %%*\n' % src)
+
+        elif 'powershell' in shell.lower():
+            # TODO: probably need one here for powershell at some point
+            pass
+
+        else:
+            # This one is for bash/cygwin/msys
+            if src.endswith("conda"):
+                src = src + ".exe"
+
+            path_prefix = ""
+            if 'cygwin' in shell.lower():
+                path_prefix = '/cygdrive'
+
+            src = win_path_to_unix(src, path_prefix)
+            dst = win_path_to_unix(dst, path_prefix)
+
+            p = subprocess.check_call(["bash", "-l", "-c", 'ln -sf "{src}" "{dst}"'.format(
+                src=src, dst=dst)])
 
 
 log = logging.getLogger(__name__)
@@ -339,6 +395,13 @@ def mk_menus(prefix, files, remove=False):
         logging.warn(traceback.format_exc())
         return
 
+    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
+                basename(prefix))
+    # only windows is provided right now.  Add "source activate" if on Unix platforms
+    env_setup_cmd = "activate"
+    if env_name:
+        env_setup_cmd = env_setup_cmd + " %s" % env_name
+
     for f in menu_files:
         try:
             menuinst.install(join(prefix, f), remove, prefix)
@@ -412,21 +475,40 @@ def read_no_link(info_dir):
     return res
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir):
-    root_conda = join(root_dir, 'bin', 'conda')
-    root_activate = join(root_dir, 'bin', 'activate')
-    root_deactivate = join(root_dir, 'bin', 'deactivate')
-    prefix_conda = join(prefix, 'bin', 'conda')
-    prefix_activate = join(prefix, 'bin', 'activate')
-    prefix_deactivate = join(prefix, 'bin', 'deactivate')
-    if not os.path.lexists(join(prefix, 'bin')):
-        os.makedirs(join(prefix, 'bin'))
-    if not os.path.lexists(prefix_conda):
-        os.symlink(root_conda, prefix_conda)
-    if not os.path.lexists(prefix_activate):
-        os.symlink(root_activate, prefix_activate)
-    if not os.path.lexists(prefix_deactivate):
-        os.symlink(root_deactivate, prefix_deactivate)
+
+def symlink_conda(prefix, root_dir, shell):
+    # do not symlink root env - this clobbers activate incorrectly.
+    if normpath(prefix) == normpath(sys.prefix):
+        return
+    if on_win:
+        where = 'Scripts'
+        symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
+    else:
+        where = 'bin'
+        symlink_fn = os.symlink
+    if not isdir(join(prefix, where)):
+        os.makedirs(join(prefix, where))
+    symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
+
+
+def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
+    scripts = {where: ["conda"],
+               'cmd': ["activate", "deactivate"],
+               }
+    for where, files in scripts.items():
+        prefix_where = join(prefix, where)
+        if not isdir(prefix_where):
+            os.makedirs(prefix_where)
+        for f in files:
+            root_file = join(root_dir, where, f)
+            prefix_file = join(prefix_where, f)
+            # try to kill stale links if they exist
+            if os.path.lexists(prefix_file):
+                os.remove(prefix_file)
+            # if they're in use, they won't be killed.  Skip making new symlink.
+            if not os.path.lexists(prefix_file):
+                symlink_fn(root_file, prefix_file)
+
 
 # ========================== begin API functions =========================
 
@@ -713,17 +795,10 @@ def unlink(prefix, dist):
         for f in meta['files']:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
-            try:
+            if on_win and os.path.exists(join(prefix, f)):
+                move_path_to_trash(dst)
+            else:
                 os.unlink(dst)
-            except OSError:  # file might not exist
-                log.debug("could not remove file: '%s'" % dst)
-                if on_win and os.path.exists(join(prefix, f)):
-                    try:
-                        log.debug("moving to trash")
-                        move_path_to_trash(dst)
-                    except ImportError:
-                        # This shouldn't be an issue in the installer anyway
-                        pass
 
         # remove the meta-file last
         os.unlink(meta_path)
