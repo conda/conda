@@ -663,7 +663,7 @@ class Resolve(object):
     def generate_feature_count(self, C, trackers):
         return {self.feat_to_v(name): 1 for name in iterkeys(trackers)}
 
-    def generate_feature_metric(self, C, groups, specs):
+    def generate_feature_metric(self, C, groups):
         eq = {}
         total = 0
         for name, group in iteritems(groups):
@@ -676,10 +676,15 @@ class Resolve(object):
     def generate_removal_count(self, C, specs):
         return {'!'+self.ms_to_v(ms): 1 for ms in specs}
 
-    def generate_version_metrics(self, C, groups, specs, missing=None):
+    def generate_package_count(self, C, groups, missing):
+        eq = {}
+        for name in missing:
+            eq.update({fn: 1 for fn in groups.get(name, [])})
+        return eq
+
+    def generate_version_metrics(self, C, groups, specs):
         eqv = {}
         eqb = {}
-        eqc = {}
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
@@ -699,7 +704,6 @@ class Resolve(object):
             else:
                 pkgs = sorted(pkgs, reverse=True)
             pkey = ppkg = None
-            ismissing = missing and name in missing
             for nkey, npkg in pkgs:
                 if pkey is None:
                     iv = ib = 0
@@ -712,10 +716,8 @@ class Resolve(object):
                     eqv[npkg] = iv
                 if ib:
                     eqb[npkg] = ib
-                if ismissing:
-                    eqc[npkg] = 1
                 pkey, ppkg = nkey, npkg
-        return eqv, eqb, eqc
+        return eqv, eqb
 
     def dependency_sort(self, must_have):
         def lookup(value):
@@ -920,23 +922,21 @@ class Resolve(object):
                 specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
                 raise Unsatisfiable(specsol, False)
 
-            speco = []
-            specr = []
-            speca = []
-            specm = set(groups)
-            for k, s in enumerate(specs):
-                if s in specm:
+            speco = []  # optional packages
+            specr = []  # requested packages
+            speca = []  # all other packages
+            specm = set(groups)  # missing from specs
+            for k, s in enumerate(chain(specs, new_specs)):
+                if s.name in specm:
                     specm.remove(s.name)
-                if k < len0 and not s.optional:
-                    specr.append(s)
-                elif not s.optional:
-                    speca.append(s)
+                if not s.optional:
+                    (specr if k < len0 else speca).append(s)
                 elif any(self.find_matches_group(s, groups, trackers)):
                     speco.append(s)
                     speca.append(s)
             speca.extend(MatchSpec(s) for s in specm)
 
-            # Optional packages: maximize count, then versions, then builds
+            # Removed packages: minimize count
             eq_optional_c = self.generate_removal_count(C, speco)
             solution, obj7 = C.minimize(eq_optional_c, solution)
             dotlog.debug('Package removal metric: %d' % obj7)
@@ -945,12 +945,12 @@ class Resolve(object):
             nv = C.m
 
             # Requested packages: maximize versions, then builds
-            eq_req_v, eq_req_b, _ = self.generate_version_metrics(C, groups, specr)
+            eq_req_v, eq_req_b = self.generate_version_metrics(C, groups, specr)
             solution, obj3 = C.minimize(eq_req_v, solution)
             solution, obj4 = C.minimize(eq_req_b, solution)
             dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
 
-            # Minimize the number of installed track_features, maximize featured package count
+            # Track features: minimize count
             eq_feature_count = self.generate_feature_count(C, trackers)
             solution, obj1 = C.minimize(eq_feature_count, solution)
             dotlog.debug('Track feature count: %d' % obj1)
@@ -960,7 +960,9 @@ class Resolve(object):
             C.m = nv
             C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
             solution = C.sat()
-            eq_feature_metric, ftotal = self.generate_feature_metric(C, groups, specs)
+
+            # Featured packages: maximize count
+            eq_feature_metric, ftotal = self.generate_feature_metric(C, groups)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             obj2 = ftotal - obj2
             dotlog.debug('Package feature count: %d' % obj2)
@@ -971,12 +973,15 @@ class Resolve(object):
             dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
             # Remaining packages: maximize versions, then builds, then count
-            eq_v, eq_b, eq_c = self.generate_version_metrics(C, groups, speca, specm)
+            eq_v, eq_b = self.generate_version_metrics(C, groups, speca)
             solution, obj5 = C.minimize(eq_v, solution)
             solution, obj6 = C.minimize(eq_b, solution)
+            dotlog.debug('Additional package version/build metrics: %d/%d' % (obj5, obj6))
+
+            # Prune unnecessary packages
+            eq_c = self.generate_package_count(C, groups, specm)
             solution, obj7 = C.minimize(eq_c, solution, trymax=True)
-            dotlog.debug('Additional package version/build/count: %d/%d/%d'
-                         % (obj5, obj6, obj7))
+            dotlog.debug('Weak dependency count: %d' % obj7)
 
             def clean(sol):
                 return [q for q in (C.from_index(s) for s in sol)
