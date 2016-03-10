@@ -2,14 +2,16 @@
 from __future__ import print_function, absolute_import
 
 import os
-import sys
-from os.path import dirname, join, pathsep
+import shutil
 import shlex
 import stat
+import subprocess
+import sys
+from os.path import dirname, join, pathsep
 
 import pytest
 
-from conda.compat import TemporaryDirectory
+from conda.common.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
 from conda.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin,
