@@ -211,7 +211,6 @@ class TestFindSubstitute(unittest.TestCase):
             self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
 
 
-@pytest.mark.slow
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
