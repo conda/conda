@@ -7,7 +7,11 @@ import collections
 from functools import partial
 from os.path import abspath, isdir
 import os
+import re
+import shlex
 import tempfile
+
+import psutil
 
 
 log = logging.getLogger(__name__)
@@ -75,6 +79,43 @@ def url_path(path):
     return 'file://%s' % path
 
 
+def win_path_to_unix(path, root_prefix=""):
+    """Convert a path or ;-separated string of paths into a unix representation
+
+    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+    """
+    path_re = '(?<![:/])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
+    translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
+        .replace(":", "").replace(";", ":")
+    return re.sub(path_re, translation, path)
+
+
+def unix_path_to_win(path, root_prefix=""):
+    """Convert a path or :-separated string of paths into a Windows representation
+
+    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+    """
+    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
+        # already a windows path
+        return path.replace("/", "\\")
+    """Convert a path or :-separated string of paths into a Windows representation"""
+    path_re = root_prefix +'(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+    translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
+                  found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
+    translation = re.sub(path_re, translation, path)
+    translation = re.sub(":([a-zA-Z]):", lambda match: ";" + match.group(0)[1] + ":", translation)
+    return translation
+
+
+# curry cygwin functions
+win_path_to_cygwin = lambda path : win_path_to_unix(path, "/cygdrive")
+cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
+
+
+def translate_stream(stream, translator):
+    return "\n".join([translator(line) for line in stream.split("\n")])
+
+
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
@@ -140,3 +181,13 @@ class memoize(object): # 577452
         except KeyError:
             res = cache[key] = self.func(*args, **kw)
         return res
+
+
+def find_parent_shell(path=False):
+    """return process name or path of parent.  Default is to return only name of process."""
+    process = psutil.Process()
+    while "conda" in process.parent().name():
+        process = process.parent()
+    if path:
+        return process.parent().exe()
+    return process.parent().name()

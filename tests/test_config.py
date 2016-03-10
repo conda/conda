@@ -15,7 +15,6 @@ import conda.config as config
 
 from tests.helpers import run_conda_command
 
-
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
 
@@ -24,7 +23,8 @@ def _get_default_urls():
             'http://repo.continuum.io/pkgs/pro']
 config.get_default_urls = _get_default_urls
 
-# unset CIO_TEST
+# unset CIO_TEST.  This is a Continuum-internal variable that draws packages from an internal server instead of
+#     repo.continuum.io
 try:
     del os.environ['CIO_TEST']
 except KeyError:
@@ -143,7 +143,7 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
         'channels', 'test')
         assert stdout == ''
-        assert stderr == "Skipping channels: test, item already exists\n"
+        assert stderr == "Skipping channels: test, item already exists"
         assert _read_test_condarc() == """\
 channels:
   - test
@@ -200,16 +200,16 @@ channel_alias: http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
 --add create_default_packages 'numpy'
---add create_default_packages 'ipython'
+--add create_default_packages 'ipython'\
 """
-        assert stderr == "unknown key invalid_key\n"
+        assert stderr == "unknown key invalid_key"
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
         '--get', 'channels')
 
         assert stdout == """\
 --add channels 'defaults'
---add channels 'test'
+--add channels 'test'\
 """
         assert stderr == ""
 
@@ -217,7 +217,7 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'changeps1')
 
         assert stdout == """\
---set changeps1 no
+--set changeps1 no\
 """
         assert stderr == ""
 
@@ -227,7 +227,7 @@ channel_alias: http://alpha.conda.anaconda.org
         assert stdout == """\
 --set changeps1 no
 --add channels 'defaults'
---add channels 'test'
+--add channels 'test'\
 """
         assert stderr == ""
 
@@ -285,29 +285,27 @@ create_default_packages :
 changeps1: false
 
 # Here is a comment
-always_yes: true
+always_yes: yes
 """
         # First verify that this itself is valid YAML
         assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
             'create_default_packages': ['ipython', 'numpy'], 'changeps1':
-            False, 'always_yes': True}
+            False, 'always_yes': 'yes'}
 
         with open(test_condarc, 'w') as f:
             f.write(condarc)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
 
-        '''
         assert stdout == """\
---set always_yes True
+--set always_yes yes
 --set changeps1 False
 --add channels 'defaults'
 --add channels 'test'
 --add create_default_packages 'numpy'
---add create_default_packages 'ipython'
+--add create_default_packages 'ipython'\
 """
-        assert stderr == ''
-'''
+
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
             'channels', 'mychannel')
         assert stdout == stderr == ''
@@ -325,7 +323,7 @@ create_default_packages:
 changeps1: false
 
 # Here is a comment
-always_yes: true
+always_yes: 'yes'
 """
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -346,7 +344,7 @@ create_default_packages:
 changeps1: true
 
 # Here is a comment
-always_yes: true
+always_yes: 'yes'
 """
 
         os.unlink(test_condarc)
@@ -400,12 +398,12 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove', 'channels', 'test', '--force')
         assert stdout == ''
-        assert stderr == "Error: 'test' is not in the 'channels' key of the config file\n"
+        assert stderr == "Error: 'test' is not in the 'channels' key of the config file"
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
-        assert stderr == "Error: key 'disallow' is not in the config file\n"
+        assert stderr == "Error: key 'disallow' is not in the config file"
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
@@ -416,7 +414,7 @@ def test_config_command_remove_force():
             '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
-        assert stderr == "Error: key 'always_yes' is not in the config file\n"
+        assert stderr == "Error: key 'always_yes' is not in the config file"
         os.unlink(test_condarc)
 
     finally:
@@ -467,8 +465,7 @@ channels:
         assert stderr == """\
 Error: Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: key 'channels' should be a list, not NoneType.
-"""
+.condarc file). Reason: key 'channels' should be a list, not NoneType."""
         assert _read_test_condarc() == condarc
 
         os.unlink(test_condarc)
@@ -488,7 +485,7 @@ def test_config_set():
                                            '--set', 'always_yes', 'yep')
 
         assert stdout == ''
-        assert stderr == 'Error: Key: always_yes; yep is not a YAML boolean.\n'
+        assert stderr == 'Error: Key: always_yes; yep is not a YAML boolean.'
 
     finally:
         try:
