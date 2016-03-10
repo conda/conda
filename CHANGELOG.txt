@@ -1,3 +1,8 @@
+2016-03-10   4.0.4:
+-------------------
+  * revert #2217 closing request sessions, #2233
+
+
 2016-03-10   4.0.3:
 -------------------
   * adds a `conda clean --all` feature, #2211
