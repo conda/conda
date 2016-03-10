@@ -113,3 +113,16 @@ def capture_json_with_argv(*argv):
     except ValueError:
         print(str(stdout), str(stderr))
         raise
+
+
+def assert_equals(a, b, output=""):
+    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
+    assert(a.lower() == b.lower(), output)
+
+
+def assert_not_in(a, b, output=""):
+    assert (a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower()))
+
+
+def assert_in(a, b, output=""):
+    assert (a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower()))

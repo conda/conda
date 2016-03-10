@@ -15,7 +15,6 @@ import conda.config as config
 
 from tests.helpers import run_conda_command
 
-
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
 
@@ -218,7 +217,7 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'changeps1')
 
         assert stdout == """\
---set changeps1 no
+--set changeps1 no\
 """
         assert stderr == ""
 
@@ -286,12 +285,12 @@ create_default_packages :
 changeps1: false
 
 # Here is a comment
- always_yes: yes
+always_yes: yes
 """
         # First verify that this itself is valid YAML
         assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
             'create_default_packages': ['ipython', 'numpy'], 'changeps1':
-            False, 'always_yes': True}
+            False, 'always_yes': 'yes'}
 
         with open(test_condarc, 'w') as f:
             f.write(condarc)
@@ -299,7 +298,7 @@ changeps1: false
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
 
         assert stdout == """\
---set always_yes True
+--set always_yes yes
 --set changeps1 False
 --add channels 'defaults'
 --add channels 'test'
@@ -312,10 +311,10 @@ changeps1: false
         assert stdout == stderr == ''
 
         assert _read_test_condarc() == """\
- channels :
-   - mychannel
-   -  test
-   -  defaults
+channels:
+  - mychannel
+  - test
+  - defaults
 
 create_default_packages:
   - ipython
@@ -324,7 +323,7 @@ create_default_packages:
 changeps1: false
 
 # Here is a comment
- always_yes: yes
+always_yes: 'yes'
 """
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -333,10 +332,10 @@ changeps1: false
         assert stdout == stderr == ''
 
         assert _read_test_condarc() == """\
- channels:
-   - mychannel
-   - test
-   - defaults
+channels:
+  - mychannel
+  - test
+  - defaults
 
 create_default_packages:
   - ipython
@@ -345,7 +344,7 @@ create_default_packages:
 changeps1: true
 
 # Here is a comment
-always_yes: true
+always_yes: 'yes'
 """
 
         os.unlink(test_condarc)
