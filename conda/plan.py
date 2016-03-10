@@ -394,7 +394,7 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 def install_actions(prefix, index, specs, force=False, only_names=None,
-                    pinned=True, minimal_hint=False, update_deps=True):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
     r = Resolve(index)
     linked = install.linked(prefix)
 
@@ -444,7 +444,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
     for dist in sorted(linked):
         name = install.name_dist(dist)
-        if name in must_have and dist != must_have[name]:
+        replace_existing = name in must_have and dist != must_have[name]
+        prune_it = prune and dist not in smh
+        if replace_existing or prune_it:
             add_unlink(actions, dist)
 
     return actions
