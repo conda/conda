@@ -441,7 +441,7 @@ Identifying information about the package. Displays in Anaconda.org channel.
 License file
 ~~~~~~~~~~~~
 
-A file containing the software license can be added to the package metadata.  Please note that many licenses require the license statement to be distributed with the package.  As a convenience, a value of True will use the first file found by looking in the source root directory for LICENSE, LICENSE.txt, license, or license.txt, in that order.  A value of False (the default) indicates no license file will be included in the package metadata.  The filename is relative to the source directory.
+A file containing the software license can be added to the package metadata.  Please note that many licenses require the license statement to be distributed with the package.  The filename is relative to the source directory.
 
 .. code-block:: yaml
 
