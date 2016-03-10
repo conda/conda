@@ -1014,8 +1014,13 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
+            def stripfeat(sol):
+                return sol.split('[')[0]
             stdoutlog.info('\n')
-            return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
+            if returnall:
+                return [sorted(map(stripfeat, psol)) for psol in psolutions]
+            else:
+                return sorted(map(stripfeat, psolutions[0]))
         except:
             stdoutlog.info('\n')
             raise
