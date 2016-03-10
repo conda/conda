@@ -299,8 +299,11 @@ class VersionSpec(object):
                 s = '(%s)'%s
         return s
 
+    def __str__(self):
+        return self.str()
+
     def __repr__(self):
-        return 'VersionSpec(%s)'%(self.str())
+        return "VersionSpec('%s')" % self.str()
 
     def __and__(self, other):
         if not isinstance(other, VersionSpec):
