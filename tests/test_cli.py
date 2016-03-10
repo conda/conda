@@ -141,7 +141,7 @@ class TestJson(unittest.TestCase):
                 'envs_dirs', 'is_foreign', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
         for key in keys:
-            assert_in(key, res)
+            assert key in res
 
         res = capture_json_with_argv('conda', 'info', 'conda', '--json')
         self.assertIsInstance(res, dict)
