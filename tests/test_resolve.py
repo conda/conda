@@ -251,7 +251,7 @@ def test_generate_eq():
     dists, specs = r.get_dists(specs)
     groups, trackers = build_groups(dists)
     C = r.gen_clauses(groups, trackers, specs)
-    eqv, eqb = r.generate_version_metrics(C, groups, specs)
+    eqv, eqb, _ = r.generate_version_metrics(C, groups, specs)
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
