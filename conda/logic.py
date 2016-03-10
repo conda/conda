@@ -443,7 +443,7 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def minimize(self, objective, bestsol):
+    def minimize(self, objective, bestsol, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
         tuple pairs, or a dictionary of varname: coeff values. The actual
@@ -487,6 +487,8 @@ class Clauses(object):
             hi = bestval
             m_orig = self.m
             nz = len(self.clauses)
+            if trymax and not peak:
+                try0 = hi - 1
 
             log.debug("Initial range (%d,%d)" % (lo, hi))
             while True:
