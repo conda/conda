@@ -986,11 +986,11 @@ class Resolve(object):
             def clean(sol):
                 return [q for q in (C.from_index(s) for s in sol)
                         if q and q[0] != '!' and '@' not in q]
+
             dotlog.debug('Looking for alternate solutions')
             nsol = 1
-            psolutions = []
             psolution = clean(solution)
-            psolutions.append(psolution)
+            psolutions = [psolution]
             while True:
                 nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
                 solution = C.sat((nclause,), True)
@@ -1014,8 +1014,13 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
+            def stripfeat(sol):
+                return sol.split('[')[0]
             stdoutlog.info('\n')
-            return list(map(sorted, psolutions)) if returnall else sorted(psolutions[0])
+            if returnall:
+                return [sorted(map(stripfeat, psol)) for psol in psolutions]
+            else:
+                return sorted(map(stripfeat, psolutions[0]))
         except:
             stdoutlog.info('\n')
             raise
