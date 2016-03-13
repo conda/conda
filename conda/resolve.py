@@ -818,7 +818,7 @@ class Resolve(object):
         constraints = self.generate_spec_constraints(C, specs)
         try:
             solution = C.sat(constraints)
-        except:
+        except TypeError:
             log.debug('Package set caused an unexpected error, assuming a conflict')
             solution = None
         limit = None
