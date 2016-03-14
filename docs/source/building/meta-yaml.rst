@@ -533,8 +533,12 @@ variables are defined. Unless otherwise stated, the variables are booleans.
      - True if the platform is Linux and the Python architecture is 32-bit
    * - ``linux64``
      - True if the platform is Linux and the Python architecture is 64-bit
-   * - ``armv6``
+   * - ``armv6l``
      - True if the platform is Linux and the Python architecture is armv6l
+   * - ``armv7l``
+     - True if the platform is Linux and the Python architecture is armv7l
+   * - ``ppc64le``
+     - True if the platform is Linux and the Python architecture is ppc64le
    * - ``osx``
      - True if the platform is OS X
    * - ``unix``
