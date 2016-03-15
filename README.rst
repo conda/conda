@@ -79,7 +79,7 @@ in your local package cache.
 You can explicitly provide an environment spec file using ``-f`` or ``--file``
 and the name of the file you would like to use.
 
-Envronment file example
+Environment file example
 -----------------------
 
 .. code-block:: yaml
