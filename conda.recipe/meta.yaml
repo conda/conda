@@ -9,9 +9,12 @@ build:
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
   always_include_files:
-    - bin/conda  [unix]
-    - bin/activate [unix]
-    - bin/deactivate [unix]
+    - bin/conda             [unix]
+    - cmd/activate          [unix]
+    - cmd/activate.bat      [win]
+    - cmd/deactivate        [unix]
+    - cmd/deactivate.bat    [win]
+
   entry_points:
     - conda = conda.cli:main
 
