@@ -2,10 +2,15 @@
 For compatibility between Python versions.
 Taken mostly from six.py by Benjamin Peterson.
 """
-
 import sys
 import types
 import os
+
+__all__ = ['PY3', 'string_types', 'integer_types', 'class_types',
+           'text_type', 'binary_type', 'input', 'lchmod', 'configparser',
+           'StringIO', 'urlparse', 'urllib_quote', 'zip_longest', 'log2',
+           'ceil', 'quote', 'TemporaryDirectory', 'range', 'zip', 'iterkeys',
+           'itervalues', 'iteritems', 'get_http_value', 'with_metaclass']
 
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3

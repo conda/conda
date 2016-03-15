@@ -8,14 +8,21 @@ from functools import partial
 from os.path import abspath, isdir
 import os
 import re
-import shlex
 import tempfile
+import warnings
 
 import psutil
 
+__all__ = ['can_open', 'can_open_all', 'can_open_all_files_in_prefix',
+           'try_write', 'hashsum_file', 'md5_file', 'url_path',
+           'win_path_to_unix', 'unix_path_to_win', 'win_path_to_cygwin',
+           'cygwin_path_to_win', 'translate_stream', 'human_bytes',
+           'memoized, memoize', 'find_parent_shell', 'deprecated',
+           'deprecated_import', 'import_and_wrap_deprecated']
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
+
 
 def can_open(file):
     """
@@ -191,3 +198,37 @@ def find_parent_shell(path=False):
     if path:
         return process.parent().exe()
     return process.parent().name()
+
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emmitted
+    when the function is used."""
+    if callable(func):
+        def new_func(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+            warnings.warn("Call to deprecated {0}.".format(func.__name__),
+                          category=DeprecationWarning,
+                          stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)  # reset filter
+            return func(*args, **kwargs)
+        new_func.__name__ = func.__name__
+        new_func.__doc__ = func.__doc__
+        new_func.__dict__.update(func.__dict__)
+    return new_func
+
+
+def deprecated_import(module_name):
+    warnings.simplefilter('always', ImportWarning)  # turn off filter
+    warnings.warn("Import of deprecated module {0}.".format(module_name),
+                  category=ImportWarning)
+    warnings.simplefilter('default', ImportWarning)  # reset filter
+
+
+def import_and_wrap_deprecated(module_name, module_dict, warn_import=True):
+    deprecated_import(module_name)
+
+    from importlib import import_module
+    module = import_module(module_name)
+    for attr in module.__all__:
+        module_dict[attr] = deprecated(getattr(module, attr))
