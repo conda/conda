@@ -1,17 +1,17 @@
 from __future__ import print_function, division, absolute_import
 
-import types
-from collections import Hashable
-from inspect import isbuiltin
-import logging
-import sys
 import hashlib
-from functools import partial, wraps
-from os.path import abspath, isdir
+import logging
 import os
 import re
+import sys
 import tempfile
 import warnings
+from collections import Hashable
+from functools import partial, wraps
+from inspect import isbuiltin
+from os.path import abspath, isdir
+from types import GeneratorType
 
 import psutil
 
@@ -215,7 +215,7 @@ def memoized(func):
             return func._result_cache[key]  # pylint: disable-msg=W0212
         else:
             result = func(*args, **kwargs)
-            if isinstance(result, types.GeneratorType) or isinstance(result, Hashable):
+            if isinstance(result, GeneratorType) or isinstance(result, Hashable):
                 # cannot be memoized; better not to cache than blowup
                 return result
             func._result_cache[key] = result  # pylint: disable-msg=W0212
@@ -284,7 +284,8 @@ def deprecated_import(module_name):
 
 
 def import_and_wrap_deprecated(module_name, module_dict, warn_import=True):
-    deprecated_import(module_name)
+    if warn_import:
+        deprecated_import(module_name)
 
     from importlib import import_module
     module = import_module(module_name)
