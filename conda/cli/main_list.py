@@ -17,10 +17,8 @@ import conda.install as install
 import conda.config as config
 from conda.cli import common
 
-# pip_args is here for backwards compatibility
-from conda.pip import pip_args, add_pip_installed
-# Silence pyflakes
-pip_args, add_pip_installed
+from conda.pip import add_pip_installed
+
 
 descr = "List linked packages in a conda environment."
 
