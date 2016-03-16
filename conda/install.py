@@ -58,7 +58,7 @@ except ImportError:
             pass
 
 try:
-    from conda.common.utils import win_path_to_unix
+    from conda.utils import win_path_to_unix
 except ImportError:
     def win_path_to_unix(path, root_prefix=""):
         """Convert a path or ;-separated string of paths into a unix representation
