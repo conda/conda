@@ -18,8 +18,6 @@ from logging import getLogger
 from os.path import join
 from time import sleep
 
-__all__ = ["Locked"]
-
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
 
