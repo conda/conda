@@ -1,3 +1,10 @@
+2016-03-16   4.0.5:
+-------------------
+  * improved help documentation for install, update, and remove, #2262
+  * fixes #2229 and #2250 related to conda update errors on Windows, #2251
+  * fixes #2258 conda list for pip packages on Windows, #2264
+
+
 2016-03-10   4.0.4:
 -------------------
   * revert #2217 closing request sessions, #2233
