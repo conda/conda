@@ -25,11 +25,11 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
+from functools import total_ordering
+from itertools import chain, combinations
+from conda.compat import iteritems, string_types, ceil, log2
 import logging
 import pycosat
-from itertools import chain, combinations
-
-from conda.common.compat import iteritems, string_types
 
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)

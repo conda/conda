@@ -43,7 +43,7 @@ import traceback
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath, normpath
 
 try:
-    from conda.common.lock import Locked
+    from conda.lock import Locked
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
