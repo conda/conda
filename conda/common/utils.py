@@ -1,21 +1,30 @@
 from __future__ import print_function, division, absolute_import
 
-import logging
-import sys
 import hashlib
-import collections
-from functools import partial
-from os.path import abspath, isdir
+import logging
 import os
 import re
-import shlex
+import sys
 import tempfile
+import warnings
+from collections import Hashable
+from functools import partial, wraps
+from inspect import isbuiltin
+from os.path import abspath, isdir
+from types import GeneratorType
 
 import psutil
 
+__all__ = ['can_open', 'can_open_all', 'can_open_all_files_in_prefix',
+           'try_write', 'hashsum_file', 'md5_file', 'url_path',
+           'win_path_to_unix', 'unix_path_to_win', 'win_path_to_cygwin',
+           'cygwin_path_to_win', 'translate_stream', 'human_bytes',
+           'memoized', 'memoize', 'find_parent_shell', 'deprecated',
+           'deprecated_import', 'import_and_wrap_deprecated']
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
+
 
 def can_open(file):
     """
@@ -132,33 +141,87 @@ def human_bytes(n):
     return '%.2f GB' % g
 
 
-class memoized(object):
-    """Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
+# class memoized(object):
+#     """Decorator. Caches a function's return value each time it is called.
+#     If called later with the same arguments, the cached value is returned
+#     (not reevaluated).
+#     """
+#     def __init__(self, func):
+#         self.func = func
+#         self.cache = {}
+#     def __call__(self, *args, **kw):
+#         newargs = []
+#         for arg in args:
+#             if isinstance(arg, list):
+#                 newargs.append(tuple(arg))
+#             elif not isinstance(arg, collections.Hashable):
+#                 # uncacheable. a list, for instance.
+#                 # better to not cache than blow up.
+#                 return self.func(*args, **kw)
+#             else:
+#                 newargs.append(arg)
+#         newargs = tuple(newargs)
+#         key = (newargs, frozenset(kw.items()))
+#         if key in self.cache:
+#             return self.cache[key]
+#         else:
+#             value = self.func(*args, **kw)
+#             self.cache[key] = value
+#             return value
+def memoized(func):
     """
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-    def __call__(self, *args, **kw):
-        newargs = []
-        for arg in args:
-            if isinstance(arg, list):
-                newargs.append(tuple(arg))
-            elif not isinstance(arg, collections.Hashable):
-                # uncacheable. a list, for instance.
-                # better to not cache than blow up.
-                return self.func(*args, **kw)
-            else:
-                newargs.append(arg)
-        newargs = tuple(newargs)
-        key = (newargs, frozenset(kw.items()))
-        if key in self.cache:
-            return self.cache[key]
+    Decorator to cause a function to cache it's results for each combination of
+    inputs and return the cached result on subsequent calls.  Does not support
+    named arguments or arg values that are not hashable.
+
+    >>> @memoized
+    ... def foo(x):
+    ...     print('running function with', x)
+    ...     return x+3
+    ...
+    >>> foo(10)
+    running function with 10
+    13
+    >>> foo(10)
+    13
+    >>> foo(11)
+    running function with 11
+    14
+    >>> @memoized
+    ... def range_tuple(limit):
+    ...     print('running function')
+    ...     return tuple(i for i in range(limit))
+    ...
+    >>> range_tuple(3)
+    running function
+    (0, 1, 2)
+    >>> range_tuple(3)
+    (0, 1, 2)
+    >>> @memoize
+    ... def range_iter(limit):
+    ...     print('running function')
+    ...     return (i for i in range(limit))
+    ...
+    >>> range_iter(3)
+    Traceback (most recent call last):
+    TypeError: Can't memoize a generator!
+    """
+    func._result_cache = {}  # pylint: disable-msg=W0212
+
+    @wraps(func)
+    def _memoized_func(*args, **kwargs):
+        key = (args, tuple(sorted(kwargs.items())))
+        if key in func._result_cache:  # pylint: disable-msg=W0212
+            return func._result_cache[key]  # pylint: disable-msg=W0212
         else:
-            value = self.func(*args, **kw)
-            self.cache[key] = value
-            return value
+            result = func(*args, **kwargs)
+            if isinstance(result, GeneratorType) or isinstance(result, Hashable):
+                # cannot be memoized; better not to cache than blowup
+                return result
+            func._result_cache[key] = result  # pylint: disable-msg=W0212
+            return result
+
+    return _memoized_func
 
 
 # For instance methods only
@@ -191,3 +254,70 @@ def find_parent_shell(path=False):
     if path:
         return process.parent().exe()
     return process.parent().name()
+
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emmitted
+    when the function is used."""
+    if callable(func):
+        def new_func(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+            warnings.warn("Call to deprecated {0}.".format(func.__name__),
+                          category=DeprecationWarning,
+                          stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)  # reset filter
+            return func(*args, **kwargs)
+        new_func.__name__ = func.__name__
+        new_func.__doc__ = func.__doc__
+        new_func.__dict__.update(func.__dict__)
+    else:
+        raise NotImplementedError()
+    return new_func
+
+
+def deprecated_import(module_name):
+    warnings.simplefilter('always', ImportWarning)  # turn off filter
+    warnings.warn("Import of deprecated module {0}.".format(module_name),
+                  category=ImportWarning)
+    warnings.simplefilter('default', ImportWarning)  # reset filter
+
+
+def import_and_wrap_deprecated(module_name, module_dict, warn_import=True):
+    if warn_import:
+        deprecated_import(module_name)
+
+    from importlib import import_module
+    module = import_module(module_name)
+    for attr in module.__all__:
+        module_dict[attr] = deprecated(getattr(module, attr))
+
+
+def deprecate_module_with_proxy(module_name, module_dict, deprecated_attributes=None):
+    def _ModuleProxy(module, depr):
+        """Return a wrapped object that warns about deprecated accesses"""
+        # http://stackoverflow.com/a/922693/2127762
+        class Wrapper(object):
+            def __getattr__(self, attr):
+                if depr is None or attr in depr:
+                    warnings.warn("Property %s is deprecated" % attr)
+
+                return getattr(module, attr)
+
+            def __setattr__(self, attr, value):
+                if depr is None or attr in depr:
+                    warnings.warn("Property %s is deprecated" % attr)
+                return setattr(module, attr, value)
+        return Wrapper()
+
+    deprecated_import(module_name)
+
+    deprs = set()
+    for key in deprecated_attributes or module_dict:
+        if key.startswith('_'):
+            continue
+        if callable(module_dict[key]) and not isbuiltin(module_dict[key]):
+            module_dict[key] = deprecated(module_dict[key])
+        else:
+            deprs.add(key)
+    sys.modules[module_name] = _ModuleProxy(sys.modules[module_name], deprs or None)
