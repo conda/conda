@@ -945,36 +945,22 @@ class Resolve(object):
             solution, obj7 = C.minimize(eq_optional_c, solution)
             dotlog.debug('Package removal metric: %d' % obj7)
 
-            nz = len(C.clauses)
-            nv = C.m
-
             # Requested packages: maximize versions, then builds
             eq_req_v, eq_req_b = self.generate_version_metrics(C, groups, specr)
             solution, obj3 = C.minimize(eq_req_v, solution)
             solution, obj4 = C.minimize(eq_req_b, solution)
             dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
 
-            # Track features: minimize count
+            # Track features: minimize feature count
             eq_feature_count = self.generate_feature_count(C, trackers)
             solution, obj1 = C.minimize(eq_feature_count, solution)
             dotlog.debug('Track feature count: %d' % obj1)
 
-            # Now that we have the feature count, lock it in and re-optimize
-            C.clauses = C.clauses[:nz]
-            C.m = nv
-            C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
-            solution = C.sat()
-
-            # Featured packages: maximize count
+            # Featured packages: maximize featured package count
             eq_feature_metric, ftotal = self.generate_feature_metric(C, groups)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             obj2 = ftotal - obj2
             dotlog.debug('Package feature count: %d' % obj2)
-
-            # Re-optimize requested packages: maximize versions, then builds
-            solution, obj3 = C.minimize(eq_req_v, solution)
-            solution, obj4 = C.minimize(eq_req_b, solution)
-            dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
             # Remaining packages: maximize versions, then builds, then count
             eq_v, eq_b = self.generate_version_metrics(C, groups, speca)
