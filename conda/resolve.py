@@ -816,7 +816,11 @@ class Resolve(object):
         groups, trackers = build_groups(dists)
         C = self.gen_clauses(groups, trackers, specs)
         constraints = self.generate_spec_constraints(C, specs)
-        solution = C.sat(constraints)
+        try:
+            solution = C.sat(constraints)
+        except TypeError:
+            log.debug('Package set caused an unexpected error, assuming a conflict')
+            solution = None
         limit = None
         if not solution or xtra:
             def get_(name, snames):
