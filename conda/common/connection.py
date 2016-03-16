@@ -22,11 +22,6 @@ import requests
 from conda import __version__ as CONDA_VERSION
 from conda.common.compat import urlparse, StringIO
 
-__all__ = ['CondaSession', 'S3Adapter', 'url_to_S3_info', 'LocalFSAdapter',
-           'url_to_path', 'FTPAdapter', 'data_callback_factory', 'AuthError',
-           'build_text_response', 'build_binary_response', 'build_response',
-           'parse_multipart_files', 'unparse_url']
-
 RETRIES = 3
 
 log = getLogger(__name__)
