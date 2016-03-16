@@ -3,7 +3,7 @@ import re
 
 from conda import config
 from conda import install
-from conda.common.utils import find_parent_shell
+from conda.utils import find_parent_shell
 from conda.exceptions import InvalidInstruction
 from conda.fetch import fetch_pkg
 

@@ -14,7 +14,7 @@ import pytest
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
-from conda.common.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin,
+from conda.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin,
                                 cygwin_path_to_win, translate_stream)
 from conda.cli.activate import pathlist_to_str
 import subprocess
