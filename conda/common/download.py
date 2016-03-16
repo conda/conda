@@ -19,6 +19,10 @@ from conda.common.connection import unparse_url, CondaSession, RETRIES
 from conda.common.lock import Locked
 from conda.common.utils import memoized
 
+__all__ = ['add_http_value_to_dict', 'dotlog_on_return', 'handle_proxy_407',
+           'add_username_and_pass_to_url', 'get_proxy_username_and_pass',
+           'download', 'TmpDownload']
+
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
