@@ -6,23 +6,26 @@
 
 from __future__ import print_function, division, absolute_import
 
-import bz2
-import hashlib
-import json
 import os
-import sys
-import warnings
+import bz2
+import json
+import shutil
+import hashlib
+import tempfile
 from logging import getLogger
-from os.path import basename, isdir, join
-
-import requests
+from os.path import basename, dirname, isdir, join
+import sys
+import getpass
+import warnings
+from functools import wraps
 
 from conda import config
-from conda.common.compat import itervalues
-from conda.common.connection import CondaSession
-from conda.common.download import (add_http_value_to_dict, dotlog_on_return, handle_proxy_407,
-                                   download)
-from conda.common.utils import memoized
+from conda.utils import memoized
+from conda.connection import CondaSession, unparse_url, RETRIES
+from conda.compat import itervalues, input, urllib_quote
+from conda.lock import Locked
+
+import requests
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -46,6 +49,24 @@ def cache_fn_url(url):
     return '%s.json' % (md5[:8],)
 
 
+def add_http_value_to_dict(resp, http_key, d, dict_key):
+    value = resp.headers.get(http_key)
+    if value:
+        d[dict_key] = value
+
+# We need a decorator so that the dot gets printed *after* the repodata is fetched
+class dotlog_on_return(object):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __call__(self, f):
+        @wraps(f)
+        def func(*args, **kwargs):
+            res = f(*args, **kwargs)
+            dotlog.debug("%s args %s kwargs %s" % (self.msg, args, kwargs))
+            return res
+        return func
+
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if not config.ssl_verify:
@@ -56,8 +77,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             warnings.simplefilter('ignore', InsecureRequestWarning)
 
-    session = session or CondaSession(ssl_verify=config.ssl_verify,
-                                      proxy_servers=config.get_proxy_servers())
+    session = session or CondaSession()
 
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
@@ -156,6 +176,33 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     return cache or None
 
+def handle_proxy_407(url, session):
+    """
+    Prompts the user for the proxy username and password and modifies the
+    proxy in the session object to include it.
+    """
+    # We could also use HTTPProxyAuth, but this does not work with https
+    # proxies (see https://github.com/kennethreitz/requests/issues/2061).
+    scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    if scheme not in session.proxies:
+        sys.exit("""Could not find a proxy for %r. See
+http://conda.pydata.org/docs/config.html#configure-conda-for-use-behind-a-proxy-server
+for more information on how to configure proxies.""" % scheme)
+    username, passwd = get_proxy_username_and_pass(scheme)
+    session.proxies[scheme] = add_username_and_pass_to_url(
+                           session.proxies[scheme], username, passwd)
+
+def add_username_and_pass_to_url(url, username, passwd):
+    urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
+    passwd = urllib_quote(passwd, '')
+    urlparts[1] = username + ':' + passwd
+    return unparse_url(urlparts)
+
+@memoized
+def get_proxy_username_and_pass(scheme):
+    username = input("\n%s proxy username: " % scheme)
+    passwd = getpass.getpass("Password:")
+    return username, passwd
 
 def add_unknown(index):
     for pkgs_dir in config.pkgs_dirs:
@@ -246,8 +293,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     log.debug("url=%r" % url)
     path = join(dst_dir, fn)
 
-    download(url, path, session=session, md5=info['md5'], urlstxt=True,
-             ssl_verify=config.ssl_verify, proxy_servers=config.get_proxy_servers())
+    download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
         from conda.signature import verify, SignatureError
 
@@ -255,11 +301,149 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/') + '/') + fn2
         log.debug("signature url=%r" % url)
-        download(url, join(dst_dir, fn2), session=session, ssl_verify=config.ssl_verify,
-                 proxy_servers=config.get_proxy_servers())
+        download(url, join(dst_dir, fn2), session=session)
         try:
             if verify(path):
                 return
         except SignatureError as e:
             sys.exit(str(e))
         sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
+
+
+def download(url, dst_path, session=None, md5=None, urlstxt=False,
+             retries=None):
+    pp = dst_path + '.part'
+    dst_dir = dirname(dst_path)
+    session = session or CondaSession()
+
+    if not config.ssl_verify:
+        try:
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+        except ImportError:
+            pass
+        else:
+            warnings.simplefilter('ignore', InsecureRequestWarning)
+
+    if retries is None:
+        retries = RETRIES
+    with Locked(dst_dir):
+        try:
+            resp = session.get(url, stream=True, proxies=session.proxies)
+            resp.close()
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 407: # Proxy Authentication Required
+                handle_proxy_407(url, session)
+                # Try again
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries)
+            msg = "HTTPError: %s: %s\n" % (e, url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+
+        except requests.exceptions.ConnectionError as e:
+            # requests isn't so nice here. For whatever reason, https gives
+            # this error and http gives the above error. Also, there is no
+            # status_code attribute here.  We have to just check if it looks
+            # like 407.
+            # See: https://github.com/kennethreitz/requests/issues/2061.
+            if "407" in str(e): # Proxy Authentication Required
+                handle_proxy_407(url, session)
+                # try again
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries)
+            msg = "Connection error: %s: %s\n" % (e, url)
+            stderrlog.info('Could not connect to %s\n' % url)
+            log.debug(msg)
+            raise RuntimeError(msg)
+
+        except IOError as e:
+            raise RuntimeError("Could not open '%s': %s" % (url, e))
+
+        size = resp.headers.get('Content-Length')
+        if size:
+            size = int(size)
+            fn = basename(dst_path)
+            getLogger('fetch.start').info((fn[:14], size))
+
+        n = 0
+        if md5:
+            h = hashlib.new('md5')
+        try:
+            with open(pp, 'wb') as fo:
+                more = True
+                while more:
+                    # Use resp.raw so that requests doesn't decode gz files
+                    chunk  = resp.raw.read(2**14)
+                    if not chunk:
+                        more = False
+                    try:
+                        fo.write(chunk)
+                    except IOError:
+                        raise RuntimeError("Failed to write to %r." % pp)
+                    if md5:
+                        h.update(chunk)
+                    # update n with actual bytes read
+                    n = resp.raw.tell()
+                    if size and 0 <= n <= size:
+                        getLogger('fetch.update').info(n)
+        except IOError as e:
+            if e.errno == 104 and retries: # Connection reset by pee
+                # try again
+                log.debug("%s, trying again" % e)
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries - 1)
+            raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
+
+        if size:
+            getLogger('fetch.stop').info(None)
+
+        if md5 and h.hexdigest() != md5:
+            if retries:
+                # try again
+                log.debug("MD5 sums mismatch for download: %s (%s != %s), "
+                          "trying again" % (url, h.hexdigest(), md5))
+                return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, retries=retries - 1)
+            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
+                               % (url, h.hexdigest(), md5))
+
+        try:
+            os.rename(pp, dst_path)
+        except OSError as e:
+            raise RuntimeError("Could not rename %r to %r: %r" %
+                               (pp, dst_path, e))
+
+        if urlstxt:
+            try:
+                with open(join(dst_dir, 'urls.txt'), 'a') as fa:
+                    fa.write('%s\n' % url)
+            except IOError:
+                pass
+
+
+class TmpDownload(object):
+    """
+    Context manager to handle downloads to a tempfile
+    """
+    def __init__(self, url, verbose=True):
+        self.url = url
+        self.verbose = verbose
+
+    def __enter__(self):
+        if '://' not in self.url:
+            # if we provide the file itself, no tmp dir is created
+            self.tmp_dir = None
+            return self.url
+        else:
+            if self.verbose:
+                from conda.console import setup_handlers
+                setup_handlers()
+            self.tmp_dir = tempfile.mkdtemp()
+            dst = join(self.tmp_dir, basename(self.url))
+            download(self.url, dst)
+            return dst
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.tmp_dir:
+            shutil.rmtree(self.tmp_dir)

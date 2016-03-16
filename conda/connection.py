@@ -6,21 +6,22 @@
 
 from __future__ import print_function, division, absolute_import
 
-import base64
-import cgi
-import email
-import ftplib
+from logging import getLogger
+import re
 import mimetypes
 import os
-import re
-import tempfile
+import email
+import base64
+import ftplib
+import cgi
 from io import BytesIO
-from logging import getLogger
+import tempfile
+
+import conda
+from conda.compat import urlparse, StringIO
+from conda.config import get_proxy_servers, ssl_verify
 
 import requests
-
-from conda import __version__ as CONDA_VERSION
-from conda.common.compat import urlparse, StringIO
 
 RETRIES = 3
 
@@ -56,13 +57,12 @@ class CondaSession(requests.Session):
 
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop('retries', RETRIES)
-        verify = kwargs.pop('ssl_verify', True)
-        proxy_servers = kwargs.pop('proxy_servers', {})
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        if proxy_servers:
-            self.proxies = proxy_servers
+        proxies = get_proxy_servers()
+        if proxies:
+            self.proxies = proxies
 
         # Configure retries
         if retries:
@@ -80,10 +80,9 @@ class CondaSession(requests.Session):
         self.mount("s3://", S3Adapter())
 
         self.headers['User-Agent'] = "conda/%s %s" % (
-                          CONDA_VERSION, self.headers['User-Agent'])
+                          conda.__version__, self.headers['User-Agent'])
 
-        self.verify = verify
-
+        self.verify = ssl_verify
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
