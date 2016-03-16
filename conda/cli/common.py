@@ -1,16 +1,16 @@
 from __future__ import print_function, division, absolute_import
 
+import re
+import os
+import sys
 import argparse
 import contextlib
-import os
-import re
-import sys
-import textwrap
 from os.path import abspath, basename, expanduser, isdir, join
+import textwrap
 
 import conda.config as config
 from conda import console
-from conda.common.utils import memoize
+from conda.utils import memoize
 
 
 class Completer(object):
@@ -496,7 +496,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from conda.common.download import TmpDownload
+    from conda.fetch import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:

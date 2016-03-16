@@ -6,15 +6,15 @@
 
 from __future__ import print_function, division, absolute_import
 
-import logging
 import os
-import re
 import sys
-from os.path import abspath, expanduser, isfile, isdir, join
+import logging
 from platform import machine
+from os.path import abspath, expanduser, isfile, isdir, join
+import re
 
-from conda.common.compat import urlparse
-from conda.common.utils import try_write, memoized
+from conda.compat import urlparse
+from conda.utils import try_write, memoized
 
 
 log = logging.getLogger(__name__)

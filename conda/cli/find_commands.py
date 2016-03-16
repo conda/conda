@@ -1,12 +1,12 @@
 from __future__ import print_function, division, absolute_import
 
-import os
 import re
-import subprocess
+import os
 import sys
+import subprocess
 from os.path import isdir, isfile, join, expanduser
 
-from conda.common.utils import memoized
+from conda.utils import memoized
 
 def find_executable(executable, include_others=True):
     # backwards compatibility

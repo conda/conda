@@ -8,10 +8,10 @@ from __future__ import print_function, division, absolute_import
 
 from os.path import exists
 
-from conda import config
 from conda.cli import common
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound, Package
+from conda import config
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -168,7 +168,7 @@ def execute_search(args, parser):
     channel_urls = args.channel or ()
     if args.use_local:
         from conda.fetch import fetch_index
-        from conda.common.utils import url_path
+        from conda.utils import url_path
         try:
             from conda_build.config import croot
         except ImportError:
