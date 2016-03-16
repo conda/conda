@@ -20,10 +20,8 @@ import requests
 from conda import config
 from conda.common.compat import itervalues
 from conda.common.connection import CondaSession
-from conda.common.download import (add_http_value_to_dict as _add_http_value_to_dict,
-                                   dotlog_on_return as _dotlog_on_return,
-                                   handle_proxy_407 as _handle_proxy_407,
-                                   download as _download)
+from conda.common.download import (add_http_value_to_dict, dotlog_on_return, handle_proxy_407,
+                                   download)
 from conda.common.utils import memoized
 
 log = getLogger(__name__)
@@ -48,7 +46,7 @@ def cache_fn_url(url):
     return '%s.json' % (md5[:8],)
 
 
-@_dotlog_on_return("fetching repodata:")
+@dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if not config.ssl_verify:
         try:
@@ -83,8 +81,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         resp.raise_for_status()
         if resp.status_code != 304:
             cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
-            _add_http_value_to_dict(resp, 'Etag', cache, '_etag')
-            _add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
+            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
+            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
@@ -92,7 +90,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407: # Proxy Authentication Required
-            _handle_proxy_407(url, session)
+            handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
@@ -138,7 +136,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         # attribute here. We have to just check if it looks like 407.  See
         # https://github.com/kennethreitz/requests/issues/2061.
         if "407" in str(e): # Proxy Authentication Required
-            _handle_proxy_407(url, session)
+            handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
@@ -248,7 +246,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     log.debug("url=%r" % url)
     path = join(dst_dir, fn)
 
-    _download(url, path, session=session, md5=info['md5'], urlstxt=True,
+    download(url, path, session=session, md5=info['md5'], urlstxt=True,
              ssl_verify=config.ssl_verify, proxy_servers=config.get_proxy_servers())
     if info.get('sig'):
         from conda.signature import verify, SignatureError
@@ -257,7 +255,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/') + '/') + fn2
         log.debug("signature url=%r" % url)
-        _download(url, join(dst_dir, fn2), session=session, ssl_verify=config.ssl_verify,
+        download(url, join(dst_dir, fn2), session=session, ssl_verify=config.ssl_verify,
                  proxy_servers=config.get_proxy_servers())
         try:
             if verify(path):
@@ -265,7 +263,3 @@ def fetch_pkg(info, dst_dir=None, session=None):
         except SignatureError as e:
             sys.exit(str(e))
         sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
-
-
-from .common.utils import import_and_wrap_deprecated  # NOQA
-import_and_wrap_deprecated('conda.common.download', locals(), warn_import=False)
