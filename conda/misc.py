@@ -5,10 +5,10 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import re
+import sys
 import shlex
 import shutil
 import subprocess
-import sys
 from collections import defaultdict
 from distutils.spawn import find_executable
 from os.path import (abspath, basename, dirname, expanduser, exists,
@@ -17,9 +17,9 @@ from os.path import (abspath, basename, dirname, expanduser, exists,
 from conda import config
 from conda import install
 from conda.api import get_index
-from conda.common.compat import iteritems
 from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from conda.plan import ensure_linked_actions, execute_actions
+from conda.compat import iteritems
 from conda.resolve import Resolve
 
 
@@ -58,7 +58,7 @@ url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
 def explicit(urls, prefix, verbose=True):
     import conda.fetch as fetch
-    from conda.common.utils import md5_file
+    from conda.utils import md5_file
 
     dists = []
     for url in urls:

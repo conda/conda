@@ -1,10 +1,10 @@
 """
 Helpers for the tests
 """
-import json
-import os
 import subprocess
 import sys
+import os
+import json
 
 try:
     from unittest import mock
@@ -17,7 +17,7 @@ except ImportError:
 from contextlib import contextmanager
 
 import conda.cli as cli
-from conda.common.compat import StringIO
+from conda.compat import StringIO
 
 
 def raises(exception, func, string=None):

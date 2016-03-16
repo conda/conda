@@ -3,7 +3,7 @@
 
 
 travis_build_and_upload() {
-    if [[ "$TRAVIS_BRANCH" == master && "$TRAVIS_PULL_REQUEST" == false ]]; then
+    if [[ "$TRAVIS_BRANCH" == master ]]; then
         set -e
         conda install -y conda-build anaconda-client
         conda build --python $PY_VERSION conda.recipe | tee build.log
