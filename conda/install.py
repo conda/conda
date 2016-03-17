@@ -806,7 +806,7 @@ def unlink(prefix, dist):
                     except ImportError:
                         # This shouldn't be an issue in the installer anyway
                         #   but it can potentially happen with importing conda.config
-                        log.debug("cannot import conda.config")
+                        log.debug("cannot import conda.config; probably not an issue")
 
         # remove the meta-file last
         os.unlink(meta_path)
