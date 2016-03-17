@@ -329,7 +329,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
     with Locked(dst_dir):
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
-            resp.close()
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407: # Proxy Authentication Required
