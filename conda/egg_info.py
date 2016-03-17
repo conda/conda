@@ -35,21 +35,26 @@ def get_egg_info_files(sp_dir):
         if isfile(path):
             yield path
         elif isdir(path):
-            path2 = join(path, 'PKG-INFO')
-            if isfile(path2):
-                yield path2
+            for path2 in [join(path, 'PKG-INFO'),
+                          join(path, 'EGG-INFO', 'PKG-INFO')]:
+                if isfile(path2):
+                    yield path2
 
 
 pat = re.compile(r'(\w+):\s*(\S+)', re.I)
-def read_egg_info(path):
+def parse_egg_info(path):
+    """
+    Parse an .egg-info file and return its canonical distribution name
+    """
     info = {}
     for line in open(path):
         line = line.strip()
         m = pat.match(line)
         if m:
-            info[m.group(1).lower()] = m.group(2)
+            key = m.group(1).lower()
+            info[key] = m.group(2)
         try:
-            return '%(name)s-%(version)s-<egg.info>' % info
+            return '%(name)s-%(version)s-<egg_info>' % info
         except KeyError:
             pass
     return None
@@ -74,7 +79,7 @@ def get_untracked_egg_info(prefix):
     for path in get_egg_info_files(join(prefix, sp_dir)):
         f = rel_path(prefix, path)
         if f not in conda_files:
-            dist = read_egg_info(path)
+            dist = parse_egg_info(path)
             if dist:
                 res.add(dist)
     return res
