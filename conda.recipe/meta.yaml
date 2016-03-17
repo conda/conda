@@ -18,21 +18,22 @@ build:
 requirements:
   build:
     - python
-    - setuptools
-    - requests
-    - pyyaml
     - conda-env
-    - psutil
-    - pycosat
     - menuinst  [win]
-  run:
-    - python
+    - psutil
     - pycosat >=0.6.1
     - pyyaml
+    - raml
     - requests
+  run:
+    - python
     - conda-env
     - menuinst  [win]
     - psutil
+    - pycosat >=0.6.1
+    - pyyaml
+    - raml
+    - requests
 
 test:
   commands:

@@ -11,6 +11,7 @@ import sys
 import conda.config as config
 from conda.cli import common
 from conda.compat import string_types
+from conda.utils import get_yaml
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -205,11 +206,7 @@ def execute(args, parser):
 
 
 def execute_config(args, parser):
-    try:
-        import ruamel.yaml as yaml
-    except ImportError:
-        common.error_and_exit("ruamel.yaml is required to modify configuration",
-                              json=args.json, error_type="ImportError")
+    yaml = get_yaml()
 
     json_warnings = []
     json_get = {}
