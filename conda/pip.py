@@ -1,5 +1,6 @@
 """
-Functions related to core conda functionality that relates to pip
+Functions related to core conda functionality that relates to manually
+installed Python packages, e.g. using "python setup.py install", or "pip".
 """
 from __future__ import absolute_import, print_function
 
@@ -54,7 +55,11 @@ def read_egg_info(path):
     return None
 
 
-def pip_installed(prefix):
+def get_untracked_egg_info(prefix):
+    """
+    Retuen the set of all untracked (not conda installed) Python packages,
+    by looking at all untracked egg-info files.
+    """
     installed_pkgs = linked_data(prefix)
     sp_dir = get_site_packages_dir(installed_pkgs)
     if sp_dir is None:
@@ -69,7 +74,6 @@ def pip_installed(prefix):
     for path in get_egg_info_files(join(prefix, sp_dir)):
         f = rel_path(prefix, path)
         if f not in conda_files:
-            #print(f)
             dist = read_egg_info(path)
             if dist:
                 res.add(dist)
@@ -77,4 +81,4 @@ def pip_installed(prefix):
 
 
 if __name__ == '__main__':
-    print(pip_installed(sys.prefix))
+    print(get_untracked_egg_info(sys.prefix))
