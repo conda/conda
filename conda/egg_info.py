@@ -73,7 +73,6 @@ def get_untracked_egg_info(prefix):
     conda_files = set()
     for info in itervalues(installed_pkgs):
         conda_files.update(info.get('files', []))
-    print(len(conda_files))
 
     res = set()
     for path in get_egg_info_files(join(prefix, sp_dir)):
@@ -86,4 +85,5 @@ def get_untracked_egg_info(prefix):
 
 
 if __name__ == '__main__':
-    print(get_untracked_egg_info(sys.prefix))
+    from pprint import pprint
+    pprint(get_untracked_egg_info(sys.prefix))
