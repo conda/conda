@@ -129,12 +129,6 @@ def list_packages(prefix, installed, regex=None, format='human',
     res = 1
     if show_channel_urls is None and format == 'human':
         show_channel_urls = False
-        for dist in get_packages(installed, regex):
-            info = install.is_linked(prefix, dist)
-            if info and config.canonical_channel_name(
-                               info.get('url')) != 'defaults':
-                show_channel_urls = True
-                break
 
     result = []
     for dist in get_packages(installed, regex):
