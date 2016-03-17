@@ -7,12 +7,12 @@ import sys
 
 # TODO This should never have to import from conda.cli
 from conda.cli import common
-from conda.cli import main_list
 from conda import install
 
 from . import compat
 from . import exceptions
 from . import yaml
+from conda_env.conda_pip import add_pip_installed
 
 
 def load_from_directory(directory):
@@ -37,7 +37,7 @@ def from_environment(name, prefix, no_builds=False):
     installed = install.linked(prefix)
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
-    main_list.add_pip_installed(prefix, installed, json=True)
+    add_pip_installed(prefix, installed, json=True)
 
     pip_pkgs = sorted(installed - conda_pkgs)
 

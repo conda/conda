@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import subprocess
 
 from conda.cli import common
-from conda.pip import pip_args
+from conda_env.conda_pip import pip_args
 
 
 def install(prefix, specs, args, env):
