@@ -795,10 +795,18 @@ def unlink(prefix, dist):
         for f in meta['files']:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
-            if on_win and os.path.exists(join(prefix, f)):
-                move_path_to_trash(dst)
-            else:
+            try:
                 os.unlink(dst)
+            except OSError:  # file might not exist
+                log.debug("could not remove file: '%s'" % dst)
+                if on_win and os.path.exists(join(prefix, f)):
+                    try:
+                        log.debug("moving to trash")
+                        move_path_to_trash(dst)
+                    except ImportError:
+                        # This shouldn't be an issue in the installer anyway
+                        #   but it can potentially happen with importing conda.config
+                        log.debug("cannot import conda.config; probably not an issue")
 
         # remove the meta-file last
         os.unlink(meta_path)
