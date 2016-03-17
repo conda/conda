@@ -60,10 +60,12 @@ def parse_egg_info(path):
     return None
 
 
-def get_untracked_egg_info(prefix):
+def get_egg_info(prefix, all_pkgs=False):
     """
-    Retuen the set of all untracked (not conda installed) Python packages,
-    by looking at all untracked egg-info files.
+    Return a set of canonical names of all Python packages (in `prefix`),
+    by inspecting the .egg-info files inside site-packages.
+    By default, only untracked (not conda installed) .egg-info files are
+    considered.  Setting `all_pkgs` to True changes this.
     """
     installed_pkgs = linked_data(prefix)
     sp_dir = get_site_packages_dir(installed_pkgs)
@@ -77,7 +79,7 @@ def get_untracked_egg_info(prefix):
     res = set()
     for path in get_egg_info_files(join(prefix, sp_dir)):
         f = rel_path(prefix, path)
-        if f not in conda_files:
+        if all_pkgs or f not in conda_files:
             dist = parse_egg_info(path)
             if dist:
                 res.add(dist)
@@ -86,4 +88,4 @@ def get_untracked_egg_info(prefix):
 
 if __name__ == '__main__':
     from pprint import pprint
-    pprint(get_untracked_egg_info(sys.prefix))
+    pprint(get_egg_info(sys.prefix))
