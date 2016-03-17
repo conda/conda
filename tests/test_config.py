@@ -3,17 +3,18 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
 import os
-import unittest
 from os.path import dirname, join, exists
-import ruamel.yaml as yaml
+import unittest
 
 import pytest
 
 import conda.config as config
+from conda.utils import get_yaml
 
 from tests.helpers import run_conda_command
+
+yaml = get_yaml()
 
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')

@@ -14,8 +14,7 @@ from os.path import abspath, expanduser, isfile, isdir, join
 import re
 
 from conda.compat import urlparse
-from conda.utils import try_write, memoized
-
+from conda.utils import try_write, memoized, get_yaml
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -112,11 +111,7 @@ rc_path = get_rc_path()
 def load_condarc(path):
     if not path or not isfile(path):
         return {}
-    try:
-        import ruamel.yaml as yaml
-    except ImportError:
-        sys.exit('Error: could not import ruamel.yaml (required to read .condarc '
-                 'config file: %s)' % path)
+    yaml = get_yaml()
     with open(path) as f:
         return yaml.load(f, Loader=yaml.RoundTripLoader, version="1.1") or {}
 
