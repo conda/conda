@@ -191,3 +191,15 @@ def find_parent_shell(path=False):
     if path:
         return process.parent().exe()
     return process.parent().name()
+
+
+@memoized
+def get_yaml():
+    try:
+        import raml as yaml
+    except ImportError:
+        try:
+            import yaml
+        except ImportError:
+            sys.exit("Either raml or pyyaml must be installed for the operation to proceed.")
+    return yaml
