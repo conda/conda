@@ -8,26 +8,20 @@ import contextlib
 
 from conda.utils import memoized
 from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
-                               ProgressBar as _ProgressBar)
+                               ProgressBar)
 
 
 try:
     tty = open(os.ctermid(), 'w')
 except IOError:
-    tty = sys.stderr
+    tty = sys.stdout
 
+fetch_progress = ProgressBar(widgets=['', ' ', Percentage(), ' ', Bar(),
+                                      ' ', ETA(), ' ', FileTransferSpeed()],
+                             fd=tty)
 
-class ProgressBar(_ProgressBar):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('fd', None)
-        super(ProgressBar, self).__init__(*args, fd=tty, **kwargs)
-
-
-fetch_progress = ProgressBar(
-    widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
-             FileTransferSpeed()])
-
-progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()])
+progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()],
+                       fd=tty)
 
 
 class FetchProgressHandler(logging.Handler):
