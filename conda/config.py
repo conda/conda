@@ -14,7 +14,7 @@ from os.path import abspath, expanduser, isfile, isdir, join
 import re
 
 from conda.compat import urlparse
-from conda.utils import try_write, memoized, get_yaml
+from conda.utils import try_write, memoized, yaml_load
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -111,9 +111,8 @@ rc_path = get_rc_path()
 def load_condarc(path):
     if not path or not isfile(path):
         return {}
-    yaml = get_yaml()
     with open(path) as f:
-        return yaml.load(f, Loader=yaml.RoundTripLoader, version="1.1") or {}
+        return yaml_load(f) or {}
 
 rc = load_condarc(rc_path)
 sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
