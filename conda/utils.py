@@ -8,10 +8,7 @@ from functools import partial
 from os.path import abspath, isdir
 import os
 import re
-import shlex
 import tempfile
-
-import psutil
 
 
 log = logging.getLogger(__name__)
@@ -185,9 +182,27 @@ class memoize(object): # 577452
 
 def find_parent_shell(path=False):
     """return process name or path of parent.  Default is to return only name of process."""
+    try:
+        import psutil
+    except ImportError:
+        sys.exit("No psutil available.\n"
+                 "To proceed, please conda install psutil")
     process = psutil.Process()
     while "conda" in process.parent().name():
         process = process.parent()
     if path:
         return process.parent().exe()
     return process.parent().name()
+
+
+@memoized
+def get_yaml():
+    try:
+        import raml as yaml
+    except ImportError:
+        try:
+            import yaml
+        except ImportError:
+            sys.exit("No yaml library available.\n"
+                     "To proceed, please conda install raml")
+    return yaml
