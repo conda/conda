@@ -9,7 +9,6 @@ from __future__ import print_function, division, absolute_import
 import re
 import os
 import sys
-import string
 import logging
 from os.path import isdir, isfile, join
 from argparse import RawDescriptionHelpFormatter
@@ -115,7 +114,7 @@ def print_export_header():
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
 
-    for dist in sorted(installed, key=string.lower):
+    for dist in sorted(installed, key=str.lower):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
