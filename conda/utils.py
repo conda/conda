@@ -206,3 +206,20 @@ def get_yaml():
             sys.exit("No yaml library available.\n"
                      "To proceed, please conda install raml")
     return yaml
+
+
+def yaml_load(filehandle):
+    yaml = get_yaml()
+    try:
+        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.1")
+    except AttributeError:
+        return yaml.load(filehandle)
+
+
+def yaml_dump(string):
+    yaml = get_yaml()
+    try:
+      return yaml.dump(string, Dumper=yaml.RoundTripDumper, block_seq_indent=2,
+                       default_flow_style=False, indent=4)
+    except AttributeError:
+        return yaml.dump(string, default_flow_style=False)
