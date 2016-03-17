@@ -17,7 +17,7 @@ import conda.install as install
 import conda.config as config
 from conda.cli import common
 
-from conda.pip import pip_installed
+from conda.pip import get_untracked_egg_info
 
 
 descr = "List linked packages in a conda environment."
@@ -180,7 +180,7 @@ Error: environment does not exist: %s
 
     installed = install.linked(prefix)
     if piplist and config.use_pip and format == 'human':
-        installed.update(pip_installed(prefix))
+        installed.update(get_untracked_egg_info(prefix))
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
