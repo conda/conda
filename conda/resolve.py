@@ -409,13 +409,15 @@ class Resolve(object):
         touched = {}
         snames = set()
         nspecs = set()
-        unsat = []
+        unsat = set()
 
         def filter_group(matches, chains=None):
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
             # participates in the pruning even if one of its
             # parents is pruned away
+            if unsat:
+                return False
             match1 = next(ms for ms in matches)
             name = match1.name
             first = name not in snames
@@ -453,8 +455,8 @@ class Resolve(object):
                             if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
                                 dep2.add(ms)
                     chains = [a + (b,) for a in chains for b in dep2]
-                unsat.extend(chains)
-                return nnew
+                unsat.update(chains)
+                return nnew != 0
             if not reduced and not first:
                 return False
 
@@ -493,7 +495,7 @@ class Resolve(object):
             onames = set(s.name for s in specs)
             for iter in range(10):
                 first = True
-                while sum(filter_group([s]) for s in slist):
+                while sum(filter_group([s]) for s in slist) and not unsat:
                     slist = specs + [MatchSpec(n) for n in snames - onames]
                     first = False
                 if unsat:
