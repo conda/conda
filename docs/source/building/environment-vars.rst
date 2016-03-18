@@ -49,7 +49,9 @@ override this behavior.)
   * - ``SP_DIR``
     - Python's site-packages location
   * - ``PY_VER``
-    - Python version building against
+    - Python version building against (Set via `--python` arg or via `CONDA_PY` environment variable.)
+  * - ``NPY_VER``
+    - Numpy version building against (Set via `--numpy` arg or via `CONDA_NPY` environment variable.)
   * - ``R``
     - Path to R executable in build prefix (note that R is only
       installed in the build prefix when it is listed as a build requirement).
