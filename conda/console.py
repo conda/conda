@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import sys
 import json
 import logging
@@ -10,11 +11,17 @@ from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
                                ProgressBar)
 
 
-fetch_progress = ProgressBar(
-    widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
-             FileTransferSpeed()])
+try:
+    tty = open(os.ctermid(), 'w')
+except IOError:
+    tty = sys.stdout
 
-progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()])
+fetch_progress = ProgressBar(widgets=['', ' ', Percentage(), ' ', Bar(),
+                                      ' ', ETA(), ' ', FileTransferSpeed()],
+                             fd=tty)
+
+progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()],
+                       fd=tty)
 
 
 class FetchProgressHandler(logging.Handler):
@@ -138,10 +145,9 @@ class PrintHandler(logging.Handler):
 class DotHandler(logging.Handler):
     def emit(self, record):
         try:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+            tty.write('.')
+            tty.flush()
         except IOError:
-            # sys.stdout.flush doesn't work in pythonw
             pass
 
 class SysStdoutWriteHandler(logging.Handler):
