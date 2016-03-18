@@ -12,7 +12,7 @@ from conda import install
 from . import compat
 from . import exceptions
 from . import yaml
-from conda_env.conda_pip import add_pip_installed
+from conda_env.pip_util import add_pip_installed
 
 
 def load_from_directory(directory):
