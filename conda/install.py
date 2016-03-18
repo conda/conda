@@ -40,7 +40,8 @@ import sys
 import tarfile
 import time
 import traceback
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath, normpath
+from os.path import (abspath, basename, dirname, isdir, isfile, islink,
+                     join, relpath, normpath)
 
 try:
     from conda.lock import Locked
@@ -71,7 +72,7 @@ except ImportError:
         return ":".join(converted_paths)
 
 
-on_win = sys.platform == "win32"
+on_win = bool(sys.platform == "win32")
 
 if on_win:
     import ctypes
@@ -281,7 +282,6 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
-
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
