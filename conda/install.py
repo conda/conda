@@ -395,13 +395,6 @@ def mk_menus(prefix, files, remove=False):
         logging.warn(traceback.format_exc())
         return
 
-    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
-                basename(prefix))
-    # only windows is provided right now.  Add "source activate" if on Unix platforms
-    env_setup_cmd = "activate"
-    if env_name:
-        env_setup_cmd = env_setup_cmd + " %s" % env_name
-
     for f in menu_files:
         try:
             menuinst.install(join(prefix, f), remove, prefix)
