@@ -66,6 +66,7 @@ except ImportError:
 
         Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
         """
+        import re
         path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
         converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
                         for _path in re.findall(path_re, path)]
@@ -140,8 +141,8 @@ if on_win:
             src = win_path_to_unix(src, path_prefix)
             dst = win_path_to_unix(dst, path_prefix)
 
-            p = subprocess.check_call(["bash", "-l", "-c", 'ln -sf "{src}" "{dst}"'.format(
-                src=src, dst=dst)])
+            subprocess.check_call(["bash", "-l", "-c",
+                                   'ln -sf "%s" "%s"' % (src, dst)])
 
 
 log = logging.getLogger(__name__)
