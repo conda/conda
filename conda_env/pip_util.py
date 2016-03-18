@@ -1,5 +1,7 @@
 """
 Functions related to core conda functionality that relates to pip
+
+NOTE: This modules used to in conda, as conda/pip.py
 """
 from __future__ import absolute_import, print_function
 from os.path import isfile, join
