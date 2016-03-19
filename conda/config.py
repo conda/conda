@@ -236,24 +236,28 @@ def normalize_urls(urls, platform=None, offline_only=False):
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
                                           DEFAULT_CHANNEL_ALIAS))
     newurls = {}
-    pri = 0
+    priority = 0
     for url in urls:
+        incr = True
         if url == "defaults" or url == "system" and not rc_path:
             t_urls = get_default_urls()
+            incr = False
         elif url == "system":
             t_urls = get_rc_urls()
-        elif not is_url(url):
-            t_urls = [channel_alias + url]
         else:
             t_urls = [url]
-        if offline_only:
-            t_urls = [url for url in t_urls if url.startswith('file:')]
-        if t_urls:
-            pri += 1
-            for url0 in t_urls:
-                url0 = url0.rstrip('/')
-                for plat in (platform, 'noarch'):
-                    newurls.setdefault('%s/%s/' % (url0, plat), pri)
+        if not incr:
+            priority += 1
+        for url0 in t_urls:
+            if incr:
+                priority += 1
+            if not is_url(url0):
+                url0 = channel_alias + url0
+            if offline_only and not url0.startswith('file:'):
+                continue
+            url0 = url0.rstrip('/')
+            for plat in (platform, 'noarch'):
+                newurls.setdefault('%s/%s/' % (url0, plat), priority)
     return newurls
 
 offline = bool(rc.get('offline', False))
