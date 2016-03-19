@@ -10,9 +10,12 @@ import unittest
 import pytest
 
 import conda.config as config
-from conda.utils import yaml_load
+from conda.utils import get_yaml
+from conda.compat import iterkeys
 
 from tests.helpers import run_conda_command
+
+yaml = get_yaml()
 
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
@@ -71,35 +74,31 @@ class TestConfig(unittest.TestCase):
         assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
 
-        for channel in config.normalize_urls(['defaults', 'system',
+        for channel in iterkeys(config.normalize_urls(['defaults', 'system',
             'https://anaconda.org/username', 'file:///Users/username/repo',
-            'username']):
+            'username'])):
             assert (channel.endswith('/%s/' % current_platform) or
                     channel.endswith('/noarch/'))
         self.assertEqual(config.normalize_urls([
             'defaults', 'system', 'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 'username'
             ], 'osx-64'),
-            [
-                'http://repo.continuum.io/pkgs/free/osx-64/',
-                'http://repo.continuum.io/pkgs/free/noarch/',
-                'http://repo.continuum.io/pkgs/pro/osx-64/',
-                'http://repo.continuum.io/pkgs/pro/noarch/',
-                'https://your.repo/binstar_username/osx-64/',
-                'https://your.repo/binstar_username/noarch/',
-                'http://some.custom/channel/osx-64/',
-                'http://some.custom/channel/noarch/',
-                'http://repo.continuum.io/pkgs/free/osx-64/',
-                'http://repo.continuum.io/pkgs/free/noarch/',
-                'http://repo.continuum.io/pkgs/pro/osx-64/',
-                'http://repo.continuum.io/pkgs/pro/noarch/',
-                'https://conda.anaconda.org/username/osx-64/',
-                'https://conda.anaconda.org/username/noarch/',
-                'file:///Users/username/repo/osx-64/',
-                'file:///Users/username/repo/noarch/',
-                'https://your.repo/username/osx-64/',
-                'https://your.repo/username/noarch/',
-                ])
+			{'file:///Users/username/repo/noarch/': 6,
+			 'file:///Users/username/repo/osx-64/': 6,
+			 'http://some.custom/channel/noarch/': 3,
+			 'http://some.custom/channel/osx-64/': 3,
+			 'https://conda.anaconda.org/username/noarch/': 5,
+			 'https://conda.anaconda.org/username/osx-64/': 5,
+			 'https://repo.continuum.io/pkgs/free/noarch/': 1,
+			 'https://repo.continuum.io/pkgs/free/osx-64/': 1,
+			 'https://repo.continuum.io/pkgs/pro/noarch/': 1,
+			 'https://repo.continuum.io/pkgs/pro/osx-64/': 1,
+			 'https://your.repo/binstar_username/noarch/': 2,
+			 'https://your.repo/binstar_username/osx-64/': 2,
+			 'https://your.repo/defaults/noarch/': 4,
+			 'https://your.repo/defaults/osx-64/': 4,
+			 'https://your.repo/username/noarch/': 7,
+			 'https://your.repo/username/osx-64/': 7})
 
 test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
 def _read_test_condarc():
@@ -287,7 +286,7 @@ changeps1: false
 always_yes: yes
 """
         # First verify that this itself is valid YAML
-        assert yaml_load(condarc) == {'channels': ['test', 'defaults'],
+        assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
             'create_default_packages': ['ipython', 'numpy'], 'changeps1':
             False, 'always_yes': 'yes'}
 
@@ -391,7 +390,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        assert yaml_load(_read_test_condarc()) == {'channels': ['defaults'],
+        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults'],
             'always_yes': True}
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -407,7 +406,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
         assert stdout == stderr == ''
-        assert yaml_load(_read_test_condarc()) == {'channels': ['defaults']}
+        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults']}
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
@@ -502,7 +501,7 @@ def test_set_rc_string():
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml_load(open(test_condarc, 'r'))['ssl_verify']
+        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
         assert verify == 'yes'
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -510,7 +509,7 @@ def test_set_rc_string():
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml_load(open(test_condarc, 'r'))['ssl_verify']
+        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
         assert verify == 'test_string.crt'
 
 
