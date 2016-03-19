@@ -34,21 +34,26 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     If platform=None, then the current platform is used.
     If prefix is supplied, then the packages installed in that prefix are added.
     """
-    channel_urls = config.normalize_urls(channel_urls, platform=platform)
+    channel_urls = config.normalize_urls(channel_urls, platform, offline)
     if prepend:
-        channel_urls += config.get_channel_urls(platform=platform)
-    if offline:
-        channel_urls = [url for url in channel_urls if url.startswith('file:')]
-    index = fetch_index(tuple(channel_urls), use_cache=use_cache,
-                        unknown=unknown)
+        pri0 = max(itervalues(channel_urls)) if channel_urls else 0
+        newurls = config.get_channel_urls(platform, offline)
+        channel_urls.update({url: pri0+pri for url, pri in iteritems(newurls)})
+    index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
         for dist, info in iteritems(install.linked_data(prefix)):
             fn = dist + '.tar.bz2'
+            channel = info.get('channel','')
             if fn not in index:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
+                url = channel + fn
                 info.setdefault('depends', [])
-                index[fn] = info
+                info['fn'] = fn
+                info['channel'] = channel
+                info['url'] = url
+                info['priority'] = channel_urls.get(channel, 0)
+                index[url] = info
     return index
 
 

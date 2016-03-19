@@ -22,7 +22,7 @@ from functools import wraps
 from conda import config
 from conda.utils import memoized
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.compat import itervalues, input, urllib_quote
+from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from conda.lock import Locked
 
 import requests
@@ -205,7 +205,8 @@ def get_proxy_username_and_pass(scheme):
     passwd = getpass.getpass("Password:")
     return username, passwd
 
-def add_unknown(index):
+def add_unknown(index, priorities):
+    maxpri = max(itervalues(priorities)) + 1
     for pkgs_dir in config.pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
@@ -218,10 +219,12 @@ def add_unknown(index):
                     meta = json.load(fi)
             except IOError:
                 continue
-            if 'depends' not in meta:
-                meta['depends'] = []
-            log.debug("adding cached pkg to index: %s" % fn)
-            index[fn] = meta
+            channel = meta.setdefault('channel', '')
+            url = meta[url] = channel + fn
+            meta.setdefault('depends', [])
+            meta.setdefault('priority', priorities.get(channel, maxpri))
+            log.debug("adding cached pkg to index: %s" % url)
+            index[url] = meta
 
 def add_pip_dependency(index):
     for info in itervalues(index):
@@ -229,14 +232,15 @@ def add_pip_dependency(index):
                 info['version'].startswith(('2.', '3.'))):
             info.setdefault('depends', []).append('pip')
 
-@memoized
 def fetch_index(channel_urls, use_cache=False, unknown=False):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
     index = {}
     stdoutlog.info("Fetching package metadata ...")
     session = CondaSession()
-    for url in reversed(channel_urls):
+    if not isinstance(channel_urls, dict):
+        channel_urls = {url: pri+1 for pri, url in enumerate(channel_urls)}
+    for url in iterkeys(channel_urls):
         if config.allowed_channels and url not in config.allowed_channels:
             sys.exit("""
 Error: URL '%s' not in allowed channels.
@@ -254,7 +258,7 @@ Allowed channels are:
             future_to_url = OrderedDict([(executor.submit(
                             fetch_repodata, url, use_cache=use_cache,
                             session=session), url)
-                                         for url in reversed(channel_urls)])
+                                         for url in iterkeys(channel_urls)])
             for future in future_to_url:
                 url = future_to_url[future]
                 repodatas.append((url, future.result()))
@@ -262,19 +266,24 @@ Allowed channels are:
         # concurrent.futures is only available in Python 3
         repodatas = map(lambda url: (url, fetch_repodata(url,
                                      use_cache=use_cache, session=session)),
-                        reversed(channel_urls))
+                        iterkeys(channel_urls))
 
-    for url, repodata in repodatas:
+    for channel, repodata in repodatas:
         if repodata is None:
             continue
+        priority = channel_urls[channel]
         new_index = repodata['packages']
-        for info in itervalues(new_index):
-            info['channel'] = url
-        index.update(new_index)
+        for fn, info in iteritems(new_index):
+            url = channel + fn
+            info['fn'] = fn
+            info['channel'] = channel
+            info['url'] = url
+            info['priority'] = priority
+            index[url] = info
 
     stdoutlog.info('\n')
     if unknown:
-        add_unknown(index)
+        add_unknown(index, channel_urls)
     if config.add_pip_as_python_dependency:
         add_pip_dependency(index)
     return index

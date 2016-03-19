@@ -242,27 +242,27 @@ class Package(object):
 def build_groups(index):
     groups = {}
     trackers = {}
-    for fn, info in iteritems(index):
-        groups.setdefault(info['name'], []).append(fn)
+    for fkey, info in iteritems(index):
+        groups.setdefault(info['name'], []).append(fkey)
         for feat in info.get('track_features', '').split():
-            trackers.setdefault(feat, []).append(fn)
+            trackers.setdefault(feat, []).append(fkey)
     return groups, trackers
 
 
 class Resolve(object):
     def __init__(self, index):
         self.index = index.copy()
-        for fn, info in iteritems(index):
+        for fkey, info in iteritems(index):
             for fstr in chain(info.get('features', '').split(),
                               info.get('track_features', '').split()):
                 fpkg = fstr + '@'
                 if fpkg not in self.index:
                     self.index[fpkg] = {
-                        'name': fpkg, 'version': '0', 'build_number': 0,
+                        'name': fpkg, 'channel': '@', 'priority': 0,
+                        'version': '0', 'build_number': 0,
                         'build': '', 'depends': [], 'track_features': fstr}
             for fstr in iterkeys(info.get('with_features_depends', {})):
-                fn2 = fn + '[' + fstr + ']'
-                self.index[fn2] = info
+                self.index['%s[%s]' % (fkey, fstr)] = info
         self.groups, self.trackers = build_groups(self.index)
         self.find_matches_ = {}
         self.ms_depends_ = {}
@@ -282,8 +282,8 @@ class Resolve(object):
         dependencies, assuming cyclic dependencies are always valid.
 
         Args:
-            fn: a package key, a MatchSpec, or an iterable of these.
-            filter: a dictionary of (fn,valid) pairs, used to consider a subset
+            fkey: a package key, a MatchSpec, or an iterable of these.
+            filter: a dictionary of (fkey,valid) pairs, used to consider a subset
                 of dependencies, and to eliminate repeated searches.
 
         Returns:
@@ -292,16 +292,16 @@ class Resolve(object):
             search results.
         """
         def v_(spec):
-            return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fn_(spec)
+            return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return ms.optional or any(v_fn_(fn) for fn in self.find_matches(ms))
+            return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
 
-        def v_fn_(fn):
-            val = filter.get(fn)
+        def v_fkey_(fkey):
+            val = filter.get(fkey)
             if val is None:
-                filter[fn] = True
-                val = filter[fn] = all(v_ms_(ms) for ms in self.ms_depends(fn))
+                filter[fkey] = True
+                val = filter[fkey] = all(v_ms_(ms) for ms in self.ms_depends(fkey))
             return val
 
         return v_(spec)
@@ -312,10 +312,10 @@ class Resolve(object):
            solved, so there is no guarantee a solution exists.
 
         Args:
-            fn: a package key or MatchSpec
+            fkey: a package key or MatchSpec
             touched: a dict into which to accumulate the result. This is
                 useful when processing multiple specs.
-            filter: a dictionary of (fn,valid) pairs to be used when
+            filter: a dictionary of (fkey, valid) pairs to be used when
                 testing for package validity.
 
         This function works in two passes. First, it verifies that the package has
@@ -323,20 +323,20 @@ class Resolve(object):
         is _not_ touched, nor are its dependencies. If so, then it is marked as
         touched, and any of its valid dependencies are as well.
         """
-        def t_fn_(fn):
-            val = touched.get(fn)
+        def t_fkey_(fkey):
+            val = touched.get(fkey)
             if val is None:
-                val = touched[fn] = self.valid(fn, filter)
+                val = touched[fkey] = self.valid(fkey, filter)
                 if val:
-                    for ms in self.ms_depends(fn):
+                    for ms in self.ms_depends(fkey):
                         if ms.name[0] != '@':
                             t_ms_(ms)
 
         def t_ms_(ms):
-            for fn in self.find_matches(ms):
-                t_fn_(fn)
+            for fkey in self.find_matches(ms):
+                t_fkey_(fkey)
 
-        return t_ms_(spec) if isinstance(spec, MatchSpec) else t_fn_(spec)
+        return t_ms_(spec) if isinstance(spec, MatchSpec) else t_fkey_(spec)
 
     def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
@@ -349,7 +349,7 @@ class Resolve(object):
 
         Args:
             spec: a package key or MatchSpec
-            filter: a dictionary of (fn,valid) pairs to be used when
+            filter: a dictionary of (fkey, valid) pairs to be used when
                 testing for package validity.
 
         Returns:
@@ -360,8 +360,8 @@ class Resolve(object):
                 return []
             notfound = set()
             specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
-            for fn in specs:
-                for m2 in self.ms_depends(fn):
+            for fkey in specs:
+                for m2 in self.ms_depends(fkey):
                     notfound.update(chains_(m2))
             return [(spec,) + x for x in notfound] if notfound else [(spec,)]
         return chains_(spec)
@@ -427,15 +427,15 @@ class Resolve(object):
             # or which have unsatisfiable dependencies
             nold = 0
             bad_deps = []
-            for fn in group:
-                if filter.setdefault(fn, True):
+            for fkey in group:
+                if filter.setdefault(fkey, True):
                     nold += 1
-                    sat = self.match_any(matches, fn)
+                    sat = self.match_any(matches, fkey)
                     sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                                      for ms in self.ms_depends(fn))
-                    filter[fn] = sat
+                                      for ms in self.ms_depends(fkey))
+                    filter[fkey] = sat
                     if not sat:
-                        bad_deps.append(fn)
+                        bad_deps.append(fkey)
 
             # Build dependency chains if we detect unsatisfiability
             nnew = nold - len(bad_deps)
@@ -445,13 +445,13 @@ class Resolve(object):
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
-                bad_deps = [fn for fn in bad_deps if self.match_any(matches, fn)]
+                bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
                 matches = [(ms,) for ms in matches]
                 chains = [a + b for a in chains for b in matches] if chains else matches
                 if bad_deps:
                     dep2 = set()
-                    for fn in bad_deps:
-                        for ms in self.ms_depends(fn):
+                    for fkey in bad_deps:
+                        for ms in self.ms_depends(fkey):
                             if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
                                 dep2.add(ms)
                     chains = [a + (b,) for a in chains for b in dep2]
@@ -468,9 +468,9 @@ class Resolve(object):
                 if match1 not in specs:
                     nspecs.add(MatchSpec(name))
             cdeps = defaultdict(list)
-            for fn in group:
-                if filter[fn]:
-                    for m2 in self.ms_depends(fn):
+            for fkey in group:
+                if filter[fkey]:
+                    for m2 in self.ms_depends(fkey):
                         if m2.name[0] != '@' and not m2.optional:
                             cdeps[m2.name].append(m2)
             cdeps = {mname: set(deps) for mname, deps in iteritems(cdeps) if len(deps) == nnew}
@@ -487,8 +487,8 @@ class Resolve(object):
         def full_prune(specs, removes, optional, features):
             self.default_filter(features, filter)
             for ms in removes:
-                for fn in self.groups.get(ms.name, []):
-                    filter[fn] = False
+                for fkey in self.groups.get(ms.name, []):
+                    filter[fkey] = False
             feats = set(self.trackers.keys())
             snames.clear()
             specs = slist = list(specs)
@@ -508,17 +508,17 @@ class Resolve(object):
                 for spec in chain(specs, optional):
                     self.touch(spec, touched, filter)
                 nfeats = set()
-                for fn, val in iteritems(touched):
+                for fkey, val in iteritems(touched):
                     if val:
-                        nfeats.update(self.track_features(fn))
+                        nfeats.update(self.track_features(fkey))
                 if len(nfeats) >= len(feats):
                     return True
                 pruned = False
                 feats &= nfeats
-                for fn, val in iteritems(touched):
-                    if val and self.features(fn) - feats:
-                        touched[fn] = filter[fn] = False
-                        filter[fn] = False
+                for fkey, val in iteritems(touched):
+                    if val and self.features(fkey) - feats:
+                        touched[fkey] = filter[fkey] = False
+                        filter[fkey] = False
                         pruned = True
                 if not pruned:
                     return True
@@ -537,27 +537,27 @@ class Resolve(object):
             save_unsat.update((ms,) for ms in hint)
             raise Unsatisfiable(save_unsat)
 
-        dists = {fn: self.index[fn] for fn, val in iteritems(touched) if val}
+        dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
         return dists, list(map(MatchSpec, snames - {ms.name for ms in specs}))
 
-    def match_any(self, mss, fn):
-        rec = self.index[fn]
+    def match_any(self, mss, fkey):
+        rec = self.index[fkey]
         n, v, b = rec['name'], rec['version'], rec['build']
         return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
 
-    def match(self, ms, fn):
-        return MatchSpec(ms).match(self.index[fn])
+    def match(self, ms, fkey):
+        return MatchSpec(ms).match(self.index[fkey])
 
     def find_matches_group(self, ms, groups, trackers=None):
         ms = MatchSpec(ms)
         if ms.name[0] == '@' and trackers:
-            for fn in trackers.get(ms.name[1:], []):
-                yield fn
+            for fkey in trackers.get(ms.name[1:], []):
+                yield fkey
         else:
-            for fn in groups.get(ms.name, []):
-                rec = self.index[fn]
+            for fkey in groups.get(ms.name, []):
+                rec = self.index[fkey]
                 if ms.match_fast(rec['version'], rec['build']):
-                    yield fn
+                    yield fkey
 
     def find_matches(self, ms):
         ms = MatchSpec(ms)
@@ -569,46 +569,48 @@ class Resolve(object):
                 res = self.find_matches_[ms] = list(self.find_matches_group(ms, self.groups))
         return res
 
-    def ms_depends(self, fn):
-        deps = self.ms_depends_.get(fn, None)
+    def ms_depends(self, fkey):
+        deps = self.ms_depends_.get(fkey, None)
         if deps is None:
-            if fn[-1] == ']':
-                fn2, fstr = fn[:-1].split('[')
-                fdeps = {d.name: d for d in self.ms_depends(fn2)}
-                for dep in self.index[fn2]['with_features_depends'][fstr]:
+            rec = self.index[fkey]
+            if fkey.endswith(']'):
+                f2, fstr = fkey.rsplit('[', 1)
+                fdeps = {d.name: d for d in self.ms_depends(f2)}
+                for dep in rec['with_features_depends'][fstr[:-1]]:
                     dep = MatchSpec(dep)
                     fdeps[dep.name] = dep
                 deps = list(fdeps.values())
             else:
-                deps = [MatchSpec(d) for d in self.index[fn].get('depends', [])]
-            deps.extend(MatchSpec('@'+feat) for feat in self.features(fn))
-            self.ms_depends_[fn] = deps
+                deps = [MatchSpec(d) for d in rec.get('depends', [])]
+            deps.extend(MatchSpec('@'+feat) for feat in self.features(fkey))
+            self.ms_depends_[fkey] = deps
         return deps
 
-    def version_key(self, fn, vtype=None):
-        rec = self.index[fn]
+    def version_key(self, fkey, vtype=None):
+        rec = self.index[fkey]
         return (normalized_version(rec['version']), rec['build_number'])
 
-    def features(self, fn):
-        return set(self.index[fn].get('features', '').split())
+    def features(self, fkey):
+        return set(self.index[fkey].get('features', '').split())
 
-    def track_features(self, fn):
-        return set(self.index[fn].get('track_features', '').split())
+    def track_features(self, fkey):
+        return set(self.index[fkey].get('track_features', '').split())
 
-    def package_triple(self, fn):
-        if not fn.endswith('.tar.bz2'):
-            return self.package_triple(fn + '.tar.bz2')
-        rec = self.index.get(fn, None)
+    def package_triple(self, fkey):
+        rec = self.index.get(fkey, None)
         if rec is None:
-            return fn[:-8].rsplit('-', 2)
+            fkey = fkey.rsplit('[',1)[0].rsplit('/',1)[-1]
+            if fkey.endswith('.tar.bz2'):
+                fkey = fkey[:-8]
+            return fkey.rsplit('-', 2)
         return (rec['name'], rec['version'], rec['build'])
 
-    def package_name(self, fn):
-        return self.package_triple(fn)[0]
+    def package_name(self, fkey):
+        return self.package_triple(fkey)[0]
 
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
-        pkgs = [Package(fn, self.index[fn]) for fn in self.find_matches(ms)]
+        pkgs = [Package(fkey, self.index[fkey]) for fkey in self.find_matches(ms)]
         if not pkgs and not emptyok:
             raise NoPackagesFound([(ms,)])
         return pkgs
@@ -630,7 +632,7 @@ class Resolve(object):
             name = self.ms_to_v(ms)
             m = C.from_name(name)
             if m is None:
-                libs = [fn for fn in self.find_matches_group(ms, groups, trackers)]
+                libs = [fkey for fkey in self.find_matches_group(ms, groups, trackers)]
                 # If the MatchSpec is optional, then there may be cases where we want
                 # to assert that it is *not* True. This requires polarity=None.
                 m = C.Any(libs, polarity=None if ms.optional else True, name=name)
@@ -639,8 +641,9 @@ class Resolve(object):
         # Creates a variable that represents the proposition:
         #     Does the package set include package "fn"?
         for group in itervalues(groups):
-            for fn in group:
-                C.new_var(fn)
+            gnames = []
+            for fkey in group:
+                C.new_var(fkey)
             # Install no more than one version of each package
             C.Require(C.AtMostOne, group)
 
@@ -661,10 +664,11 @@ class Resolve(object):
         # Create propositions that assert:
         #     If package "fn" is installed, its dependencie must be satisfied
         for group in itervalues(groups):
-            for fn in group:
-                for ms in self.ms_depends(fn):
+            for fkey in group:
+                nkey = C.Not(fkey)
+                for ms in self.ms_depends(fkey):
                     if not ms.optional:
-                        C.Require(C.Or, C.Not(fn), push_MatchSpec(ms))
+                        C.Require(C.Or, nkey, push_MatchSpec(ms))
         return C
 
     def generate_spec_constraints(self, C, specs):
@@ -677,7 +681,7 @@ class Resolve(object):
         eq = {}
         total = 0
         for name, group in iteritems(groups):
-            nf = [len(self.features(fn)) for fn in group]
+            nf = [len(self.features(fkey)) for fkey in group]
             maxf = max(nf)
             eq.update({fn: maxf-fc for fn, fc in zip(group, nf) if fc < maxf})
             total += maxf
@@ -689,7 +693,7 @@ class Resolve(object):
     def generate_package_count(self, C, groups, missing):
         eq = {}
         for name in missing:
-            eq.update({fn: 1 for fn in groups.get(name, [])})
+            eq.update({fkey: 1 for fkey in groups.get(name, [])})
         return eq
 
     def generate_version_metrics(self, C, groups, specs):
