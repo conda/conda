@@ -226,12 +226,12 @@ set CONDARC=
 
 
 def test_path_translation():
-    test_cygwin_path = "/usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd"
-    test_unix_path = "/usr/bin:/z/documents (x86)/code/conda/tests/envskhkzts/test1:/z/documents/code/conda/tests/envskhkzts/test1/cmd"
-    test_win_path = "z:\\documents (x86)\\code\\conda\\tests\\envskhkzts\\test1;z:\\documents\\code\\conda\\tests\\envskhkzts\\test1\\cmd"
+    test_cygwin_path = "test dummy text /usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text"
+    test_unix_path = "test dummy text /usr/bin:/z/documents (x86)/code/conda/tests/envskhkzts/test1:/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text"
+    test_win_path = "test dummy text /usr/bin;z:\\documents (x86)\\code\\conda\\tests\\envskhkzts\\test1;z:\\documents\\code\\conda\\tests\\envskhkzts\\test1\\cmd more dummy text"
     assert_equals(test_win_path, unix_path_to_win(test_unix_path))
-    assert_equals(test_unix_path.replace("/usr/bin:", ""), win_path_to_unix(test_win_path))
-    assert_equals(test_cygwin_path.replace("/usr/bin:", ""), win_path_to_cygwin(test_win_path))
+    assert_equals(test_unix_path, win_path_to_unix(test_win_path))
+    assert_equals(test_cygwin_path, win_path_to_cygwin(test_win_path))
     assert_equals(test_win_path, cygwin_path_to_win(test_cygwin_path))
 
 
