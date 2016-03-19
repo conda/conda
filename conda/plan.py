@@ -145,7 +145,7 @@ def display_actions(actions, index, show_channel_urls=None):
             newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
         except TypeError:
             newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
-        if newer:
+        if newer or str(P1.version) == 'custom':
             updated.add(pkg)
         else:
             downgraded.add(pkg)
