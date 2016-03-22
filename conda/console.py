@@ -13,7 +13,7 @@ from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
 
 try:
     tty = open(os.ctermid(), 'w')
-except IOError:
+except (IOError, AttributeError):
     tty = sys.stdout
 
 fetch_progress = ProgressBar(widgets=['', ' ', Percentage(), ' ', Bar(),
