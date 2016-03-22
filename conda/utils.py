@@ -44,14 +44,12 @@ def can_open_all_files_in_prefix(prefix, files):
 
 def try_write(dir_path):
     assert isdir(dir_path)
+    temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
     try:
-        try:
-            with open(join(dir_path, '.conda-try-write'), mode='wb') as fo:
-                fo.write(b'This is a test file.\n')
-            return True
-        finally:
-            # XXX: If this raises an exception it will also return False
-            os.unlink(join(dir_path, '.conda-try-write'))
+        with open(temp_filename, mode='wb') as fo:
+            fo.write(b'This is a test file.\n')
+        os.unlink(temp_filename)
+        return True
     except (IOError, OSError):
         return False
 
