@@ -1,3 +1,8 @@
+2016-XX-XX   4.0.6:
+-------------------
+  * log "custom" versions as updates rather than downgrades, #2290
+
+
 2016-03-16   4.0.5:
 -------------------
   * improved help documentation for install, update, and remove, #2262
