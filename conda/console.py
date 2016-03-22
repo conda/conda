@@ -14,6 +14,7 @@ from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
 try:
     tty = open(os.ctermid(), 'w')
 except (IOError, AttributeError):
+    # apparently `os.ctermid` not available on Windows, and throws AttributeError
     tty = sys.stdout
 
 fetch_progress = ProgressBar(widgets=['', ' ', Percentage(), ' ', Bar(),
