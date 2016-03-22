@@ -66,11 +66,12 @@ except ImportError:
 
         Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
         """
-        import re
-        path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
-        converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
-                        for _path in re.findall(path_re, path)]
-        return ":".join(converted_paths)
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
+        translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
+            .replace(":", "")
+        translation = re.sub(path_re, translation, path)
+        translation = translation.replace(";/", ":/")
+        return translation
 
 
 on_win = bool(sys.platform == "win32")

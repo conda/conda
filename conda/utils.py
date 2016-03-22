@@ -81,10 +81,12 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '(?<![:/])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
+    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
     translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
-        .replace(":", "").replace(";", ":")
-    return re.sub(path_re, translation, path)
+        .replace(":", "")
+    translation = re.sub(path_re, translation, path)
+    translation = translation.replace(";/", ":/")
+    return translation
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -100,7 +102,7 @@ def unix_path_to_win(path, root_prefix=""):
     translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
                   found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
     translation = re.sub(path_re, translation, path)
-    translation = re.sub(":([a-zA-Z]):", lambda match: ";" + match.group(0)[1] + ":", translation)
+    translation = re.sub(":?([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation)
     return translation
 
 

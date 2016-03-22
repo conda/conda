@@ -124,10 +124,13 @@ def main():
             if rootpath:
                 path = path.replace(translate_stream(rootpath, win_path_to_cygwin), "")
         else:
-            path = translate_stream(path, win_path_to_unix)
+            if sys.platform == 'win32':
+                path = translate_stream(path, win_path_to_unix)
+                if rootpath:
+                    rootpath = translate_stream(rootpath, win_path_to_unix)
             # Clear the root path if it is present
             if rootpath:
-                path = path.replace(translate_stream(rootpath, win_path_to_unix), "")
+                path = path.replace(rootpath, "")
 
 
     elif sys.argv[1] == '..deactivate':
