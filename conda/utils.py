@@ -219,7 +219,8 @@ def yaml_load(filehandle):
 def yaml_dump(string):
     yaml = get_yaml()
     try:
-      return yaml.dump(string, Dumper=yaml.RoundTripDumper, block_seq_indent=2,
-                       default_flow_style=False, indent=4)
+        return yaml.dump(string, Dumper=yaml.RoundTripDumper,
+                         block_seq_indent=2, default_flow_style=False,
+                         indent=4)
     except AttributeError:
         return yaml.dump(string, default_flow_style=False)
