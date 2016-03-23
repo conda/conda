@@ -11,7 +11,7 @@ Conda is an open source package management system and environment management sys
 versions of software packages and their dependencies and switching easily between them. It works on
 Linux, OS X and Windows, and was created for Python programs but can package and distribute any software.
 
-Conda is included in Miniconda, Anaconda, and the Continuum subscriptions of Anaconda. It is also available
+Conda is included in Anaconda, Miniconda, and the Continuum subscriptions of Anaconda. It is also available
 on pypi, although that approach may not be as up-to-date.
 
 * Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 720
