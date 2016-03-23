@@ -11,8 +11,9 @@ Conda is an open source package management system and environment management sys
 versions of software packages and their dependencies and switching easily between them. It works on
 Linux, OS X and Windows, and was created for Python programs but can package and distribute any software.
 
-Conda is included in Anaconda, Miniconda, and the Continuum subscriptions of Anaconda. It is also available
-on pypi, although that approach may not be as up-to-date.
+Conda is included in Anaconda and Miniconda. Conda is also included in the Continuum `subscriptions <https://www.continuum.io/anaconda-subscriptions>`_
+of Anaconda, which provide on-site enterprise package and environment management for Python, R, Node.js, Java, and other application
+stacks. Conda is also available on pypi, although that approach may not be as up-to-date.
 
 * Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 720
   scientific packages and their dependencies can be installed individually from the Continuum repository with
@@ -20,10 +21,6 @@ on pypi, although that approach may not be as up-to-date.
 * Anaconda includes conda, conda-build, Python, and over 150 automatically installed scientific packages and
   their dependencies. As with Miniconda, over 250 additional scientific packages can be installed individually with
   the “conda install” command.
-* Conda is also included in the Continuum Analytics `subscriptions <https://www.continuum.io/anaconda-subscriptions>`_ of
-  Anaconda: Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise. These allow both system administrators and users
-  to manage packages and environments on-site. Any software application stack can be managed, including Python, R, Node.js,
-  Java, and more.
 * pip install conda uses the released version on pypi.  This version allows you to create new conda environments using
   any python installation, and a new version of Python will then be installed into those environments.  These environments
   are still considered "Anaconda installations."
