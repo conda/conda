@@ -11,21 +11,22 @@ Conda is an open source package management system and environment management sys
 versions of software packages and their dependencies and switching easily between them. It works on
 Linux, OS X and Windows, and was created for Python programs but can package and distribute any software.
 
-Conda is included in Anaconda and Miniconda.  It is also available on pypi (although that approach may not be as up-to-date).   Conda also comes in the Continuum subscriptions of Anaconda: Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise.
+Conda is included in Miniconda, Anaconda, and the Continuum subscriptions of Anaconda. It is also available
+on pypi, although that approach may not be as up-to-date.
 
-* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 720 
+* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 720
   scientific packages and their dependencies can be installed individually from the Continuum repository with
   the “conda install” command.
 * Anaconda includes conda, conda-build, Python, and over 150 automatically installed scientific packages and
   their dependencies. As with Miniconda, over 250 additional scientific packages can be installed individually with
   the “conda install” command.
-* pip install conda uses the released version on pypi.  This version allows you to create new conda environments using 
-  any python installation --- a new version of Python will then be installed into those environments.  These environments 
+* Conda is also included in the Continuum Analytics `subscriptions <https://www.continuum.io/anaconda-subscriptions>`_ of
+  Anaconda: Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise. These allow both system administrators and users
+  to manage packages and environments on-site. Any software application stack can be managed, including Python, R, Node.js,
+  Java, and more.
+* pip install conda uses the released version on pypi.  This version allows you to create new conda environments using
+  any python installation, and a new version of Python will then be installed into those environments.  These environments
   are still considered "Anaconda installations."
-* Anaconda Pro, Anaconda Workgroup and Anaconda Enterprise allow both system
-  administrators and users to manage packages and environments on-site. Any
-  software application stack can be managed, including Python, R, Node.js,
-  Java, and more. These subscriptions are sold by Continuum Analytics.
 
 The `conda` command is the primary interface for managing `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations. It can query
