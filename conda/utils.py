@@ -44,6 +44,7 @@ def can_open_all_files_in_prefix(prefix, files):
 
 def try_write(dir_path):
     assert isdir(dir_path)
+    # try to create a file to see if `dir_path` is writable, see #2151
     temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
     try:
         with open(temp_filename, mode='wb') as fo:
