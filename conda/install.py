@@ -267,7 +267,7 @@ def rm_empty_dir(path):
     """
     try:
         os.rmdir(path)
-    except OSError: # directory might not exist or not be empty
+    except OSError:  # directory might not exist or not be empty
         pass
 
 
@@ -346,7 +346,8 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     if new_data == data:
         return
     st = os.lstat(path)
-    os.remove(path) # Remove file before rewriting to avoid destroying hard-linked cache.
+    # Remove file before rewriting to avoid destroying hard-linked cache
+    os.remove(path)
     with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -840,7 +841,7 @@ def duplicates_to_remove(linked_dists, keep_dists):
     from collections import defaultdict
 
     keep_dists = set(keep_dists)
-    ldists = defaultdict(set) # map names to set of distributions
+    ldists = defaultdict(set)  # map names to set of distributions
     for dist in linked_dists:
         name = name_dist(dist)
         ldists[name].add(dist)

@@ -74,7 +74,6 @@ def configure_parser(sub_parsers):
 
 
 def show_pkg_info(name):
-    #import conda.install as install
     from conda.api import get_index
     from conda.resolve import Resolve
 

@@ -235,7 +235,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                 size = getsize(join(pkgs_dir, fn))
                 print(fmt % (fn, human_bytes(size)))
             print()
-        print('-' * 51) # From 40 + 1 + 10 in fmt
+        print('-' * 51)  # From 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
@@ -327,7 +327,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
             for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
                 print(fmt % (pkg, human_bytes(pkgsize)))
             print()
-        print('-' * 51) # 40 + 1 + 10 in fmt
+        print('-' * 51)  # 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
@@ -426,9 +426,9 @@ def execute(args, parser):
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first, # Backwards compabitility
+            'pkgs_dir': first,  # Backwards compabitility
             'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first], # Backwards compatibility
+            'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not args.json)
@@ -443,9 +443,9 @@ def execute(args, parser):
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['packages'] = {
-            'pkgs_dir': first, # Backwards compatibility
+            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first], # Backwards compatibility
+            'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize,
             'warnings': warnings,
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},

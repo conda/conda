@@ -165,7 +165,7 @@ class memoized(object):
 
 
 # For instance methods only
-class memoize(object): # 577452
+class memoize(object):  # 577452
     def __init__(self, func):
         self.func = func
     def __get__(self, obj, objtype=None):

@@ -69,7 +69,7 @@ class Packages(Completer):
         call_dict = dict(channel_urls=args.channel or (), use_cache=True,
             prepend=not args.override_channels, unknown=args.unknown,
             offline=args.offline)
-        if hasattr(args, 'platform'): # in search
+        if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
         return [i.rsplit('-', 2)[0] for i in index]
@@ -154,7 +154,7 @@ def add_parser_channels(p):
         'defaults' to get the default packages for conda, and 'system' to get the system
         packages, which also takes .condarc into account.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.anaconda.org/.""" # we can't put , here; invalid syntax
+        is http://conda.anaconda.org/.""",
     )
     p.add_argument(
         "--override-channels",
@@ -272,7 +272,7 @@ def add_parser_install(p):
             nargs='*',
             help="Packages to update in the conda environment.",
         ).completer = InstalledPackages
-    else: # create or install
+    else:  # create or install
         # Same as above except the completer is not only installed packages
         p.add_argument(
             'packages',
