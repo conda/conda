@@ -25,9 +25,8 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
-from functools import total_ordering
 from itertools import chain, combinations
-from conda.compat import iteritems, string_types, ceil, log2
+from conda.compat import iteritems, string_types
 import logging
 import pycosat
 
