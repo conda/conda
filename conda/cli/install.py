@@ -372,7 +372,7 @@ environment does not exist: %s
                 error_message += "\n\n    %r" % pinned_specs
 
             common.error_and_exit(error_message, json=args.json)
-    except (Unsatisfiable,SystemExit) as e:
+    except (Unsatisfiable, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         error_type = 'UnsatisfiableSpecifications'
         if e.args and 'could not import' in e.args[0]:

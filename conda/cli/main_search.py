@@ -226,7 +226,7 @@ def execute_search(args, parser):
     if args.reverse_dependency:
         new_names = []
         old = None
-        for name, pkg in sorted(names, key=lambda x:(x[0], x[1].name, x[1])):
+        for name, pkg in sorted(names, key=lambda x: (x[0], x[1].name, x[1])):
             if name == old:
                 new_names[-1][1].append(pkg)
             else:
