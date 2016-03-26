@@ -25,18 +25,14 @@ if PY3:
             # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
-    import configparser
     from io import StringIO
     import urllib.parse as urlparse
     from urllib.parse import quote as urllib_quote
     from itertools import zip_longest
-    from math import log2, ceil
-    from shlex import quote
     from tempfile import TemporaryDirectory
     range = range
     zip = zip
 else:
-    import ConfigParser as configparser
     from cStringIO import StringIO
     import urlparse
     from urllib import quote as urllib_quote
@@ -55,13 +51,6 @@ else:
             if not os.path.islink(path):
                 os.chmod(path, mode)
     from itertools import izip_longest as zip_longest
-    from math import log
-    def log2(x):
-        return log(x, 2)
-    def ceil(x):
-        from math import ceil
-        return int(ceil(x))
-    from pipes import quote
 
     # Modified from http://hg.python.org/cpython/file/3.3/Lib/tempfile.py. Don't
     # use the 3.4 one. It uses the new weakref.finalize feature.
@@ -205,3 +194,6 @@ def with_metaclass(meta, *bases):
                 return type.__new__(cls, name, (), d)
             return meta(name, bases, d)
     return metaclass("NewBase", None, {})
+
+# Silence flake8
+(StringIO, urlparse, urllib_quote, zip, zip_longest)

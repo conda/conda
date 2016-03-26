@@ -122,7 +122,7 @@ class CrossPlatformStLink(object):
         else:
             # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
             import ctypes
-            from ctypes import POINTER, WinError
+            from ctypes import POINTER
             from ctypes.wintypes import DWORD, HANDLE, BOOL
 
             cls.CreateFile = ctypes.windll.kernel32.CreateFileW
