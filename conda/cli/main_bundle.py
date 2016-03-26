@@ -8,8 +8,8 @@ descr = 'Create or extract a "bundle package" (EXPERIMENTAL)'
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'bundle',
-        description = descr,
-        help = descr,
+        description=descr,
+        help=descr,
     )
     cxgroup = p.add_mutually_exclusive_group()
     cxgroup.add_argument('-c', "--create",

@@ -29,13 +29,13 @@ def get_installed_version(prefix, name):
 
 def create_info(name, version, build_number, requires_py):
     d = dict(
-        name = name,
-        version = version,
-        platform = config.platform,
-        arch = config.arch_name,
-        build_number = int(build_number),
-        build = str(build_number),
-        depends = [],
+        name=name,
+        version=version,
+        platform=config.platform,
+        arch=config.arch_name,
+        build_number=int(build_number),
+        build=str(build_number),
+        depends=[],
     )
     if requires_py:
         d['build'] = ('py%d%d_' % requires_py) + d['build']
