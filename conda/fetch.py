@@ -109,7 +109,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                            (config.remove_binstar_tokens(url), e))
 
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 407: # Proxy Authentication Required
+        if e.response.status_code == 407:  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
@@ -121,7 +121,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                    config.remove_binstar_tokens(url).split(
                         config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
             else:
-                if url.endswith('/noarch/'): # noarch directory might not exist
+                if url.endswith('/noarch/'):  # noarch directory might not exist
                     return None
                 msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
@@ -155,7 +155,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         # error and http gives the above error. Also, there is no status_code
         # attribute here. We have to just check if it looks like 407.  See
         # https://github.com/kennethreitz/requests/issues/2061.
-        if "407" in str(e): # Proxy Authentication Required
+        if "407" in str(e):  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir,
@@ -331,7 +331,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 407: # Proxy Authentication Required
+            if e.response.status_code == 407:  # Proxy Authentication Required
                 handle_proxy_407(url, session)
                 # Try again
                 return download(url, dst_path, session=session, md5=md5,
@@ -346,7 +346,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             # status_code attribute here.  We have to just check if it looks
             # like 407.
             # See: https://github.com/kennethreitz/requests/issues/2061.
-            if "407" in str(e): # Proxy Authentication Required
+            if "407" in str(e):  # Proxy Authentication Required
                 handle_proxy_407(url, session)
                 # try again
                 return download(url, dst_path, session=session, md5=md5,
@@ -387,7 +387,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                     if size and 0 <= n <= size:
                         getLogger('fetch.update').info(n)
         except IOError as e:
-            if e.errno == 104 and retries: # Connection reset by pee
+            if e.errno == 104 and retries:  # Connection reset by pee
                 # try again
                 log.debug("%s, trying again" % e)
                 return download(url, dst_path, session=session, md5=md5,

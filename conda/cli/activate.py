@@ -32,7 +32,7 @@ prefix path.""")
 adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
-    else: # ..deactivate
+    else:  # ..deactivate
         if on_win and win_process in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: deactivate
 

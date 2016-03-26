@@ -259,5 +259,4 @@ class History(object):
 if __name__ == '__main__':
     from pprint import pprint
     with History(sys.prefix) as h:
-        #h.print_log()
         pprint(h.get_user_requests())

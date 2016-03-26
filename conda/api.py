@@ -73,7 +73,7 @@ def app_get_index(all_version=False):
     if all_version:
         return index
 
-    d = defaultdict(list) # name -> list of Package objects
+    d = defaultdict(list)  # name -> list of Package objects
     for fn, info in iteritems(index):
         d[_name_fn(fn)].append(Package(fn, info))
 
@@ -191,10 +191,5 @@ def get_package_versions(package, offline=False):
 
 
 if __name__ == '__main__':
-    #from pprint import pprint
     for fn in app_get_index():
         print('%s: %s' % (fn, app_is_installed(fn)))
-    #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
-    #print(app_install('twisted-12.3.0-py27_0.tar.bz2'))
-    #pprint(get_index())
-    #print(app_get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2'))
