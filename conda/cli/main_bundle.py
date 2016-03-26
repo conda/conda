@@ -11,7 +11,7 @@ def configure_parser(sub_parsers):
         description = descr,
         help = descr,
     )
-    cxgroup=p.add_mutually_exclusive_group()
+    cxgroup = p.add_mutually_exclusive_group()
     cxgroup.add_argument('-c', "--create",
                          action="store_true",
                          help="Create bundle.")
