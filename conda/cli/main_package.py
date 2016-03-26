@@ -103,6 +103,6 @@ def execute(args, parser):
         return
 
     make_tarbz2(prefix,
-                name = args.pkg_name.lower(),
-                version = args.pkg_version,
-                build_number = int(args.pkg_build))
+                name=args.pkg_name.lower(),
+                version=args.pkg_version,
+                build_number=int(args.pkg_build))

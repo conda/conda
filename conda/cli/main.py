@@ -74,17 +74,17 @@ def main():
     )
     p.add_argument(
         "--debug",
-        action = "store_true",
-        help = "Show debug output."
+        action="store_true",
+        help="Show debug output."
     )
     p.add_argument(
         "--json",
-        action = "store_true",
-        help = argparse.SUPPRESS,
+        action="store_true",
+        help=argparse.SUPPRESS,
     )
     sub_parsers = p.add_subparsers(
-        metavar = 'command',
-        dest = 'cmd',
+        metavar='command',
+        dest='cmd',
     )
 
     main_modules = ["info", "help", "list", "search", "create", "install", "update",
