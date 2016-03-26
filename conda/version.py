@@ -274,7 +274,7 @@ class VersionSpec(object):
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                raise RuntimeError('Invalid version spec: %s'%spec)
+                raise RuntimeError('Invalid version spec: %s' % spec)
             op, b = m.groups()
             self.op = opdict[op]
             self.cmp = VersionOrder(b)
@@ -292,11 +292,11 @@ class VersionSpec(object):
     def str(self, inand=False):
         s = self.spec
         if isinstance(s, tuple):
-            newand = not inand and s[0]==all
-            inand = inand and s[0]==any
-            s = (',' if s[0]=='all' else '|').join(x.str(newand) for x in s[1])
+            newand = not inand and s[0] == all
+            inand = inand and s[0] == any
+            s = (',' if s[0] == 'all' else '|').join(x.str(newand) for x in s[1])
             if inand:
-                s = '(%s)'%s
+                s = '(%s)' % s
         return s
 
     def __str__(self):

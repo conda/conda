@@ -138,7 +138,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
     # --add and --remove with the same keys will not be well-defined).
-    action=p.add_mutually_exclusive_group(required=True)
+    action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
         nargs='*',

@@ -17,7 +17,7 @@ if 'win' in sys.platform and 'dar' not in sys.platform:
 else:
     status = False
     pandas = '0.8.1'
-    numba  = '0.1.1'
+    numba = '0.1.1'
     cython = '0.16'
 
 
@@ -54,7 +54,7 @@ cmds = [
 
 def tester(commands):
     cmds = commands
-    errs  = []
+    errs = []
     fails = []
     for cmd in cmds:
         cmd = "conda %s" % cmd

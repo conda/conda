@@ -67,7 +67,7 @@ DIR_DELETE = "rmdir /Q {dest}"
 def make_bat_link(files, prefix, dist_dir):
     links = []
     has_mklink = find_executable('mklink')
-    LINK =  WINVISTA_LINK if has_mklink else WINXP_LINK
+    LINK = WINVISTA_LINK if has_mklink else WINXP_LINK
     dirs = set()
     for file in files:
         source = abspath(join(dist_dir, file))

@@ -373,7 +373,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 more = True
                 while more:
                     # Use resp.raw so that requests doesn't decode gz files
-                    chunk  = resp.raw.read(2**14)
+                    chunk = resp.raw.read(2**14)
                     if not chunk:
                         more = False
                     try:

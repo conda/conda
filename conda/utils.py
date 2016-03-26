@@ -99,7 +99,7 @@ def unix_path_to_win(path, root_prefix=""):
         # already a windows path
         return path.replace("/", "\\")
     """Convert a path or :-separated string of paths into a Windows representation"""
-    path_re = root_prefix +'(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+    path_re = root_prefix + '(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
     translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
                   found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
     translation = re.sub(path_re, translation, path)
