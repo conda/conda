@@ -108,8 +108,11 @@ def unix_path_to_win(path, root_prefix=""):
 
 
 # curry cygwin functions
-win_path_to_cygwin = lambda path : win_path_to_unix(path, "/cygdrive")
-cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
+def win_path_to_cygwin(path):
+    return win_path_to_unix(path, "/cygdrive")
+
+def cygwin_path_to_win(path):
+    return unix_path_to_win(path, "/cygdrive")
 
 
 def translate_stream(stream, translator):

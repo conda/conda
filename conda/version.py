@@ -140,7 +140,7 @@ class VersionOrder(object):
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
             # as well, by converting the former to the latter.
-            version = version.replace('-','_')
+            version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
             raise ValueError(message + "invalid character(s).")
@@ -247,8 +247,8 @@ class VersionOrder(object):
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
 version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
-opdict = {'==':op.__eq__,'!=':op.__ne__,'<=':op.__le__,
-          '>=':op.__ge__,'<':op.__lt__,'>':op.__gt__}
+opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
+          '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
 
 class VersionSpec(object):
     def regex_match_(self, vspec):
@@ -265,12 +265,12 @@ class VersionSpec(object):
             return spec
         self = object.__new__(cls)
         self.spec = spec
-        if isinstance(spec,tuple):
-            self.match = self.all_match_ if spec[0]=='all' else self.any_match_
+        if isinstance(spec, tuple):
+            self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
         elif '|' in spec:
-            return VersionSpec(('any',tuple(VersionSpec(s) for s in spec.split('|'))))
+            return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
         elif ',' in spec:
-            return VersionSpec(('all',tuple(VersionSpec(s) for s in spec.split(','))))
+            return VersionSpec(('all', tuple(VersionSpec(s) for s in spec.split(','))))
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
@@ -308,10 +308,10 @@ class VersionSpec(object):
     def __and__(self, other):
         if not isinstance(other, VersionSpec):
             other = VersionSpec(other)
-        return VersionSpec((all,(self,other)))
+        return VersionSpec((all, (self, other)))
 
     def __or__(self, other):
         if not isinstance(other, VersionSpec):
             other = VersionSpec(other)
-        return VersionSpec((any,(self,other)))
+        return VersionSpec((any, (self, other)))
 

@@ -591,7 +591,8 @@ def linked_data(prefix):
         for fn in os.listdir(meta_dir):
             if fn.endswith('.json'):
                 try:
-                    res[fn[:-5]] = json.load(open(join(meta_dir,fn)))
+                    with open(join(meta_dir, fn)) as fin:
+                        res[fn[:-5]] = json.load(fin)
                 except IOError:
                     pass
     return res

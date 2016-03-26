@@ -372,7 +372,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             log.debug('H3 %s' % name)
             spec = dist2spec3v(names_linked[name])
             if update:
-                spec = '%s (target=%s.tar.bz2)' % (spec,names_linked[name])
+                spec = '%s (target=%s.tar.bz2)' % (spec, names_linked[name])
             specs.append(spec)
             continue
 
@@ -458,23 +458,25 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     mss = list(map(MatchSpec, specs))
 
     if force:
-        nlinked = {r.package_name(fn):fn[:-8] for fn in linked if not any(r.match(ms, fn) for ms in mss)}
+        nlinked = {r.package_name(fn): fn[:-8]
+                   for fn in linked
+                   if not any(r.match(ms, fn) for ms in mss)}
     else:
         if config.track_features:
             specs.extend(x + '@' for x in config.track_features)
-        nlinked = {r.package_name(fn):fn[:-8] for fn in r.remove(specs, linked)}
+        nlinked = {r.package_name(fn): fn[:-8] for fn in r.remove(specs, linked)}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {r.package_name(fn):fn[:-8] for fn in linked}
+    linked = {r.package_name(fn): fn[:-8] for fn in linked}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_fn in reversed(r.dependency_sort(linked)):
         dist = old_fn + '.tar.bz2'
         name = r.package_name(dist)
-        if old_fn == nlinked.get(name,''):
+        if old_fn == nlinked.get(name, ''):
             continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             raise RuntimeError(
