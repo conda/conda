@@ -117,9 +117,10 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
         if e.response.status_code == 404:
             if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
-                msg = ('Could not find anaconda.org user %s' %
-                   config.remove_binstar_tokens(url).split(
-                        config.DEFAULT_CHANNEL_ALIAS)[1].split('/')[0])
+                user = config.remove_binstar_tokens(url) \
+                             .split(config.DEFAULT_CHANNEL_ALIAS)[1] \
+                             .split("/")[0]
+                msg = 'Could not find anaconda.org user %s' % user
             else:
                 if url.endswith('/noarch/'):  # noarch directory might not exist
                     return None
@@ -127,13 +128,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
-        elif (e.response.status_code == 401 and config.rc.get('channel_alias',
-                        config.DEFAULT_CHANNEL_ALIAS) in url):
+        elif (e.response.status_code == 401 and
+                config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to anaconda.org again with "
-                "'anaconda login' to access private packages(%s, %s)" %
-                (config.hide_binstar_tokens(url), e))
+                   "'anaconda login' to access private packages(%s, %s)" %
+                   (config.hide_binstar_tokens(url), e))
             stderrlog.info(msg)
             return fetch_repodata(config.remove_binstar_tokens(url),
                                   cache_dir=cache_dir,
@@ -225,7 +226,7 @@ def add_unknown(index):
 def add_pip_dependency(index):
     for info in itervalues(index):
         if (info['name'] == 'python' and
-                    info['version'].startswith(('2.', '3.'))):
+                info['version'].startswith(('2.', '3.'))):
             info.setdefault('depends', []).append('pip')
 
 @memoized

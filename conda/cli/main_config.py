@@ -272,8 +272,8 @@ channels:
                                   (', '.join(config.rc_list_keys), key), json=args.json,
                                   error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
-            raise CouldntParse("key %r should be a list, not %s." % (key,
-                rc_config[key].__class__.__name__))
+            bad = rc_config[key].__class__.__name__
+            raise CouldntParse("key %r should be a list, not %s." % (key, bad))
         if key == 'default_channels' and rc_path != config.sys_rc_path:
             raise NotImplementedError("'default_channels' is only configurable for system installs")
         if item in rc_config.get(key, []):

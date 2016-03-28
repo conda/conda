@@ -64,7 +64,7 @@ def binpath_from_arg(arg):
                 join(prefix, 'cmd'),
                 join(prefix, 'Scripts'),
                 join(prefix, 'Library', 'bin'),
-               ]
+                ]
     else:
         path = [prefix.rstrip("/"),
                 join(prefix, 'cmd'),

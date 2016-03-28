@@ -215,16 +215,15 @@ def binstar_channel_alias(channel_alias):
             log.debug("Could not import binstar")
             pass
         except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" %
-                e)
+            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
     return channel_alias
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
-    (re.escape(channel_alias)))
+_binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
+BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
 
 def hide_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)

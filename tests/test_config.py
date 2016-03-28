@@ -459,7 +459,7 @@ channels:
             f.write(condarc)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-            '--add', 'channels', 'test')
+                                           '--add', 'channels', 'test')
         assert stdout == ''
         assert stderr == """\
 Error: Could not parse the yaml file. Use -f to use the

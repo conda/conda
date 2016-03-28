@@ -266,9 +266,9 @@ def find_pkgs():
         if not os.path.exists(pkgs_dir):
             print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
-        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
-            # Only include actual packages
-            isdir(join(pkgs_dir, i, 'info'))]
+        pkgs = [i for i in listdir(pkgs_dir)
+                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
+                    isdir(join(pkgs_dir, i, 'info')))]
         for pkg in pkgs:
             breakit = False
             for root, dir, files in walk(join(pkgs_dir, pkg)):
@@ -395,8 +395,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
     for cache_type in cache_dirs:
         print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-        print("%-40s %10s" % ("Size:",
-            human_bytes(cache_sizes[cache_type])))
+        print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
         print()
 
     print("%-40s %10s" % ("Total:", human_bytes(total_size)))

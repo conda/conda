@@ -99,8 +99,12 @@ def main():
             imported.configure_parser(sub_parsers, name='uninstall')
 
     from conda.cli.find_commands import find_commands
-    sub_parsers.completer = lambda prefix, **kwargs: [i for i in
-        list(sub_parsers.choices) + find_commands() if i.startswith(prefix)]
+    def completer(prefix, **kwargs):
+        return [i
+                for i in list(sub_parsers.choices) + find_commands()
+                if i.startswith(prefix)]
+
+    sub_parsers.completer = completer
     args = p.parse_args()
 
     if getattr(args, 'json', False):
@@ -134,7 +138,7 @@ def print_issue_message(e, use_json=False):
     from conda.cli import common
     message = ""
     if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-            message = """\
+        message = """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
 

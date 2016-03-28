@@ -172,7 +172,7 @@ def install(args, parser, command='install'):
     elif getattr(args, 'all', False):
         if not linked:
             common.error_and_exit("There are no packages installed in the "
-                "prefix %s" % prefix)
+                                  "prefix %s" % prefix)
         specs.extend(nm for nm in lnames)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
@@ -268,7 +268,7 @@ def install(args, parser, command='install'):
             latest = pkgs[-1]
 
             if (latest.version == vers_inst[0] and
-                       latest.build_number == build_inst[0]):
+                    latest.build_number == build_inst[0]):
                 args.packages.remove(name)
         if not args.packages:
             from conda.cli.main_list import print_packages

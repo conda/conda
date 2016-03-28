@@ -172,7 +172,7 @@ def app_uninstall(fn, prefix=config.root_dir):
     index = get_index(prefix=prefix)
     specs = [_fn2spec(fn)]
     if (plan.is_root_prefix(prefix) and
-        common.names_in_specs(common.root_no_rm, specs)):
+            common.names_in_specs(common.root_no_rm, specs)):
         raise ValueError("Cannot remove %s from the root environment" %
                          ', '.join(common.root_no_rm))
 

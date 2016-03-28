@@ -137,8 +137,8 @@ def untracked(prefix, exclude_self_build=False):
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or
-                     (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
-                     (path.endswith('.pyc') and path[:-1] in conda_files))}
+                    (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
+                    (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
 def which_prefix(path):
