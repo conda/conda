@@ -157,7 +157,7 @@ def test_win_subprocess(prefix):
         # Now unlink it.
         print("making unlink command")
         batfiles.append(make_bat_unlink([join(prefix_battest, 'battest1')],
-        [prefix_battest], prefix, dist_dir))
+                                        [prefix_battest], prefix, dist_dir))
 
         # Now create a file in the pkgs dir
         print("making file in pkgs dir")

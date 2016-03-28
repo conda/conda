@@ -17,7 +17,7 @@ from conda.cli.find_commands import find_commands, find_executable
 from conda.cli import common
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
-    'pipbuild', 'develop', 'convert'}
+                  'pipbuild', 'develop', 'convert'}
 
 _ARGCOMPLETE_DEBUG = False
 def debug_argcomplete(msg):
@@ -57,8 +57,8 @@ if argcomplete:
             subcommands = find_commands()
             for subcommand in subcommands:
                 if 'conda %s' % subcommand in environ['COMP_LINE']:
-                    environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s'
-                        % subcommand, 'conda-%s' % subcommand)
+                    environ['COMP_LINE'] = environ['COMP_LINE'].replace('conda %s' % subcommand,
+                                                                        'conda-%s' % subcommand)
                     debug_argcomplete("Using subprocess")
                     debug_argcomplete(sys.argv)
                     import pprint
@@ -133,9 +133,10 @@ Error: You need to install conda-build in order to use the 'conda %s'
 """ % cmd)
                         else:
                             message = "Error: Could not locate 'conda-%s'" % cmd
-                            conda_commands = set(find_commands())
-                            close = get_close_matches(cmd,
-                                set(argument.choices.keys()) | build_commands | conda_commands)
+                            possibilities = (set(argument.choices.keys()) |
+                                             build_commands |
+                                             set(find_commands()))
+                            close = get_close_matches(cmd, possibilities)
                             if close:
                                 message += '\n\nDid you mean one of these?\n'
                                 for s in close:

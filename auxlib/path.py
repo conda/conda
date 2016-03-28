@@ -67,8 +67,8 @@ def open_package_file(file_path, package_name):
         return open(file_path)
 
     # look for file in package resources
-    if (package_name and pkg_resources is not None
-        and pkg_resources.resource_exists(package_name, file_path)):
+    if (package_name and pkg_resources is not None and
+            pkg_resources.resource_exists(package_name, file_path)):
         log.info("found package resource file {0} for package {1}".format(file_path, package_name))
         return pkg_resources.resource_stream(package_name, file_path)
 

@@ -66,9 +66,11 @@ class Packages(Completer):
         # TODO: Include .tar.bz2 files for local installs.
         from conda.api import get_index
         args = self.parsed_args
-        call_dict = dict(channel_urls=args.channel or (), use_cache=True,
-            prepend=not args.override_channels, unknown=args.unknown,
-            offline=args.offline)
+        call_dict = dict(channel_urls=args.channel or (),
+                         use_cache=True,
+                         prepend=not args.override_channels,
+                         unknown=args.unknown,
+                         offline=args.offline)
         if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
@@ -146,7 +148,8 @@ def add_parser_quiet(p):
     )
 
 def add_parser_channels(p):
-    p.add_argument('-c', '--channel',
+    p.add_argument(
+        '-c', '--channel',
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
@@ -514,8 +517,8 @@ def specs_from_url(url, json=False):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
-                    error_and_exit("could not parse '%s' in: %s" %
-                                   (line, url), json=json,
+                    error_and_exit("could not parse '%s' in: %s" % (line, url),
+                                   json=json,
                                    error_type="ValueError")
                 specs.append(spec)
         except IOError:
@@ -544,10 +547,7 @@ def check_specs(prefix, specs, json=False, create=False):
 
                     conda config --add create_default_packages PACKAGE_NAME
             """)
-        error_and_exit(msg,
-                       json=json,
-                       error_type="ValueError")
-
+        error_and_exit(msg, json=json, error_type="ValueError")
 
 
 def disp_features(features):

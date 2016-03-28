@@ -238,7 +238,8 @@ def rm_rf(path, max_retries=5, trash=True):
                         msg += "Retry with onerror failed (%s)\n" % e1
 
                     p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
                     (stdout, stderr) = p.communicate()
                     if p.returncode != 0:
                         msg += '%s\n%s\n' % (stdout, stderr)
@@ -428,8 +429,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
-                str(dist).rsplit('-', 2)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = str(dist).rsplit('-', 2)
     if action == 'pre-link':
         env['SOURCE_DIR'] = str(prefix)
     try:

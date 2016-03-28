@@ -69,7 +69,7 @@ def main(args, windowsonly=True):
         else:
             while not check_processes():
                 choice = confirm(args, message="Continue (yes/no/force)",
-                    choices=('yes', 'no', 'force'), default='no')
+                                 choices=('yes', 'no', 'force'), default='no')
                 if choice == 'no':
                     sys.exit(1)
                 if choice == 'force':

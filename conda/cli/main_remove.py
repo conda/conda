@@ -159,7 +159,7 @@ def execute(args, parser):
     else:
         specs = common.specs_from_args(args.package_names)
         if (plan.is_root_prefix(prefix) and
-            common.names_in_specs(common.root_no_rm, specs)):
+                common.names_in_specs(common.root_no_rm, specs)):
             common.error_and_exit('cannot remove %s from root environment' %
                                   ', '.join(common.root_no_rm),
                                   json=args.json,
