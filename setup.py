@@ -34,12 +34,12 @@ import conda  # NOQA
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
+scripts = ['bin/activate',
+           'bin/deactivate', ]
 if sys.platform == 'win32':
-    kwds = {'data_files': [("cmd", ["cmd/activate", "cmd/deactivate",
-                                    "cmd/activate.bat", "cmd/deactivate.bat"]), ]
-            }
-else:
-    kwds = {'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"]), ]}
+    # Powershell scripts should go here
+    scripts.extend(['bin\\activate.bat',
+                    'bin\\deactivate.bat',])
 
 setup(
     name=conda.__name__,
@@ -80,6 +80,6 @@ setup(
             "conda = conda.cli.main:main"
         ],
     },
+    scripts=scripts,
     zip_safe=False,
-    **kwds
 )
