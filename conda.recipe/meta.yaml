@@ -12,10 +12,12 @@ build:
     - bin/conda                 [unix]
     - bin/activate              [unix]
     - bin/deactivate            [unix]
-    - Scripts/activate          [win]
     - Scripts/activate.bat      [win]
-    - Scripts/deactivate        [win]
     - Scripts/deactivate.bat    [win]
+    # TODO: are these needed?  They currently break packaging, since these files don't exist yet at build time
+    # - Scripts/activate          [win]
+    # - Scripts/deactivate        [win]
+    # TODO: what about fish and powershell?
 
   entry_points:
     - conda = conda.cli:main
