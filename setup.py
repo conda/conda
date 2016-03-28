@@ -38,8 +38,8 @@ scripts = ['bin/activate',
            'bin/deactivate', ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
-    scripts.extend(['bin\\activate.bat',
-                    'bin\\deactivate.bat',])
+    scripts.extend(['bin/activate.bat',
+                    'bin/deactivate.bat',])
 
 setup(
     name=conda.__name__,
