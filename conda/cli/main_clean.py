@@ -8,12 +8,13 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 from collections import defaultdict
-from os import lstat, walk, listdir
-from os.path import join, getsize, isdir
 
-import conda.config as config
+from os.path import join, getsize, isdir
+from os import lstat, walk, listdir
+
 from conda.cli import common
-from conda.common.utils import human_bytes
+import conda.config as config
+from conda.utils import human_bytes
 from conda.install import rm_rf
 
 descr = """
@@ -162,7 +163,7 @@ class CrossPlatformStLink(object):
 def find_lock():
     from os.path import join
 
-    from conda.common.lock import LOCKFN
+    from conda.lock import LOCKFN
 
     lock_dirs = config.pkgs_dirs[:]
     lock_dirs += [config.root_dir]

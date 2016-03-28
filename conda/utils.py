@@ -5,13 +5,9 @@ import sys
 import hashlib
 import collections
 from functools import partial
-from os.path import abspath, isdir
+from os.path import abspath, isdir, join
 import os
 import re
-import shlex
-import tempfile
-
-import psutil
 
 
 log = logging.getLogger(__name__)
@@ -48,10 +44,12 @@ def can_open_all_files_in_prefix(prefix, files):
 
 def try_write(dir_path):
     assert isdir(dir_path)
+    # try to create a file to see if `dir_path` is writable, see #2151
+    temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
     try:
-        with tempfile.TemporaryFile(prefix='.conda-try-write',
-                                    dir=dir_path) as fo:
+        with open(temp_filename, mode='wb') as fo:
             fo.write(b'This is a test file.\n')
+        os.unlink(temp_filename)
         return True
     except (IOError, OSError):
         return False
@@ -84,10 +82,12 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '(?<![:/])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
+    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
     translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
-        .replace(":", "").replace(";", ":")
-    return re.sub(path_re, translation, path)
+        .replace(":", "")
+    translation = re.sub(path_re, translation, path)
+    translation = translation.replace(";/", ":/")
+    return translation
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -103,7 +103,7 @@ def unix_path_to_win(path, root_prefix=""):
     translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
                   found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
     translation = re.sub(path_re, translation, path)
-    translation = re.sub(":([a-zA-Z]):", lambda match: ";" + match.group(0)[1] + ":", translation)
+    translation = re.sub(":?([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation)
     return translation
 
 
@@ -185,9 +185,45 @@ class memoize(object): # 577452
 
 def find_parent_shell(path=False):
     """return process name or path of parent.  Default is to return only name of process."""
+    try:
+        import psutil
+    except ImportError:
+        sys.exit("No psutil available.\n"
+                 "To proceed, please conda install psutil")
     process = psutil.Process()
     while "conda" in process.parent().name():
         process = process.parent()
     if path:
         return process.parent().exe()
     return process.parent().name()
+
+
+@memoized
+def get_yaml():
+    try:
+        import raml as yaml
+    except ImportError:
+        try:
+            import yaml
+        except ImportError:
+            sys.exit("No yaml library available.\n"
+                     "To proceed, please conda install raml")
+    return yaml
+
+
+def yaml_load(filehandle):
+    yaml = get_yaml()
+    try:
+        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
+    except AttributeError:
+        return yaml.load(filehandle)
+
+
+def yaml_dump(string):
+    yaml = get_yaml()
+    try:
+        return yaml.dump(string, Dumper=yaml.RoundTripDumper,
+                         block_seq_indent=2, default_flow_style=False,
+                         indent=4)
+    except AttributeError:
+        return yaml.dump(string, default_flow_style=False)

@@ -6,13 +6,13 @@
 
 from __future__ import print_function, division, absolute_import
 
-import json
-import os
 import re
 import sys
-from collections import defaultdict, OrderedDict
+import os
 from os import listdir
 from os.path import exists, expanduser, join
+from collections import defaultdict, OrderedDict
+import json
 
 from conda.cli import common
 
@@ -112,7 +112,7 @@ def get_user_site():
 
 def pretty_package(pkg):
     import conda.config as config
-    from conda.common.utils import human_bytes
+    from conda.utils import human_bytes
     from conda.api import app_is_installed
 
     d = OrderedDict([

@@ -6,8 +6,8 @@ from os.path import isdir, join
 
 from conda import config
 from conda import install
-from conda.common.compat import iteritems, itervalues
 from conda.fetch import fetch_index
+from conda.compat import iteritems, itervalues
 from conda.resolve import Package, Resolve
 
 

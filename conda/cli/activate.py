@@ -7,7 +7,7 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.common.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin, find_parent_shell
+from conda.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin, find_parent_shell
 
 
 on_win = sys.platform == "win32"
@@ -124,10 +124,13 @@ def main():
             if rootpath:
                 path = path.replace(translate_stream(rootpath, win_path_to_cygwin), "")
         else:
-            path = translate_stream(path, win_path_to_unix)
+            if sys.platform == 'win32':
+                path = translate_stream(path, win_path_to_unix)
+                if rootpath:
+                    rootpath = translate_stream(rootpath, win_path_to_unix)
             # Clear the root path if it is present
             if rootpath:
-                path = path.replace(translate_stream(rootpath, win_path_to_unix), "")
+                path = path.replace(rootpath, "")
 
 
     elif sys.argv[1] == '..deactivate':

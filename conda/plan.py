@@ -10,19 +10,19 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import os
 import sys
-from collections import defaultdict
+import os
 from logging import getLogger
+from collections import defaultdict
 from os.path import abspath, basename, isfile, join, exists
 
 from conda import config
 from conda import install
-from conda import instructions as inst
-from conda.common.utils import md5_file, human_bytes
-from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
+from conda.utils import md5_file, human_bytes
+from conda import instructions as inst
+from conda.exceptions import CondaException
 log = getLogger(__name__)
 
 # For backwards compatibility
@@ -145,7 +145,7 @@ def display_actions(actions, index, show_channel_urls=None):
             newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
         except TypeError:
             newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
-        if newer:
+        if newer or str(P1.version) == 'custom':
             updated.add(pkg)
         else:
             downgraded.add(pkg)

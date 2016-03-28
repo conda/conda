@@ -3,12 +3,12 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
 import os
 import sys
+if 'develop' in sys.argv:
+    from setuptools import setup
+else:
+    from distutils.core import setup
 
 if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
@@ -63,14 +63,18 @@ setup(
     packages=[
         'conda',
         'conda.cli',
-        'conda.common',
         'conda.progressbar'
     ],
     cmdclass={
         'build_py': auxlib.BuildPyCommand,
         'sdist': auxlib.SDistCommand,
     },
-    install_requires=['pycosat >=0.6.1', 'ruamel.yaml', 'requests', 'psutil'],
+    install_requires=[
+        'psutil',
+        'pycosat >=0.6.1',
+        'pyyaml',
+        'requests',
+    ],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
