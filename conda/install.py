@@ -40,10 +40,11 @@ import sys
 import tarfile
 import time
 import traceback
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath, normpath
+from os.path import (abspath, basename, dirname, isdir, isfile, islink,
+                     join, relpath, normpath)
 
 try:
-    from conda.common.lock import Locked
+    from conda.lock import Locked
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
@@ -58,20 +59,22 @@ except ImportError:
             pass
 
 try:
-    from conda.common.utils import win_path_to_unix
+    from conda.utils import win_path_to_unix
 except ImportError:
     def win_path_to_unix(path, root_prefix=""):
         """Convert a path or ;-separated string of paths into a unix representation
 
         Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
         """
-        path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
-        converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
-                        for _path in re.findall(path_re, path)]
-        return ":".join(converted_paths)
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
+        translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
+            .replace(":", "")
+        translation = re.sub(path_re, translation, path)
+        translation = translation.replace(";/", ":/")
+        return translation
 
 
-on_win = sys.platform == "win32"
+on_win = bool(sys.platform == "win32")
 
 if on_win:
     import ctypes
@@ -139,8 +142,8 @@ if on_win:
             src = win_path_to_unix(src, path_prefix)
             dst = win_path_to_unix(dst, path_prefix)
 
-            p = subprocess.check_call(["bash", "-l", "-c", 'ln -sf "{src}" "{dst}"'.format(
-                src=src, dst=dst)])
+            subprocess.check_call(["bash", "-l", "-c",
+                                   'ln -sf "%s" "%s"' % (src, dst)])
 
 
 log = logging.getLogger(__name__)
@@ -281,7 +284,6 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
-
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
@@ -394,13 +396,6 @@ def mk_menus(prefix, files, remove=False):
         logging.warn("Menuinst could not be imported:")
         logging.warn(traceback.format_exc())
         return
-
-    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
-                basename(prefix))
-    # only windows is provided right now.  Add "source activate" if on Unix platforms
-    env_setup_cmd = "activate"
-    if env_name:
-        env_setup_cmd = env_setup_cmd + " %s" % env_name
 
     for f in menu_files:
         try:
@@ -795,10 +790,18 @@ def unlink(prefix, dist):
         for f in meta['files']:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
-            if on_win and os.path.exists(join(prefix, f)):
-                move_path_to_trash(dst)
-            else:
+            try:
                 os.unlink(dst)
+            except OSError:  # file might not exist
+                log.debug("could not remove file: '%s'" % dst)
+                if on_win and os.path.exists(join(prefix, f)):
+                    try:
+                        log.debug("moving to trash")
+                        move_path_to_trash(dst)
+                    except ImportError:
+                        # This shouldn't be an issue in the installer anyway
+                        #   but it can potentially happen with importing conda.config
+                        log.debug("cannot import conda.config; probably not an issue")
 
         # remove the meta-file last
         os.unlink(meta_path)

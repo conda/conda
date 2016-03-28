@@ -6,10 +6,11 @@
 
 from __future__ import print_function, division, absolute_import
 
+from os.path import join, exists
+
+from argparse import RawDescriptionHelpFormatter
 import errno
 import logging
-from argparse import RawDescriptionHelpFormatter
-from os.path import join, exists
 
 from conda.cli import common
 from conda.console import json_progress_bars
@@ -17,9 +18,12 @@ from conda.console import json_progress_bars
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
-Normally, only the specified package is removed, and not the packages
-which may depend on the package.  Hence this command should be used
-with caution.  Note:  conda uninstall is an alias for conda remove.
+
+This command will also remove any package that depends on any of the
+specified packages as well---unless a replacement can be found without
+that dependency. If you wish to skip this dependency checking and remove
+just the requested packages, add the '--force' option. Note however that
+this may result in a broken environment, so use this with caution.
 """
 example = """
 Examples:
@@ -110,7 +114,7 @@ def execute(args, parser):
     channel_urls = args.channel or ()
     if args.use_local:
         from conda.fetch import fetch_index
-        from conda.common.utils import url_path
+        from conda.utils import url_path
         try:
             from conda_build.config import croot
         except ImportError:

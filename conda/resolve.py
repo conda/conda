@@ -4,12 +4,12 @@ import logging
 from collections import defaultdict
 from itertools import chain
 
-from conda import config
-from conda.common.compat import iterkeys, itervalues, iteritems, string_types
-from conda.console import setup_handlers
+from conda.compat import iterkeys, itervalues, iteritems, string_types
 from conda.logic import minimal_unsatisfiable_subset, Clauses
-from conda.toposort import toposort
 from conda.version import VersionSpec, normalized_version
+from conda.console import setup_handlers
+from conda import config
+from conda.toposort import toposort
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -409,13 +409,15 @@ class Resolve(object):
         touched = {}
         snames = set()
         nspecs = set()
-        unsat = []
+        unsat = set()
 
         def filter_group(matches, chains=None):
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
             # participates in the pruning even if one of its
             # parents is pruned away
+            if unsat:
+                return False
             match1 = next(ms for ms in matches)
             name = match1.name
             first = name not in snames
@@ -453,8 +455,8 @@ class Resolve(object):
                             if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
                                 dep2.add(ms)
                     chains = [a + (b,) for a in chains for b in dep2]
-                unsat.extend(chains)
-                return nnew
+                unsat.update(chains)
+                return nnew != 0
             if not reduced and not first:
                 return False
 
@@ -493,7 +495,7 @@ class Resolve(object):
             onames = set(s.name for s in specs)
             for iter in range(10):
                 first = True
-                while sum(filter_group([s]) for s in slist):
+                while sum(filter_group([s]) for s in slist) and not unsat:
                     slist = specs + [MatchSpec(n) for n in snames - onames]
                     first = False
                 if unsat:
@@ -824,7 +826,11 @@ class Resolve(object):
         groups, trackers = build_groups(dists)
         C = self.gen_clauses(groups, trackers, specs)
         constraints = self.generate_spec_constraints(C, specs)
-        solution = C.sat(constraints)
+        try:
+            solution = C.sat(constraints)
+        except TypeError:
+            log.debug('Package set caused an unexpected error, assuming a conflict')
+            solution = None
         limit = None
         if not solution or xtra:
             def get_(name, snames):
@@ -903,7 +909,7 @@ class Resolve(object):
 
     def solve(self, specs, len0=None, returnall=False):
         try:
-            stdoutlog.info("Solving package specifications: ")
+            stdoutlog.info("Solving package specifications ...")
             dotlog.debug("Solving for %s" % (specs,))
 
             # Find the compliant packages
@@ -949,36 +955,22 @@ class Resolve(object):
             solution, obj7 = C.minimize(eq_optional_c, solution)
             dotlog.debug('Package removal metric: %d' % obj7)
 
-            nz = len(C.clauses)
-            nv = C.m
-
             # Requested packages: maximize versions, then builds
             eq_req_v, eq_req_b = self.generate_version_metrics(C, groups, specr)
             solution, obj3 = C.minimize(eq_req_v, solution)
             solution, obj4 = C.minimize(eq_req_b, solution)
             dotlog.debug('Initial package version/build metrics: %d/%d' % (obj3, obj4))
 
-            # Track features: minimize count
+            # Track features: minimize feature count
             eq_feature_count = self.generate_feature_count(C, trackers)
             solution, obj1 = C.minimize(eq_feature_count, solution)
             dotlog.debug('Track feature count: %d' % obj1)
 
-            # Now that we have the feature count, lock it in and re-optimize
-            C.clauses = C.clauses[:nz]
-            C.m = nv
-            C.Require(C.LinearBound, eq_feature_count, obj1, obj1)
-            solution = C.sat()
-
-            # Featured packages: maximize count
+            # Featured packages: maximize featured package count
             eq_feature_metric, ftotal = self.generate_feature_metric(C, groups)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             obj2 = ftotal - obj2
             dotlog.debug('Package feature count: %d' % obj2)
-
-            # Re-optimize requested packages: maximize versions, then builds
-            solution, obj3 = C.minimize(eq_req_v, solution)
-            solution, obj4 = C.minimize(eq_req_b, solution)
-            dotlog.debug('Requested package version/build metrics: %d/%d' % (obj3, obj4))
 
             # Remaining packages: maximize versions, then builds, then count
             eq_v, eq_b = self.generate_version_metrics(C, groups, speca)

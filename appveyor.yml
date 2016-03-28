@@ -39,16 +39,15 @@ install:
   - set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps conda requests
+  - conda install --force --no-deps conda psutil raml requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
   - python -c "import sys; print(sys.prefix)"
   - conda install -q python=%PYTHON_VERSION%
   - conda install -q -c conda pytest requests mock pycrypto pyflakes pycosat
-  - conda install -q pip
-  - conda install -q git psutil
-  - pip install auxlib flake8 pytest-cov ruamel.yaml
+  - conda install -q git git
+  - pip install auxlib flake8 pytest-cov
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install --old-and-unmanageable

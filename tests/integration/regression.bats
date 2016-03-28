@@ -10,3 +10,9 @@ load base
     refute_output_contains "DOWNGRADED"
     assert_success
 }
+
+@test "regression test for #2197: New solver should prefer newer versions" {
+    run conda create --dry-run -n $TEST_ENV accelerate python=2.7
+    refute_output_contains "accelerate: 1.0"
+    assert_success
+}

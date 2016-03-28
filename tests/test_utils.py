@@ -1,9 +1,10 @@
 import random
 import unittest
 
-from conda.common import utils
 from .decorators import skip_if_no_mock
 from .helpers import mock
+
+from conda import utils
 
 SOME_PREFIX = "/some/prefix"
 SOME_FILES = ["a", "b", "c"]

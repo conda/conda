@@ -6,12 +6,12 @@
 from __future__ import print_function, division, absolute_import
 
 import os
-import re
 import sys
 
 import conda.config as config
 from conda.cli import common
-from conda.common.compat import string_types
+from conda.compat import string_types
+from conda.utils import yaml_load, yaml_dump
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -206,12 +206,6 @@ def execute(args, parser):
 
 
 def execute_config(args, parser):
-    try:
-        import ruamel.yaml as yaml
-    except ImportError:
-        common.error_and_exit("ruamel.yaml is required to modify configuration",
-                              json=args.json, error_type="ImportError")
-
     json_warnings = []
     json_get = {}
 
@@ -237,7 +231,7 @@ channels:
     else:
         with open(rc_path, 'r') as rc:
             rc_text = rc.read()
-    rc_config = yaml.load(rc_text, Loader=yaml.RoundTripLoader)
+    rc_config = yaml_load(rc_text)
     if rc_config is None:
         rc_config = {}
 
@@ -296,7 +290,7 @@ channels:
     set_bools, set_strings = set(config.rc_bool_keys), set(config.rc_string_keys)
     for key, item in args.set:
         # Check key and value
-        yamlitem = yaml.load(item, Loader=yaml.RoundTripLoader)
+        yamlitem = yaml_load(item)
         if key in set_bools:
             if not isinstance(yamlitem, bool):
                 common.error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
@@ -328,8 +322,7 @@ channels:
 
     # config.rc_keys
     with open(rc_path, 'w') as rc:
-        rc.write(yaml.dump(rc_config, Dumper=yaml.RoundTripDumper, default_flow_style=False, indent=4,
-                           block_seq_indent=2))
+        rc.write(yaml_dump(rc_config))
 
     if args.json:
         common.stdout_json_success(
