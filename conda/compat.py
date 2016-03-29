@@ -25,17 +25,21 @@ if PY3:
             # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
+    import configparser
     from io import StringIO
     import urllib.parse as urlparse
     from urllib.parse import quote as urllib_quote
     from itertools import zip_longest
+    from math import log2, ceil
+    from shlex import quote
     from tempfile import TemporaryDirectory
     range = range
     zip = zip
 else:
-    from cStringIO import StringIO
-    import urlparse
-    from urllib import quote as urllib_quote
+    import ConfigParser as configparser  # noqa
+    from cStringIO import StringIO  # noqa
+    import urlparse  # noqa
+    from urllib import quote as urllib_quote  # noqa
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
@@ -50,7 +54,14 @@ else:
             # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
-    from itertools import izip_longest as zip_longest
+    from itertools import izip_longest as zip_longest  # noqa
+    from math import log
+    def log2(x):
+        return log(x, 2)
+    def ceil(x):
+        from math import ceil
+        return int(ceil(x))
+    from pipes import quote  # noqa
 
     # Modified from http://hg.python.org/cpython/file/3.3/Lib/tempfile.py. Don't
     # use the 3.4 one. It uses the new weakref.finalize feature.
@@ -59,7 +70,7 @@ else:
     import os as _os
     from tempfile import mkdtemp
     range = xrange
-    from itertools import izip as zip
+    from itertools import izip as zip  # noqa
 
     class TemporaryDirectory(object):
         """Create and return a temporary directory.  This has the same
@@ -194,6 +205,3 @@ def with_metaclass(meta, *bases):
                 return type.__new__(cls, name, (), d)
             return meta(name, bases, d)
     return metaclass("NewBase", None, {})
-
-# Silence flake8
-(StringIO, urlparse, urllib_quote, zip, zip_longest)

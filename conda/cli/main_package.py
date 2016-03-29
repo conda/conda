@@ -72,7 +72,7 @@ def remove(prefix, files):
     for path in sorted(dst_dirs, key=len, reverse=True):
         try:
             os.rmdir(path)
-        except OSError:     # directory might not be empty
+        except OSError:  # directory might not be empty
             pass
 
 
