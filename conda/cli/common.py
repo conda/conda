@@ -106,7 +106,7 @@ def add_parser_prefix(p):
         '-n', "--name",
         action="store",
         help="Name of environment (in %s)." %
-                            os.pathsep.join(config.envs_dirs),
+             os.pathsep.join(config.envs_dirs),
         metavar="ENVIRONMENT",
         choices=Environments(),
     )
@@ -114,7 +114,7 @@ def add_parser_prefix(p):
         '-p', "--prefix",
         action="store",
         help="Full path to environment prefix (default: %s)." %
-                                           config.default_prefix,
+             config.default_prefix,
         metavar='PATH',
     )
 
@@ -223,7 +223,7 @@ def add_parser_install(p):
         default=[],
         action='append',
         help="Read package versions from the given file. Repeated file "
-              "specifications can be passed (e.g. --file=file1 --file=file2).",
+             "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
     add_parser_known(p)
     p.add_argument(
