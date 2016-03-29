@@ -1,508 +1,129 @@
-Deconstructing the PostGIS package
-==================================
+=================================================
+Building conda packages for general code projects
+=================================================
 
 Overview
 --------
+Conda packages can be built from projects written in any language. This tutorial
+will show you how to write a recipe for the ``postgis`` package. At the end you
+will build the package, upload it to `anaconda.org <http://anaconda.org/>`_ and
+install the package through conda.
 
-Let's set out to build ``postgis``. This package is installable with conda if you
-have access to an appropriate channel, so we are not flying blind. But we'll
-start out naively and try to learn some things along the way.
+Who is this for?
+----------------
+This tutorial is designed for Linux and Mac users who wish to make conda packages
+for source code projects in languages other than Python. The user should already know
+how to configure, compile and install C/C++ packages.
 
-We will build ``postgis`` 2.1.3 (the current version as of 14th of July 2014).
+Conda build summary
+~~~~~~~~~~~~~~~~~~~
 
-The step-by-step sequence is fairly repetitive in the sense that there are only
-a few sequences of actions you must take to build conda packages, although you
-may have to repeat them multiple times to build a package with many
-dependencies. You'll see once we get into the steps. First, let's lay out the
-abstract game plan. Understanding what we have to accomplish will demystify the
-process considerably.
+Building a conda package from a general source code package can be done in four steps.
 
-We will build this package for 64-bit Linux, but the steps generalize to other
-platforms.
+#. :ref:`before-you-start`
+#. :ref:`depends`
+#. :ref:`conda-recipe`
+#. :ref:`build-script`
+#. :ref:`build`
+#. :ref:`install`
+#. :ref:`help`
 
-Abstract Description of conda build
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _before-you-start:
 
-We begin building a package by pointing conda to a directory with a ``build.sh``
-(for Linux and OS X, Windows uses ``bld.bat`` file) and ``meta.yaml`` file.
-Respectively, these files specify the command line instructions to build a
-particular package from source, and information about where to download the
-source files and dependencies that the package requires. If these files are
-configured correctly,
+Before you start
+----------------
 
-.. code-block:: bash
+You should already have installed Miniconda_ or Anaconda_.
 
-    $ conda build postgis/
+.. _Miniconda: http://conda.pydata.org/docs/install/quick.html
+.. _Anaconda: https://docs.continuum.io/anaconda/install
 
-obtains the source files from the location specified in ``meta.yaml`` and,
-following the commands in ``build.sh``, builds the package locally. Once
-complete, the package and all its metadata bundled. We will upload it to
-`Anaconda.org <http://anaconda.org/>`_, where it can be accessed via:
-
-.. code-block:: bash
-
-    $ conda search
-    $ conda install
-
-Here, we'll start out naively and make adjustments to the ``build.sh`` and
-``meta.yaml`` files as we go, until the package is successfully built.
-
-Build Steps
------------
-
-Initial Setup
-^^^^^^^^^^^^^
-
-Locate source files for the package you want to build. In this case, I found a
-``postgis``
-`tarball <http://download.osgeo.org/postgis/source/postgis-2.1.3.tar.gz>`_ here.
-Reading the documentation, I can already see there are dependencies, but for
-the purposes of illustrating the steps, we will start at zero and see how far
-we get.
-
-Create a directory where conda build will find the ``build.sh`` and ``meta.yaml``
-files. Create files with the following bare-bones contents (appropriate to the
-package you are tyring to build):
+Install conda-build:
 
 .. code-block:: bash
 
-    $ mkdir postgis
-    $ touch postgis/build.sh postgis/meta.yaml
-    $ ls
-    build.sh  meta.yaml
+    conda install conda-build
 
-Now setup ``postgis/build.sh`` like this:
+It is recommended that you use the latest versions of conda and conda-build. To upgrade both packages run:
 
 .. code-block:: bash
 
-    ./configure --prefix=$PREFIX
-    make
-    make install
+    conda upgrade conda
+    conda upgrade conda-build
 
-This is the minimal set of commands that might build a package from source
-that was created with autotools (autoconf, automake, etc), the standard format
-you'll encounter for packaging C source code distributions. Including
-``--prefix=$PREFIX`` here tells ``configure`` to set the installation path to
-``$PREFIX``, an environment variable set by conda during runtime. This is a
-key instruction to have conda configure and install in its custom build
-environment, rather than try to access root-level directories such as
-``/usr``, which is the default installation path in normal circumstances in
-Linux and OS X. If you want to follow more details of what conda is doing
-to configure the environment, add to your ``build.sh`` file:
+Now you are ready to start building your own conda packages.
+
+.. _depends:
+
+Dependencies
+------------
+When creating conda recipes the most important aspect is to correctly list the
+dependencies.
+
+The README.postgis_ file states that the following packages are required along with the
+minimum required version.
+
+.. _README.postgis: https://github.com/postgis/postgis/blob/2.2.2/README.postgis
 
 .. code-block:: bash
 
-    echo $PREFIX
+    postgresql version 9.1
+    proj4 version 4.0.6
+    geos version 3.4
+    libxml2 version 2.5
+    json-c version 0.9
+    gdal version 1.9
 
-The basic ``meta.yaml`` file looks like this:
+There must exist a conda package for each of these dependencies that is available for install using conda-install.
+This is because conda-build will create a private environment from which the source code for
+``postgis`` will be installed and conda must install all required dependencies into that environment.
+
+We begin by searching for each of these packages using conda-search. The only package that cannot
+be found in the default channel is ``json-c``. To install this package you will have to add the
+``jlaura`` channel using the conda-config command.
+
+.. code-block:: bash
+
+    conda config --add channel jlaura
+
+Now that you have identified that all of the dependent packages can be installed the next step
+is to write the conda recipe.
+
+.. _conda-recipe:
+
+Conda recipe
+------------
+The first step is to create a directory to store conda recipe files.
+
+.. code-block:: bash
+
+    mkdir postgis
+    cd postgis
+
+The conda recipe has three main components, the package name and version, the location of the source code
+and the dependent packages that are required to build and run the package being built.
+
+There are a number of ways to specify the location of the source code in a conda recipe.
+Here we are going to provide the path to the Github repository and the specific revision tag
+we wish to use.
+
+NOTE: Not all Github repositories make use of revision tags. In some cases the most recent
+commit is suitable.
+
+Open a text editor and write the following to a file called meta.yaml inside the postgis directory.
 
 .. code-block:: yaml
 
     package:
       name: postgis
+      version: "2.2.2"
 
     source:
-      fn: postgis-2.1.3.tar.gz
-      url: http://download.osgeo.org/postgis/source/postgis-2.1.3.tar.gz
-
-    # requirements:
-      # build:
-
-      # run:
+      git_rev: 2.2.2
+      git_url: https://github.com/postgis/postgis.git
 
     build:
       number: 0
-
-    about:
-      home: http://postgis.net
-      license: GPL2
-      summary: "PostGIS is a spatial database extender for PostgreSQL object-relational database. It adds support for geographic objects allowing location queries to be run in SQL."
-
-The dependencies will be listed under the requirements key, but that is
-commented out for now as we are assuming no dependencies at first.
-
-First Build Attempt
-^^^^^^^^^^^^^^^^^^^
-
-Run
-
-.. code-block:: bash
-
-    $ conda build postgis
-
-If you are familiar building packages from source, you will recognize the log
-generated by the configure script. The first error message I encounter is:
-
-.. code-block:: bash
-
-    configure: error: could not find pg_config within the current path.
-    You may need to try re-running configure with a --with-pg_config parameter.
-
-I'm being asked to specify a path to the utility ``pg_config``. I do ``$ which
-pg_config`` and find that it's not installed. The philosophy of conda packaging
-is that you bundle what you need, so this utility has to be included in the
-package. I do:
-
-Some searching indicates pg_config is distributed with postgresql, so let me
-check that out. A search on `Anaconda.org <https://anaconda.org/>`__ for conda
-packages with the name ``postgresql`` yields some results for 64-bit
-Linux. I'll try to install from one of the Anaconda.org channels. First the channel
-must be added with:
-
-.. code-block:: bash
-
-    $ conda config --add channels https://conda.anaconda.org/trent
-
-which I can verify by inspecting:
-
-.. code-block:: bash
-
-    $ conda info
-
-                 platform : linux-64
-            conda version : 3.5.2
-           python version : 2.7.7.final.0
-         root environment : /home/irritum/miniconda  (writable)
-      default environment : /home/irritum/miniconda
-         envs directories : /home/irritum/miniconda/envs
-            package cache : /home/irritum/miniconda/pkgs
-             channel URLs : https://conda.anaconda.org/trent/linux-64
-                            http://repo.continuum.io/pkgs/free/linux-64/
-                            http://repo.continuum.io/pkgs/pro/linux-64/
-                            http://repo.continuum.io/pkgs/gpl/linux-64/
-                            https://conda.anaconda.org/mutirri/linux-64/
-              config file : /home/irritum/.condarc
-        is foreign system : False
-
-Now I can return to the build of ``postgis``. I know that ``postgresql`` (and
-specifically the need for ``pg_config``) is a dependency, so I should include that
-in the ``meta.yaml`` file and add the flag ``--with-pgconfig`` to the configure
-command, as the script requested.  It will be needed both to build the
-package, and to run the package after it is built, so we need to add it as
-both a build and run dependency.
-
-.. code-block:: yaml
-
-    package:
-      name: postgis
-
-    source:
-      fn: postgis-2.1.3.tar.gz
-      url: http://download.osgeo.org/postgis/source/postgis-2.1.3.tar.gz
-
-    build:
-      number: 0
-
-    requirements:
-      build:
-        - postgresql
-      run:
-        - postgresql
-
-    about:
-      home: http://postgis.net
-      license: GPL2
-
-My build.sh now looks like
-
-.. code-block:: bash
-
-   ./configure --prefix=$PREFIX --with-pgconfig=$PREFIX/bin/pg_config
-   make
-   make install
-
-I have added the flag ``--with-pgconfig=${PREFIX}/bin/pg_config`` to the
-configure command in ``build.sh``.
-
-ERROR - geos-config
-^^^^^^^^^^^^^^^^^^^
-
-The next error encountered is:
-
-.. code-block:: none
-
-    checking for geos-config... no
-
-    configure: error: could not find geos-config within the current path. You may need to try re-running configure with a --with-geosconfig parameter.
-
-On the other hand:
-
-.. code-block:: bash
-
-    $ conda search geos
-
-does not turn up an available package at this moment, so I will build
-this from source, following the same routine we've done a couple times now:
-
-.. code-block:: bash
-
-    $ mkdir geos
-    $ cd geos
-    $ cp postgis/meta.yaml geos/
-
-    $ cp postgis/build.sh geos/
-
-
-I edit the ``meta.yaml`` and ``build.sh`` files to reflect the details of this package (no dependencies or special flags set):
-
-.. code-block:: bash
-
-    $ conda build geos
-    $ anaconda upload /home/irritum/code/miniconda/conda-bld/linux-64/geos-3.4.2-0.tar.bz2
-
-after the package is successfully built.
-
-I can continue, after adding the dependencies in ``meta.yaml`` of
-``postgis``. At this point the conda recipe files look like this:
-
-.. code-block:: yaml
-
-    package:
-      name: postgis
-
-    source:
-      fn: postgis-2.1.3.tar.gz
-      url: http://download.osgeo.org/postgis/source/postgis-2.1.3.tar.gz
-
-    build:
-      number: 0
-
-    requirements:
-      build:
-        - postgresql
-        - geos
-      run:
-        - postgresql
-        - geos
-
-    about:
-      home: http://postgis.net
-      license: GPL2
-
-And ``build.sh`` file:
-
-.. code-block:: bash
-
-    ./configure \
-        --prefix=$PREFIX \
-        --with-pgconfig=$PREFIX/bin/pg_config \
-        --with-geosconfig=$PREFIX/bin/geos-config \
-
-    make
-    make install
-
-A Reminder
-""""""""""
-
-As you go through this cycle of steps, remember to update the conda build
-recipes to reflect the dependencies that you are installing. Conda build
-builds the package in an isolated environment, which is created from the
-packages specified as build dependencies.  Installing the packages into your
-own working environment does not affect conda-build at all. For example, if
-you have installed a geos package but not specified the requirement in
-``meta.yaml`` or the path flag in ``build.sh``, you will see an error like
-this:
-
-.. code-block:: bash
-
-    configure: error: could not find libgeos_c - you may need to specify the directory of a geos-config file using --with-geosconfig
-
-ERROR - proj
-^^^^^^^^^^^^
-
-The next error I hit is
-
-.. code-block:: bash
-
-    configure: error: could not find proj_api.h - you may need to specify the directory of a PROJ.4 installation using --with-projdir
-
-Build proj
-^^^^^^^^^^
-
-``proj`` 4.8.0 can be built from source in the same way. It should not have
-non-standard dependencies. I uploaded my package as ``proj``. I include ``-
-proj`` under the build and run requirements in ``meta.yaml`` and add the flag
-``--with-projdir=$PREFIX`` in ``build.sh`` file.
-
-At this point the series of dependencies I have assembled is reflected by the conda build script's output:
-
-.. code-block:: bash
-
-
-    package                    |            build
-    ---------------------------|-----------------
-    geos-3.4.2                 |                0   hard-link
-    postgresql-9.3.4           |                0   hard-link
-    proj-4.8.0                 |                0   hard-link
-    zlib-1.2.7                 |                0   hard-link
-
-ERROR - gdal
-^^^^^^^^^^^^
-
-Next I encountered:
-
-.. code-block:: bash
-
-    checking for gdal-config... no
-
-    checking GDAL version... not found
-
-    configure: error: gdal-config not found. Use --without-raster or try --with-gdalconfig=<path to gdal-config>
-
-Is this package available?
-
-.. code-block:: bash
-
-    $ conda search gdal
-    Fetching package metadata: ......
-
-    gdal                         1.10.1                   py33_0  defaults
-                                 1.10.1                   py27_0  defaults
-                                 1.10.1                   py26_0  defaults
-                                 1.10.1               np18py34_2  defaults
-                                 1.10.1               np18py33_2  defaults
-                              .  1.10.1               np18py27_2  defaults
-                                 1.10.1               np18py26_2  defaults
-
-Yes, so I include ``- gdal`` as a build and run requirement in ``meta.yaml``, as
-well as add the flag ``--with-gdalconfig=$PREFIX/bin`` in ``build.sh`` file.
-
-ERROR - json-c
-^^^^^^^^^^^^^^
-
-.. code-block:: bash
-
-    configure: error: Cannot find json dev files in "/home/irritum/miniconda/envs/_build"
-
-After doing some research (mostly documentation of ``postgis``), I have found
-that I need a ``json-c`` package. So, once again:
-
-.. code-block:: bash
-
-    $ conda search json-c
-    Fetching package metadata: ...............
-
-    json-c                       0.11.20130402                 0  trent
-
-Notice that in my ``.condarc`` file I have trent channel, where ``json-c`` is available.
-I'm going to use it, so I add:
-
-.. code-block:: bash
-
-    --with-jsondir=$PREFIX
-
-to ``build.sh`` and
-
-.. code-block:: yaml
-
-    - json-c
-
-to the build and run dependencies.
-
-Now, my ``meta.yaml`` file looks:
-
-.. code-block:: yaml
-
-    package:
-      name: postgis
-
-    source:
-      fn: postgis-2.1.3.tar.gz
-      url: http://download.osgeo.org/postgis/source/postgis-2.1.3.tar.gz
-
-    build:
-      number: 0
-
-    requirements:
-      build:
-        - postgresql
-        - geos
-        - proj4
-        - gdal
-        - json-c
-      run:
-        - postgresql
-        - geos
-        - proj4
-        - gdal
-        - json-c
-
-    about:
-      home: http://postgis.net
-      license: GPL2
-
-And ``build.sh``:
-
-.. code-block:: bash
-
-
-    ./configure \
-        --prefix=$PREFIX \
-        --with-pgconfig=$PREFIX/bin/pg_config \
-        --with-geosconfig=$PREFIX/bin/geos-config \
-        --with-projdir=$PREFIX \
-        --with-jsondir=$PREFIX
-
-    make
-    make install
-
-ERROR - libxml2
-^^^^^^^^^^^^^^^
-
-Try again:
-
-.. code-block:: bash
-
-    $ conda build postgis
-
-The next error message from ``configure`` is:
-
-.. code-block:: bash
-
-    checking for xml2-config... no
-
-    configure: error: could not find xml2-config from libxml2 within the current path. You may need to try re-running configure with a --with-xml2config parameter.
-
-I need to include the ``libxml2`` package. See if it's available:
-
-.. code-block:: bash
-
-    $ conda search libxml2
-    Fetching package metadata: ......
-
-I accordingly update the ``meta.yaml`` file to include ``- libxml2`` and add
-``--with-xml2config=$PREFIX/bin/xml2-config`` to the ``build.sh`` file and re-run whole process one more time:
-
-.. code-block:: bash
-
-    $ conda build postgis
-
-Final step
-^^^^^^^^^^
-
-Finally I'm adding some interesting options (from my point of view) to the ``build.sh`` file:
-
-.. code-block:: bash
-
-    --with-libiconv=$PREFIX \
-    --with-raster \
-    --with-topology
-
-
-My final ``meta.yaml`` is
-
-.. code-block:: yaml
-
-   package:
-     name: postgis
-     version: 2.1.1
-
-   source:
-     fn: postgis-2.1.1.tar.gz
-     url: http://download.osgeo.org/postgis/source/postgis-2.1.1.tar.gz
-
-   build:
-     number: 0
 
    requirements:
      build:
@@ -511,76 +132,155 @@ My final ``meta.yaml`` is
        - proj4
        - json-c
        - libxml2
-       - postgresql
+       - postgresql >=9.1
      run:
        - gdal
        - geos
        - proj4
        - json-c
        - libxml2
-       - postgresql
+       - postgresql >=9.1
 
-   about:
-     home: http://postgis.net
-     license: GPL2
+    about:
+      home: http://postgis.net
+      license: GPL2
 
-And my ``build.sh`` is
+
+NOTE: Conda-build will build the package in an isolated environment, which is created from the
+packages specified as build dependencies. Installing the packages into your
+own working environment does not affect conda-build at all.
+
+.. _build-script:
+
+Build script
+------------
+
+The final step in preparing the conda build recipe is to write the build script. Since ``postgis`` is
+being build for Linux and Mac we are only going to write a build.sh file in the postgis directory.
+
+The build script file contains all of the commands required to configure, build and install the source
+project. This script must run without user intervention.
+
+By Looking at the `postgis compilation documentation <http://postgis.net/docs/manual-2.2/postgis_installation.html#installation_configuration>`_
+you can see that several flags need to be provided to the configure command to indicate the location of the
+dependent packages.
+
+During execution of the conda-build command the ``$PREFIX`` environment variable is used to refer to the install path
+of conda packages.  We will use ``$PREFIX`` to inform the configure command of the location of the dependent packages
+listed in the build and run requirements of the conda recipe.
+
+In a text edit make a new file called build.sh with the following content in the postgis directory.
 
 .. code-block:: bash
 
-  chmod 755 configure
-  ./configure \
+    sh autogen.sh
+    ./configure \
       --prefix=$PREFIX \
       --with-pgconfig=$PREFIX/bin/pg_config \
       --with-gdalconfig=$PREFIX/bin/gdal-config \
       --with-xml2config=$PREFIX/bin/xml2-config \
+      --with-geosconfig=$PREFIX/bin/geos-config \
       --with-projdir=$PREFIX \
-      --with-libiconv=$PREFIX \
       --with-jsondir=$PREFIX \
-      --with-raster \
-      --with-topology
+      --without-raster \
+      --without-topology
 
-  make
-  make install
+    make
+    make install
 
-And that's all.
+NOTE: without references to the ``$PREFIX`` environment variable the configure command would look in the default
+system directories for required packages and even if the package were to build correctly there is no guarantee
+that other users could install the compiled conda package correctly.
+
+NOTE: You will have to install a C/C++ compiler, autoconf and automake in order to run conda-build on this recipe.
+These packages must be installed at the system level and not through conda.
+
+.. _build:
+
+Build the package
+-----------------
+Now that the recipe is complete you can build the conda package with the conda-build command from within the postgis
+directory.
 
 .. code-block:: bash
 
-    $ conda build postgis/
-    ...
+    conda build .
 
-    patchelf: file: /home/gergely/code/miniconda/envs/_build/bin/pgsql2shp
-        setting rpath to: $ORIGIN/../lib
+The start of the conda-build output should read
 
-    patchelf: file: /home/gergely/code/miniconda/envs/_build/bin/raster2pgsql
-        setting rpath to: $ORIGIN/../lib
+.. code-block:: text
 
-    patchelf: file: /home/gergely/code/miniconda/envs/_build/bin/shp2pgsql
-        setting rpath to: $ORIGIN/../lib
+    Removing old build environment
+    Removing old work directory
+    BUILD START: postgis-2.2.2-0
+    Using Anaconda Cloud api site https://api.anaconda.org
+    Fetching package metadata: ..........
+    Solving package specifications: .........
 
-    patchelf: file: /home/gergely/code/miniconda/envs/_build/lib/liblwgeom-2.1.3.so
-        setting rpath to: $ORIGIN/.
-    patchelf: file: /home/gergely/code/miniconda/envs/_build/lib/postgresql/postgis-2.1.so
-        setting rpath to: $ORIGIN/..
+If conda-build was able to successfully install the dependent packages and compile the source code conda-build
+should terminate with the following message.
 
-    patchelf: file: /home/gergely/code/miniconda/envs/_build/lib/postgresql/rtpostgis-2.1.so
-        setting rpath to: $ORIGIN/..
+Mac users:
 
-    BUILD END: postgis-2.1.3-0
-    Nothing to test for: postgis-2.1.3-0
-    # If you want to upload this package to Anaconda.org later, type:
+.. code-block:: text
+
+    BUILD END: postgis-2.2.2-0
+    Nothing to test for: postgis-2.2.2-0
+    # If you want to upload this package to anaconda.org later, type:
     #
-    # $ anaconda upload /home/mutirri/code/miniconda/conda-bld/linux-32/postgis-2.1.3-0.tar.bz2
+    # $ anaconda upload /Users/adefusco/Applications/anaconda3/conda-bld/osx-64/postgis-2.2.2-0.tar.bz2
     #
-    # To have conda build upload to Anaconda.org automatically, use
+    # To have conda build upload to anaconda.org automatically, use
     # $ conda config --set anaconda_upload yes
 
-If you'd methodically followed along, you now have a ``postgis`` package you
-can upload using the command shown at the end of the build and install. Along
-the way, you've created several other conda packages that may be useful in
-their own right.
+Linux users:
 
-Please consider sending pull requests for your own conda recipes to the
-`conda-recipes repository <https://github.com/conda/conda-recipes>`_
-repository.
+.. code-block:: text
+
+    BUILD END: postgis-2.2.2-0
+    Nothing to test for: postgis-2.2.2-0
+    # If you want to upload this package to anaconda.org later, type:
+    #
+    # $ anaconda upload /home/adefusco/anaconda3/conda-bld/linux-64/postgis-2.2.2-0.tar.bz2
+    #
+    # To have conda build upload to anaconda.org automatically, use
+    # $ conda config --set anaconda_upload yes
+
+NOTE: Your path may be different depending on the install location of Anaconda.
+
+NOTE: See the troubleshooting section for help diagnosing conda-build errors.
+
+NOTE: The package can only be installed on systems of the same architecture. You will have run the conda-build
+command separately on Mac and Linux systems to make packages for both architectures.
+
+.. _install:
+
+Distribute and Install the package
+----------------------------------
+At this point you can install the package on your local machine by running the following command
+
+.. code-block:: bash
+
+    conda install postgis --use-local
+
+Alternatively, you can upload the package to your anaconda.org_ channel by using the anaconda-upload command
+displayed at the end of the conda-build output. This will make the package available to install by any user
+with the following command.
+
+.. code-block:: bash
+
+    conda install -c CHANNEL postgis
+
+NOTE: Change CHANNEL to your anaconda.org_ username.
+
+.. _help:
+
+Troubleshooting and Additional Information
+------------------------------------------
+The troubleshooting_ page contains helpful hints for cases where conda-build fails.
+
+.. _troubleshooting: http://conda.pydata.org/docs/troubleshooting.html
+
+See the full conda recipe documentation_ and the `sample recipes <http://conda.pydata.org/docs/building/sample-recipes.html>`_ page for more options that are available in the conda recipe meta.yaml file.
+
+.. _documentation: http://conda.pydata.org/docs/building/meta-yaml.html
