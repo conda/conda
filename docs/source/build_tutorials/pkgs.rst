@@ -28,15 +28,7 @@ Building a simple conda package can be done in two steps, with two optional step
 You should already have conda and conda-build by downloading and installing Miniconda or Anaconda.
 Please follow the Quick Install instructions.
 
-**Windows users only:*** install unxutils.
-
-At the command prompt, enter the following:
-
-.. code-block:: bash
-
-    conda install unxutils
-
-**All users:** next, install conda-build:
+Install conda-build:
 
 .. code-block:: bash
 
