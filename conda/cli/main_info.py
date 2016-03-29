@@ -38,7 +38,7 @@ def configure_parser(sub_parsers):
         '-a', "--all",
         action="store_true",
         help="Show all information, (environments, license, and system "
-                  "information.")
+             "information.")
     p.add_argument(
         '-e', "--envs",
         action="store_true",
