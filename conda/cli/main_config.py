@@ -218,7 +218,8 @@ def execute_config(args, parser):
 
     # Create the file if it doesn't exist
     if not os.path.exists(rc_path):
-        if args.add and 'channels' in list(zip(*args.add))[0] and not ['channels', 'defaults'] in args.add:
+        has_defaults = ['channels', 'defaults'] in args.add
+        if args.add and 'channels' in list(zip(*args.add))[0] and not has_defaults:
             # If someone adds a channel and their .condarc doesn't exist, make
             # sure it includes the defaults channel, or else they will end up
             # with a broken conda.
@@ -275,7 +276,8 @@ channels:
             bad = rc_config[key].__class__.__name__
             raise CouldntParse("key %r should be a list, not %s." % (key, bad))
         if key == 'default_channels' and rc_path != config.sys_rc_path:
-            raise NotImplementedError("'default_channels' is only configurable for system installs")
+            msg = "'default_channels' is only configurable for system installs"
+            raise NotImplementedError(msg)
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
             message = "Skipping %s: %s, item already exists" % (key, item)

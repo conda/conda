@@ -41,7 +41,9 @@ except (ImportError, AttributeError):
 if argcomplete:
     class CondaSubprocessCompletionFinder(argcomplete.CompletionFinder):
         def __call__(self, argument_parser, **kwargs):
-            call_super = lambda: super(CondaSubprocessCompletionFinder, self).__call__(argument_parser, **kwargs)
+            def call_super():
+                parent = super(CondaSubprocessCompletionFinder, self)
+                return parent.__call__(argument_parser, **kwargs)
 
             debug_argcomplete("Working")
 

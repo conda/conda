@@ -82,12 +82,12 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
-    translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
-        .replace(":", "")
-    translation = re.sub(path_re, translation, path)
-    translation = translation.replace(";/", ":/")
-    return translation
+    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+
+    def translation(found_path):
+        found = found_path.group(1).replace("\\", "/").replace(":", "")
+        return root_prefix + "/" + found
+    return re.sub(path_re, translation, path).replace(";/", ":/")
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -98,13 +98,15 @@ def unix_path_to_win(path, root_prefix=""):
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
         # already a windows path
         return path.replace("/", "\\")
-    """Convert a path or :-separated string of paths into a Windows representation"""
+
     path_re = root_prefix + '(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
-    def translation(found_path):
+    def _translation(found_path):
         group = found_path.group(0)
         return group[len(root_prefix) + 1] + ":" + group[len(root_prefix) + 2:].replace("/", "\\")
-    translation = re.sub(path_re, translation, path)
-    translation = re.sub(":?([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation)
+    translation = re.sub(path_re, _translation, path)
+    translation = re.sub(":?([a-zA-Z]):\\\\",
+                         lambda match: ";" + match.group(0)[1] + ":\\",
+                         translation)
     return translation
 
 
@@ -117,7 +119,7 @@ def cygwin_path_to_win(path):
 
 
 def translate_stream(stream, translator):
-    return "\n".join([translator(line) for line in stream.split("\n")])
+    return "\n".join(translator(line) for line in stream.split("\n"))
 
 
 def human_bytes(n):

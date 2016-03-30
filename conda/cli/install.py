@@ -363,12 +363,14 @@ environment does not exist: %s
                 error_message += '\n\n (and similarly for the other packages)'
 
             if not find_executable('anaconda', include_others=False):
-                error_message += '\n\nYou may need to install the anaconda-client command line client with'
+                error_message += '\n\nYou may need to install the anaconda-client'
+                error_message += ' command line client with'
                 error_message += '\n\n    conda install anaconda-client'
 
             pinned_specs = plan.get_pinned_specs(prefix)
             if pinned_specs:
-                error_message += "\n\nNote that you have pinned specs in %s:" % join(prefix, 'conda-meta', 'pinned')
+                path = join(prefix, 'conda-meta', 'pinned')
+                error_message += "\n\nNote that you have pinned specs in %s:" % path
                 error_message += "\n\n    %r" % pinned_specs
 
             common.error_and_exit(error_message, json=args.json)
