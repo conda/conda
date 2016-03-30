@@ -56,7 +56,6 @@ def execute(args, parser):
     import conda.bundle as bundle
     from conda.fetch import TmpDownload
 
-
     if not (args.create or args.extract or args.metadump):
         sys.exit("""Error:
     either one of the following options is required:
@@ -84,7 +83,6 @@ def execute(args, parser):
         else:
             print(out_path)
 
-
     if args.extract:
         if args.data_path or args.extra_meta:
             sys.exit("""\
@@ -92,7 +90,6 @@ Error: -x/--extract does not allow --data-path or --extra-meta""")
 
         with TmpDownload(args.extract, verbose=not args.quiet) as path:
             bundle.clone_bundle(path, prefix, args.bundle_name)
-
 
     if args.metadump:
         import tarfile
