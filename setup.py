@@ -27,7 +27,8 @@ is in error, run CONDA_DEFAULT_ENV='' python setup.py.
 here = os.path.abspath(os.path.dirname(__file__))
 src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
-import auxlib  # a build-time dependency only
+
+import auxlib  # noqa -- build-time dependency only
 import conda  # NOQA
 
 

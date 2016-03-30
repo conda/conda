@@ -23,7 +23,6 @@ from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
 from conda import instructions as inst
 from conda.exceptions import CondaException
-log = getLogger(__name__)
 
 # For backwards compatibility
 from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
@@ -34,6 +33,7 @@ from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
 (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED, RM_FETCHED, PREFIX, PRINT,
     PROGRESS, SYMLINK_CONDA)
 
+log = getLogger(__name__)
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
