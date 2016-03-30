@@ -142,9 +142,11 @@ def display_actions(actions, index, show_channel_urls=None):
         P1 = Packages[pkg + '-' + packages[pkg][1]]
         try:
             # <= here means that unchanged packages will be put in updated
-            newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
+            newer = ((P0.name, P0.norm_version, P0.build_number) <=
+                     (P1.name, P1.norm_version, P1.build_number))
         except TypeError:
-            newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
+            newer = ((P0.name, P0.version, P0.build_number) <=
+                     (P1.name, P1.version, P1.build_number))
         if newer or str(P1.version) == 'custom':
             updated.add(pkg)
         else:
@@ -486,7 +488,9 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             if any(ms.name == 'conda' for ms in mss):
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
-                sys.exit("Error: this 'remove' command cannot be executed because it\nwould require removing 'conda' dependencies.")
+                msg = "Error: this 'remove' command cannot be executed because it"
+                msg += "\nwould require removing 'conda' dependencies."
+                sys.exit(msg)
         add_unlink(actions, old_fn)
 
     return actions

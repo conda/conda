@@ -7,7 +7,8 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin, find_parent_shell
+from conda.utils import (translate_stream, unix_path_to_win, win_path_to_unix,
+                         win_path_to_cygwin, find_parent_shell)
 
 
 on_win = sys.platform == "win32"
@@ -118,7 +119,8 @@ def main():
             if rootpath:
                 path = path.replace(translate_stream(rootpath, unix_path_to_win), "")
         elif 'cygwin' in parent_shell:
-            # this should be harmless to unix paths, but converts win paths to unix for bash on win (msys, cygwin)
+            # this should be harmless to unix paths, but converts win paths to
+            # unix for bash on win (msys, cygwin)
             path = translate_stream(path, win_path_to_cygwin)
             # Clear the root path if it is present
             if rootpath:
@@ -150,13 +152,18 @@ def main():
         if sys.argv[2] == 'root':
             # no need to check root env and try to install a symlink there
             sys.exit(0)
-        binpath = binpath_from_arg(sys.argv[2])  # this should throw an error and exit if the env or path can't be found.
+
+        # this should throw an error and exit if the env or path can't be found.
+        binpath = binpath_from_arg(sys.argv[2])
+
         # Make sure an env always has the conda symlink
         try:
             conda.install.symlink_conda(binpath[0], conda.config.root_dir, find_parent_shell())
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
+                msg = "Cannot activate environment {}, ".format(sys.argv[2])
+                msg += "not have write access to conda symlink"
+                sys.exit(msg)
             raise
         sys.exit(0)
 
@@ -183,7 +190,8 @@ def main():
         # This means there is a bug in main.py
         raise ValueError("unexpected command")
 
-    # This print is actually what sets the PATH or PROMPT variable.  The shell script gets this value, and finishes the job.
+    # This print is actually what sets the PATH or PROMPT variable.  The shell
+    # script gets this value, and finishes the job.
     print(path)
 
 

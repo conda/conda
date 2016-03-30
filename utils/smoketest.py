@@ -21,7 +21,8 @@ else:
     cython = '0.16'
 
 
-# CIO_TEST needs to be set to 2 if any of the packages tested below are only found in the test repo.
+# CIO_TEST needs to be set to 2 if any of the packages tested below are
+# only found in the test repo.
 
 # os.environ['CIO_TEST'] = 2
 
