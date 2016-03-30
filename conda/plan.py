@@ -106,11 +106,9 @@ def display_actions(actions, index, show_channel_urls=None):
 
     name = config.canonical_channel_name
     maxoldchannel = len(max([name(Packages[p + '-' + packages[p][0]].channel)
-                             for p in packages if packages[p][0]]
-                            or [''], key=len))
+                             for p in packages if packages[p][0]] or [''], key=len))
     maxnewchannel = len(max([name(Packages[p + '-' + packages[p][1]].channel)
-                             for p in packages if packages[p][1]]
-                            or [''], key=len))
+                             for p in packages if packages[p][1]] or [''], key=len))
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
     updated = set()

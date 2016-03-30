@@ -383,8 +383,8 @@ def mk_menus(prefix, files, remove=False):
     ``remove=True`` will remove the menu items.
     """
     menu_files = [f for f in files
-                  if f.lower().startswith('menu/')
-                  and f.lower().endswith('.json')]
+                  if (f.lower().startswith('menu/') and
+                      f.lower().endswith('.json'))]
     if not menu_files:
         return
     elif basename(abspath(prefix)).startswith('_'):
