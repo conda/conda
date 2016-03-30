@@ -36,10 +36,10 @@ if PY3:
     range = range
     zip = zip
 else:
-    import ConfigParser as configparser  # noqa
-    from cStringIO import StringIO  # noqa
-    import urlparse  # noqa
-    from urllib import quote as urllib_quote  # noqa
+    import ConfigParser as configparser
+    from cStringIO import StringIO
+    import urlparse
+    from urllib import quote as urllib_quote
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
@@ -54,14 +54,14 @@ else:
             # links entirely.
             if not os.path.islink(path):
                 os.chmod(path, mode)
-    from itertools import izip_longest as zip_longest  # noqa
+    from itertools import izip_longest as zip_longest
     from math import log
     def log2(x):
         return log(x, 2)
     def ceil(x):
         from math import ceil
         return int(ceil(x))
-    from pipes import quote  # noqa
+    from pipes import quote
 
     # Modified from http://hg.python.org/cpython/file/3.3/Lib/tempfile.py. Don't
     # use the 3.4 one. It uses the new weakref.finalize feature.
@@ -70,7 +70,7 @@ else:
     import os as _os
     from tempfile import mkdtemp
     range = xrange
-    from itertools import izip as zip  # noqa
+    from itertools import izip as zip
 
     class TemporaryDirectory(object):
         """Create and return a temporary directory.  This has the same
