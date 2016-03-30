@@ -40,6 +40,7 @@ import sys
 import tarfile
 import time
 import traceback
+import re
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
@@ -314,7 +315,6 @@ def binary_replace(data, a, b):
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
-    import re
 
     def replace(match):
         occurances = match.group().count(a)
