@@ -65,6 +65,7 @@ def app_get_index(all_version=False):
     """
     import sys
     pyxx = 'py%d%d' % sys.version_info[:2]
+
     def filter_build(build):
         return bool(pyxx in build) if 'py' in build else True
 
