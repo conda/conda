@@ -113,3 +113,31 @@ class can_open_all_files_in_prefix_TestCase(unittest.TestCase):
                 utils.can_open_all_files_in_prefix(SOME_PREFIX, SOME_FILES)
             )
         self.assertEqual(can_open.call_count, 2)
+
+
+def test_path_translations():
+    paths = [
+        (r";z:\miniconda\Scripts\pip.exe",
+         ":/z/miniconda/Scripts/pip.exe",
+         ":/cygdrive/z/miniconda/Scripts/pip.exe"),
+        (r";z:\miniconda;z:\Documents (x86)\pip.exe;C:\test",
+         ":/z/miniconda:/z/Documents (x86)/pip.exe:/C/test",
+         ":/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/C/test"),
+        # Failures:
+        # (r"z:\miniconda\Scripts\pip.exe",
+        #  "/z/miniconda/Scripts/pip.exe",
+        #  "/cygdrive/z/miniconda/Scripts/pip.exe"),
+
+        # ("z:\\miniconda\\",
+        #  "/z/miniconda/",
+        #  "/cygdrive/z/miniconda/"),
+        ("test dummy text /usr/bin;z:\\documents (x86)\\code\\conda\\tests\\envskhkzts\\test1;z:\\documents\\code\\conda\\tests\\envskhkzts\\test1\\cmd more dummy text",
+        "test dummy text /usr/bin:/z/documents (x86)/code/conda/tests/envskhkzts/test1:/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text",
+        "test dummy text /usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text"),
+    ]
+    for windows_path, unix_path, cygwin_path in paths:
+        assert utils.win_path_to_unix(windows_path) == unix_path
+        assert utils.unix_path_to_win(unix_path) == windows_path
+
+        assert utils.win_path_to_cygwin(windows_path) == cygwin_path
+        assert utils.cygwin_path_to_win(cygwin_path) == windows_path
