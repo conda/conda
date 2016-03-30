@@ -104,6 +104,6 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     conda_names = {d.rsplit('-', 2)[0] for d in installed_pkgs}
 
     for pip_pkg in installed(prefix, output=output):
-        if pip_pkg['name'] in conda_names and not 'path' in pip_pkg:
+        if pip_pkg['name'] in conda_names and 'path' not in pip_pkg:
             continue
         installed_pkgs.add(str(pip_pkg))
