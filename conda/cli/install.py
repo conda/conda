@@ -182,7 +182,6 @@ def install(args, parser, command='install'):
         common.check_specs(prefix, specs, json=args.json,
                            create=(command == 'create'))
 
-
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):

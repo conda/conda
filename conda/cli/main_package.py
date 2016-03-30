@@ -80,7 +80,6 @@ def execute(args, parser):
     from conda.misc import untracked, which_package
     from conda.packup import make_tarbz2
 
-
     prefix = common.get_prefix(args)
 
     if args.which:

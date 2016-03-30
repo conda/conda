@@ -94,8 +94,6 @@ def display_actions(actions, index, show_channel_urls=None):
         Packages[dist] = Package(dist + '.tar.bz2', info)
         features[pkg][0] = info.get('features', '')
 
-
-
     #                     Put a minimum length here---.    .--For the :
     #                                                 v    v
     maxpkg = max(len(max(packages or [''], key=len)), 0) + 1

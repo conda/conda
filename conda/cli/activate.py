@@ -134,7 +134,6 @@ def main():
             if rootpath:
                 path = path.replace(rootpath, "")
 
-
     elif sys.argv[1] == '..deactivate':
         path = os.getenv("CONDA_PATH_BACKUP", "")
         sys.stderr.write("path:")

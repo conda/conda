@@ -196,7 +196,6 @@ def execute(args, parser):
         })
         return
 
-
     if not args.json:
         common.confirm_yn(args)
 
