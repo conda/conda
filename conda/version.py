@@ -253,10 +253,13 @@ opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
 class VersionSpec(object):
     def regex_match_(self, vspec):
         return bool(self.regex.match(vspec))
+
     def veval_match_(self, vspec):
         return self.op(VersionOrder(vspec), self.cmp)
+
     def all_match_(self, vspec):
         return all(s.match(vspec) for s in self.spec[1])
+
     def any_match_(self, vspec):
         return any(s.match(vspec) for s in self.spec[1])
 

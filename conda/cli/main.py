@@ -99,9 +99,9 @@ def main():
             imported.configure_parser(sub_parsers, name='uninstall')
 
     from conda.cli.find_commands import find_commands
+
     def completer(prefix, **kwargs):
-        return [i
-                for i in list(sub_parsers.choices) + find_commands()
+        return [i for i in list(sub_parsers.choices) + find_commands()
                 if i.startswith(prefix)]
 
     sub_parsers.completer = completer

@@ -100,6 +100,7 @@ def unix_path_to_win(path, root_prefix=""):
         return path.replace("/", "\\")
 
     path_re = root_prefix + '(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+
     def _translation(found_path):
         group = found_path.group(0)
         return group[len(root_prefix) + 1] + ":" + group[len(root_prefix) + 2:].replace("/", "\\")
@@ -146,6 +147,7 @@ class memoized(object):
     def __init__(self, func):
         self.func = func
         self.cache = {}
+
     def __call__(self, *args, **kw):
         newargs = []
         for arg in args:
@@ -171,10 +173,12 @@ class memoized(object):
 class memoize(object):  # 577452
     def __init__(self, func):
         self.func = func
+
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self.func
         return partial(self, obj)
+
     def __call__(self, *args, **kw):
         obj = args[0]
         try:
