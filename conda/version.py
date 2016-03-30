@@ -314,4 +314,3 @@ class VersionSpec(object):
         if not isinstance(other, VersionSpec):
             other = VersionSpec(other)
         return VersionSpec((any, (self, other)))
-
