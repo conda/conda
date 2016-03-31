@@ -487,22 +487,19 @@ def symlink_conda(prefix, root_dir, shell):
 
 
 def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
-    scripts = {where: ["conda"],
-               'cmd': ["activate", "deactivate"],
-               }
-    for where, files in scripts.items():
-        prefix_where = join(prefix, where)
-        if not isdir(prefix_where):
-            os.makedirs(prefix_where)
-        for f in files:
-            root_file = join(root_dir, where, f)
-            prefix_file = join(prefix_where, f)
-            # try to kill stale links if they exist
-            if os.path.lexists(prefix_file):
-                os.remove(prefix_file)
-            # if they're in use, they won't be killed.  Skip making new symlink.
-            if not os.path.lexists(prefix_file):
-                symlink_fn(root_file, prefix_file)
+    scripts = ["conda", "activate", "deactivate"]
+    prefix_where = join(prefix, where)
+    if not isdir(prefix_where):
+        os.makedirs(prefix_where)
+    for f in scripts:
+        root_file = join(root_dir, where, f)
+        prefix_file = join(prefix_where, f)
+        # try to kill stale links if they exist
+        if os.path.lexists(prefix_file):
+            os.remove(prefix_file)
+        # if they're in use, they won't be killed.  Skip making new symlink.
+        if not os.path.lexists(prefix_file):
+            symlink_fn(root_file, prefix_file)
 
 
 # ========================== begin API functions =========================
