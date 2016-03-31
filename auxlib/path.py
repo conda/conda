@@ -25,7 +25,7 @@ def site_packages_paths():
     else:
         # not in a virtualenv
         log.debug('searching outside virtualenv')  # pragma: no cover
-        return get_python_lib()  # pragma: no cover
+        return [get_python_lib()]  # pragma: no cover
 
 
 class PackageFile(object):
