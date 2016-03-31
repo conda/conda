@@ -5,7 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable, build_groups
+from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -256,9 +256,9 @@ def test_get_dists():
 def test_generate_eq():
     specs = ['anaconda']
     dists, specs = r.get_dists(specs)
-    groups, trackers = build_groups(dists)
-    C = r.gen_clauses(groups, trackers, specs)
-    eqv, eqb = r.generate_version_metrics(C, groups, specs)
+    r2 = Resolve(r, dists, True)
+    C = r2.gen_clauses(specs)
+    eqv, eqb = r2.generate_version_metrics(C, specs)
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
