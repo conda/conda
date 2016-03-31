@@ -25,13 +25,9 @@ from conda import instructions as inst
 from conda.exceptions import CondaException
 
 # For backwards compatibility
-from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
+from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,  # noqa
                                 RM_FETCHED, PREFIX, PRINT, PROGRESS,
                                 SYMLINK_CONDA)
-
-# Silence pyflakes
-(FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED, RM_FETCHED, PREFIX, PRINT,
-    PROGRESS, SYMLINK_CONDA)
 
 log = getLogger(__name__)
 
@@ -480,14 +476,14 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         if old_fn == nlinked.get(name, ''):
             continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
-            raise RuntimeError(
-                "Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
+            msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
+            raise RuntimeError(msg % dist)
         if name == 'conda' and name not in nlinked:
             if any(ms.name == 'conda' for ms in mss):
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
-                msg = "Error: this 'remove' command cannot be executed because it"
-                msg += "\nwould require removing 'conda' dependencies."
+                msg = ("Error: this 'remove' command cannot be executed because it\n"
+                       "would require removing 'conda' dependencies")
                 sys.exit(msg)
         add_unlink(actions, old_fn)
 
