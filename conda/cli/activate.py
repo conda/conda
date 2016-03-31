@@ -62,13 +62,11 @@ def binpath_from_arg(arg):
     prefix = prefix_from_arg(arg)
     if on_win:
         path = [prefix.rstrip("\\"),
-                join(prefix, 'cmd'),
                 join(prefix, 'Scripts'),
                 join(prefix, 'Library', 'bin'),
                 ]
     else:
         path = [prefix.rstrip("/"),
-                join(prefix, 'cmd'),
                 join(prefix, 'bin'),
                 ]
     return path

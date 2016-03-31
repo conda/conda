@@ -106,7 +106,7 @@ def unix_path_to_win(path, root_prefix=""):
         return "{0}:{1}".format(group[len(root_prefix)+1],
                                 group[len(root_prefix)+2:].replace("/", "\\"))
     translation = re.sub(path_re, _translation, path)
-    translation = re.sub(":?([a-zA-Z]):\\\\",
+    translation = re.sub(":([a-zA-Z]):\\\\",
                          lambda match: ";" + match.group(0)[1] + ":\\",
                          translation)
     return translation
