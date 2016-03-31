@@ -271,15 +271,14 @@ Allowed channels are:
     for channel, repodata in repodatas:
         if repodata is None:
             continue
-        priority = channel_urls[channel]
         new_index = repodata['packages']
+        url_s, priority = channel_urls[channel]
         for fn, info in iteritems(new_index):
-            url = channel + fn
             info['fn'] = fn
             info['channel'] = channel
-            info['url'] = url
             info['priority'] = priority
-            index[url] = info
+            info['url'] = channel + fn
+            index[url_s + fn] = info
 
     stdoutlog.info('\n')
     if unknown:

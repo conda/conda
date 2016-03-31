@@ -233,8 +233,24 @@ def remove_binstar_tokens(url):
 
 def normalize_urls(urls, platform=None, offline_only=False):
     platform = platform or subdir
-    channel_alias = binstar_channel_alias(rc.get('channel_alias',
-                                          DEFAULT_CHANNEL_ALIAS))
+    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
+    channel_alias = binstar_channel_alias(rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS))
+    channel_alias = channel_alias.rstrip('/') + '/'
+    n_alias = len(channel_alias)
+
+    def normalize_(url):
+        if is_url(url):
+            url = url.rstrip('/') + '/'
+            if any(url.startswith(x) for x in defaults):
+                url_s = ''
+            elif url.startswith(channel_alias):
+                url_s = url[n_alias:]
+            else:
+                url_s = url
+        else:
+            url_s = url.rstrip('/') + '/'
+            url = channel_alias + url_s
+        return url_s, url
     newurls = {}
     priority = 0
     while urls:
@@ -243,18 +259,17 @@ def normalize_urls(urls, platform=None, offline_only=False):
             urls = get_rc_urls() + urls
             continue
         elif url in ("defaults", "system"):
-            t_urls = get_default_urls()
-        else:
+            t_urls = defaults
+        elif url in defaults:
             t_urls = [url]
         priority += 1
         for url0 in t_urls:
-            if not is_url(url0):
-                url0 = channel_alias + url0
+            url_s, url0 = normalize_(url0)
             if offline_only and not url0.startswith('file:'):
                 continue
-            url0 = url0.rstrip('/')
             for plat in (platform, 'noarch'):
-                newurls.setdefault('%s/%s/' % (url0, plat), priority)
+                newurls.setdefault(url0 + plat + '/', (url_s, priority))
+    print(newurls)
     return newurls
 
 offline = bool(rc.get('offline', False))

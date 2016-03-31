@@ -37,23 +37,24 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     channel_urls = config.normalize_urls(channel_urls, platform, offline)
     if prepend:
         pri0 = max(itervalues(channel_urls)) if channel_urls else 0
-        newurls = config.get_channel_urls(platform, offline)
-        channel_urls.update({url: pri0+pri for url, pri in iteritems(newurls)})
+        for url, rec in iteritems(config.get_channel_urls(platform, offline)):
+            channel_urls[url] = (rec[0], rec[1] + pri0)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
         for dist, info in iteritems(install.linked_data(prefix)):
             fn = dist + '.tar.bz2'
-            channel = info.get('channel','')
-            if fn not in index:
+            channel = info.get('channel', '')
+            url_s, priority = channel_urls.get(channel, (channel, 0))
+            key = url_s + fn
+            if key not in index:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
-                url = channel + fn
                 info.setdefault('depends', [])
                 info['fn'] = fn
                 info['channel'] = channel
-                info['url'] = url
-                info['priority'] = channel_urls.get(channel, 0)
-                index[url] = info
+                info['url'] = channel + fn
+                info['priority'] = priority
+                index[key] = info
     return index
 
 
