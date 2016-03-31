@@ -237,20 +237,17 @@ def normalize_urls(urls, platform=None, offline_only=False):
                                           DEFAULT_CHANNEL_ALIAS))
     newurls = {}
     priority = 0
-    for url in urls:
-        incr = True
-        if url == "defaults" or url == "system" and not rc_path:
+    while urls:
+        url = urls.pop()
+        if url == "system" and rc_path:
+            urls = get_rc_urls() + urls
+            continue
+        elif url in ("defaults", "system"):
             t_urls = get_default_urls()
-            incr = False
-        elif url == "system":
-            t_urls = get_rc_urls()
         else:
             t_urls = [url]
-        if not incr:
-            priority += 1
+        priority += 1
         for url0 in t_urls:
-            if incr:
-                priority += 1
             if not is_url(url0):
                 url0 = channel_alias + url0
             if offline_only and not url0.startswith('file:'):
@@ -266,7 +263,7 @@ def get_channel_urls(platform=None, offline=False):
     if os.getenv('CIO_TEST'):
         import cio_test
         base_urls = cio_test.base_urls
-    elif 'channels' in rc and rc_path:
+    elif 'channels' in rc:
         base_urls = ['system']
     else:
         base_urls = ['defaults']
