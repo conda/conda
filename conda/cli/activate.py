@@ -160,8 +160,8 @@ def main():
             conda.install.symlink_conda(binpath[0], conda.config.root_dir, find_parent_shell())
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                msg = "Cannot activate environment {}, ".format(sys.argv[2])
-                msg += "not have write access to conda symlink"
+                msg = ("Cannot activate environment {0}, not have write access to conda symlink"
+                       .format(sys.argv[2]))
                 sys.exit(msg)
             raise
         sys.exit(0)
