@@ -16,11 +16,9 @@ globally (such as downloading packages).
 We don't raise an error if the lock is named with the current PID
 """
 
-import os
 import logging
-from os.path import join
-import glob
-from time import sleep
+import os
+import time
 
 LOCKFN = '.conda_lock'
 
@@ -35,9 +33,8 @@ class Locked(object):
     def __init__(self, path, retries=10):
         self.path = path
         self.end = "-" + str(os.getpid())
-        self.lock_path = join(self.path, LOCKFN + self.end)
-        self.pattern = join(self.path, LOCKFN + '-*')
-        self.remove = True
+        self.lock_path = os.path.join(self.path, LOCKFN + self.end)
+        self.pattern = os.path.join(self.path, LOCKFN + '-*')
         self.retries = retries
 
     def __enter__(self):
@@ -49,35 +46,24 @@ class Locked(object):
     If you are sure that conda is not running, remove it and try again.
     You can also use: $ conda clean --lock\n""")
         sleeptime = 1
-        files = None
-        while self.retries:
-            files = glob.glob(self.pattern)
-            if files and files[0].endswith(self.end):
-                stdoutlog.info(lockstr % str(files))
+
+        for _ in range(self.retries):
+            if os.path.isdir(self.lock_path):
+                stdoutlog.info(lockstr % self.lock_path)
                 stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
-                sleep(sleeptime)
+
+                time.sleep(sleeptime)
                 sleeptime *= 2
-                self.retries -= 1
             else:
-                break
-        else:
-            stdoutlog.error("Exceeded max retries, giving up")
-            raise RuntimeError(lockstr % str(files))
-
-        if not files:
-            try:
                 os.makedirs(self.lock_path)
-            except OSError:
-                pass
-        else:  # PID lock already here --- someone else will remove it.
-            self.remove = False
+                return self
 
-        return self
+        stdoutlog.error("Exceeded max retries, giving up")
+        raise RuntimeError(lockstr % self.lock_path)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.remove:
-            for path in self.lock_path, self.path:
-                try:
-                    os.rmdir(path)
-                except OSError:
-                    pass
+        try:
+            os.rmdir(self.lock_path)
+            os.rmdir(self.path)
+        except OSError:
+            pass
