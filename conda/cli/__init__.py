@@ -6,4 +6,4 @@
 from __future__ import absolute_import
 
 from conda.cli.main import main
-assert main # shut up pyflakes
+assert main  # shut up pyflakes

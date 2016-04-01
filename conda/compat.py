@@ -108,7 +108,7 @@ else:
                 self._closed = True
                 if _warn and _warnings.warn:
                     _warnings.warn("Implicitly cleaning up {!r}".format(self),
-                                       ResourceWarning)
+                                   ResourceWarning)
 
         def __exit__(self, exc, value, tb):
             self.cleanup()

@@ -69,7 +69,7 @@ class Locked(object):
                 os.makedirs(self.lock_path)
             except OSError:
                 pass
-        else: # PID lock already here --- someone else will remove it.
+        else:  # PID lock already here --- someone else will remove it.
             self.remove = False
 
     def __exit__(self, exc_type, exc_value, traceback):

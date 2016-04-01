@@ -72,14 +72,13 @@ def remove(prefix, files):
     for path in sorted(dst_dirs, key=len, reverse=True):
         try:
             os.rmdir(path)
-        except OSError: # directory might not be empty
+        except OSError:  # directory might not be empty
             pass
 
 
 def execute(args, parser):
     from conda.misc import untracked, which_package
     from conda.packup import make_tarbz2
-
 
     prefix = common.get_prefix(args)
 
@@ -103,6 +102,6 @@ def execute(args, parser):
         return
 
     make_tarbz2(prefix,
-                name = args.pkg_name.lower(),
-                version = args.pkg_version,
-                build_number = int(args.pkg_build))
+                name=args.pkg_name.lower(),
+                version=args.pkg_version,
+                build_number=int(args.pkg_build))

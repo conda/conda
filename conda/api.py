@@ -65,6 +65,7 @@ def app_get_index(all_version=False):
     """
     import sys
     pyxx = 'py%d%d' % sys.version_info[:2]
+
     def filter_build(build):
         return bool(pyxx in build) if 'py' in build else True
 
@@ -73,7 +74,7 @@ def app_get_index(all_version=False):
     if all_version:
         return index
 
-    d = defaultdict(list) # name -> list of Package objects
+    d = defaultdict(list)  # name -> list of Package objects
     for fn, info in iteritems(index):
         d[_name_fn(fn)].append(Package(fn, info))
 
@@ -172,7 +173,7 @@ def app_uninstall(fn, prefix=config.root_dir):
     index = get_index(prefix=prefix)
     specs = [_fn2spec(fn)]
     if (plan.is_root_prefix(prefix) and
-        common.names_in_specs(common.root_no_rm, specs)):
+            common.names_in_specs(common.root_no_rm, specs)):
         raise ValueError("Cannot remove %s from the root environment" %
                          ', '.join(common.root_no_rm))
 
@@ -191,10 +192,5 @@ def get_package_versions(package, offline=False):
 
 
 if __name__ == '__main__':
-    #from pprint import pprint
     for fn in app_get_index():
         print('%s: %s' % (fn, app_is_installed(fn)))
-    #pprint(missing_packages('twisted-12.3.0-py27_0.tar.bz2'))
-    #print(app_install('twisted-12.3.0-py27_0.tar.bz2'))
-    #pprint(get_index())
-    #print(app_get_icon_url('spyder-app-2.2.0-py27_0.tar.bz2'))

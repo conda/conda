@@ -108,7 +108,8 @@ def execute(args, parser):
 
     prefix = common.get_prefix(args)
     if args.all and prefix == config.default_prefix:
-        common.error_and_exit("cannot remove current environment. deactivate and run conda remove again")
+        msg = "cannot remove current environment. deactivate and run conda remove again"
+        common.error_and_exit(msg)
     common.check_write('remove', prefix, json=args.json)
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
@@ -159,7 +160,7 @@ def execute(args, parser):
     else:
         specs = common.specs_from_args(args.package_names)
         if (plan.is_root_prefix(prefix) and
-            common.names_in_specs(common.root_no_rm, specs)):
+                common.names_in_specs(common.root_no_rm, specs)):
             common.error_and_exit('cannot remove %s from root environment' %
                                   ', '.join(common.root_no_rm),
                                   json=args.json,
@@ -194,7 +195,6 @@ def execute(args, parser):
             'actions': actions
         })
         return
-
 
     if not args.json:
         common.confirm_yn(args)

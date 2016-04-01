@@ -138,7 +138,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
     # --add and --remove with the same keys will not be well-defined).
-    action=p.add_mutually_exclusive_group(required=True)
+    action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
         nargs='*',
@@ -218,7 +218,8 @@ def execute_config(args, parser):
 
     # Create the file if it doesn't exist
     if not os.path.exists(rc_path):
-        if args.add and 'channels' in list(zip(*args.add))[0] and not ['channels', 'defaults'] in args.add:
+        has_defaults = ['channels', 'defaults'] in args.add
+        if args.add and 'channels' in list(zip(*args.add))[0] and not has_defaults:
             # If someone adds a channel and their .condarc doesn't exist, make
             # sure it includes the defaults channel, or else they will end up
             # with a broken conda.
@@ -272,10 +273,11 @@ channels:
                                   (', '.join(config.rc_list_keys), key), json=args.json,
                                   error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
-            raise CouldntParse("key %r should be a list, not %s." % (key,
-                rc_config[key].__class__.__name__))
+            bad = rc_config[key].__class__.__name__
+            raise CouldntParse("key %r should be a list, not %s." % (key, bad))
         if key == 'default_channels' and rc_path != config.sys_rc_path:
-            raise NotImplementedError("'default_channels' is only configurable for system installs")
+            msg = "'default_channels' is only configurable for system installs"
+            raise NotImplementedError(msg)
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
             message = "Skipping %s: %s, item already exists" % (key, item)

@@ -12,7 +12,7 @@ import subprocess
 from collections import defaultdict
 from distutils.spawn import find_executable
 from os.path import (abspath, basename, dirname, expanduser, exists,
-                     isdir, isfile, islink, join)
+                     isdir, isfile, islink, join, relpath)
 
 from conda import config
 from conda import install
@@ -91,13 +91,6 @@ def explicit(urls, prefix, verbose=True):
     force_extract_and_link(dists, prefix, verbose=verbose)
 
 
-def rel_path(prefix, path, windows_forward_slashes=True):
-    res = path[len(prefix) + 1:]
-    if sys.platform == 'win32' and windows_forward_slashes:
-        res = res.replace('\\', '/')
-    return res
-
-
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
     """
     Return the set of all files in a given prefix directory.
@@ -105,29 +98,32 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
     res = set()
     prefix = abspath(prefix)
     ignore = {'pkgs', 'envs', 'conda-bld', 'conda-meta', '.conda_lock',
-              'users', 'LICENSE.txt', 'info', 'conda-recipes',
-              '.index', '.unionfs', '.nonadmin'}
+              'users', 'LICENSE.txt', 'info', 'conda-recipes', '.index',
+              '.unionfs', '.nonadmin'}
     binignore = {'conda', 'activate', 'deactivate'}
     if sys.platform == 'darwin':
         ignore.update({'python.app', 'Launcher.app'})
     for fn in os.listdir(prefix):
-        if ignore_predefined_files:
-            if fn in ignore:
-                continue
+        if ignore_predefined_files and fn in ignore:
+            continue
         if isfile(join(prefix, fn)):
             res.add(fn)
             continue
         for root, dirs, files in os.walk(join(prefix, fn)):
+            should_ignore = ignore_predefined_files and root == join(prefix, 'bin')
             for fn2 in files:
-                if ignore_predefined_files:
-                    if root == join(prefix, 'bin') and fn2 in binignore:
-                        continue
-                res.add(rel_path(prefix, join(root, fn2), windows_forward_slashes=windows_forward_slashes))
+                if should_ignore and fn2 in binignore:
+                    continue
+                res.add(relpath(join(root, fn2), prefix))
             for dn in dirs:
                 path = join(root, dn)
                 if islink(path):
-                    res.add(rel_path(prefix, path, windows_forward_slashes=windows_forward_slashes))
-    return res
+                    res.add(relpath(path, prefix))
+
+    if sys.platform == 'win32' and windows_forward_slashes:
+        return {path.replace('\\', '/') for path in res}
+    else:
+        return res
 
 
 def untracked(prefix, exclude_self_build=False):
@@ -137,8 +133,8 @@ def untracked(prefix, exclude_self_build=False):
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {path for path in walk_prefix(prefix) - conda_files
             if not (path.endswith('~') or
-                     (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
-                     (path.endswith('.pyc') and path[:-1] in conda_files))}
+                    (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
+                    (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
 def which_prefix(path):
