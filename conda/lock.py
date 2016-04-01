@@ -32,15 +32,15 @@ class Locked(object):
     """
     Context manager to handle locks.
     """
-    def __init__(self, path):
+    def __init__(self, path, retries=10):
         self.path = path
         self.end = "-" + str(os.getpid())
         self.lock_path = join(self.path, LOCKFN + self.end)
         self.pattern = join(self.path, LOCKFN + '-*')
         self.remove = True
+        self.retries = retries
 
     def __enter__(self):
-        retries = 10
         # Keep the string "LOCKERROR" in this string so that external
         # programs can look for it.
         lockstr = ("""\
@@ -50,14 +50,14 @@ class Locked(object):
     You can also use: $ conda clean --lock\n""")
         sleeptime = 1
         files = None
-        while retries:
+        while self.retries:
             files = glob.glob(self.pattern)
             if files and not files[0].endswith(self.end):
                 stdoutlog.info(lockstr % str(files))
                 stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
                 sleep(sleeptime)
                 sleeptime *= 2
-                retries -= 1
+                self.retries -= 1
             else:
                 break
         else:
@@ -71,6 +71,8 @@ class Locked(object):
                 pass
         else:  # PID lock already here --- someone else will remove it.
             self.remove = False
+
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.remove:
