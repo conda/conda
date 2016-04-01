@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import operator as op
 import re
 
-from conda.compat import zip_longest, string_types
+from conda.compat import zip_longest, string_types, zip
 
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but
@@ -12,7 +12,7 @@ def normalized_version(version):
     return VersionOrder(version)
 
 def ver_eval(vtest, spec):
-  return VersionSpec(spec).match(vtest)
+    return VersionSpec(spec).match(vtest)
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[^0-9]+)')
@@ -140,7 +140,7 @@ class VersionOrder(object):
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
             # as well, by converting the former to the latter.
-            version = version.replace('-','_')
+            version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
             raise ValueError(message + "invalid character(s).")
@@ -247,16 +247,19 @@ class VersionOrder(object):
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
 version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
-opdict = {'==':op.__eq__,'!=':op.__ne__,'<=':op.__le__,
-          '>=':op.__ge__,'<':op.__lt__,'>':op.__gt__}
+opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
+          '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
 
 class VersionSpec(object):
     def regex_match_(self, vspec):
         return bool(self.regex.match(vspec))
+
     def veval_match_(self, vspec):
         return self.op(VersionOrder(vspec), self.cmp)
+
     def all_match_(self, vspec):
         return all(s.match(vspec) for s in self.spec[1])
+
     def any_match_(self, vspec):
         return any(s.match(vspec) for s in self.spec[1])
 
@@ -265,16 +268,16 @@ class VersionSpec(object):
             return spec
         self = object.__new__(cls)
         self.spec = spec
-        if isinstance(spec,tuple):
-            self.match = self.all_match_ if spec[0]=='all' else self.any_match_
+        if isinstance(spec, tuple):
+            self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
         elif '|' in spec:
-            return VersionSpec(('any',tuple(VersionSpec(s) for s in spec.split('|'))))
+            return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
         elif ',' in spec:
-            return VersionSpec(('all',tuple(VersionSpec(s) for s in spec.split(','))))
+            return VersionSpec(('all', tuple(VersionSpec(s) for s in spec.split(','))))
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                raise RuntimeError('Invalid version spec: %s'%spec)
+                raise RuntimeError('Invalid version spec: %s' % spec)
             op, b = m.groups()
             self.op = opdict[op]
             self.cmp = VersionOrder(b)
@@ -292,11 +295,11 @@ class VersionSpec(object):
     def str(self, inand=False):
         s = self.spec
         if isinstance(s, tuple):
-            newand = not inand and s[0]==all
-            inand = inand and s[0]==any
-            s = (',' if s[0]=='all' else '|').join(x.str(newand) for x in s[1])
+            newand = not inand and s[0] == all
+            inand = inand and s[0] == any
+            s = (',' if s[0] == 'all' else '|').join(x.str(newand) for x in s[1])
             if inand:
-                s = '(%s)'%s
+                s = '(%s)' % s
         return s
 
     def __str__(self):
@@ -308,10 +311,9 @@ class VersionSpec(object):
     def __and__(self, other):
         if not isinstance(other, VersionSpec):
             other = VersionSpec(other)
-        return VersionSpec((all,(self,other)))
+        return VersionSpec((all, (self, other)))
 
     def __or__(self, other):
         if not isinstance(other, VersionSpec):
             other = VersionSpec(other)
-        return VersionSpec((any,(self,other)))
-
+        return VersionSpec((any, (self, other)))

@@ -215,16 +215,15 @@ def binstar_channel_alias(channel_alias):
             log.debug("Could not import binstar")
             pass
         except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" %
-                e)
+            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
     return channel_alias
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
-BINSTAR_TOKEN_PAT = re.compile(r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
-    (re.escape(channel_alias)))
+_binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
+BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
 
 def hide_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
@@ -334,12 +333,11 @@ always_copy = bool(rc.get('always_copy', False))
 changeps1 = bool(rc.get('changeps1', True))
 use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('anaconda_upload',
-                        rc.get('binstar_upload', None)) # None means ask
+                        rc.get('binstar_upload', None))  # None means ask
 allow_softlinks = bool(rc.get('allow_softlinks', True))
 self_update = bool(rc.get('self_update', True))
 # show channel URLs when displaying what is going to be downloaded
-show_channel_urls = rc.get(
-        'show_channel_urls', None) # None means letting conda decide
+show_channel_urls = rc.get('show_channel_urls', None)  # None means letting conda decide
 # set packages disallowed to be installed
 disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default

@@ -713,7 +713,7 @@ class Resolve(object):
                 pkgs = v1 + v2 + v3
             else:
                 pkgs = sorted(pkgs, reverse=True)
-            pkey = ppkg = None
+            pkey = None
             for nkey, npkg in pkgs:
                 if pkey is None:
                     iv = ib = 0
@@ -726,7 +726,7 @@ class Resolve(object):
                     eqv[npkg] = iv
                 if ib:
                     eqb[npkg] = ib
-                pkey, ppkg = nkey, npkg
+                pkey = nkey
         return eqv, eqb
 
     def dependency_sort(self, must_have):

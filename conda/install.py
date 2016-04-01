@@ -40,6 +40,7 @@ import sys
 import tarfile
 import time
 import traceback
+import re
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
@@ -66,13 +67,12 @@ except ImportError:
 
         Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
         """
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
-        translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
-            .replace(":", "")
-        translation = re.sub(path_re, translation, path)
-        translation = translation.replace(";/", ":/")
-        return translation
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
 
+        def translation(found_path):
+            found = found_path.group(1).replace("\\", "/").replace(":", "")
+            return root_prefix + "/" + found
+        return re.sub(path_re, translation, path).replace(";/", ":/")
 
 on_win = bool(sys.platform == "win32")
 
@@ -154,10 +154,13 @@ class NullHandler(logging.Handler):
         `No handlers could be found for logger "patch"`
         http://bugs.python.org/issue16539
     """
+
     def handle(self, record):
         pass
+
     def emit(self, record):
         pass
+
     def createLock(self):
         self.lock = None
 
@@ -238,7 +241,8 @@ def rm_rf(path, max_retries=5, trash=True):
                         msg += "Retry with onerror failed (%s)\n" % e1
 
                     p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
                     (stdout, stderr) = p.communicate()
                     if p.returncode != 0:
                         msg += '%s\n%s\n' % (stdout, stderr)
@@ -267,7 +271,7 @@ def rm_empty_dir(path):
     """
     try:
         os.rmdir(path)
-    except OSError: # directory might not exist or not be empty
+    except OSError:  # directory might not exist or not be empty
         pass
 
 
@@ -311,7 +315,6 @@ def binary_replace(data, a, b):
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
-    import re
 
     def replace(match):
         occurances = match.group().count(a)
@@ -346,7 +349,8 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     if new_data == data:
         return
     st = os.lstat(path)
-    os.remove(path) # Remove file before rewriting to avoid destroying hard-linked cache.
+    # Remove file before rewriting to avoid destroying hard-linked cache
+    os.remove(path)
     with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -381,8 +385,8 @@ def mk_menus(prefix, files, remove=False):
     ``remove=True`` will remove the menu items.
     """
     menu_files = [f for f in files
-                  if f.lower().startswith('menu/')
-                  and f.lower().endswith('.json')]
+                  if (f.lower().startswith('menu/') and
+                      f.lower().endswith('.json'))]
     if not menu_files:
         return
     elif basename(abspath(prefix)).startswith('_'):
@@ -427,8 +431,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
-                str(dist).rsplit('-', 2)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = str(dist).rsplit('-', 2)
     if action == 'pre-link':
         env['SOURCE_DIR'] = str(prefix)
     try:
@@ -588,7 +591,8 @@ def linked_data(prefix):
         for fn in os.listdir(meta_dir):
             if fn.endswith('.json'):
                 try:
-                    res[fn[:-5]] = json.load(open(join(meta_dir,fn)))
+                    with open(join(meta_dir, fn)) as fin:
+                        res[fn[:-5]] = json.load(fin)
                 except IOError:
                     pass
     return res
@@ -836,7 +840,7 @@ def duplicates_to_remove(linked_dists, keep_dists):
     from collections import defaultdict
 
     keep_dists = set(keep_dists)
-    ldists = defaultdict(set) # map names to set of distributions
+    ldists = defaultdict(set)  # map names to set of distributions
     for dist in linked_dists:
         name = name_dist(dist)
         ldists[name].add(dist)

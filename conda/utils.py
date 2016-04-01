@@ -82,12 +82,12 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
-    translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
-        .replace(":", "")
-    translation = re.sub(path_re, translation, path)
-    translation = translation.replace(";/", ":/")
-    return translation
+    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+
+    def translation(found_path):
+        found = found_path.group(1).replace("\\", "/").replace(":", "")
+        return root_prefix + "/" + found
+    return re.sub(path_re, translation, path).replace(";/", ":/")
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -98,22 +98,30 @@ def unix_path_to_win(path, root_prefix=""):
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
         # already a windows path
         return path.replace("/", "\\")
-    """Convert a path or :-separated string of paths into a Windows representation"""
-    path_re = root_prefix +'(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
-    translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
-                  found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
-    translation = re.sub(path_re, translation, path)
-    translation = re.sub(":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation)
+
+    path_re = root_prefix + '(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+
+    def _translation(found_path):
+        group = found_path.group(0)
+        return "{0}:{1}".format(group[len(root_prefix)+1],
+                                group[len(root_prefix)+2:].replace("/", "\\"))
+    translation = re.sub(path_re, _translation, path)
+    translation = re.sub(":([a-zA-Z]):\\\\",
+                         lambda match: ";" + match.group(0)[1] + ":\\",
+                         translation)
     return translation
 
 
 # curry cygwin functions
-win_path_to_cygwin = lambda path : win_path_to_unix(path, "/cygdrive")
-cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
+def win_path_to_cygwin(path):
+    return win_path_to_unix(path, "/cygdrive")
+
+def cygwin_path_to_win(path):
+    return unix_path_to_win(path, "/cygdrive")
 
 
 def translate_stream(stream, translator):
-    return "\n".join([translator(line) for line in stream.split("\n")])
+    return "\n".join(translator(line) for line in stream.split("\n"))
 
 
 def human_bytes(n):
@@ -140,6 +148,7 @@ class memoized(object):
     def __init__(self, func):
         self.func = func
         self.cache = {}
+
     def __call__(self, *args, **kw):
         newargs = []
         for arg in args:
@@ -162,13 +171,15 @@ class memoized(object):
 
 
 # For instance methods only
-class memoize(object): # 577452
+class memoize(object):  # 577452
     def __init__(self, func):
         self.func = func
+
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self.func
         return partial(self, obj)
+
     def __call__(self, *args, **kw):
         obj = args[0]
         try:

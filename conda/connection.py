@@ -239,7 +239,7 @@ class FTPAdapter(requests.adapters.BaseAdapter):
                            'RETR': self.retr,
                            'STOR': self.stor,
                            'NLST': self.nlst,
-                           'GET':  self.retr,}
+                           'GET': self.retr}
 
     def send(self, request, **kwargs):
         '''Sends a PreparedRequest object over FTP. Returns a response object.

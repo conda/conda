@@ -202,6 +202,7 @@ def print_explicit(prefix, add_md5=False):
         with open(join(meta_dir, fn)) as fi:
             meta = json.load(fi)
         url = meta.get('url')
+
         def format_url():
             return '%s%s-%s-%s.tar.bz2' % (meta['channel'], meta['name'],
                                            meta['version'], meta['build'])
@@ -264,5 +265,6 @@ def execute(args, parser):
         format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-                  json=args.json, show_channel_urls=args.show_channel_urls)
+                              json=args.json,
+                              show_channel_urls=args.show_channel_urls)
     sys.exit(exitcode)

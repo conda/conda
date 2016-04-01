@@ -172,7 +172,7 @@ def install(args, parser, command='install'):
     elif getattr(args, 'all', False):
         if not linked:
             common.error_and_exit("There are no packages installed in the "
-                "prefix %s" % prefix)
+                                  "prefix %s" % prefix)
         specs.extend(nm for nm in lnames)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
@@ -181,7 +181,6 @@ def install(args, parser, command='install'):
     elif not (newenv and args.clone):
         common.check_specs(prefix, specs, json=args.json,
                            create=(command == 'create'))
-
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
@@ -268,7 +267,7 @@ def install(args, parser, command='install'):
             latest = pkgs[-1]
 
             if (latest.version == vers_inst[0] and
-                       latest.build_number == build_inst[0]):
+                    latest.build_number == build_inst[0]):
                 args.packages.remove(name)
         if not args.packages:
             from conda.cli.main_list import print_packages
@@ -363,16 +362,18 @@ environment does not exist: %s
                 error_message += '\n\n (and similarly for the other packages)'
 
             if not find_executable('anaconda', include_others=False):
-                error_message += '\n\nYou may need to install the anaconda-client command line client with'
+                error_message += '\n\nYou may need to install the anaconda-client'
+                error_message += ' command line client with'
                 error_message += '\n\n    conda install anaconda-client'
 
             pinned_specs = plan.get_pinned_specs(prefix)
             if pinned_specs:
-                error_message += "\n\nNote that you have pinned specs in %s:" % join(prefix, 'conda-meta', 'pinned')
+                path = join(prefix, 'conda-meta', 'pinned')
+                error_message += "\n\nNote that you have pinned specs in %s:" % path
                 error_message += "\n\n    %r" % pinned_specs
 
             common.error_and_exit(error_message, json=args.json)
-    except (Unsatisfiable,SystemExit) as e:
+    except (Unsatisfiable, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         error_type = 'UnsatisfiableSpecifications'
         if e.args and 'could not import' in e.args[0]:

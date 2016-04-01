@@ -63,9 +63,12 @@ def initialize(prefix=config.root_dir):
         if sys.platform != 'win32':
             fo.write('zlib sqlite readline tk openssl system\n')
     write_meta(meta_dir, dict(name='conda',
-        version=conda.__version__.split('-')[0], build_number=0))
-    write_meta(meta_dir, dict(name='python', version=sys.version[:5],
-        build_number=0, build="0"))
+                              version=conda.__version__.split('-')[0],
+                              build_number=0))
+    write_meta(meta_dir, dict(name='python',
+                              version=sys.version[:5],
+                              build_number=0,
+                              build="0"))
     with open(join(meta_dir, "pinned"), 'w') as f:
         f.write("python %s 0" % sys.version[:5])
 
