@@ -30,7 +30,7 @@ requirements:
     - psutil
     - pycosat >=0.6.1
     - pyyaml
-    - raml
+    - ruamel_yaml
     - requests
   run:
     - python
@@ -39,7 +39,7 @@ requirements:
     - psutil
     - pycosat >=0.6.1
     - pyyaml
-    - raml
+    - ruamel_yaml
     - requests
 
 test:
