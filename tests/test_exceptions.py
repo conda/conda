@@ -18,3 +18,7 @@ class InvalidExceptionTestCase(unittest.TestCase):
         e = exceptions.InvalidInstruction(random_instruction)
         expected = "No handler for instruction: %s" % random_instruction
         self.assertEqual(expected, str(e))
+
+def test_lockerror_hierarchy():
+    assert issubclass(exceptions.LockError, exceptions.CondaException)
+    assert issubclass(exceptions.LockError, RuntimeError)

@@ -20,6 +20,8 @@ import logging
 import os
 import time
 
+from conda.exceptions import LockError
+
 LOCKFN = '.conda_lock'
 
 
@@ -59,7 +61,7 @@ class Locked(object):
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
-        raise RuntimeError(lockstr % self.lock_path)
+        raise LockError(lockstr % self.lock_path)
 
     def __exit__(self, exc_type, exc_value, traceback):
         try:
