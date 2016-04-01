@@ -1,7 +1,7 @@
 import os.path
 import pytest
 
-from conda.lock import Locked
+from conda.lock import Locked, LockError
 
 
 def test_lock_passes(tmpdir):
@@ -18,7 +18,7 @@ def test_lock_locks(tmpdir):
         path = os.path.basename(lock1.lock_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isdir()
 
-        with pytest.raises(RuntimeError) as execinfo:
+        with pytest.raises(LockError) as execinfo:
             with Locked(tmpdir.strpath, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.lock_path == lock1.lock_path
