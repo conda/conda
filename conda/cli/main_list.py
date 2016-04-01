@@ -9,18 +9,16 @@ from __future__ import print_function, division, absolute_import
 import re
 import os
 import sys
-from os.path import isdir, isfile, join
 import logging
+from os.path import isdir, isfile, join
 from argparse import RawDescriptionHelpFormatter
 
 import conda.install as install
 import conda.config as config
 from conda.cli import common
 
-# pip_args is here for backwards compatibility
-from conda.pip import pip_args, add_pip_installed
-# Silence pyflakes
-pip_args, add_pip_installed
+from conda.egg_info import get_egg_info
+
 
 descr = "List linked packages in a conda environment."
 
@@ -116,7 +114,7 @@ def print_export_header():
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
 
-    for dist in sorted(installed):
+    for dist in sorted(installed, key=str.lower):
         name = dist.rsplit('-', 2)[0]
         if pat and pat.search(name) is None:
             continue
@@ -176,7 +174,7 @@ Error: environment does not exist: %s
 
     installed = install.linked(prefix)
     if piplist and config.use_pip and format == 'human':
-        add_pip_installed(prefix, installed, json=json)
+        installed.update(get_egg_info(prefix))
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
