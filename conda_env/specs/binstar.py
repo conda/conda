@@ -89,7 +89,7 @@ class BinstarSpec(object):
             req = self.binstar.download(self.username, self.packagename, latest_version, file_data[0]['basename'])
             if req is None:
                 raise EnvironmentFileNotDownloaded(self.username, self.packagename)
-            self._environment = req.raw.read()
+            self._environment = req.text
         return env.from_yaml(self._environment)
 
     @property
