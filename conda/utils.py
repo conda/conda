@@ -215,10 +215,13 @@ def get_yaml():
         import raml as yaml
     except ImportError:
         try:
-            import yaml
+            import ruamel.yaml as yaml
         except ImportError:
-            sys.exit("No yaml library available.\n"
-                     "To proceed, please conda install raml")
+            try:
+                import yaml
+            except ImportError:
+                sys.exit("No yaml library available.\n"
+                         "To proceed, please conda install raml")
     return yaml
 
 
