@@ -212,7 +212,7 @@ def find_parent_shell(path=False):
 @memoized
 def get_yaml():
     try:
-        import raml as yaml
+        import ruamel_yaml as yaml
     except ImportError:
         try:
             import ruamel.yaml as yaml
@@ -221,7 +221,7 @@ def get_yaml():
                 import yaml
             except ImportError:
                 sys.exit("No yaml library available.\n"
-                         "To proceed, please conda install raml")
+                         "To proceed, please conda install ruamel_yaml")
     return yaml
 
 

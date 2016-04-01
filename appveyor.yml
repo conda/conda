@@ -39,7 +39,7 @@ install:
   - set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps conda psutil raml requests
+  - conda install --force --no-deps conda psutil ruamel_yaml requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
