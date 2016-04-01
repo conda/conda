@@ -14,7 +14,6 @@ from conda.install import linked_data
 from conda.misc import rel_path
 
 
-
 def get_site_packages_dir(installed_pkgs):
     for info in itervalues(installed_pkgs):
         if info['name'] == 'python':
