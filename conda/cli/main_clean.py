@@ -122,7 +122,7 @@ class CrossPlatformStLink(object):
         else:
             # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
             import ctypes
-            from ctypes import POINTER, WinError
+            from ctypes import POINTER
             from ctypes.wintypes import DWORD, HANDLE, BOOL
 
             cls.CreateFile = ctypes.windll.kernel32.CreateFileW
@@ -235,7 +235,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                 size = getsize(join(pkgs_dir, fn))
                 print(fmt % (fn, human_bytes(size)))
             print()
-        print('-' * 51) # From 40 + 1 + 10 in fmt
+        print('-' * 51)  # From 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
@@ -266,9 +266,9 @@ def find_pkgs():
         if not os.path.exists(pkgs_dir):
             print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
-        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i)) and
-            # Only include actual packages
-            isdir(join(pkgs_dir, i, 'info'))]
+        pkgs = [i for i in listdir(pkgs_dir)
+                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
+                    isdir(join(pkgs_dir, i, 'info')))]
         for pkg in pkgs:
             breakit = False
             for root, dir, files in walk(join(pkgs_dir, pkg)):
@@ -327,7 +327,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
             for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
                 print(fmt % (pkg, human_bytes(pkgsize)))
             print()
-        print('-' * 51) # 40 + 1 + 10 in fmt
+        print('-' * 51)  # 40 + 1 + 10 in fmt
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
@@ -395,8 +395,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
     for cache_type in cache_dirs:
         print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-        print("%-40s %10s" % ("Size:",
-            human_bytes(cache_sizes[cache_type])))
+        print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
         print()
 
     print("%-40s %10s" % ("Total:", human_bytes(total_size)))
@@ -426,9 +425,9 @@ def execute(args, parser):
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first, # Backwards compabitility
+            'pkgs_dir': first,  # Backwards compabitility
             'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first], # Backwards compatibility
+            'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not args.json)
@@ -443,9 +442,9 @@ def execute(args, parser):
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['packages'] = {
-            'pkgs_dir': first, # Backwards compatibility
+            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first], # Backwards compatibility
+            'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize,
             'warnings': warnings,
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},

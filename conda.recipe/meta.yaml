@@ -9,9 +9,16 @@ build:
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
   always_include_files:
-    - bin/conda  [unix]
-    - bin/activate [unix]
-    - bin/deactivate [unix]
+    - bin/conda                 [unix]
+    - bin/activate              [unix]
+    - bin/deactivate            [unix]
+    - Scripts/activate.bat      [win]
+    - Scripts/deactivate.bat    [win]
+    # TODO: are these needed?  They currently break packaging, since these files don't exist yet at build time
+    # - Scripts/activate          [win]
+    # - Scripts/deactivate        [win]
+    # TODO: what about fish and powershell?
+
   entry_points:
     - conda = conda.cli:main
 

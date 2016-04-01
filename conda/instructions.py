@@ -141,7 +141,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
             getLogger('progress.update').info((install.name_dist(arg),
-                state['i']-1))
+                                               state['i'] - 1))
         cmd = _commands.get(instruction)
 
         if cmd is None:
@@ -149,8 +149,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         cmd(state, arg)
 
-        if (state['i'] is not None and instruction in progress_cmds
-                and state['maxval'] == state['i']):
+        if (state['i'] is not None and instruction in progress_cmds and
+                state['maxval'] == state['i']):
             state['i'] = None
             getLogger('progress.stop').info(None)
 

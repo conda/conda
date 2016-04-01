@@ -127,12 +127,6 @@ def list_packages(prefix, installed, regex=None, format='human',
     res = 1
     if show_channel_urls is None and format == 'human':
         show_channel_urls = False
-        for dist in get_packages(installed, regex):
-            info = install.is_linked(prefix, dist)
-            if info and config.canonical_channel_name(
-                               info.get('url')) != 'defaults':
-                show_channel_urls = True
-                break
 
     result = []
     for dist in get_packages(installed, regex):
@@ -206,6 +200,7 @@ def print_explicit(prefix, add_md5=False):
         with open(join(meta_dir, fn)) as fi:
             meta = json.load(fi)
         url = meta.get('url')
+
         def format_url():
             return '%s%s-%s-%s.tar.bz2' % (meta['channel'], meta['name'],
                                            meta['version'], meta['build'])
@@ -268,5 +263,6 @@ def execute(args, parser):
         format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-                  json=args.json, show_channel_urls=args.show_channel_urls)
+                              json=args.json,
+                              show_channel_urls=args.show_channel_urls)
     sys.exit(exitcode)

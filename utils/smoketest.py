@@ -17,11 +17,12 @@ if 'win' in sys.platform and 'dar' not in sys.platform:
 else:
     status = False
     pandas = '0.8.1'
-    numba  = '0.1.1'
+    numba = '0.1.1'
     cython = '0.16'
 
 
-# CIO_TEST needs to be set to 2 if any of the packages tested below are only found in the test repo.
+# CIO_TEST needs to be set to 2 if any of the packages tested below are
+# only found in the test repo.
 
 # os.environ['CIO_TEST'] = 2
 
@@ -54,7 +55,7 @@ cmds = [
 
 def tester(commands):
     cmds = commands
-    errs  = []
+    errs = []
     fails = []
     for cmd in cmds:
         cmd = "conda %s" % cmd

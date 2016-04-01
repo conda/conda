@@ -38,7 +38,7 @@ def configure_parser(sub_parsers):
         '-a', "--all",
         action="store_true",
         help="Show all information, (environments, license, and system "
-                  "information.")
+             "information.")
     p.add_argument(
         '-e', "--envs",
         action="store_true",
@@ -74,7 +74,6 @@ def configure_parser(sub_parsers):
 
 
 def show_pkg_info(name):
-    #import conda.install as install
     from conda.api import get_index
     from conda.resolve import Resolve
 
@@ -126,8 +125,8 @@ def pretty_package(pkg):
         ])
     rest = pkg.info
     for key in sorted(rest):
-        if key in ['build', 'depends', 'requires', 'channel', 'name',
-            'version', 'build_number', 'size']:
+        if key in {'build', 'depends', 'requires', 'channel', 'name',
+                   'version', 'build_number', 'size'}:
             continue
         d[key] = rest[key]
 
@@ -198,22 +197,23 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    info_dict = dict(platform=config.subdir,
-                     conda_version=conda.__version__,
-                     conda_build_version=conda_build_version,
-                     root_prefix=config.root_dir,
-                     root_writable=config.root_writable,
-                     pkgs_dirs=config.pkgs_dirs,
-                     envs_dirs=config.envs_dirs,
-                     default_prefix=config.default_prefix,
-                     channels=config.get_channel_urls(),
-                     rc_path=config.rc_path,
-                     user_rc_path=config.user_rc_path,
-                     sys_rc_path=config.sys_rc_path,
-                     is_foreign=bool(config.foreign),
-                     envs=[],
-                     python_version='.'.join(map(str, sys.version_info)),
-                     requests_version=requests_version,
+    info_dict = dict(
+        platform=config.subdir,
+        conda_version=conda.__version__,
+        conda_build_version=conda_build_version,
+        root_prefix=config.root_dir,
+        root_writable=config.root_writable,
+        pkgs_dirs=config.pkgs_dirs,
+        envs_dirs=config.envs_dirs,
+        default_prefix=config.default_prefix,
+        channels=config.get_channel_urls(),
+        rc_path=config.rc_path,
+        user_rc_path=config.user_rc_path,
+        sys_rc_path=config.sys_rc_path,
+        is_foreign=bool(config.foreign),
+        envs=[],
+        python_version='.'.join(map(str, sys.version_info)),
+        requests_version=requests_version,
     )
 
     if args.unsafe_channels:

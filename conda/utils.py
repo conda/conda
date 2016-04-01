@@ -5,10 +5,9 @@ import sys
 import hashlib
 import collections
 from functools import partial
-from os.path import abspath, isdir
+from os.path import abspath, isdir, join
 import os
 import re
-import tempfile
 
 
 log = logging.getLogger(__name__)
@@ -45,10 +44,12 @@ def can_open_all_files_in_prefix(prefix, files):
 
 def try_write(dir_path):
     assert isdir(dir_path)
+    # try to create a file to see if `dir_path` is writable, see #2151
+    temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
     try:
-        with tempfile.TemporaryFile(prefix='.conda-try-write',
-                                    dir=dir_path) as fo:
+        with open(temp_filename, mode='wb') as fo:
             fo.write(b'This is a test file.\n')
+        os.unlink(temp_filename)
         return True
     except (IOError, OSError):
         return False
@@ -81,10 +82,12 @@ def win_path_to_unix(path, root_prefix=""):
 
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
-    path_re = '(?<![:/])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'
-    translation = lambda found_path: root_prefix + "/" + found_path.groups()[0].replace("\\", "/")\
-        .replace(":", "").replace(";", ":")
-    return re.sub(path_re, translation, path)
+    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+
+    def translation(found_path):
+        found = found_path.group(1).replace("\\", "/").replace(":", "")
+        return root_prefix + "/" + found
+    return re.sub(path_re, translation, path).replace(";/", ":/")
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -95,22 +98,30 @@ def unix_path_to_win(path, root_prefix=""):
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
         # already a windows path
         return path.replace("/", "\\")
-    """Convert a path or :-separated string of paths into a Windows representation"""
-    path_re = root_prefix +'(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
-    translation = lambda found_path: found_path.group(0)[len(root_prefix)+1] + ":" + \
-                  found_path.group(0)[len(root_prefix)+2:].replace("/", "\\")
-    translation = re.sub(path_re, translation, path)
-    translation = re.sub(":([a-zA-Z]):", lambda match: ";" + match.group(0)[1] + ":", translation)
+
+    path_re = root_prefix + '(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+
+    def _translation(found_path):
+        group = found_path.group(0)
+        return "{0}:{1}".format(group[len(root_prefix)+1],
+                                group[len(root_prefix)+2:].replace("/", "\\"))
+    translation = re.sub(path_re, _translation, path)
+    translation = re.sub(":([a-zA-Z]):\\\\",
+                         lambda match: ";" + match.group(0)[1] + ":\\",
+                         translation)
     return translation
 
 
 # curry cygwin functions
-win_path_to_cygwin = lambda path : win_path_to_unix(path, "/cygdrive")
-cygwin_path_to_win = lambda path : unix_path_to_win(path, "/cygdrive")
+def win_path_to_cygwin(path):
+    return win_path_to_unix(path, "/cygdrive")
+
+def cygwin_path_to_win(path):
+    return unix_path_to_win(path, "/cygdrive")
 
 
 def translate_stream(stream, translator):
-    return "\n".join([translator(line) for line in stream.split("\n")])
+    return "\n".join(translator(line) for line in stream.split("\n"))
 
 
 def human_bytes(n):
@@ -137,6 +148,7 @@ class memoized(object):
     def __init__(self, func):
         self.func = func
         self.cache = {}
+
     def __call__(self, *args, **kw):
         newargs = []
         for arg in args:
@@ -159,13 +171,15 @@ class memoized(object):
 
 
 # For instance methods only
-class memoize(object): # 577452
+class memoize(object):  # 577452
     def __init__(self, func):
         self.func = func
+
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self.func
         return partial(self, obj)
+
     def __call__(self, *args, **kw):
         obj = args[0]
         try:
@@ -206,3 +220,21 @@ def get_yaml():
             sys.exit("No yaml library available.\n"
                      "To proceed, please conda install raml")
     return yaml
+
+
+def yaml_load(filehandle):
+    yaml = get_yaml()
+    try:
+        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
+    except AttributeError:
+        return yaml.load(filehandle)
+
+
+def yaml_dump(string):
+    yaml = get_yaml()
+    try:
+        return yaml.dump(string, Dumper=yaml.RoundTripDumper,
+                         block_seq_indent=2, default_flow_style=False,
+                         indent=4)
+    except AttributeError:
+        return yaml.dump(string, default_flow_style=False)

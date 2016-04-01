@@ -7,7 +7,8 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import translate_stream, unix_path_to_win, win_path_to_unix, win_path_to_cygwin, find_parent_shell
+from conda.utils import (translate_stream, unix_path_to_win, win_path_to_unix,
+                         win_path_to_cygwin, find_parent_shell)
 
 
 on_win = sys.platform == "win32"
@@ -32,7 +33,7 @@ prefix path.""")
 adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
-    else: # ..deactivate
+    else:  # ..deactivate
         if on_win and win_process in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: deactivate
 
@@ -61,13 +62,11 @@ def binpath_from_arg(arg):
     prefix = prefix_from_arg(arg)
     if on_win:
         path = [prefix.rstrip("\\"),
-                join(prefix, 'cmd'),
                 join(prefix, 'Scripts'),
                 join(prefix, 'Library', 'bin'),
-               ]
+                ]
     else:
         path = [prefix.rstrip("/"),
-                join(prefix, 'cmd'),
                 join(prefix, 'bin'),
                 ]
     return path
@@ -118,17 +117,20 @@ def main():
             if rootpath:
                 path = path.replace(translate_stream(rootpath, unix_path_to_win), "")
         elif 'cygwin' in parent_shell:
-            # this should be harmless to unix paths, but converts win paths to unix for bash on win (msys, cygwin)
+            # this should be harmless to unix paths, but converts win paths to
+            # unix for bash on win (msys, cygwin)
             path = translate_stream(path, win_path_to_cygwin)
             # Clear the root path if it is present
             if rootpath:
                 path = path.replace(translate_stream(rootpath, win_path_to_cygwin), "")
         else:
-            path = translate_stream(path, win_path_to_unix)
+            if sys.platform == 'win32':
+                path = translate_stream(path, win_path_to_unix)
+                if rootpath:
+                    rootpath = translate_stream(rootpath, win_path_to_unix)
             # Clear the root path if it is present
             if rootpath:
-                path = path.replace(translate_stream(rootpath, win_path_to_unix), "")
-
+                path = path.replace(rootpath, "")
 
     elif sys.argv[1] == '..deactivate':
         path = os.getenv("CONDA_PATH_BACKUP", "")
@@ -147,13 +149,18 @@ def main():
         if sys.argv[2] == 'root':
             # no need to check root env and try to install a symlink there
             sys.exit(0)
-        binpath = binpath_from_arg(sys.argv[2])  # this should throw an error and exit if the env or path can't be found.
+
+        # this should throw an error and exit if the env or path can't be found.
+        binpath = binpath_from_arg(sys.argv[2])
+
         # Make sure an env always has the conda symlink
         try:
             conda.install.symlink_conda(binpath[0], conda.config.root_dir, find_parent_shell())
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                sys.exit("Cannot activate environment {}, do not have write access to write conda symlink".format(sys.argv[2]))
+                msg = ("Cannot activate environment {0}, not have write access to conda symlink"
+                       .format(sys.argv[2]))
+                sys.exit(msg)
             raise
         sys.exit(0)
 
@@ -180,7 +187,8 @@ def main():
         # This means there is a bug in main.py
         raise ValueError("unexpected command")
 
-    # This print is actually what sets the PATH or PROMPT variable.  The shell script gets this value, and finishes the job.
+    # This print is actually what sets the PATH or PROMPT variable.  The shell
+    # script gets this value, and finishes the job.
     print(path)
 
 

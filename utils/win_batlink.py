@@ -67,7 +67,7 @@ DIR_DELETE = "rmdir /Q {dest}"
 def make_bat_link(files, prefix, dist_dir):
     links = []
     has_mklink = find_executable('mklink')
-    LINK =  WINVISTA_LINK if has_mklink else WINXP_LINK
+    LINK = WINVISTA_LINK if has_mklink else WINXP_LINK
     dirs = set()
     for file in files:
         source = abspath(join(dist_dir, file))
@@ -157,7 +157,7 @@ def test_win_subprocess(prefix):
         # Now unlink it.
         print("making unlink command")
         batfiles.append(make_bat_unlink([join(prefix_battest, 'battest1')],
-        [prefix_battest], prefix, dist_dir))
+                                        [prefix_battest], prefix, dist_dir))
 
         # Now create a file in the pkgs dir
         print("making file in pkgs dir")

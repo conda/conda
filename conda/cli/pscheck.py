@@ -35,7 +35,7 @@ def check_processes(dir=root_dir, verbose=True):
     ok = True
     curpid = os.getpid()
     for n in psutil.get_pid_list():
-        if n == curpid: # The Python that conda is running is OK
+        if n == curpid:  # The Python that conda is running is OK
             continue
         try:
             p = psutil.Process(n)
@@ -69,7 +69,7 @@ def main(args, windowsonly=True):
         else:
             while not check_processes():
                 choice = confirm(args, message="Continue (yes/no/force)",
-                    choices=('yes', 'no', 'force'), default='no')
+                                 choices=('yes', 'no', 'force'), default='no')
                 if choice == 'no':
                     sys.exit(1)
                 if choice == 'force':
