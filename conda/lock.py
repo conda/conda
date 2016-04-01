@@ -52,7 +52,7 @@ class Locked(object):
         files = None
         while self.retries:
             files = glob.glob(self.pattern)
-            if files and not files[0].endswith(self.end):
+            if files and files[0].endswith(self.end):
                 stdoutlog.info(lockstr % str(files))
                 stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
                 sleep(sleeptime)
