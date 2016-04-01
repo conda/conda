@@ -19,7 +19,7 @@ env:
 install:
   - printenv
   - source ./utils/travis-bootstrap-conda.sh
-  - conda install psutil raml
+  - conda install psutil ruamel_yaml
   - conda install flake8 pytest mock
   - conda install pip
   - pip install auxlib pytest-cov radon
