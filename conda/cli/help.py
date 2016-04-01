@@ -4,7 +4,6 @@ import conda.config as config
 from conda.cli.common import name_prefix, error_and_exit
 
 
-
 def read_message(fn):
     res = []
     for envs_dir in config.envs_dirs:

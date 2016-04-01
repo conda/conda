@@ -10,11 +10,9 @@ import unittest
 import pytest
 
 import conda.config as config
-from conda.utils import get_yaml
+from conda.utils import yaml_load
 
 from tests.helpers import run_conda_command
-
-yaml = get_yaml()
 
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
@@ -289,7 +287,7 @@ changeps1: false
 always_yes: yes
 """
         # First verify that this itself is valid YAML
-        assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
+        assert yaml_load(condarc) == {'channels': ['test', 'defaults'],
             'create_default_packages': ['ipython', 'numpy'], 'changeps1':
             False, 'always_yes': 'yes'}
 
@@ -393,7 +391,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults'],
+        assert yaml_load(_read_test_condarc()) == {'channels': ['defaults'],
             'always_yes': True}
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -409,7 +407,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults']}
+        assert yaml_load(_read_test_condarc()) == {'channels': ['defaults']}
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
             '--remove-key', 'always_yes', '--force')
@@ -461,7 +459,7 @@ channels:
             f.write(condarc)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-            '--add', 'channels', 'test')
+                                           '--add', 'channels', 'test')
         assert stdout == ''
         assert stderr == """\
 Error: Could not parse the yaml file. Use -f to use the
@@ -504,7 +502,7 @@ def test_set_rc_string():
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
+        verify = yaml_load(open(test_condarc, 'r'))['ssl_verify']
         assert verify == 'yes'
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
@@ -512,7 +510,7 @@ def test_set_rc_string():
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
+        verify = yaml_load(open(test_condarc, 'r'))['ssl_verify']
         assert verify == 'test_string.crt'
 
 

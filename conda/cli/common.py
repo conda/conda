@@ -11,6 +11,7 @@ import textwrap
 import conda.config as config
 from conda import console
 from conda.utils import memoize
+from conda.resolve import MatchSpec
 
 
 class Completer(object):
@@ -65,10 +66,12 @@ class Packages(Completer):
         # TODO: Include .tar.bz2 files for local installs.
         from conda.api import get_index
         args = self.parsed_args
-        call_dict = dict(channel_urls=args.channel or (), use_cache=True,
-            prepend=not args.override_channels, unknown=args.unknown,
-            offline=args.offline)
-        if hasattr(args, 'platform'): # in search
+        call_dict = dict(channel_urls=args.channel or (),
+                         use_cache=True,
+                         prepend=not args.override_channels,
+                         unknown=args.unknown,
+                         offline=args.offline)
+        if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
         return [i.rsplit('-', 2)[0] for i in index]
@@ -102,8 +105,7 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-n', "--name",
         action="store",
-        help="Name of environment (in %s)." %
-                            os.pathsep.join(config.envs_dirs),
+        help="Name of environment (in %s)." % os.pathsep.join(config.envs_dirs),
         metavar="ENVIRONMENT",
         choices=Environments(),
     )
@@ -111,7 +113,7 @@ def add_parser_prefix(p):
         '-p', "--prefix",
         action="store",
         help="Full path to environment prefix (default: %s)." %
-                                           config.default_prefix,
+             config.default_prefix,
         metavar='PATH',
     )
 
@@ -145,7 +147,8 @@ def add_parser_quiet(p):
     )
 
 def add_parser_channels(p):
-    p.add_argument('-c', '--channel',
+    p.add_argument(
+        '-c', '--channel',
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
@@ -153,7 +156,7 @@ def add_parser_channels(p):
         'defaults' to get the default packages for conda, and 'system' to get the system
         packages, which also takes .condarc into account.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.anaconda.org/.""" # we can't put , here; invalid syntax
+        is http://conda.anaconda.org/.""",
     )
     p.add_argument(
         "--override-channels",
@@ -219,7 +222,7 @@ def add_parser_install(p):
         default=[],
         action='append',
         help="Read package versions from the given file. Repeated file "
-              "specifications can be passed (e.g. --file=file1 --file=file2).",
+             "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
     add_parser_known(p)
     p.add_argument(
@@ -270,8 +273,8 @@ def add_parser_install(p):
             action="store",
             nargs='*',
             help="Packages to update in the conda environment.",
-        ).completer=InstalledPackages
-    else: # create or install
+        ).completer = InstalledPackages
+    else:  # create or install
         # Same as above except the completer is not only installed packages
         p.add_argument(
             'packages',
@@ -279,7 +282,7 @@ def add_parser_install(p):
             action="store",
             nargs='*',
             help="Packages to install into the conda environment.",
-            ).completer=Packages
+        ).completer = Packages
 
 def add_parser_use_local(p):
     p.add_argument(
@@ -344,8 +347,9 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
         else:
             options.append(option[0])
     message = "%s (%s)? " % (message, '/'.join(options))
-    choices = {alt:choice for choice in choices for alt in [choice,
-                                                            choice[0]]}
+    choices = {alt: choice
+               for choice in choices
+               for alt in [choice, choice[0]]}
     choices[''] = default
     while True:
         # raw_input has a bug and prints to stderr, not desirable
@@ -437,31 +441,30 @@ def check_write(command, prefix, json=False):
 # -------------------------------------------------------------------------
 
 def arg2spec(arg, json=False, update=False):
-    spec = spec_from_line(arg)
-    if spec is None:
+    try:
+        spec = MatchSpec(spec_from_line(arg))
+    except:
         error_and_exit('invalid package specification: %s' % arg,
-                       json=json,
-                       error_type="ValueError")
-    parts = spec.split()
-    name = parts[0]
+                       json=json, error_type="ValueError")
+    name = spec.name
     if name in config.disallow:
         error_and_exit("specification '%s' is disallowed" % name,
                        json=json,
                        error_type="ValueError")
-    if len(parts) > 1 and update:
+    if spec.strictness > 1 and update:
         error_and_exit("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
     conda install %s""" % (name, ' ' * (len(arg)-len(name)), arg),
-            json=json,
-            error_type="ValueError")
-    if len(parts) == 2:
-        ver = parts[1]
-        if not ver.startswith(('=', '>', '<', '!')):
-            if ver.endswith('.0'):
-                return '%s %s|%s*' % (name, ver[:-2], ver)
-            else:
-                return '%s %s*' % (name, ver)
-    return spec
+                       json=json, error_type="ValueError")
+    if spec.strictness != 2:
+        return str(spec)
+    ver = spec.vspecs.spec
+    if isinstance(ver, tuple) or ver.startswith(('=', '>', '<', '!')) or ver.endswith('*'):
+        return str(spec)
+    elif ver.endswith('.0'):
+        return '%s %s|%s*' % (name, ver[:-2], ver)
+    else:
+        return '%s %s*' % (name, ver)
 
 
 def specs_from_args(args, json=False):
@@ -513,8 +516,8 @@ def specs_from_url(url, json=False):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
-                    error_and_exit("could not parse '%s' in: %s" %
-                                   (line, url), json=json,
+                    error_and_exit("could not parse '%s' in: %s" % (line, url),
+                                   json=json,
                                    error_type="ValueError")
                 specs.append(spec)
         except IOError:
@@ -543,10 +546,7 @@ def check_specs(prefix, specs, json=False, create=False):
 
                     conda config --add create_default_packages PACKAGE_NAME
             """)
-        error_and_exit(msg,
-                       json=json,
-                       error_type="ValueError")
-
+        error_and_exit(msg, json=json, error_type="ValueError")
 
 
 def disp_features(features):
@@ -616,7 +616,7 @@ def json_progress_bars(json=False):
 
 
 def stdout_json_success(success=True, **kwargs):
-    result = { 'success': success }
+    result = {'success': success}
     result.update(kwargs)
     stdout_json(result)
 

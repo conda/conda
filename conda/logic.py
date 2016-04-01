@@ -25,9 +25,8 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
-from functools import total_ordering
 from itertools import chain, combinations
-from conda.compat import iteritems, string_types, ceil, log2
+from conda.compat import iteritems, string_types
 import logging
 import pycosat
 
@@ -590,13 +589,25 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
     if log:
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
-        start = lambda x: logging.getLogger('progress.start').info(x)
-        update = lambda x, y: logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
-        stop = lambda: logging.getLogger('progress.stop').info(None)
+
+        def start(x):
+            return logging.getLogger('progress.start').info(x)
+
+        def update(x, y):
+            logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
+
+        def stop():
+            return logging.getLogger('progress.stop').info(None)
     else:
-        start = lambda x: None
-        update = lambda x, y: None
-        stop = lambda: None
+
+        def start(x):
+            pass
+
+        def update(x, y):
+            pass
+
+        def stop():
+            pass
 
     clauses = tuple(clauses)
     if sat(clauses):

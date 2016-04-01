@@ -79,15 +79,16 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
     located in the current working directory, unless specified otherwise.
     """
     meta = dict(
-        name = 'bundle',
-        build = '0', build_number = 0,
-        type = 'bundle',
-        bundle_name = bundle_name,
-        creator = os.getenv('USER'),
-        platform = config.platform,
-        arch = config.arch_name,
-        ctime = time.strftime(ISO8601),
-        depends = [],
+        name='bundle',
+        build='0',
+        build_number=0,
+        type='bundle',
+        bundle_name=bundle_name,
+        creator=os.getenv('USER'),
+        platform=config.platform,
+        arch=config.arch_name,
+        ctime=time.strftime(ISO8601),
+        depends=[],
     )
     meta['version'] = get_version(meta)
 

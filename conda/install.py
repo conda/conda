@@ -40,7 +40,9 @@ import sys
 import tarfile
 import time
 import traceback
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath, normpath
+import re
+from os.path import (abspath, basename, dirname, isdir, isfile, islink,
+                     join, relpath, normpath)
 
 try:
     from conda.lock import Locked
@@ -65,13 +67,14 @@ except ImportError:
 
         Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
         """
-        path_re = '[a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;/\\\\]*'
-        converted_paths = [root_prefix + "/" + _path.replace("\\", "/").replace(":", "")
-                        for _path in re.findall(path_re, path)]
-        return ":".join(converted_paths)
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
 
+        def translation(found_path):
+            found = found_path.group(1).replace("\\", "/").replace(":", "")
+            return root_prefix + "/" + found
+        return re.sub(path_re, translation, path).replace(";/", ":/")
 
-on_win = sys.platform == "win32"
+on_win = bool(sys.platform == "win32")
 
 if on_win:
     import ctypes
@@ -139,8 +142,8 @@ if on_win:
             src = win_path_to_unix(src, path_prefix)
             dst = win_path_to_unix(dst, path_prefix)
 
-            p = subprocess.check_call(["bash", "-l", "-c", 'ln -sf "{src}" "{dst}"'.format(
-                src=src, dst=dst)])
+            subprocess.check_call(["bash", "-l", "-c",
+                                   'ln -sf "%s" "%s"' % (src, dst)])
 
 
 log = logging.getLogger(__name__)
@@ -151,10 +154,13 @@ class NullHandler(logging.Handler):
         `No handlers could be found for logger "patch"`
         http://bugs.python.org/issue16539
     """
+
     def handle(self, record):
         pass
+
     def emit(self, record):
         pass
+
     def createLock(self):
         self.lock = None
 
@@ -235,7 +241,8 @@ def rm_rf(path, max_retries=5, trash=True):
                         msg += "Retry with onerror failed (%s)\n" % e1
 
                     p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
                     (stdout, stderr) = p.communicate()
                     if p.returncode != 0:
                         msg += '%s\n%s\n' % (stdout, stderr)
@@ -264,7 +271,7 @@ def rm_empty_dir(path):
     """
     try:
         os.rmdir(path)
-    except OSError: # directory might not exist or not be empty
+    except OSError:  # directory might not exist or not be empty
         pass
 
 
@@ -281,7 +288,6 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
-
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
@@ -309,7 +315,6 @@ def binary_replace(data, a, b):
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
-    import re
 
     def replace(match):
         occurances = match.group().count(a)
@@ -344,7 +349,8 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     if new_data == data:
         return
     st = os.lstat(path)
-    os.remove(path) # Remove file before rewriting to avoid destroying hard-linked cache.
+    # Remove file before rewriting to avoid destroying hard-linked cache
+    os.remove(path)
     with open(path, 'wb') as fo:
         fo.write(new_data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -379,8 +385,8 @@ def mk_menus(prefix, files, remove=False):
     ``remove=True`` will remove the menu items.
     """
     menu_files = [f for f in files
-                  if f.lower().startswith('menu/')
-                  and f.lower().endswith('.json')]
+                  if (f.lower().startswith('menu/') and
+                      f.lower().endswith('.json'))]
     if not menu_files:
         return
     elif basename(abspath(prefix)).startswith('_'):
@@ -394,13 +400,6 @@ def mk_menus(prefix, files, remove=False):
         logging.warn("Menuinst could not be imported:")
         logging.warn(traceback.format_exc())
         return
-
-    env_name = (None if abspath(prefix) == abspath(sys.prefix) else
-                basename(prefix))
-    # only windows is provided right now.  Add "source activate" if on Unix platforms
-    env_setup_cmd = "activate"
-    if env_name:
-        env_setup_cmd = env_setup_cmd + " %s" % env_name
 
     for f in menu_files:
         try:
@@ -432,8 +431,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
-                str(dist).rsplit('-', 2)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = str(dist).rsplit('-', 2)
     if action == 'pre-link':
         env['SOURCE_DIR'] = str(prefix)
     try:
@@ -492,22 +490,19 @@ def symlink_conda(prefix, root_dir, shell):
 
 
 def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
-    scripts = {where: ["conda"],
-               'cmd': ["activate", "deactivate"],
-               }
-    for where, files in scripts.items():
-        prefix_where = join(prefix, where)
-        if not isdir(prefix_where):
-            os.makedirs(prefix_where)
-        for f in files:
-            root_file = join(root_dir, where, f)
-            prefix_file = join(prefix_where, f)
-            # try to kill stale links if they exist
-            if os.path.lexists(prefix_file):
-                os.remove(prefix_file)
-            # if they're in use, they won't be killed.  Skip making new symlink.
-            if not os.path.lexists(prefix_file):
-                symlink_fn(root_file, prefix_file)
+    scripts = ["conda", "activate", "deactivate"]
+    prefix_where = join(prefix, where)
+    if not isdir(prefix_where):
+        os.makedirs(prefix_where)
+    for f in scripts:
+        root_file = join(root_dir, where, f)
+        prefix_file = join(prefix_where, f)
+        # try to kill stale links if they exist
+        if os.path.lexists(prefix_file):
+            os.remove(prefix_file)
+        # if they're in use, they won't be killed.  Skip making new symlink.
+        if not os.path.lexists(prefix_file):
+            symlink_fn(root_file, prefix_file)
 
 
 # ========================== begin API functions =========================
@@ -596,7 +591,8 @@ def linked_data(prefix):
         for fn in os.listdir(meta_dir):
             if fn.endswith('.json'):
                 try:
-                    res[fn[:-5]] = json.load(open(join(meta_dir,fn)))
+                    with open(join(meta_dir, fn)) as fin:
+                        res[fn[:-5]] = json.load(fin)
                 except IOError:
                     pass
     return res
@@ -844,7 +840,7 @@ def duplicates_to_remove(linked_dists, keep_dists):
     from collections import defaultdict
 
     keep_dists = set(keep_dists)
-    ldists = defaultdict(set) # map names to set of distributions
+    ldists = defaultdict(set)  # map names to set of distributions
     for dist in linked_dists:
         name = name_dist(dist)
         ldists[name].add(dist)

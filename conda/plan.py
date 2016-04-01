@@ -23,18 +23,13 @@ from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
 from conda import instructions as inst
 from conda.exceptions import CondaException
-log = getLogger(__name__)
 
 # For backwards compatibility
-from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
+from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,  # noqa
                                 RM_FETCHED, PREFIX, PRINT, PROGRESS,
                                 SYMLINK_CONDA)
 
-# Silence pyflakes
-(FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,
-                                RM_FETCHED, PREFIX, PRINT, PROGRESS,
-                                SYMLINK_CONDA)
-
+log = getLogger(__name__)
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -64,10 +59,10 @@ def display_actions(actions, index, show_channel_urls=None):
         print_dists(disp_lst)
 
         if index and len(actions[inst.FETCH]) > 1:
+            num_bytes = sum(index[dist + '.tar.bz2']['size']
+                            for dist in actions[inst.FETCH])
             print(' ' * 4 + '-' * 60)
-            print(" " * 43 + "Total: %14s" %
-                  human_bytes(sum(index[dist + '.tar.bz2']['size']
-                                  for dist in actions[inst.FETCH])))
+            print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
     # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
@@ -89,12 +84,11 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][0] = ver + '-' + build
         # If the package is not in the index (e.g., an installed
         # package that is not in the index any more), we just have to fake the metadata.
-        info = index.get(dist + '.tar.bz2', dict(name=pkg, version=ver,
-            build_number=int(build) if build.isdigit() else 0, build=build, channel=None))
+        default = dict(name=pkg, version=ver, build=build, channel=None,
+                       build_number=int(build) if build.isdigit() else 0)
+        info = index.get(dist + ".tar.bz2", default)
         Packages[dist] = Package(dist + '.tar.bz2', info)
         features[pkg][0] = info.get('features', '')
-
-
 
     #                     Put a minimum length here---.    .--For the :
     #                                                 v    v
@@ -103,12 +97,12 @@ def display_actions(actions, index, show_channel_urls=None):
     maxnewver = len(max(packages.values() or [['', '']], key=lambda i: len(i[1]))[1])
     maxoldfeatures = len(max(features.values() or [['']], key=lambda i: len(i[0]))[0])
     maxnewfeatures = len(max(features.values() or [['', '']], key=lambda i: len(i[1]))[1])
-    maxoldchannel = len(max([config.canonical_channel_name(Packages[p + '-' +
-        packages[p][0]].channel) for p in packages if packages[p][0]] or
-        [''], key=len))
-    maxnewchannel = len(max([config.canonical_channel_name(Packages[p + '-' +
-        packages[p][1]].channel) for p in packages if packages[p][1]] or
-        [''], key=len))
+
+    name = config.canonical_channel_name
+    maxoldchannel = len(max([name(Packages[p + '-' + packages[p][0]].channel)
+                             for p in packages if packages[p][0]] or [''], key=len))
+    maxnewchannel = len(max([name(Packages[p + '-' + packages[p][1]].channel)
+                             for p in packages if packages[p][1]] or [''], key=len))
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
     updated = set()
@@ -142,10 +136,12 @@ def display_actions(actions, index, show_channel_urls=None):
         P1 = Packages[pkg + '-' + packages[pkg][1]]
         try:
             # <= here means that unchanged packages will be put in updated
-            newer = (P0.name, P0.norm_version, P0.build_number) <= (P1.name, P1.norm_version, P1.build_number)
+            newer = ((P0.name, P0.norm_version, P0.build_number) <=
+                     (P1.name, P1.norm_version, P1.build_number))
         except TypeError:
-            newer = (P0.name, P0.version, P0.build_number) <= (P1.name, P1.version, P1.build_number)
-        if newer:
+            newer = ((P0.name, P0.version, P0.build_number) <=
+                     (P1.name, P1.version, P1.build_number))
+        if newer or str(P1.version) == 'custom':
             updated.add(pkg)
         else:
             downgraded.add(pkg)
@@ -157,9 +153,10 @@ def display_actions(actions, index, show_channel_urls=None):
         channel = ['', '']
         for i in range(2):
             if packages[pkg][i]:
-                channel[i] = config.canonical_channel_name(Packages[pkg + '-' + packages[pkg][i]].channel)
+                p = Packages[pkg + '-' + packages[pkg][i]].channel
+                channel[i] = config.canonical_channel_name(p)
         return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
-            channel=channel, features=features[pkg])
+                               channel=channel, features=features[pkg])
 
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
@@ -254,10 +251,10 @@ def ensure_linked_actions(dists, prefix):
                 lt = install.LINK_COPY
             elif install.try_hard_link(extracted_in, prefix, dist):
                 lt = install.LINK_HARD
+            elif config.allow_softlinks and sys.platform != 'win32':
+                lt = install.LINK_SOFT
             else:
-                lt = (install.LINK_SOFT if (config.allow_softlinks and
-                                            sys.platform != 'win32') else
-                      install.LINK_COPY)
+                lt = install.LINK_COPY
             actions[inst.LINK].append('%s %s %d' % (dist, extracted_in, lt))
         else:
             # Make a guess from the first pkgs dir, which is where it will be
@@ -272,10 +269,10 @@ def ensure_linked_actions(dists, prefix):
                     lt = install.LINK_COPY
                 elif install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
                     lt = install.LINK_HARD
+                elif config.allow_softlinks and sys.platform != 'win32':
+                    lt = install.LINK_SOFT
                 else:
-                    lt = (install.LINK_SOFT if (config.allow_softlinks and
-                                                sys.platform != 'win32') else
-                          install.LINK_COPY)
+                    lt = install.LINK_COPY
                 actions[inst.LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
             except (OSError, IOError):
                 actions[inst.LINK].append(dist)
@@ -372,12 +369,12 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             log.debug('H3 %s' % name)
             spec = dist2spec3v(names_linked[name])
             if update:
-                spec = '%s (target=%s.tar.bz2)' % (spec,names_linked[name])
+                spec = '%s (target=%s.tar.bz2)' % (spec, names_linked[name])
             specs.append(spec)
             continue
 
         if (name, def_ver) in [('python', '3.3'), ('python', '3.4'),
-            ('python', '3.5')]:
+                               ('python', '3.5')]:
             # Don't include Python 3 in the specs if this is the Python 3
             # version of conda.
             continue
@@ -458,32 +455,36 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     mss = list(map(MatchSpec, specs))
 
     if force:
-        nlinked = {r.package_name(fn):fn[:-8] for fn in linked if not any(r.match(ms, fn) for ms in mss)}
+        nlinked = {r.package_name(fn): fn[:-8]
+                   for fn in linked
+                   if not any(r.match(ms, fn) for ms in mss)}
     else:
         if config.track_features:
             specs.extend(x + '@' for x in config.track_features)
-        nlinked = {r.package_name(fn):fn[:-8] for fn in r.remove(specs, linked)}
+        nlinked = {r.package_name(fn): fn[:-8] for fn in r.remove(specs, linked)}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {r.package_name(fn):fn[:-8] for fn in linked}
+    linked = {r.package_name(fn): fn[:-8] for fn in linked}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_fn in reversed(r.dependency_sort(linked)):
         dist = old_fn + '.tar.bz2'
         name = r.package_name(dist)
-        if old_fn == nlinked.get(name,''):
+        if old_fn == nlinked.get(name, ''):
             continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
-            raise RuntimeError(
-                "Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
+            msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
+            raise RuntimeError(msg % dist)
         if name == 'conda' and name not in nlinked:
             if any(ms.name == 'conda' for ms in mss):
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
-                sys.exit("Error: this 'remove' command cannot be executed because it\nwould require removing 'conda' dependencies.")
+                msg = ("Error: this 'remove' command cannot be executed because it\n"
+                       "would require removing 'conda' dependencies")
+                sys.exit(msg)
         add_unlink(actions, old_fn)
 
     return actions

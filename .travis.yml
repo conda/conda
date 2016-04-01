@@ -28,7 +28,7 @@ script:
   - py.test --cov conda --cov-report xml tests --shell=bash --shell=zsh
   - radon cc --ignore "build,tests,ve,_vendor,auxlib,progressbar" --no-assert -nb --total-average -s conda
   - radon mi --ignore "build,tests,ve,_vendor,auxlib,progressbar" -na -m -s conda
-  - flake8 --exit-zero --statistics
+  - flake8 --statistics
 
 sudo: false
 

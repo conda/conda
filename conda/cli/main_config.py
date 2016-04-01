@@ -11,7 +11,7 @@ import sys
 import conda.config as config
 from conda.cli import common
 from conda.compat import string_types
-from conda.utils import get_yaml
+from conda.utils import yaml_load, yaml_dump
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -138,7 +138,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
     # --add and --remove with the same keys will not be well-defined).
-    action=p.add_mutually_exclusive_group(required=True)
+    action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--get",
         nargs='*',
@@ -206,8 +206,6 @@ def execute(args, parser):
 
 
 def execute_config(args, parser):
-    yaml = get_yaml()
-
     json_warnings = []
     json_get = {}
 
@@ -220,7 +218,8 @@ def execute_config(args, parser):
 
     # Create the file if it doesn't exist
     if not os.path.exists(rc_path):
-        if args.add and 'channels' in list(zip(*args.add))[0] and not ['channels', 'defaults'] in args.add:
+        has_defaults = ['channels', 'defaults'] in args.add
+        if args.add and 'channels' in list(zip(*args.add))[0] and not has_defaults:
             # If someone adds a channel and their .condarc doesn't exist, make
             # sure it includes the defaults channel, or else they will end up
             # with a broken conda.
@@ -233,7 +232,7 @@ channels:
     else:
         with open(rc_path, 'r') as rc:
             rc_text = rc.read()
-    rc_config = yaml.load(rc_text, Loader=yaml.RoundTripLoader)
+    rc_config = yaml_load(rc_text)
     if rc_config is None:
         rc_config = {}
 
@@ -274,10 +273,11 @@ channels:
                                   (', '.join(config.rc_list_keys), key), json=args.json,
                                   error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
-            raise CouldntParse("key %r should be a list, not %s." % (key,
-                rc_config[key].__class__.__name__))
+            bad = rc_config[key].__class__.__name__
+            raise CouldntParse("key %r should be a list, not %s." % (key, bad))
         if key == 'default_channels' and rc_path != config.sys_rc_path:
-            raise NotImplementedError("'default_channels' is only configurable for system installs")
+            msg = "'default_channels' is only configurable for system installs"
+            raise NotImplementedError(msg)
         if item in rc_config.get(key, []):
             # Right now, all list keys should not contain duplicates
             message = "Skipping %s: %s, item already exists" % (key, item)
@@ -292,7 +292,7 @@ channels:
     set_bools, set_strings = set(config.rc_bool_keys), set(config.rc_string_keys)
     for key, item in args.set:
         # Check key and value
-        yamlitem = yaml.load(item, Loader=yaml.RoundTripLoader)
+        yamlitem = yaml_load(item)
         if key in set_bools:
             if not isinstance(yamlitem, bool):
                 common.error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
@@ -324,8 +324,7 @@ channels:
 
     # config.rc_keys
     with open(rc_path, 'w') as rc:
-        rc.write(yaml.dump(rc_config, Dumper=yaml.RoundTripDumper, default_flow_style=False, indent=4,
-                           block_seq_indent=2))
+        rc.write(yaml_dump(rc_config))
 
     if args.json:
         common.stdout_json_success(
