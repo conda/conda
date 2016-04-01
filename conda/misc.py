@@ -91,6 +91,13 @@ def explicit(urls, prefix, verbose=True):
     force_extract_and_link(dists, prefix, verbose=verbose)
 
 
+def rel_path(prefix, path, windows_forward_slashes=True):
+    res = path[len(prefix) + 1:]
+    if sys.platform == 'win32' and windows_forward_slashes:
+        res = res.replace('\\', '/')
+    return res
+
+
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
     """
     Return the set of all files in a given prefix directory.
