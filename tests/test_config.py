@@ -83,20 +83,20 @@ class TestConfig(unittest.TestCase):
             'defaults', 'system', 'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 'username'
             ], 'osx-64'),
-            {'file:///Users/username/repo/noarch/': ('file:///Users/username/repo/', 6),
-             'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo/', 6),
-             'http://repo.continuum.io/pkgs/free/noarch/': ('', 1),
-             'http://repo.continuum.io/pkgs/free/osx-64/': ('', 1),
-             'http://repo.continuum.io/pkgs/pro/noarch/': ('', 1),
-             'http://repo.continuum.io/pkgs/pro/osx-64/': ('', 1),
-             'http://some.custom/channel/noarch/': ('http://some.custom/channel/', 3),
-             'http://some.custom/channel/osx-64/': ('http://some.custom/channel/', 3),
-             'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username/', 5),
-             'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username/', 5),
-             'https://your.repo/binstar_username/noarch/': ('binstar_username/', 2),
-             'https://your.repo/binstar_username/osx-64/': ('binstar_username/', 2),
-             'https://your.repo/username/noarch/': ('username/', 7),
-             'https://your.repo/username/osx-64/': ('username/', 7)})
+            {'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 6),
+             'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 6),
+             'http://repo.continuum.io/pkgs/free/noarch/': (None, 1),
+             'http://repo.continuum.io/pkgs/free/osx-64/': (None, 1),
+             'http://repo.continuum.io/pkgs/pro/noarch/': (None, 1),
+             'http://repo.continuum.io/pkgs/pro/osx-64/': (None, 1),
+             'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
+             'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
+             'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 5),
+             'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 5),
+             'https://your.repo/binstar_username/noarch/': ('binstar_username', 2),
+             'https://your.repo/binstar_username/osx-64/': ('binstar_username', 2),
+             'https://your.repo/username/noarch/': ('username', 7),
+             'https://your.repo/username/osx-64/': ('username', 7)})
 
 
 test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
