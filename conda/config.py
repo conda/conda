@@ -239,7 +239,6 @@ def normalize_urls(urls, platform=None, offline_only=False):
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
                                                  DEFAULT_CHANNEL_ALIAS))
-    n_alias = len(channel_alias)
 
     def normalize_(url):
         url = url.rstrip('/')

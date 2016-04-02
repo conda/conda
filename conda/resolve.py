@@ -263,9 +263,7 @@ class Resolve(object):
         groups = {}
         trackers = {}
         for fkey, info in iteritems(index):
-            name = info['name']
-            priority = info.get('priority', 0)
-            groups.setdefault(name, []).append(fkey)
+            groups.setdefault(info['name'], []).append(fkey)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(fkey)
 
@@ -662,7 +660,6 @@ class Resolve(object):
         # Creates a variable that represents the proposition:
         #     Does the package set include package "fn"?
         for name, group in iteritems(self.groups):
-            gnames = []
             for fkey in group:
                 C.new_var(fkey)
             # Install no more than one version of each package
@@ -728,10 +725,10 @@ class Resolve(object):
                 v2 = [p for p in pkgs if p > tver]
                 v3 = list(reversed([p for p in pkgs if p <= tver and p not in v1]))
                 pkgs = v1 + v2 + v3
-            pkey = ppkg = None
+            pkey = None
             for nkey, npkg in pkgs:
                 if pkey is None:
-                    ic = iv = ib = 0
+                    iv = ib = 0
                 elif pkey[0] != nkey[0] or pkey[1] != nkey[1]:
                     iv += 1
                     ib = 0
@@ -741,7 +738,7 @@ class Resolve(object):
                     eqv[npkg] = iv
                 if ib:
                     eqb[npkg] = ib
-                pkey, ppkg = nkey, npkg
+                pkey = nkey
         return eqv, eqb
 
     def dependency_sort(self, must_have):
