@@ -79,6 +79,7 @@ rc_bool_keys = [
     'show_channel_urls',
     'allow_other_channels',
     'update_dependencies',
+    'channel_priority',
 ]
 
 rc_string_keys = [
@@ -242,25 +243,26 @@ def normalize_urls(urls, platform=None, offline_only=False):
         if is_url(url):
             url = url.rstrip('/') + '/'
             if any(url.startswith(x) for x in defaults):
-                url_s = ''
+                url_s = None
             elif url.startswith(channel_alias):
-                url_s = url[n_alias:]
+                url_s = url[n_alias:-1]
             else:
-                url_s = url
+                url_s = url[:-1]
         else:
-            url_s = url.rstrip('/') + '/'
-            url = channel_alias + url_s
+            url_s = url.rstrip('/')
+            url = channel_alias + url_s + '/'
         return url_s, url
     newurls = {}
     priority = 0
     while urls:
-        url = urls.pop()
+        url = urls[0]
+        urls = urls[1:]
         if url == "system" and rc_path:
             urls = get_rc_urls() + urls
             continue
         elif url in ("defaults", "system"):
             t_urls = defaults
-        elif url in defaults:
+        else:
             t_urls = [url]
         priority += 1
         for url0 in t_urls:
@@ -269,7 +271,6 @@ def normalize_urls(urls, platform=None, offline_only=False):
                 continue
             for plat in (platform, 'noarch'):
                 newurls.setdefault(url0 + plat + '/', (url_s, priority))
-    print(newurls)
     return newurls
 
 offline = bool(rc.get('offline', False))
@@ -355,6 +356,7 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 update_dependencies = bool(rc.get('update_dependencies', True))
+channel_priority = bool(rc.get('channel_priority', True))
 
 # ssl_verify can be a boolean value or a filename string
 ssl_verify = rc.get('ssl_verify', True)

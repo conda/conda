@@ -45,12 +45,13 @@ def get_index(channel_urls=(), prepend=True, platform=None,
             fn = dist + '.tar.bz2'
             channel = info.get('channel', '')
             url_s, priority = channel_urls.get(channel, (channel, 0))
-            key = url_s + fn
+            key = url_s + '::' + fn if url_s else fn
             if key not in index:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
                 info.setdefault('depends', [])
                 info['fn'] = fn
+                info['schannel'] = url_s
                 info['channel'] = channel
                 info['url'] = channel + fn
                 info['priority'] = priority

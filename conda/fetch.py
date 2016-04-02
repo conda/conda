@@ -275,10 +275,12 @@ Allowed channels are:
         url_s, priority = channel_urls[channel]
         for fn, info in iteritems(new_index):
             info['fn'] = fn
+            info['schannel'] = url_s
             info['channel'] = channel
             info['priority'] = priority
             info['url'] = channel + fn
-            index[url_s + fn] = info
+            key = url_s + '::' + fn if url_s else fn
+            index[key] = info
 
     stdoutlog.info('\n')
     if unknown:
