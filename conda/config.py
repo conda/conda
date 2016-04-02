@@ -222,6 +222,7 @@ def binstar_channel_alias(channel_alias):
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
+channel_alias = channel_alias.rstrip('/') + '/'
 
 _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
 BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
@@ -235,22 +236,17 @@ def remove_binstar_tokens(url):
 def normalize_urls(urls, platform=None, offline_only=False):
     platform = platform or subdir
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
-    channel_alias = binstar_channel_alias(rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS))
-    channel_alias = channel_alias.rstrip('/') + '/'
+    channel_alias = binstar_channel_alias(rc.get('channel_alias',
+                                                 DEFAULT_CHANNEL_ALIAS))
     n_alias = len(channel_alias)
 
     def normalize_(url):
+        url = url.rstrip('/')
         if is_url(url):
-            url = url.rstrip('/') + '/'
-            if any(url.startswith(x) for x in defaults):
-                url_s = None
-            elif url.startswith(channel_alias):
-                url_s = url[n_alias:-1]
-            else:
-                url_s = url[:-1]
+            url_s = canonical_channel_name(url, True, True, channel_alias)
         else:
-            url_s = url.rstrip('/')
-            url = channel_alias + url_s + '/'
+            url_s = url
+            url = channel_alias + url
         return url_s, url
     newurls = {}
     priority = 0
@@ -270,7 +266,7 @@ def normalize_urls(urls, platform=None, offline_only=False):
             if offline_only and not url0.startswith('file:'):
                 continue
             for plat in (platform, 'noarch'):
-                newurls.setdefault(url0 + plat + '/', (url_s, priority))
+                newurls.setdefault('%s/%s/' % (url0, plat), (url_s, priority))
     return newurls
 
 offline = bool(rc.get('offline', False))
@@ -286,10 +282,11 @@ def get_channel_urls(platform=None, offline=False):
     res = normalize_urls(base_urls, platform, offline)
     return res
 
-def canonical_channel_name(channel, hide=True):
+def canonical_channel_name(channel, hide=True, drop_defaults=False, channel_alias=None):
     if channel is None:
         return '<unknown>'
     channel = remove_binstar_tokens(channel)
+    channel_alias = channel_alias or config.channel_alias
     if channel.startswith(channel_alias):
         end = channel.split(channel_alias, 1)[1]
         url = end.split('/')[0]
@@ -299,7 +296,7 @@ def canonical_channel_name(channel, hide=True):
             url = hide_binstar_tokens(url)
         return url
     elif any(channel.startswith(i) for i in get_default_urls()):
-        return 'defaults'
+        return None if drop_defaults else 'defaults'
     elif channel.startswith('http://filer/'):
         return 'filer'
     else:
