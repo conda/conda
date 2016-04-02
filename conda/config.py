@@ -223,6 +223,7 @@ channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 channel_alias = channel_alias.rstrip('/') + '/'
+channel_alias_ = channel_alias
 
 _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
 BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
@@ -286,7 +287,7 @@ def canonical_channel_name(channel, hide=True, drop_defaults=False, channel_alia
     if channel is None:
         return '<unknown>'
     channel = remove_binstar_tokens(channel)
-    channel_alias = channel_alias or config.channel_alias
+    channel_alias = channel_alias or channel_alias_
     if channel.startswith(channel_alias):
         end = channel.split(channel_alias, 1)[1]
         url = end.split('/')[0]
