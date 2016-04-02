@@ -256,7 +256,7 @@ def test_get_dists():
 def test_generate_eq():
     specs = ['anaconda']
     dists, specs = r.get_dists(specs)
-    r2 = Resolve(r, dists, True)
+    r2 = Resolve(dists, True, True)
     C = r2.gen_clauses(specs)
     eqv, eqb = r2.generate_version_metrics(C, specs)
     # Should satisfy the following criteria:
