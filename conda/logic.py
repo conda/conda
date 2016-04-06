@@ -417,8 +417,17 @@ class Clauses(object):
             clauses = chain(self.clauses, additional)
         else:
             clauses = self.clauses
-        clauses = list(clauses)
-        solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
+        try:
+            solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
+        except TypeError:
+            # pycosat 0.6.1 should not require this; pycosat 0.6.0 did, but we
+            # have made conda dependent on pycosat 0.6.1. However, issue #2276
+            # suggests that some people are still seeing this behavior even when
+            # pycosat 0.6.1 is installed. Until we can understand why, this
+            # needs to stay. I still don't want to invoke it unnecessarily,
+            # because for large clauses lists it is slow.
+            clauses = list(map(list, clauses))
+            solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         if solution in ("UNSAT", "UNKNOWN"):
             return None
         if additional and includeIf:
