@@ -1,3 +1,15 @@
+2016-XX-XX   4.1.0:
+-------------------
+  * clean up activate and deactivate scripts, moving back to conda repo, #1727, #2265, #2291
+  * replace pyyaml with ruamel_yaml, #2283, #2321
+  * improve listing of pip packages with conda list, #2275
+  * reduce the amount of extraneous info in hints, #2261
+  * don't show channel urls by default in conda list, #2282
+  * print progress to the terminal rather than stdout, #2281
+  * verify version specs given on command line are valid, #2246
+  * fix for try_write function in case of odd permissions, #2301
+
+
 2016-XX-XX   4.0.6:
 -------------------
   * log "custom" versions as updates rather than downgrades, #2290
