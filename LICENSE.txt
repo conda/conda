@@ -31,6 +31,7 @@ Dependencies
 
 versioneer.py is Public Domain
 
-The ProgressBar package is released under the BSD 3-clause license
+The ProgressBar package is redistributed under the BSD 3-clause license
+as per the terms of its license.
 (see conda/progressbar/LICENSE.txt)
 
