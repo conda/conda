@@ -33,7 +33,7 @@ The following command installs Miniconda for all users without registering Pytho
 
 .. code-block:: bat
 
-    Miniconda-3.7.3-Windows-x86_64.exe /InstallationType=AllUsers /RegisterPython=0 \
+    Miniconda2-latest-Windows-x86_64.exe /InstallationType=AllUsers /RegisterPython=0 \
         /S /D=C:\Program Files\Miniconda3
 
 
