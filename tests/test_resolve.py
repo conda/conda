@@ -5,8 +5,9 @@ from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable, build_groups
+from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
+from conda import config
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
@@ -256,9 +257,9 @@ def test_get_dists():
 def test_generate_eq():
     specs = ['anaconda']
     dists, specs = r.get_dists(specs)
-    groups, trackers = build_groups(dists)
-    C = r.gen_clauses(groups, trackers, specs)
-    eqv, eqb = r.generate_version_metrics(C, groups, specs)
+    r2 = Resolve(dists, True, True)
+    C = r2.gen_clauses(specs)
+    eqv, eqb = r2.generate_version_metrics(C, specs)
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -848,6 +849,32 @@ def test_remove():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
+
+def test_channel_priority():
+    fn1 = 'pandas-0.10.1-np17py27_0.tar.bz2'
+    fn2 = 'other::' + fn1
+    spec = ['pandas', 'python 2.7*']
+    index2 = index.copy()
+    index2[fn2] = index2[fn1].copy()
+    r2 = Resolve(index2)
+    rec = r2.index[fn2]
+    config.channel_priority = True
+    rec['priority'] = 0
+    # Should select the "other", older package because it
+    # has a lower channel priority number
+    installed1 = r2.install(spec)
+    # Should select the newer package because now the "other"
+    # package has a higher priority number
+    rec['priority'] = 2
+    installed2 = r2.install(spec)
+    # Should also select the newer package because we have
+    # turned off channel priority altogether
+    config.channel_priority = False
+    rec['priority'] = 0
+    installed3 = r2.install(spec)
+    assert installed1 != installed2 
+    assert installed1 != installed3
+    assert installed2 == installed3
 
 def test_graph_sort():
     specs = ['pandas','python 2.7*','numpy 1.6*']
