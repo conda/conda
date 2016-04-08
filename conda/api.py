@@ -11,19 +11,6 @@ from conda.compat import iteritems, itervalues
 from conda.resolve import Package, Resolve
 
 
-def _name_fn(fn):
-    assert fn.endswith('.tar.bz2')
-    return install.name_dist(fn[:-8])
-
-def _fn2spec(fn):
-    assert fn.endswith('.tar.bz2')
-    return ' '.join(fn[:-8].rsplit('-', 2)[:2])
-
-def _fn2fullspec(fn):
-    assert fn.endswith('.tar.bz2')
-    return ' '.join(fn[:-8].rsplit('-', 2))
-
-
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_cache=False, unknown=False, offline=False,
               prefix=None):
@@ -85,7 +72,8 @@ def app_get_index(all_version=False):
 
     d = defaultdict(list)  # name -> list of Package objects
     for fn, info in iteritems(index):
-        d[_name_fn(fn)].append(Package(fn, info))
+        name = install.name_dist(fn[:-8])
+        d[name].append(Package(fn, info))
 
     res = {}
     for pkgs in itervalues(d):
