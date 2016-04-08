@@ -872,15 +872,15 @@ def test_channel_priority():
     config.channel_priority = False
     rec['priority'] = 0
     installed3 = r2.install(spec)
-    assert installed1 != installed2 
+    assert installed1 != installed2
     assert installed1 != installed3
     assert installed2 == installed3
 
-def test_graph_sort():
+def test_dependency_sort():
     specs = ['pandas','python 2.7*','numpy 1.6*']
     installed = r.install(specs)
     must_have = {r.package_name(pkg):pkg[:-8] for pkg in installed}
-    installed = r.graph_sort(must_have)
+    installed = r.dependency_sort(must_have)
     assert installed == [
         'openssl-1.0.1c-0',
         'readline-6.2-0',
