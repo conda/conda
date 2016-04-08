@@ -2,7 +2,9 @@
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727, #2265, #2291
   * replace pyyaml with ruamel_yaml, #2283, #2321
+  * better handling of channel collisions, #2323
   * improve listing of pip packages with conda list, #2275
+  * re-license progressbar under BSD 3-clause, #2334
   * reduce the amount of extraneous info in hints, #2261
   * don't show channel urls by default in conda list, #2282
   * print progress to the terminal rather than stdout, #2281
