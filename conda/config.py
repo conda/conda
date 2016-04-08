@@ -79,6 +79,7 @@ rc_bool_keys = [
     'show_channel_urls',
     'allow_other_channels',
     'update_dependencies',
+    'channel_priority',
 ]
 
 rc_string_keys = [
@@ -221,6 +222,8 @@ def binstar_channel_alias(channel_alias):
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
+channel_alias = channel_alias.rstrip('/') + '/'
+channel_alias_ = channel_alias
 
 _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
 BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
@@ -231,52 +234,59 @@ def hide_binstar_tokens(url):
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
-def normalize_urls(urls, platform=None):
+def normalize_urls(urls, platform=None, offline_only=False):
+    platform = platform or subdir
+    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
     channel_alias = binstar_channel_alias(rc.get('channel_alias',
                                                  DEFAULT_CHANNEL_ALIAS))
 
-    platform = platform or subdir
-    newurls = []
-    for url in urls:
-        if url == "defaults":
-            newurls.extend(normalize_urls(get_default_urls(),
-                                          platform=platform))
-        elif url == "system":
-            if not rc_path:
-                newurls.extend(normalize_urls(get_default_urls(),
-                                              platform=platform))
-            else:
-                newurls.extend(normalize_urls(get_rc_urls(),
-                                              platform=platform))
-        elif not is_url(url):
-            moreurls = normalize_urls([channel_alias+url], platform=platform)
-            newurls.extend(moreurls)
+    def normalize_(url):
+        url = url.rstrip('/')
+        if is_url(url):
+            url_s = canonical_channel_name(url, True, True, channel_alias)
         else:
-            newurls.append('%s/%s/' % (url.rstrip('/'), platform))
-            newurls.append('%s/noarch/' % url.rstrip('/'))
+            url_s = url
+            url = channel_alias + url
+        return url_s, url
+    newurls = {}
+    priority = 0
+    while urls:
+        url = urls[0]
+        urls = urls[1:]
+        if url == "system" and rc_path:
+            urls = get_rc_urls() + urls
+            continue
+        elif url in ("defaults", "system"):
+            t_urls = defaults
+        else:
+            t_urls = [url]
+        priority += 1
+        for url0 in t_urls:
+            url_s, url0 = normalize_(url0)
+            if offline_only and not url0.startswith('file:'):
+                continue
+            for plat in (platform, 'noarch'):
+                newurls.setdefault('%s/%s/' % (url0, plat), (url_s, priority))
     return newurls
 
 offline = bool(rc.get('offline', False))
 
-def get_channel_urls(platform=None):
+def get_channel_urls(platform=None, offline=False):
     if os.getenv('CIO_TEST'):
         import cio_test
-        return normalize_urls(cio_test.base_urls, platform=platform)
-
-    if 'channels' not in rc:
-        base_urls = get_default_urls()
+        base_urls = cio_test.base_urls
+    elif 'channels' in rc:
+        base_urls = ['system']
     else:
-        base_urls = get_rc_urls()
-
-    res = normalize_urls(base_urls, platform=platform)
-    if offline:
-        res = [url for url in res if url.startswith('file:')]
+        base_urls = ['defaults']
+    res = normalize_urls(base_urls, platform, offline)
     return res
 
-def canonical_channel_name(channel, hide=True):
+def canonical_channel_name(channel, hide=True, drop_defaults=False, channel_alias=None):
     if channel is None:
         return '<unknown>'
     channel = remove_binstar_tokens(channel)
+    channel_alias = channel_alias or channel_alias_
     if channel.startswith(channel_alias):
         end = channel.split(channel_alias, 1)[1]
         url = end.split('/')[0]
@@ -286,7 +296,7 @@ def canonical_channel_name(channel, hide=True):
             url = hide_binstar_tokens(url)
         return url
     elif any(channel.startswith(i) for i in get_default_urls()):
-        return 'defaults'
+        return None if drop_defaults else 'defaults'
     elif channel.startswith('http://filer/'):
         return 'filer'
     else:
@@ -302,9 +312,9 @@ def get_allowed_channels():
     if sys_rc.get('allow_other_channels', True):
         return None
     if 'channels' in sys_rc:
-        base_urls = sys_rc['channels']
+        base_urls = ['system']
     else:
-        base_urls = get_default_urls()
+        base_urls = ['default']
     return normalize_urls(base_urls)
 
 allowed_channels = get_allowed_channels()
@@ -343,6 +353,7 @@ disallow = set(rc.get('disallow', []))
 # packages which are added to a newly created environment by default
 create_default_packages = list(rc.get('create_default_packages', []))
 update_dependencies = bool(rc.get('update_dependencies', True))
+channel_priority = bool(rc.get('channel_priority', True))
 
 # ssl_verify can be a boolean value or a filename string
 ssl_verify = rc.get('ssl_verify', True)

@@ -262,6 +262,22 @@ def add_parser_install(p):
         default=not config.update_dependencies,
         help="Don't update dependencies (default: %(default)s).",
     )
+    p.add_argument(
+        "--channel-priority", "--channel-pri", "--chan-pri",
+        action="store_true",
+        dest="channel_priority",
+        default=config.channel_priority,
+        help="Channel priority takes precedence over packaage version (default: %(defaults)). "
+             "Note: This feature is in beta and may change in a future release."
+    )
+    p.add_argument(
+        "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
+        action="store_true",
+        dest="channel_priority",
+        default=not config.channel_priority,
+        help="Package version takes precedence over channel priority (default: %(defaults)). "
+             "Note: This feature is in beta and may change in a future release."
+    )
     add_parser_show_channel_urls(p)
 
     if 'update' in p.prog:
