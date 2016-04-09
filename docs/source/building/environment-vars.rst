@@ -19,31 +19,31 @@ override this behavior.)
     - Either ``32`` or ``64``, to specify whether the build is 32-bit or
       64-bit.  The value depends on the ``ARCH`` environment variable, and
       defaults to the architecture the interpreter running conda was
-      compiled with.
+      compiled with
   * - ``CONDA_BUILD=1``
-    - Always set.
+    - Always set
   * - ``SRC_DIR``
     - Path to where source is unpacked (or cloned). If the source file is not
       a recognized file type (right now, ``.zip``, ``.tar``, ``.tar.bz2``,
       ``.tar.xz``, and ``.tar``), this is a directory containing a copy of the
-      source file.
+      source file
   * - ``PREFIX``
-    - Build prefix where build script should install to.
+    - Build prefix where build script should install to
   * - ``RECIPE_DIR``
-    - Directory of recipe.
+    - Directory of recipe
   * - ``PKG_NAME``
-    - Name of the package being built.
+    - Name of the package being built
   * - ``PKG_VERSION``
-    - Version of the package being built.
+    - Version of the package being built
   * - ``PKG_BUILDNUM``
-    - Build number of the package being built.
+    - Build number of the package being built
   * - ``PATH``
-    - Prepended by the build prefix bin directory.
+    - Prepended by the build prefix bin directory
   * - ``PYTHON``
     - Path to Python executable in build prefix (note that Python is only
-      installed in the build prefix when it is listed as a build requirement).
+      installed in the build prefix when it is listed as a build requirement)
   * - ``PY3K``
-    - ``1`` when Python 3 is installed in build prefix, else ``0``.
+    - ``1`` when Python 3 is installed in build prefix, else ``0``
   * - ``STDLIB_DIR``
     - Python standard library location
   * - ``SP_DIR``
@@ -66,6 +66,11 @@ override this behavior.)
     - Inherited from your shell environment.
   * - ``PATH``
     - Inherited from your shell environment, and augmented with ``$PREFIX/bin``
+  * - ``CMAKE_GENERATOR``
+    - The CMake generator string for the current build environment. On Unix
+      systems, this is always "Unix Makefiles". On Windows, it is generated
+      according to the Visual Studio version activated at build time,
+      e.g. "Visual Studio 9 2008 Win64"
 
 When building "Unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
@@ -86,15 +91,24 @@ defined in Windows:
     - ``<build prefix>\Scripts``
   * - ``CYGWIN_PREFIX``
     - Same as ``PREFIX``, but as a Unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
-
+  * - ``VS_MAJOR``
+    - The major version number of the Visual Studio version activated within the 
+      build, e.g. ``9``
+  * - ``VS_VERSION``
+    - The version number of the Visual Studio version activated within the 
+      build, e.g. ``9.0``
+  * - ``VS_YEAR``
+    - The release year of the Visual Studio version activated within the 
+      build, e.g. ``2008``
+ 
 On non-Windows (Linux and OS X), we have:
 
 .. list-table::
 
   * - ``PKG_CONFIG_PATH``
-    - Path to ``pkgconfig`` directory.
+    - Path to ``pkgconfig`` directory
   * - ``HOME``
-    - Standard ``$HOME`` environment variable.
+    - Standard ``$HOME`` environment variable
 
 On OS X, we have:
 
@@ -103,13 +117,13 @@ On OS X, we have:
   * - ``OSX_ARCH``
     - ``i386`` or ``x86_64``, depending on Python build
   * - ``CFLAGS``
-    - ``-arch`` flag.
+    - ``-arch`` flag
   * - ``CXXFLAGS``
-    - Same as ``CFLAGS``.
+    - Same as ``CFLAGS``
   * - ``LDFLAGS``
-    - Same as ``CFLAGS``.
+    - Same as ``CFLAGS``
   * - ``MACOSX_DEPLOYMENT_TARGET``
-    - Same as the Anaconda Python. Currently ``10.6``.
+    - Same as the Anaconda Python. Currently ``10.6``
 
 On Linux, we have:
 
@@ -134,7 +148,7 @@ When the source is a git repository, the following variables are defined:
      - the current commit short-hash as displayed from ``git describe --tags``
    * - ``GIT_BUILD_STR``
      - a string that joins ``GIT_DESCRIBE_NUMBER`` and ``GIT_DESCRIBE_HASH``
-       by an underscore.
+       by an underscore
    * - ``GIT_FULL_HASH``
      - a string with the full SHA1 of the current HEAD
 
@@ -202,7 +216,7 @@ Environment variables that affect the build process
 
    * - ``CONDA_PY``
      - Should be ``26``, ``27``, ``33``, or ``34``.  This is the Python version
-       used to build the package.
+       used to build the package
    * - ``CONDA_NPY``
      - Should be either ``16`` or ``17``.  This is the NumPy version used to
-       build the package.
+       build the package
