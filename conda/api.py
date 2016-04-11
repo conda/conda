@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 from collections import defaultdict
 from os.path import isdir, join
+from operator import itemgetter
 
 from conda import config
 from conda import install
@@ -36,7 +37,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     """
     channel_urls = config.normalize_urls(channel_urls, platform, offline)
     if prepend:
-        pri0 = max(itervalues(channel_urls)) if channel_urls else 0
+        pri0 = max(itervalues(channel_urls), key=itemgetter(1))[1] if channel_urls else 0
         for url, rec in iteritems(config.get_channel_urls(platform, offline)):
             channel_urls[url] = (rec[0], rec[1] + pri0)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
