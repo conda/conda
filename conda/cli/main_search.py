@@ -212,7 +212,7 @@ def execute_search(args, parser):
         else:
             if pat and pat.search(name) is None:
                 continue
-            if ms and name != ms.name:
+            if ms and name != ms.split()[0]:
                 continue
 
             if ms:
