@@ -262,7 +262,8 @@ Allowed channels are:
             for future in future_to_url:
                 url = future_to_url[future]
                 repodatas.append((url, future.result()))
-    except ImportError:
+    except (ImportError, RuntimeError):
+        # RuntimeError is thrown if number of threads are limited by OS
         # concurrent.futures is only available in Python 3
         repodatas = map(lambda url: (url, fetch_repodata(url,
                                      use_cache=use_cache, session=session)),
