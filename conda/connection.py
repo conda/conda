@@ -16,10 +16,12 @@ import ftplib
 import cgi
 from io import BytesIO
 import tempfile
+import platform
 
 import conda
+import conda.config as config
 from conda.compat import urlparse, StringIO
-from conda.config import get_proxy_servers, ssl_verify
+from conda.utils import gnu_get_libc_version
 
 import requests
 
@@ -27,6 +29,29 @@ RETRIES = 3
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
+
+# Collect relevant info from OS for reporting purposes (present in User-Agent)
+_user_agent = "conda/{conda_ver} requests/{requests_ver} {python}/{py_ver} {system}/{kernel} {dist}/{ver}"
+
+glibc_ver = gnu_get_libc_version()
+if config.platform == 'linux':
+    distinfo = platform.linux_distribution()
+    dist, ver = distinfo[0], distinfo[1]
+elif config.platform == 'osx':
+    dist = 'OSX'
+    ver = platform.mac_ver()[0]
+else:
+    dist = platform.system()
+    ver = platform.version()
+
+user_agent = _user_agent.format(conda_ver=conda.__version__,
+                                requests_ver=requests.__version__,
+                                python=platform.python_implementation(),
+                                py_ver=platform.python_version(),
+                                system=platform.system(), kernel=platform.release(),
+                                dist=dist, ver=ver)
+if glibc_ver:
+    user_agent += " glibc/{}".format(glibc_ver)
 
 # Modified from code in pip/download.py:
 
@@ -60,7 +85,7 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        proxies = get_proxy_servers()
+        proxies = config.get_proxy_servers()
         if proxies:
             self.proxies = proxies
 
@@ -79,10 +104,9 @@ class CondaSession(requests.Session):
         # Enable s3:// urls
         self.mount("s3://", S3Adapter())
 
-        self.headers['User-Agent'] = "conda/%s %s" % (
-                          conda.__version__, self.headers['User-Agent'])
+        self.headers['User-Agent'] = user_agent
 
-        self.verify = ssl_verify
+        self.verify = config.ssl_verify
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
