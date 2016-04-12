@@ -13,6 +13,23 @@ import re
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
+def gnu_get_libc_version():
+    """
+    If on linux, get installed version of glibc, otherwise return None
+    """
+    
+    if not sys.platform.startswith('linux'):
+        return None
+
+    from ctypes import CDLL, cdll, c_char_p
+                
+    cdll.LoadLibrary('libc.so.6')
+    libc = CDLL('libc.so.6')
+    f = libc.gnu_get_libc_version
+    f.restype = c_char_p
+    return f()
+
+
 def can_open(file):
     """
     Return True if the given ``file`` can be opened for writing
