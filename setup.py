@@ -40,6 +40,6 @@ setup(
     ],
     scripts=[
         'bin/conda-env',
-    ]
+    ],
     package_data={},
 )
