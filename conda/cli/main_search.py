@@ -6,8 +6,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from os.path import exists
-
 from conda.cli import common
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound, Package
@@ -166,31 +164,10 @@ def execute_search(args, parser):
     common.ensure_override_channels_requires_channel(args, dashc=False,
                                                      json=args.json)
     channel_urls = args.channel or ()
-    if args.use_local:
-        from conda.fetch import fetch_index
-        from conda.utils import url_path
-        try:
-            from conda_build.config import croot
-        except ImportError:
-            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                                  " to use the --use-local option",
-                                  json=args.json,
-                                  error_type="RuntimeError")
-        # remove the cache such that a refetch is made,
-        # this is necessary because we add the local build repo URL
-        fetch_index.cache = {}
-        if exists(croot):
-            channel_urls = [url_path(croot)] + list(channel_urls)
-        index = common.get_index_trap(channel_urls=channel_urls,
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      unknown=args.unknown, prefix=prefix,
-                                      json=args.json, platform=args.platform, offline=args.offline)
-    else:
-        index = common.get_index_trap(channel_urls=channel_urls, prepend=not
-                                      args.override_channels, platform=args.platform,
-                                      use_cache=args.use_index_cache, prefix=prefix,
-                                      unknown=args.unknown, json=args.json, offline=args.offline)
+    index = common.get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
+                                  platform=args.platform, use_local=args.use_local,
+                                  use_cache=args.use_index_cache, prefix=prefix,
+                                  unknown=args.unknown, json=args.json, offline=args.offline)
 
     r = Resolve(index)
 
