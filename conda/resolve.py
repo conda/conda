@@ -262,13 +262,17 @@ class Resolve(object):
 
         groups = {}
         trackers = {}
+        installed = set()
         for fkey, info in iteritems(index):
             groups.setdefault(info['name'], []).append(fkey)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(fkey)
+            if info.get('is_linked'):
+                installed.add(fkey)
 
         self.index = index
         self.groups = groups
+        self.installed = installed
         self.trackers = trackers
         self.find_matches_ = {}
         self.ms_depends_ = {}

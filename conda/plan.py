@@ -393,7 +393,7 @@ def get_pinned_specs(prefix):
 def install_actions(prefix, index, specs, force=False, only_names=None,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
     r = Resolve(index)
-    linked = install.linked(prefix)
+    linked = r.installed
 
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
@@ -407,7 +407,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     if config.track_features:
         specs.extend(x + '@' for x in config.track_features)
 
-    pkgs = r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps)
+    pkgs = r.install(specs, linked, update_deps=update_deps)
+    print(pkgs)
     for fn in pkgs:
         dist = fn[:-8]
         name = install.name_dist(dist)
@@ -451,7 +452,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
-    linked = [d+'.tar.bz2' for d in install.linked(prefix)]
+    linked = r.installed
     mss = list(map(MatchSpec, specs))
 
     if force:
@@ -491,8 +492,8 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
 
 def remove_features_actions(prefix, index, features):
-    linked = install.linked(prefix)
     r = Resolve(index)
+    linked = r.installed
 
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix

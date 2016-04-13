@@ -43,6 +43,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
                 info['url'] = channel + fn
                 info['priority'] = priority
                 index[key] = info
+            index[key]['is_linked'] = True
     return index
 
 
