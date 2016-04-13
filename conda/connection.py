@@ -32,9 +32,9 @@ stderrlog = getLogger('stderrlog')
 
 # Collect relevant info from OS for reporting purposes (present in User-Agent)
 _user_agent = ("conda/{conda_ver} "
-                "requests/{requests_ver} "
-                "{python}/{py_ver} "
-                "{system}/{kernel} {dist}/{ver}")
+               "requests/{requests_ver} "
+               "{python}/{py_ver} "
+               "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
 if config.platform == 'linux':
