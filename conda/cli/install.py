@@ -205,25 +205,9 @@ def install(args, parser, command='install'):
             install_tar(prefix, tar_path, verbose=not args.quiet)
             return
 
-    if args.use_local:
-        from conda.fetch import fetch_index
-        from conda.utils import url_path
-        try:
-            from conda_build.config import croot
-        except ImportError:
-            common.error_and_exit(
-                    "you need to have 'conda-build >= 1.7.1' installed"
-                    " to use the --use-local option",
-                    json=args.json,
-                    error_type="RuntimeError")
-        # remove the cache such that a refetch is made,
-        # this is necessary because we add the local build repo URL
-        fetch_index.cache = {}
-        if exists(croot):
-            channel_urls = [url_path(croot)] + list(channel_urls)
-
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,
+                                  use_local=args.use_local,
                                   use_cache=args.use_index_cache,
                                   unknown=args.unknown,
                                   json=args.json,

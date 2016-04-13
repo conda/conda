@@ -113,34 +113,13 @@ def execute(args, parser):
     common.check_write('remove', prefix, json=args.json)
     common.ensure_override_channels_requires_channel(args, json=args.json)
     channel_urls = args.channel or ()
-    if args.use_local:
-        from conda.fetch import fetch_index
-        from conda.utils import url_path
-        try:
-            from conda_build.config import croot
-        except ImportError:
-            common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                                  " to use the --use-local option",
+    index = common.get_index_trap(channel_urls=channel_urls,
+                                  prepend=not args.override_channels,
+                                  use_local=args.use_local,
+                                  use_cache=args.use_index_cache,
                                   json=args.json,
-                                  error_type="RuntimeError")
-        # remove the cache such that a refetch is made,
-        # this is necessary because we add the local build repo URL
-        fetch_index.cache = {}
-        if exists(croot):
-            channel_urls = [url_path(croot)] + list(channel_urls)
-        index = common.get_index_trap(channel_urls=channel_urls,
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      json=args.json,
-                                      offline=args.offline,
-                                      prefix=prefix)
-    else:
-        index = common.get_index_trap(channel_urls=channel_urls,
-                                      prepend=not args.override_channels,
-                                      use_cache=args.use_index_cache,
-                                      json=args.json,
-                                      offline=args.offline,
-                                      prefix=prefix)
+                                  offline=args.offline,
+                                  prefix=prefix)
     specs = None
     if args.features:
         features = set(args.package_names)

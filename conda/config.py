@@ -96,6 +96,7 @@ rc_other = [
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
+local_channel = []
 
 def get_rc_path():
     path = os.getenv('CONDARC')
@@ -181,7 +182,28 @@ else:
 
 # ----- channels -----
 
-# Note, get_default_urls() and get_rc_urls() return unnormalized urls.
+# Note, get_*_urls() return unnormalized urls.
+
+def get_local_urls(clear_cache=True):
+    # remove the cache such that a refetch is made,
+    # this is necessary because we add the local build repo URL
+    if clear_cache:
+        from conda.fetch import fetch_index
+        fetch_index.cache = {}
+    if local_channel:
+        return local_channel
+    from os.path import exists
+    from conda.utils import url_path
+    try:
+        from conda_build.config import croot
+    except ImportError:
+        common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
+                              " to use the --use-local option",
+                              json=args.json,
+                              error_type="RuntimeError")
+    if exists(croot):
+        local_channel.append(url_path(croot))
+    return local_channel
 
 def get_default_urls():
     if isfile(sys_rc_path):
@@ -260,6 +282,8 @@ def normalize_urls(urls, platform=None, offline_only=False):
             continue
         elif url in ("defaults", "system"):
             t_urls = defaults
+        elif url == "local":
+            t_urls = get_local_urls()
         else:
             t_urls = [url]
         priority += 1
@@ -299,6 +323,8 @@ def canonical_channel_name(channel, hide=True, drop_defaults=False, channel_alia
         return url
     elif any(channel.startswith(i) for i in get_default_urls()):
         return None if drop_defaults else 'defaults'
+    elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
+        return 'local'
     elif channel.startswith('http://filer/'):
         return 'filer'
     else:
