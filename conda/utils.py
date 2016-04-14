@@ -17,12 +17,12 @@ def gnu_get_libc_version():
     """
     If on linux, get installed version of glibc, otherwise return None
     """
-    
+
     if not sys.platform.startswith('linux'):
         return None
 
     from ctypes import CDLL, cdll, c_char_p
-                
+
     cdll.LoadLibrary('libc.so.6')
     libc = CDLL('libc.so.6')
     f = libc.gnu_get_libc_version
