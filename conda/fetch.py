@@ -22,7 +22,7 @@ import requests
 
 from conda import config
 from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
-from conda.connection import CondaSession, unparse_url, RETRIES
+from conda.install import add_cached_package, find_new_location
 from conda.lock import Locked
 from conda.utils import memoized
 
@@ -292,14 +292,14 @@ def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
-    if dst_dir is None:
-        dst_dir = config.pkgs_dirs[0]
 
     session = session or CondaSession()
 
-    fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
+    fn = info['fn']
     url = info['channel'] + fn
     log.debug("url=%r" % url)
+    if dst_dir is None:
+        dst_dir = dirname(find_new_location(fn[:-8])[0])
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
@@ -423,11 +423,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                                (pp, dst_path, e))
 
         if urlstxt:
-            try:
-                with open(join(dst_dir, 'urls.txt'), 'a') as fa:
-                    fa.write('%s\n' % url)
-            except IOError:
-                pass
+            add_cached_package(dst_dir, url, overwrite=True)
 
 
 class TmpDownload(object):

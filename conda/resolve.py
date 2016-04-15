@@ -197,12 +197,15 @@ class Package(object):
     are sortable.
     """
     def __init__(self, fn, info):
-        self.fn = fn
+        self.fn = fn.rsplit('::', 2)[-1]
         self.name = info.get('name')
         self.version = info.get('version')
         self.build = info.get('build')
         self.build_number = info.get('build_number')
         self.channel = info.get('channel')
+        self.schannel = info.get('schannel')
+        if self.schannel is None:
+            self.schannel = config.canonical_channel_name(self.channel)
         try:
             self.norm_version = normalized_version(self.version)
         except ValueError:

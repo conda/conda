@@ -43,14 +43,8 @@ def PRINT_CMD(state, arg):
     getLogger('print').info(arg)
 
 
-def fetch(index, dist):
-    assert index is not None
-    fn = dist + '.tar.bz2'
-    fetch_pkg(index[fn])
-
-
 def FETCH_CMD(state, arg):
-    fetch(state['index'], arg)
+    fetch_pkg(state['index'][arg + '.tar.bz2'])
 
 
 def PROGRESS_CMD(state, arg):
@@ -60,37 +54,27 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
-    if not install.is_extracted(config.pkgs_dirs[0], arg):
-        install.extract(config.pkgs_dirs[0], arg)
+    if not install.is_extracted(arg):
+        install.extract(arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
-    install.rm_extracted(config.pkgs_dirs[0], arg)
+    install.rm_extracted(arg)
 
 
 def RM_FETCHED_CMD(state, arg):
-    install.rm_fetched(config.pkgs_dirs[0], arg)
+    install.rm_fetched(arg)
 
 
 def split_linkarg(arg):
-    "Return tuple(dist, pkgs_dir, linktype)"
-    pat = re.compile(r'\s*(\S+)(?:\s+(.+?)\s+(\d+))?\s*$')
-    m = pat.match(arg)
-    dist, pkgs_dir, linktype = m.groups()
-    if pkgs_dir is None:
-        pkgs_dir = config.pkgs_dirs[0]
-    if linktype is None:
-        linktype = install.LINK_HARD
-    return dist, pkgs_dir, int(linktype)
-
-
-def link(prefix, arg, index=None):
-    dist, pkgs_dir, lt = split_linkarg(arg)
-    install.link(pkgs_dir, prefix, dist, lt, index=index)
+    "Return tuple(dist, linktype)"
+    parts = arg.split()
+    return parts[0], int(install.LINK_HARD if len(parts) < 2 else parts[1])
 
 
 def LINK_CMD(state, arg):
-    link(state['prefix'], arg, index=state['index'])
+    dist, lt = split_linkarg(arg)
+    install.link(state['prefix'], dist, lt, index=state['index'])
 
 
 def UNLINK_CMD(state, arg):
