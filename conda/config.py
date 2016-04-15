@@ -197,6 +197,7 @@ def get_local_urls(clear_cache=True):
     try:
         from conda_build.config import croot
     except ImportError:
+        import conda.cli.common as common
         common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
                               " to use the --use-local option",
                               json=args.json,
@@ -308,9 +309,10 @@ def get_channel_urls(platform=None, offline=False):
     res = normalize_urls(base_urls, platform, offline)
     return res
 
-def canonical_channel_name(channel, hide=True, drop_defaults=False, channel_alias=None):
+def canonical_channel_name(channel, hide=True, drop_defaults=False,
+                           channel_alias=None, no_unknown=False):
     if channel is None:
-        return '<unknown>'
+        return (None if drop_defaults else 'defaults') if no_unknown else '<unknown>'
     channel = remove_binstar_tokens(channel)
     channel_alias = channel_alias or channel_alias_
     if channel.startswith(channel_alias):
@@ -331,6 +333,12 @@ def canonical_channel_name(channel, hide=True, drop_defaults=False, channel_alia
         if hide:
             return hide_binstar_tokens(channel)
         return channel
+
+def url_channel(url):
+    channel = url.rsplit('/', 2)[0]
+    schannel = canonical_channel_name(channel)
+    prefix = '' if schannel == 'defaults' else schannel + '::'
+    return channel, schannel, prefix
 
 # ----- allowed channels -----
 
