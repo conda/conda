@@ -20,15 +20,15 @@ Conda build summary
 
 Building a conda package from a general source code package can be done in four steps.
 
-#. :ref:`before-you-start`
+#. :ref:`before-you-start3`
 #. :ref:`depends`
 #. :ref:`conda-recipe`
 #. :ref:`build-script`
-#. :ref:`build`
+#. :ref:`build-postgis`
 #. :ref:`install`
-#. :ref:`help`
+#. :ref:`help3`
 
-.. _before-you-start:
+.. _before-you-start3:
 
 Before you start
 ----------------
@@ -195,7 +195,7 @@ that other users could install the compiled conda package correctly.
 NOTE: You will have to install a C/C++ compiler, autoconf and automake in order to run conda-build on this recipe.
 These packages must be installed at the system level and not through conda.
 
-.. _build:
+.. _build-postgis:
 
 Build the package
 -----------------
@@ -273,7 +273,7 @@ with the following command.
 
 NOTE: Change CHANNEL to your anaconda.org_ username.
 
-.. _help:
+.. _help3:
 
 Troubleshooting and Additional Information
 ------------------------------------------

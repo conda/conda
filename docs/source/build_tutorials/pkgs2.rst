@@ -22,7 +22,7 @@ Building conda packages summary
 
 This tutorial includes the following:
 
-#. :ref:`before-you-start`
+#. :ref:`before-you-start2`
 #. :ref:`what-is-a-conda-package`
 #. :ref:`about-conda-build-recipe`
 #. :ref:`edit-meta-yaml`
@@ -34,7 +34,7 @@ This tutorial includes the following:
 #. :ref:`more-resources`
 
 
-.. _before-you-start:
+.. _before-you-start2:
 
 Before you start
 ----------------

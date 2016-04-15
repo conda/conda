@@ -24,16 +24,16 @@ Building a conda package from a PyPi package can be done in two steps. Three add
 can be performed if you wish to install the package in conda environment with a different version of
 Python or on a different architecture.
 
-#. :ref:`before-you-start`
+#. :ref:`before-you-start1`
 #. :ref:`conda-build-skeleton`
 #. :ref:`python-versions`
 #. :ref:`convert-conda-package`
 #. :ref:`upload-to-anaconda-org`
 #. :ref:`troubleshooting`
-#. :ref:`help`
+#. :ref:`help1`
 
 
-.. _before-you-start:
+.. _before-you-start1:
 
 Before you start
 ----------------
@@ -310,6 +310,8 @@ first creating a conda recipe for some-package using conda skeleton and then bui
 You may also try using the --recursive flag with conda skeleton, but this will attempt to make conda
 recipes for all required packages even those that are already available to conda install.
 
+
+.. _`help1`:
 
 Additional Information
 ----------------------
