@@ -3,17 +3,13 @@
 @REM   For debugging, remove the @ on the section you need to study.
 @SETLOCAL
 
-@IF NOT "%1" == "--help" @GOTO skipusage
-    (
-    @ECHO Usage: deactivate
-    @ECHO.
-    @ECHO Deactivates previously activated Conda
-    @ECHO environment.
-    @ECHO.
-    @ECHO Additional arguments are ignored.
-    ) 1>&2
-    @EXIT /b 1
-:skipusage
+@CALL ECHO "%~1"| @FIND /I "-h" 1>NUL
+@IF NOT ERRORLEVEL 1 (
+    @call "%~dp0\..\Scripts\conda.exe" ..deactivate -h
+) else (
+    :: reset errorlevel to 0
+    cmd /c "exit /b 0"
+)
 
 @REM Deactivate a previous activation if it is live
 @IF "%CONDA_PATH_BACKUP%"=="" @GOTO NOPATH

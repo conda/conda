@@ -410,7 +410,9 @@ def ensure_name_or_prefix(args, command):
 def find_prefix_name(name):
     if name == config.root_env_name:
         return config.root_dir
-    for envs_dir in config.envs_dirs:
+    # always search cwd in addition to envs dirs (for relative path access)
+    envs_dirs = config.envs_dirs + [os.getcwd(),]
+    for envs_dir in envs_dirs:
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
