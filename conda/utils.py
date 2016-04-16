@@ -13,6 +13,7 @@ import re
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
+@memoized
 def gnu_get_libc_version():
     """
     If on linux, get installed version of glibc, otherwise return None
@@ -178,7 +179,7 @@ class memoized(object):
             else:
                 newargs.append(arg)
         newargs = tuple(newargs)
-        key = (newargs, frozenset(kw.items()))
+        key = (newargs, frozenset(sorted(kw.items())))
         if key in self.cache:
             return self.cache[key]
         else:
@@ -203,7 +204,7 @@ class memoize(object):  # 577452
             cache = obj.__cache
         except AttributeError:
             cache = obj.__cache = {}
-        key = (self.func, args[1:], frozenset(kw.items()))
+        key = (self.func, args[1:], frozenset(sorted(kw.items())))
         try:
             res = cache[key]
         except KeyError:
