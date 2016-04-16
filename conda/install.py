@@ -113,6 +113,7 @@ if on_win:
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
+        from conda.utils import shells
         try:
             os.makedirs(os.path.dirname(dst))
         except OSError as exc:  # Python >2.5
@@ -132,19 +133,17 @@ if on_win:
 
         else:
             # This one is for bash/cygwin/msys
-            if src.endswith("conda"):
-                src = src + ".exe"
-
-            path_prefix = ""
-            if 'cygwin' in shell.lower():
-                path_prefix = '/cygdrive'
-
-            src = win_path_to_unix(src, path_prefix)
-            dst = win_path_to_unix(dst, path_prefix)
-
-            subprocess.check_call(["bash", "-l", "-c",
-                                   'ln -sf "%s" "%s"' % (src, dst)])
-
+            with open(dst, "w") as f:
+                f.write("#!/bin/sh \n")
+                if src.endswith("conda"):
+                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+                else:
+                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
+            # Make the new file executable
+            # http://stackoverflow.com/a/30463972/1170370
+            mode = os.stat(dst).st_mode
+            mode |= (mode & 292) >> 2    # copy R bits to X
+            os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')

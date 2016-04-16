@@ -93,10 +93,14 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
 
 
 def print_activate(arg):
+    from conda.utils import find_parent_shell
     print("#")
     print("# To activate this environment, use:")
-    if sys.platform == 'win32':
+    if find_parent_shell() in ["powershell.exe", "cmd.exe"]:
         print("# > activate %s" % arg)
+        print("#")
+        print("# To deactivate this environment, use:")
+        print("# > deactivate")
     else:
         print("# $ source activate %s" % arg)
         print("#")
