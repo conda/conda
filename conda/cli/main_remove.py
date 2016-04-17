@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from os.path import join, exists
+from os.path import join
 
 from argparse import RawDescriptionHelpFormatter
 import errno
@@ -111,7 +111,8 @@ def execute(args, parser):
         msg = "cannot remove current environment. deactivate and run conda remove again"
         common.error_and_exit(msg)
     common.check_write('remove', prefix, json=args.json)
-    common.ensure_override_channels_requires_channel(args, json=args.json)
+    common.ensure_use_local(args)
+    common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,

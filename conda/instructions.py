@@ -1,5 +1,4 @@
 from logging import getLogger
-import re
 
 from conda import config
 from conda import install
