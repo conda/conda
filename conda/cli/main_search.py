@@ -159,8 +159,8 @@ def execute_search(args, parser):
     platform = args.platform or ''
     if platform and platform != config.subdir:
         args.unknown = False
-    common.ensure_override_channels_requires_channel(args, dashc=False,
-                                                     json=args.json)
+    common.ensure_use_local(args)
+    common.ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
     index = common.get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
                                   platform=args.platform, use_local=args.use_local,

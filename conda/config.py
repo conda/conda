@@ -196,14 +196,10 @@ def get_local_urls(clear_cache=True):
     from conda.utils import url_path
     try:
         from conda_build.config import croot
+        if exists(croot):
+            local_channel.append(url_path(croot))
     except ImportError:
-        import conda.cli.common as common
-        common.error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                              " to use the --use-local option",
-                              json=args.json,
-                              error_type="RuntimeError")
-    if exists(croot):
-        local_channel.append(url_path(croot))
+        pass
     return local_channel
 
 def get_default_urls():

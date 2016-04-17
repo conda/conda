@@ -18,7 +18,6 @@ import errno
 
 import conda.config as config
 import conda.plan as plan
-import conda.instructions as inst
 import conda.misc as misc
 from conda.api import get_index
 from conda.cli import common
@@ -163,6 +162,7 @@ def install(args, parser, command='install'):
     else:
         default_packages = []
 
+    common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
 
@@ -305,15 +305,9 @@ environment does not exist: %s
                                                force=args.force,
                                                only_names=only_names,
                                                pinned=args.pinned,
+                                               always_copy=args.copy,
                                                minimal_hint=args.alt_hint,
                                                update_deps=args.update_deps)
-            if config.always_copy or args.copy:
-                new_link = []
-                for pkg in actions["LINK"]:
-                    dist, pkgs_dir, lt = inst.split_linkarg(pkg)
-                    lt = ci.LINK_COPY
-                    new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
-                actions["LINK"] = new_link
     except NoPackagesFound as e:
         error_message = e.args[0]
 

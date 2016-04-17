@@ -14,7 +14,7 @@ import sys
 import os
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, basename, dirname, isfile, join, exists
+from os.path import abspath, basename, dirname, join, exists
 
 from conda import config
 from conda import install
@@ -233,7 +233,9 @@ def plan_from_actions(actions):
     return res
 
 
-def linked_actions(dists, prefix, force, index=None):
+# force_linked_actions has now been folded into this function, and is enabled by
+# supplying an index and setting force=True
+def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=False):
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
@@ -244,8 +246,9 @@ def linked_actions(dists, prefix, force, index=None):
 
         if fetched_in and index is not None:
             # Test the MD5, and possibly re-fetch
+            fn = dist + '.tar.bz2'
             try:
-                if md5_file(fetched_in) != index[dist + '.tar.bz2']['md5']:
+                if md5_file(fetched_in) != index[fn]['md5']:
                     # RM_FETCHED now removes the extracted data too
                     actions[inst.RM_FETCHED].append(dist)
                     # Re-fetch, re-extract, re-link
@@ -287,7 +290,7 @@ def linked_actions(dists, prefix, force, index=None):
                 index_json = join(ppath, 'index.json')
                 with open(index_json, 'w'):
                     pass
-            if config.always_copy:
+            if config.always_copy or always_copy:
                 lt = install.LINK_COPY
             elif install.try_hard_link(fetched_dir, prefix, dist):
                 lt = install.LINK_HARD
@@ -307,14 +310,6 @@ def linked_actions(dists, prefix, force, index=None):
                     pass
 
     return actions
-
-
-def ensure_linked_actions(dists, prefix):
-    return linked_actions(dists, prefix, force=False, index=None)
-
-
-def force_linked_actions(dists, index, prefix):
-    return linked_actions(dists, prefix, force=True, index=index)
 
 # -------------------------------------------------------------------
 
@@ -393,7 +388,7 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
-def install_actions(prefix, index, specs, force=False, only_names=None,
+def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
     r = Resolve(index)
     linked = r.installed
@@ -435,10 +430,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
     smh = r.dependency_sort(must_have)
 
-    if force:
-        actions = force_linked_actions(smh, index, prefix)
-    else:
-        actions = ensure_linked_actions(smh, prefix)
+    actions = ensure_linked_actions(
+        smh, prefix,
+        index=index if force else None,
+        force=force, always_copy=always_copy)
 
     if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [config.root_dir]
