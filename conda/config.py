@@ -268,7 +268,7 @@ def normalize_urls(urls, platform=None, offline_only=False):
     def normalize_(url):
         url = url.rstrip('/')
         if is_url(url):
-            url_s = canonical_channel_name(url, True, True, channel_alias)
+            url_s = canonical_channel_name(url, True, channel_alias)
         else:
             url_s = url
             url = channel_alias + url
@@ -309,10 +309,9 @@ def get_channel_urls(platform=None, offline=False):
     res = normalize_urls(base_urls, platform, offline)
     return res
 
-def canonical_channel_name(channel, hide=True, drop_defaults=False,
-                           channel_alias=None, no_unknown=False):
+def canonical_channel_name(channel, hide=True, channel_alias=None, no_unknown=False):
     if channel is None:
-        return (None if drop_defaults else 'defaults') if no_unknown else '<unknown>'
+        return 'defaults' if no_unknown else '<unknown>'
     channel = remove_binstar_tokens(channel)
     channel_alias = channel_alias or channel_alias_
     if channel.startswith(channel_alias):
@@ -324,7 +323,7 @@ def canonical_channel_name(channel, hide=True, drop_defaults=False,
             url = hide_binstar_tokens(url)
         return url
     elif any(channel.startswith(i) for i in get_default_urls()):
-        return None if drop_defaults else 'defaults'
+        return 'defaults'
     elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
         return 'local'
     elif channel.startswith('http://filer/'):
@@ -335,10 +334,11 @@ def canonical_channel_name(channel, hide=True, drop_defaults=False,
         return channel
 
 def url_channel(url):
+    if url is None:
+        return None, '<unknown>'
     channel = url.rsplit('/', 2)[0]
     schannel = canonical_channel_name(channel)
-    prefix = '' if schannel == 'defaults' else schannel + '::'
-    return channel, schannel, prefix
+    return channel, schannel
 
 # ----- allowed channels -----
 

@@ -277,7 +277,7 @@ Allowed channels are:
             info['channel'] = channel
             info['priority'] = priority
             info['url'] = channel + fn
-            key = url_s + '::' + fn if url_s else fn
+            key = url_s + '::' + fn if url_s != 'defaults' else fn
             index[key] = info
 
     stdoutlog.info('\n')
@@ -423,7 +423,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                                (pp, dst_path, e))
 
         if urlstxt:
-            add_cached_package(dst_dir, url, overwrite=True)
+            add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
 
 
 class TmpDownload(object):

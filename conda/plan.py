@@ -53,8 +53,7 @@ def display_actions(actions, index, show_channel_urls=None):
             info = index[dist + '.tar.bz2']
             extra = '%15s' % human_bytes(info['size'])
             if show_channel_urls:
-                extra += '  %s' % config.canonical_channel_name(
-                                       info.get('channel'))
+                extra += '  %s' % info.get('schannel', '<unknown>')
             disp_lst.append((dist, extra))
         print_dists(disp_lst)
 

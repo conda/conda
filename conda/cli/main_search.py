@@ -153,9 +153,7 @@ def execute_search(args, parser):
     import conda.install
 
     linked = conda.install.linked(prefix)
-    extracted = set()
-    for pkgs_dir in conda.config.pkgs_dirs:
-        extracted.update(conda.install.extracted(pkgs_dir))
+    extracted = conda.install.extracted()
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
