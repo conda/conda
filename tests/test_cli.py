@@ -4,6 +4,7 @@ import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
 from conda.compat import text_type
+import conda.config as config
 
 from tests.helpers import capture_json_with_argv, assert_in
 
@@ -56,6 +57,11 @@ class TestSpecFromLine(unittest.TestCase):
 
 
 class TestJson(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        config.rc = config.load_condarc(config.rc_path)
+        config.rc['add_binstar_token'] = False
+        super(TestJson, self).__init__(*args, **kwargs)
+
     def assertJsonSuccess(self, res):
         self.assertIsInstance(res, dict)
         self.assertIn('success', res)

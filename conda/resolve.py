@@ -197,7 +197,7 @@ class Package(object):
     are sortable.
     """
     def __init__(self, fn, info):
-        self.fn = fn.rsplit('::', 2)[-1]
+        self.fn = fn
         self.name = info.get('name')
         self.version = info.get('version')
         self.build = info.get('build')
@@ -270,7 +270,7 @@ class Resolve(object):
             groups.setdefault(info['name'], []).append(fkey)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(fkey)
-            if info.get('is_linked'):
+            if 'link' in info:
                 installed.add(fkey)
 
         self.index = index
