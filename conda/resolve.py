@@ -759,10 +759,6 @@ class Resolve(object):
         result.extend(must_have.values())
         return result
 
-    # name deprecated; use dependency_sort instead
-    def graph_sort(self, must_have):
-        return self.dependency_sort(must_have)
-
     def explicit(self, specs):
         """
         Given the specifications, return:

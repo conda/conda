@@ -524,13 +524,6 @@ def try_hard_link(pkgs_dir, prefix, dist):
         rm_empty_dir(prefix)
 
 # ------- package cache ----- fetched
-
-def fetched(pkgs_dir):
-    if not isdir(pkgs_dir):
-        return set()
-    return set(fn[:-8] for fn in os.listdir(pkgs_dir)
-               if fn.endswith('.tar.bz2'))
-
 def is_fetched(pkgs_dir, dist):
     return isfile(join(pkgs_dir, dist + '.tar.bz2'))
 
@@ -677,10 +670,6 @@ def move_path_to_trash(path):
 
     log.debug("Could not move %s to trash" % path)
     return False
-
-# FIXME This should contain the implementation that loads meta, not is_linked()
-def load_meta(prefix, dist):
-    return is_linked(prefix, dist)
 
 def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     '''
