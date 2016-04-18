@@ -190,14 +190,13 @@ function activate --description 'Activate a conda environment.'
         else
           set -gx CONDA_DEFAULT_ENV $argv[1]
         end
-
         # Always store the full prefix path as CONDA_PREFIX
         set -gx CONDA_PREFIX (echo $PATH[1] | sed 's|/bin$||g')
 
         # check if there are any *.fish scripts in activate.d
         set -l activate_d $CONDA_PREFIX/etc/conda/activate.d
         if test -d "$activate_d"
-            . $activate_d/*.fish
+            source $activate_d/*.fish
         end
 
         if [ (conda '..changeps1') = "1" ]
@@ -207,3 +206,57 @@ function activate --description 'Activate a conda environment.'
         return $status
     end
 end
+
+
+# Autocompletions below
+
+# Original implementations, but slow
+# function __fish_conda_commands
+#   command conda help | awk '/^    \S/ {print $1}'
+# end
+# function __fish_conda_envs
+#   command conda env list | awk 'NR > 2 {print $1}'
+# end
+
+
+# Faster but less tested (?)
+function __fish_conda_commands
+  command echo -e "activate\ndeactivate" ;and ls --color=none (conda info --root)/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
+end
+
+function __fish_conda_envs
+  command echo root ;and ls -1 --color=none (conda info --root)/envs/
+end
+
+function __fish_conda_packages
+  command conda list | awk 'NR > 2 {print $1}'
+end
+
+function __fish_conda_needs_command
+  set cmd (commandline -opc)
+  if [ (count $cmd) -eq 1 -a $cmd[1] = 'conda' ]
+    return 0
+  end
+  return 1
+end
+
+function __fish_conda_using_command
+  set cmd (commandline -opc)
+  if [ (count $cmd) -gt 1 ]
+    if [ $argv[1] = $cmd[2] ]
+      return 0
+    end
+  end
+  return 1
+end
+
+# Conda commands
+complete -f -c conda -n '__fish_conda_needs_command' -a '(__fish_conda_commands)'
+
+# Commands that need environment as parameter
+complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)' -d 'Activate this environment'
+
+# Commands that need package as parameter
+complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)' -d 'Uninstall this package'
+complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)' -d 'Update this package'
+complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)' -d 'Update this package'
