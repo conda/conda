@@ -46,7 +46,7 @@ def PRINT_CMD(state, arg):
 def fetch(index, dist):
     assert index is not None
     fn = dist + '.tar.bz2'
-    fetch_pkg(index[fn])
+    fetch_pkg(index[fn], fn)
 
 
 def FETCH_CMD(state, arg):

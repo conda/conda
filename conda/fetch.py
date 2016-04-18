@@ -290,9 +290,12 @@ Allowed channels are:
     return index
 
 
-def fetch_pkg(info, dst_dir=None, session=None):
+def fetch_pkg(info, dst_fn=None, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
+
+    If `dst_fn` is specified, use it, otherwise use the source
+    filename, `fn`.
     '''
     if dst_dir is None:
         dst_dir = config.pkgs_dirs[0]
@@ -302,7 +305,9 @@ def fetch_pkg(info, dst_dir=None, session=None):
     fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
     url = info['channel'] + fn
     log.debug("url=%r" % url)
-    path = join(dst_dir, fn)
+    if dst_fn is None:
+        dst_fn = fn
+    path = join(dst_dir, dst_fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
