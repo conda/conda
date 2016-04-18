@@ -43,7 +43,7 @@ following keys:
 
    ``version``: string
       The package version, which may not contain ``-``.
-      Conda acknowledges `PEP 386 <http://www.python.org/dev/peps/pep-0386/>`_.
+      Conda acknowledges `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_.
 
    ``build``: string
       The build string, which also may not contain ``-``.
@@ -204,7 +204,7 @@ specification a space separated string of 1, 2 or 3 parts:
 
   ``<``, ``>``, ``<=``, ``>=``, ``==`` and ``!=`` are relational operators on
   versions, which are compared using [PEP
-  386](http://legacy.python.org/dev/peps/pep-0386/).  For example, ``<=1.0``
+  440](https://www.python.org/dev/peps/pep-0440/).  For example, ``<=1.0``
   matches ``0.9``, ``0.9.1``, and ``1.0``, but not ``1.0.1``. ``==`` and
   ``!=`` are exact equality,
 
