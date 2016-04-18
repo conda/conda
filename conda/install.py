@@ -44,7 +44,7 @@ import re
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 from conda.config import url_channel
-from conda.compat import itervalues, iterkeys
+from conda.compat import iteritems, iterkeys
 from conda import config
 
 try:
@@ -457,74 +457,6 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return False
     return True
 
-# The current package cache does not support the ability to store multiple packages
-# with the same filename from different channels. Furthermore, the filename itself
-# cannot be used to disambiguate; we must read the URL from urls.txt to determine
-# the source channel. For this reason, we now fully parse the directory and its
-# accompanying urls.txt file so we can make arbitrary queries without having to
-# read this data multiple times.
-
-package_cache_ = {}
-fname_table = {}
-def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
-    package_cache()
-    dist = url.rsplit('/', 1)[-1]
-    if dist.endswith('.tar.bz2'):
-        fname = dist
-        dist = dist[:-8]
-    else:
-        fname = dist + '.tar.bz2'
-    xpkg = join(pdir, fname)
-    if not overwrite and xpkg in fname_table:
-        return
-    if not isfile(xpkg):
-        xpkg = None
-    xdir = join(pdir, dist)
-    if not (isdir(xdir) and
-            isfile(join(xdir, 'info', 'files')) and
-            isfile(join(xdir, 'info', 'index.json'))):
-        xdir = None
-    if not (xpkg or xdir):
-        return
-    url = remove_binstar_tokens(url)
-    channel, schannel = url_channel(url)
-    prefix = '' if schannel == 'defaults' else schannel + '::'
-    fname_table[xpkg] = prefix
-    fkey = prefix + dist
-    rec = package_cache_.get(fkey)
-    if rec is None:
-        rec = package_cache_[fkey] = dict(files=[], dirs=[], urls=[])
-    if url not in rec['urls']:
-        rec['urls'].append(url)
-    if xpkg not in rec['files']:
-        rec['files'].append(xpkg)
-    if xdir and xdir not in rec['dirs']:
-        rec['dirs'].append(xdir)
-    if urlstxt:
-        try:
-            with open(join(pdir, 'urls.txt'), 'a') as fa:
-                fa.write('%s\n' % url)
-        except IOError:
-            pass
-
-def package_cache():
-    if package_cache_:
-        return package_cache_
-    # Stops recursion
-    package_cache_['@'] = None
-    for pdir in config.pkgs_dirs:
-        try:
-            data = open(join(pdir, 'urls.txt')).read()
-            for url in data.split()[::-1]:
-                if '/' in url:
-                    add_cached_package(pdir, url)
-            for fn in os.listdir(pdir):
-                add_cached_package(pdir, '<unknown>/' + fn)
-        except IOError:
-            continue
-    del package_cache_['@']
-    return package_cache_
-
 def read_url(dist):
     return package_cache().get(dist, {}).get('urls', (None,))[0]
 
@@ -604,16 +536,135 @@ def try_hard_link(pkgs_dir, prefix, dist):
         rm_rf(dst)
         rm_empty_dir(prefix)
 
+# ------- package cache ----- construction
+
+# The current package cache does not support the ability to store multiple packages
+# with the same filename from different channels. Furthermore, the filename itself
+# cannot be used to disambiguate; we must read the URL from urls.txt to determine
+# the source channel. For this reason, we now fully parse the directory and its
+# accompanying urls.txt file so we can make arbitrary queries without having to
+# read this data multiple times.
+
+package_cache_ = {}
+fname_table = {}
+def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
+    """
+    Adds a new package to the cache. The URL is used to determine the
+    package filename and channel, and the directory pdir is scanned for
+    both a compressed and an extracted version of that package. If
+    urlstxt=True, this URL will be appended to the urls.txt file in the
+    cache, so that subsequent runs will correctly identify the package.
+    """
+    package_cache()
+    dist = url.rsplit('/', 1)[-1]
+    if dist.endswith('.tar.bz2'):
+        fname = dist
+        dist = dist[:-8]
+    else:
+        fname = dist + '.tar.bz2'
+    xpkg = join(pdir, fname)
+    if not overwrite and xpkg in fname_table:
+        return
+    if not isfile(xpkg):
+        xpkg = None
+    xdir = join(pdir, dist)
+    if not (isdir(xdir) and
+            isfile(join(xdir, 'info', 'files')) and
+            isfile(join(xdir, 'info', 'index.json'))):
+        xdir = None
+    if not (xpkg or xdir):
+        return
+    url = remove_binstar_tokens(url)
+    channel, schannel = url_channel(url)
+    prefix = '' if schannel == 'defaults' else schannel + '::'
+    fname_table[xpkg] = prefix
+    fkey = prefix + dist
+    rec = package_cache_.get(fkey)
+    if rec is None:
+        rec = package_cache_[fkey] = dict(files=[], dirs=[], urls=[])
+    if url not in rec['urls']:
+        rec['urls'].append(url)
+    if xpkg and xpkg not in rec['files']:
+        rec['files'].append(xpkg)
+    if xdir and xdir not in rec['dirs']:
+        rec['dirs'].append(xdir)
+    if urlstxt:
+        try:
+            with open(join(pdir, 'urls.txt'), 'a') as fa:
+                fa.write('%s\n' % url)
+        except IOError:
+            pass
+
+def package_cache():
+    """
+    Initializes the package cache. Each entry in the package cache
+    dictionary contains three lists:
+    - urls: the URLs used to refer to that package
+    - files: the full pathnames to fetched copies of that package
+    - dirs: the full pathnames to extracted copies of that package
+    Nominally there should be no more than one entry in each list, but
+    in theory this can handle the presence of multiple copies.
+    """
+    if package_cache_:
+        return package_cache_
+    # Stops recursion
+    package_cache_['@'] = None
+    for pdir in config.pkgs_dirs:
+        try:
+            data = open(join(pdir, 'urls.txt')).read()
+            for url in data.split()[::-1]:
+                if '/' in url:
+                    add_cached_package(pdir, url)
+            for fn in os.listdir(pdir):
+                add_cached_package(pdir, '<unknown>/' + fn)
+        except IOError:
+            continue
+    del package_cache_['@']
+    return package_cache_
+
+def find_new_location(dist):
+    """
+    Determines the download location for the given package, and the name
+    of a package, if any, that must be removed to make room. If the
+    given package is already in the cache, it returns its current location,
+    under the assumption that it will be overwritten. If the conflict
+    value is None, that means there is no other package with that same
+    name present in the cache (e.g., no collision).
+    """
+    rec = package_cache().get(dist)
+    if rec:
+        return dirname((rec['files'] or rec['dirs'])[0]), None
+    fname = _dist2filename(dist)
+    dname = fname[:-8]
+    # Look for a location with no conflicts
+    # On the second pass, just pick the first location
+    for p in range(2):
+        for pkg_dir in config.pkgs_dirs:
+            pkg_path = join(pkg_dir, fname)
+            prefix = fname_table.get(pkg_path)
+            if p or prefix is None:
+                return pkg_path, prefix + dname if p else None
+
 # ------- package cache ----- fetched
 
 def fetched():
-    return set(rec['files'][0] for rec in itervalues(package_cache()) if rec['files'])
+    """
+    Returns the (set of canonical names) of all fetched packages
+    """
+    return set(dist for dist, rec in iteritems(package_cache()) if rec['files'])
 
 def is_fetched(dist):
+    """
+    Returns the full path of the fetched package, or None if it is not in the cache.
+    """
     for fn in package_cache().get(dist, {}).get('files', ()):
         return fn
 
 def rm_fetched(dist):
+    """
+    Checks to see if the requested package is in the cache; and if so, it removes both
+    the package itself and its extracted contents.
+    """
     rec = package_cache().get(dist)
     if rec is None:
         return
@@ -632,15 +683,40 @@ def extracted():
     """
     return the (set of canonical names) of all extracted packages
     """
-    return set(rec['dirs'][0] for rec in itervalues(package_cache()) if rec['dirs'])
+    return set(dist for dist, rec in iteritems(package_cache()) if rec['dirs'])
+
+def is_extracted(dist):
+    """
+    returns the full path of the extracted data for the requested package,
+    or None if that package is not extracted.
+    """
+    for fn in package_cache().get(dist, {}).get('dirs', ()):
+        return fn
+
+def rm_extracted(dist):
+    """
+    Removes any extracted versions of the given package found in the cache.
+    """
+    rec = package_cache().get(dist)
+    if rec is None:
+        return
+    for fname in rec['dirs']:
+        with Locked(dirname(fname)):
+            rm_rf(fname)
+    if rec['files']:
+        rec['dirs'] = []
+    else:
+        del package_cache_[dist]
 
 def extract(dist):
     """
-    Extract a package, i.e. make a package available for linkage.  We assume
-    that the compressed packages is located in the packages directory.
+    Extract a package, i.e. make a package available for linkage. We assume
+    that the compressed package is located in the packages directory.
     """
-    rec = package_cache_[dist]
+    rec = package_cache()[dist]
+    url = rec['url'][0]
     fname = rec['files'][0]
+    assert url and fname
     pkgs_dir = dirname(fname)
     with Locked(pkgs_dir):
         path = fname[:-8]
@@ -656,37 +732,7 @@ def extract(dist):
                 for fn in files:
                     p = join(root, fn)
                     os.lchown(p, 0, 0)
-        add_cached_package(pkgs_dir, rec['urls'][0], overwrite=True)
-        if path not in rec['dirs']:
-            rec['dirs'].append(path)
-
-def is_extracted(dist):
-    for fn in package_cache().get(dist, {}).get('dirs', ()):
-        return fn
-
-def rm_extracted(dist):
-    rec = package_cache().get(dist)
-    if rec is None:
-        return
-    for fname in rec['dirs']:
-        with Locked(dirname(fname)):
-            rm_rf(fname)
-    rec['dirs'] = []
-
-def find_new_location(dist):
-    rec = package_cache().get(dist)
-    if rec:
-        return dirname((rec['files'] or rec['dirs'])[0]), None
-    fname = _dist2filename(dist)
-    dname = fname[:-8]
-    # Look for a location with no conflicts
-    # On the second pass, just pick the first location
-    for p in range(2):
-        for pkg_dir in config.pkgs_dirs:
-            pkg_path = join(pkg_dir, fname)
-            prefix = fname_table.get(pkg_path)
-            if p or prefix is None:
-                return pkg_path, prefix + dname if p else None
+        add_cached_package(pkgs_dir, url, overwrite=True)
 
 # Because the conda-meta .json files do not include channel names in
 # their filenames, we have to pull that information from the .json
