@@ -36,6 +36,7 @@ def print_dists(dists_extras):
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
+        _, dist = install._dist2pair(dist)
         line = fmt % tuple(dist.rsplit('-', 1))
         if extra:
             line += extra
@@ -167,7 +168,7 @@ def display_actions(actions, index, show_channel_urls=None):
         channel = ['', '']
         for i in range(2):
             if packages[pkg][i]:
-                channel[i] = Packages[pkg + '-' + packages[pkg][i]].schannel
+                channel[i] = channel_str(Packages[pkg + '-' + packages[pkg][i]].schannel)
         return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
                                channel=channel, features=features[pkg])
 
