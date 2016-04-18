@@ -714,7 +714,7 @@ def extract(dist):
     that the compressed package is located in the packages directory.
     """
     rec = package_cache()[dist]
-    url = rec['url'][0]
+    url = rec['urls'][0]
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)

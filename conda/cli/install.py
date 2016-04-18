@@ -214,6 +214,7 @@ def install(args, parser, command='install'):
                                   offline=args.offline,
                                   prefix=prefix)
     r = Resolve(index)
+    ospecs = list(specs)
     plan.add_defaults_to_specs(r, linked, specs, update=isupdate)
 
     if newenv and args.clone:
@@ -231,13 +232,10 @@ def install(args, parser, command='install'):
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
+        installed_metadata = [ci.is_linked(prefix, dist) for dist in linked]
         for name in orig_packages:
-            installed_metadata = [ci.is_linked(prefix, dist)
-                                  for dist in linked]
-            vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
-                         if dist.rsplit('-', 2)[0] == name]
-            build_inst = [m['build_number'] for m in installed_metadata if
-                          m['name'] == name]
+            vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
+            build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
 
             try:
                 assert len(vers_inst) == 1, name
@@ -272,9 +270,8 @@ def install(args, parser, command='install'):
     if args.force:
         args.no_deps = True
 
-    spec_names = set(s.split()[0] for s in specs)
     if args.no_deps:
-        only_names = spec_names
+        only_names = set(s.split()[0] for s in specs)
     else:
         only_names = None
 
@@ -368,7 +365,7 @@ environment does not exist: %s
         from conda.cli.main_list import print_packages
 
         if not args.json:
-            regex = '^(%s)$' % '|'.join(spec_names)
+            regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
             print('\n# All requested packages already installed.')
             print_packages(prefix, regex)
         else:
