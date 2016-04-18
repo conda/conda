@@ -331,7 +331,8 @@ def add_parser_show_channel_urls(p):
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=config.show_channel_urls,
+        default=("show if not 'defaults'" if config.show_channel_urls
+                 is None else config.show_channel_urls),
         help="Show channel urls (default: %(default)s).",
     )
     p.add_argument(

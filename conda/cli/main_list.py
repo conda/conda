@@ -125,8 +125,6 @@ def get_packages(installed, regex):
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=config.show_channel_urls):
     res = 1
-    if show_channel_urls is None and format == 'human':
-        show_channel_urls = False
 
     result = []
     for dist in get_packages(installed, regex):
@@ -144,8 +142,9 @@ def list_packages(prefix, installed, regex=None, format='human',
             features = set(info.get('features', '').split())
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % common.disp_features(features)
-            if show_channel_urls:
-                disp += '  %s' % config.canonical_channel_name(info.get('url'))
+            schannel = info.get('schannel')
+            if show_channel_urls or show_channel_urls is None and schannel != 'defaults':
+                disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug(str(e))

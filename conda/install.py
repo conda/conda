@@ -519,7 +519,7 @@ def package_cache():
                 if '/' in url:
                     add_cached_package(pdir, url)
             for fn in os.listdir(pdir):
-                add_cached_package(pdir, 'unknown/' + fn)
+                add_cached_package(pdir, '<unknown>/' + fn)
         except IOError:
             continue
     del package_cache_['@']
