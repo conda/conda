@@ -143,14 +143,15 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.slow
     def test_info(self):
-        res = capture_json_with_argv('conda', 'info', '--json')
+        res = capture_json_with_argv('conda', 'info', '--json', relaxed=True)
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
                 'envs_dirs', 'is_foreign', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
+        self.assertIsInstance(res, dict)
         for key in keys:
             assert key in res
 
-        res = capture_json_with_argv('conda', 'info', 'conda', '--json')
+        res = capture_json_with_argv('conda', 'info', 'conda', '--json', relaxed=True)
         self.assertIsInstance(res, dict)
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
