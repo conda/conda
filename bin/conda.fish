@@ -181,6 +181,11 @@ function activate --description 'Activate a conda environment.'
         else
             set -gx CONDA_DEFAULT_ENV $argv[1]
         end
+        # check if there are any *.fish scripts in activate.d
+        set -l activate_d (conda info --root)/envs/$argv[1]/etc/conda/activate.d
+        if test -d "$activate_d"
+            source $activate_d/*.fish
+        end
         __conda_update_prompt activate
     else
         return $status
@@ -195,6 +200,11 @@ function deactivate --description 'Deactivate the current conda environment.'
         if [ $status = 0 ]
             __conda_set_path $NEW_PATH
             set -e CONDA_DEFAULT_ENV
+            # check if there are any *.fish scripts in deactivate.d
+            set -l deactivate_d (conda info --root)/envs/$argv[1]/etc/conda/deactivate.d
+            if test -d "$deactivate_d"
+                source $deactivate_d/*.fish
+            end
             __conda_update_prompt deactivate
         else
             return $status
