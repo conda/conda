@@ -36,7 +36,6 @@ class Locked(object):
         self.path = path
         self.end = "-" + str(os.getpid())
         self.lock_path = os.path.join(self.path, LOCKFN + self.end)
-        self.pattern = os.path.join(self.path, LOCKFN + '-*')
         self.retries = retries
 
     def __enter__(self):
