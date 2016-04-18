@@ -48,7 +48,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
             if channel not in channel_urls:
                 channel_urls[channel] = (config.canonical_channel_name(channel, True, True), 0)
             url_s, priority = channel_urls[channel]
-            key = url_s + '::' + fn if url_s else fn
+            key = url_s + '##' + fn if url_s else fn
             if key not in index:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])

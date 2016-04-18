@@ -279,7 +279,7 @@ Allowed channels are:
             info['channel'] = channel
             info['priority'] = priority
             info['url'] = channel + fn
-            key = url_s + '::' + fn if url_s else fn
+            key = url_s + '##' + fn if url_s else fn
             index[key] = info
 
     stdoutlog.info('\n')
