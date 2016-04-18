@@ -254,9 +254,9 @@ end
 complete -f -c conda -n '__fish_conda_needs_command' -a '(__fish_conda_commands)'
 
 # Commands that need environment as parameter
-complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)' -d 'Activate this environment'
+complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)'
 
 # Commands that need package as parameter
-complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)' -d 'Uninstall this package'
-complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)' -d 'Update this package'
-complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)' -d 'Update this package'
+complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)'
+complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)'
+complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)'
