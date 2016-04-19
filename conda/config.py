@@ -183,6 +183,8 @@ def get_local_urls(clear_cache=True):
 
 defaults_ = ['https://repo.continuum.io/pkgs/free',
              'https://repo.continuum.io/pkgs/pro']
+if platform == 'win':
+    defaults_.append('https://repo.continuum.io/pkgs/msys2')
 
 def get_default_urls(merged=False):
     if 'default_channels' in sys_rc:
