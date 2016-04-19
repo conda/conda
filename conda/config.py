@@ -244,7 +244,6 @@ channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 channel_alias = channel_alias.rstrip('/') + '/'
-channel_alias_ = channel_alias
 
 _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
 BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
@@ -255,16 +254,16 @@ def hide_binstar_tokens(url):
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
+channel_alias_ = remove_binstar_tokens(channel_alias)
+
 def normalize_urls(urls, platform=None, offline_only=False):
     platform = platform or subdir
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
-    channel_alias = binstar_channel_alias(rc.get('channel_alias',
-                                                 DEFAULT_CHANNEL_ALIAS))
 
     def normalize_(url):
         url = url.rstrip('/')
         if is_url(url):
-            url_s = canonical_channel_name(url, True, channel_alias)
+            url_s = canonical_channel_name(url, True)
         else:
             url_s = url
             url = channel_alias + url
@@ -305,28 +304,19 @@ def get_channel_urls(platform=None, offline=False):
     res = normalize_urls(base_urls, platform, offline)
     return res
 
-def canonical_channel_name(channel, hide=True, channel_alias=None, no_unknown=False):
+def canonical_channel_name(channel, hide=True, no_unknown=False):
     if channel is None:
         return 'defaults' if no_unknown else '<unknown>'
     channel = remove_binstar_tokens(channel)
-    channel_alias = channel_alias or channel_alias_
-    if channel.startswith(channel_alias):
-        end = channel.split(channel_alias, 1)[1]
-        url = end.split('/')[0]
-        if url == 't' and len(end.split('/')) >= 3:
-            url = end.split('/')[2]
-        if hide:
-            url = hide_binstar_tokens(url)
-        return url
-    elif any(channel.startswith(i) for i in get_default_urls()):
+    if any(channel.startswith(i) for i in get_default_urls()):
         return 'defaults'
     elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
         return 'local'
     elif channel.startswith('http://filer/'):
         return 'filer'
+    elif channel.startswith(channel_alias_):
+        return channel.split(channel_alias_, 1)[1]
     else:
-        if hide:
-            return hide_binstar_tokens(channel)
         return channel
 
 def url_channel(url):
