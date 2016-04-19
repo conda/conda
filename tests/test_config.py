@@ -42,6 +42,7 @@ class TestConfig(unittest.TestCase):
         # Otherwise normalization tests will fail if the user is logged into
         # binstar.
         config.rc['add_binstar_token'] = False
+        config.channel_alias = config.rc['channel_alias']
         super(TestConfig, self).__init__(*args, **kwargs)
 
     def test_globals(self):
@@ -73,6 +74,7 @@ class TestConfig(unittest.TestCase):
         current_platform = config.subdir
         assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
+        assert config.channel_alias == 'https://your.repo/'
 
         for channel in iterkeys(config.normalize_urls(['defaults', 'system',
             'https://anaconda.org/username', 'file:///Users/username/repo',

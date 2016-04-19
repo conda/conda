@@ -243,7 +243,6 @@ def binstar_channel_alias(channel_alias):
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
-channel_alias = channel_alias.rstrip('/') + '/'
 
 _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
 BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
@@ -254,11 +253,12 @@ def hide_binstar_tokens(url):
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
-channel_alias_ = remove_binstar_tokens(channel_alias)
+channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
 
 def normalize_urls(urls, platform=None, offline_only=False):
     platform = platform or subdir
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
+    alias = binstar_channel_alias(channel_alias)
 
     def normalize_(url):
         url = url.rstrip('/')
@@ -266,7 +266,7 @@ def normalize_urls(urls, platform=None, offline_only=False):
             url_s = canonical_channel_name(url, True)
         else:
             url_s = url
-            url = channel_alias + url
+            url = alias + url
         return url_s, url
     newurls = OrderedDict()
     priority = 0
@@ -314,8 +314,8 @@ def canonical_channel_name(channel, hide=True, no_unknown=False):
         return 'local'
     elif channel.startswith('http://filer/'):
         return 'filer'
-    elif channel.startswith(channel_alias_):
-        return channel.split(channel_alias_, 1)[1]
+    elif channel.startswith(channel_alias):
+        return channel.split(channel_alias, 1)[1]
     else:
         return channel
 
