@@ -278,7 +278,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
             extracted_in = None
 
         # Otherwise we need to extract, and possibly fetch
-        if not fetched_in:
+        if not extracted_in and not fetched_in:
             # If there is a cache conflict, clean it up
             fetched_in, conflict = install.find_new_location(dist)
             if conflict is not None:
@@ -288,8 +288,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
         if not extracted_in:
             actions[inst.EXTRACT].append(dist)
 
-        fetched_dist = fetched_in[:-8]
-        fetched_dir = dirname(fetched_in)
+        fetched_dist = extracted_in or fetched_in[:-8]
+        fetched_dir = dirname(fetched_dist)
 
         try:
             # Determine what kind of linking is necessary
