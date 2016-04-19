@@ -237,7 +237,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False):
     # pool = ThreadPool(5)
     index = {}
     stdoutlog.info("Fetching package metadata ...")
-    session = CondaSession()
     if not isinstance(channel_urls, dict):
         channel_urls = {url: pri+1 for pri, url in enumerate(channel_urls)}
     for url in iterkeys(channel_urls):
@@ -257,12 +256,13 @@ Allowed channels are:
         with concurrent.futures.ThreadPoolExecutor(10) as executor:
             future_to_url = OrderedDict([(executor.submit(
                             fetch_repodata, url, use_cache=use_cache,
-                            session=session), url)
+                            session=CondaSession()), url)
                                          for url in iterkeys(channel_urls)])
             for future in future_to_url:
                 url = future_to_url[future]
                 repodatas.append((url, future.result()))
     except ImportError:
+        session = CondaSession()
         # concurrent.futures is only available in Python 3
         repodatas = map(lambda url: (url, fetch_repodata(url,
                                      use_cache=use_cache, session=session)),
