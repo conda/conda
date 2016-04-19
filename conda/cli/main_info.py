@@ -112,7 +112,6 @@ def get_user_site():
 def pretty_package(pkg):
     import conda.config as config
     from conda.utils import human_bytes
-    from conda.api import app_is_installed
 
     d = OrderedDict([
         ('file name', pkg.fn),
@@ -136,9 +135,6 @@ def pretty_package(pkg):
     print('-'*len(header))
     for key in d:
         print("%-12s: %s" % (key, d[key]))
-    print("installed environments:")
-    for env in app_is_installed(pkg.fn):
-        print('    %s' % env)
     print('dependencies:')
     for dep in pkg.info['depends']:
         print('    %s' % dep)
