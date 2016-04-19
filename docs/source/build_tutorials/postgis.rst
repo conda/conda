@@ -169,7 +169,7 @@ During execution of the conda-build command the ``$PREFIX`` environment variable
 of conda packages.  We will use ``$PREFIX`` to inform the configure command of the location of the dependent packages
 listed in the build and run requirements of the conda recipe.
 
-In a text edit make a new file called build.sh with the following content in the postgis directory.
+In a text editor make a new file called build.sh with the following content in the postgis directory.
 
 .. code-block:: bash
 

@@ -178,7 +178,7 @@ The other two files you need for a build are
 These two build files contain all the variables such as for 32-bit or 64-bit architecture (the ARCH
 variable) and the build environment prefix (PREFIX). The two files ``build.sh`` and ``bld.bat`` files must be
 in the same directory as your ``meta.yaml`` file. In this tutorial you're going to make both ``build.sh`` and
-``bld.bat`` so that other users can built the appropriate package for their architecture.
+``bld.bat`` so that other users can build the appropriate package for their architecture.
 
 First we'll write the build file for Windows and then the build file for Linux and OS X.
 

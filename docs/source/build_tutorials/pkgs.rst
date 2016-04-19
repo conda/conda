@@ -207,7 +207,7 @@ Linux and OS X users:
 NOTE: Change your path and filename to the exact path and filename you saved in Step 2.
 
 In order to use these packages they will have to be transferred to other computers and placed in the correct
-``conda-bld/$ARCH`` directory like shown above, where ``$ARCH`` can be ``osx-64``, ``linux-32``, ``linux-64``,
+``conda-bld/$ARCH`` directory as shown above, where ``$ARCH`` can be ``osx-64``, ``linux-32``, ``linux-64``,
 ``win-32`` or ``win-64``.
 
 A simpler way is to upload all of the bz2 files to Anaconda.org as described in the next section.
@@ -318,4 +318,3 @@ Additional Information
 See the full conda skeleton documentation_ for more options.
 
 .. _documentation: http://conda.pydata.org/docs/commands/build/conda-skeleton-pypi.html
-
