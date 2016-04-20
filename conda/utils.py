@@ -159,7 +159,8 @@ def run_in(command, shell, cwd=None, env=None):
         cmd_script.close()
         cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
         try:
-            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
+            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=cwd, env=env)
             stdout, stderr = p.communicate()
         finally:
             os.unlink(cmd_script.name)
@@ -171,7 +172,7 @@ def run_in(command, shell, cwd=None, env=None):
         p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
     streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")
-                      for stream in (stdout, stderr)]
+               for stream in (stdout, stderr)]
     return streams
 
 
@@ -292,33 +293,35 @@ def yaml_dump(string):
     except AttributeError:
         return yaml.dump(string, default_flow_style=False)
 
-# TODO: this should be done in a more extensible way (like files for each shell, with some registration mechanism.)
+# TODO: this should be done in a more extensible way
+#     (like files for each shell, with some registration mechanism.)
 
 # defaults for unix shells.  Note: missing "exe" entry, which should be set to
 #    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(echo="echo",
-                       test_echo_extra="",
-                       var_format="${}",
+unix_shell_base = dict(
                        binpath="/bin/",  # mind the trailing slash.
-                       source_setup="source",
-                       nul='2>/dev/null',
-                       set_var='export ',
-                       shell_suffix="",
+                       echo="echo",
                        env_script_suffix=".sh",
-                       printps1='echo $PS1',
-                       printdefaultenv='echo $CONDA_DEFAULT_ENV',
-                       printpath="echo $PATH",
-                       shell_args=["-l", "-c"],
+                       nul='2>/dev/null',
                        path_from=path_identity,
                        path_to=path_identity,
-                       slash_convert=("\\", "/"),
+                       pathsep=":",
+                       printdefaultenv='echo $CONDA_DEFAULT_ENV',
+                       printpath="echo $PATH",
+                       printps1='echo $PS1',
                        sep="/",
-                       pathsep=":"
+                       set_var='export ',
+                       shell_args=["-l", "-c"],
+                       shell_suffix="",
+                       slash_convert=("\\", "/"),
+                       source_setup="source",
+                       test_echo_extra="",
+                       var_format="${}",
 )
 
 if sys.platform == "win32":
     shells = {
-        #"powershell.exe": dict(
+        # "powershell.exe": dict(
         #    echo="echo",
         #    test_echo_extra=" .",
         #    var_format="${var}",
@@ -335,7 +338,7 @@ if sys.platform == "win32":
         #    path_from=path_identity,
         #    path_to=path_identity,
         #    slash_convert = ("/", "\\"),
-        #),
+        # ),
         "cmd.exe": dict(
             echo="@echo",
             var_format="%{}%",
@@ -347,9 +350,10 @@ if sys.platform == "win32":
             shell_suffix=".bat",
             env_script_suffix=".bat",
             printps1="@echo %PROMPT%",
+            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
                             'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
-                            'echo()', # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
+                            'echo()',
             printpath="@echo %PATH%",
             exe="cmd.exe",
             shell_args=["/d", "/c"],
@@ -359,27 +363,34 @@ if sys.platform == "win32":
             sep="\\",
             pathsep=";",
         ),
-        "cygwin": dict(unix_shell_base,
-                       exe="bash.exe",
-                       binpath="/Scripts/",  # mind the trailing slash.
-                       path_from=cygwin_path_to_win,
-                       path_to=win_path_to_cygwin),
-        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin entry instead.
-        # The only major difference is that it handle's cywin's /cygdrive filesystem root.
-        "bash.exe": dict(unix_shell_base,
-                     exe="bash.exe",
-                     binpath="/Scripts/",  # mind the trailing slash.
-                     path_from=unix_path_to_win,
-                     path_to=win_path_to_unix),
+        "cygwin": dict(
+            unix_shell_base,
+            exe="bash.exe",
+            binpath="/Scripts/",  # mind the trailing slash.
+            path_from=cygwin_path_to_win,
+            path_to=win_path_to_cygwin
+                      ),
+        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
+        #    entry instead.  The only major difference is that it handle's cywin's /cygdrive
+        #    filesystem root.
+        "bash.exe": dict(
+            unix_shell_base,
+            exe="bash.exe",
+            binpath="/Scripts/",  # mind the trailing slash.
+            path_from=unix_path_to_win,
+            path_to=win_path_to_unix
+                        ),
     }
 
 else:
     shells = {
-        "bash": dict(unix_shell_base, exe="bash",
-        ),
-        "zsh": dict(unix_shell_base, exe="zsh",
-        ),
-        #"fish": dict(unix_shell_base, exe="fish",
+        "bash": dict(
+            unix_shell_base, exe="bash",
+                    ),
+        "zsh": dict(
+            unix_shell_base, exe="zsh",
+                   ),
+        # "fish": dict(unix_shell_base, exe="fish",
         #             shell_suffix=".fish",
         #             source_setup=""),
     }
