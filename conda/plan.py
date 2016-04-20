@@ -23,6 +23,7 @@ from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
 from conda import instructions as inst
 from conda.exceptions import CondaException
+from conda.compat import iteritems, itervalues
 
 # For backwards compatibility
 from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,  # noqa
@@ -449,43 +450,43 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     return actions
 
 
-def remove_actions(prefix, specs, index, force=False, pinned=True):
-    r = Resolve(index)
-    linked = [d+'.tar.bz2' for d in install.linked(prefix)]
-    mss = list(map(MatchSpec, specs))
+def remove_actions(prefix, specs, index=None, force=False, pinned=True):
+    linked = install.linked_data(prefix)
 
+    if not force:
+        installed = {fn + '.tar.bz2': rec for fn, rec in iteritems(linked)}
+        r = Resolve(installed)
+        installed = installed.keys()
+        force = r.bad_installed(installed, [])[0] is not None
     if force:
-        nlinked = {r.package_name(fn): fn[:-8]
-                   for fn in linked
-                   if not any(r.match(ms, fn) for ms in mss)}
+        nspecs = set(rec['name'] for rec in itervalues(linked) if rec['name'] not in specs)
     else:
         if config.track_features:
-            specs.extend(x + '@' for x in config.track_features)
-        nlinked = {r.package_name(fn): fn[:-8] for fn in r.remove(specs, linked)}
+            specs = list(specs) + [x + '@' for x in config.track_features]
+        nspecs = set(linked[fn[:-8]]['name'] for fn in r.remove(specs, installed))
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {r.package_name(fn): fn[:-8] for fn in linked}
-
-    actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
-    for old_fn in reversed(r.dependency_sort(linked)):
-        dist = old_fn + '.tar.bz2'
-        name = r.package_name(dist)
-        if old_fn == nlinked.get(name, ''):
+    actions = defaultdict(list)
+    actions[inst.PREFIX] = prefix
+    lmap = {rec['name']: fn for fn, rec in iteritems(linked)}
+    for dist in reversed(r.dependency_sort(lmap)):
+        name = linked[dist]['name']
+        if name in nspecs:
             continue
-        if pinned and any(r.match(ms, dist) for ms in pinned_specs):
+        if pinned and name in pinned_specs:
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
             raise RuntimeError(msg % dist)
-        if name == 'conda' and name not in nlinked:
-            if any(ms.name == 'conda' for ms in mss):
+        if name == 'conda':
+            if name in specs:
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
                 msg = ("Error: this 'remove' command cannot be executed because it\n"
                        "would require removing 'conda' dependencies")
                 sys.exit(msg)
-        add_unlink(actions, old_fn)
+        add_unlink(actions, dist)
 
     return actions
 
