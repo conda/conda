@@ -23,6 +23,7 @@ install:
   - conda install flake8 pytest mock
   - conda install pip
   - pip install auxlib pytest-cov radon
+  - python setup.py install
 
 script:
   - py.test --cov conda --cov-report xml tests --shell=bash --shell=zsh
