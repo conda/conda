@@ -149,7 +149,7 @@ def main():
         try:
             binpath = binpath_from_arg(sys.argv[2], shelldict=shelldict)
         except ValueError as e:
-            sys.exit(e.message)
+            sys.exit(getattr(e, 'message', e))
 
         # Make sure an env always has the conda symlink
         try:
