@@ -2,14 +2,12 @@ from __future__ import print_function, division, absolute_import
 
 import errno
 import os
-from os.path import isdir, join, abspath
+from os.path import isdir, abspath
 import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import (translate_stream, unix_path_to_win, win_path_to_unix,
-                         win_path_to_cygwin, find_parent_shell, shells, run_in)
-import conda.config as config
+from conda.utils import (find_parent_shell, shells, run_in)
 
 
 on_win = sys.platform == "win32"
@@ -68,12 +66,14 @@ def binpath_from_arg(arg, shelldict):
     # prefix comes back as platform-native path
     prefix = prefix_from_arg(arg, shelldict=shelldict)
     if sys.platform == 'win32':
-        paths = [prefix.rstrip("\\"),
-                 os.path.join(prefix, 'Library', 'bin'),
-                 os.path.join(prefix, 'Scripts'),
-               ]
+        paths = [
+            prefix.rstrip("\\"),
+            os.path.join(prefix, 'Library', 'bin'),
+            os.path.join(prefix, 'Scripts'),
+                ]
     else:
-        paths = [os.path.join(prefix, 'bin'),
+        paths = [
+            os.path.join(prefix, 'bin'),
                 ]
     # convert paths to shell-native paths
     return [shelldict['path_to'](path) for path in paths]
@@ -95,10 +95,11 @@ def pathlist_to_str(paths, escape_backslashes=True):
 def get_path(shelldict):
     """Get path using a subprocess call.
 
-    os.getenv path isn't good for us, since bash on windows has a wildly different path from Windows.
+    os.getenv path isn't good for us, since bash on windows has a wildly different
+    path from Windows.
 
-    This returns PATH in the native representation of the shell - not necessarily the native representation
-    of the platform
+    This returns PATH in the native representation of the shell - not necessarily
+    the native representation of the platform
     """
     return run_in(shelldict["printpath"], shelldict)[0]
 
@@ -122,14 +123,15 @@ def main():
             rootpath = binpath_from_arg(root_env_name, shelldict=shelldict)
         else:
             sys.exit("Error: did not expect more than one argument")
-        sys.stderr.write("prepending %s to PATH\n" % shelldict['path_to'](pathlist_to_str(binpath)))
+        pathlist_str = pathlist_to_str(binpath)
+        sys.stderr.write("prepending %s to PATH\n" % shelldict['path_to'](pathlist_str))
 
         # Clear the root path if it is present
         if rootpath:
             path = path.replace(shelldict['pathsep'].join(rootpath), "")
 
         # prepend our new entries onto the existing path and make sure that the separator is native
-        path = shelldict['pathsep'].join(binpath + [path,])
+        path = shelldict['pathsep'].join(binpath + [path, ])
 
     # deactivation is handled completely in shell scripts - it restores backups of env variables.
     #    It is done in shell scripts because they handle state much better than we can here.
