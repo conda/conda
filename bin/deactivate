@@ -3,78 +3,66 @@
 # Determine the directory containing this script
 if [[ -n $BASH_VERSION ]]; then
     _SCRIPT_LOCATION=${BASH_SOURCE[0]}
+    export PROMPT_VAR="PS1"
 elif [[ -n $ZSH_VERSION ]]; then
     _SCRIPT_LOCATION=${funcstack[1]}
+    export PROMPT_VAR="PROMPT"
 else
     echo "Only bash and zsh are supported"
     return 1
 fi
+_CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")
 
-win_bash() {
-    case "$(uname -s)" in
-        CYGWIN*|MINGW*|MSYS*)
-            echo true
-            ;;
-        *)
-            echo false
+# shift over all args.  We don't accept any, so it's OK that we ignore them all here.
+while [[ $# > 0 ]]
+do
+    key="$1"
+    case $key in
+        -h|--help)
+            "$_CONDA_DIR/conda" ..deactivate -h
+            if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
+                exit 0
+            else
+                return 0
+            fi
             ;;
     esac
-}
-
-if [ $(win_bash) = true ]; then
-    _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")/../Scripts
-else
-    _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")/../bin
-fi
-
-# export these so that Python subprocesses can see them (they may be shell-local)
-export PS1=$PS1
-export PROMPT=$PROMPT
+    shift # past argument or value
+done
 
 # Ensure that this script is sourced, not executed
 # Note that if the script was executed, we're running inside bash!
 # Also note that errors are ignored as `activate foo` doesn't generate a bad
 # value for $0 which would cause errors.
 if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
-    >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
+    (>&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
-"
+")
     "$_CONDA_DIR/conda" ..deactivate -h
     exit 1
 fi
 
-# Load common functions
-get_dirname() {
-    echo "$(cd "$(dirname "$1")" && pwd)"
-}
-
-run_scripts() {
-    _PREFIX="$(echo $(echo $PATH | awk -F ':' '{print $1}')/..)"
-    _CONDA_D="${_PREFIX}/etc/conda/$1.d"
-    if [[ -d $_CONDA_D ]]; then
-        for f in $(find $_CONDA_D -name "*.sh"); do source $f; done
+if [[ -z "$CONDA_PATH_BACKUP" ]]; then
+    if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
+        exit 0
+    else
+        return 0
     fi
-}
-
-# http://stackoverflow.com/a/21188136/161801
-get_abs_filename() {
-    echo "$(get_dirname "$1")/$(basename "$1")"
-}
-
-# Inverse of activation: run deactivate scripts prior to deactivating env
-run_scripts "deactivate"
+fi
 
 if (( $? == 0 )); then
+    # Inverse of activation: run deactivate scripts prior to deactivating env
+    _CONDA_D="${CONDA_DEFAULT_ENV}/etc/conda/deactivate.d"
+    if [[ -d $_CONDA_D ]]; then
+        IFS=$(echo -en "\n\b") && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
+    fi
+
     unset CONDA_DEFAULT_ENV
     unset CONDA_ENV_PATH
-    if [[ -n $CONDA_PATH_BACKUP ]]; then
-        export PATH="$CONDA_PATH_BACKUP"
-        unset CONDA_PATH_BACKUP
-    fi
-    if [[ -n $CONDA_OLD_PS1 ]]; then
-        PS1="$CONDA_OLD_PS1"
-        unset CONDA_OLD_PS1
-    fi
+    export PATH="$CONDA_PATH_BACKUP"
+    unset CONDA_PATH_BACKUP
+    export PS1="$CONDA_OLD_PS1"
+    unset CONDA_OLD_PS1
 else
     return $?
 fi

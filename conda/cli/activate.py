@@ -2,75 +2,81 @@ from __future__ import print_function, division, absolute_import
 
 import errno
 import os
-from os.path import isdir, join, abspath
+from os.path import isdir, abspath
 import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import (translate_stream, unix_path_to_win, win_path_to_unix,
-                         win_path_to_cygwin, find_parent_shell)
+from conda.utils import (find_parent_shell, shells, run_in)
 
 
 on_win = sys.platform == "win32"
 
 
-def help():
+def help(command):
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
     # get grandparent process name to see which shell we're using
     win_process = find_parent_shell()
-    if sys.argv[1] in ('..activate', '..checkenv'):
-        if on_win and win_process in ["cmd.exe", "powershell.exe"]:
+    if command in ('..activate', '..checkenv'):
+        if win_process in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: activate ENV
 
-adds the 'Scripts' and 'Library\bin' directory of the environment ENV to the front of PATH.
+Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
 
         else:
             sys.exit("""Usage: source activate ENV
 
-adds the 'bin' directory of the environment ENV to the front of PATH.
+Adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
-    else:  # ..deactivate
-        if on_win and win_process in ["cmd.exe", "powershell.exe"]:
+    elif command == '..deactivate':
+        if win_process in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: deactivate
 
-Removes the 'Scripts' and 'Library\bin' directory of the environment ENV to the front of PATH.""")
+Removes the environment prefix, 'Scripts' and 'Library\\bin' directory
+of the environment ENV from the front of PATH.""")
         else:
             sys.exit("""Usage: source deactivate
 
-removes the 'bin' directory of the environment activated with 'source
+Removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
+    else:
+        sys.exit("No help available for command %s" % sys.argv[1])
 
 
-def prefix_from_arg(arg):
-    if os.sep in arg:
-        if isdir(abspath(arg.strip("\""))):
-            prefix = abspath(arg.strip("\""))
+def prefix_from_arg(arg, shelldict):
+    if shelldict['sep'] in arg:
+        # strip is removing " marks, not \ - look carefully
+        native_path = shelldict['path_from'](arg)
+        if isdir(abspath(native_path.strip("\""))):
+            prefix = abspath(native_path.strip("\""))
         else:
-            sys.exit('Error: could not find environment: %s' % arg)
+            raise ValueError('could not find environment: %s' % native_path)
     else:
         prefix = find_prefix_name(arg)
         if prefix is None:
-            sys.exit('Error: could not find environment: %s' % arg)
-    return prefix
+            raise ValueError('could not find environment: %s' % arg)
+    return shelldict['path_to'](prefix)
 
 
-def binpath_from_arg(arg):
-    prefix = prefix_from_arg(arg)
-    if on_win:
-        path = [prefix.rstrip("\\"),
-                join(prefix, 'Scripts'),
-                join(prefix, 'Library', 'bin'),
+def binpath_from_arg(arg, shelldict):
+    # prefix comes back as platform-native path
+    prefix = prefix_from_arg(arg, shelldict=shelldict)
+    if sys.platform == 'win32':
+        paths = [
+            prefix.rstrip("\\"),
+            os.path.join(prefix, 'Library', 'bin'),
+            os.path.join(prefix, 'Scripts'),
                 ]
     else:
-        path = [prefix.rstrip("/"),
-                join(prefix, 'bin'),
+        paths = [
+            os.path.join(prefix, 'bin'),
                 ]
-    return path
-
+    # convert paths to shell-native paths
+    return [shelldict['path_to'](path) for path in paths]
 
 def pathlist_to_str(paths, escape_backslashes=True):
     """
@@ -86,76 +92,68 @@ def pathlist_to_str(paths, escape_backslashes=True):
     return path
 
 
+def get_path(shelldict):
+    """Get path using a subprocess call.
+
+    os.getenv path isn't good for us, since bash on windows has a wildly different
+    path from Windows.
+
+    This returns PATH in the native representation of the shell - not necessarily
+    the native representation of the platform
+    """
+    return run_in(shelldict["printpath"], shelldict)[0]
+
+
 def main():
-    import conda.config
+    from conda.config import root_env_name, root_dir, changeps1
     import conda.install
     if '-h' in sys.argv or '--help' in sys.argv:
-        help()
+        help(sys.argv[1])
 
-    path = os.getenv("PATH")
-    # This one is because we force Library/bin to be on PATH on windows.  Strip it off here.
-    if on_win:
-        path = path.replace(join(sys.prefix, "Library", "bin")+os.pathsep, "", 1)
-
-    parent_shell = find_parent_shell(path=True)
+    path = None
+    shell = find_parent_shell(path=False)
+    shelldict = shells[shell]
     if sys.argv[1] == '..activate':
-        if len(sys.argv) == 2 or sys.argv[2].lower() == "root":
-            binpath = binpath_from_arg("root")
+        path = get_path(shelldict)
+        if len(sys.argv) == 2 or sys.argv[2].lower() == root_env_name.lower():
+            binpath = binpath_from_arg(root_env_name, shelldict=shelldict)
             rootpath = None
         elif len(sys.argv) == 3:
-            base_path = sys.argv[2]
-            binpath = binpath_from_arg(base_path)
-            rootpath = os.pathsep.join(binpath_from_arg("root"))
+            binpath = binpath_from_arg(sys.argv[2], shelldict=shelldict)
+            rootpath = binpath_from_arg(root_env_name, shelldict=shelldict)
         else:
             sys.exit("Error: did not expect more than one argument")
-        sys.stderr.write("prepending %s to PATH\n" % pathlist_to_str(binpath))
-        path = os.pathsep.join([os.pathsep.join(binpath), path])
+        pathlist_str = pathlist_to_str(binpath)
+        sys.stderr.write("prepending %s to PATH\n" % shelldict['path_to'](pathlist_str))
 
-        if any([shell in parent_shell for shell in ["cmd.exe", "powershell.exe"]]):
-            path = translate_stream(path, unix_path_to_win)
-            # Clear the root path if it is present
-            if rootpath:
-                path = path.replace(translate_stream(rootpath, unix_path_to_win), "")
-        elif 'cygwin' in parent_shell:
-            # this should be harmless to unix paths, but converts win paths to
-            # unix for bash on win (msys, cygwin)
-            path = translate_stream(path, win_path_to_cygwin)
-            # Clear the root path if it is present
-            if rootpath:
-                path = path.replace(translate_stream(rootpath, win_path_to_cygwin), "")
-        else:
-            if sys.platform == 'win32':
-                path = translate_stream(path, win_path_to_unix)
-                if rootpath:
-                    rootpath = translate_stream(rootpath, win_path_to_unix)
-            # Clear the root path if it is present
-            if rootpath:
-                path = path.replace(rootpath, "")
+        # Clear the root path if it is present
+        if rootpath:
+            path = path.replace(shelldict['pathsep'].join(rootpath), "")
 
-    elif sys.argv[1] == '..deactivate':
-        path = os.getenv("CONDA_PATH_BACKUP", "")
-        sys.stderr.write("path:")
-        sys.stderr.write(path)
-        if path:
-            sys.stderr.write("Restoring PATH to deactivated state\n")
-        else:
-            path = os.getenv("PATH")  # effectively a no-op; just set PATH to what it already is
+        # prepend our new entries onto the existing path and make sure that the separator is native
+        path = shelldict['pathsep'].join(binpath + [path, ])
+
+    # deactivation is handled completely in shell scripts - it restores backups of env variables.
+    #    It is done in shell scripts because they handle state much better than we can here.
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:
-            sys.exit("Error: no environment provided.")
+            sys.argv.append(root_env_name)
         if len(sys.argv) > 3:
             sys.exit("Error: did not expect more than one argument.")
-        if sys.argv[2] == 'root':
+        if sys.argv[2].lower() == root_env_name.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
 
         # this should throw an error and exit if the env or path can't be found.
-        binpath = binpath_from_arg(sys.argv[2])
+        try:
+            binpath = binpath_from_arg(sys.argv[2], shelldict=shelldict)
+        except ValueError as e:
+            sys.exit(getattr(e, 'message', e))
 
         # Make sure an env always has the conda symlink
         try:
-            conda.install.symlink_conda(binpath[0], conda.config.root_dir, find_parent_shell())
+            conda.install.symlink_conda(shelldict['path_from'](binpath[0]), root_dir, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}, not have write access to conda symlink"
@@ -167,20 +165,17 @@ def main():
     elif sys.argv[1] == '..setps1':
         # path is a bit of a misnomer here.  It is the prompt setting.  However, it is returned
         #    below by printing.  That is why it is named "path"
-        path = sys.argv[3]
+        # DO NOT use os.getenv for this.  One Windows especially, it shows cmd.exe settings
+        #    for bash shells.  This method uses the shell directly.
+        path, _ = run_in(shelldict['printps1'], shelldict, env=os.environ.copy())
+        # failsafes
         if not path:
-            if on_win:
-                path = os.getenv("PROMPT", "$P$G")
-            else:
-                # zsh uses prompt.  If it exists, prefer it.
-                path = os.getenv("PROMPT")
-                # fall back to bash default
-                if not path:
-                    path = os.getenv("PS1")
+            if shelldict['exe'] == 'cmd.exe':
+                path = '$P$G'
         # strip off previous prefix, if any:
         path = re.sub(".*\(\(.*\)\)\ ", "", path, count=1)
         env_path = sys.argv[2]
-        if conda.config.changeps1 and env_path:
+        if changeps1 and env_path:
             path = "(({})) {}".format(os.path.split(env_path)[-1], path)
 
     else:

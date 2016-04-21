@@ -8,6 +8,8 @@ from functools import partial
 from os.path import abspath, isdir, join
 import os
 import re
+import subprocess
+import tempfile
 
 
 log = logging.getLogger(__name__)
@@ -148,6 +150,37 @@ def url_path(path):
     return 'file://%s' % path
 
 
+def run_in(command, shell, cwd=None, env=None):
+    if hasattr(shell, "keys"):
+        shell = shell["exe"]
+    if shell == 'cmd.exe':
+        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
+        cmd_script.write(command)
+        cmd_script.close()
+        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
+        try:
+            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=cwd, env=env)
+            stdout, stderr = p.communicate()
+        finally:
+            os.unlink(cmd_script.name)
+    elif shell == 'powershell':
+        raise NotImplementedError
+    else:
+        cmd_bits = ([shells[shell]["exe"]] + shells[shell]["shell_args"] +
+                    [translate_stream(command, shells[shell]["path_to"])])
+        p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+    streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")
+               for stream in (stdout, stderr)]
+    return streams
+
+
+def path_identity(path):
+    """Used as a dummy path converter where no conversion necessary"""
+    return path
+
+
 def win_path_to_unix(path, root_prefix=""):
     """Convert a path or ;-separated string of paths into a unix representation
 
@@ -155,10 +188,11 @@ def win_path_to_unix(path, root_prefix=""):
     """
     path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
 
-    def translation(found_path):
-        found = found_path.group(1).replace("\\", "/").replace(":", "")
+    def _translation(found_path):
+        found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
         return root_prefix + "/" + found
-    return re.sub(path_re, translation, path).replace(";/", ":/")
+    path = re.sub(path_re, _translation, path).replace(";/", ":/")
+    return path
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -169,8 +203,7 @@ def unix_path_to_win(path, root_prefix=""):
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
         # already a windows path
         return path.replace("/", "\\")
-
-    path_re = root_prefix + '(/[a-zA-Z]\/(?:[^:*?"<>|]+\/)*[^:*?"<>|;]*)'
+    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
 
     def _translation(found_path):
         group = found_path.group(0)
@@ -211,6 +244,7 @@ def human_bytes(n):
     return '%.2f GB' % g
 
 
+@memoized
 def find_parent_shell(path=False):
     """return process name or path of parent.  Default is to return only name of process."""
     try:
@@ -258,3 +292,105 @@ def yaml_dump(string):
                          indent=4)
     except AttributeError:
         return yaml.dump(string, default_flow_style=False)
+
+# TODO: this should be done in a more extensible way
+#     (like files for each shell, with some registration mechanism.)
+
+# defaults for unix shells.  Note: missing "exe" entry, which should be set to
+#    either an executable on PATH, or a full path to an executable for a shell
+unix_shell_base = dict(
+                       binpath="/bin/",  # mind the trailing slash.
+                       echo="echo",
+                       env_script_suffix=".sh",
+                       nul='2>/dev/null',
+                       path_from=path_identity,
+                       path_to=path_identity,
+                       pathsep=":",
+                       printdefaultenv='echo $CONDA_DEFAULT_ENV',
+                       printpath="echo $PATH",
+                       printps1='echo $PS1',
+                       sep="/",
+                       set_var='export ',
+                       shell_args=["-l", "-c"],
+                       shell_suffix="",
+                       slash_convert=("\\", "/"),
+                       source_setup="source",
+                       test_echo_extra="",
+                       var_format="${}",
+)
+
+if sys.platform == "win32":
+    shells = {
+        # "powershell.exe": dict(
+        #    echo="echo",
+        #    test_echo_extra=" .",
+        #    var_format="${var}",
+        #    binpath="/bin/",  # mind the trailing slash.
+        #    source_setup="source",
+        #    nul='2>/dev/null',
+        #    set_var='export ',
+        #    shell_suffix=".ps",
+        #    env_script_suffix=".ps",
+        #    printps1='echo $PS1',
+        #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
+        #    printpath="echo %PATH%",
+        #    exe="powershell.exe",
+        #    path_from=path_identity,
+        #    path_to=path_identity,
+        #    slash_convert = ("/", "\\"),
+        # ),
+        "cmd.exe": dict(
+            echo="@echo",
+            var_format="%{}%",
+            binpath="\\Scripts\\",  # mind the trailing slash.
+            source_setup="call",
+            test_echo_extra="",
+            nul='1>NUL 2>&1',
+            set_var='set ',
+            shell_suffix=".bat",
+            env_script_suffix=".bat",
+            printps1="@echo %PROMPT%",
+            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
+            printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
+                            'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
+                            'echo()',
+            printpath="@echo %PATH%",
+            exe="cmd.exe",
+            shell_args=["/d", "/c"],
+            path_from=path_identity,
+            path_to=path_identity,
+            slash_convert=("/", "\\"),
+            sep="\\",
+            pathsep=";",
+        ),
+        "cygwin": dict(
+            unix_shell_base,
+            exe="bash.exe",
+            binpath="/Scripts/",  # mind the trailing slash.
+            path_from=cygwin_path_to_win,
+            path_to=win_path_to_cygwin
+                      ),
+        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
+        #    entry instead.  The only major difference is that it handle's cywin's /cygdrive
+        #    filesystem root.
+        "bash.exe": dict(
+            unix_shell_base,
+            exe="bash.exe",
+            binpath="/Scripts/",  # mind the trailing slash.
+            path_from=unix_path_to_win,
+            path_to=win_path_to_unix
+                        ),
+    }
+
+else:
+    shells = {
+        "bash": dict(
+            unix_shell_base, exe="bash",
+                    ),
+        "zsh": dict(
+            unix_shell_base, exe="zsh",
+                   ),
+        # "fish": dict(unix_shell_base, exe="fish",
+        #             shell_suffix=".fish",
+        #             source_setup=""),
+    }

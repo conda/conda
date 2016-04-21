@@ -2,7 +2,7 @@
 from __future__ import print_function, absolute_import
 
 import os
-from os.path import dirname, join, pathsep
+from os.path import dirname
 import shutil
 import shlex
 import stat
@@ -14,170 +14,45 @@ import pytest
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
-from conda.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin,
-                                cygwin_path_to_win, translate_stream)
-from conda.cli.activate import pathlist_to_str
-import subprocess
-import tempfile
+from conda.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin, path_identity,
+                                cygwin_path_to_win, translate_stream, run_in, shells)
+from conda.cli.activate import pathlist_to_str, binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
 
-# make pathsep unicode for sake of windows backslash string formatting
-pathsep = u"%s" % pathsep
 
-def path_identity(path):
-    """Used as a dummy path converter where no conversion necessary"""
-    return path
-
-# defaults for unix shells.  Note: missing "exe" entry, which should be set to
-#    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(ps_var="PS1",
-                       echo="echo",
-                       test_echo_extra="",
-                       var_format="${}",
-                       binpath="/bin/",  # mind the trailing slash.
-                       source_setup="source",
-                       nul='2>/dev/null',
-                       set_var='export ',
-                       shell_suffix="",
-                       env_script_suffix=".sh",
-                       printps1='echo $PS1',
-                       printdefaultenv='echo $CONDA_DEFAULT_ENV',
-                       printpath="echo $PATH",
-                       raw_ps=os.getenv("PS1", ""),
-                       shell_args=["-l", "-c"],
-                       path_from=path_identity,
-                       path_to=path_identity,
-                       slash_convert=("\\", "/"),
-)
-
-if sys.platform == "win32":
-    shells = {
-        #"powershell": dict(
-        #    echo="echo",
-        #    test_echo_extra=" .",
-        #    ps_var="PS1",
-        #    var_format="${var}",
-        #    binpath="/bin/",  # mind the trailing slash.
-        #    source_setup="source",
-        #    nul='2>/dev/null',
-        #    set_var='export ',
-        #    shell_suffix=".ps",
-        #    env_script_suffix=".ps",
-        #    printps1='echo $PS1',
-        #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
-        #    printpath="echo %PATH%",
-        #    raw_ps=os.getenv("PROMPT", ""),
-        #    exe="powershell.exe",
-        #    path_from=path_identity,
-        #    path_to=path_identity,
-        #    slash_convert = ("/", "\\"),
-        #),
-        "cmd.exe": dict(
-            echo="echo",
-            ps_var="PROMPT",
-            var_format="%{}%",
-            binpath="\\Scripts\\",  # mind the trailing slash.
-            source_setup="call",
-            test_echo_extra="",
-            nul='1>NUL 2>&1',
-            set_var='set ',
-            shell_suffix=".bat",
-            env_script_suffix=".bat",
-            printps1="echo %PROMPT%",
-            printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
-                            'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
-                            'echo()', # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
-            printpath="echo %PATH%",
-            raw_ps=os.getenv("PROMPT", ""),
-            exe="cmd.exe",
-            shell_args=["/d", "/c"],
-            path_from=path_identity,
-            path_to=path_identity,
-            slash_convert = ("/", "\\"),
-        ),
-        "cygwin": dict(unix_shell_base,
-                       exe="bash",
-                       path_from=cygwin_path_to_win,
-                       path_to=win_path_to_cygwin),
-        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin entry instead.
-        # The only major difference is that it handle's cywin's /cygdrive filesystem root.
-        "bash": dict(unix_shell_base,
-                     exe="bash",
-                     path_from=unix_path_to_win,
-                     path_to=win_path_to_unix),
-    }
-
-else:
-    shells = {
-        "bash": dict(unix_shell_base, exe="bash"),
-        "zsh": dict(unix_shell_base, exe="zsh"),
-        #"fish": dict(unix_shell_base, exe="fish",
-        #             shell_suffix=".fish",
-        #             source_setup=""),
-    }
-
-def run_in(command, shell):
-    if shell == 'cmd.exe':
-        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
-        cmd_script.write(command)
-        cmd_script.close()
-        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
-        try:
-            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = p.communicate()
-        finally:
-            os.unlink(cmd_script.name)
-    elif shell == 'powershell':
-        raise NotImplementedError
-    else:
-        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [translate_stream(command, shells[shell]["path_to"])]
-        p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-    output_translator = shells[shell]["path_from"]
-    streams = [u"%s" % translate_stream(stream.strip().decode('utf-8').replace('\r\n', '\n'), output_translator)
-                      for stream in (stdout, stderr)]
-    return streams
-
-
-def gen_test_env_paths(envs, shell, num_test_folders=3):
+def gen_test_env_paths(envs, shell, num_test_folders=5):
     """People need not use all the test folders listed here.
     This is only for shortening the environment string generation.
 
     Also encapsulates paths in double quotes.
     """
-    paths = [join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
+    paths = [os.path.join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
     for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
         symlink_conda(path, sys.prefix, shell)
     converter = shells[shell]["path_to"]
     paths = [converter(path) for path in paths]
     return paths
 
-def _envpaths(env_root, env_name=""):
+def _envpaths(env_root, env_name="", shelldict={}):
     """Supply the appropriate platform executable folders.  rstrip on root removes
-       trailing slash if env_name is empty (the default)"""
-    if 'win' in platform:
-        paths = [join(env_root, env_name).rstrip("\\"),
-                join(env_root, env_name, 'Scripts'),
-                join(env_root, env_name, 'Library', 'bin'),
-               ]
-    else:
-        paths = [join(env_root, env_name).rstrip("/"),
-                 join(env_root, env_name, 'bin'), ]
-    return paths
+       trailing slash if env_name is empty (the default)
+
+    Assumes that any prefix used here exists.  Will not work on prefixes that don't.
+    """
+    sep = shelldict['sep']
+    return binpath_from_arg(sep.join([env_root, env_name]), shelldict=shelldict)
 
 
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
 # Make sure the subprocess activate calls this python
-syspath = pathsep.join(_envpaths(root_dir))
+syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identity,
+                                                         "path_from": path_identity,
+                                                         "sep": os.sep}))
 
-echo = "echo"
-
-escape_curly = lambda x: x.replace("{", "{{").replace("}", "}}")
-
-def print_ps1(env_dirs, shell, number):
-    return u" ".join([u"(({}))".format(os.path.split(env_dirs[number])[-1]), escape_curly(os.getenv(shells[shell]["ps_var"], ""))]).strip()
+def print_ps1(env_dirs, raw_ps, number):
+    return (u"(({})) ".format(os.path.split(env_dirs[number])[-1]) + raw_ps)
 
 
 CONDA_ENTRY_POINT = """\
@@ -188,20 +63,38 @@ from conda.cli import main
 sys.exit(main())
 """
 
+def raw_string(s):
+    if isinstance(s, str):
+        s = s.encode('string-escape')
+    elif isinstance(s, unicode):
+        s = s.encode('unicode-escape')
+    return s
+
+def strip_leading_library_bin(path_string, shelldict):
+    entries = path_string.split(shelldict['pathsep'])
+    if "library{}bin".format(shelldict['sep']) in entries[0].lower():
+        entries = entries[1:]
+    return shelldict['pathsep'].join(entries)
+
 
 def _format_vars(shell):
     shelldict = shells[shell]
-    command_setup = """\
-set {ps_var}={raw_ps}
-set PYTHONPATH={PYTHONPATH}
-set CONDARC=
-""".format(here=dirname(__file__), PYTHONPATH=PYTHONPATH,
-           ps_var=shelldict["ps_var"], raw_ps=shelldict['raw_ps'])
 
+    base_path, _ = run_in(shelldict['printpath'], shell)
+    # windows forces Library/bin onto PATH when starting up.  Strip it for the purposes of this test.
+    if sys.platform == "win32":
+        base_path = strip_leading_library_bin(base_path, shelldict)
+
+    raw_ps, _ = run_in(shelldict["printps1"], shell)
+
+    command_setup = """\
+{set} PYTHONPATH="{PYTHONPATH}"
+{set} CONDARC=
+{set} CONDA_PATH_BACKUP=
+""".format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
+           set=shelldict["set_var"])
     if shelldict["shell_suffix"] == '.bat':
         command_setup = "@echo off\n" + command_setup
-
-    base_path, _ = run_in(command_setup + shelldict['printpath'], shell)
 
     return {
         'echo': shelldict['echo'],
@@ -209,16 +102,32 @@ set CONDARC=
         'printpath': shelldict['printpath'],
         'printdefaultenv': shelldict['printdefaultenv'],
         'printps1': shelldict['printps1'],
-        'raw_ps': shelldict["raw_ps"],
+        'raw_ps': raw_ps,
         'set_var': shelldict['set_var'],
         'source': shelldict['source_setup'],
         'binpath': shelldict['binpath'],
         'shell_suffix': shelldict['shell_suffix'],
-        'syspath': sys.prefix,
+        'syspath': shelldict['path_to'](sys.prefix),
         'binpath': shelldict['binpath'],
         'command_setup': command_setup,
         'base_path': base_path,
 }
+
+
+@pytest.fixture(scope="module")
+def bash_profile(request):
+    profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
+    if os.path.isfile(profile):
+        os.rename(profile, profile+"_backup")
+    with open(profile, "w") as f:
+        f.write("export PS1=test_ps1\n")
+        f.write("export PROMPT=test_ps1\n")
+    def fin():
+        if os.path.isfile(profile+"_backup"):
+            os.remove(profile)
+            os.rename(profile+"_backup", profile)
+    request.addfinalizer(fin)
+    return request  # provide the fixture value
 
 
 @pytest.mark.slow
@@ -232,8 +141,11 @@ def test_activate_test1(shell):
 
         stdout, stderr = run_in(commands, shell)
         assert_equals(stderr, u'prepending {envpaths} to PATH'\
-                        .format(envpaths=pathlist_to_str(_envpaths(envs, 'test1'), False)), shell)
-        assert_in(pathsep.join(_envpaths(envs, 'test1')), shells[shell]["path_from"](stdout), shell)
+                        .format(envpaths=pathlist_to_str(_envpaths(envs, 'test 1',
+                                                                   shelldict=shells[shell]),
+                                                         escape_backslashes=True)), shell)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),
+                 stdout, shell)
 
 
 @pytest.mark.slow
@@ -248,23 +160,26 @@ def test_activate_env_from_env_with_root_activate(shell):
 
         stdout, stderr = run_in(commands, shell)
         assert_equals(stderr, u'prepending {envpaths2} to PATH'\
-            .format(envpaths2=pathlist_to_str(_envpaths(envs, 'test2'))))
-        assert_in(shells[shell]["path_from"](pathsep.join(_envpaths(envs, 'test2'))),
-                  stdout)
+            .format(envpaths2=pathlist_to_str(_envpaths(envs, 'test 2', shelldict=shells[shell]))))
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shells[shell])), stdout)
 
 
 @pytest.mark.slow
 def test_activate_bad_directory(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs = gen_test_env_paths(envs, shell)
+        # Strange semicolons are here to defeat MSYS' automatic path conversion.
+        #   See http://www.mingw.org/wiki/Posix_path_conversion
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
         {printpath}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-
+        """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_not_in(shells[shell]["path_to"](_envpaths(envs, 'test3')[0]), stdout)
-        assert_equals(stderr, u'Error: could not find environment: {envpaths3}'.format(envpaths3=_envpaths(envs, 'test3')[0]))
+        # another semicolon here for comparison reasons with one above.
+        assert_equals(stderr, u'could not find environment: {envpaths3}'.format(
+            envpaths3=shells[shell]['path_from'](env_dirs[2])))
+        assert_not_in(env_dirs[2], stdout)
 
 
 @pytest.mark.slow
@@ -278,7 +193,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(pathsep.join(_envpaths(envs, 'test1')),shells[shell]["path_from"](stdout))
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),stdout)
 
 
 @pytest.mark.slow
@@ -292,6 +207,7 @@ def test_activate_deactivate(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
+        stdout = strip_leading_library_bin(stdout, shells[shell])
         assert_equals(stdout, u"%s" % shell_vars['base_path'])
 
 
@@ -305,7 +221,7 @@ def test_activate_root(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]["path_to"](pathsep.join(_envpaths(root_dir))), stdout)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])), stdout, stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
@@ -314,6 +230,7 @@ def test_activate_root(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
+        stdout = strip_leading_library_bin(stdout, shells[shell])
         assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
 
 
@@ -327,10 +244,9 @@ def test_activate_root_env_from_other_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]["path_to"](pathsep.join(_envpaths(root_dir))),
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])),
                   stdout)
-        assert_not_in(shells[shell]["path_to"](pathsep.join(_envpaths(envs, 'test1'))),
-                      stdout)
+        assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])), stdout)
 
 
 @pytest.mark.slow
@@ -343,7 +259,8 @@ def test_wrong_args(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stderr, u'Error: did not expect more than one argument.')
+        stdout = strip_leading_library_bin(stdout, shells[shell])
+        assert_equals(stderr, u'Error: did not expect more than one argument.\n    (got two args)')
         assert_equals(stdout, shell_vars['base_path'], stderr)
 
 
@@ -351,7 +268,7 @@ def test_wrong_args(shell):
 def test_activate_help(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        if not platform.startswith("win"):
+        if shell not in ['powershell.exe', 'cmd.exe']:
             commands = (shell_vars['command_setup'] + """
             "{syspath}{binpath}activate" Zanzibar
             """).format(envs=envs, **shell_vars)
@@ -366,7 +283,8 @@ def test_activate_help(shell):
 
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, '')
-        if platform.startswith("win") and shell in ["cmd.exe", "powershell"]:
+
+        if shell in ["cmd.exe", "powershell"]:
             assert_in("Usage: activate ENV", stderr)
         else:
             assert_in("Usage: source activate ENV", stderr)
@@ -384,7 +302,7 @@ def test_activate_help(shell):
         """).format(envs=envs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, '')
-        if platform == 'win' and shell in ["cmd.exe", "powershell"]:
+        if shell in ["cmd.exe", "powershell"]:
             assert_in("Usage: deactivate", stderr)
         else:
             assert_in("Usage: source deactivate", stderr)
@@ -400,46 +318,47 @@ def test_activate_symlinking(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stderr, u'prepending {envpaths1} to PATH'\
-                .format(syspath=pathlist_to_str(_envpaths(root_dir)),
-                        envpaths1=pathlist_to_str(_envpaths(envs, 'test1'))))
+                .format(syspath=pathlist_to_str(_envpaths(root_dir, shelldict=shells[shell])),
+                        envpaths1=shells[shell]["path_to"](pathlist_to_str(_envpaths(envs,
+                                                                                     'test 1',
+                                                                                     shelldict=shells[shell])))))
 
         where = 'Scripts' if sys.platform == 'win32' else 'bin'
         for env in gen_test_env_paths(envs, shell)[:2]:
             scripts = ["conda", "activate", "deactivate"]
             for f in scripts:
                 if sys.platform == "win32":
-                    file_path = shells[shell]["slash_convert"][1].join([env, where, f + shells[shell]["shell_suffix"]])
-                    print(file_path)
+                    file_path = os.path.join(env, where, f + shells[shell]["shell_suffix"])
                     # must translate path to windows representation for Python's sake
                     file_path = shells[shell]["path_from"](file_path)
-                    print(file_path)
                     assert(os.path.lexists(file_path))
                 else:
-                    file_path = join(env, where, f)
+                    file_path = os.path.join(env, where, f)
                     assert(os.path.lexists(file_path))
                     s = os.lstat(file_path)
                     assert(stat.S_ISLNK(s.st_mode))
-                    assert(os.readlink(file_path) == '{root_path}'.format(root_path=join(sys.prefix, where, f)))
+                    assert(os.readlink(file_path) == '{root_path}'.format(root_path=os.path.join(sys.prefix, where, f)))
 
         if platform != 'win':
             # Test activate when there are no write permissions in the
             # env.
-            prefix_bin_path = join(gen_test_env_paths(envs, shell)[2], 'bin')
+            prefix_bin_path = os.path.join(gen_test_env_paths(envs, shell)[2], 'bin')
             commands = (shell_vars['command_setup'] + """
-            mkdir -p {prefix_bin_path}
-            chmod 000 {prefix_bin_path}
+            mkdir -p "{prefix_bin_path}"
+            chmod 444 "{prefix_bin_path}"
             {source} activate "{env_dirs[2]}"
             """).format(prefix_bin_path=prefix_bin_path, envs=envs,
                                 env_dirs=gen_test_env_paths(envs, shell),
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_in("do not have write access", stderr)
+            assert_in("not have write access", stderr)
 
             # restore permissions so the dir will get cleaned up
-            run_in("chmod 777 {prefix_bin_path}".format(prefix_bin_path=prefix_bin_path), shell)
+            run_in('chmod 777 "{prefix_bin_path}"'.format(prefix_bin_path=prefix_bin_path), shell)
 
 
-def test_PS1(shell):
+@pytest.mark.slow
+def test_PS1(shell, bash_profile):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         # activate changes PS1 correctly
@@ -448,16 +367,18 @@ def test_PS1(shell):
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell), shell=shell, number=0), stderr)
+        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
+                                        raw_ps=shell_vars["raw_ps"], number=0), stderr)
 
-        # second activate replaces earlier actived env PS1
+        # second activate replaces earlier activated env PS1
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" "{env_dirs[1]}"
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, sterr = run_in(commands, shell)
-        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell), shell=shell,number=1), stderr)
+        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
+                                        raw_ps=shell_vars["raw_ps"], number=1), stderr)
 
         # failed activate does not touch raw PS1
         commands = (shell_vars['command_setup'] + """
@@ -474,7 +395,8 @@ def test_PS1(shell):
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell), shell=shell,number=0), stderr)
+        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
+                                        raw_ps=shell_vars["raw_ps"], number=0), stderr)
 
         # deactivate doesn't do anything bad to PS1 when no env active to deactivate
         commands = (shell_vars['command_setup'] + """
@@ -503,21 +425,18 @@ def test_PS1(shell):
 
 
 @pytest.mark.slow
-def test_PS1_no_changeps1(shell):
+def test_PS1_no_changeps1(shell, bash_profile):
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        with open(join(envs, '.condarc'), 'w') as f:
-            f.write("""\
-changeps1: no
-""")
-        condarc = """
-        {set_var}CONDARC={condarc}
-        """
+        rc_file = os.path.join(envs, ".condarc")
+        with open(rc_file, 'w') as f:
+            f.write("changeps1: False\n")
+        condarc = "{set_var}CONDARC=%s\n" % rc_file
         commands = (shell_vars['command_setup'] + condarc + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {printps1}
-        """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
@@ -525,14 +444,14 @@ changeps1: no
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" "{env_dirs[1]}"
         {printps1}
-        """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
         commands = (shell_vars['command_setup'] + condarc + """
         {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
         {printps1}
-        """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
@@ -540,7 +459,7 @@ changeps1: no
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
         {printps1}
-        """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
@@ -548,14 +467,14 @@ changeps1: no
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{env_dirs[0]}{binpath}deactivate"
         {printps1}
-        """).format(condarc=join(envs, ".condarc"), envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
         commands = (shell_vars['command_setup'] + condarc + """
         {source} "{syspath}{binpath}activate" two args
         {printps1}
-        """).format(condarc=join(envs, ".condarc"), envs=envs, **shell_vars)
+        """).format(envs=envs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
@@ -563,21 +482,23 @@ changeps1: no
 @pytest.mark.slow
 def test_CONDA_DEFAULT_ENV(shell):
     shell_vars = _format_vars(shell)
+    shelldict = shells[shell]
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {printdefaultenv}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'{env_dirs[0]}'.format(envs=envs, env_dirs=gen_test_env_paths(envs, shell)), stderr)
+        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" "{env_dirs[1]}"
         {printdefaultenv}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'{env_dirs[1]}'.format(env_dirs=gen_test_env_paths(envs, shell)), stderr)
+        assert_equals(stdout.rstrip(), env_dirs[1], stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
@@ -592,7 +513,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, '{env_dirs[0]}'.format(env_dirs=gen_test_env_paths(envs, shell)), stderr)
+        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} {syspath}{binpath}deactivate
@@ -621,7 +542,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u"%s" % sys.prefix, stderr)
+        assert_equals(stdout.rstrip(), shells[shell]['path_to'](sys.prefix), stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root {nul}
@@ -636,13 +557,15 @@ def test_activate_from_env(shell):
     """Tests whether the activate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {source} "{env_dirs[0]}{binpath}activate" "{env_dirs[1]}"
         {printdefaultenv}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'{env_dirs[1]}'.format(envs=envs, env_dirs=gen_test_env_paths(envs, shell)), stderr)
+        # rstrip on output is because the printing to console picks up an extra space
+        assert_equals(stdout.rstrip(), env_dirs[1], stderr)
 
 
 @pytest.mark.slow
@@ -661,19 +584,24 @@ def test_deactivate_from_env(shell):
 
 @pytest.mark.slow
 def test_activate_relative_path(shell):
+    """
+    current directory should be searched for environments
+    """
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        start_dir = os.getcwd()
         env_dirs = gen_test_env_paths(envs, shell)
-        os.chdir(envs)
         env_dir = os.path.basename(env_dirs[0])
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dir}"
         {printdefaultenv}
         """).format(envs=envs, env_dir=env_dir, **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        os.chdir(start_dir)
-        assert_equals(stdout, u'{env_dirs[0]}'.format(envs=envs, env_dirs=env_dirs), stderr)
+        cwd = os.getcwd()
+        os.chdir(envs)
+        try:
+            stdout, stderr = run_in(commands, shell, cwd=envs)
+        finally:
+            os.chdir(cwd)
+        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
 
 
 @pytest.mark.slow
@@ -686,7 +614,7 @@ def test_activate_does_not_leak_echo_setting(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         @echo on
-        call "{syspath}{binpath}activate.bat" "{env_dirs[0]}"
+        @call "{syspath}{binpath}activate.bat" "{env_dirs[0]}"
         @echo
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -695,17 +623,16 @@ def test_activate_does_not_leak_echo_setting(shell):
 
 @pytest.mark.slow
 def test_activate_non_ascii_char_in_path(shell):
-    if shell.lower() not in ["cmd.exe", "powershell"]:
-        pytest.xfail("subprocess with python 2.7 is broken with unicode")
+    pytest.xfail("subprocess with python 2.7 is broken with unicode")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {source} "{env_dirs[0]}{binpath}deactivate"
-        {printdefaultenv}
+        {printdefaultenv}.
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'', stderr)
+        assert_equals(stdout, u'.', stderr)
 
 
 @pytest.mark.slow
@@ -714,12 +641,13 @@ def test_activate_has_extra_env_vars(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs=gen_test_env_paths(envs, shell)
-        act_path = shells[shell]["path_from"](join(env_dirs[0], "etc", "conda", "activate.d"))
-        deact_path = shells[shell]["path_from"](join(env_dirs[0], "etc", "conda", "deactivate.d"))
-        os.makedirs(act_path)
-        os.makedirs(deact_path)
-        with open(join(act_path, "test" + shells[shell]["env_script_suffix"]), "w") as f:
-            f.write(shells[shell]["set_var"] + "TEST_VAR=test\n")
+        for path in ["activate", "deactivate"]:
+            dir = os.path.join(shells[shell]['path_from'](env_dirs[0]), "etc", "conda", "%s.d" % path)
+            os.makedirs(dir)
+            file = os.path.join(dir, "test" + shells[shell]["env_script_suffix"])
+            setting = "test" if path == "activate" else ""
+            with open(file, 'w') as f:
+                f.write(shells[shell]["set_var"] + "TEST_VAR=%s\n" % setting)
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {echo} {var}
@@ -728,15 +656,15 @@ def test_activate_has_extra_env_vars(shell):
         assert_equals(stdout, u'test', stderr)
 
         # Make sure the variable is reset after deactivation
-        with open(join(deact_path, "test" + shells[shell]["env_script_suffix"]), "w") as f:
-            f.write(shells[shell]["set_var"] + "TEST_VAR=\n")
+
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {source} "{env_dirs[0]}{binpath}deactivate"
-        {echo} {var}
+        {echo} {var}.
         """).format(envs=envs, env_dirs=env_dirs, var=shells[shell]["var_format"].format("TEST_VAR"), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, u'', stderr)
+        # period here is because when var is blank, windows prints out the current echo setting.
+        assert_equals(stdout, u'.', stderr)
 
 # This test depends on files that are copied/linked in the conda recipe.  It is unfortunately not going to run after
 #    a setup.py install step
