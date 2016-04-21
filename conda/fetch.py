@@ -3,29 +3,29 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
 from __future__ import print_function, division, absolute_import
 
-import os
 import bz2
-import json
-import shutil
-import hashlib
-import tempfile
-from logging import getLogger
-from os.path import basename, dirname, isdir, join
-import sys
 import getpass
+import hashlib
+import json
+import os
+import shutil
+import sys
+import tempfile
 import warnings
 from functools import wraps
-
-from conda import config
-from conda.utils import memoized
-from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
-from conda.lock import Locked
+from logging import getLogger
+from os.path import basename, dirname, isdir, join
 
 import requests
+
+from conda import config
+from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
+from conda.connection import CondaSession, unparse_url, RETRIES
+from conda.lock import Locked
+from conda.utils import memoized
+
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -250,23 +250,21 @@ Allowed channels are:
 
     try:
         import concurrent.futures
-        from collections import OrderedDict
-
-        repodatas = []
-        with concurrent.futures.ThreadPoolExecutor(10) as executor:
-            future_to_url = OrderedDict([(executor.submit(
-                            fetch_repodata, url, use_cache=use_cache,
-                            session=CondaSession()), url)
-                                         for url in iterkeys(channel_urls)])
-            for future in future_to_url:
-                url = future_to_url[future]
-                repodatas.append((url, future.result()))
-    except ImportError:
+        executor = concurrent.futures.ThreadPoolExecutor(10)
+    except (ImportError, RuntimeError):
+        # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+        # RuntimeError is thrown if number of threads are limited by OS
         session = CondaSession()
-        # concurrent.futures is only available in Python 3
-        repodatas = map(lambda url: (url, fetch_repodata(url,
-                                     use_cache=use_cache, session=session)),
-                        iterkeys(channel_urls))
+        repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+                     for url in iterkeys(channel_urls)]
+    else:
+        try:
+            urls = tuple(channel_urls)
+            futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
+                                            session=CondaSession()) for url in urls)
+            repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+        finally:
+            executor.shutdown(wait=True)
 
     for channel, repodata in repodatas:
         if repodata is None:
