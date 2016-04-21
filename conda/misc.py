@@ -305,23 +305,3 @@ def list_prefixes():
                 yield prefix
 
     yield config.root_dir
-
-
-if __name__ == '__main__':
-    from optparse import OptionParser
-
-    p = OptionParser(usage="usage: %prog [options] DIST/FN [ADDITIONAL ARGS]")
-    p.add_option('-p', '--prefix',
-                 action="store",
-                 default=sys.prefix,
-                 help="prefix (defaults to %default)")
-    opts, args = p.parse_args()
-
-    if len(args) == 0:
-        p.error('at least one argument expected')
-
-    fn = args[0]
-    if not fn.endswith('.tar.bz2'):
-        fn += '.tar.bz2'
-    p = launch(fn, opts.prefix, args[1:])
-    print('PID:', p.pid)
