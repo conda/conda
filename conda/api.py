@@ -1,15 +1,12 @@
 from __future__ import print_function, division, absolute_import
 
-import os
-from collections import defaultdict
-from os.path import isdir, join
 from operator import itemgetter
 
 from conda import config
 from conda import install
-from conda.fetch import fetch_index
 from conda.compat import iteritems, itervalues
-from conda.resolve import Package, Resolve
+from conda.fetch import fetch_index
+from conda.resolve import Resolve
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
