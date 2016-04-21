@@ -515,7 +515,12 @@ def try_hard_link(pkgs_dir, prefix, dist):
         if not isdir(prefix):
             os.makedirs(prefix)
         _link(src, dst, LINK_HARD)
-        return True
+        # Some file systems (at least BeeGFS) do not support hard-links
+        # between files in different directories. Depending on the
+        # file system configuration, a symbolic link may be created
+        # instead. If a symbolic link is created instead of a hard link,
+        # return False.
+        return not os.path.islink(dst)
     except OSError:
         return False
     finally:
