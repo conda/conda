@@ -31,14 +31,6 @@ def raises(exception, func, string=None):
     raise Exception("did not raise, gave %s" % a)
 
 
-def run_in(command, shell='bash'):
-    p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-    return (stdout.decode('utf-8').replace('\r\n', '\n'),
-        stderr.decode('utf-8').replace('\r\n', '\n'))
-
-
 def run_conda_command(*args):
     env = os.environ.copy()
     p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
@@ -117,12 +109,12 @@ def capture_json_with_argv(*argv):
 
 def assert_equals(a, b, output=""):
     output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
-    assert(a.lower() == b.lower(), output)
+    assert a.lower() == b.lower(), output
 
 
 def assert_not_in(a, b, output=""):
-    assert (a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower()))
+    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower())
 
 
 def assert_in(a, b, output=""):
-    assert (a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower()))
+    assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())

@@ -180,11 +180,11 @@ create_default_packages:
   - ipython
   - numpy
 
-changeps1: no
+changeps1: false
 
 always_yes: true
 
-invalid_key: yes
+invalid_key: true
 
 channel_alias: http://alpha.conda.anaconda.org
 """)
@@ -192,7 +192,7 @@ channel_alias: http://alpha.conda.anaconda.org
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
         assert stdout == """\
 --set always_yes True
---set changeps1 no
+--set changeps1 False
 --set channel_alias http://alpha.conda.anaconda.org
 --add channels 'defaults'
 --add channels 'test'
@@ -214,7 +214,7 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'changeps1')
 
         assert stdout == """\
---set changeps1 no\
+--set changeps1 False\
 """
         assert stderr == ""
 
@@ -222,7 +222,7 @@ channel_alias: http://alpha.conda.anaconda.org
             '--get', 'changeps1', 'channels')
 
         assert stdout == """\
---set changeps1 no
+--set changeps1 False
 --add channels 'defaults'
 --add channels 'test'\
 """
@@ -433,7 +433,7 @@ def test_config_command_bad_args():
         assert not exists(test_condarc)
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc, '--set',
-            'notarealkey', 'yes')
+            'notarealkey', 'true')
         assert stdout == ''
 
         assert not exists(test_condarc)
@@ -479,10 +479,16 @@ def test_config_set():
 
     try:
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
-                                           '--set', 'always_yes', 'yep')
+                                           '--set', 'always_yes', 'yes')
 
         assert stdout == ''
-        assert stderr == 'Error: Key: always_yes; yep is not a YAML boolean.'
+        assert stderr == 'Error: Key: always_yes; yes is not a YAML boolean.'
+
+        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+                                           '--set', 'always_yes', 'no')
+
+        assert stdout == ''
+        assert stderr == 'Error: Key: always_yes; no is not a YAML boolean.'
 
     finally:
         try:
