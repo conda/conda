@@ -22,6 +22,7 @@ import requests
 
 from conda import config
 from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
+from conda.connection import CondaSession, unparse_url, RETRIES
 from conda.install import add_cached_package, find_new_location
 from conda.lock import Locked
 from conda.utils import memoized
