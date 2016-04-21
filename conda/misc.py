@@ -5,21 +5,18 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import re
-import sys
-import shlex
 import shutil
-import subprocess
+import sys
 from collections import defaultdict
-from distutils.spawn import find_executable
 from os.path import (abspath, basename, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath)
 
 from conda import config
 from conda import install
 from conda.api import get_index
+from conda.compat import iteritems
 from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from conda.plan import ensure_linked_actions, execute_actions
-from conda.compat import iteritems
 from conda.resolve import Resolve
 
 
@@ -283,68 +280,6 @@ def environment_for_conda_environment(prefix=config.root_dir):
     return binpath, env
 
 
-def launch(fn, prefix=config.root_dir, additional_args=None, background=False):
-    info = install.is_linked(prefix, fn[:-8])
-    if info is None:
-        return None
-
-    if not info.get('type') == 'app':
-        raise TypeError('Not an application: %s' % fn)
-
-    binpath, env = environment_for_conda_environment(prefix)
-    # allow updating environment variables from metadata
-    if 'app_env' in info:
-        env.update(info['app_env'])
-
-    # call the entry command
-    args = info['app_entry'].split()
-    args = [a.replace('${PREFIX}', prefix) for a in args]
-    arg0 = find_executable(args[0], env['PATH'])
-    if arg0 is None:
-        raise Exception('Executable not found: %s' % args[0])
-    args[0] = arg0
-
-    cwd = abspath(expanduser('~'))
-    if additional_args:
-        args.extend(additional_args)
-    if sys.platform == 'win32' and background:
-        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False,
-                                creationflags=subprocess.CREATE_NEW_CONSOLE)
-    else:
-        return subprocess.Popen(args, cwd=cwd, env=env, close_fds=False)
-
-
-def execute_in_environment(cmd, prefix=config.root_dir, additional_args=None,
-                           inherit=True):
-    """Runs ``cmd`` in the specified environment.
-
-    ``inherit`` specifies whether the child inherits stdio handles (for JSON
-    output, we don't want to trample this process's stdout).
-    """
-    binpath, env = environment_for_conda_environment(prefix)
-
-    if sys.platform == 'win32' and cmd == 'python':
-        # python is located one directory up on Windows
-        cmd = join(binpath, '..', cmd)
-
-    args = shlex.split(cmd)
-    if additional_args:
-        args.extend(additional_args)
-
-    if inherit:
-        stdin, stdout, stderr = None, None, None
-    else:
-        stdin, stdout, stderr = subprocess.PIPE, subprocess.PIPE, subprocess.PIPE
-
-    if sys.platform == 'win32' and not inherit:
-        return subprocess.Popen(args, env=env, close_fds=False,
-                                stdin=stdin, stdout=stdout, stderr=stderr,
-                                creationflags=subprocess.CREATE_NEW_CONSOLE)
-    else:
-        return subprocess.Popen(args, env=env, close_fds=False,
-                                stdin=stdin, stdout=stdout, stderr=stderr)
-
-
 def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
         base_url = dirname(info['channel'].rstrip('/'))
@@ -370,23 +305,3 @@ def list_prefixes():
                 yield prefix
 
     yield config.root_dir
-
-
-if __name__ == '__main__':
-    from optparse import OptionParser
-
-    p = OptionParser(usage="usage: %prog [options] DIST/FN [ADDITIONAL ARGS]")
-    p.add_option('-p', '--prefix',
-                 action="store",
-                 default=sys.prefix,
-                 help="prefix (defaults to %default)")
-    opts, args = p.parse_args()
-
-    if len(args) == 0:
-        p.error('at least one argument expected')
-
-    fn = args[0]
-    if not fn.endswith('.tar.bz2'):
-        fn += '.tar.bz2'
-    p = launch(fn, opts.prefix, args[1:])
-    print('PID:', p.pid)
