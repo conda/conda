@@ -105,7 +105,7 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=None, negate=None):
+    def __new__(cls, spec, target=None, optional=None):
         if isinstance(spec, cls):
             return spec
         self = object.__new__(cls)
@@ -123,31 +123,25 @@ class MatchSpec(object):
             self.ver_build = tuple(parts[1:3])
         self.target = target
         self.optional = optional
-        self.negate = negate
         if oparts:
             for opart in oparts.strip()[:-1].split(','):
                 if opart == 'optional':
                     self.optional = True
-                elif opart == 'negate':
-                    self.negate = True
                 elif opart.startswith('target='):
                     self.target = opart.split('=')[1].strip()
                 else:
                     raise ValueError("Invalid MatchSpec: %s" % spec)
         if self.optional is None:
             self.optional = False
-        if self.negate is None:
-            self.negate = False
         return self
 
     def match_fast(self, version, build):
         if self.strictness == 1:
-            res = True
+            return True
         elif self.strictness == 2:
-            res = self.vspecs.match(version)
+            return self.vspecs.match(version)
         else:
-            res = bool((version, build) == self.ver_build)
-        return res != self.negate
+            return bool((version, build) == self.ver_build)
 
     def match(self, info):
         if isinstance(info, string_types):
@@ -161,30 +155,28 @@ class MatchSpec(object):
         return self.match_fast(version, build)
 
     def to_filename(self):
-        if self.strictness == 3 and not self.optional and not self.negate:
+        if self.strictness == 3 and not self.optional:
             return self.name + '-%s-%s.tar.bz2' % self.ver_build
         else:
             return None
 
     def __eq__(self, other):
         return (type(other) is MatchSpec and
-                (self.spec, self.optional, self.negate, self.target) ==
-                (other.spec, other.optional, other.negate, other.target))
+                (self.spec, self.optional, self.target) ==
+                (other.spec, other.optional, other.target))
 
     def __hash__(self):
-        return hash((self.spec, self.negate))
+        return hash(self.spec)
 
     def __repr__(self):
         return "MatchSpec('%s')" % self.__str__()
 
     def __str__(self):
         res = self.spec
-        if self.optional or self.negate or self.target:
+        if self.optional or self.target:
             args = []
             if self.optional:
                 args.append('optional')
-            if self.negate:
-                args.append('negate')
             if self.target:
                 args.append('target='+self.target)
             res = '%s (%s)' % (res, ','.join(args))
@@ -389,7 +381,6 @@ class Resolve(object):
         """
         bad_deps = []
         opts = []
-        rems = []
         spec2 = []
         feats = set()
         for s in specs:
@@ -399,22 +390,20 @@ class Resolve(object):
                 continue
             if not ms.optional:
                 spec2.append(ms)
-            elif any(True for _ in self.find_matches(ms)):
-                opts.append(ms)
             else:
-                rems.append(ms)
+                opts.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
             if not self.valid(ms, filter):
                 bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFound(bad_deps)
-        return spec2, rems, opts, feats
+        return spec2, opts, feats
 
     def get_dists(self, specs):
         log.debug('Retrieving packages for: %s' % specs)
 
-        specs, removes, optional, features = self.verify_specs(specs)
+        specs, optional, features = self.verify_specs(specs)
         filter = {}
         touched = {}
         snames = set()
@@ -494,11 +483,12 @@ class Resolve(object):
             return reduced
 
         # Iterate in the filtering process until no more progress is made
-        def full_prune(specs, removes, optional, features):
+        def full_prune(specs, optional, features):
             self.default_filter(features, filter)
-            for ms in removes:
+            for ms in optional:
                 for fkey in self.groups.get(ms.name, []):
-                    filter[fkey] = False
+                    if not self.match_fast(ms, fkey):
+                        filter[fkey] = False
             feats = set(self.trackers.keys())
             snames.clear()
             specs = slist = list(specs)
@@ -537,9 +527,9 @@ class Resolve(object):
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        if not full_prune(specs, removes, optional, features):
+        if not full_prune(specs, optional, features):
             def minsat_prune(specs):
-                return full_prune(specs, removes, [], features)
+                return full_prune(specs, optional, features)
 
             save_unsat = set(s for s in unsat if s[0] in specs)
             stderrlog.info('...')
@@ -626,14 +616,14 @@ class Resolve(object):
     @staticmethod
     def ms_to_v(ms):
         ms = MatchSpec(ms)
-        return '@s@' + ms.spec + ('!' if ms.negate else '') + ('?' if ms.optional else '')
+        return '@s@' + ms.spec + ('?' if ms.optional else '')
 
     def push_MatchSpec(self, C, ms):
         ms = MatchSpec(ms)
         name = self.ms_to_v(ms)
         m = C.from_name(name)
         if m is None and not ms.optional:
-            ms2 = MatchSpec(ms.spec, optional=True, negate=ms.negate)
+            ms2 = MatchSpec(ms.spec, optional=True)
             m = C.from_name(self.ms_to_v(ms2))
         if m is None:
             libs = [fkey for fkey in self.find_matches(ms)]
@@ -718,7 +708,7 @@ class Resolve(object):
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
             # any upgrade over any downgrade, but beyond that we want minimal change.
-            targets = [ms.target for ms in mss if ms.target]
+            targets = [ms.target for ms in mss if ms.target and ms.target in self.index]
             if targets:
                 v1 = [(self.version_key(p), p) for p in targets]
                 tver = max(v1)
@@ -895,18 +885,21 @@ class Resolve(object):
         return pkgs
 
     def remove_specs(self, specs, installed):
-        specs = [MatchSpec(s + ' (optional,negate)') for s in specs]
+        # These never match true version/build combos so it forces removal
+        specs = [MatchSpec('%s @ @' % s, optional=True) for s in specs]
         snames = {s.name for s in specs}
         limit, _ = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
-            nm = self.package_name(pkg)
+            nm, ver, build = self.package_triple(pkg)
             if nm in snames:
                 continue
-            elif limit is None:
-                specs.append(MatchSpec('%s (optional,target=%s)' % (self.package_name(pkg), pkg)))
-            else:
+            elif limit is not None:
                 preserve.append(pkg)
+            elif ver:
+                specs.append(MatchSpec('%s >=%s' % (nm, ver), optional=True, target=pkg))
+            else:
+                specs.append(MatchSpec(nm, optional=True, target=pkg))
         return specs, preserve
 
     def remove(self, specs, installed):
@@ -954,6 +947,7 @@ class Resolve(object):
                 if not s.optional:
                     (specr if k < len0 else speca).append(s)
                 elif any(r2.find_matches(s)):
+                    s = MatchSpec(s.name, optional=True, target=s.target)
                     speco.append(s)
                     speca.append(s)
             speca.extend(MatchSpec(s) for s in specm)
