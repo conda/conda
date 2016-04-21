@@ -6,12 +6,13 @@
 
 from __future__ import print_function, division, absolute_import
 
-import os
-import sys
 import logging
-from platform import machine
-from os.path import abspath, expanduser, isfile, isdir, join
+import os
 import re
+import sys
+from collections import OrderedDict
+from os.path import abspath, expanduser, isfile, isdir, join
+from platform import machine
 
 from conda.compat import urlparse
 from conda.utils import try_write, memoized, yaml_load
@@ -249,7 +250,7 @@ def normalize_urls(urls, platform=None, offline_only=False):
             url_s = url
             url = channel_alias + url
         return url_s, url
-    newurls = {}
+    newurls = OrderedDict()
     priority = 0
     while urls:
         url = urls[0]
