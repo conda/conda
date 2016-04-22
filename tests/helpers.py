@@ -97,6 +97,11 @@ def capture_with_argv(*argv):
 
 def capture_json_with_argv(*argv, **kwargs):
     stdout, stderr = capture_with_argv(*argv)
+    print('>>>>>>>>>')
+    print(stdout)
+    print('>>>>>>>>>')
+    print(stderr)
+    print('>>>>>>>>>')
 
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
