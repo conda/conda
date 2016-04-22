@@ -223,7 +223,7 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda', 'list', '--name', 'nonexistent', '-r', '--json')
         self.assertJsonError(res)
 
-    @pytest.mark.slow
+    @pytest.mark.timeout(300)
     def test_search(self):
         res = capture_json_with_argv('conda', 'search', '--json')
         self.assertIsInstance(res, dict)
