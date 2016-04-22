@@ -92,16 +92,19 @@ def capture_with_argv(*argv):
 
     stdout.seek(0)
     stderr.seek(0)
-    return stdout.read(), stderr.read()
+    stdout, stderr = stdout.read(), stderr.read()
+
+    print('>>>>>>>>> stdout >>>>>>>>>')
+    print(stdout)
+    print('>>>>>>>>> stderr >>>>>>>>>')
+    print(stderr)
+    print('>>>>>>>>>')
+    return stdout, stderr
+
 
 
 def capture_json_with_argv(*argv, **kwargs):
     stdout, stderr = capture_with_argv(*argv)
-    print('>>>>>>>>>')
-    print(stdout)
-    print('>>>>>>>>>')
-    print(stderr)
-    print('>>>>>>>>>')
 
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
