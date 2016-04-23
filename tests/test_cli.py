@@ -57,11 +57,6 @@ class TestSpecFromLine(unittest.TestCase):
 
 
 class TestJson(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        config.rc = config.load_condarc(config.rc_path)
-        config.rc['add_binstar_token'] = False
-        super(TestJson, self).__init__(*args, **kwargs)
-
     def assertJsonSuccess(self, res):
         self.assertIsInstance(res, dict)
         self.assertIn('success', res)
@@ -143,7 +138,7 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.slow
     def test_info(self):
-        res = capture_json_with_argv('conda', 'info', '--json', relaxed=True)
+        res = capture_json_with_argv('conda', 'info', '--json')
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
                 'envs_dirs', 'is_foreign', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
@@ -151,7 +146,7 @@ class TestJson(unittest.TestCase):
         for key in keys:
             assert key in res
 
-        res = capture_json_with_argv('conda', 'info', 'conda', '--json', relaxed=True)
+        res = capture_json_with_argv('conda', 'info', 'conda', '--json')
         self.assertIsInstance(res, dict)
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
