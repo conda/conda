@@ -102,7 +102,6 @@ def capture_with_argv(*argv):
     return stdout, stderr
 
 
-
 def capture_json_with_argv(*argv, **kwargs):
     stdout, stderr = capture_with_argv(*argv)
 
