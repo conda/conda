@@ -287,13 +287,15 @@ class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False):
         self.index = index
+        if track_features:
+            for fstr in track_features:
+                self.add_feature(fstr, group=False)
         if not processed:
             for fkey, info in iteritems(index.copy()):
                 if fkey.endswith(']'):
                     continue
                 for fstr in chain(info.get('features', '').split(),
-                                  info.get('track_features', '').split(),
-                                  track_features or ()):
+                                  info.get('track_features', '').split()):
                     self.add_feature(fstr, group=False)
                 for fstr in iterkeys(info.get('with_features_depends', {})):
                     index['%s[%s]' % (fkey, fstr)] = info
@@ -318,16 +320,6 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
-
-    def default_filter(self, features=None, filter=None):
-        if filter is None:
-            filter = {}
-        else:
-            filter.clear()
-        filter.update({fstr+'@': False for fstr in iterkeys(self.trackers)})
-        if features:
-            filter.update({fstr+'@': True for fstr in features})
-        return filter
 
     def valid(self, spec, filter):
         """Tests if a package, MatchSpec, or a list of both has satisfiable
@@ -432,6 +424,7 @@ class Resolve(object):
         Note that this does not attempt to resolve circular dependencies.
         """
         bad_deps = []
+<<<<<<< HEAD
         spec2 = []
         feats = set()
         for s in specs:
@@ -442,18 +435,22 @@ class Resolve(object):
             else:
                 spec2.append(ms)
         for ms in spec2:
+=======
+        specs = list(map(MatchSpec, specs))
+        for ms in specs:
+>>>>>>> remove dummy feature packages
             if not ms.optional:
-                filter = self.default_filter(feats)
+                filter = {}
                 if not self.valid(ms, filter):
                     bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFound(bad_deps)
-        return spec2, feats
+        return specs
 
     def get_dists(self, specs):
         log.debug('Retrieving packages for: %s' % specs)
 
-        specs, features = self.verify_specs(specs)
+        specs = self.verify_specs(specs)
         filter = {}
         touched = {}
         snames = set()
@@ -528,8 +525,8 @@ class Resolve(object):
             return reduced
 
         # Iterate in the filtering process until no more progress is made
-        def full_prune(specs, features):
-            self.default_filter(features, filter)
+        def full_prune(specs):
+            filter.clear()
             feats = set(self.trackers.keys())
             snames.clear()
             specs = slist = list(specs)
@@ -542,13 +539,11 @@ class Resolve(object):
                         first = False
                     unsat = False
                 except BadPrune:
-                    self.default_filter(features, filter)
+                    filter.clear()
                     unsat = True
                 if not unsat and first and iter:
                     return True
                 touched.clear()
-                for fstr in features:
-                    touched[fstr+'@'] = True
                 for spec in specs:
                     self.touch(spec, touched, filter)
                 if unsat:
@@ -573,7 +568,7 @@ class Resolve(object):
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        if full_prune(specs, features):
+        if full_prune(specs):
             new_specs = list(map(MatchSpec, snames - {ms.name for ms in specs}))
         else:
             new_specs = None

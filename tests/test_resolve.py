@@ -11,7 +11,10 @@ from conda import config
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
-
+index['mkl@'] = {
+    'name': 'mkl@', 'channel': '@', 'priority': 0,
+    'version': '0', 'build_number': 0,
+    'build': '', 'depends': [], 'track_features': 'mkl'}
 r = Resolve(index)
 
 f_mkl = set(['mkl'])
@@ -169,7 +172,7 @@ class TestSolve(unittest.TestCase):
 
     def test_iopro_mkl(self):
         self.assertEqual(
-            r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True),
+            r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', '@mkl'], returnall=True),
             [['iopro-1.4.3-np17py27_p0.tar.bz2',
               'mkl-rt-11.0-p0.tar.bz2',
               'numpy-1.7.1-py27_p0.tar.bz2',
@@ -184,15 +187,15 @@ class TestSolve(unittest.TestCase):
 
     def test_mkl(self):
         self.assertEqual(r.install(['mkl']),
-                         r.install(['mkl 11*', 'mkl@']))
+                         r.install(['mkl 11*', '@mkl']))
 
     def test_accelerate(self):
         self.assertEqual(
             r.install(['accelerate']),
-            r.install(['accelerate', 'mkl@']))
+            r.install(['accelerate', '@mkl']))
 
     def test_scipy_mkl(self):
-        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', '@mkl'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
 
@@ -203,7 +206,7 @@ class TestSolve(unittest.TestCase):
 
     def test_anaconda_mkl_2(self):
         # to test "with_features_depends"
-        dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', '@mkl'])
         self.assert_have_mkl(dists, ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
         self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
         self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
@@ -215,7 +218,7 @@ class TestSolve(unittest.TestCase):
 
     def test_anaconda_mkl_3(self):
         # to test "with_features_depends"
-        dists = r.install(['anaconda 1.5.0', 'python 3*', 'mkl@'])
+        dists = r.install(['anaconda 1.5.0', 'python 3*', '@mkl'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue('scipy-0.12.0-np17py33_p0.tar.bz2' in dists)
         self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
@@ -225,7 +228,7 @@ class TestSolve(unittest.TestCase):
 class TestFindSubstitute(unittest.TestCase):
 
     def test1(self):
-        installed = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        installed = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', '@mkl'])
         for old, new in [('numpy-1.7.1-py27_p0.tar.bz2',
                           'numpy-1.7.1-py27_0.tar.bz2'),
                          ('scipy-0.12.0-np17py27_p0.tar.bz2',
@@ -250,7 +253,7 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', '@mkl'], returnall=True) == [[
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
         'numpy-1.5.1-py27_p4.tar.bz2',
@@ -695,7 +698,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]
 
-    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
+    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', '@mkl'],
         returnall=True) == [[
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
@@ -768,7 +771,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]
 
-    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', 'mkl@'],
+    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', '@mkl'],
         returnall=True)[0] == [[
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
