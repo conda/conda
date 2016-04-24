@@ -46,13 +46,24 @@ class Clauses(object):
         self.unsat = False
         self.m = m
 
-    def name_var(self, m, name):
-        nname = '!' + name
-        self.names[name] = m
-        self.names[nname] = -m
-        if type(m) is not bool and m not in self.indices:
-            self.indices[m] = name
-            self.indices[-m] = nname
+    def name_var(self, m, name, polarity=None):
+        nname = name[1:] if name[0] == '!' else '!' + name
+        tbool = type(m) is bool
+        tpos = self.names.get(name)
+        tneg = self.names.get(nname)
+        nm = (not m) if tbool else -m
+        if polarity in (None, True):
+            if tpos:
+                self.Require(self.Xor, nm, tpos)
+            self.names[name] = m
+            if not tbool and m not in self.indices:
+                self.indices[m] = name
+        if polarity in (None, False):
+            if tneg:
+                self.Require(self.Xor, m, tneg)
+            self.names[nname] = nm
+            if not tbool and nm not in self.indices:
+                self.indices[nm] = nname
         return m
 
     def new_var(self, name=None):
@@ -62,8 +73,17 @@ class Clauses(object):
             self.name_var(m, name)
         return m
 
-    def from_name(self, name):
-        return self.names.get(name)
+    def from_name(self, name, polarity=None):
+        if polarity is True:
+            return self.names.get(name)
+        elif polarity is False:
+            nname = name[1:] if name[0] == '!' else '!' + name
+            res = self.names.get(nname)
+            return res if res is None else self.Not(res)
+        else:
+            nname = name[1:] if name[0] == '!' else '!' + name
+            res = self.names.get(name)
+            return None if self.names.get(name) is None else res
 
     def from_index(self, m):
         return self.indices.get(m)
@@ -71,7 +91,7 @@ class Clauses(object):
     def varnum(self, x):
         return self.names[x] if isinstance(x, string_types) else x
 
-    def Assign_(self, vals, name=None):
+    def Assign_(self, vals, name=None, polarity=None):
         tvals = type(vals)
         if tvals is tuple:
             x = self.new_var()
@@ -98,7 +118,7 @@ class Clauses(object):
         nz = len(self.clauses)
         vals = func(*args, polarity=polarity)
         if name is not False:
-            return self.Assign_(vals, name)
+            return self.Assign_(vals, name, polarity)
         tvals = type(vals)
         if tvals is tuple:
             self.clauses.extend(vals[0])
@@ -400,6 +420,19 @@ class Clauses(object):
         return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
                           polarity, name, conv=False)
 
+    def convert_clauses(self, clauses):
+        res = []
+        for clause in clauses:
+            clause = tuple(map(self.varnum, clause))
+            c2 = tuple(c for c in clause if type(c) is not bool)
+            if len(clause) == len(c2):
+                res.append(c2)
+            elif any(c is True for c in clause):
+                continue
+            elif not c2:
+                return None
+        return res
+
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
         """
         Calculate a SAT solution for the current clause set.
@@ -413,8 +446,11 @@ class Clauses(object):
         if not self.m:
             return set() if names else []
         if additional:
-            additional = list(map(lambda x: tuple(map(self.varnum, x)), additional))
-            clauses = chain(self.clauses, additional)
+            additional = self.convert_clauses(additional)
+            if additional is None:
+                return None
+            elif additional:
+                clauses = chain(self.clauses, additional)
         else:
             clauses = self.clauses
         try:

@@ -677,38 +677,30 @@ class Resolve(object):
             raise NoPackagesFound([(ms,)])
         return pkgs
 
-    @staticmethod
-    def ms_to_v(ms):
+    def push_MatchSpec(self, C, ms, numeric=False):
         ms = MatchSpec(ms)
-        return '@s@' + ms.spec + ('?' if ms.optional else '')
-
-    def push_MatchSpec(self, C, ms):
-        ms = MatchSpec(ms)
-        name = self.ms_to_v(ms)
+        name = '@s@' + ms.spec + ('?' if ms.optional else '')
         m = C.from_name(name)
-        if m is None and not ms.optional:
-            ms2 = MatchSpec(ms.spec, optional=True)
-            m = C.from_name(self.ms_to_v(ms2))
+        if m is not None:
+            return m if numeric else name
         if m is None:
-            libs = [fkey for fkey in self.find_matches(ms)]
-            tgroup = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
-                      else self.groups.get(ms.name, []))
-            if len(libs) == len(tgroup):
-                m = C.from_name(self.ms_to_v(ms.name))
+            if ms.name[0] == '@':
+                assert ms.strictness == 1
+                libs = [] if ms.optional else self.trackers.get(ms.name[1:], [])
+            else:
+                target = not ms.optional
+                tgroup = self.groups.get(ms.name, [])
+                libs = [fkey for fkey in tgroup if self.match_fast(ms, fkey) == target]
+                if ms.spec != ms.name and len(libs) == len(tgroup):
+                    m = self.push_MatchSpec(C, ms.name, numeric=True)
         if m is None:
-            # If the MatchSpec is optional, then there may be cases where we want
-            # to assert that it is *not* True. This requires polarity=None. We do
-            # the same for features as well for the same reason.
-            polarity = None if ms.optional else True
-            m = C.Any(libs, polarity=None if ms.optional else True)
-            if polarity is None and ms.optional:
-                # If we've created an optional variable, it works for non-optional too
-                ms.optional = False
-                C.name_var(m, self.ms_to_v(ms))
+            m = C.Any(libs)
+        if ms.optional:
+            m = C.Not(m)
         C.name_var(m, name)
-        return name
+        return m if numeric else name
 
-    def gen_clauses(self, specs):
+    def gen_clauses(self):
         C = Clauses()
 
         # Creates a variable that represents the proposition:
@@ -719,14 +711,7 @@ class Resolve(object):
             # Install no more than one version of each package
             C.Require(C.AtMostOne, group)
             # Create an on/off variable for the entire group
-            name = self.ms_to_v(name)
-            C.name_var(C.Any(group, polarity=None, name=name), name+'?')
-
-        # Creates a variable that represents the proposition:
-        #    Does the package set include track_feature "feat"?
-        for name, group in iteritems(self.trackers):
-            name = self.ms_to_v('@' + name)
-            C.name_var(C.Any(group, polarity=None, name=name), name+'?')
+            self.push_MatchSpec(C, name)
 
         # Create propositions that assert:
         #     If package "fn" is installed, its dependencie must be satisfied
@@ -742,7 +727,7 @@ class Resolve(object):
         return [(self.push_MatchSpec(C, ms),) for ms in specs if not ms.optional]
 
     def generate_feature_count(self, C):
-        return {self.ms_to_v('@' + name): 1 for name in iterkeys(self.trackers)}
+        return {self.push_MatchSpec(C, '@' + name): 1 for name in iterkeys(self.trackers)}
 
     def generate_update_count(self, C, specs):
         return {'!' + spec.target: 1 for spec in specs if C.from_name(spec.target)}
@@ -758,10 +743,10 @@ class Resolve(object):
         return eq, total
 
     def generate_removal_count(self, C, specs):
-        return {'!'+self.ms_to_v(ms): 1 for ms in specs}
+        return {'!' + self.push_MatchSpec(C, ms.name): 1 for ms in specs}
 
     def generate_package_count(self, C, missing):
-        return {self.ms_to_v(nm): 1 for nm in missing}
+        return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
     def generate_version_metrics(self, C, specs):
         eqv = {}
@@ -879,7 +864,7 @@ class Resolve(object):
         if xtra:
             log.debug('Packages missing from index: %s' % ', '.join(xtra))
         r2 = Resolve(dists, True, True)
-        C = r2.gen_clauses(specs)
+        C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         try:
             solution = C.sat(constraints)
@@ -982,7 +967,7 @@ class Resolve(object):
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
             r2 = Resolve(dists, True, True)
-            C = r2.gen_clauses(specs)
+            C = r2.gen_clauses()
             constraints = r2.generate_spec_constraints(C, specs)
             solution = C.sat(constraints, True)
             if not solution:
@@ -992,7 +977,7 @@ class Resolve(object):
                 spec2 = [s for s in specs if not s.optional]
                 eq_removal_count = r2.generate_removal_count(C, spec2)
                 solution, obj1 = C.minimize(eq_removal_count, solution)
-                specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
+                specsol = [(s,) for s in spec2 if self.push_MatchSpec(C, s) not in solution]
                 raise Unsatisfiable(specsol, False)
 
             speco = []  # optional packages
