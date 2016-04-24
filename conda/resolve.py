@@ -458,56 +458,50 @@ class Resolve(object):
         touched = {}
         snames = set()
         nspecs = set()
-        unsat = set()
+
+        class BadPrune:
+            pass
 
         def filter_group(matches, chains=None):
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
             # participates in the pruning even if one of its
             # parents is pruned away
-            if unsat:
-                return False
             match1 = next(ms for ms in matches)
+            isopt = all(ms.optional for ms in matches)
             name = match1.name
+            isfeat = name[0] == '@'
             first = name not in snames
-            group = self.groups.get(name, [])
+
+            if isfeat:
+                assert len(matches) == 1 and match1.strictness == 1
+                group = self.trackers.get(name[1:], [])
+            else:
+                group = self.groups.get(name, [])
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
-            nold = 0
-            bad_deps = []
+            nold = nnew = 0
             for fkey in group:
                 if filter.setdefault(fkey, True):
                     nold += 1
-                    sat = self.match_any(matches, fkey)
+                    sat = isfeat or self.match_any(matches, fkey)
                     sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
                                       for ms in self.ms_depends(fkey))
                     filter[fkey] = sat
-                    if not sat:
-                        bad_deps.append(fkey)
+                    nnew += sat
 
             # Build dependency chains if we detect unsatisfiability
-            nnew = nold - len(bad_deps)
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
-                if not all(ms.optional for ms in matches):
-                    bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
-                    matches = [(ms,) for ms in matches]
-                    chains = [a + b for a in chains for b in matches] if chains else matches
-                    if bad_deps:
-                        dep2 = set()
-                        for fkey in bad_deps:
-                            for ms in self.ms_depends(fkey):
-                                if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
-                                    dep2.add(ms)
-                        chains = [a + (b,) for a in chains for b in dep2]
-                    unsat.update(chains)
+                if not isopt:
+                    raise BadPrune
                 return nnew != 0
-            if not reduced and not first or all(ms.optional for ms in matches):
+            if not reduced and not first or isopt or isfeat:
                 return reduced
 
             # Perform the same filtering steps on any dependencies shared across
@@ -542,18 +536,23 @@ class Resolve(object):
             onames = set(s.name for s in specs)
             for iter in range(10):
                 first = True
-                while sum(filter_group([s]) for s in slist) and not unsat:
-                    slist = specs + [MatchSpec(n) for n in snames - onames]
-                    first = False
-                if unsat:
-                    return False
-                if first and iter:
+                try:
+                    while sum(filter_group([s]) for s in slist):
+                        slist = specs + [MatchSpec(n) for n in snames - onames]
+                        first = False
+                    unsat = False
+                except BadPrune:
+                    self.default_filter(features, filter)
+                    unsat = True
+                if not unsat and first and iter:
                     return True
                 touched.clear()
                 for fstr in features:
                     touched[fstr+'@'] = True
-                for spec in chain(specs):
+                for spec in specs:
                     self.touch(spec, touched, filter)
+                if unsat:
+                    return False
                 nfeats = set()
                 for fkey, val in iteritems(touched):
                     if val:
@@ -574,18 +573,13 @@ class Resolve(object):
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        if not full_prune(specs, features):
-            def minsat_prune(specs):
-                return full_prune(specs, features)
-
-            save_unsat = set(s for s in unsat if s[0] in specs)
-            stderrlog.info('...')
-            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
-            save_unsat.update((ms,) for ms in hint)
-            raise Unsatisfiable(save_unsat)
+        if full_prune(specs, features):
+            new_specs = list(map(MatchSpec, snames - {ms.name for ms in specs}))
+        else:
+            new_specs = None
 
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
-        return dists, list(map(MatchSpec, snames - {ms.name for ms in specs}))
+        return dists, new_specs
 
     def match_any(self, mss, fkey):
         rec = self.index[fkey]
@@ -955,24 +949,27 @@ class Resolve(object):
             if len0 is None:
                 len0 = len(specs)
             dists, new_specs = self.get_dists(specs)
-            if not dists:
+            if not dists and new_specs is not None:
                 return False if dists is None else ([[]] if returnall else [])
 
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
-            r2 = Resolve(dists, True, True)
-            C = r2.gen_clauses()
-            constraints = r2.generate_spec_constraints(C, specs)
-            solution = C.sat(constraints, True)
+            if new_specs is None:
+                r2 = self
+                C = r2.gen_clauses()
+                solution = None
+            else:
+                r2 = Resolve(dists, True, True)
+                C = r2.gen_clauses()
+                constraints = r2.generate_spec_constraints(C, specs)
+                solution = C.sat(constraints, True)
             if not solution:
-                # Find the largest set of specs that are satisfiable, and return
-                # the list of specs that are not in that set.
-                solution = [C.Not(q) for q in range(1, C.m+1)]
-                spec2 = [s for s in specs if not s.optional]
-                eq_removal_count = r2.generate_removal_count(C, spec2)
-                solution, obj1 = C.minimize(eq_removal_count, solution)
-                specsol = [(s,) for s in spec2 if self.push_MatchSpec(C, s) not in solution]
-                raise Unsatisfiable(specsol, False)
+                def mysat(specs):
+                    constraints = r2.generate_spec_constraints(C, specs)
+                    return C.sat(constraints, False) is not None
+                stdoutlog.info("\nUnsatisfiable specifications detected; generating hint ...")
+                hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=False)
+                raise Unsatisfiable([(h, ) for h in hint], True)
 
             speco = []  # optional packages
             specr = []  # requested packages
