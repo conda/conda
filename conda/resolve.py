@@ -432,7 +432,6 @@ class Resolve(object):
         Note that this does not attempt to resolve circular dependencies.
         """
         bad_deps = []
-        opts = []
         spec2 = []
         feats = set()
         for s in specs:
@@ -440,23 +439,21 @@ class Resolve(object):
             if ms.name[-1] == '@':
                 self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
-                continue
-            if not ms.optional:
-                spec2.append(ms)
             else:
-                opts.append(ms)
+                spec2.append(ms)
         for ms in spec2:
-            filter = self.default_filter(feats)
-            if not self.valid(ms, filter):
-                bad_deps.extend(self.invalid_chains(ms, filter))
+            if not ms.optional:
+                filter = self.default_filter(feats)
+                if not self.valid(ms, filter):
+                    bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFound(bad_deps)
-        return spec2, opts, feats
+        return spec2, feats
 
     def get_dists(self, specs):
         log.debug('Retrieving packages for: %s' % specs)
 
-        specs, optional, features = self.verify_specs(specs)
+        specs, features = self.verify_specs(specs)
         filter = {}
         touched = {}
         snames = set()
@@ -497,20 +494,21 @@ class Resolve(object):
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
-                bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
-                matches = [(ms,) for ms in matches]
-                chains = [a + b for a in chains for b in matches] if chains else matches
-                if bad_deps:
-                    dep2 = set()
-                    for fkey in bad_deps:
-                        for ms in self.ms_depends(fkey):
-                            if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
-                                dep2.add(ms)
-                    chains = [a + (b,) for a in chains for b in dep2]
-                unsat.update(chains)
+                if not all(ms.optional for ms in matches):
+                    bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
+                    matches = [(ms,) for ms in matches]
+                    chains = [a + b for a in chains for b in matches] if chains else matches
+                    if bad_deps:
+                        dep2 = set()
+                        for fkey in bad_deps:
+                            for ms in self.ms_depends(fkey):
+                                if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
+                                    dep2.add(ms)
+                        chains = [a + (b,) for a in chains for b in dep2]
+                    unsat.update(chains)
                 return nnew != 0
-            if not reduced and not first:
-                return False
+            if not reduced and not first or all(ms.optional for ms in matches):
+                return reduced
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
@@ -536,12 +534,8 @@ class Resolve(object):
             return reduced
 
         # Iterate in the filtering process until no more progress is made
-        def full_prune(specs, optional, features):
+        def full_prune(specs, features):
             self.default_filter(features, filter)
-            for ms in optional:
-                for fkey in self.groups.get(ms.name, []):
-                    if not self.match_fast(ms, fkey):
-                        filter[fkey] = False
             feats = set(self.trackers.keys())
             snames.clear()
             specs = slist = list(specs)
@@ -558,7 +552,7 @@ class Resolve(object):
                 touched.clear()
                 for fstr in features:
                     touched[fstr+'@'] = True
-                for spec in chain(specs, optional):
+                for spec in chain(specs):
                     self.touch(spec, touched, filter)
                 nfeats = set()
                 for fkey, val in iteritems(touched):
@@ -580,9 +574,9 @@ class Resolve(object):
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        if not full_prune(specs, optional, features):
+        if not full_prune(specs, features):
             def minsat_prune(specs):
-                return full_prune(specs, optional, features)
+                return full_prune(specs, features)
 
             save_unsat = set(s for s in unsat if s[0] in specs)
             stderrlog.info('...')
