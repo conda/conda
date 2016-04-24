@@ -322,22 +322,18 @@ class Resolve(object):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
 
     def valid(self, spec, filter):
-        """Tests if a package, MatchSpec, or a list of both has satisfiable
-        dependencies, assuming cyclic dependencies are always valid.
+        """Tests if a MatchSpec is satisfiable, ignoring cyclic dependencies.
 
         Args:
-            fkey: a package key, a MatchSpec, or an iterable of these.
+            ms: a MatchSpec object or string
             filter: a dictionary of (fkey,valid) pairs, used to consider a subset
                 of dependencies, and to eliminate repeated searches.
 
         Returns:
-            True if the full set of dependencies can be satisfied; False otherwise.
+            True if the full set of dependencies can be satisfied; Fals otherwise.
             If filter is supplied and update is True, it will be updated with the
             search results.
         """
-        def v_(spec):
-            return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
-
         def v_ms_(ms):
             return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
 
@@ -348,15 +344,15 @@ class Resolve(object):
                 val = filter[fkey] = all(v_ms_(ms) for ms in self.ms_depends(fkey))
             return val
 
-        return v_(spec)
+        return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
     def touch(self, spec, touched, filter):
         """Determines a conservative set of packages to be considered given a
-           package, or a spec, or a list thereof. Cyclic dependencies are not
-           solved, so there is no guarantee a solution exists.
+           MatchSpec. Cyclic dependencies are not solved, so there is no
+           guarantee a solution exists.
 
         Args:
-            fkey: a package key or MatchSpec
+            spec: a MatchSpec
             touched: a dict into which to accumulate the result. This is
                 useful when processing multiple specs.
             filter: a dictionary of (fkey, valid) pairs to be used when
@@ -367,20 +363,20 @@ class Resolve(object):
         is _not_ touched, nor are its dependencies. If so, then it is marked as
         touched, and any of its valid dependencies are as well.
         """
-        def t_fkey_(fkey):
-            val = touched.get(fkey)
-            if val is None:
+        specs = [spec]
+        first = True
+        while specs:
+            spec = specs.pop()
+            if spec.name[0] == '@' and not first:
+                continue
+            first = False
+            for fkey in self.find_matches(spec):
+                val = touched.get(fkey)
+                if val is not None:
+                    continue
                 val = touched[fkey] = self.valid(fkey, filter)
                 if val:
-                    for ms in self.ms_depends(fkey):
-                        if ms.name[0] != '@':
-                            t_ms_(ms)
-
-        def t_ms_(ms):
-            for fkey in self.find_matches(ms):
-                t_fkey_(fkey)
-
-        return t_ms_(spec) if isinstance(spec, MatchSpec) else t_fkey_(spec)
+                    specs.extend(self.ms_depends(fkey))
 
     def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
