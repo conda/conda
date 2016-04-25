@@ -38,7 +38,7 @@ with open(os.path.join(here, "README.rst")) as f:
 scripts = ['bin/activate',
            'bin/deactivate', ]
 if sys.platform == 'win32':
-    # Powershell scripts should go here
+    # Powershell scripts should go here, dummy
     scripts.extend(['bin/activate.bat',
                     'bin/deactivate.bat'])
 
