@@ -156,6 +156,11 @@ class MatchSpec(object):
         else:
             return None
 
+    def __lt__(self, other):
+        return (type(other) is MatchSpec and
+                (self.spec, self.optional, self.target) <
+                (other.spec, other.optional, other.target))
+
     def __eq__(self, other):
         return (type(other) is MatchSpec and
                 (self.spec, self.optional, self.target) ==
@@ -360,66 +365,127 @@ class Resolve(object):
         Returns:
             A list of tuples, or an empty list if the MatchSpec is valid.
         """
-        snames = set()
+        cache_ = {}
 
-        def chains_(slist, nover=False, group=None):
-            sname = next(_ for _ in slist).name
-            if sname in snames or any(self.valid(spec, filter) for spec in slist):
-                return []
-            snames.add(sname)
+        def compress_(chains, pfx):
+            if not chains:
+                return ()
+            chain0 = set()
+            sname = next(_[0] for _ in chains).split(' ', 1)[0]
+            cdict = defaultdict(set)
+            for chain in chains:
+                if len(chain) == 1:
+                    chain0.add(chain[0].partition(' ')[-1])
+                else:
+                    cdict[chain[-1]].add(chain[1:-1])
+            res = []
+            for csuff, cmid in iteritems(cdict):
+                cname, _, cver = csuff.partition(' ')
+                if cmid is not None and (cname != sname or cver not in chain0):
+                    cmid = sorted(cmid, key=len)
+                    if len(cmid[0]) == 0:
+                        chain = (pfx, csuff)
+                    elif len(cmid[0]) == 1:
+                        mids = set(c[0] for c in cmid if len(c) == 1)
+                        chain = (pfx, ','.join(sorted(mids)), csuff)
+                    else:
+                        mids = set(c[0] for c in cmid)
+                        chain = (pfx, ','.join(sorted(mids)), '...', csuff)
+                res.append(chain)
+            if chain0:
+                if '' in chain0:
+                    res.append((sname,))
+                else:
+                    res.append((sname + ' ' + '|'.join(sorted(chain0)),))
+            return sorted(res, key=lambda x: (len(x), x))
+
+        def chains_(slist):
+            # Check the cache
+            res = cache_.get(slist)
+            if res is not None:
+                return res
+
+            # Process each spec separately, then combine
+            if len(slist) > 1:
+                chains = set()
+                for spec in slist:
+                    sname = spec.name
+                    res = chains_((spec,))
+                    if res is ():
+                        cache_[slist] = res
+                        return res
+                    chains.update(res)
+                res = cache_[slist] = compress_(chains, sname)
+                return res
+
+            # If valid, no chains
+            spec1 = next(_ for _ in slist)
+            if self.valid(spec1, filter):
+                res = cache_[slist] = ()
+                return ()
+            sname = spec1.name
+
+            if sname[0] == '@':
+                fname = '[%s]' % (sname[1:])
+                if sname[1:] not in self.trackers:
+                    res = cache_[slist] = [(spec1.spec,)]
+                    return res
+            elif sname not in self.groups:
+                res = cache_[slist] = [(spec1.spec,)]
+                return res
+
+            if sname[0] == '@':
+                tgroup = self.trackers.get(sname[1:], [])
+                pkgs = tgroup = self.trackers.get(sname[1:], [])
+            else:
+                tgroup = self.groups.get(sname, [])
+                pkgs = [p for p in tgroup if self.match_fast(spec1, p)]
+                if len(tgroup) == len(pkgs) and spec1.strictness > 1:
+                    res = chains_((MatchSpec(sname),))
+                    cache_[slist] = res
+                    return res
+            if not pkgs:
+                res = cache_[slist] = [(spec1,)]
+                return res
+
+            # Break cycles
+            cache_[slist] = ()
+
             groups = {}
-            for spec in slist:
-                for fkey in self.find_matches(spec):
-                    groups.setdefault(self.package_name(fkey), []).append(fkey)
-            subchains = set()
-            sname = spec.name
+            for fkey in pkgs:
+                groups.setdefault(self.package_name(fkey), []).append(fkey)
+
+            res = []
             for name, fgroup in iteritems(groups):
+
                 deps = {}
-                for fkey in fgroup:
-                    filter[fkey] = True
+                subchains = set()
                 for fkey in fgroup:
                     for m2 in self.ms_depends(fkey):
                         deps.setdefault(m2.name, set()).add(m2)
-                for dname, dspecs in iteritems(deps):
-                    res = chains_(dspecs, nover=True)
-                    if sname[0] == '@':
-                        res = [(name,) + r for r in res]
-                    subchains.update(res)
-                for fkey in fgroup:
-                    filter[fkey] = False
-            if sname[0] == '@':
-                sname = '[feature:%s]' % (sname[1:])
-            if subchains:
-                return [(sname,) + x for x in subchains]
-            elif sname[0] == '[':
-                return [(sname,)]
-            else:
-                return [(s.spec,) for s in slist]
-        cdict = {}
-        for chain in chains_([spec]):
-            cdict.setdefault(chain[-1], []).append(chain)
-        cdict2 = {}
-        for csuff, cset in iteritems(cdict):
-            cset = sorted(cset, key=len)
-            cname, _, cver = csuff.partition(' ')
-            if len(cset[0]) <= 2:
-                chain = cset[0]
-            elif len(cset[0]) == 3:
-                mids = set(c[1] for c in cset if len(c) == 3)
-                chain = (cset[0][0], ','.join(sorted(mids)), csuff)
-            else:
-                mids = set(c[1] for c in cset)
-                chain = (cset[0][0], ','.join(sorted(mids)), '...', csuff)
-            cname, _, cver = csuff.partition(' ')
-            chain = chain[:-1] + (cname,)
-            cdict2.setdefault(chain, set()).add(cver)
-        res = []
-        for chain, cvers in iteritems(cdict2):
-            cvers = '' if '' in cvers else ' ' + '|'.join(sorted(cvers))
-            res.append(chain[:-1] + (chain[-1] + cvers,))
-        return sorted(res)
+                for dspecs in itervalues(deps):
+                    dspecs = tuple(sorted(dspecs))
+                    res2 = chains_(dspecs)
+                    subchains.update(chains_(tuple(sorted(dspecs))))
 
-    def verify_specs(self, specs, unsat=False, target=None):
+                if subchains:
+                    subchains = [(sname,) + x for x in subchains]
+                else:
+                    subchains = [(s.spec,) for s in slist]
+
+                name = fname + name if sname[0] == '@' else sname
+                res.extend(compress_(subchains, name))
+
+            cache_[slist] = res
+            return res
+
+        if isinstance(spec, MatchSpec):
+            spec = (spec,)
+        else:
+            spec = tuple(sorted(set(spec)))
+        return chains_(spec)
+
+    def verify_specs(self, specs, filter=None, unsat=False, target=None):
         """Perform a quick verification that specs and dependencies are reasonable.
 
         Args:
@@ -430,11 +496,12 @@ class Resolve(object):
 
         Note that this does not attempt to resolve circular dependencies.
         """
-        filter = {}
+        if filter is None:
+            filter = {}
         bad_deps = []
         specs = list(map(MatchSpec, specs))
         for ms in specs:
-            if not ms.optional:
+            if not ms.optional and not self.valid(ms, filter):
                 bad_deps.extend(self.invalid_chains(ms, filter))
         if not bad_deps:
             return specs
@@ -945,12 +1012,9 @@ class Resolve(object):
                 hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=False)
                 hnames = set(h.name for h in hint)
                 if unsat:
-                    if unsat[0] == '@' and unsat[1:] in r2.trackers:
-                        del r2.trackers[unsat]
-                    elif unsat in r2.groups:
-                        del r2.groups[unsat]
+                    filter = {fkey: False for fkey in r2.find_matches(MatchSpec(unsat))}
                 hnames.add(unsat)
-                r2.verify_specs(hint, unsat=True, target=hnames)
+                r2.verify_specs(hint, filter=filter, unsat=True, target=hnames)
                 raise Unsatisfiable([(h, ) for h in map(str, hint)])
 
             speco = []  # optional packages
