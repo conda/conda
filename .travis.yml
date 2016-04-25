@@ -22,7 +22,7 @@ install:
   - conda install psutil ruamel_yaml
   - conda install flake8 pytest mock
   - conda install pip
-  - pip install auxlib pytest-cov radon
+  - pip install auxlib pytest-cov pytest-timeout radon
   - python setup.py install
 
 script:

@@ -4,6 +4,7 @@ Helpers for the tests
 import subprocess
 import sys
 import os
+import re
 import json
 
 try:
@@ -91,12 +92,24 @@ def capture_with_argv(*argv):
 
     stdout.seek(0)
     stderr.seek(0)
-    return stdout.read(), stderr.read()
+    stdout, stderr = stdout.read(), stderr.read()
+
+    print('>>>>>>>>> stdout >>>>>>>>>')
+    print(stdout)
+    print('>>>>>>>>> stderr >>>>>>>>>')
+    print(stderr)
+    print('>>>>>>>>>')
+    return stdout, stderr
 
 
-def capture_json_with_argv(*argv):
+def capture_json_with_argv(*argv, **kwargs):
     stdout, stderr = capture_with_argv(*argv)
-    if stderr:
+
+    if kwargs.get('relaxed'):
+        match = re.match('\A.*?({.*})', stdout, re.DOTALL)
+        if match:
+            stdout = match.groups()[0]
+    elif stderr:
         # TODO should be exception
         return stderr
 

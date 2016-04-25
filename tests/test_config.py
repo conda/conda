@@ -42,6 +42,7 @@ class TestConfig(unittest.TestCase):
         # Otherwise normalization tests will fail if the user is logged into
         # binstar.
         config.rc['add_binstar_token'] = False
+        config.channel_alias = config.rc['channel_alias']
         super(TestConfig, self).__init__(*args, **kwargs)
 
     def test_globals(self):
@@ -73,6 +74,7 @@ class TestConfig(unittest.TestCase):
         current_platform = config.subdir
         assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
+        assert config.channel_alias == 'https://your.repo/'
 
         for channel in iterkeys(config.normalize_urls(['defaults', 'system',
             'https://anaconda.org/username', 'file:///Users/username/repo',
@@ -85,10 +87,10 @@ class TestConfig(unittest.TestCase):
             ], 'osx-64'),
             {'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 6),
              'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 6),
-             'http://repo.continuum.io/pkgs/free/noarch/': (None, 1),
-             'http://repo.continuum.io/pkgs/free/osx-64/': (None, 1),
-             'http://repo.continuum.io/pkgs/pro/noarch/': (None, 1),
-             'http://repo.continuum.io/pkgs/pro/osx-64/': (None, 1),
+             'http://repo.continuum.io/pkgs/free/noarch/': ('defaults', 1),
+             'http://repo.continuum.io/pkgs/free/osx-64/': ('defaults', 1),
+             'http://repo.continuum.io/pkgs/pro/noarch/': ('defaults', 1),
+             'http://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
              'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
              'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
              'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 5),

@@ -4,6 +4,7 @@ import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
 from conda.compat import text_type
+import conda.config as config
 
 from tests.helpers import capture_json_with_argv, assert_in
 
@@ -141,6 +142,7 @@ class TestJson(unittest.TestCase):
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
                 'envs_dirs', 'is_foreign', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
+        self.assertIsInstance(res, dict)
         for key in keys:
             assert key in res
 
@@ -216,7 +218,7 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda', 'list', '--name', 'nonexistent', '-r', '--json')
         self.assertJsonError(res)
 
-    @pytest.mark.slow
+    @pytest.mark.timeout(300)
     def test_search(self):
         res = capture_json_with_argv('conda', 'search', '--json')
         self.assertIsInstance(res, dict)

@@ -14,7 +14,7 @@ import sys
 import os
 from logging import getLogger
 from collections import defaultdict
-from os.path import abspath, basename, isfile, join, exists
+from os.path import abspath, basename, dirname, join, exists
 
 from conda import config
 from conda import install
@@ -36,6 +36,7 @@ def print_dists(dists_extras):
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
+        _, dist = install._dist2pair(dist)
         line = fmt % tuple(dist.rsplit('-', 1))
         if extra:
             line += extra
@@ -45,6 +46,17 @@ def print_dists(dists_extras):
 def display_actions(actions, index, show_channel_urls=None):
     if show_channel_urls is None:
         show_channel_urls = config.show_channel_urls
+
+    def channel_str(s):
+        if s is None:
+            return ''
+        if show_channel_urls is None:
+            return '' if s == 'defaults' else s
+        return s if show_channel_urls else ''
+
+    def channel_len(s):
+        return len(channel_str(s))
+
     if actions.get(inst.FETCH):
         print("\nThe following packages will be downloaded:\n")
 
@@ -52,9 +64,9 @@ def display_actions(actions, index, show_channel_urls=None):
         for dist in actions[inst.FETCH]:
             info = index[dist + '.tar.bz2']
             extra = '%15s' % human_bytes(info['size'])
-            if show_channel_urls:
-                extra += '  %s' % config.canonical_channel_name(
-                                       info.get('channel'))
+            schannel = channel_str(info.get('schannel', '<unknown>'))
+            if schannel:
+                extra += '  ' + schannel
             disp_lst.append((dist, extra))
         print_dists(disp_lst)
 
@@ -72,23 +84,27 @@ def display_actions(actions, index, show_channel_urls=None):
     Packages = {}
     linktypes = {}
     for arg in actions.get(inst.LINK, []):
-        dist, pkgs_dir, lt = inst.split_linkarg(arg)
-        pkg, ver, build = dist.rsplit('-', 2)
-        packages[pkg][1] = ver + '-' + build
-        Packages[dist] = Package(dist + '.tar.bz2', index[dist + '.tar.bz2'])
+        dist, lt = inst.split_linkarg(arg)
+        rec = index[dist + '.tar.bz2']
+        pkg = rec['name']
+        packages[pkg][1] = rec['version'] + '-' + rec['build']
+        dist = pkg + '-' + packages[pkg][1]
+        Packages[dist] = Package(dist + '.tar.bz2', rec)
         linktypes[pkg] = lt
-        features[pkg][1] = index[dist + '.tar.bz2'].get('features', '')
+        features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
-        dist, pkgs_dir, lt = inst.split_linkarg(arg)
-        pkg, ver, build = dist.rsplit('-', 2)
-        packages[pkg][0] = ver + '-' + build
-        # If the package is not in the index (e.g., an installed
-        # package that is not in the index any more), we just have to fake the metadata.
-        default = dict(name=pkg, version=ver, build=build, channel=None,
+        dist, lt = inst.split_linkarg(arg)
+        rec = index.get(dist + '.tar.bz2')
+        if rec is None:
+            pkg, ver, build = dist.split('::', 2)[-1].rsplit('-', 2)
+            rec = dict(name=pkg, version=ver, build=build, channel=None,
+                       schannel='<unknown>',
                        build_number=int(build) if build.isdigit() else 0)
-        info = index.get(dist + ".tar.bz2", default)
-        Packages[dist] = Package(dist + '.tar.bz2', info)
-        features[pkg][0] = info.get('features', '')
+        pkg = rec['name']
+        packages[pkg][0] = rec['version'] + '-' + rec['build']
+        dist = pkg + '-' + packages[pkg][0]
+        Packages[dist] = Package(dist + '.tar.bz2', rec)
+        features[pkg][0] = rec.get('features', '')
 
     #                     Put a minimum length here---.    .--For the :
     #                                                 v    v
@@ -98,11 +114,10 @@ def display_actions(actions, index, show_channel_urls=None):
     maxoldfeatures = len(max(features.values() or [['']], key=lambda i: len(i[0]))[0])
     maxnewfeatures = len(max(features.values() or [['', '']], key=lambda i: len(i[1]))[1])
 
-    name = config.canonical_channel_name
-    maxoldchannel = len(max([name(Packages[p + '-' + packages[p][0]].channel)
-                             for p in packages if packages[p][0]] or [''], key=len))
-    maxnewchannel = len(max([name(Packages[p + '-' + packages[p][1]].channel)
-                             for p in packages if packages[p][1]] or [''], key=len))
+    maxoldchannel = max([channel_len(Packages[p + '-' + packages[p][0]].schannel)
+                         for p in packages if packages[p][0]] or [0])
+    maxnewchannel = max([channel_len(Packages[p + '-' + packages[p][1]].schannel)
+                         for p in packages if packages[p][1]] or [0])
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
     updated = set()
@@ -113,13 +128,13 @@ def display_actions(actions, index, show_channel_urls=None):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
         oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
-        if show_channel_urls:
+        if maxoldchannel:
             oldfmt[pkg] += ' {channel[0]:<%s}' % maxoldchannel
         if packages[pkg][0]:
             newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
         else:
             newfmt[pkg] = '{pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
-        if show_channel_urls:
+        if maxnewchannel:
             newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
         # TODO: Should we also care about the old package's link type?
         if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
@@ -153,8 +168,7 @@ def display_actions(actions, index, show_channel_urls=None):
         channel = ['', '']
         for i in range(2):
             if packages[pkg][i]:
-                p = Packages[pkg + '-' + packages[pkg][i]].channel
-                channel[i] = config.canonical_channel_name(p)
+                channel[i] = channel_str(Packages[pkg + '-' + packages[pkg][i]].schannel)
         return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
                                channel=channel, features=features[pkg])
 
@@ -231,86 +245,82 @@ def plan_from_actions(actions):
     return res
 
 
-def extracted_where(dist):
-    for pkgs_dir in config.pkgs_dirs:
-        if install.is_extracted(pkgs_dir, dist):
-            return pkgs_dir
-    return None
-
-
-def ensure_linked_actions(dists, prefix):
-    actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
-    for dist in dists:
-        if install.is_linked(prefix, dist):
-            continue
-
-        extracted_in = extracted_where(dist)
-        if extracted_in:
-            if config.always_copy:
-                lt = install.LINK_COPY
-            elif install.try_hard_link(extracted_in, prefix, dist):
-                lt = install.LINK_HARD
-            elif config.allow_softlinks and sys.platform != 'win32':
-                lt = install.LINK_SOFT
-            else:
-                lt = install.LINK_COPY
-            actions[inst.LINK].append('%s %s %d' % (dist, extracted_in, lt))
-        else:
-            # Make a guess from the first pkgs dir, which is where it will be
-            # extracted
-            try:
-                os.makedirs(join(config.pkgs_dirs[0], dist, 'info'))
-                index_json = join(config.pkgs_dirs[0], dist, 'info',
-                                  'index.json')
-                with open(index_json, 'w'):
-                    pass
-                if config.always_copy:
-                    lt = install.LINK_COPY
-                elif install.try_hard_link(config.pkgs_dirs[0], prefix, dist):
-                    lt = install.LINK_HARD
-                elif config.allow_softlinks and sys.platform != 'win32':
-                    lt = install.LINK_SOFT
-                else:
-                    lt = install.LINK_COPY
-                actions[inst.LINK].append('%s %s %d' % (dist, config.pkgs_dirs[0], lt))
-            except (OSError, IOError):
-                actions[inst.LINK].append(dist)
-            finally:
-                try:
-                    install.rm_rf(join(config.pkgs_dirs[0], dist))
-                except (OSError, IOError):
-                    pass
-
-            actions[inst.EXTRACT].append(dist)
-            if install.is_fetched(config.pkgs_dirs[0], dist):
-                continue
-            actions[inst.FETCH].append(dist)
-    return actions
-
-
-def force_linked_actions(dists, index, prefix):
+# force_linked_actions has now been folded into this function, and is enabled by
+# supplying an index and setting force=True
+def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=False):
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
                            inst.EXTRACT, inst.UNLINK, inst.LINK)
     for dist in dists:
-        fn = dist + '.tar.bz2'
-        pkg_path = join(config.pkgs_dirs[0], fn)
-        if isfile(pkg_path):
+        fetched_in = install.is_fetched(dist)
+        extracted_in = install.is_extracted(dist)
+
+        if fetched_in and index is not None:
+            # Test the MD5, and possibly re-fetch
+            fn = dist + '.tar.bz2'
             try:
-                if md5_file(pkg_path) != index[fn]['md5']:
+                if md5_file(fetched_in) != index[fn]['md5']:
+                    # RM_FETCHED now removes the extracted data too
                     actions[inst.RM_FETCHED].append(dist)
-                    actions[inst.FETCH].append(dist)
+                    # Re-fetch, re-extract, re-link
+                    fetched_in = extracted_in = None
+                    force = True
             except KeyError:
                 sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
-        else:
+
+        if not force and install.is_linked(prefix, dist):
+            continue
+
+        if extracted_in and force:
+            # Always re-extract in the force case
+            actions[inst.RM_EXTRACTED].append(dist)
+            extracted_in = None
+
+        # Otherwise we need to extract, and possibly fetch
+        if not extracted_in and not fetched_in:
+            # If there is a cache conflict, clean it up
+            fetched_in, conflict = install.find_new_location(dist)
+            if conflict is not None:
+                actions[inst.RM_FETCHED].append(conflict)
             actions[inst.FETCH].append(dist)
-        actions[inst.RM_EXTRACTED].append(dist)
-        actions[inst.EXTRACT].append(dist)
-        if isfile(join(prefix, 'conda-meta', dist + '.json')):
-            add_unlink(actions, dist)
-        actions[inst.LINK].append(dist)
+
+        if not extracted_in:
+            actions[inst.EXTRACT].append(dist)
+
+        fetched_dist = extracted_in or fetched_in[:-8]
+        fetched_dir = dirname(fetched_dist)
+
+        try:
+            # Determine what kind of linking is necessary
+            if not extracted_in:
+                # If not already extracted, create some dummy
+                # data to test with
+                install.rm_rf(fetched_dist)
+                ppath = join(fetched_dist, 'info')
+                os.makedirs(ppath)
+                index_json = join(ppath, 'index.json')
+                with open(index_json, 'w'):
+                    pass
+            if config.always_copy or always_copy:
+                lt = install.LINK_COPY
+            elif install.try_hard_link(fetched_dir, prefix, dist):
+                lt = install.LINK_HARD
+            elif config.allow_softlinks and sys.platform != 'win32':
+                lt = install.LINK_SOFT
+            else:
+                lt = install.LINK_COPY
+            actions[inst.LINK].append('%s %d' % (dist, lt))
+        except (OSError, IOError):
+            actions[inst.LINK].append(dist)
+        finally:
+            if not extracted_in:
+                # Remove the dummy data
+                try:
+                    install.rm_rf(fetched_dist)
+                except (OSError, IOError):
+                    pass
+
     return actions
 
 # -------------------------------------------------------------------
@@ -390,10 +400,10 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
-def install_actions(prefix, index, specs, force=False, only_names=None,
+def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
     r = Resolve(index)
-    linked = install.linked(prefix)
+    linked = r.installed
 
     if config.self_update and is_root_prefix(prefix):
         specs.append('conda')
@@ -407,7 +417,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     if config.track_features:
         specs.extend(x + '@' for x in config.track_features)
 
-    pkgs = r.install(specs, [d + '.tar.bz2' for d in linked], update_deps=update_deps)
+    pkgs = r.install(specs, linked, update_deps=update_deps)
+
     for fn in pkgs:
         dist = fn[:-8]
         name = install.name_dist(dist)
@@ -431,15 +442,16 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
     smh = r.dependency_sort(must_have)
 
-    if force:
-        actions = force_linked_actions(smh, index, prefix)
-    else:
-        actions = ensure_linked_actions(smh, prefix)
+    actions = ensure_linked_actions(
+        smh, prefix,
+        index=index if force else None,
+        force=force, always_copy=always_copy)
 
     if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [config.root_dir]
 
-    for dist in sorted(linked):
+    for fkey in sorted(linked):
+        dist = fkey[:-8]
         name = install.name_dist(dist)
         replace_existing = name in must_have and dist != must_have[name]
         prune_it = prune and dist not in smh
@@ -451,7 +463,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
-    linked = [d+'.tar.bz2' for d in install.linked(prefix)]
+    linked = r.installed
     mss = list(map(MatchSpec, specs))
 
     if force:
@@ -491,8 +503,8 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
 
 def remove_features_actions(prefix, index, features):
-    linked = install.linked(prefix)
     r = Resolve(index)
+    linked = r.installed
 
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
