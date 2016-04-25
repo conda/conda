@@ -36,4 +36,4 @@ sudo: false
 after_success:
   - pip install codecov
   - codecov --env PY_VERSION
-  - travis_build_and_upload
+  # - travis_build_and_upload
