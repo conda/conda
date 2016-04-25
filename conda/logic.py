@@ -445,14 +445,13 @@ class Clauses(object):
             return None
         if not self.m:
             return set() if names else []
+        clauses = self.clauses
         if additional:
             additional = self.convert_clauses(additional)
             if additional is None:
                 return None
             elif additional:
                 clauses = chain(self.clauses, additional)
-        else:
-            clauses = self.clauses
         try:
             solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         except TypeError:

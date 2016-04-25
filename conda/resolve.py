@@ -36,47 +36,11 @@ class Unsatisfiable(RuntimeError):
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
     '''
-    def __init__(self, bad_deps, chains=True):
-        bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
-        if chains:
-            chains = {}
-            for dep in sorted(bad_deps, key=len, reverse=True):
-                dep1 = [str(MatchSpec(s)).partition(' ') for s in dep[1:]]
-                key = (dep[0],) + tuple(v[0] for v in dep1)
-                vals = ('',) + tuple(v[2] for v in dep1)
-                found = False
-                for key2, csets in iteritems(chains):
-                    if key2[:len(key)] == key:
-                        for cset, val in zip(csets, vals):
-                            cset.add(val)
-                        found = True
-                if not found:
-                    chains[key] = [{val} for val in vals]
-            bad_deps = []
-            for key, csets in iteritems(chains):
-                deps = []
-                for name, cset in zip(key, csets):
-                    if '' not in cset:
-                        pass
-                    elif len(cset) == 1:
-                        cset.clear()
-                    else:
-                        cset.remove('')
-                        cset.add('*')
-                    if name[0] == '@':
-                        name = 'feature:' + name[1:]
-                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
-                chains[key] = ' -> '.join(deps)
-            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-            msg = '''The following specifications were found to be in conflict:%s
+    def __init__(self, bad_deps):
+        deps = set(q[-1] for q in bad_deps)
+        msg = '''The following specifications were found to be in conflict:%s
 Use "conda info <package>" to see the dependencies for each package.'''
-        else:
-            bad_deps = [sorted(dep) for dep in bad_deps]
-            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
-            msg = '''The following specifications were found to be incompatible with the
-others, or with the existing package set:%s
-Use "conda info <package>" to see the dependencies for each package.'''
-        msg = msg % dashlist(bad_deps)
+        msg = msg % dashlist(' -> '.join(map(str, q)) for q in bad_deps)
         super(Unsatisfiable, self).__init__(msg)
 
 
@@ -92,7 +56,7 @@ class NoPackagesFound(RuntimeError):
         missing packages and/or dependencies.
     '''
     def __init__(self, bad_deps):
-        deps = set(q[-1].spec for q in bad_deps)
+        deps = set(q[-1] for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
             what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
         elif all(len(q) == 1 for q in bad_deps):
@@ -321,7 +285,7 @@ class Resolve(object):
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
 
-    def valid(self, spec, filter):
+    def valid(self, spec, filter=None):
         """Tests if a MatchSpec is satisfiable, ignoring cyclic dependencies.
 
         Args:
@@ -330,10 +294,13 @@ class Resolve(object):
                 of dependencies, and to eliminate repeated searches.
 
         Returns:
-            True if the full set of dependencies can be satisfied; Fals otherwise.
+            True if the full set of dependencies can be satisfied; False otherwise.
             If filter is supplied and update is True, it will be updated with the
             search results.
         """
+        if filter is None:
+            filter = {}
+
         def v_ms_(ms):
             return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
 
@@ -346,15 +313,13 @@ class Resolve(object):
 
         return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
-    def touch(self, spec, touched, filter):
+    def touch(self, specs, filter=None):
         """Determines a conservative set of packages to be considered given a
            MatchSpec. Cyclic dependencies are not solved, so there is no
            guarantee a solution exists.
 
         Args:
-            spec: a MatchSpec
-            touched: a dict into which to accumulate the result. This is
-                useful when processing multiple specs.
+            spec: a MatchSpec or a list of MatchSpecs
             filter: a dictionary of (fkey, valid) pairs to be used when
                 testing for package validity.
 
@@ -363,20 +328,20 @@ class Resolve(object):
         is _not_ touched, nor are its dependencies. If so, then it is marked as
         touched, and any of its valid dependencies are as well.
         """
-        specs = [spec]
-        first = True
+        if filter is None:
+            filter = {}
+        if isinstance(specs, MatchSpec):
+            specs = [specs]
+        touched = {}
         while specs:
             spec = specs.pop()
-            if spec.name[0] == '@' and not first:
-                continue
-            first = False
             for fkey in self.find_matches(spec):
                 val = touched.get(fkey)
-                if val is not None:
-                    continue
-                val = touched[fkey] = self.valid(fkey, filter)
-                if val:
-                    specs.extend(self.ms_depends(fkey))
+                if val is None:
+                    val = touched[fkey] = self.valid(fkey, filter)
+                    if val:
+                        specs.extend(self.ms_depends(fkey))
+        return touched
 
     def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
@@ -395,20 +360,66 @@ class Resolve(object):
         Returns:
             A list of tuples, or an empty list if the MatchSpec is valid.
         """
-        def chains_(spec, names):
-            if spec.name in names or self.valid(spec, filter):
-                return
-            names.add(spec.name)
-            specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
-            if not specs:
-                yield (spec,)
-            for fkey in specs:
-                for m2 in self.ms_depends(fkey):
-                    for x in chains_(m2, names):
-                        yield (spec,) + x
-        return list(chains_(spec, set()))
+        snames = set()
 
-    def verify_specs(self, specs):
+        def chains_(slist, nover=False, group=None):
+            sname = next(_ for _ in slist).name
+            if sname in snames or any(self.valid(spec, filter) for spec in slist):
+                return []
+            snames.add(sname)
+            groups = {}
+            for spec in slist:
+                for fkey in self.find_matches(spec):
+                    groups.setdefault(self.package_name(fkey), []).append(fkey)
+            subchains = set()
+            sname = spec.name
+            for name, fgroup in iteritems(groups):
+                deps = {}
+                for fkey in fgroup:
+                    filter[fkey] = True
+                for fkey in fgroup:
+                    for m2 in self.ms_depends(fkey):
+                        deps.setdefault(m2.name, set()).add(m2)
+                for dname, dspecs in iteritems(deps):
+                    res = chains_(dspecs, nover=True)
+                    if sname[0] == '@':
+                        res = [(name,) + r for r in res]
+                    subchains.update(res)
+                for fkey in fgroup:
+                    filter[fkey] = False
+            if sname[0] == '@':
+                sname = '[feature:%s]' % (sname[1:])
+            if subchains:
+                return [(sname,) + x for x in subchains]
+            elif sname[0] == '[':
+                return [(sname,)]
+            else:
+                return [(s.spec,) for s in slist]
+        cdict = {}
+        for chain in chains_([spec]):
+            cdict.setdefault(chain[-1], []).append(chain)
+        cdict2 = {}
+        for csuff, cset in iteritems(cdict):
+            cset = sorted(cset, key=len)
+            cname, _, cver = csuff.partition(' ')
+            if len(cset[0]) <= 2:
+                chain = cset[0]
+            elif len(cset[0]) == 3:
+                mids = set(c[1] for c in cset if len(c) == 3)
+                chain = (cset[0][0], ','.join(sorted(mids)), csuff)
+            else:
+                mids = set(c[1] for c in cset)
+                chain = (cset[0][0], ','.join(sorted(mids)), '...', csuff)
+            cname, _, cver = csuff.partition(' ')
+            chain = chain[:-1] + (cname,)
+            cdict2.setdefault(chain, set()).add(cver)
+        res = []
+        for chain, cvers in iteritems(cdict2):
+            cvers = '' if '' in cvers else ' ' + '|'.join(sorted(cvers))
+            res.append(chain[:-1] + (chain[-1] + cvers,))
+        return sorted(res)
+
+    def verify_specs(self, specs, unsat=False, target=None):
         """Perform a quick verification that specs and dependencies are reasonable.
 
         Args:
@@ -419,43 +430,33 @@ class Resolve(object):
 
         Note that this does not attempt to resolve circular dependencies.
         """
+        filter = {}
         bad_deps = []
-<<<<<<< HEAD
-        spec2 = []
-        feats = set()
-        for s in specs:
-            ms = MatchSpec(s)
-            if ms.name[-1] == '@':
-                self.add_feature(ms.name[:-1])
-                feats.add(ms.name[:-1])
-            else:
-                spec2.append(ms)
-        for ms in spec2:
-=======
         specs = list(map(MatchSpec, specs))
         for ms in specs:
->>>>>>> remove dummy feature packages
             if not ms.optional:
-                filter = {}
-                if not self.valid(ms, filter):
-                    bad_deps.extend(self.invalid_chains(ms, filter))
-        if bad_deps:
+                bad_deps.extend(self.invalid_chains(ms, filter))
+        if not bad_deps:
+            return specs
+        if not unsat:
             raise NoPackagesFound(bad_deps)
-        return specs
+        if target:
+            bad_deps2 = [c for c in bad_deps if c[-1].split(' ', 1)[0] in target]
+            bad_deps = bad_deps2 or bad_deps
+        raise Unsatisfiable(bad_deps)
 
-    def get_dists(self, specs):
-        log.debug('Retrieving packages for: %s' % specs)
+    def get_dists(self, specs, full=False):
+        log.debug('Retrieving packages for: %s' % (specs,))
 
         specs = self.verify_specs(specs)
         filter = {}
-        touched = {}
         snames = set()
-        nspecs = set()
 
         class BadPrune:
-            pass
+            def __init__(self, dep):
+                self.dep = dep
 
-        def filter_group(matches, chains=None):
+        def filter_group(matches):
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
             # participates in the pruning even if one of its
@@ -484,7 +485,7 @@ class Resolve(object):
                     filter[fkey] = sat
                     nnew += sat
 
-            # Build dependency chains if we detect unsatisfiability
+            # Quick exit if we detect unsatisfiability
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
@@ -492,7 +493,7 @@ class Resolve(object):
                 if name in snames:
                     snames.remove(name)
                 if not isopt:
-                    raise BadPrune
+                    raise BadPrune(name)
                 return nnew != 0
             if not reduced and not first or isopt or isfeat:
                 return reduced
@@ -502,8 +503,6 @@ class Resolve(object):
             # not have a particular dependency, it must be ignored in this pass.
             if first:
                 snames.add(name)
-                if match1 not in specs:
-                    nspecs.add(MatchSpec(name))
             cdeps = defaultdict(list)
             for fkey in group:
                 if filter[fkey]:
@@ -513,64 +512,52 @@ class Resolve(object):
             cdeps = {mname: set(deps) for mname, deps in iteritems(cdeps) if len(deps) >= nnew}
             if cdeps:
                 matches = [(ms,) for ms in matches]
-                if chains:
-                    matches = [a + b for a in chains for b in matches]
-                if sum(filter_group(deps, chains) for deps in itervalues(cdeps)):
+                if sum(filter_group(deps) for deps in itervalues(cdeps)):
                     reduced = True
 
             return reduced
 
         # Iterate in the filtering process until no more progress is made
-        def full_prune(specs):
-            filter.clear()
-            feats = set(self.trackers.keys())
-            snames.clear()
-            specs = slist = list(specs)
-            onames = set(s.name for s in specs)
-            for iter in range(10):
-                first = True
-                try:
-                    while sum(filter_group([s]) for s in slist):
-                        slist = specs + [MatchSpec(n) for n in snames - onames]
-                        first = False
-                    unsat = False
-                except BadPrune:
-                    filter.clear()
-                    unsat = True
-                if not unsat and first and iter:
-                    return True
-                touched.clear()
-                for spec in specs:
-                    self.touch(spec, touched, filter)
-                if unsat:
-                    return False
-                nfeats = set()
-                for fkey, val in iteritems(touched):
-                    if val:
-                        nfeats.update(self.track_features(fkey))
-                if len(nfeats) >= len(feats):
-                    return True
-                pruned = False
-                for feat in feats - nfeats:
-                    feats.remove(feat)
-                    for fkey in self.trackers[feat]:
-                        if filter.get(fkey, True):
-                            filter[fkey] = False
-                            pruned = True
-                if not pruned:
-                    return True
-
-        #
-        # In the case of a conflict, look for the minimum satisfiable subset
-        #
-
-        if full_prune(specs):
-            new_specs = list(map(MatchSpec, snames - {ms.name for ms in specs}))
-        else:
-            new_specs = None
+        feats = set(self.trackers.keys())
+        slist = specs
+        onames = set(s.name for s in specs)
+        new_specs = []
+        for iter in range(10):
+            first = True
+            try:
+                unsat = None
+                while sum(filter_group([s]) for s in slist):
+                    new_specs = [MatchSpec(n) for n in snames - onames]
+                    slist = specs + new_specs
+                    first = False
+            except BadPrune as unsat:
+                new_specs = None
+                unsat = unsat.dep
+            if not unsat and first and iter:
+                break
+            touched = self.touch(specs, {} if unsat else filter)
+            if unsat:
+                break
+            nfeats = set()
+            for fkey, val in iteritems(touched):
+                if val:
+                    nfeats.update(self.track_features(fkey))
+            if len(nfeats) >= len(feats):
+                break
+            pruned = False
+            for feat in feats - nfeats:
+                feats.remove(feat)
+                for fkey in self.trackers[feat]:
+                    if filter.get(fkey, True):
+                        filter[fkey] = False
+                        pruned = True
+            if not pruned:
+                break
 
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
-        return dists, new_specs
+        if full:
+            return dists, new_specs, unsat
+        return dists
 
     def match_any(self, mss, fkey):
         rec = self.index[fkey]
@@ -703,7 +690,7 @@ class Resolve(object):
         return C
 
     def generate_spec_constraints(self, C, specs):
-        return [(self.push_MatchSpec(C, ms),) for ms in specs if not ms.optional]
+        return [(self.push_MatchSpec(C, ms),) for ms in specs]
 
     def generate_feature_count(self, C):
         return {self.push_MatchSpec(C, '@' + name): 1 for name in iterkeys(self.trackers)}
@@ -727,7 +714,7 @@ class Resolve(object):
     def generate_package_count(self, C, missing):
         return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
-    def generate_version_metrics(self, C, specs):
+    def generate_version_metrics(self, C, specs, include0=False):
         eqv = {}
         eqb = {}
         sdict = {}
@@ -745,9 +732,9 @@ class Resolve(object):
                     ib = 0
                 elif pkey[2] != nkey[2]:
                     ib += 1
-                if iv:
+                if iv or include0:
                     eqv[npkg] = iv
-                if ib:
+                if ib or include0:
                     eqb[npkg] = ib
                 pkey = nkey
         return eqv, eqb
@@ -939,28 +926,32 @@ class Resolve(object):
             specs = list(map(MatchSpec, specs))
             if len0 is None:
                 len0 = len(specs)
-            dists, new_specs = self.get_dists(specs)
-            if not dists and new_specs is not None:
+            dists, new_specs, unsat = self.get_dists(specs, True)
+            if not dists and not unsat:
                 return False if dists is None else ([[]] if returnall else [])
 
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
-            if new_specs is None:
-                r2 = self
-                C = r2.gen_clauses()
-                solution = None
-            else:
-                r2 = Resolve(dists, True, True)
-                C = r2.gen_clauses()
-                constraints = r2.generate_spec_constraints(C, specs)
-                solution = C.sat(constraints, True)
+            r2 = Resolve(dists, True, True)
+            C = r2.gen_clauses()
+            constraints = r2.generate_spec_constraints(C, specs)
+            solution = C.sat(constraints, True)
             if not solution:
                 def mysat(specs):
                     constraints = r2.generate_spec_constraints(C, specs)
-                    return C.sat(constraints, False) is not None
+                    res = C.sat(constraints, False) is not None
+                    return res
                 stdoutlog.info("\nUnsatisfiable specifications detected; generating hint ...")
                 hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=False)
-                raise Unsatisfiable([(h, ) for h in hint], True)
+                hnames = set(h.name for h in hint)
+                if unsat:
+                    if unsat[0] == '@' and unsat[1:] in r2.trackers:
+                        del r2.trackers[unsat]
+                    elif unsat in r2.groups:
+                        del r2.groups[unsat]
+                hnames.add(unsat)
+                r2.verify_specs(hint, unsat=True, target=hnames)
+                raise Unsatisfiable([(h, ) for h in map(str, hint)])
 
             speco = []  # optional packages
             specr = []  # requested packages
