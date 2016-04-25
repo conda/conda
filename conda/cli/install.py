@@ -18,7 +18,6 @@ import errno
 
 import conda.config as config
 import conda.plan as plan
-import conda.instructions as inst
 import conda.misc as misc
 from conda.api import get_index
 from conda.cli import common
@@ -163,6 +162,7 @@ def install(args, parser, command='install'):
     else:
         default_packages = []
 
+    common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
 
@@ -205,31 +205,16 @@ def install(args, parser, command='install'):
             install_tar(prefix, tar_path, verbose=not args.quiet)
             return
 
-    if args.use_local:
-        from conda.fetch import fetch_index
-        from conda.utils import url_path
-        try:
-            from conda_build.config import croot
-        except ImportError:
-            common.error_and_exit(
-                    "you need to have 'conda-build >= 1.7.1' installed"
-                    " to use the --use-local option",
-                    json=args.json,
-                    error_type="RuntimeError")
-        # remove the cache such that a refetch is made,
-        # this is necessary because we add the local build repo URL
-        fetch_index.cache = {}
-        if exists(croot):
-            channel_urls = [url_path(croot)] + list(channel_urls)
-
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,
+                                  use_local=args.use_local,
                                   use_cache=args.use_index_cache,
                                   unknown=args.unknown,
                                   json=args.json,
                                   offline=args.offline,
                                   prefix=prefix)
     r = Resolve(index)
+    ospecs = list(specs)
     plan.add_defaults_to_specs(r, linked, specs, update=isupdate)
 
     if newenv and args.clone:
@@ -247,13 +232,10 @@ def install(args, parser, command='install'):
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
+        installed_metadata = [ci.is_linked(prefix, dist) for dist in linked]
         for name in orig_packages:
-            installed_metadata = [ci.is_linked(prefix, dist)
-                                  for dist in linked]
-            vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
-                         if dist.rsplit('-', 2)[0] == name]
-            build_inst = [m['build_number'] for m in installed_metadata if
-                          m['name'] == name]
+            vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
+            build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
 
             try:
                 assert len(vers_inst) == 1, name
@@ -288,9 +270,8 @@ def install(args, parser, command='install'):
     if args.force:
         args.no_deps = True
 
-    spec_names = set(s.split()[0] for s in specs)
     if args.no_deps:
-        only_names = spec_names
+        only_names = set(s.split()[0] for s in specs)
     else:
         only_names = None
 
@@ -321,15 +302,9 @@ environment does not exist: %s
                                                force=args.force,
                                                only_names=only_names,
                                                pinned=args.pinned,
+                                               always_copy=args.copy,
                                                minimal_hint=args.alt_hint,
                                                update_deps=args.update_deps)
-            if config.always_copy or args.copy:
-                new_link = []
-                for pkg in actions["LINK"]:
-                    dist, pkgs_dir, lt = inst.split_linkarg(pkg)
-                    lt = ci.LINK_COPY
-                    new_link.append("%s %s %d" % (dist, pkgs_dir, lt))
-                actions["LINK"] = new_link
     except NoPackagesFound as e:
         error_message = e.args[0]
 
@@ -390,7 +365,7 @@ environment does not exist: %s
         from conda.cli.main_list import print_packages
 
         if not args.json:
-            regex = '^(%s)$' % '|'.join(spec_names)
+            regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
             print('\n# All requested packages already installed.')
             print_packages(prefix, regex)
         else:

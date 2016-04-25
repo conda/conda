@@ -43,6 +43,9 @@ import traceback
 import re
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
+from conda.config import url_channel
+from conda.compat import iteritems, iterkeys
+from conda import config
 
 try:
     from conda.lock import Locked
@@ -73,6 +76,14 @@ except ImportError:
             found = found_path.group(1).replace("\\", "/").replace(":", "")
             return root_prefix + "/" + found
         return re.sub(path_re, translation, path).replace(";/", ":/")
+
+# Make sure the script stays standalone for the installer
+try:
+    from conda.config import remove_binstar_tokens
+except ImportError:
+    # There won't be any binstar tokens in the installer anyway
+    def remove_binstar_tokens(url):
+        return url
 
 on_win = bool(sys.platform == "win32")
 
@@ -355,9 +366,15 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
-def name_dist(dist):
-    return dist.rsplit('-', 2)[0]
+def _dist2pair(dist):
+    dparts = dist.split('::', 1)
+    return ('defaults', dparts[0]) if len(dparts) == 1 else dparts
 
+def name_dist(dist):
+    return dist.split('::', 1)[-1].rsplit('-', 2)[0]
+
+def _dist2filename(dist, suffix='.tar.bz2'):
+    return dist.split('::', 1)[-1] + suffix
 
 def create_meta(prefix, dist, info_dir, extra_info):
     """
@@ -366,13 +383,14 @@ def create_meta(prefix, dist, info_dir, extra_info):
     # read info/index.json first
     with open(join(info_dir, 'index.json')) as fi:
         meta = json.load(fi)
-    # add extra info
+    # add extra info, add to our intenral cache
     meta.update(extra_info)
+    load_linked_data(prefix, dist, meta)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
-    with open(join(meta_dir, dist + '.json'), 'w') as fo:
+    with open(join(meta_dir, _dist2filename(dist, '.json')), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
 
 
@@ -439,18 +457,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return False
     return True
 
-
-def read_url(pkgs_dir, dist):
-    try:
-        data = open(join(pkgs_dir, 'urls.txt')).read()
-        urls = data.split()
-        for url in urls[::-1]:
-            if url.endswith('/%s.tar.bz2' % dist):
-                return url
-    except IOError:
-        pass
-    return None
-
+def read_url(dist):
+    return package_cache().get(dist, {}).get('urls', (None,))[0]
 
 def read_icondata(source_dir):
     import base64
@@ -507,6 +515,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
 # ========================== begin API functions =========================
 
 def try_hard_link(pkgs_dir, prefix, dist):
+    dist = _dist2filename(dist, '')
     src = join(pkgs_dir, dist, 'info', 'index.json')
     dst = join(prefix, '.tmp-%s' % dist)
     assert isfile(src), src
@@ -527,35 +536,192 @@ def try_hard_link(pkgs_dir, prefix, dist):
         rm_rf(dst)
         rm_empty_dir(prefix)
 
-# ------- package cache ----- fetched
-def is_fetched(pkgs_dir, dist):
-    return isfile(join(pkgs_dir, dist + '.tar.bz2'))
+# ------- package cache ----- construction
 
-def rm_fetched(pkgs_dir, dist):
-    with Locked(pkgs_dir):
-        path = join(pkgs_dir, dist + '.tar.bz2')
-        rm_rf(path)
+# The current package cache does not support the ability to store multiple packages
+# with the same filename from different channels. Furthermore, the filename itself
+# cannot be used to disambiguate; we must read the URL from urls.txt to determine
+# the source channel. For this reason, we now fully parse the directory and its
+# accompanying urls.txt file so we can make arbitrary queries without having to
+# read this data multiple times.
+
+package_cache_ = {}
+fname_table = {}
+def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
+    """
+    Adds a new package to the cache. The URL is used to determine the
+    package filename and channel, and the directory pdir is scanned for
+    both a compressed and an extracted version of that package. If
+    urlstxt=True, this URL will be appended to the urls.txt file in the
+    cache, so that subsequent runs will correctly identify the package.
+    """
+    package_cache()
+    dist = url.rsplit('/', 1)[-1]
+    if dist.endswith('.tar.bz2'):
+        fname = dist
+        dist = dist[:-8]
+    else:
+        fname = dist + '.tar.bz2'
+    xpkg = join(pdir, fname)
+    if not overwrite and xpkg in fname_table:
+        return
+    if not isfile(xpkg):
+        xpkg = None
+    xdir = join(pdir, dist)
+    if not (isdir(xdir) and
+            isfile(join(xdir, 'info', 'files')) and
+            isfile(join(xdir, 'info', 'index.json'))):
+        xdir = None
+    if not (xpkg or xdir):
+        return
+    url = remove_binstar_tokens(url)
+    channel, schannel = url_channel(url)
+    prefix = '' if schannel == 'defaults' else schannel + '::'
+    fname_table[xpkg] = prefix
+    fkey = prefix + dist
+    rec = package_cache_.get(fkey)
+    if rec is None:
+        rec = package_cache_[fkey] = dict(files=[], dirs=[], urls=[])
+    if url not in rec['urls']:
+        rec['urls'].append(url)
+    if xpkg and xpkg not in rec['files']:
+        rec['files'].append(xpkg)
+    if xdir and xdir not in rec['dirs']:
+        rec['dirs'].append(xdir)
+    if urlstxt:
+        try:
+            with open(join(pdir, 'urls.txt'), 'a') as fa:
+                fa.write('%s\n' % url)
+        except IOError:
+            pass
+
+def package_cache():
+    """
+    Initializes the package cache. Each entry in the package cache
+    dictionary contains three lists:
+    - urls: the URLs used to refer to that package
+    - files: the full pathnames to fetched copies of that package
+    - dirs: the full pathnames to extracted copies of that package
+    Nominally there should be no more than one entry in each list, but
+    in theory this can handle the presence of multiple copies.
+    """
+    if package_cache_:
+        return package_cache_
+    # Stops recursion
+    package_cache_['@'] = None
+    for pdir in config.pkgs_dirs:
+        try:
+            data = open(join(pdir, 'urls.txt')).read()
+            for url in data.split()[::-1]:
+                if '/' in url:
+                    add_cached_package(pdir, url)
+            for fn in os.listdir(pdir):
+                add_cached_package(pdir, '<unknown>/' + fn)
+        except IOError:
+            continue
+    del package_cache_['@']
+    return package_cache_
+
+def find_new_location(dist):
+    """
+    Determines the download location for the given package, and the name
+    of a package, if any, that must be removed to make room. If the
+    given package is already in the cache, it returns its current location,
+    under the assumption that it will be overwritten. If the conflict
+    value is None, that means there is no other package with that same
+    name present in the cache (e.g., no collision).
+    """
+    rec = package_cache().get(dist)
+    if rec:
+        return dirname((rec['files'] or rec['dirs'])[0]), None
+    fname = _dist2filename(dist)
+    dname = fname[:-8]
+    # Look for a location with no conflicts
+    # On the second pass, just pick the first location
+    for p in range(2):
+        for pkg_dir in config.pkgs_dirs:
+            pkg_path = join(pkg_dir, fname)
+            prefix = fname_table.get(pkg_path)
+            if p or prefix is None:
+                return pkg_path, prefix + dname if p else None
+
+# ------- package cache ----- fetched
+
+def fetched():
+    """
+    Returns the (set of canonical names) of all fetched packages
+    """
+    return set(dist for dist, rec in iteritems(package_cache()) if rec['files'])
+
+def is_fetched(dist):
+    """
+    Returns the full path of the fetched package, or None if it is not in the cache.
+    """
+    for fn in package_cache().get(dist, {}).get('files', ()):
+        return fn
+
+def rm_fetched(dist):
+    """
+    Checks to see if the requested package is in the cache; and if so, it removes both
+    the package itself and its extracted contents.
+    """
+    rec = package_cache().get(dist)
+    if rec is None:
+        return
+    for fname in rec['files']:
+        del fname_table[fname]
+        with Locked(dirname(fname)):
+            rm_rf(fname)
+    for fname in rec['dirs']:
+        with Locked(dirname(fname)):
+            rm_rf(fname)
+    del package_cache_[dist]
 
 # ------- package cache ----- extracted
 
-def extracted(pkgs_dir):
+def extracted():
     """
     return the (set of canonical names) of all extracted packages
     """
-    if not isdir(pkgs_dir):
-        return set()
-    return set(dn for dn in os.listdir(pkgs_dir)
-               if (isfile(join(pkgs_dir, dn, 'info', 'files')) and
-                   isfile(join(pkgs_dir, dn, 'info', 'index.json'))))
+    return set(dist for dist, rec in iteritems(package_cache()) if rec['dirs'])
 
-def extract(pkgs_dir, dist):
+def is_extracted(dist):
     """
-    Extract a package, i.e. make a package available for linkage.  We assume
-    that the compressed packages is located in the packages directory.
+    returns the full path of the extracted data for the requested package,
+    or None if that package is not extracted.
     """
+    for fn in package_cache().get(dist, {}).get('dirs', ()):
+        return fn
+
+def rm_extracted(dist):
+    """
+    Removes any extracted versions of the given package found in the cache.
+    """
+    rec = package_cache().get(dist)
+    if rec is None:
+        return
+    for fname in rec['dirs']:
+        with Locked(dirname(fname)):
+            rm_rf(fname)
+    if rec['files']:
+        rec['dirs'] = []
+    else:
+        del package_cache_[dist]
+
+def extract(dist):
+    """
+    Extract a package, i.e. make a package available for linkage. We assume
+    that the compressed package is located in the packages directory.
+    """
+    rec = package_cache()[dist]
+    url = rec['urls'][0]
+    fname = rec['files'][0]
+    assert url and fname
+    pkgs_dir = dirname(fname)
     with Locked(pkgs_dir):
-        path = join(pkgs_dir, dist)
-        t = tarfile.open(path + '.tar.bz2')
+        path = fname[:-8]
+        rm_rf(path)
+        t = tarfile.open(fname)
         t.extractall(path=path)
         t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
@@ -566,55 +732,84 @@ def extract(pkgs_dir, dist):
                 for fn in files:
                     p = join(root, fn)
                     os.lchown(p, 0, 0)
+        add_cached_package(pkgs_dir, url, overwrite=True)
 
-def is_extracted(pkgs_dir, dist):
-    return (isfile(join(pkgs_dir, dist, 'info', 'files')) and
-            isfile(join(pkgs_dir, dist, 'info', 'index.json')))
+# Because the conda-meta .json files do not include channel names in
+# their filenames, we have to pull that information from the .json
+# files themselves. This has made it necessary in virtually all
+# circumstances to load the full set of files from this directory.
+# Therefore, we have implemented a full internal cache of this
+# data to eliminate redundant file reads.
 
-def rm_extracted(pkgs_dir, dist):
-    with Locked(pkgs_dir):
-        path = join(pkgs_dir, dist)
-        rm_rf(path)
+linked_data_ = {}
 
-# ------- linkage of packages
+
+def load_linked_data(prefix, dist, rec=None):
+    schannel, dname = _dist2pair(dist)
+    if rec is None:
+        meta_file = join(prefix, 'conda-meta', dname + '.json')
+        try:
+            with open(meta_file) as fi:
+                rec = json.load(fi)
+        except IOError:
+            return None
+        _, schannel = url_channel(rec.get('url'))
+    else:
+        linked_data(prefix)
+    rec['schannel'] = schannel
+    cprefix = '' if schannel == 'defaults' else schannel + '::'
+    rec['fn'] = dname + '.tar.bz2'
+    linked_data_[prefix][str(cprefix + dname)] = rec
+    return rec
+
+
+def delete_linked_data(prefix, dist, delete=True):
+    recs = linked_data_.get(prefix)
+    if recs and dist in recs:
+        del recs[dist]
+    if delete:
+        meta_path = join(prefix, 'conda-meta', _dist2filename(dist, '.json'))
+        if isfile(meta_path):
+            os.unlink(meta_path)
+
+
+def load_meta(prefix, dist):
+    """
+    Return the install meta-data for a linked package in a prefix, or None
+    if the package is not linked in the prefix.
+    """
+    return linked_data(prefix).get(dist)
+
 
 def linked_data(prefix):
     """
     Return a dictionary of the linked packages in prefix.
     """
-    res = {}
-    meta_dir = join(prefix, 'conda-meta')
-    if isdir(meta_dir):
-        for fn in os.listdir(meta_dir):
-            if fn.endswith('.json'):
-                try:
-                    with open(join(meta_dir, fn)) as fin:
-                        res[fn[:-5]] = json.load(fin)
-                except IOError:
-                    pass
-    return res
+    # Manually memoized so it can be updated
+    recs = linked_data_.get(prefix)
+    if recs is None:
+        recs = linked_data_[prefix] = {}
+        meta_dir = join(prefix, 'conda-meta')
+        if isdir(meta_dir):
+            for fn in os.listdir(meta_dir):
+                if fn.endswith('.json'):
+                    load_linked_data(prefix, fn[:-5])
+    return recs
+
 
 def linked(prefix):
     """
-    Return the (set of canonical names) of linked packages in prefix.
+    Return the set of canonical names of linked packages in prefix.
     """
-    meta_dir = join(prefix, 'conda-meta')
-    if not isdir(meta_dir):
-        return set()
-    return set(fn[:-5] for fn in os.listdir(meta_dir) if fn.endswith('.json'))
+    return set(iterkeys(linked_data(prefix)))
 
 # FIXME Functions that begin with `is_` should return True/False
 def is_linked(prefix, dist):
     """
-    Return the install meta-data for a linked package in a prefix, or None
+    Return the install metadata for a linked package in a prefix, or None
     if the package is not linked in the prefix.
     """
-    meta_path = join(prefix, 'conda-meta', dist + '.json')
-    try:
-        with open(meta_path) as fi:
-            return json.load(fi)
-    except IOError:
-        return None
+    return load_meta(prefix, dist)
 
 def delete_trash(prefix=None):
     from conda import config
@@ -675,16 +870,18 @@ def move_path_to_trash(path):
     log.debug("Could not move %s to trash" % path)
     return False
 
-def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
+def link(prefix, dist, linktype=LINK_HARD, index=None):
     '''
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     '''
     index = index or {}
+    source_dir = is_extracted(dist)
+    assert source_dir is not None
+    pkgs_dir = dirname(source_dir)
     log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
               (pkgs_dir, prefix, dist, linktype))
 
-    source_dir = join(pkgs_dir, dist)
     if not run_script(source_dir, dist, 'pre-link', prefix):
         sys.exit('Error: pre-link failed: %s' % dist)
 
@@ -738,28 +935,16 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
 
-        # Make sure the script stays standalone for the installer
-        try:
-            from conda.config import remove_binstar_tokens
-        except ImportError:
-            # There won't be any binstar tokens in the installer anyway
-            def remove_binstar_tokens(url):
-                return url
-
         meta_dict = index.get(dist + '.tar.bz2', {})
-        meta_dict['url'] = read_url(pkgs_dir, dist)
-        if meta_dict['url']:
-            meta_dict['url'] = remove_binstar_tokens(meta_dict['url'])
+        meta_dict['url'] = read_url(dist)
         try:
-            alt_files_path = join(prefix, 'conda-meta', dist + '.files')
+            alt_files_path = join(prefix, 'conda-meta', _dist2filename(dist, '.files'))
             meta_dict['files'] = list(yield_lines(alt_files_path))
             os.unlink(alt_files_path)
         except IOError:
             meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,
                              'type': link_name_map.get(linktype)}
-        if 'channel' in meta_dict:
-            meta_dict['channel'] = remove_binstar_tokens(meta_dict['channel'])
         if 'icon' in meta_dict:
             meta_dict['icondata'] = read_icondata(source_dir)
 
@@ -774,10 +959,7 @@ def unlink(prefix, dist):
     with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
-        meta_path = join(prefix, 'conda-meta', dist + '.json')
-        with open(meta_path) as fi:
-            meta = json.load(fi)
-
+        meta = load_meta(prefix, dist)
         mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
 
@@ -798,7 +980,7 @@ def unlink(prefix, dist):
                         log.debug("cannot import conda.config; probably not an issue")
 
         # remove the meta-file last
-        os.unlink(meta_path)
+        delete_linked_data(prefix, dist, delete=True)
 
         dst_dirs2 = set()
         for path in dst_dirs1:
@@ -824,7 +1006,7 @@ def messages(prefix):
         rm_rf(path)
 
 
-def duplicates_to_remove(linked_dists, keep_dists):
+def duplicates_to_remove(dist_metas, keep_dists):
     """
     Returns the (sorted) list of distributions to be removed, such that
     only one distribution (for each name) remains.  `keep_dists` is an
@@ -834,7 +1016,7 @@ def duplicates_to_remove(linked_dists, keep_dists):
 
     keep_dists = set(keep_dists)
     ldists = defaultdict(set)  # map names to set of distributions
-    for dist in linked_dists:
+    for dist in dist_metas:
         name = name_dist(dist)
         ldists[name].add(dist)
 

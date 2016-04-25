@@ -10,8 +10,8 @@ from conda.resolve import Resolve
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_cache=False, unknown=False, offline=False,
-              prefix=None):
+              use_local=False, use_cache=False, unknown=False,
+              offline=False, prefix=None):
     """
     Return the index of packages available on the channels
 
@@ -19,6 +19,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     If platform=None, then the current platform is used.
     If prefix is supplied, then the packages installed in that prefix are added.
     """
+    if use_local:
+        channel_urls = ['local'] + list(channel_urls)
     channel_urls = config.normalize_urls(channel_urls, platform, offline)
     if prepend:
         pri0 = max(itervalues(channel_urls), key=itemgetter(1))[1] if channel_urls else 0
@@ -26,21 +28,20 @@ def get_index(channel_urls=(), prepend=True, platform=None,
             channel_urls[url] = (rec[0], rec[1] + pri0)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
+        priorities = {c: p for c, p in itervalues(channel_urls)}
         for dist, info in iteritems(install.linked_data(prefix)):
-            fn = dist + '.tar.bz2'
-            channel = info.get('channel', '')
-            if channel not in channel_urls:
-                channel_urls[channel] = (config.canonical_channel_name(channel, True, True), 0)
-            url_s, priority = channel_urls[channel]
-            key = url_s + '::' + fn if url_s else fn
-            if key not in index:
+            fn = info['fn']
+            schannel = info['schannel']
+            prefix = '' if schannel == 'defaults' else schannel + '::'
+            priority = priorities.get(schannel, 0)
+            key = prefix + fn
+            if key in index:
+                # Copy the link information so the resolver knows this is installed
+                index[key]['link'] = info.get('link')
+            else:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
                 info.setdefault('depends', [])
-                info['fn'] = fn
-                info['schannel'] = url_s
-                info['channel'] = channel
-                info['url'] = channel + fn
                 info['priority'] = priority
                 index[key] = info
     return index

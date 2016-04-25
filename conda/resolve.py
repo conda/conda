@@ -195,6 +195,9 @@ class Package(object):
         self.build = info.get('build')
         self.build_number = info.get('build_number')
         self.channel = info.get('channel')
+        self.schannel = info.get('schannel')
+        if self.schannel is None:
+            self.schannel = config.canonical_channel_name(self.channel)
         try:
             self.norm_version = normalized_version(self.version)
         except ValueError:
@@ -254,13 +257,17 @@ class Resolve(object):
 
         groups = {}
         trackers = {}
+        installed = set()
         for fkey, info in iteritems(index):
             groups.setdefault(info['name'], []).append(fkey)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(fkey)
+            if 'link' in info:
+                installed.add(fkey)
 
         self.index = index
         self.groups = groups
+        self.installed = installed
         self.trackers = trackers
         self.find_matches_ = {}
         self.ms_depends_ = {}

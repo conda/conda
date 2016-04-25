@@ -341,14 +341,24 @@ def add_parser_show_channel_urls(p):
         help="Don't show channel urls.",
     )
 
-def ensure_override_channels_requires_channel(args, dashc=True, json=False):
+def ensure_use_local(args):
+    if not args.use_local:
+        return
+    try:
+        from conda_build.config import croot  # noqa
+    except ImportError:
+        error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
+                       " to use the --use-local option",
+                       json=args.json, error_type="RuntimeError")
+
+def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
         if dashc:
-            error_and_exit('--override-channels requires -c/--channel or --use-local', json=json,
-                           error_type="ValueError")
+            error_and_exit('--override-channels requires -c/--channel or --use-local',
+                           json=args.json, error_type="ValueError")
         else:
-            error_and_exit('--override-channels requires --channel or --use-local', json=json,
-                           error_type="ValueError")
+            error_and_exit('--override-channels requires --channel or --use-local',
+                           json=args.json, error_type="ValueError")
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
