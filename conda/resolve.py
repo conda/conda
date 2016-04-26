@@ -348,7 +348,7 @@ class Resolve(object):
                         specs.extend(self.ms_depends(fkey))
         return touched
 
-    def invalid_chains(self, spec, filter):
+    def invalid_chains(self, spec, filter=None):
         """Constructs a set of 'dependency chains' for invalid specs.
 
         A dependency chain is a tuple of MatchSpec objects, starting with
@@ -366,6 +366,8 @@ class Resolve(object):
             A list of tuples, or an empty list if the MatchSpec is valid.
         """
         cache_ = {}
+        if filter is None:
+            filter = {}
 
         def compress_(chains, pfx):
             if not chains:
@@ -418,12 +420,13 @@ class Resolve(object):
                 res = cache_[slist] = compress_(chains, sname)
                 return res
 
-            # If valid, no chains
             spec1 = next(_ for _ in slist)
+            sname = spec1.name
+
+            # If valid, no chains
             if self.valid(spec1, filter):
                 res = cache_[slist] = ()
                 return ()
-            sname = spec1.name
 
             if sname[0] == '@':
                 fname = '[%s]' % (sname[1:])
@@ -469,11 +472,11 @@ class Resolve(object):
                     subchains.update(chains_(tuple(sorted(dspecs))))
 
                 if subchains:
-                    subchains = [(sname,) + x for x in subchains]
+                    subchains = [(spec1.spec,) + x for x in subchains]
                 else:
-                    subchains = [(s.spec,) for s in slist]
+                    subchains = [(spec1.spec,)]
 
-                name = fname + name if sname[0] == '@' else sname
+                name = fname + name if sname[0] == '@' else spec1.spec
                 res.extend(compress_(subchains, name))
 
             cache_[slist] = res
@@ -483,9 +486,10 @@ class Resolve(object):
             spec = (spec,)
         else:
             spec = tuple(sorted(set(spec)))
-        return chains_(spec)
+        res = chains_(spec)
+        return res or list((s,) for s in spec)
 
-    def verify_specs(self, specs, filter=None, unsat=False, target=None):
+    def verify_specs(self, specs):
         """Perform a quick verification that specs and dependencies are reasonable.
 
         Args:
@@ -496,21 +500,25 @@ class Resolve(object):
 
         Note that this does not attempt to resolve circular dependencies.
         """
-        if filter is None:
-            filter = {}
+        filter = {}
         bad_deps = []
         specs = list(map(MatchSpec, specs))
+        valid = True
+        while True:
+            olen = len(filter)
+            for ms in specs:
+                if not ms.optional and not self.valid(ms, filter):
+                    valid = False
+            if valid:
+                return specs
+            if len(filter) == olen:
+                break
+        bad_deps = []
         for ms in specs:
             if not ms.optional and not self.valid(ms, filter):
-                bad_deps.extend(self.invalid_chains(ms, filter))
-        if not bad_deps:
-            return specs
-        if not unsat:
-            raise NoPackagesFound(bad_deps)
-        if target:
-            bad_deps2 = [c for c in bad_deps if c[-1].split(' ', 1)[0] in target]
-            bad_deps = bad_deps2 or bad_deps
-        raise Unsatisfiable(bad_deps)
+                res = self.invalid_chains(ms, filter)
+                bad_deps.extend(res or ((ms.spec,)))
+        raise NoPackagesFound(bad_deps)
 
     def get_dists(self, specs, full=False):
         log.debug('Retrieving packages for: %s' % (specs,))
@@ -1004,18 +1012,33 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             solution = C.sat(constraints, True)
             if not solution:
+                # Generate hint. First we determine a minimum unsat subset. This is the
+                # smallest set of specs that conflict with each other
                 def mysat(specs):
                     constraints = r2.generate_spec_constraints(C, specs)
                     res = C.sat(constraints, False) is not None
                     return res
                 stdoutlog.info("\nUnsatisfiable specifications detected; generating hint ...")
                 hint = minimal_unsatisfiable_subset(specs, sat=mysat, log=False)
+                # Find dependency chains that establish invalidity
                 hnames = set(h.name for h in hint)
+                filter = {}
+                for ms2 in hint:
+                    for fkey in r2.find_matches(ms2.name):
+                        if not self.match_fast(ms2, fkey):
+                            filter[fkey] = False
                 if unsat:
-                    filter = {fkey: False for fkey in r2.find_matches(MatchSpec(unsat))}
-                hnames.add(unsat)
-                r2.verify_specs(hint, filter=filter, unsat=True, target=hnames)
-                raise Unsatisfiable([(h, ) for h in map(str, hint)])
+                    hnames.add(unsat)
+                    for fkey in r2.find_matches(unsat):
+                        filter[fkey] = False
+                chains = []
+                for ms in hint:
+                    # This ensures the chains see the same filter; produces more hints
+                    res = self.invalid_chains(ms, filter.copy())
+                    # Only consider chains that end in one of the packages we care about
+                    res = [r for r in res if str(r[-1]).split(' ', 1)[0] in hnames]
+                    chains.extend(res or [(ms.spec,)])
+                raise Unsatisfiable(chains)
 
             speco = []  # optional packages
             specr = []  # requested packages
