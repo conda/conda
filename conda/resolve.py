@@ -37,7 +37,6 @@ class Unsatisfiable(RuntimeError):
         unsatisfiable specifications.
     '''
     def __init__(self, bad_deps):
-        deps = set(q[-1] for q in bad_deps)
         msg = '''The following specifications were found to be in conflict:%s
 Use "conda info <package>" to see the dependencies for each package.'''
         msg = msg % dashlist(' -> '.join(map(str, q)) for q in bad_deps)
@@ -375,25 +374,25 @@ class Resolve(object):
             chain0 = set()
             sname = next(_[0] for _ in chains).split(' ', 1)[0]
             cdict = defaultdict(set)
-            for chain in chains:
-                if len(chain) == 1:
-                    chain0.add(chain[0].partition(' ')[-1])
+            for c in chains:
+                if len(c) == 1:
+                    chain0.add(c[0].partition(' ')[-1])
                 else:
-                    cdict[chain[-1]].add(chain[1:-1])
+                    cdict[c[-1]].add(c[1:-1])
             res = []
             for csuff, cmid in iteritems(cdict):
                 cname, _, cver = csuff.partition(' ')
                 if cmid is not None and (cname != sname or cver not in chain0):
                     cmid = sorted(cmid, key=len)
                     if len(cmid[0]) == 0:
-                        chain = (pfx, csuff)
+                        c = (pfx, csuff)
                     elif len(cmid[0]) == 1:
                         mids = set(c[0] for c in cmid if len(c) == 1)
-                        chain = (pfx, ','.join(sorted(mids)), csuff)
+                        c = (pfx, ','.join(sorted(mids)), csuff)
                     else:
                         mids = set(c[0] for c in cmid)
-                        chain = (pfx, ','.join(sorted(mids)), '...', csuff)
-                res.append(chain)
+                        c = (pfx, ','.join(sorted(mids)), '...', csuff)
+                res.append(c)
             if chain0:
                 if '' in chain0:
                     res.append((sname,))
@@ -467,8 +466,6 @@ class Resolve(object):
                     for m2 in self.ms_depends(fkey):
                         deps.setdefault(m2.name, set()).add(m2)
                 for dspecs in itervalues(deps):
-                    dspecs = tuple(sorted(dspecs))
-                    res2 = chains_(dspecs)
                     subchains.update(chains_(tuple(sorted(dspecs))))
 
                 if subchains:
@@ -527,7 +524,7 @@ class Resolve(object):
         filter = {}
         snames = set()
 
-        class BadPrune:
+        class BadPrune(Exception):
             def __init__(self, dep):
                 self.dep = dep
 
@@ -600,14 +597,14 @@ class Resolve(object):
         for iter in range(10):
             first = True
             try:
-                unsat = None
                 while sum(filter_group([s]) for s in slist):
                     new_specs = [MatchSpec(n) for n in snames - onames]
                     slist = specs + new_specs
                     first = False
-            except BadPrune as unsat:
+                unsat = None
+            except BadPrune as e:
                 new_specs = None
-                unsat = unsat.dep
+                unsat = e.dep
             if not unsat and first and iter:
                 break
             touched = self.touch(specs, {} if unsat else filter)
