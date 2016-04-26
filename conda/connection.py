@@ -101,6 +101,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
             import boto
 
             # silly patch for AWS because
+            # TODO: remove or change to warning once boto >2.39.0 is released
             # https://github.com/boto/boto/issues/2617
             from boto.pyami.config import Config, ConfigParser
 
