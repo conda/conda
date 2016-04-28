@@ -471,8 +471,6 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                    for fn in linked
                    if not any(r.match(ms, fn) for ms in mss)}
     else:
-        if config.track_features:
-            specs.extend(x + '@' for x in config.track_features)
         nlinked = {r.package_name(fn): fn[:-8] for fn in r.remove(specs, linked)}
 
     if pinned:
