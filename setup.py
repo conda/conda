@@ -71,10 +71,11 @@ setup(
         'sdist': auxlib.SDistCommand,
     },
     install_requires=[
+        'auxlib',
         'psutil',
         'pycosat >=0.6.1',
         'pyyaml',
-        'requests',
+        'requests'
     ],
     entry_points={
         'console_scripts': [
