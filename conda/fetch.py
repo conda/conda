@@ -270,9 +270,9 @@ Allowed channels are:
     for channel, repodata in repodatas:
         if repodata is None:
             continue
-        channel = channel.rstrip('/')
         new_index = repodata['packages']
         url_s, priority = channel_urls[channel]
+        channel = channel.rstrip('/')
         for fn, info in iteritems(new_index):
             info['fn'] = fn
             info['schannel'] = url_s
