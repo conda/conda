@@ -99,6 +99,16 @@ class EnvironmentTestCase(unittest.TestCase):
         self.assertIsInstance(e.channels, list)
         self.assertEqual(e.channels, [])
 
+    def test_add_channels(self):
+        e = env.Environment()
+        e.add_channels(['dup', 'dup', 'unique'])
+        self.assertEqual(e.channels, ['dup', 'unique'])
+
+    def test_remove_channels(self):
+        e = env.Environment(channels=['channel'])
+        e.remove_channels()
+        self.assertEqual(e.channels, [])
+
     def test_channels_are_provided_by_kwarg(self):
         random_channels = (random.randint(100, 200), random)
         e = env.Environment(channels=random_channels)

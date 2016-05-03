@@ -7,6 +7,7 @@ import os
 from conda.cli import common
 from conda.cli import main_list
 from conda import install
+from conda import config
 
 from . import compat
 from . import exceptions
@@ -46,7 +47,9 @@ def from_environment(name, prefix, no_builds=False):
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
 
-    return Environment(name=name, dependencies=dependencies)
+    channels = config.get_rc_urls()
+
+    return Environment(name=name, dependencies=dependencies, channels=channels)
 
 
 def from_yaml(yamlstr, **kwargs):
@@ -100,6 +103,12 @@ class Environment(object):
         if channels is None:
             channels = []
         self.channels = channels
+
+    def add_channels(self, channels=[]):
+        self.channels = list(set(self.channels + channels))
+
+    def remove_channels(self):
+        self.channels = []
 
     def to_dict(self):
         d = yaml.dict([('name', self.name)])
