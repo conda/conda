@@ -324,7 +324,7 @@ def url_channel(url):
         return None, '<unknown>'
     channel = url.rsplit('/', 2)[0]
     schannel = canonical_channel_name(channel)
-    return channel + '/', schannel
+    return channel, schannel
 
 # ----- allowed channels -----
 

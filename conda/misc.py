@@ -264,6 +264,7 @@ def install_local_packages(prefix, paths, verbose=False):
         if not config.is_url(url):
             url = utils.url_path(url)
         url_path, fn = url.rsplit('/', 1)
+        dist = fn[:-8]
         schannel = None
         if url_path.startswith('file://'):
             for dd in config.pkgs_dirs:
@@ -273,7 +274,7 @@ def install_local_packages(prefix, paths, verbose=False):
             _, schannel = config.url_channel(url)
             info = {'fn': fn, 'url': url, 'schannel': schannel, 'md5': None}
             fetch.fetch_pkg(info)
-        dists.append('%s::%s' % (schannel, fn[:-8]))
+        dists.append('%s::%s' % (schannel, dist))
     force_extract_and_link(dists, prefix, verbose=verbose)
 
 
@@ -292,7 +293,7 @@ def environment_for_conda_environment(prefix=config.root_dir):
 
 def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
-        base_url = dirname(info['channel'].rstrip('/'))
+        base_url = dirname(info['channel'])
         icon_fn = info['icon']
         # icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
         # if isfile(icon_cache_path):
