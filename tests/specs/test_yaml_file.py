@@ -27,7 +27,8 @@ class TestYAMLFile(unittest.TestCase):
 
     def test_filename(self):
         filename = "filename_{}".format(random.randint(100, 200))
+        selectors = None
         with mock.patch.object(env, 'from_file') as from_file:
             spec = YamlFileSpec(filename=filename)
             spec.environment
-        from_file.assert_called_with(filename)
+        from_file.assert_called_with(filename, selectors)

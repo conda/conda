@@ -79,7 +79,12 @@ in your local package cache.
 You can explicitly provide an environment spec file using ``-f`` or ``--file``
 and the name of the file you would like to use.
 
-Envronment file example
+The default channels can be excluded by adding ``nodefaults`` to the list of
+channels. This is equivalent to passing the ``--override-channels`` option
+to most ``conda`` commands, and is like ``defaults`` in the ``.condarc``
+channel configuration but with the reverse logic.
+
+Environment file example
 -----------------------
 
 .. code-block:: yaml
