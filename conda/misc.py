@@ -69,7 +69,8 @@ def explicit(urls, prefix, verbose=True):
         _, schannel = config.url_channel(url)
         if m is None:
             sys.exit("Error: Could not parse: %s" % url)
-        fn = '%s::%s' % (schannel, fn)
+        if schannel != 'defaults':
+            fn = '%s::%s' % (schannel, fn)
         dists.append(fn[:-8])
         index = fetch.fetch_index((url_p + '/',))
         try:
@@ -274,7 +275,9 @@ def install_local_packages(prefix, paths, verbose=False):
             _, schannel = config.url_channel(url)
             info = {'fn': fn, 'url': url, 'schannel': schannel, 'md5': None}
             fetch.fetch_pkg(info)
-        dists.append('%s::%s' % (schannel, dist))
+        if schannel != 'defaults':
+            dist = '%s::%s' % (schannel, dist)
+        dists.append(dist)
     force_extract_and_link(dists, prefix, verbose=verbose)
 
 
