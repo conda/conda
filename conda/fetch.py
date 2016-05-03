@@ -270,6 +270,7 @@ Allowed channels are:
     for channel, repodata in repodatas:
         if repodata is None:
             continue
+        channel = channel.rstrip('/')
         new_index = repodata['packages']
         url_s, priority = channel_urls[channel]
         for fn, info in iteritems(new_index):
@@ -277,7 +278,7 @@ Allowed channels are:
             info['schannel'] = url_s
             info['channel'] = channel
             info['priority'] = priority
-            info['url'] = channel + fn
+            info['url'] = channel + '/' + fn
             key = url_s + '::' + fn if url_s != 'defaults' else fn
             index[key] = info
 
@@ -299,7 +300,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     fn = info['fn']
     url = info.get('url')
     if url is None:
-        url = info['channel'] + fn
+        url = info['channel'] + '/' + fn
     log.debug("url=%r" % url)
     if dst_dir is None:
         dst_dir = dirname(find_new_location(fn[:-8])[0])
@@ -311,7 +312,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
-               info['sig'].rstrip('/') + '/') + fn2
+               info['sig'].rstrip('/')) + '/' + fn2
         log.debug("signature url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
         try:
