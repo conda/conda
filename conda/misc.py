@@ -8,11 +8,13 @@ import re
 import shutil
 import sys
 from collections import defaultdict
-from os.path import (abspath, basename, dirname, expanduser, exists,
+from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath)
 
 from conda import config
 from conda import install
+from conda import utils
+from conda import fetch
 from conda.api import get_index
 from conda.compat import iteritems
 from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
@@ -253,17 +255,22 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
 
 def install_local_packages(prefix, paths, verbose=False):
     # copy packages to pkgs dir
-    pkgs_dir = config.pkgs_dirs[0]
     dists = []
     for src_path in paths:
         assert src_path.endswith('.tar.bz2')
-        fn = basename(src_path)
-        dists.append(fn[:-8])
-        dst_path = join(pkgs_dir, fn)
-        if abspath(src_path) == abspath(dst_path):
-            continue
-        shutil.copyfile(src_path, dst_path)
-
+        src_path = abspath(src_path)
+        src_dir, fn = os.path.split(src_path)
+        dist = fn[:-8]
+        schannel = None
+        for dd in config.pkgs_dirs:
+            if src_dir == abspath(dd):
+                schannel = install.load_meta(dd, dist)
+        if not schannel:
+            url = utils.url_path(src_path)
+            _, schannel = config.url_channel(url)
+            info = {'fn': fn, 'url': url, 'schannel': schannel, 'md5': None}
+            fetch.fetch_pkg(info)
+        dists.append('%s::%s' % (schannel, dist))
     force_extract_and_link(dists, prefix, verbose=verbose)
 
 

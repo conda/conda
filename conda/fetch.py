@@ -297,7 +297,9 @@ def fetch_pkg(info, dst_dir=None, session=None):
     session = session or CondaSession()
 
     fn = info['fn']
-    url = info['channel'] + fn
+    url = info.get('url')
+    if url is None:
+        url = info['channel'] + fn
     log.debug("url=%r" % url)
     if dst_dir is None:
         dst_dir = dirname(find_new_location(fn[:-8])[0])
