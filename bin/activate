@@ -67,7 +67,9 @@ if (( $? == 0 )); then
         export CONDA_DEFAULT_ENV="$@"
     fi
 
-    export CONDA_ENV_PATH=$(get_dirname $_THIS_DIR)
+    # Get first path and convert it to absolute
+    ENV_BIN_DIR="$(echo $(echo $PATH | awk -F ':' '{print $1}'))"
+    export CONDA_ENV_PATH="$(get_dirname "$ENV_BIN_DIR")"
 
     if (( $("$_THIS_DIR/conda" ..changeps1) ));  then
             CONDA_OLD_PS1="$PS1"

@@ -1,12 +1,14 @@
 from __future__ import print_function
 from argparse import RawDescriptionHelpFormatter
 import os
-import textwrap
 import sys
+import textwrap
 
 from conda.cli import common
 from conda.cli import install as cli_install
+from conda.install import rm_rf
 from conda.misc import touch_nonadmin
+from conda.plan import is_root_prefix
 
 from ..installers.base import get_installer, InvalidInstaller
 from .. import exceptions
@@ -19,6 +21,7 @@ Create an environment based on an environment file
 example = """
 examples:
     conda env create
+    conda env create -n name
     conda env create vader/deathstar
     conda env create -f=/path/to/environment.yml
 """
@@ -41,9 +44,9 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-n', '--name',
         action='store',
-        help='environment definition [Deprecated]',
+        help='environment definition',
         default=None,
-        dest='old_name'
+        dest='name'
     )
     p.add_argument(
         '-q', '--quiet',
@@ -51,36 +54,39 @@ def configure_parser(sub_parsers):
         default=False,
     )
     p.add_argument(
-        'name',
-        help='environment definition',
+        'remote_definition',
+        help='remote environment definition / IPython notebook',
         action='store',
         default=None,
         nargs='?'
+    )
+    p.add_argument(
+        '--force',
+        help='force creation of environment (removing a previously existing environment of the same name).',
+        action='store_true',
+        default=False,
     )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-
-    name = None
-    if args.old_name:
-        print("--name is deprecated. Use the following command instead:\n"
-              "    conda env create {}".format(args.old_name), file=sys.stderr)
-        name = args.old_name
-    elif args.name:
-        name = args.name
-
+    name = args.remote_definition or args.name
     try:
         spec = specs.detect(name=name, filename=args.file,
                             directory=os.getcwd())
         env = spec.environment
+
         # FIXME conda code currently requires args to have a name or prefix
-        args.name = env.name
+        if args.name is None:
+            args.name = env.name
+
     except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
 
     prefix = common.get_prefix(args, search=False)
+    if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
+        rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 
     # TODO, add capability

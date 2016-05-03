@@ -7,7 +7,7 @@ from ..utils.uploader import is_installed, Uploader
 
 
 description = """
-Upload an environment to binstar
+Upload an environment to anaconda.org
 """
 
 example = """
@@ -16,7 +16,6 @@ examples:
     conda env upload project
     conda env upload --file=/path/to/environment.yml
     conda env upload --file=/path/to/environment.yml project
-    conda env upload --force
 """
 
 
@@ -45,12 +44,6 @@ def configure_parser(sub_parsers):
         '--summary',
         help='Short summary of the environment',
         default='Environment file'
-    )
-    p.add_argument(
-        '--force',
-        action='store_true',
-        default=False,
-        help='Replace existing environment definition'
     )
     p.add_argument(
         '-q', '--quiet',
@@ -105,12 +98,12 @@ def execute(args, parser):
     uploader = Uploader(name, args.file, summary=summary, env_data=dict(env.to_dict()))
 
     if uploader.authorized():
-        info = uploader.upload(args.force)
+        info = uploader.upload()
         print("Your environment file has been uploaded to {}".format(info.get('url', 'anaconda.org')))
     else:
-        msg = """You are not authorized to upload a package into Binstar.org
-                 Verify that you are logged in Binstar.org with:
-                 \tbinstar login""".lstrip()
+        msg = "\n".join(["You are not authorized to upload a package into Anaconda.org",
+                         "Verify that you are logged in anaconda.org with:",
+                         "    anaconda login\n"])
         raise exceptions.CondaEnvRuntimeError(msg)
 
     print("Done.")

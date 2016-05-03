@@ -81,8 +81,10 @@ class BinstarSpec(object):
         :raises: EnvironmentFileNotDownloaded
         """
         if self._environment is None:
-            versions = {normalized_version(d['version']): d['version'] for d in self.file_data}
-            latest_version = versions[max(versions)]
+            versions = [{
+                'normalized': normalized_version(d['version']),
+                'original': d['version']} for d in self.file_data]
+            latest_version = max(versions, key=lambda x: x['normalized'])['original']
             file_data = [data for data in self.package['files'] if data['version'] == latest_version]
             req = self.binstar.download(self.username, self.packagename, latest_version, file_data[0]['basename'])
             if req is None:
@@ -96,9 +98,9 @@ class BinstarSpec(object):
             try:
                 self._package = self.binstar.package(self.username, self.packagename)
             except errors.NotFound:
-                self.msg = "{} was not found on Binstar.org.\n"\
+                self.msg = "{} was not found on anaconda.org.\n"\
                            "You may need to be logged in. Try running:\n"\
-                           "    binstar login".format(self.name)
+                           "    anaconda login".format(self.name)
         return self._package
 
     @property
