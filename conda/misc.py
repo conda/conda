@@ -65,26 +65,29 @@ def explicit(urls, prefix, verbose=True):
             continue
         print("Fetching: %s" % url)
         m = url_pat.match(url)
+        fn, url_p = (m.group('fn'), m.group('url'))
+        _, schannel = config.url_channel(url)
         if m is None:
             sys.exit("Error: Could not parse: %s" % url)
-        fn = m.group('fn')
+        fn = '%s::%s' % (schannel, fn)
         dists.append(fn[:-8])
-        index = fetch.fetch_index((m.group('url') + '/',))
+        index = fetch.fetch_index((url_p + '/',))
         try:
             info = index[fn]
         except KeyError:
             sys.exit("Error: no package '%s' in index" % fn)
         if m.group('md5') and m.group('md5') != info['md5']:
             sys.exit("Error: MD5 in explicit files does not match index")
-        pkg_path = join(config.pkgs_dirs[0], fn)
-        if isfile(pkg_path):
-            try:
-                if md5_file(pkg_path) != info['md5']:
-                    install.rm_rf(pkg_path)
-                    fetch.fetch_pkg(info)
-            except KeyError:
-                sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
-        else:
+        found = False
+        for dd in config.pkgs_dirs:
+            pkg_path = join(dd, fn)
+            if isfile(pkg_path):
+                try:
+                    if md5_file(pkg_path) == info['md5']:
+                        found = True
+                except KeyError:
+                    sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+        if not found:
             fetch.fetch_pkg(info)
 
     force_extract_and_link(dists, prefix, verbose=verbose)
@@ -256,21 +259,21 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
 def install_local_packages(prefix, paths, verbose=False):
     # copy packages to pkgs dir
     dists = []
-    for src_path in paths:
-        assert src_path.endswith('.tar.bz2')
-        src_path = abspath(src_path)
-        src_dir, fn = os.path.split(src_path)
-        dist = fn[:-8]
+    for url in paths:
+        assert url.endswith('.tar.bz2')
+        if not config.is_url(url):
+            url = utils.url_path(url)
+        url_path, fn = url.rsplit('/', 1)
         schannel = None
-        for dd in config.pkgs_dirs:
-            if src_dir == abspath(dd):
-                schannel = install.load_meta(dd, dist)
+        if url_path.startswith('file://'):
+            for dd in config.pkgs_dirs:
+                if url_path == utils.url_path(dd):
+                    schannel = install.load_meta(dd, dist)
         if not schannel:
-            url = utils.url_path(src_path)
             _, schannel = config.url_channel(url)
             info = {'fn': fn, 'url': url, 'schannel': schannel, 'md5': None}
             fetch.fetch_pkg(info)
-        dists.append('%s::%s' % (schannel, dist))
+        dists.append('%s::%s' % (schannel, fn[:-8]))
     force_extract_and_link(dists, prefix, verbose=verbose)
 
 
