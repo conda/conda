@@ -1,10 +1,11 @@
 from .binstar import BinstarSpec
 from .yaml_file import YamlFileSpec
+from .notebook import NotebookSpec
 from ..exceptions import SpecNotFound
-
 
 all_specs = [
     BinstarSpec,
+    NotebookSpec,
     YamlFileSpec
 ]
 

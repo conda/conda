@@ -15,7 +15,7 @@ class EnvironmentFileNotFound(CondaEnvException):
 
 class NoBinstar(CondaEnvRuntimeError):
     def __init__(self):
-        msg = 'The binstar client must be installed to perform this action'
+        msg = 'The anaconda-client cli must be installed to perform this action'
         super(NoBinstar, self).__init__(msg)
 
 
@@ -23,6 +23,12 @@ class AlreadyExist(CondaEnvRuntimeError):
     def __init__(self):
         msg = 'The environment path already exists'
         super(AlreadyExist, self).__init__(msg)
+
+
+class EnvironmentAlreadyInNotebook(CondaEnvRuntimeError):
+    def __init__(self, notebook, *args, **kwargs):
+        msg = "The notebook {} already has an environment"
+        super(EnvironmentAlreadyInNotebook, self).__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileDoesNotExist(CondaEnvRuntimeError):
@@ -49,3 +55,11 @@ class InvalidLoader(Exception):
     def __init__(self, name):
         msg = 'Unable to load installer for {}'.format(name)
         super(InvalidLoader, self).__init__(msg)
+
+
+class NBFormatNotInstalled(CondaEnvRuntimeError):
+    def __init__(self):
+        msg = """nbformat is not installed. Install it with:
+        conda install nbformat
+        """
+        super(NBFormatNotInstalled, self).__init__(msg)

@@ -8,8 +8,8 @@ from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
 
-from ..env import from_file
 from ..installers.base import get_installer, InvalidInstaller
+from .. import specs as install_specs
 from .. import exceptions
 
 description = """
@@ -22,7 +22,9 @@ examples:
     conda env update -n=foo
     conda env update -f=/path/to/environment.yml
     conda env update --name=foo --file=environment.yml
+    conda env update vader/deathstar
 """
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -32,14 +34,12 @@ def configure_parser(sub_parsers):
         help=description,
         epilog=example,
     )
-
     p.add_argument(
         '-n', '--name',
         action='store',
         help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
         default=None,
     )
-
     p.add_argument(
         '-f', '--file',
         action='store',
@@ -50,22 +50,26 @@ def configure_parser(sub_parsers):
         '-q', '--quiet',
         default=False,
     )
+    p.add_argument(
+        'remote_definition',
+        help='remote environment definition / IPython notebook',
+        action='store',
+        default=None,
+        nargs='?'
+    )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    try:
-        env = from_file(args.file)
-    except exceptions.EnvironmentFileNotFound as e:
-        msg = 'Unable to locate environment file: %s\n\n' % e.filename
-        msg += "\n".join(textwrap.wrap(textwrap.dedent("""
-            Please verify that the above file is present and that you have
-            permission read the file's contents.  Note, you can specify the
-            file to use by explictly adding --file=/path/to/file when calling
-            conda env update.""").lstrip()))
+    name = args.remote_definition or args.name
 
-        common.error_and_exit(msg, json=args.json)
+    try:
+        spec = install_specs.detect(name=name, filename=args.file,
+                                    directory=os.getcwd())
+        env = spec.environment
+    except exceptions.SpecNotFound as e:
+        common.error_and_exit(str(e), json=args.json)
 
     if not args.name:
         if not env.name:

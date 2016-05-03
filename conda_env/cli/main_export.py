@@ -54,6 +54,14 @@ def configure_parser(sub_parsers):
         required=False
     )
 
+    p.add_argument(
+        '--no-builds',
+        default=False,
+        action='store_true',
+        required=False,
+        help='Remove build specification from dependencies'
+    )
+
     p.set_defaults(func=execute)
 
 
@@ -76,8 +84,7 @@ def execute(args, parser):
     else:
         name = args.name
     prefix = common.get_prefix(args)
-
-    env = from_environment(name, prefix)
+    env = from_environment(name, prefix, no_builds=args.no_builds)
 
     if args.override_channels:
         env.remove_channels()

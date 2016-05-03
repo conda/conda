@@ -16,7 +16,7 @@ checklist of things to do:
   by running `conda update conda-env`.
 * [ ] If you're adventurous, you can try running the latest development version
   by running `conda update --channel conda/c/dev conda-env` (you can also
-  use `-c` as the short parameter)
+  use `-c` as the short parameter).
 
 If updating `conda-env` doesn't work for you, the next thing to d
 [open a report][].  Here are a few things to make sure you include to help us
@@ -40,7 +40,7 @@ a link.
 We automatically build new versions of `conda-env` using [binstar build][].
 Every commit that hits our [develop branch][] is automatically built and added
 to our [conda/c/dev][] channel.  You can add that channels to your conda config
-and you will always be on the latest versions of Conda.  
+and you will always be on the latest versions of conda-env.  
 
 > **Warning**: This is meant for people who are interested in actively helping
 > further development of conda-env.  You should only use it if you're ok with
@@ -49,7 +49,6 @@ and you will always be on the latest versions of Conda.
 ```bash
 conda config --add channels conda/c/dev
 ```
-
 
 ## Contribute Code
 
@@ -81,7 +80,7 @@ notices are sent back out.
 
 ## Coding Guidelines
 
-The rest of this document is aimed at people developing and releasing conda.
+The rest of this document is aimed at people developing and releasing conda-env.
 
 
 ### Coding Style
@@ -110,23 +109,23 @@ not-final code.
 #### Merging Feature Releases to `master`
 
 If you're ready to release, open a PR to ensure that `develop` has everything
-that it needs for this release, including any updates to change logs and such.
+that it needs for this release, including any **updates to change logs** and such.
 Do not merge `conda-env` directly via GitHub's interface.  Instead, follow
 these steps from your working tree (note: this assumes you have
 github.com/conda/conda-env.git setup as the remote `conda`):
 
-* `git fetch conda`
+* `git fetch conda-env`
 * `git checkout master`
-* `git merge --no-ff --no-commit conda/develop`
+* `git merge --no-ff --no-commit conda-env/develop`
 * Modify the `setup.py` and `conda.recipe/meta.yaml` to remove the `alpha` from
   the minor version.
 * `git commit` the changes.  Ensure that the subject line includes the version
   number at the end of the message.  You may also wish to include a descriptive
   sentence explaining the main feature(s) of the release.
 * `git tag vX.Y.Z`
-* `git push conda master --tags`
+* `git push conda-env master --tags`
 * After binstar build has successfully built the new version, make sure that all
-  builds are added to the `main` channel of conda.
+  builds are added to the `main` channel of conda-env.
 
 > Author's Note: It would be great to automate this entirely into a tool that
 > would build a release for you!
@@ -146,8 +145,8 @@ to merge `master` into `develop` and push that branch as well so the bugfix is
 included in future versions.
 
 
-[binstar build]: http://docs.binstar.org/build_cli.html
-[conda/c/dev]: https://conda.binstar.org/conda/c/dev
+[binstar build]: http://docs.anaconda.org/build_cli.html
+[conda/c/dev]: https://conda.anaconda.org/conda/c/dev
 [develop branch]: https://github.com/conda/conda-env/tree/develop
 [flake8]: http://flake8.readthedocs.org/
 [gist]: https://gist.github.com/
