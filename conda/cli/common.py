@@ -500,9 +500,11 @@ def specs_from_args(args, json=False):
 
 
 spec_pat = re.compile(r'''
-(?P<name>[^=<>!\s]+)               # package name
+(?P<name>[^=<>!:\s]+)              # package name
 \s*                                # ignore spaces
 (
+  (?P<fc>:\s*[^=<>!\s]+)           # variant
+  |
   (?P<cc>=[^=<>!]+(=[^=<>!]+)?)    # conda constraint
   |
   (?P<pc>[=<>!]{1,2}.+)            # new (pip-style) constraint(s)
@@ -517,8 +519,10 @@ def spec_from_line(line):
     m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
-    name, cc, pc = (m.group('name').lower(), m.group('cc'), m.group('pc'))
-    if cc:
+    name, fc, cc, pc = (m.group('name').lower(), m.group('fc'), m.group('cc'), m.group('pc'))
+    if fc:
+        return name + ' * ' + fc[1:]
+    elif cc:
         return name + cc.replace('=', ' ')
     elif pc:
         return name + ' ' + pc.replace(' ', '')

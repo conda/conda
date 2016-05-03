@@ -91,14 +91,14 @@ class NoPackagesFound(RuntimeError):
         missing packages and/or dependencies.
     '''
     def __init__(self, bad_deps):
-        deps = set(q[-1].spec for q in bad_deps)
+        deps = set(q[-1].spec.replace(' * ',':') for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
             what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
         elif all(len(q) == 1 for q in bad_deps):
             what = "Packages" if len(bad_deps) > 1 else "Package"
         else:
             what = "Packages/dependencies"
-        bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
+        bad_deps = dashlist(' -> '.join(str(q2).replace(' * ',':') for q2 in q) for q in bad_deps)
         msg = '%s missing in current %s channels: %s' % (what, config.subdir, bad_deps)
         super(NoPackagesFound, self).__init__(msg)
         self.pkgs = deps
