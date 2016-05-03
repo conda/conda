@@ -4,13 +4,16 @@ from conda.cli import common
 from conda import plan
 
 
-def install(prefix, specs, args, env):
+def install(prefix, specs, args, env, prune=False):
     # TODO: do we need this?
     common.check_specs(prefix, specs, json=args.json)
 
     # TODO: support all various ways this happens
-    index = common.get_index_trap(channel_urls=env.channels)
-    actions = plan.install_actions(prefix, index, specs)
+    # Including 'nodefaults' in the channels list disables the defaults
+    index = common.get_index_trap(channel_urls=[chan for chan in env.channels
+                                                     if chan != 'nodefaults'],
+                                  prepend='nodefaults' not in env.channels)
+    actions = plan.install_actions(prefix, index, specs, prune=prune)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         try:

@@ -50,10 +50,7 @@ class TestBinstarSpec(unittest.TestCase):
         fake_package = {
             'files': [{'type': 'env', 'version': '1', 'basename': 'environment.yml'}]
         }
-        yml = StringIO()
-        yml.write(u"name: env")
-        yml.seek(0)
-        fake_req = MagicMock(raw=yml)
+        fake_req = MagicMock(text=u"name: env")
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)
@@ -71,10 +68,7 @@ class TestBinstarSpec(unittest.TestCase):
                 {'type': 'env', 'version': '0.2.0', 'basename': 'environment.yml'},
             ]
         }
-        yml = StringIO()
-        yml.write(u"name: env")
-        yml.seek(0)
-        fake_req = MagicMock(raw=yml)
+        fake_req = MagicMock(text=u"name: env")
         with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)

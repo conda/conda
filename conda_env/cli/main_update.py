@@ -47,7 +47,14 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
     p.add_argument(
+        '--prune',
+        action='store_true',
+        default=False,
+        help='remove installed packages not defined in environment.yml',
+    )
+    p.add_argument(
         '-q', '--quiet',
+        action='store_true',
         default=False,
     )
     p.add_argument(
@@ -56,6 +63,12 @@ def configure_parser(sub_parsers):
         action='store',
         default=None,
         nargs='?'
+    )
+    p.add_argument(
+        '--select',
+        action='append',
+        help="toggle preprocessing selectors. pass multiple times to toggle multiple selectors. pass 'all' to toggle all selectors",
+        metavar="SELECTORS",
     )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
@@ -66,7 +79,7 @@ def execute(args, parser):
 
     try:
         spec = install_specs.detect(name=name, filename=args.file,
-                                    directory=os.getcwd())
+                                    directory=os.getcwd(), selectors=args.select)
         env = spec.environment
     except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
@@ -102,7 +115,7 @@ def execute(args, parser):
     for installer_type, specs in env.dependencies.items():
         try:
             installer = get_installer(installer_type)
-            installer.install(prefix, specs, args, env)
+            installer.install(prefix, specs, args, env, prune=args.prune)
         except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.

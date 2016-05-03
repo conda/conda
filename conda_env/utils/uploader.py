@@ -45,7 +45,7 @@ class Uploader(object):
 
     @property
     def version(self):
-        return time.strftime('%Y.%m.%d-%H%M')
+        return time.strftime('%Y.%m.%d.%H%M')
 
     @property
     def user(self):
@@ -79,9 +79,10 @@ class Uploader(object):
         print("Uploading environment %s to anaconda-server (%s)... " %
               (self.packagename, self.binstar.domain))
         if self.is_ready():
-            return self.binstar.upload(self.username, self.packagename,
-                                       self.version, self.basename, open(self.file),
-                                       distribution_type=ENVIRONMENT_TYPE, attrs=self.env_data)
+            with open(self.file, mode='rb') as envfile:
+                return self.binstar.upload(self.username, self.packagename,
+                                           self.version, self.basename, envfile,
+                                           distribution_type=ENVIRONMENT_TYPE, attrs=self.env_data)
         else:
             raise exceptions.AlreadyExist()
 

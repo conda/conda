@@ -24,6 +24,7 @@ examples:
     conda env create -n name
     conda env create vader/deathstar
     conda env create -f=/path/to/environment.yml
+    conda env create -f=/path/to/requirements.txt -n deathstar
 """
 
 
@@ -50,7 +51,7 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '-q', '--quiet',
-        action='store_false',
+        action='store_true',
         default=False,
     )
     p.add_argument(
@@ -66,6 +67,12 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
+    p.add_argument(
+        '--select',
+        action='append',
+        help="toggle preprocessing selectors. pass multiple times to toggle multiple selectors. pass 'all' to toggle all selectors",
+        metavar="SELECTORS",
+    )
     common.add_parser_json(p)
     p.set_defaults(func=execute)
 
@@ -74,7 +81,7 @@ def execute(args, parser):
     name = args.remote_definition or args.name
     try:
         spec = specs.detect(name=name, filename=args.file,
-                            directory=os.getcwd())
+                            directory=os.getcwd(), selectors=args.select)
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix

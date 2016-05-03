@@ -7,11 +7,6 @@ build:
   {% if environ.get('GIT_DESCRIBE_NUMBER', '0') == '0' %}string: py{{ environ.get('PY_VER').replace('.', '') }}_0
   {% else %}string: py{{ environ.get('PY_VER').replace('.', '') }}_{{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}{% endif %}
   preserve_egg_dir: yes
-  always_include_files:
-    - bin/activate              [unix]
-    - Scripts/activate.bat      [win]
-    - bin/deactivate            [unix]
-    - Scripts/deactivate.bat    [win]
 
 source:
   git_url: ../
