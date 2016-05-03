@@ -30,6 +30,18 @@ def configure_parser(sub_parsers):
     )
 
     p.add_argument(
+        '-c', '--channel',
+        action='append',
+        help='Additional channel to include in the export'
+    )
+
+    p.add_argument(
+        "--override-channels",
+        action="store_true",
+        help="Do not include .condarc channels",
+    )
+
+    p.add_argument(
         '-n', '--name',
         action='store',
         help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
@@ -73,6 +85,12 @@ def execute(args, parser):
         name = args.name
     prefix = common.get_prefix(args)
     env = from_environment(name, prefix, no_builds=args.no_builds)
+
+    if args.override_channels:
+        env.remove_channels()
+
+    if args.channel is not None:
+        env.add_channels(args.channel)
 
     if args.file is None:
         print(env.to_yaml())
