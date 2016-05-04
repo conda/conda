@@ -43,9 +43,15 @@ requirements:
     - requests
 
 test:
+  requires:
+    - pycrypto
+    - pytest
   commands:
     - conda --version
     - conda info
+    - pip install pytest-cov pytest-timeout
+    - pushd $SRC_DIR && make clean-all && popd
+    - py.test -c $SRC_DIR/setup.cfg $SRC_DIR/tests/ --maxfail 1
   imports:
     - conda
 

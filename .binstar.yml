@@ -1,5 +1,5 @@
 package: conda
-user: conda
+user: conda-team
 
 #===============================================================================
 # Build Matrix Options
@@ -10,7 +10,6 @@ user: conda
 ## The platforms to build on.
 ## platform defaults to linux-64
 platform:
- - linux-32
  - linux-64
 ## The engine are the inital conda packages you want to run with
 engine:

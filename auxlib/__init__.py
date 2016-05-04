@@ -15,7 +15,7 @@ __all__ = [
     "BuildPyCommand", "SDistCommand", "Tox", "get_version",
 ]
 
-__version__ = get_version(__file__, __package__)
+__version__ = "custom"
 
 __title__ = "auxlib"
 __author__ = 'Kale Franz'
