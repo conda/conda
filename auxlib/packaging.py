@@ -1,4 +1,69 @@
 # -*- coding: utf-8 -*-
+"""
+=====
+Usage
+=====
+
+Method #1: auxlib.packaging as a run time dependency
+---------------------------------------------------
+
+Place the following lines in your package's main __init__.py
+
+from auxlib import get_version
+__version__ = get_version(__file__, __package__)
+
+
+
+Method #2: auxlib.packaging as a build time-only dependency
+----------------------------------------------------------
+
+
+import auxlib
+
+# When executing the setup.py, we need to be able to import ourselves, this
+# means that we need to add the src directory to the sys.path.
+here = os.path.abspath(os.path.dirname(__file__))
+src_dir = os.path.join(here, "auxlib")
+sys.path.insert(0, src_dir)
+
+setup(
+    version=auxlib.__version__,
+    cmdclass={
+        'build_py': auxlib.BuildPyCommand,
+        'sdist': auxlib.SDistCommand,
+        'test': auxlib.Tox,
+    },
+)
+
+
+
+Place the following lines in your package's main __init__.py
+
+from auxlib import get_version
+__version__ = get_version(__file__, __package__)
+
+
+Method #3: write .version file
+------------------------------
+
+
+
+Configuring `python setup.py test` for Tox
+------------------------------------------
+
+must use setuptools (distutils doesn't have a test cmd)
+
+setup(
+    version=auxlib.__version__,
+    cmdclass={
+        'build_py': auxlib.BuildPyCommand,
+        'sdist': auxlib.SDistCommand,
+        'test': auxlib.Tox,
+    },
+)
+
+
+"""
 from __future__ import print_function, division, absolute_import
 from logging import getLogger
 from os import remove
@@ -19,6 +84,8 @@ import sys
 from .path import absdirname, PackageFile
 
 log = getLogger(__name__)
+
+__all__ = ["get_version", "BuildPyCommand", "SDistCommand", "Tox", "is_git_repo"]
 
 
 def _get_version_from_pkg_info(package_name):
@@ -53,7 +120,7 @@ def _get_git_hash(path):
 
 
 def _get_version_from_git_tag(path):
-    """Return a PEP440-compliant version derived from the git status.
+    """Return a PEP-440 compliant version derived from the git status.
     If that fails for any reason, return the first 7 chars of the changeset hash.
     """
     tag = _get_most_recent_git_tag(path)
@@ -63,7 +130,7 @@ def _get_version_from_git_tag(path):
         dev = (m.group('dev') or b'0').decode('utf-8')
         hash_ = (m.group('hash') or _get_git_hash(path)).decode('utf-8')
         version += ".dev{dev}+{hash_}".format(dev=dev, hash_=hash_)
-    return version
+    return version.strip()
 
 
 def is_git_repo(path):
@@ -83,17 +150,22 @@ def get_version(file, package):
     time is the source of version information.
 
     """
-    # check for .version file
     try:
+        # first check for .version file
         version_from_pkg = _get_version_from_pkg_info(package)
-        return version_from_pkg.decode('UTF-8') if hasattr(version_from_pkg, 'decode') else version_from_pkg  # NOQA
-    except IOError:
+        return (version_from_pkg.decode('UTF-8')
+                if hasattr(version_from_pkg, 'decode')
+                else version_from_pkg)
+    except IOError as e:
         # no .version file found; fall back to git repo
         here = absdirname(file)
         if is_git_repo(here):
             return _get_version_from_git_tag(here)
 
-    raise RuntimeError("Could not get package version (no .git or .version file)")
+    return "unknown"
+    # raise RuntimeError("Could not get package version (no .git or .version file)\n"
+    #                    "__file__: {0}\n"
+    #                    "package: {1}".format(file, package))
 
 
 def write_version_into_init(target_dir, version):
@@ -125,6 +197,7 @@ class BuildPyCommand(build_py):
         target_dir = join(self.build_lib, self.distribution.metadata.name)
         write_version_into_init(target_dir, self.distribution.metadata.version)
         write_version_file(target_dir, self.distribution.metadata.version)
+        # TODO: separate out .version file implementation
 
 
 class SDistCommand(sdist):
@@ -136,6 +209,10 @@ class SDistCommand(sdist):
 
 
 class Tox(TestCommand):
+    """
+    TODO:
+        - Make this class inherit from distutils instead of setuptools
+    """
     user_options = [('tox-args=', 'a', "Arguments to pass to tox")]
 
     def initialize_options(self):
@@ -148,7 +225,7 @@ class Tox(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
-        # import here, cause outside the eggs aren't loaded
+        # import here, because outside the eggs aren't loaded
         import tox
         import shlex
         args = self.tox_args
