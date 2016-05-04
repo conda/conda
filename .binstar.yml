@@ -11,9 +11,9 @@ user: conda-team
 ## platform defaults to linux-64
 platform:
   - linux-32
-  # - linux-64
-  # - osx-64
-  # - win-32
+  - linux-64
+  - osx-64
+  - win-32
   - win-64
 ## The engine are the inital conda packages you want to run with
 engine:
@@ -21,6 +21,7 @@ engine:
 ## The envvars param is an environment variable list
 env:
   - PYTHON_VERSION=2.7
+  - PYTHON_VERSION=3.4
   - PYTHON_VERSION=3.5
 
 #===============================================================================
