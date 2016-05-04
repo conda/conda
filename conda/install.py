@@ -541,11 +541,14 @@ def is_linked(prefix, dist):
     except IOError:
         return None
 
+def _get_trash_dir(pkg_dir):
+    unc_prefix = '\\\\?\\' if sys.platform == 'win32' else ''
+    return unc_prefix + join(pkg_dir, '.trash')
+
 def delete_trash(prefix=None):
     from conda import config
-
     for pkg_dir in config.pkgs_dirs:
-        trash_dir = join(pkg_dir, '.trash')
+        trash_dir = _get_trash_dir(pkg_dir)
         try:
             log.debug("Trying to delete the trash dir %s" % trash_dir)
             rm_rf(trash_dir, max_retries=1, trash=False)
@@ -573,7 +576,7 @@ def move_path_to_trash(path):
 
     for pkg_dir in config.pkgs_dirs:
         import tempfile
-        trash_dir = join(pkg_dir, '.trash')
+        trash_dir = _get_trash_dir(pkg_dir)
 
         try:
             os.makedirs(trash_dir)
