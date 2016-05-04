@@ -1,0 +1,60 @@
+package: conda
+user: conda
+
+#===============================================================================
+# Build Matrix Options
+# These options may be a single item, a list or empty
+# The resulting number of builds is [platform * engine * envvars]
+#===============================================================================
+
+## The platforms to build on.
+## platform defaults to linux-64
+platform:
+ - linux-32
+ - linux-64
+## The engine are the inital conda packages you want to run with
+engine:
+ - python=3
+## The envvars param is an environment variable list
+envvars:
+ - PYTHON_VERSION=2.7
+ - PYTHON_VERSION=3.4
+ - PYTHON_VERSION=3.5
+
+#===============================================================================
+# Script options
+# These options may be broken out into the before_script, script and after_script
+# or not, that is up to you
+#===============================================================================
+
+## Run before the script
+# before_script:
+#   - echo "before_script!"
+## Put your main computations here!
+script:
+  - conda build conda.recipe --python $PYTHON_VERSION
+## This will run after the script regardless of the result of script
+## BINSTAR_BUILD_RESULT=[succcess|failure]
+# after_script:
+#   - echo "The build was a $BINSTAR_BUILD_RESULT" | tee artifact1.txt
+## This will be run only after a successful build
+# after_success:
+#   - echo "after_success!"
+## This will be run only after a build failure
+# after_failure:
+#   - echo "after_failure!"
+
+#===============================================================================
+# Build Results
+# Build results are split into two categories: artifacts and targets
+# You may omit either key and stiff have a successful build
+# They may be a string, list and contain any bash glob
+#===============================================================================
+
+## Build Targets: Upload these files to your binstar package
+## build targets may be a list of files (globs allows) to upload
+## The special build targets 'conda' and 'pypi' may be used to
+## upload conda builds
+## e.g. conda is an alias for /opt/anaconda/conda-bld/<os-arch>/*.tar.bz2
+build_targets:
+  - conda
