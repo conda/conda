@@ -41,7 +41,7 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    misc.install_local_packages(prefix, paths, verbose=verbose)
+    misc.explicit(paths, prefix, verbose=verbose)
     shutil.rmtree(tmp_dir)
 
 
@@ -189,8 +189,7 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            misc.install_local_packages(prefix, args.packages,
-                                        verbose=not args.quiet)
+            misc.explicit(args.packages, prefix, verbose=not args.quiet)
             return
         else:
             common.error_and_exit(
