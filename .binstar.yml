@@ -11,13 +11,15 @@ user: conda-team
 ## platform defaults to linux-64
 platform:
  - linux-64
+ - osx-64
+ - win-64
 ## The engine are the inital conda packages you want to run with
 engine:
  - python=3
 ## The envvars param is an environment variable list
 envvars:
  - PYTHON_VERSION=2.7
- - PYTHON_VERSION=3.4
+ # - PYTHON_VERSION=3.4
  - PYTHON_VERSION=3.5
 
 #===============================================================================
@@ -31,6 +33,7 @@ envvars:
 #   - echo "before_script!"
 ## Put your main computations here!
 script:
+  - echo -n "4.1.0.rc1" > conda/.version
   - conda build conda.recipe --python $PYTHON_VERSION
 ## This will run after the script regardless of the result of script
 ## BINSTAR_BUILD_RESULT=[succcess|failure]

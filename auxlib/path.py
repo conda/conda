@@ -21,11 +21,11 @@ def site_packages_paths():
     if hasattr(sys, 'real_prefix'):
         # in a virtualenv
         log.debug('searching virtualenv')
-        return [p for p in sys.path if p.endswith('site-packages')]
+        return tuple(p for p in sys.path if p.endswith('site-packages'))
     else:
         # not in a virtualenv
         log.debug('searching outside virtualenv')  # pragma: no cover
-        return [get_python_lib()]  # pragma: no cover
+        return tuple(get_python_lib(), )  # pragma: no cover
 
 
 class PackageFile(object):
@@ -77,7 +77,8 @@ def open_package_file(file_path, package_name):
     if package_path:
         return open(package_path)  # pragma: no cover
 
-    msg = "file for module [{0}] cannot be found at path {1}".format(package_name, file_path)
+    msg = ("File for module [{0}] cannot be found at path {1}\n"
+           "Current sys.path is {2}.".format(package_name, file_path, sys.path))
     log.error(msg)
     raise IOError(msg)
 

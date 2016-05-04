@@ -10,8 +10,7 @@ clean-all: clean
 
 
 anaconda-submit: clean-all
-	echo "4.1.0.rc1" > conda/.version
 	anaconda build submit . --queue conda-team/build_recipes --test-only
 
 
-.PHONY : clean clean-all
+.PHONY : clean clean-all anaconda-submit
