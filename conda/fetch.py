@@ -233,10 +233,11 @@ def add_pip_dependency(index):
                 info['version'].startswith(('2.', '3.'))):
             info.setdefault('depends', []).append('pip')
 
-def fetch_index(channel_urls, use_cache=False, unknown=False):
+def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
-    index = {}
+    if index is None:
+        index = {}
     stdoutlog.info("Fetching package metadata ...")
     if not isinstance(channel_urls, dict):
         channel_urls = {url: pri+1 for pri, url in enumerate(channel_urls)}

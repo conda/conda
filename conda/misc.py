@@ -16,10 +16,12 @@ from conda import install
 from conda import utils
 from conda import fetch
 from conda.api import get_index
-from conda.compat import iteritems
-from conda.instructions import RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from conda.compat import iteritems, itervalues
+from conda.instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from conda.plan import ensure_linked_actions, execute_actions
+from conda.utils import md5_file
 from conda.resolve import Resolve
+from conda.fetch import fetch_index
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -36,62 +38,73 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-def force_extract_and_link(dists, prefix, verbose=False):
+def explicit(specs, prefix, verbose=False):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    actions['op_order'] = RM_EXTRACTED, EXTRACT, UNLINK, LINK
-    # maps names of installed packages to dists
+    actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
     linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
-    for dist in dists:
+    index = {}
+    msgs = []
+    for spec in specs:
+        if spec == '@EXPLICIT':
+            continue
+
+        # Format: (url|path)(:#md5)?
+        url, _, md5 = spec.partition(':#')
+        if not url.endswith('.tar.bz2'):
+            sys.exit("Error: Could not parse: %s" % url)
+        if not config.is_url(url):
+            if not isfile(url):
+                sys.exit("Error: file not found: %s" % url)
+            url = utils.url_path(url)
+        url_p, fn = url.rsplit('/', 1)
+
+        # See if the URL refers to a package in our cache
+        prefix = pkg_path = None
+        if url_p.startswith('file://'):
+            prefix = install.cached_url(url)
+
+        # If not, determine the channel name from the URL
+        if prefix is None:
+            _, schannel = config.url_channel(url)
+            prefix = '' if schannel == 'defaults' else schannel + '::'
+        fn = prefix + fn
+        dist = fn[:-8]
+
+        # Don't re-fetch unless there is an MD5 mismatch
+        if pkg_path is None:
+            pkg_path = install.is_fetched(dist)
+        if pkg_path and (md5 and md5_file(pkg_path) != md5):
+            actions[RM_FETCHED].append(dist)
+            pkg_path = None
+
+        # Verify against the package index
+        if pkg_path is None:
+            if fn not in index:
+                fetch_index({url_p + '/': (schannel, 0)}, index=index)
+            info = index.get(fn)
+            if info is None:
+                sys.exit("Error: no package '%s' in index" % fn)
+            if md5:
+                if 'md5' not in info:
+                    sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+                elif info['md5'] != md5:
+                    sys.exit("Error: MD5 in explicit files does not match index")
+            _, conflict = install.find_new_location(dist)
+            if conflict:
+                actions[RM_FETCHED].append(conflict)
+            actions[FETCH].append(dist)
+
         actions[RM_EXTRACTED].append(dist)
         actions[EXTRACT].append(dist)
+
         # unlink any installed package with that name
         name = install.name_dist(dist)
         if name in linked:
             actions[UNLINK].append(linked[name])
         actions[LINK].append(dist)
-    execute_actions(actions, verbose=verbose)
 
-
-url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
-                     r'(:?#(?P<md5>[0-9a-f]{32}))?$')
-def explicit(urls, prefix, verbose=True):
-    import conda.fetch as fetch
-    from conda.utils import md5_file
-
-    dists = []
-    for url in urls:
-        if url == '@EXPLICIT':
-            continue
-        print("Fetching: %s" % url)
-        m = url_pat.match(url)
-        fn, url_p = (m.group('fn'), m.group('url'))
-        _, schannel = config.url_channel(url)
-        if m is None:
-            sys.exit("Error: Could not parse: %s" % url)
-        if schannel != 'defaults':
-            fn = '%s::%s' % (schannel, fn)
-        dists.append(fn[:-8])
-        index = fetch.fetch_index((url_p + '/',))
-        try:
-            info = index[fn]
-        except KeyError:
-            sys.exit("Error: no package '%s' in index" % fn)
-        if m.group('md5') and m.group('md5') != info['md5']:
-            sys.exit("Error: MD5 in explicit files does not match index")
-        found = False
-        for dd in config.pkgs_dirs:
-            pkg_path = join(dd, fn)
-            if isfile(pkg_path):
-                try:
-                    if md5_file(pkg_path) == info['md5']:
-                        found = True
-                except KeyError:
-                    sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
-        if not found:
-            fetch.fetch_pkg(info)
-
-    force_extract_and_link(dists, prefix, verbose=verbose)
+    execute_actions(actions, index=index, verbose=verbose)
 
 
 def rel_path(prefix, path, windows_forward_slashes=True):
@@ -258,27 +271,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
 
 
 def install_local_packages(prefix, paths, verbose=False):
-    # copy packages to pkgs dir
-    dists = []
-    for url in paths:
-        assert url.endswith('.tar.bz2')
-        if not config.is_url(url):
-            url = utils.url_path(url)
-        url_path, fn = url.rsplit('/', 1)
-        dist = fn[:-8]
-        schannel = None
-        if url_path.startswith('file://'):
-            for dd in config.pkgs_dirs:
-                if url_path == utils.url_path(dd):
-                    schannel = install.load_meta(dd, dist)
-        if not schannel:
-            _, schannel = config.url_channel(url)
-            info = {'fn': fn, 'url': url, 'schannel': schannel, 'md5': None}
-            fetch.fetch_pkg(info)
-        if schannel != 'defaults':
-            dist = '%s::%s' % (schannel, dist)
-        dists.append(dist)
-    force_extract_and_link(dists, prefix, verbose=verbose)
+    explicit(paths, prefix, verbose=verbose)
 
 
 def environment_for_conda_environment(prefix=config.root_dir):
