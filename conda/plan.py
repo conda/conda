@@ -238,6 +238,8 @@ def plan_from_actions(actions):
             continue
         if '_' not in op:
             res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
+        elif op.startswith('RM_'):
+            res.append((inst.PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
         if op in inst.progress_cmds:
             res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:

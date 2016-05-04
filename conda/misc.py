@@ -4,7 +4,6 @@
 from __future__ import print_function, division, absolute_import
 
 import os
-import re
 import shutil
 import sys
 from collections import defaultdict
@@ -14,9 +13,8 @@ from os.path import (abspath, dirname, expanduser, exists,
 from conda import config
 from conda import install
 from conda import utils
-from conda import fetch
 from conda.api import get_index
-from conda.compat import iteritems, itervalues
+from conda.compat import iteritems
 from conda.instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from conda.plan import ensure_linked_actions, execute_actions
 from conda.utils import md5_file
@@ -44,7 +42,6 @@ def explicit(specs, prefix, verbose=False):
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
     linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
     index = {}
-    msgs = []
     for spec in specs:
         if spec == '@EXPLICIT':
             continue
