@@ -626,7 +626,7 @@ def package_cache():
 
 def cached_url(url):
     package_cache()
-    return fname_table_[url]
+    return fname_table_.get(url)
 
 def find_new_location(dist):
     """
