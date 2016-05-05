@@ -44,6 +44,7 @@ import re
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 from conda.config import url_channel
+from conda.utils import url_path
 from conda.compat import iteritems, iterkeys
 from conda import config
 
@@ -546,7 +547,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
 # read this data multiple times.
 
 package_cache_ = {}
-fname_table = {}
+fname_table_ = {}
 def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     """
     Adds a new package to the cache. The URL is used to determine the
@@ -563,7 +564,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     else:
         fname = dist + '.tar.bz2'
     xpkg = join(pdir, fname)
-    if not overwrite and xpkg in fname_table:
+    if not overwrite and xpkg in fname_table_:
         return
     if not isfile(xpkg):
         xpkg = None
@@ -577,7 +578,8 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     url = remove_binstar_tokens(url)
     channel, schannel = url_channel(url)
     prefix = '' if schannel == 'defaults' else schannel + '::'
-    fname_table[xpkg] = prefix
+    xkey = xpkg or (xdir + '.tar.bz2')
+    fname_table_[xkey] = fname_table_[url_path(xkey)] = prefix
     fkey = prefix + dist
     rec = package_cache_.get(fkey)
     if rec is None:
@@ -622,6 +624,10 @@ def package_cache():
     del package_cache_['@']
     return package_cache_
 
+def cached_url(url):
+    package_cache()
+    return fname_table_.get(url)
+
 def find_new_location(dist):
     """
     Determines the download location for the given package, and the name
@@ -641,7 +647,7 @@ def find_new_location(dist):
     for p in range(2):
         for pkg_dir in config.pkgs_dirs:
             pkg_path = join(pkg_dir, fname)
-            prefix = fname_table.get(pkg_path)
+            prefix = fname_table_.get(pkg_path)
             if p or prefix is None:
                 return pkg_path, prefix + dname if p else None
 
@@ -669,7 +675,8 @@ def rm_fetched(dist):
     if rec is None:
         return
     for fname in rec['files']:
-        del fname_table[fname]
+        del fname_table_[fname]
+        del fname_table_[url_path(fname)]
         with Locked(dirname(fname)):
             rm_rf(fname)
     for fname in rec['dirs']:
