@@ -233,10 +233,11 @@ def add_pip_dependency(index):
                 info['version'].startswith(('2.', '3.'))):
             info.setdefault('depends', []).append('pip')
 
-def fetch_index(channel_urls, use_cache=False, unknown=False):
+def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
-    index = {}
+    if index is None:
+        index = {}
     stdoutlog.info("Fetching package metadata ...")
     if not isinstance(channel_urls, dict):
         channel_urls = {url: pri+1 for pri, url in enumerate(channel_urls)}
@@ -272,12 +273,13 @@ Allowed channels are:
             continue
         new_index = repodata['packages']
         url_s, priority = channel_urls[channel]
+        channel = channel.rstrip('/')
         for fn, info in iteritems(new_index):
             info['fn'] = fn
             info['schannel'] = url_s
             info['channel'] = channel
             info['priority'] = priority
-            info['url'] = channel + fn
+            info['url'] = channel + '/' + fn
             key = url_s + '::' + fn if url_s != 'defaults' else fn
             index[key] = info
 
@@ -297,7 +299,9 @@ def fetch_pkg(info, dst_dir=None, session=None):
     session = session or CondaSession()
 
     fn = info['fn']
-    url = info['channel'] + fn
+    url = info.get('url')
+    if url is None:
+        url = info['channel'] + '/' + fn
     log.debug("url=%r" % url)
     if dst_dir is None:
         dst_dir = dirname(find_new_location(fn[:-8])[0])
@@ -309,7 +313,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
-               info['sig'].rstrip('/') + '/') + fn2
+               info['sig'].rstrip('/')) + '/' + fn2
         log.debug("signature url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
         try:

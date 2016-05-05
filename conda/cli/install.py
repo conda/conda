@@ -41,7 +41,7 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    misc.install_local_packages(prefix, paths, verbose=verbose)
+    misc.explicit(paths, prefix, verbose=verbose)
     shutil.rmtree(tmp_dir)
 
 
@@ -59,7 +59,7 @@ def check_prefix(prefix, json=False):
         common.error_and_exit(error, json=json, error_type="ValueError")
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
+def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
@@ -74,13 +74,14 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index=None):
                                   error_type="NoEnvironmentFound")
 
     if not json:
-        print("src_prefix: %r" % src_prefix)
-        print("dst_prefix: %r" % dst_prefix)
+        print("Source:      %r" % src_prefix)
+        print("Destination: %r" % dst_prefix)
 
     with common.json_progress_bars(json=json and not quiet):
         actions, untracked_files = misc.clone_env(src_prefix, dst_prefix,
                                                   verbose=not json,
-                                                  quiet=quiet, index=index)
+                                                  quiet=quiet,
+                                                  fetch_args=fetch_args)
 
     if json:
         common.stdout_json_success(
@@ -171,7 +172,7 @@ def install(args, parser, command='install'):
         for fpath in args.file:
             specs.extend(common.specs_from_url(fpath, json=args.json))
         if '@EXPLICIT' in specs:
-            misc.explicit(specs, prefix)
+            misc.explicit(specs, prefix, verbose=not args.quiet)
             return
     elif getattr(args, 'all', False):
         if not linked:
@@ -189,8 +190,7 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            misc.install_local_packages(prefix, args.packages,
-                                        verbose=not args.quiet)
+            misc.explicit(args.packages, prefix, verbose=not args.quiet)
             return
         else:
             common.error_and_exit(
@@ -205,6 +205,20 @@ def install(args, parser, command='install'):
             install_tar(prefix, tar_path, verbose=not args.quiet)
             return
 
+    if newenv and args.clone:
+        if set(args.packages) - set(default_packages):
+            common.error_and_exit('did not expect any arguments for --clone',
+                                  json=args.json,
+                                  error_type="ValueError")
+        clone(args.clone, prefix, json=args.json, quiet=args.quiet,
+              fetch_args={'use_cache': args.use_index_cache,
+                          'unknown': args.unknown})
+        misc.append_env(prefix)
+        misc.touch_nonadmin(prefix)
+        if not args.json:
+            print_activate(args.name if args.name else prefix)
+        return
+
     index = common.get_index_trap(channel_urls=channel_urls,
                                   prepend=not args.override_channels,
                                   use_local=args.use_local,
@@ -216,18 +230,6 @@ def install(args, parser, command='install'):
     r = Resolve(index)
     ospecs = list(specs)
     plan.add_defaults_to_specs(r, linked, specs, update=isupdate)
-
-    if newenv and args.clone:
-        if set(args.packages) - set(default_packages):
-            common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json,
-                                  error_type="ValueError")
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index=index)
-        misc.append_env(prefix)
-        misc.touch_nonadmin(prefix)
-        if not args.json:
-            print_activate(args.name if args.name else prefix)
-        return
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
