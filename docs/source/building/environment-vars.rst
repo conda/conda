@@ -37,8 +37,10 @@ override this behavior.)
     - Version of the package being built
   * - ``PKG_BUILDNUM``
     - Build number of the package being built
-  * - ``PATH``
-    - Prepended by the build prefix bin directory
+  * - ``MAKEFLAGS``
+    - Inherited from your shell environment. May be used to set additional 
+      arguments to make, such as `-j2`, which will use 2 CPU cores to build
+      your recipe.
   * - ``PYTHON``
     - Path to Python executable in build prefix (note that Python is only
       installed in the build prefix when it is listed as a build requirement)
