@@ -17,4 +17,4 @@ anaconda-submit-upload: clean-all
 	anaconda build submit . --queue conda-team/build_recipes --label stage
 
 
-.PHONY : clean clean-all anaconda-submit
+.PHONY : clean clean-all anaconda-submit anaconda-submit-upload
