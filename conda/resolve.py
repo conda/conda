@@ -739,14 +739,14 @@ class Resolve(object):
         return eqv, eqb
 
     def dependency_sort(self, must_have):
-        def lookup(value):
-            return set(ms.name for ms in self.ms_depends(value + '.tar.bz2'))
-        digraph = {}
         if not isinstance(must_have, dict):
             must_have = {self.package_name(dist): dist for dist in must_have}
+        digraph = {}
         for key, value in iteritems(must_have):
-            depends = lookup(value)
-            digraph[key] = depends
+            fn = value + '.tar.bz2'
+            if fn in self.index:
+                depends = set(ms.name for ms in self.ms_depends(fn))
+                digraph[key] = depends
         sorted_keys = toposort(digraph)
         must_have = must_have.copy()
         # Take all of the items in the sorted keys

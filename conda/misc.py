@@ -14,12 +14,11 @@ from os.path import (abspath, dirname, expanduser, exists,
 from conda import config
 from conda import install
 from conda import utils
-from conda.api import get_index
-from conda.compat import iteritems
+from conda.compat import iteritems, itervalues
 from conda.instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
-from conda.plan import ensure_linked_actions, execute_actions
+from conda.plan import execute_actions
 from conda.utils import md5_file
-from conda.resolve import Resolve
+from conda.resolve import Resolve, MatchSpec
 from conda.fetch import fetch_index
 
 
@@ -39,12 +38,15 @@ def conda_installed_files(prefix, exclude_self_build=False):
 
 url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
-def explicit(specs, prefix, verbose=False):
+def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
     linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
+    fetch_args = fetch_args or {}
     index = {}
+    verifies = []
+    channels = {}
     for spec in specs:
         if spec == '@EXPLICIT':
             continue
@@ -61,7 +63,7 @@ def explicit(specs, prefix, verbose=False):
         url_p, fn = url.rsplit('/', 1)
 
         # See if the URL refers to a package in our cache
-        prefix = pkg_path = None
+        prefix = pkg_path = dir_path = None
         if url_p.startswith('file://'):
             prefix = install.cached_url(url)
 
@@ -72,37 +74,31 @@ def explicit(specs, prefix, verbose=False):
         fn = prefix + fn
         dist = fn[:-8]
 
+        pkg_path = install.is_fetched(dist)
+        dir_path = install.is_extracted(dist)
+
         # Don't re-fetch unless there is an MD5 mismatch
-        if pkg_path is None:
-            pkg_path = install.is_fetched(dist)
         if pkg_path and (md5 and md5_file(pkg_path) != md5):
             # This removes any extracted copies as well
             actions[RM_FETCHED].append(dist)
-            pkg_path = None
+            pkg_path = dir_path = None
 
-        # Verify against the package index
-        if pkg_path is None:
-            if fn not in index:
-                fetch_index({url_p + '/': (schannel, 0)}, index=index)
-            info = index.get(fn)
-            if info is None:
-                sys.exit("Error: no package '%s' in index" % fn)
-            if md5:
-                if 'md5' not in info:
-                    sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
-                elif info['md5'] != md5:
-                    sys.exit(
-                        'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
-                        % (fn, md5, info['md5']))
-            _, conflict = install.find_new_location(dist)
-            if conflict:
-                actions[RM_FETCHED].append(conflict)
-            actions[FETCH].append(dist)
-        else:
-            # Force re-extraction
+        # Don't re-extract unless forced, or if we can't check the md5
+        if dir_path and (force_extract or md5 and not pkg_path):
             actions[RM_EXTRACTED].append(dist)
+            dir_path = None
 
-        actions[EXTRACT].append(dist)
+        if not dir_path:
+            if not pkg_path:
+                _, conflict = install.find_new_location(dist)
+                if conflict:
+                    actions[RM_FETCHED].append(conflict)
+                actions[FETCH].append(dist)
+                if md5:
+                    # Need to verify against the package index
+                    verifies.append((dist + '.tar.bz2', md5))
+                    channels[url_p + '/'] = (schannel, 0)
+            actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
         name = install.name_dist(dist)
@@ -110,7 +106,22 @@ def explicit(specs, prefix, verbose=False):
             actions[UNLINK].append(linked[name])
         actions[LINK].append(dist)
 
+    # Finish the MD5 verification
+    if verifies:
+        index = fetch_index(channels, **fetch_args)
+        for fn, md5 in verifies:
+            info = index.get(fn)
+            if info is None:
+                sys.exit("Error: no package '%s' in index" % fn)
+            if 'md5' not in info:
+                sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+            if info['md5'] != md5:
+                sys.exit(
+                    'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
+                    % (fn, md5, info['md5']))
+
     execute_actions(actions, index=index, verbose=verbose)
+    return actions
 
 
 def rel_path(prefix, path, windows_forward_slashes=True):
@@ -224,12 +235,51 @@ def append_env(prefix):
         pass
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
     """
     clone existing prefix1 into new prefix2
     """
     untracked_files = untracked(prefix1)
-    dists = discard_conda(install.linked(prefix1))
+
+    # Discard conda and any package that depends on it
+    drecs = install.linked_data(prefix1)
+    filter = {}
+    found = True
+    while found:
+        found = False
+        for dist, info in iteritems(drecs):
+            name = info['name']
+            if name in filter:
+                continue
+            if name == 'conda':
+                filter['conda'] = dist
+                found = True
+                break
+            for dep in info.get('depends', []):
+                if MatchSpec(dep).name in filter:
+                    filter[name] = dist
+                    found = True
+    if not quiet and filter:
+        print('The following packages cannot be cloned out of the root environment:')
+        for pkg in itervalues(filter):
+            print(' - ' + pkg)
+
+    # Assemble the URL and channel list
+    urls = {}
+    index = {}
+    for dist, info in iteritems(drecs):
+        if info['name'] in filter:
+            continue
+        url = info.get('url')
+        if url is None:
+            sys.exit('Error: no URL found for package: %s' % dist)
+        _, schannel = config.url_channel(url)
+        index[dist + '.tar.bz2'] = info
+        urls[dist] = url
+
+    r = Resolve(index)
+    dists = r.dependency_sort(urls.keys())
+    urls = [urls[d] for d in dists]
 
     if verbose:
         print('Packages: %d' % len(dists))
@@ -264,15 +314,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index=None):
             fo.write(data)
         shutil.copystat(src, dst)
 
-    if index is None:
-        index = get_index()
-
-    r = Resolve(index)
-    sorted_dists = r.dependency_sort(dists)
-
-    actions = ensure_linked_actions(sorted_dists, prefix2)
-    execute_actions(actions, index=index, verbose=not quiet)
-
+    actions = explicit(urls, prefix2, verbose=not quiet,
+                       force_extract=False, fetch_args=fetch_args)
     return actions, untracked_files
 
 
