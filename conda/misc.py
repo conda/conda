@@ -6,6 +6,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import shutil
 import sys
+import re
 from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath)
@@ -36,6 +37,8 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
+url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
+                     r'(:?#(?P<md5>[0-9a-f]{32}))?$')
 def explicit(specs, prefix, verbose=False):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
@@ -47,12 +50,13 @@ def explicit(specs, prefix, verbose=False):
             continue
 
         # Format: (url|path)(:#md5)?
-        url, _, md5 = spec.partition(':#')
-        if not url.endswith('.tar.bz2'):
-            sys.exit("Error: Could not parse: %s" % url)
+        m = url_pat.match(spec)
+        if m is None:
+            sys.exit('Could not parse explicit URL: %s' % spec)
+        url, md5 = m.group('url') + '/' + m.group('fn'), m.group('md5')
         if not config.is_url(url):
             if not isfile(url):
-                sys.exit("Error: file not found: %s" % url)
+                sys.exit('Error: file not found: %s' % url)
             url = utils.url_path(url)
         url_p, fn = url.rsplit('/', 1)
 
@@ -72,6 +76,7 @@ def explicit(specs, prefix, verbose=False):
         if pkg_path is None:
             pkg_path = install.is_fetched(dist)
         if pkg_path and (md5 and md5_file(pkg_path) != md5):
+            # This removes any extracted copies as well
             actions[RM_FETCHED].append(dist)
             pkg_path = None
 
@@ -86,13 +91,17 @@ def explicit(specs, prefix, verbose=False):
                 if 'md5' not in info:
                     sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
                 elif info['md5'] != md5:
-                    sys.exit("Error: MD5 in explicit files does not match index")
+                    sys.exit(
+                        'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
+                        % (fn, md5, info['md5']))
             _, conflict = install.find_new_location(dist)
             if conflict:
                 actions[RM_FETCHED].append(conflict)
             actions[FETCH].append(dist)
+        else:
+            # Force re-extraction
+            actions[RM_EXTRACTED].append(dist)
 
-        actions[RM_EXTRACTED].append(dist)
         actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name

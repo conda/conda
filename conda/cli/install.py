@@ -171,7 +171,7 @@ def install(args, parser, command='install'):
         for fpath in args.file:
             specs.extend(common.specs_from_url(fpath, json=args.json))
         if '@EXPLICIT' in specs:
-            misc.explicit(specs, prefix)
+            misc.explicit(specs, prefix, verbose=not args.quiet)
             return
     elif getattr(args, 'all', False):
         if not linked:
