@@ -89,6 +89,10 @@ rc_string_keys = [
     'root_dir',
 ]
 
+rc_int_keys = [
+    'max_cpu_count',
+]
+
 # Not supported by conda config yet
 rc_other = [
     'proxy_servers',
@@ -379,6 +383,8 @@ channel_priority = bool(rc.get('channel_priority', True))
 
 # ssl_verify can be a boolean value or a filename string
 ssl_verify = rc.get('ssl_verify', True)
+
+max_cpu_count = int(rc.get('max_cpu_count', -1))
 
 try:
     track_features = set(rc['track_features'])

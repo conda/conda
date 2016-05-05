@@ -95,18 +95,19 @@ class SingleValueKey(common.Completer):
     def _get_items(self):
         return config.rc_bool_keys + \
                config.rc_string_keys + \
+               config.rc_int_keys + \
                ['yes', 'no', 'on', 'off', 'true', 'false']
 
 class ListKey(common.Completer):
     def _get_items(self):
         return config.rc_list_keys
 
-class BoolOrListKey(common.Completer):
+class IntOrListKey(common.Completer):
     def __contains__(self, other):
         return other in self.get_items()
 
     def _get_items(self):
-        return config.rc_list_keys + config.rc_bool_keys
+        return config.rc_list_keys + config.rc_bool_keys + config.rc_int_keys
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -146,7 +147,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Get a configuration value.",
         default=None,
         metavar=('KEY'),
-        choices=BoolOrListKey()
+        choices=IntOrListKey()
         )
     action.add_argument(
         "--add",
@@ -241,7 +242,7 @@ channels:
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in config.rc_list_keys + config.rc_bool_keys + config.rc_string_keys:
+            if key not in config.rc_list_keys + config.rc_bool_keys + config.rc_string_keys + config.rc_int_keys:
                 if key not in config.rc_other:
                     message = "unknown key %s" % key
                     if not args.json:
@@ -257,6 +258,8 @@ channels:
                 continue
 
             if isinstance(rc_config[key], (bool, string_types)):
+                print("--set", key, rc_config[key])
+            elif isinstance(rc_config[key], (int, string_types)):
                 print("--set", key, rc_config[key])
             else:
                 # Note, since conda config --add prepends, these are printed in
@@ -289,7 +292,7 @@ channels:
         rc_config.setdefault(key, []).insert(0, item)
 
     # Set
-    set_bools, set_strings = set(config.rc_bool_keys), set(config.rc_string_keys)
+    set_bools, set_strings, set_ints = set(config.rc_bool_keys), set(config.rc_string_keys), set(config.rc_int_keys)
     for key, item in args.set:
         # Check key and value
         yamlitem = yaml_load(item)
@@ -299,6 +302,11 @@ channels:
                                       json=args.json, error_type="TypeError")
             rc_config[key] = yamlitem
         elif key in set_strings:
+            rc_config[key] = yamlitem
+        elif key in set_ints:
+            if not isinstance(yamlitem, int):
+                common.error_and_exit("Key: %s; %s is not a YAML integer." % (key, item),
+                                      json=args.json, error_type="TypeError")
             rc_config[key] = yamlitem
         else:
             common.error_and_exit("Error key must be one of %s, not %s" %
