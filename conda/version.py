@@ -251,6 +251,9 @@ opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
           '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
 
 class VersionSpec(object):
+    def exact_match_(self, vspec):
+        return self.spec == vspec
+
     def regex_match_(self, vspec):
         return bool(self.regex.match(vspec))
 
@@ -282,14 +285,15 @@ class VersionSpec(object):
             self.op = opdict[op]
             self.cmp = VersionOrder(b)
             self.match = self.veval_match_
-        else:
-            self.spec = spec
+        elif '*' in spec:
             rx = spec.replace('.', r'\.')
             rx = rx.replace('+', r'\+')
             rx = rx.replace('*', r'.*')
-            rx = r'(%s)$' % rx
+            rx = r'^(?:%s)$' % rx
             self.regex = re.compile(rx)
             self.match = self.regex_match_
+        else:
+            self.match = self.exact_match_
         return self
 
     def str(self, inand=False):

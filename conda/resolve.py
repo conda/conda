@@ -3,8 +3,9 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import defaultdict
 from itertools import chain
+import re
 
-from conda.compat import iterkeys, itervalues, iteritems, string_types
+from conda.compat import iterkeys, itervalues, iteritems
 from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.version import VersionSpec, normalized_version
 from conda.console import setup_handlers
@@ -117,10 +118,20 @@ class MatchSpec(object):
         self.strictness = len(parts)
         assert 1 <= self.strictness <= 3, repr(spec)
         self.name = parts[0]
-        if self.strictness == 2:
-            self.vspecs = VersionSpec(parts[1])
-        elif self.strictness == 3:
-            self.ver_build = tuple(parts[1:3])
+        if self.strictness == 1:
+            self.match_fast = self.match_fast_1
+        else:
+            self.version = VersionSpec(parts[1])
+            if self.strictness == 2:
+                self.match_fast = self.match_fast_2
+            else:
+                self.build = parts[2]
+                if '*' in self.build:
+                    rx = r'^(?:%s)$' % self.build.replace('*', r'.*')
+                    self.regex = re.compile(rx)
+                    self.match_fast = self.match_fast_4
+                else:
+                    self.match_fast = self.match_fast_3
         self.target = target
         self.optional = optional
         if oparts:
@@ -135,28 +146,32 @@ class MatchSpec(object):
             self.optional = False
         return self
 
-    def match_fast(self, version, build):
-        if self.strictness == 1:
-            return True
-        elif self.strictness == 2:
-            return self.vspecs.match(version)
-        else:
-            return bool((version, build) == self.ver_build)
+    def match_fast_1(self, verison, build):
+        return True
+
+    def match_fast_2(self, version, build):
+        return self.version.match(version)
+
+    def match_fast_3(self, version, build):
+        return build == self.build and self.version.match(version)
+
+    def match_fast_4(self, version, build):
+        return self.regex.match(build) and self.version.match(version)
 
     def match(self, info):
-        if isinstance(info, string_types):
-            name, version, build = info[:-8].rsplit('-', 2)
-        else:
+        if type(info) is dict:
             name = info.get('name')
             version = info.get('version')
             build = info.get('build')
+        else:
+            name, version, build = info[:-8].rsplit('-', 2)
         if name != self.name:
             return False
         return self.match_fast(version, build)
 
     def to_filename(self):
-        if self.strictness == 3 and not self.optional:
-            return self.name + '-%s-%s.tar.bz2' % self.ver_build
+        if self.strictness == 3 and not self.optional and '*' not in self.build:
+            return self.name + '-%s-%s.tar.bz2' % (self.version.spec, self.build)
         else:
             return None
 

@@ -48,6 +48,8 @@ class TestMatchSpec(unittest.TestCase):
         self.assertTrue(MatchSpec('numpy <1.0.1').match('numpy-1.0.1a.vc11-0.tar.bz2'))
         self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match('numpy-1.0.1a-0.tar.bz2'))
         self.assertTrue(MatchSpec('numpy >=1.0.1a').match('numpy-1.0.1z-0.tar.bz2'))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match('numpy-1.0.1z-py27_1.tar.bz2'))
+        self.assertTrue(MatchSpec('blas * openblas').match('blas-1.0-openblas.tar.bz2'))
 
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')

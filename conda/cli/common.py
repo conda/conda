@@ -486,7 +486,7 @@ def arg2spec(arg, json=False, update=False):
                        json=json, error_type="ValueError")
     if spec.strictness != 2:
         return str(spec)
-    ver = spec.vspecs.spec
+    ver = spec.version.spec
     if isinstance(ver, tuple) or ver.startswith(('=', '>', '<', '!')) or ver.endswith('*'):
         return str(spec)
     elif ver.endswith('.0'):
