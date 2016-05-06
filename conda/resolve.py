@@ -719,8 +719,8 @@ class Resolve(object):
             if targets:
                 v1 = [(self.version_key(p), p) for p in targets]
                 tver = max(v1)
-                v2 = [p for p in pkgs if p > tver]
-                v3 = list(reversed([p for p in pkgs if p <= tver and p not in v1]))
+                v2 = list(reversed([p for p in pkgs if p > tver]))
+                v3 = [p for p in pkgs if p <= tver and p not in v1]
                 pkgs = v1 + v2 + v3
             pkey = None
             for nkey, npkg in pkgs:
