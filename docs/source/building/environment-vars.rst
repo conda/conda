@@ -202,8 +202,8 @@ additional environment variables by adding them to ``meta.yaml``:
         - LD_LIBRARY_PATH # [linux]
         - DYLD_LIBRARY_PATH # [osx]
 
-If an inherited variable was missing from your shell environment, it will be 
-assigned the value ``<UNDEFINED>``.
+If an inherited variable was missing from your shell environment, it will remain 
+unassigned, but a warning will be issued noting that it has no value assigned.
 
 NOTE: Inheriting environment variables like this can make it difficult for others
 to reproduce binaries from source with your recipe. This feature should be 
