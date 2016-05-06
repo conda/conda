@@ -718,9 +718,9 @@ class Resolve(object):
             targets = [ms.target for ms in mss if ms.target and ms.target in self.index]
             if targets:
                 v1 = [(self.version_key(p), p) for p in targets]
-                tver = max(v1)
-                v2 = list(reversed([p for p in pkgs if p > tver]))
-                v3 = [p for p in pkgs if p <= tver and p not in v1]
+                tver = min(v1)[0]
+                v2 = list(reversed([(p, q) for p, q in pkgs if p >= tver and q not in targets]))
+                v3 = [(p, q) for p, q in pkgs if p < tver]
                 pkgs = v1 + v2 + v3
             pkey = None
             for nkey, npkg in pkgs:
