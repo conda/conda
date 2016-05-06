@@ -714,13 +714,17 @@ class Resolve(object):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
             # If the "target" field in the MatchSpec is supplied, that means we want
             # to minimize the changes to the currently installed package. We prefer
-            # any upgrade over any downgrade, but beyond that we want minimal change.
+            # smaller upgrades over larger upgrades, and any upgrade over any downgrade.
             targets = [ms.target for ms in mss if ms.target and ms.target in self.index]
             if targets:
-                v1 = [(self.version_key(p), p) for p in targets]
-                tver = min(v1)[0]
-                v2 = list(reversed([(p, q) for p, q in pkgs if p >= tver and q not in targets]))
-                v3 = [(p, q) for p, q in pkgs if p < tver]
+                tver = [p for p, q in pkgs if q in targets]
+                # In practice, tmin == tmax, because there's only one target
+                tmin, tmax = min(tver), max(tver)
+                v1 = [(p, q) for p, q in pkgs if tmin <= p <= tmax]
+                v2 = [(p, q) for p, q in pkgs if p > tmax]
+                # This ensures that later builds are still preferred over earlier ones
+                v2 = list(sorted(v2, key=lambda x: (x[0][0], x[0][1], -x[0][2])))
+                v3 = [(p, q) for p, q in pkgs if p < tmin]
                 pkgs = v1 + v2 + v3
             pkey = None
             for nkey, npkg in pkgs:
