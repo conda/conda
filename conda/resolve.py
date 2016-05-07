@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import defaultdict
 from itertools import chain
+import re
 
 from conda.compat import iterkeys, itervalues, iteritems, string_types
 from conda.logic import minimal_unsatisfiable_subset, Clauses
@@ -134,6 +135,23 @@ class MatchSpec(object):
         if self.optional is None:
             self.optional = False
         return self
+
+    kv_pat = re.compile('^[^ ]+:')
+    @staticmethod
+    def from_string(dep):
+        if type(dep) is MatchSpec:
+            yield dep
+            return
+        if MatchSpec.kv_pat.match(dep):
+            base, dep = dep.split(':', 1)
+            yield MatchSpec('%s * %s' % (base, dep.split(' ', 1)[0]))
+        yield MatchSpec(dep)
+
+    @staticmethod
+    def from_list(deps):
+        for dep in deps:
+            for d in MatchSpec.from_string(dep):
+                yield d
 
     def match_fast(self, version, build):
         if self.strictness == 1:
@@ -390,8 +408,7 @@ class Resolve(object):
         opts = []
         spec2 = []
         feats = set()
-        for s in specs:
-            ms = MatchSpec(s)
+        for ms in MatchSpec.from_list(specs):
             if ms.name[-1] == '@':
                 feats.add(ms.name[:-1])
                 continue
@@ -578,13 +595,12 @@ class Resolve(object):
             if fkey.endswith(']'):
                 f2, fstr = fkey.rsplit('[', 1)
                 fdeps = {d.name: d for d in self.ms_depends(f2)}
-                for dep in rec['with_features_depends'][fstr[:-1]]:
-                    dep = MatchSpec(dep)
+                for dep in MatchSpec.from_list(rec['with_features_depends'][fstr[:-1]]):
                     fdeps[dep.name] = dep
                 deps = list(fdeps.values())
             else:
-                deps = [MatchSpec(d) for d in rec.get('depends', [])]
-            deps.extend(MatchSpec('@'+feat) for feat in self.features(fkey))
+                deps = list(MatchSpec.from_list(rec.get('depends', [])))
+                deps.extend(MatchSpec('@'+feat) for feat in self.features(fkey))
             self.ms_depends_[fkey] = deps
         return deps
 
@@ -707,8 +723,7 @@ class Resolve(object):
         eqv = {}
         eqb = {}
         sdict = {}
-        for s in specs:
-            s = MatchSpec(s)  # needed for testing
+        for s in MatchSpec.from_list(specs):
             sdict.setdefault(s.name, []).append(s)
         for name, mss in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
@@ -864,7 +879,7 @@ class Resolve(object):
             pkgs.extend(p for p in preserve if self.package_name(p) not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        specs = list(map(MatchSpec, specs))
+        specs = list(MatchSpec.from_list(specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
@@ -921,7 +936,7 @@ class Resolve(object):
             dotlog.debug("Solving for %s" % (specs,))
 
             # Find the compliant packages
-            specs = list(map(MatchSpec, specs))
+            specs = list(MatchSpec.from_list(specs))
             if len0 is None:
                 len0 = len(specs)
             dists, new_specs = self.get_dists(specs)
