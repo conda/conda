@@ -137,7 +137,8 @@ On Linux, we have:
 Git Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When the source is a git repository, the following variables are defined:
+When the source is a git repository, specifying the source either with ``git_url``
+or ``path``, the following variables are defined:
 
 .. list-table::
 
@@ -165,14 +166,14 @@ so the ``git_url`` is ``../``:
 
      package:
        name: mypkg
-       version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+       version: {{ GIT_DESCRIBE_TAG }}
 
      build:
-       number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+       number: {{ GIT_DESCRIBE_NUMBER }}
 
        # Note that this will override the default build string with the Python
        # and NumPy versions
-       string: {{ environ.get('GIT_BUILD_STR', '') }}
+       string: {{ GIT_BUILD_STR }}
 
      source:
        git_url: ../
@@ -184,6 +185,11 @@ Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echo each
 command that is run, and the ``-e`` makes it exit whenever a command in the
 script returns nonzero exit status).  You can revert this in the script if you
 need to by using the ``set`` command.
+
+The only practical difference between ``git_url`` and ``path`` as source arguments
+is that git_url is a clone of a repository and path is copy of the repository.
+Using path will allow you to build packages with unstaged/uncommited changes in
+working directory. git_url can only build up to the latest commit.
 
 .. _inherited-env-vars:
 
