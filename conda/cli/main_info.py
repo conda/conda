@@ -148,7 +148,7 @@ def execute(args, parser):
     import conda.config as config
     from conda.resolve import Resolve
     from conda.cli.main_init import is_initialized
-    from conda.api import get_index, get_package_versions
+    from conda.api import get_index
 
     if args.root:
         if args.json:
@@ -158,21 +158,19 @@ def execute(args, parser):
         return
 
     if args.packages:
-        if args.json:
-            results = defaultdict(list)
-            for arg in args.packages:
-                for pkg in get_package_versions(arg):
-                    results[arg].append(pkg._asdict())
-            common.stdout_json(results)
-            return
         index = get_index()
         r = Resolve(index)
-        specs = map(common.arg2spec, args.packages)
-
-        for spec in specs:
-            versions = r.get_pkgs(spec)
-            for pkg in sorted(versions):
-                pretty_package(pkg)
+        if args.json:
+            common.stdout_json({
+                package: [p._asdict()
+                          for p in sorted(r.get_pkgs(common.arg2spec(package)))]
+                for package in args.packages
+            })
+        else:
+            for package in args.packages:
+                versions = r.get_pkgs(common.arg2spec(package))
+                for pkg in sorted(versions):
+                    pretty_package(pkg)
         return
 
     options = 'envs', 'system', 'license'
