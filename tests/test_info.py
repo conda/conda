@@ -1,6 +1,8 @@
 from __future__ import print_function, absolute_import, division
+import json
 
 from conda import config
+from conda.cli import main_info
 
 from tests.helpers import run_conda_command, assert_in, assert_equals
 
@@ -32,3 +34,21 @@ def test_info():
     assert_in(conda_info_out, conda_info_all_out)
     assert_in(conda_info_e_out, conda_info_all_out)
     assert_in(conda_info_s_out, conda_info_all_out)
+
+
+def test_info_package_json():
+    out, err = run_conda_command("info", "--json", "numpy=1.11.0=py35_0")
+    assert err == ""
+
+    out = json.loads(out)
+    assert set(out.keys()) == {"numpy=1.11.0=py35_0"}
+    assert len(out["numpy=1.11.0=py35_0"]) == 1
+    assert isinstance(out["numpy=1.11.0=py35_0"], list)
+
+    out, err = run_conda_command("info", "--json", "numpy")
+    assert err == ""
+
+    out = json.loads(out)
+    assert set(out.keys()) == {"numpy"}
+    assert len(out["numpy"]) > 1
+    assert isinstance(out["numpy"], list)
