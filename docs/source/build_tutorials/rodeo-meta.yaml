@@ -1,0 +1,84 @@
+package:
+  name: rodeo
+  version: "0.4.4"
+
+source:
+  fn: rodeo-0.4.4.tar.gz
+  url: https://pypi.python.org/packages/source/r/rodeo/rodeo-0.4.4.tar.gz
+  md5: cbd93b992b508eb6f0915214b3201661
+#  patches:
+   # List any patch files here
+   # - fix.patch
+
+build:
+  # noarch_python: True
+  # preserve_egg_dir: True
+  entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - rodeo = rodeo:main
+    #
+    # Would create an entry point called rodeo that calls rodeo.main()
+
+    - rodeo = rodeo.cli:cmd
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - jupyter
+    - flask >=0.10.1
+    - docopt
+    - pyzmq >=13
+    - mistune
+
+  run:
+    - python
+    - jupyter
+    - flask >=0.10.1
+    - docopt
+    - pyzmq >=13
+    - mistune
+
+test:
+  # Python imports
+  imports:
+    - rodeo
+
+  commands:
+    # You can put test commands to be run here.  Use this to test that the
+    # entry points work.
+
+    - rodeo --help
+
+  # You can also put a file called run_test.py in the recipe that will be run
+  # at test time.
+
+  # requires:
+    # Put any additional test requirements here.  For example
+    # - nose
+app:
+  entry: rodeo .                              [not osx]
+  entry: open ${PREFIX}/bin/rodeo_mac.command [osx]
+  icon: logo.png
+  summary: Rodeo Data Science IDE
+  type: web
+
+about:
+  home: http://rodeo.yhat.com/
+  license: BSD
+  summary: 'A web-based environment for interactive Data Science'
+  description: |
+    Rodeo is an IDE that was built expressly for doing data science in Python.
+    Think of it as a light weight alternative to the IPython Notebook.
+  doc_url: http://rodeo.yhat.com/docs/
+  dev_url: https://github.com/yhat/rodeo
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
