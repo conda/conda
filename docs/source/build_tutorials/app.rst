@@ -176,6 +176,8 @@ Build and upload
 
 
 Now that you have the conda build recipe ready, you can use the conda-build tool to create the package.
+You will have to build and upload the rodeo package separately on Mac, Linux and Windows machines in
+order for the package to be available on all platforms.
 
 .. code-block:: bash
 
@@ -221,8 +223,9 @@ Linux and OS X users:
     anaconda upload /home/jsmith/miniconda/conda-bld/linux-64/rodeo-0.4.4-py35_0.tar.bz2
 
 
-NOTE: Change your path and filename to the exact path and filename you saved in Step 2. Your path and filename
+Note: Change your path and filename to the exact path and filename you saved in Step 2. Your path and filename
 will vary depending on your installation and operating system.
+
 
 
 For more information about Anaconda.org, see the `Anaconda.org documentation page <http://docs.anaconda.org/>`_.
