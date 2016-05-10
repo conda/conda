@@ -70,6 +70,11 @@ def is_git_repo(path):
     return call(('git', 'rev-parse'), cwd=path) == 0
 
 
+def get_git_version_or_none(file):
+    here = absdirname(file)
+    return _get_version_from_git_tag(here) if is_git_repo(here) else None
+
+
 def get_version(file, package):
     """Returns a version string for the current package, derived
     either from git or from a .version file.
