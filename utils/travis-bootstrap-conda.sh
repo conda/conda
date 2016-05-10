@@ -3,7 +3,7 @@
 
 
 travis_build_and_upload() {
-    if [[ "$TRAVIS_BRANCH" == master ]]; then
+    if [[ "$TRAVIS_BRANCH" == master && "$TRAVIS_PULL_REQUEST" == false ]]; then
         set -e
         conda install -y conda-build anaconda-client
         conda build --python $PY_VERSION conda.recipe | tee build.log
@@ -33,7 +33,7 @@ travis_bootstrap_conda() {
     export PATH="$HOME/miniconda/bin:$PATH"
     hash -r
     conda config --set always_yes yes
-    conda update conda
+    conda update -q conda
 
     # TODO: on hold until we get virtualenvs working
     # declare python_version

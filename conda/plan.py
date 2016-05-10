@@ -10,19 +10,19 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import sys
 import os
-from logging import getLogger
+import sys
 from collections import defaultdict
+from logging import getLogger
 from os.path import abspath, basename, isfile, join, exists
 
 from conda import config
 from conda import install
+from conda import instructions as inst
+from conda.common.utils import md5_file, human_bytes
+from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
-from conda.utils import md5_file, human_bytes
-from conda import instructions as inst
-from conda.exceptions import CondaException
 log = getLogger(__name__)
 
 # For backwards compatibility
@@ -328,7 +328,7 @@ def dist2spec3v(dist):
     return '%s %s*' % (name, version[:3])
 
 
-def add_defaults_to_specs(r, linked, specs):
+def add_defaults_to_specs(r, linked, specs, update=False):
     # TODO: This should use the pinning mechanism. But don't change the API:
     # cas uses it.
     if r.explicit(specs):
@@ -370,7 +370,10 @@ def add_defaults_to_specs(r, linked, specs):
             # if Python/Numpy is already linked, we add that instead of the
             # default
             log.debug('H3 %s' % name)
-            specs.append(dist2spec3v(names_linked[name]))
+            spec = dist2spec3v(names_linked[name])
+            if update:
+                spec = '%s (target=%s.tar.bz2)' % (spec,names_linked[name])
+            specs.append(spec)
             continue
 
         if (name, def_ver) in [('python', '3.3'), ('python', '3.4'),
@@ -391,7 +394,7 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 def install_actions(prefix, index, specs, force=False, only_names=None,
-                    pinned=True, minimal_hint=False, update_deps=True):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
     r = Resolve(index)
     linked = install.linked(prefix)
 
@@ -402,9 +405,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
-
-    # TODO: Improve error messages here
-    add_defaults_to_specs(r, linked, specs)
 
     must_have = {}
     if config.track_features:
@@ -439,12 +439,14 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     else:
         actions = ensure_linked_actions(smh, prefix)
 
-    if actions[inst.LINK] and sys.platform != 'win32' and prefix != config.root_dir:
+    if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [config.root_dir]
 
     for dist in sorted(linked):
         name = install.name_dist(dist)
-        if name in must_have and dist != must_have[name]:
+        replace_existing = name in must_have and dist != must_have[name]
+        prune_it = prune and dist not in smh
+        if replace_existing or prune_it:
             add_unlink(actions, dist)
 
     return actions

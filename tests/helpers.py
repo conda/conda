@@ -1,10 +1,10 @@
 """
 Helpers for the tests
 """
+import json
+import os
 import subprocess
 import sys
-import os
-import json
 
 try:
     from unittest import mock
@@ -17,7 +17,8 @@ except ImportError:
 from contextlib import contextmanager
 
 import conda.cli as cli
-from conda.compat import StringIO
+from conda.common.compat import StringIO
+
 
 def raises(exception, func, string=None):
     try:
@@ -29,6 +30,7 @@ def raises(exception, func, string=None):
         return True
     raise Exception("did not raise, gave %s" % a)
 
+
 def run_in(command, shell='bash'):
     p = subprocess.Popen([shell, '-c', command], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
@@ -36,16 +38,20 @@ def run_in(command, shell='bash'):
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
         stderr.decode('utf-8').replace('\r\n', '\n'))
 
+
 def run_conda_command(*args):
     env = os.environ.copy()
     p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, env=env)
-    stdout, stderr = p.communicate()
-    return (stdout.decode('utf-8').replace('\r\n', '\n'),
-        stderr.decode('utf-8').replace('\r\n', '\n'))
+
+    stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
+                      for stream in p.communicate()]
+    return stdout, stderr
+
 
 class CapturedText(object):
     pass
+
 
 @contextmanager
 def captured(disallow_stderr=True):
@@ -107,3 +113,16 @@ def capture_json_with_argv(*argv):
     except ValueError:
         print(str(stdout), str(stderr))
         raise
+
+
+def assert_equals(a, b, output=""):
+    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
+    assert(a.lower() == b.lower(), output)
+
+
+def assert_not_in(a, b, output=""):
+    assert (a.lower() not in b.lower(), "%s %r should not be found in %r" % (output, a.lower(), b.lower()))
+
+
+def assert_in(a, b, output=""):
+    assert (a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower()))

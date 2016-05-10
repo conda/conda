@@ -5,14 +5,13 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import print_function, division, absolute_import
 
-import re
 import os
+import re
 import sys
-from copy import deepcopy
 
 import conda.config as config
 from conda.cli import common
-from conda.compat import string_types
+from conda.common.compat import string_types
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -65,13 +64,7 @@ Note that in YAML, "yes", "YES", "on", "true", "True", and "TRUE" are all
 valid ways to spell "true", and "no", "NO", "off", "false", "False", and
 "FALSE", are all valid ways to spell "false".
 
-The .condarc file is YAML, and any valid YAML syntax is allowed.  However,
-this command uses a specialized YAML parser that tries to maintain structure
-and comments, which may not recognize all kinds of syntax. The --force flag
-can be used to write using the pyyaml parser, which will remove any structure
-and comments from the file.  Currently, the --force flag is required to use
---remove or --remove-key.
-
+The .condarc file is YAML, and any valid YAML syntax is allowed.
 """
 
 
@@ -214,9 +207,9 @@ def execute(args, parser):
 
 def execute_config(args, parser):
     try:
-        import yaml
+        import ruamel.yaml as yaml
     except ImportError:
-        common.error_and_exit("pyyaml is required to modify configuration",
+        common.error_and_exit("ruamel.yaml is required to modify configuration",
                               json=args.json, error_type="ImportError")
 
     json_warnings = []
@@ -244,7 +237,7 @@ channels:
     else:
         with open(rc_path, 'r') as rc:
             rc_text = rc.read()
-    rc_config = yaml.load(rc_text)
+    rc_config = yaml.load(rc_text, Loader=yaml.RoundTripLoader)
     if rc_config is None:
         rc_config = {}
 
@@ -278,16 +271,6 @@ channels:
                     # Use repr so that it can be pasted back in to conda config --add
                     print("--add", key, repr(item))
 
-
-    # PyYaml does not support round tripping, so if we use yaml.dump, it
-    # will clear all comments and structure from the configuration file.
-    # There are no yaml parsers that do this.  Our best bet is to do a
-    # simple parsing of the file ourselves.  We can check the result at
-    # the end to see if we did it right.
-
-    # First, do it the pyyaml way
-    new_rc_config = deepcopy(rc_config)
-
     # Add
     for key, item in args.add:
         if key not in config.rc_list_keys:
@@ -307,20 +290,20 @@ channels:
             else:
                 json_warnings.append(message)
             continue
-        new_rc_config.setdefault(key, []).insert(0, item)
+        rc_config.setdefault(key, []).insert(0, item)
 
     # Set
     set_bools, set_strings = set(config.rc_bool_keys), set(config.rc_string_keys)
     for key, item in args.set:
         # Check key and value
-        yamlitem = yaml.load(item)
+        yamlitem = yaml.load(item, Loader=yaml.RoundTripLoader)
         if key in set_bools:
             if not isinstance(yamlitem, bool):
                 common.error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
                                       json=args.json, error_type="TypeError")
-            new_rc_config[key] = yamlitem
+            rc_config[key] = yamlitem
         elif key in set_strings:
-            new_rc_config[key] = yamlitem
+            rc_config[key] = yamlitem
         else:
             common.error_and_exit("Error key must be one of %s, not %s" %
                                   (', '.join(set_bools | set_strings), key), json=args.json,
@@ -328,118 +311,25 @@ channels:
 
     # Remove
     for key, item in args.remove:
-        if key not in new_rc_config:
+        if key not in rc_config:
             common.error_and_exit("key %r is not in the config file" % key, json=args.json,
                                   error_type="KeyError")
-        if item not in new_rc_config[key]:
+        if item not in rc_config[key]:
             common.error_and_exit("%r is not in the %r key of the config file" %
                                   (item, key), json=args.json, error_type="KeyError")
-        new_rc_config[key] = [i for i in new_rc_config[key] if i != item]
+        rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
-        if key not in new_rc_config:
+        if key not in rc_config:
             common.error_and_exit("key %r is not in the config file" % key, json=args.json,
                                   error_type="KeyError")
-        del new_rc_config[key]
+        del rc_config[key]
 
-    if args.force:
-        # Note, force will also remove any checking that the keys are in
-        # config.rc_keys
-        with open(rc_path, 'w') as rc:
-            rc.write(yaml.dump(new_rc_config, default_flow_style=False))
-
-        if args.json:
-            common.stdout_json_success(
-                rc_path=rc_path,
-                warnings=json_warnings,
-                get=json_get
-            )
-        return
-
-    # Now, try to parse the condarc file.
-
-    # Just support "   key:  " for now
-    listkeyregexes = {key:re.compile(r"( *)%s *" % key)
-        for key in dict(args.add)
-        }
-    setkeyregexes = {key:re.compile(r"( *)%s( *):( *)" % key)
-        for key in dict(args.set)
-        }
-
-    new_rc_text = rc_text[:].split("\n")
-
-    for key, item in args.add:
-        if key not in config.rc_list_keys:
-            common.error_and_exit("key must be one of %s, not %s" %
-                                  (config.rc_list_keys, key), json=args.json,
-                                  error_type="ValueError")
-
-        if item in rc_config.get(key, []):
-            # Skip duplicates. See above
-            continue
-        added = False
-        for pos, line in enumerate(new_rc_text[:]):
-            matched = listkeyregexes[key].match(line)
-            if matched:
-                leading_space = matched.group(1)
-                # TODO: Try to guess how much farther to indent the
-                # item. Right now, it is fixed at 2 spaces.
-                new_rc_text.insert(pos + 1, "%s  - %s" % (leading_space, item))
-                added = True
-        if not added:
-            if key in rc_config:
-                # We should have found it above
-                raise CouldntParse("existing list key couldn't be found")
-            # TODO: Try to guess the correct amount of leading space for the
-            # key. Right now it is zero.
-            new_rc_text += ['%s:' % key, '  - %s' % item]
-            if key == 'channels' and ['channels', 'defaults'] not in args.add:
-                # If channels key is added for the first time, make sure it
-                # includes 'defaults'
-                new_rc_text += ['  - defaults']
-                new_rc_config['channels'].append('defaults')
-
-    for key, item in args.set:
-        added = False
-        for pos, line in enumerate(new_rc_text[:]):
-            matched = setkeyregexes[key].match(line)
-            if matched:
-                leading_space = matched.group(1)
-                precol_space = matched.group(2)
-                postcol_space = matched.group(3)
-                new_rc_text[pos] = '%s%s%s:%s%s' % (leading_space, key,
-                    precol_space, postcol_space, item)
-                added = True
-        if not added:
-            if key in rc_config:
-                raise CouldntParse("existing bool key couldn't be found")
-            new_rc_text += ['%s: %s' % (key, item)]
-
-    for key, item in args.remove:
-        raise NotImplementedError("--remove without --force is not implemented "
-            "yet")
-
-    for key, in args.remove_key:
-        raise NotImplementedError("--remove-key without --force is not "
-            "implemented yet")
-
-    if args.add or args.set:
-        # Verify that the new rc text parses to the same thing as if we had
-        # used yaml.
-        try:
-            parsed_new_rc_text = yaml.load('\n'.join(new_rc_text).strip('\n'))
-        except yaml.parser.ParserError:
-            raise CouldntParse("couldn't parse modified yaml")
-        else:
-            if not parsed_new_rc_text == new_rc_config:
-                raise CouldntParse("modified yaml doesn't match what it "
-                                   "should be")
-
-    if args.add or args.set:
-        with open(rc_path, 'w') as rc:
-            rc.write('\n'.join(new_rc_text).strip('\n'))
-            rc.write('\n')
+    # config.rc_keys
+    with open(rc_path, 'w') as rc:
+        rc.write(yaml.dump(rc_config, Dumper=yaml.RoundTripDumper, default_flow_style=False, indent=4,
+                           block_seq_indent=2))
 
     if args.json:
         common.stdout_json_success(
@@ -447,3 +337,4 @@ channels:
             warnings=json_warnings,
             get=json_get
         )
+    return

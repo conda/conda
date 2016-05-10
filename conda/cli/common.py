@@ -1,16 +1,17 @@
 from __future__ import print_function, division, absolute_import
 
-import re
-import os
-import sys
 import argparse
 import contextlib
-from os.path import abspath, basename, expanduser, isdir, join
+import os
+import re
+import sys
 import textwrap
+from os.path import abspath, basename, expanduser, isdir, join
 
 import conda.config as config
 from conda import console
-from conda.utils import memoize
+from conda.common.utils import memoize
+from conda.resolve import MatchSpec
 
 
 class Completer(object):
@@ -436,26 +437,31 @@ def check_write(command, prefix, json=False):
 
 # -------------------------------------------------------------------------
 
-def arg2spec(arg, json=False):
-    spec = spec_from_line(arg)
-    if spec is None:
-        error_and_exit('Invalid package specification: %s' % arg,
-                       json=json,
-                       error_type="ValueError")
-    parts = spec.split()
-    name = parts[0]
+def arg2spec(arg, json=False, update=False):
+    try:
+        spec = MatchSpec(spec_from_line(arg))
+    except:
+        error_and_exit('invalid package specification: %s' % arg,
+                       json=json, error_type="ValueError")
+    name = spec.name
     if name in config.disallow:
         error_and_exit("specification '%s' is disallowed" % name,
                        json=json,
                        error_type="ValueError")
-    if len(parts) == 2:
-        ver = parts[1]
-        if not ver.startswith(('=', '>', '<', '!')):
-            if ver.endswith('.0'):
-                return '%s %s|%s*' % (name, ver[:-2], ver)
-            else:
-                return '%s %s*' % (name, ver)
-    return spec
+    if spec.strictness > 1 and update:
+        error_and_exit("""version specifications not allowed with 'update'; use
+    conda update  %s%s  or
+    conda install %s""" % (name, ' ' * (len(arg)-len(name)), arg),
+                       json=json, error_type="ValueError")
+    if spec.strictness != 2:
+        return str(spec)
+    ver = spec.vspecs.spec
+    if isinstance(ver, tuple) or ver.startswith(('=', '>', '<', '!')) or ver.endswith('*'):
+        return str(spec)
+    elif ver.endswith('.0'):
+        return '%s %s|%s*' % (name, ver[:-2], ver)
+    else:
+        return '%s %s*' % (name, ver)
 
 
 def specs_from_args(args, json=False):
@@ -490,7 +496,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from conda.fetch import TmpDownload
+    from conda.common.download import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:

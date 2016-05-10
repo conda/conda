@@ -4,12 +4,12 @@ import logging
 from collections import defaultdict
 from itertools import chain
 
-from conda.compat import iterkeys, itervalues, iteritems, string_types
-from conda.logic import minimal_unsatisfiable_subset, Clauses
-from conda.version import VersionSpec, normalized_version
-from conda.console import setup_handlers
 from conda import config
+from conda.common.compat import iterkeys, itervalues, iteritems, string_types
+from conda.console import setup_handlers
+from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.toposort import toposort
+from conda.version import VersionSpec, normalized_version
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -36,7 +36,7 @@ class Unsatisfiable(RuntimeError):
         unsatisfiable specifications.
     '''
     def __init__(self, bad_deps, chains=True):
-        bad_deps = [list(map(str, dep)) for dep in bad_deps]
+        bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
         if chains:
             chains = {}
             for dep in sorted(bad_deps, key=len, reverse=True):
@@ -103,11 +103,14 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=False, negate=False):
+    def __new__(cls, spec):
         if isinstance(spec, cls):
             return spec
         self = object.__new__(cls)
-        self.spec = spec
+        spec, _, oparts = spec.partition('(')
+        self.spec = spec.strip()
+        if oparts and oparts.strip()[-1] != ')':
+            raise ValueError("Invalid MatchSpec: %s" % spec)
         parts = spec.split()
         self.strictness = len(parts)
         assert 1 <= self.strictness <= 3, repr(spec)
@@ -116,9 +119,19 @@ class MatchSpec(object):
             self.vspecs = VersionSpec(parts[1])
         elif self.strictness == 3:
             self.ver_build = tuple(parts[1:3])
-        self.target = target
-        self.optional = optional
-        self.negate = negate
+        self.target = None
+        self.optional = False
+        self.negate = False
+        if oparts:
+            for opart in oparts.strip()[:-1].split(','):
+                if opart == 'optional':
+                    self.optional = True
+                elif opart == 'negate':
+                    self.negate = True
+                elif opart.startswith('target='):
+                    self.target = opart.split('=')[1].strip()
+                else:
+                    raise ValueError("Invalid MatchSpec: %s" % spec)
         return self
 
     def match_fast(self, version, build):
@@ -148,32 +161,27 @@ class MatchSpec(object):
             return None
 
     def __eq__(self, other):
-        return type(other) is MatchSpec and self.spec == other.spec
+        return (type(other) is MatchSpec and
+                (self.spec, self.optional, self.negate, self.target) ==
+                (other.spec, other.optional, other.negate, other.target))
 
     def __hash__(self):
         return hash((self.spec, self.negate))
 
     def __repr__(self):
-        res = 'MatchSpec(' + repr(self.spec)
-        if self.target:
-            res += ',target=' + repr(self.target)
-        if self.optional:
-            res += ',optional=True'
-        if self.negate:
-            res += ',negate=True'
-        return res + ')'
+        return "MatchSpec('%s')" % self.__str__()
 
     def __str__(self):
         res = self.spec
-        if self.target or self.optional:
-            mods = []
-            if self.target:
-                mods.append('target='+str(self.target))
+        if self.optional or self.negate or self.target:
+            args = []
             if self.optional:
-                mods.append('optional')
+                args.append('optional')
             if self.negate:
-                mods.append('negate')
-            res += ' (' + ', '.join(mods) + ')'
+                args.append('negate')
+            if self.target:
+                args.append('target='+self.target)
+            res = '%s (%s)' % (res, ','.join(args))
         return res
 
 
@@ -379,12 +387,12 @@ class Resolve(object):
             if ms.name[-1] == '@':
                 feats.add(ms.name[:-1])
                 continue
-            if ms.negate:
-                rems.append(MatchSpec(ms.spec))
             if not ms.optional:
                 spec2.append(ms)
-            elif any(self.find_matches(ms)):
+            elif any(True for _ in self.find_matches(ms)):
                 opts.append(ms)
+            else:
+                rems.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
             if not self.valid(ms, filter):
@@ -477,7 +485,7 @@ class Resolve(object):
         def full_prune(specs, removes, optional, features):
             self.default_filter(features, filter)
             for ms in removes:
-                for fn in self.find_matches(ms):
+                for fn in self.groups.get(ms.name, []):
                     filter[fn] = False
             feats = set(self.trackers.keys())
             snames.clear()
@@ -863,7 +871,7 @@ class Resolve(object):
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
             if update_deps:
-                spec = MatchSpec(name, target=pkg)
+                spec = MatchSpec('%s (target=%s)' % (name, pkg))
             else:
                 spec = MatchSpec(' % s %s %s' % (name, version, build))
             specs.append(spec)
@@ -877,7 +885,7 @@ class Resolve(object):
         return pkgs
 
     def remove_specs(self, specs, installed):
-        specs = [MatchSpec(s, optional=True, negate=True) for s in specs]
+        specs = [MatchSpec(s + ' (optional,negate)') for s in specs]
         snames = {s.name for s in specs}
         limit, _ = self.bad_installed(installed, specs)
         preserve = []
@@ -886,7 +894,7 @@ class Resolve(object):
             if nm in snames:
                 continue
             elif limit is None:
-                specs.append(MatchSpec(self.package_name(pkg), optional=True, target=pkg))
+                specs.append(MatchSpec('%s (optional,target=%s)' % (self.package_name(pkg), pkg)))
             else:
                 preserve.append(pkg)
         return specs, preserve

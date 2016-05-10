@@ -34,6 +34,12 @@ import conda  # NOQA
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
+if sys.platform == 'win32':
+    kwds = {'data_files': [("cmd", ["cmd/activate", "cmd/deactivate",
+                                    "cmd/activate.bat", "cmd/deactivate.bat"]), ]
+            }
+else:
+    kwds = {'data_files':  [("cmd", ["cmd/activate", "cmd/deactivate"]), ]}
 
 setup(
     name=conda.__name__,
@@ -57,17 +63,19 @@ setup(
     packages=[
         'conda',
         'conda.cli',
+        'conda.common',
         'conda.progressbar'
     ],
     cmdclass={
         'build_py': auxlib.BuildPyCommand,
         'sdist': auxlib.SDistCommand,
     },
-    install_requires=['pycosat >=0.6.1', 'pyyaml', 'requests'],
+    install_requires=['pycosat >=0.6.1', 'ruamel.yaml', 'requests', 'psutil'],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
         ],
     },
     zip_safe=False,
+    **kwds
 )

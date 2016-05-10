@@ -6,15 +6,15 @@
 
 from __future__ import print_function, division, absolute_import
 
-import os
-import sys
 import logging
-from platform import machine
-from os.path import abspath, expanduser, isfile, isdir, join
+import os
 import re
+import sys
+from os.path import abspath, expanduser, isfile, isdir, join
+from platform import machine
 
-from conda.compat import urlparse
-from conda.utils import try_write, memoized
+from conda.common.compat import urlparse
+from conda.common.utils import try_write, memoized
 
 
 log = logging.getLogger(__name__)
@@ -113,12 +113,12 @@ def load_condarc(path):
     if not path or not isfile(path):
         return {}
     try:
-        import yaml
+        import ruamel.yaml as yaml
     except ImportError:
-        sys.exit('Error: could not import yaml (required to read .condarc '
+        sys.exit('Error: could not import ruamel.yaml (required to read .condarc '
                  'config file: %s)' % path)
     with open(path) as f:
-        return yaml.load(f) or {}
+        return yaml.load(f, Loader=yaml.RoundTripLoader, version="1.1") or {}
 
 rc = load_condarc(rc_path)
 sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}

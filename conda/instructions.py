@@ -3,6 +3,7 @@ import re
 
 from conda import config
 from conda import install
+from conda.common.utils import find_parent_shell
 from conda.exceptions import InvalidInstruction
 from conda.fetch import fetch_pkg
 
@@ -97,7 +98,7 @@ def UNLINK_CMD(state, arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    install.symlink_conda(state['prefix'], arg)
+    install.symlink_conda(state['prefix'], arg, find_parent_shell())
 
 # Map instruction to command (a python function)
 commands = {
