@@ -30,6 +30,7 @@ script:
   - radon cc --ignore "build,tests,ve,_vendor,auxlib,progressbar" --no-assert -nb --total-average -s conda
   - radon mi --ignore "build,tests,ve,_vendor,auxlib,progressbar" -na -m -s conda
   - flake8 --statistics
+  - conda install --help
 
 sudo: false
 
