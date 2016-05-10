@@ -107,6 +107,9 @@ The full ``requirements`` section will look like this.
 
 .. _app-entry:
 
+App entry in meta.yaml
+----------------------
+
 Next, you need to add a section called ``app`` that signal to Anaconda Navigator that this
 pakcage contains an app entry.
 The most important part of the ``app`` section is the ``entry`` tag, which defines how the
