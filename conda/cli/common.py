@@ -267,7 +267,7 @@ def add_parser_install(p):
         action="store_true",
         dest="channel_priority",
         default=config.channel_priority,
-        help="Channel priority takes precedence over packaage version (default: %(defaults)). "
+        help="Channel priority takes precedence over packaage version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
     p.add_argument(
@@ -275,7 +275,7 @@ def add_parser_install(p):
         action="store_true",
         dest="channel_priority",
         default=not config.channel_priority,
-        help="Package version takes precedence over channel priority (default: %(defaults)). "
+        help="Package version takes precedence over channel priority (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
     add_parser_show_channel_urls(p)
