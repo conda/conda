@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """auxiliary library to the python standard library"""
 from __future__ import absolute_import, division, print_function
-from logging import getLogger, NullHandler
+from logging import getLogger, StreamHandler, DEBUG
 
 # don't mess up logging for users
-getLogger('auxlib').addHandler(NullHandler())
+log = getLogger(__name__)
+log.addHandler(StreamHandler())
+log.setLevel(DEBUG)
 
 from .packaging import BuildPyCommand, SDistCommand, Tox, get_version  # NOQA
 

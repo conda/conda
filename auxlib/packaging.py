@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division, absolute_import
+
+from collections import namedtuple
 from logging import getLogger
 from os import remove
 from os.path import isdir, isfile, join
 from re import match
+from shlex import split
+from subprocess import CalledProcessError, Popen, PIPE
+import sys
 try:
     from setuptools.command.build_py import build_py
     from setuptools.command.sdist import sdist
@@ -13,12 +18,26 @@ except ImportError:
     from distutils.command.sdist import sdist
     TestCommand = object
 
-from subprocess import CalledProcessError, check_call, check_output, call
-import sys
 
 from .path import absdirname, PackageFile
 
 log = getLogger(__name__)
+
+Response = namedtuple('Response', ['stdout', 'stderr', 'rc'])
+
+
+def call(path, command, raise_on_error=True):
+    p = Popen(split(command), cwd=path, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    rc = p.returncode
+    log.info("{0} $  {1}\n"
+             "  stdout: {2}\n"
+             "  stderr: {3}\n"
+             "  rc: {4}"
+             .format(path, command, stdout, stderr, rc))
+    if raise_on_error and rc != 0:
+        raise CalledProcessError(rc, command, "stdout: {1}\nstderr: {2}".format(stdout, stderr))
+    return Response(stdout, stderr, rc)
 
 
 def _get_version_from_pkg_info(package_name):
@@ -28,8 +47,8 @@ def _get_version_from_pkg_info(package_name):
 
 def _is_git_dirty(path):
     try:
-        check_call(('git', 'diff', '--quiet'), cwd=path)
-        check_call(('git', 'diff', '--cached', '--quiet'), cwd=path)
+        call(path, "git diff --quiet")
+        call(path, "git diff --cached --quiet")
         return False
     except CalledProcessError:
         return True
@@ -37,7 +56,7 @@ def _is_git_dirty(path):
 
 def _get_most_recent_git_tag(path):
     try:
-        return check_output(("git", "describe", "--tags"), cwd=path).strip()
+        return call(path, "git describe --tags").stdout.strip()
     except CalledProcessError as e:
         if e.returncode == 128:
             return "0.0.0.0"
@@ -47,7 +66,7 @@ def _get_most_recent_git_tag(path):
 
 def _get_git_hash(path):
     try:
-        return check_output(("git", "rev-parse", "HEAD"), cwd=path).strip()[:7]
+        return call(path, "git rev-parse HEAD").stdout.strip()[:7]
     except CalledProcessError:
         return 0
 
@@ -67,7 +86,7 @@ def _get_version_from_git_tag(path):
 
 
 def is_git_repo(path):
-    return call(('git', 'rev-parse'), cwd=path) == 0
+    return call(path, "git rev-parse", raise_on_error=False).rc == 0
 
 
 def get_git_version_or_none(file):
