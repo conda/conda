@@ -2,7 +2,7 @@
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727, #2265, #2291
   * replace pyyaml with ruamel_yaml, #2283, #2321
-  * better handling of channel collisions, #2323
+  * better handling of channel collisions, #2323, #2369 #2402, #2428
   * improve listing of pip packages with conda list, #2275
   * re-license progressbar under BSD 3-clause, #2334
   * reduce the amount of extraneous info in hints, #2261
@@ -10,6 +10,14 @@
   * print progress to the terminal rather than stdout, #2281
   * verify version specs given on command line are valid, #2246
   * fix for try_write function in case of odd permissions, #2301
+  * fix a conda search --spec error, #2343
+  * update User-Agent for conda connections, #2347
+  * remove some dead code paths, #2338, #2374
+  * fixes a thread safety issue with http requests, #2377, #2383
+  * manage BeeGFS hard-links non-POSIX configuration, #2355
+  * prevent version downgrades during removes, #2394
+  * workaround for boto bug, #2380
+  * fix conda info --json, #2445
 
 
 2016-XX-XX   4.0.6:
