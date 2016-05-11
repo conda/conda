@@ -30,11 +30,11 @@ def call(path, command, raise_on_error=True):
     p = Popen(split(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
-    log.info("{0} $  {1}\n"
-             "  stdout: {2}\n"
-             "  stderr: {3}\n"
-             "  rc: {4}"
-             .format(path, command, stdout, stderr, rc))
+    log.debug("{0} $  {1}\n"
+              "  stdout: {2}\n"
+              "  stderr: {3}\n"
+              "  rc: {4}"
+              .format(path, command, stdout, stderr, rc))
     if raise_on_error and rc != 0:
         raise CalledProcessError(rc, command, "stdout: {1}\nstderr: {2}".format(stdout, stderr))
     return Response(stdout, stderr, rc)
@@ -59,7 +59,10 @@ def _get_most_recent_git_tag(path):
         return call(path, "git describe --tags").stdout.strip()
     except CalledProcessError as e:
         if e.returncode == 128:
-            return "0.0.0.0"
+            return None
+        elif e.returncode == 127:
+            log.error('git not found on path')
+            raise
         else:
             raise  # pragma: no cover
 
@@ -76,6 +79,8 @@ def _get_version_from_git_tag(path):
     If that fails for any reason, return the first 7 chars of the changeset hash.
     """
     tag = _get_most_recent_git_tag(path)
+    if tag is None:
+        return tag
     m = match(b"(?P<xyz>\d+\.\d+\.\d+)(?:-(?P<dev>\d+)-(?P<hash>.+))?", tag)
     version = m.group('xyz').decode('utf-8')
     if m.group('dev') or _is_git_dirty(path):
@@ -114,9 +119,9 @@ def get_version(file, package):
     except IOError:
         # no .version file found; fall back to git repo
         here = absdirname(file)
-        if is_git_repo(here):
-            return _get_version_from_git_tag(here)
-
+        version = _get_version_from_git_tag(here)
+        if version is not None:
+            return version
     raise RuntimeError("Could not get package version (no .git or .version file)")
 
 

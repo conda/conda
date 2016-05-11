@@ -2,8 +2,7 @@ package:
   name: conda
 
 source:
-  git_url: https://github.com/conda/conda.git
-  git_rev: 4.0.x
+  path: ../
 
 build:
   # These are present when the new environment is created
