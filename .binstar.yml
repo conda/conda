@@ -31,11 +31,13 @@ env:
 #===============================================================================
 
 ## Run before the script
-# before_script:
-#   - echo "before_script!"
+before_script:
+  - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || conda install psutil
+  - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || conda install -n root psutil
 ## Put your main computations here!
 script:
-  # - echo 4.1.0.rc1 > conda/.version
+  - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || conda install psutil
+  - echo 4.0.6 > conda/.version
   - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || conda build conda.recipe --python $PYTHON_VERSION
   - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || conda build conda.recipe --python %PYTHON_VERSION%
 
