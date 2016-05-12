@@ -113,7 +113,6 @@ rc_path = get_rc_path()
 
 def load_condarc(path):
     if not path or not isfile(path):
-        print("no path!")
         return {}
     with open(path) as f:
         return yaml_load(f) or {}
