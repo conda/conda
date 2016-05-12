@@ -6,8 +6,6 @@ You can install `Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/do
 
 There are two ways to install MRO and other R packages. The first is to add the "mro" channel to your :doc:`.condarc configuration file<config>` above the "r" channel, and then use ``conda install r`` and use conda to install other packages. The second is to specify the "mro" channel on the command line each time you use the conda install command: ``conda install -c mro r``
 
-If you use OS X, find the R directory and set the R_HOME environment variable to its path. Look in your home directory, then in your Anaconda or Miniconda directory, then in the environments directory, then in the directory for your current environment, and then in the "lib" directory. For example, if you use Anaconda and your current environment is named my_r_env, you might use this command: ``export R_HOME=~/Anaconda/envs/my_r_env/lib/R``
-
 In addition to installing R packages from conda channels, it is possible to install R packages from the Comprehensive R Archive Network (CRAN) or the Microsoft R Application Network (MRAN). These R packages will install into the currently active conda environment. MRO includes the `checkpoint package <https://github.com/RevolutionAnalytics/checkpoint/>`_, which installs from MRAN and is designed to offer enhanced `reproducibility <https://mran.revolutionanalytics.com/documents/rro/reproducibility/>`_.
 
 To use MRO or R packages, activate the conda environment where they are installed to set your environment variables properly. Executing the programs at the pathname in that environment without activating the environment may result in errors.
