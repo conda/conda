@@ -687,6 +687,9 @@ class Resolve(object):
     def generate_feature_count(self, C):
         return {self.ms_to_v('@' + name): 1 for name in iterkeys(self.trackers)}
 
+    def generate_update_count(self, C, specs):
+        return {'!' + spec.target: 1 for spec in specs if C.from_name(spec.target)}
+
     def generate_feature_metric(self, C):
         eq = {}
         total = 0
@@ -712,20 +715,6 @@ class Resolve(object):
             sdict.setdefault(s.name, []).append(s)
         for name, mss in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
-            # If the "target" field in the MatchSpec is supplied, that means we want
-            # to minimize the changes to the currently installed package. We prefer
-            # smaller upgrades over larger upgrades, and any upgrade over any downgrade.
-            targets = [ms.target for ms in mss if ms.target and ms.target in self.index]
-            if targets:
-                tver = [p for p, q in pkgs if q in targets]
-                # In practice, tmin == tmax, because there's only one target
-                tmin, tmax = min(tver), max(tver)
-                v1 = [(p, q) for p, q in pkgs if tmin <= p <= tmax]
-                v2 = [(p, q) for p, q in pkgs if p > tmax]
-                # This ensures that later builds are still preferred over earlier ones
-                v2 = list(sorted(v2, key=lambda x: (x[0][0], x[0][1], -x[0][2])))
-                v3 = [(p, q) for p, q in pkgs if p < tmin]
-                pkgs = v1 + v2 + v3
             pkey = None
             for nkey, npkg in pkgs:
                 if pkey is None:
@@ -984,6 +973,11 @@ class Resolve(object):
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             obj2 = ftotal - obj2
             dotlog.debug('Package feature count: %d' % obj2)
+
+            # Dependencies: minimize the number that need upgrading
+            eq_u = r2.generate_update_count(C, speca)
+            solution, obj50 = C.minimize(eq_u, solution)
+            dotlog.debug('Dependency update count: %d' % (obj50,))
 
             # Remaining packages: maximize versions, then builds, then count
             eq_v, eq_b = r2.generate_version_metrics(C, speca)
