@@ -330,38 +330,6 @@ def test_generate_eq():
         'system-5.8-0.tar.bz2': 1,
         'zeromq-2.2.0-0.tar.bz2': 1}
 
-    # When installing or updating a new package, we want to minimize the
-    # disruption to the rest of the environment. The "target" capability in
-    # MatchSpec helps us prioritize the current version over any upgrades,
-    # followed by any downgrades. So the lowest numbers below represent
-    # the packages that are closest 
-    spec2 = [MatchSpec('pandas', target='pandas-0.9.1-np16py27_0.tar.bz2')]
-    eqv, eqb = r2.generate_version_metrics(C, spec2)
-    assert eqv == {
-        'pandas-0.10.0-np16py26_0.tar.bz2': 1,
-        'pandas-0.10.0-np16py27_0.tar.bz2': 1,
-        'pandas-0.10.0-np17py26_0.tar.bz2': 1,
-        'pandas-0.10.0-np17py27_0.tar.bz2': 1,
-        'pandas-0.10.1-np16py26_0.tar.bz2': 2,
-        'pandas-0.10.1-np16py27_0.tar.bz2': 2,
-        'pandas-0.10.1-np17py26_0.tar.bz2': 2,
-        'pandas-0.10.1-np17py27_0.tar.bz2': 2,
-        'pandas-0.10.1-np17py33_0.tar.bz2': 2,
-        'pandas-0.11.0-np16py26_1.tar.bz2': 3,
-        'pandas-0.11.0-np16py27_1.tar.bz2': 3,
-        'pandas-0.11.0-np17py26_1.tar.bz2': 3,
-        'pandas-0.11.0-np17py27_1.tar.bz2': 3,
-        'pandas-0.11.0-np17py33_1.tar.bz2': 3,
-        'pandas-0.8.1-np16py26_0.tar.bz2': 5,
-        'pandas-0.8.1-np16py27_0.tar.bz2': 5,
-        'pandas-0.8.1-np17py26_0.tar.bz2': 5,
-        'pandas-0.8.1-np17py27_0.tar.bz2': 5,
-        'pandas-0.9.0-np16py26_0.tar.bz2': 4,
-        'pandas-0.9.0-np16py27_0.tar.bz2': 4,
-        'pandas-0.9.0-np17py26_0.tar.bz2': 4,
-        'pandas-0.9.0-np17py27_0.tar.bz2': 4
-    }
-
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
     assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
