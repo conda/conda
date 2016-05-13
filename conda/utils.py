@@ -309,6 +309,7 @@ unix_shell_base = dict(
                        printdefaultenv='echo $CONDA_DEFAULT_ENV',
                        printpath="echo $PATH",
                        printps1='echo $PS1',
+                       promptvar='PS1',
                        sep="/",
                        set_var='export ',
                        shell_args=["-l", "-c"],
@@ -350,6 +351,7 @@ if sys.platform == "win32":
             shell_suffix=".bat",
             env_script_suffix=".bat",
             printps1="@echo %PROMPT%",
+            promptvar="PROMPT",
             # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
                             'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
