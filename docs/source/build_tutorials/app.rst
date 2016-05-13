@@ -298,9 +298,13 @@ Finally, restart Anaconda Navigator and the Rodeo app will be displayed on the H
 Troubleshooting
 ---------------
 
+A. Conda build fails
+~~~~~~~~~~~~~~~~~~~~
+TBD
 
-App does not appear on the home pane
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+B. App does not appear on the home pane
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Check that the conda package has been uploaded to your Anaconda.org channel.
 
 Check that your channel has been added to the Channels list.
