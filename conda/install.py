@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-''' This module contains:
+""" This module contains:
   * all low-level code for extracting, linking and unlinking packages
   * a very simple CLI
 
@@ -23,7 +23,7 @@ Also, this module is directly invoked by the (self extracting (sfx)) tarball
 installer to create the initial environment, therefore it needs to be
 standalone, i.e. not import any other parts of `conda` (only depend on
 the standard library).
-'''
+"""
 
 from __future__ import print_function, division, absolute_import
 
@@ -299,6 +299,8 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
+
+
 def read_has_prefix(path):
     """
     reads `has_prefix` file and return dict mapping filenames to
@@ -317,8 +319,10 @@ def read_has_prefix(path):
         pass
     return res
 
+
 class PaddingError(Exception):
     pass
+
 
 def binary_replace(data, a, b):
     """
@@ -338,8 +342,8 @@ def binary_replace(data, a, b):
     assert len(res) == len(data)
     return res
 
-def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
-                  mode='text'):
+
+def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
     if on_win and (placeholder != prefix_placeholder) and ('/' in placeholder):
         # original prefix uses unix-style path separators
         # replace with unix-style path separators
@@ -357,6 +361,18 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder,
     else:
         sys.exit("Invalid mode:" % mode)
 
+    if mode == 'text':
+        shebang_match = re.match(br'^(#!((?:\\ |[^ \n\r])+)(.*))', new_data)
+        if shebang_match:
+            whole_shebang, executable, options = shebang_match.groups()
+            if len(whole_shebang) > 127:
+                executable_name = executable.split('/')[-1]
+                new_shebang = '#!/usr/bin/env {0}{1}'.format(executable_name, options)
+                print(whole_shebang, new_shebang)
+                new_data = new_data.replace(whole_shebang.encode('utf-8'), new_shebang.encode('utf-8'))
+    else:
+        pass  # TODO: binary shebangs exist; figure this out in the future if text works well
+
     if new_data == data:
         return
     st = os.lstat(path)
@@ -371,11 +387,14 @@ def _dist2pair(dist):
     dparts = dist.split('::', 1)
     return ('defaults', dparts[0]) if len(dparts) == 1 else dparts
 
+
 def name_dist(dist):
     return dist.split('::', 1)[-1].rsplit('-', 2)[0]
 
+
 def _dist2filename(dist, suffix='.tar.bz2'):
     return dist.split('::', 1)[-1] + suffix
+
 
 def create_meta(prefix, dist, info_dir, extra_info):
     """
@@ -458,8 +477,10 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return False
     return True
 
+
 def read_url(dist):
     return package_cache().get(dist, {}).get('urls', (None,))[0]
+
 
 def read_icondata(source_dir):
     import base64
@@ -471,6 +492,7 @@ def read_icondata(source_dir):
         pass
     return None
 
+
 def read_no_link(info_dir):
     res = set()
     for fn in 'no_link', 'no_softlink':
@@ -480,8 +502,8 @@ def read_no_link(info_dir):
             pass
     return res
 
-# Should this be an API function?
 
+# Should this be an API function?
 def symlink_conda(prefix, root_dir, shell):
     # do not symlink root env - this clobbers activate incorrectly.
     if normpath(prefix) == normpath(sys.prefix):
@@ -548,6 +570,8 @@ def try_hard_link(pkgs_dir, prefix, dist):
 
 package_cache_ = {}
 fname_table_ = {}
+
+
 def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     """
     Adds a new package to the cache. The URL is used to determine the
@@ -597,6 +621,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
         except IOError:
             pass
 
+
 def package_cache():
     """
     Initializes the package cache. Each entry in the package cache
@@ -624,9 +649,11 @@ def package_cache():
     del package_cache_['@']
     return package_cache_
 
+
 def cached_url(url):
     package_cache()
     return fname_table_.get(url)
+
 
 def find_new_location(dist):
     """
@@ -651,6 +678,7 @@ def find_new_location(dist):
             if p or prefix is None:
                 return pkg_path, prefix + dname if p else None
 
+
 # ------- package cache ----- fetched
 
 def fetched():
@@ -659,12 +687,14 @@ def fetched():
     """
     return set(dist for dist, rec in iteritems(package_cache()) if rec['files'])
 
+
 def is_fetched(dist):
     """
     Returns the full path of the fetched package, or None if it is not in the cache.
     """
     for fn in package_cache().get(dist, {}).get('files', ()):
         return fn
+
 
 def rm_fetched(dist):
     """
@@ -684,6 +714,7 @@ def rm_fetched(dist):
             rm_rf(fname)
     del package_cache_[dist]
 
+
 # ------- package cache ----- extracted
 
 def extracted():
@@ -692,6 +723,7 @@ def extracted():
     """
     return set(dist for dist, rec in iteritems(package_cache()) if rec['dirs'])
 
+
 def is_extracted(dist):
     """
     returns the full path of the extracted data for the requested package,
@@ -699,6 +731,7 @@ def is_extracted(dist):
     """
     for fn in package_cache().get(dist, {}).get('dirs', ()):
         return fn
+
 
 def rm_extracted(dist):
     """
@@ -714,6 +747,7 @@ def rm_extracted(dist):
         rec['dirs'] = []
     else:
         del package_cache_[dist]
+
 
 def extract(dist):
     """
@@ -810,17 +844,20 @@ def linked(prefix):
     """
     return set(iterkeys(linked_data(prefix)))
 
-# FIXME Functions that begin with `is_` should return True/False
+
 def is_linked(prefix, dist):
     """
     Return the install metadata for a linked package in a prefix, or None
     if the package is not linked in the prefix.
     """
+    # FIXME Functions that begin with `is_` should return True/False
     return load_meta(prefix, dist)
+
 
 def _get_trash_dir(pkg_dir):
     unc_prefix = u'\\\\?\\' if sys.platform == 'win32' else ''
     return unc_prefix + join(pkg_dir, '.trash')
+
 
 def delete_trash(prefix=None):
     from conda import config
@@ -832,6 +869,7 @@ def delete_trash(prefix=None):
         except OSError as e:
             log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
 
+
 def move_to_trash(prefix, f, tempdir=None):
     """
     Move a file f from prefix to the trash
@@ -841,6 +879,7 @@ def move_to_trash(prefix, f, tempdir=None):
     This function is deprecated in favor of `move_path_to_trash`.
     """
     return move_path_to_trash(join(prefix, f))
+
 
 def move_path_to_trash(path):
     """
@@ -880,11 +919,12 @@ def move_path_to_trash(path):
     log.debug("Could not move %s to trash" % path)
     return False
 
+
 def link(prefix, dist, linktype=LINK_HARD, index=None):
-    '''
+    """
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
-    '''
+    """
     index = index or {}
     source_dir = is_extracted(dist)
     assert source_dir is not None
@@ -962,10 +1002,10 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
 
 def unlink(prefix, dist):
-    '''
+    """
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
-    '''
+    """
     with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
