@@ -349,9 +349,10 @@ def replace_long_shebang(mode, data):
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
             if len(whole_shebang) > 127:
-                executable_name = executable.split('/')[-1]
-                new_shebang = '#!/usr/bin/env {0}{1}'.format(executable_name, options)
-                data = data.replace(whole_shebang.encode('utf-8'),  new_shebang.encode('utf-8'))
+                executable_name = executable.decode('utf-8').split('/')[-1]
+                new_shebang = '#!/usr/bin/env {0}{1}'.format(executable_name,
+                                                             options.decode('utf-8'))
+                data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
     else:
         pass  # TODO: binary shebangs exist; figure this out in the future if text works well
     return data
