@@ -771,12 +771,11 @@ def extract(dist):
     with Locked(pkgs_dir):
         path = fname[:-8]
         temp_path = path + '.tmp'
-        rm_rf(path)
         rm_rf(temp_path)
-        t = tarfile.open(fname)
-        t.extractall(path=temp_path)
+        with tarfile.open(fname) as t:
+            t.extractall(path=temp_path)
+        rm_rf(path)
         os.rename(temp_path, path)
-        t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
             # When extracting as root, tarfile will by restore ownership
             # of extracted files.  However, we want root to be the owner
