@@ -22,7 +22,7 @@
   * truncate shebangs over 127 characters using /usr/bin/env, #2479
 
 
-2016-05-10   4.0.6:
+2016-05-11   4.0.6:
 -------------------
   * log "custom" versions as updates rather than downgrades, #2290
   * fixes a TypeError exception that can occur on install/update, #2331
