@@ -885,8 +885,9 @@ class Resolve(object):
         return pkgs
 
     def remove_specs(self, specs, installed):
-        # These never match true version/build combos so it forces removal
-        specs = [MatchSpec('%s @ @' % s, optional=True) for s in specs]
+        # Adding ' @ @' to the MatchSpec forces its removal
+        specs = [s if ' ' in s else s + ' @ @' for s in specs]
+        specs = [MatchSpec(s, optional=True) for s in specs]
         snames = {s.name for s in specs}
         limit, _ = self.bad_installed(installed, specs)
         preserve = []
