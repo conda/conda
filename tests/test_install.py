@@ -85,6 +85,17 @@ class FileTests(unittest.TestCase):
             self.assertEqual(data, '#!/usr/local/bin/python\n'
                                    'echo "Hello"\n')
 
+    def test_long_default_text(self):
+        with open(self.tmpfname, 'w') as fo:
+            fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n'
+                     'echo "Hello"\n')
+        new_prefix = '/usr/local/{0}'.format('1234567890'*12)
+        update_prefix(self.tmpfname, new_prefix)
+        with open(self.tmpfname, 'r') as fi:
+            data = fi.read()
+            self.assertEqual(data, '#!/usr/bin/env python -O\n'
+                                   'echo "Hello"\n')
+
     def test_binary(self):
         with open(self.tmpfname, 'wb') as fo:
             fo.write(b'\x7fELF.../some-placeholder/lib/libfoo.so\0')
@@ -120,6 +131,7 @@ class FileTests(unittest.TestCase):
         delete_trash(config.pkgs_dirs[0])
         contents = [basename(dp) for dp, dn, fn in walk(trash)]
         self.assertTrue(longfoldername not in contents)
+
 
 class remove_readonly_TestCase(unittest.TestCase):
     def test_takes_three_args(self):
