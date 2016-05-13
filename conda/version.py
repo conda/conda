@@ -306,6 +306,9 @@ class VersionSpec(object):
                 s = '(%s)' % s
         return s
 
+    def is_exact(self):
+        return self.match == self.exact_match_
+
     def __str__(self):
         return self.str()
 

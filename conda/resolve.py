@@ -106,35 +106,16 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=None):
+    def __new__(cls, spec, target=None, optional=False):
         if isinstance(spec, cls):
             return spec
         self = object.__new__(cls)
-        spec, _, oparts = spec.partition('(')
-        self.spec = spec.strip()
-        if oparts and oparts.strip()[-1] != ')':
-            raise ValueError("Invalid MatchSpec: %s" % spec)
-        parts = spec.split()
-        self.strictness = len(parts)
-        assert 1 <= self.strictness <= 3, repr(spec)
-        self.name = parts[0]
-        if self.strictness == 1:
-            self.match_fast = self.match_fast_1
-        else:
-            self.version = VersionSpec(parts[1])
-            if self.strictness == 2:
-                self.match_fast = self.match_fast_2
-            else:
-                self.build = parts[2]
-                if '*' in self.build:
-                    rx = r'^(?:%s)$' % self.build.replace('*', r'.*')
-                    self.regex = re.compile(rx)
-                    self.match_fast = self.match_fast_4
-                else:
-                    self.match_fast = self.match_fast_3
         self.target = target
         self.optional = optional
+        spec, _, oparts = spec.partition('(')
         if oparts:
+            if oparts.strip()[-1] != ')':
+                raise ValueError("Invalid MatchSpec: %s" % spec)
             for opart in oparts.strip()[:-1].split(','):
                 if opart == 'optional':
                     self.optional = True
@@ -142,21 +123,46 @@ class MatchSpec(object):
                     self.target = opart.split('=')[1].strip()
                 else:
                     raise ValueError("Invalid MatchSpec: %s" % spec)
-        if self.optional is None:
-            self.optional = False
+        spec = self.spec = spec.strip()
+        parts = spec.split()
+        nparts = len(parts)
+        assert 1 <= nparts <= 3, repr(spec)
+        self.name = parts[0]
+        if nparts == 1:
+            self.match_fast = self.match_any_
+            return self
+        vspec = VersionSpec(parts[1])
+        if nparts == 2:
+            self.version = vspec
+            self.match_fast = self.match_version_
+        elif '*' not in parts[2] and vspec.is_exact():
+            self.version = parts[1]
+            self.build = parts[2]
+            self.match_fast = self.match_exact_
+        else:
+            rx = r'^(?:%s)$' % parts[2].replace('*', r'.*')
+            self.version = vspec
+            self.build = re.compile(rx)
+            self.match_fast = self.match_full_
         return self
 
-    def match_fast_1(self, verison, build):
+    def is_exact(self):
+        return self.match_fast == self.match_exact_
+
+    def is_simple(self):
+        return self.match_fast == self.match_any_
+
+    def match_any_(self, verison, build):
         return True
 
-    def match_fast_2(self, version, build):
+    def match_version_(self, version, build):
         return self.version.match(version)
 
-    def match_fast_3(self, version, build):
-        return build == self.build and self.version.match(version)
+    def match_exact_(self, version, build):
+        return build == self.build and self.version == version
 
-    def match_fast_4(self, version, build):
-        return self.regex.match(build) and self.version.match(version)
+    def match_full_(self, version, build):
+        return self.build.match(build) and self.version.match(version)
 
     def match(self, info):
         if type(info) is dict:
@@ -170,8 +176,8 @@ class MatchSpec(object):
         return self.match_fast(version, build)
 
     def to_filename(self):
-        if self.strictness == 3 and not self.optional and '*' not in self.build:
-            return self.name + '-%s-%s.tar.bz2' % (self.version.spec, self.build)
+        if self.is_exact() and not self.optional:
+            return self.name + '-%s-%s.tar.bz2' % (self.version, self.build)
         else:
             return None
 
@@ -767,7 +773,7 @@ class Resolve(object):
     def explicit(self, specs):
         """
         Given the specifications, return:
-          A. if one explicit specification (strictness=3) is given, and
+          A. if one explicit specification is given, and
              all dependencies of this package are explicit as well ->
              return the filenames of those dependencies (as well as the
              explicit specification)
