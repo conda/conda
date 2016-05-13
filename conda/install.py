@@ -357,6 +357,16 @@ def replace_long_shebang(mode, data):
     return data
 
 
+def replace_prefix(mode, data, placeholder, new_prefix):
+    if mode == 'text':
+        data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+    elif mode == 'binary':
+        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+    else:
+        sys.exit("Invalid mode:" % mode)
+    return data
+
+
 def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
     if on_win and (placeholder != prefix_placeholder) and ('/' in placeholder):
         # original prefix uses unix-style path separators
@@ -365,26 +375,19 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
 
     path = os.path.realpath(path)
     with open(path, 'rb') as fi:
-        data = fi.read()
-    if mode == 'text':
-        new_data = data.replace(placeholder.encode('utf-8'),
-                                new_prefix.encode('utf-8'))
-    elif mode == 'binary':
-        new_data = binary_replace(data, placeholder.encode('utf-8'),
-                                  new_prefix.encode('utf-8'))
-    else:
-        sys.exit("Invalid mode:" % mode)
+        original_data = data = fi.read()
 
+    data = replace_prefix(mode, data, placeholder, new_prefix)
     if not on_win:
-        new_data = replace_long_shebang(mode, new_data)
+        data = replace_long_shebang(mode, data)
 
-    if new_data == data:
+    if data == original_data:
         return
     st = os.lstat(path)
     # Remove file before rewriting to avoid destroying hard-linked cache
     os.remove(path)
     with open(path, 'wb') as fo:
-        fo.write(new_data)
+        fo.write(data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
