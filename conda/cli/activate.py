@@ -147,13 +147,13 @@ def main():
 
         # this should throw an error and exit if the env or path can't be found.
         try:
-            binpath = binpath_from_arg(sys.argv[2], shelldict=shelldict)
+            prefix = prefix_from_arg(sys.argv[2], shelldict=shelldict)
         except ValueError as e:
             sys.exit(getattr(e, 'message', e))
 
         # Make sure an env always has the conda symlink
         try:
-            conda.install.symlink_conda(shelldict['path_from'](binpath[0]), root_dir, shell)
+            conda.install.symlink_conda(prefix, root_dir, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}, not have write access to conda symlink"
