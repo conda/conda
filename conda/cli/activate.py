@@ -167,7 +167,7 @@ def main():
         #    below by printing.  That is why it is named "path"
         # DO NOT use os.getenv for this.  One Windows especially, it shows cmd.exe settings
         #    for bash shells.  This method uses the shell directly.
-        path, _ = run_in(shelldict['printps1'], shelldict, env=os.environ.copy())
+        path = os.getenv(shelldict['promptvar'], '')
         # failsafes
         if not path:
             if shelldict['exe'] == 'cmd.exe':
@@ -176,7 +176,7 @@ def main():
         path = re.sub(".*\(\(.*\)\)\ ", "", path, count=1)
         env_path = sys.argv[2]
         if changeps1 and env_path:
-            path = "(({})) {}".format(os.path.split(env_path)[-1], path)
+            path = "(({0})) {1}".format(os.path.split(env_path)[-1], path)
 
     else:
         # This means there is a bug in main.py
