@@ -770,9 +770,12 @@ def extract(dist):
     pkgs_dir = dirname(fname)
     with Locked(pkgs_dir):
         path = fname[:-8]
+        temp_path = path + '.tmp'
         rm_rf(path)
+        rm_rf(temp_path)
         t = tarfile.open(fname)
-        t.extractall(path=path)
+        t.extractall(path=temp_path)
+        os.rename(temp_path, path)
         t.close()
         if sys.platform.startswith('linux') and os.getuid() == 0:
             # When extracting as root, tarfile will by restore ownership
