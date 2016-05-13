@@ -1,6 +1,6 @@
-=======================================
-Building Anaconda Navigator Application
-=======================================
+========================================
+Building Anaconda Navigator Applications
+========================================
 
 Overview
 --------
@@ -31,10 +31,10 @@ Anaconda Navigator the app will appear on the Home pane.
 #. :ref:`skeleton`
 #. :ref:`requires`
 #. :ref:`app-entry`
-#. :ref:`build`
+#. :ref:`build4`
 #. :ref:`upload`
 #. :ref:`navigator`
-#. :ref:`troubleshooting1`
+#. :ref:`troubleshooting4`
 #. :ref:`help4`
 
 
@@ -160,7 +160,7 @@ Then in ``meta.yaml`` add this line to the ``app`` section.
 
 Finally, a logo PNG file is provided in the conda build reciped that will be displayed
 in Anaconda Navigator. You can download the
-`app.png file <https://github.com/yhat/rodeo/blob/master/resources/app.png>` directly
+`app.png file <https://github.com/yhat/rodeo/blob/master/resources/app.png>`_ directly
 from the Github repository.
 This file must be downloaded to the same directory as the ``meta.yaml`` file.
 
@@ -177,10 +177,10 @@ The completed ``app`` section should look like this.
       type: web
 
 
-You can download full versions of the `meta.yaml <rodeo/meta.yaml>` and `build.sh <rodeo/build.sh>` files.
+You can download full versions of the :download:`meta.yaml <rodeo/meta.yaml>` and :download:`build.sh <rodeo/build.sh>` files.
 
 
-.. _build:
+.. _build4:
 
 Build
 -----
@@ -283,7 +283,7 @@ Open the Environments pane and click the Channels button.
 
 Click the Add button and type in the URL to your Anaconda Cloud channel
 
-.. code-blcok:: text
+.. code-block:: text
 
     https://conda.anaconda.org/CHANNEL
 
@@ -299,8 +299,8 @@ Troubleshooting
 ---------------
 
 
-A. App does not appear on the home pane
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+App does not appear on the home pane
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Check that the conda package has been uploaded to your Anaconda.org channel.
 
 Check that your channel has been added to the Channels list.

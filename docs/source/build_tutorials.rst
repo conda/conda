@@ -8,3 +8,4 @@
    build_tutorials/pkgs
    build_tutorials/pkgs2
    build_tutorials/postgis
+   build_tutorials/app
