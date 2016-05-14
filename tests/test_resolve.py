@@ -51,6 +51,22 @@ class TestMatchSpec(unittest.TestCase):
         self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match('numpy-1.0.1z-py27_1.tar.bz2'))
         self.assertTrue(MatchSpec('blas * openblas').match('blas-1.0-openblas.tar.bz2'))
 
+        self.assertTrue(MatchSpec('blas').is_simple())
+        self.assertFalse(MatchSpec('blas').is_exact())
+        self.assertFalse(MatchSpec('blas 1.0').is_simple())
+        self.assertFalse(MatchSpec('blas 1.0').is_exact())
+        self.assertFalse(MatchSpec('blas 1.0 1').is_simple())
+        self.assertTrue(MatchSpec('blas 1.0 1').is_exact())
+        self.assertFalse(MatchSpec('blas 1.0 *').is_exact())
+
+        m = MatchSpec('blas 1.0', optional=True)
+        m2 = MatchSpec(m, optional=False)
+        m3 = MatchSpec(m2, target='blas-1.0-0.tar.bz2')
+        m4 = MatchSpec(m3, target=None, optional=True)
+        self.assertTrue(m.spec == m2.spec and m.optional != m2.optional)
+        self.assertTrue(m2.spec == m3.spec and m2.optional == m3.optional and m2.target != m3.target)
+        self.assertTrue(m == m4)
+
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')
         self.assertEqual(ms.to_filename(), 'foo-1.7-52.tar.bz2')
