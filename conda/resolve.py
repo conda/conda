@@ -106,9 +106,9 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=Ellipsis, optional=Ellipsis):
+    def __new__(cls, spec, target=Ellipsis, optional=Ellipsis, normalize=False):
         if isinstance(spec, cls):
-            if target is Ellipsis and optional is Ellipsis:
+            if target is Ellipsis and optional is Ellipsis and not normalize:
                 return spec
             target = spec.target if target is Ellipsis else target
             optional = spec.optional if optional is Ellipsis else optional
@@ -136,6 +136,14 @@ class MatchSpec(object):
             self.match_fast = self._match_any
             return self
         vspec = VersionSpec(parts[1])
+        if normalize and vspec.is_exact():
+            ver = vspec.spec
+            if ver.endswith('.0'):
+                ver = '%s|%s' % (ver[:-2], ver)
+            ver += '*'
+            parts[1] = ver
+            vspec = VersionSpec(ver)
+            self.spec = ' '.join(parts)
         if nparts == 2:
             self.version = vspec
             self.match_fast = self._match_version
