@@ -106,12 +106,16 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=False):
+    def __new__(cls, spec, target=Ellipsis, optional=Ellipsis):
         if isinstance(spec, cls):
-            return spec
+            if target is Ellipsis and optional is Ellipsis:
+                return spec
+            target = spec.target if target is Ellipsis else target
+            optional = spec.optional if optional is Ellipsis else optional
+            spec = spec.spec
         self = object.__new__(cls)
-        self.target = target
-        self.optional = optional
+        self.target = None if target is Ellipsis else target
+        self.optional = False if optional is Ellipsis else bool(optional)
         spec, _, oparts = spec.partition('(')
         if oparts:
             if oparts.strip()[-1] != ')':
@@ -129,39 +133,39 @@ class MatchSpec(object):
         assert 1 <= nparts <= 3, repr(spec)
         self.name = parts[0]
         if nparts == 1:
-            self.match_fast = self.match_any_
+            self.match_fast = self._match_any
             return self
         vspec = VersionSpec(parts[1])
         if nparts == 2:
             self.version = vspec
-            self.match_fast = self.match_version_
+            self.match_fast = self._match_version
         elif '*' not in parts[2] and vspec.is_exact():
             self.version = parts[1]
             self.build = parts[2]
-            self.match_fast = self.match_exact_
+            self.match_fast = self._match_exact
         else:
             rx = r'^(?:%s)$' % parts[2].replace('*', r'.*')
             self.version = vspec
             self.build = re.compile(rx)
-            self.match_fast = self.match_full_
+            self.match_fast = self._match_full
         return self
 
     def is_exact(self):
-        return self.match_fast == self.match_exact_
+        return self.match_fast == self._match_exact
 
     def is_simple(self):
-        return self.match_fast == self.match_any_
+        return self.match_fast == self._match_any
 
-    def match_any_(self, verison, build):
+    def _match_any(self, verison, build):
         return True
 
-    def match_version_(self, version, build):
+    def _match_version(self, version, build):
         return self.version.match(version)
 
-    def match_exact_(self, version, build):
+    def _match_exact(self, version, build):
         return build == self.build and self.version == version
 
-    def match_full_(self, version, build):
+    def _match_full(self, version, build):
         return self.build.match(build) and self.version.match(version)
 
     def match(self, info):
