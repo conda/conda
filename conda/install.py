@@ -238,42 +238,47 @@ def rm_rf(path, max_retries=5, trash=True):
             log.warn("Cannot remove, permission denied: {0}".format(path))
 
     elif isdir(path):
-        for i in range(max_retries):
-            try:
-                shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
-                return
-            except OSError as e:
-                msg = "Unable to delete %s\n%s\n" % (path, e)
-                if on_win:
-                    try:
-                        shutil.rmtree(path, onerror=_remove_readonly)
-                        return
-                    except OSError as e1:
-                        msg += "Retry with onerror failed (%s)\n" % e1
-
-                    p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
-                    (stdout, stderr) = p.communicate()
-                    if p.returncode != 0:
-                        msg += '%s\n%s\n' % (stdout, stderr)
-                    else:
-                        if not isdir(path):
-                            return
-
-                    if trash:
+        try:
+            for i in range(max_retries):
+                try:
+                    shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
+                    return
+                except OSError as e:
+                    msg = "Unable to delete %s\n%s\n" % (path, e)
+                    if on_win:
                         try:
-                            move_path_to_trash(path)
+                            shutil.rmtree(path, onerror=_remove_readonly)
+                            return
+                        except OSError as e1:
+                            msg += "Retry with onerror failed (%s)\n" % e1
+
+                        p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
+                        (stdout, stderr) = p.communicate()
+                        if p.returncode != 0:
+                            msg += '%s\n%s\n' % (stdout, stderr)
+                        else:
                             if not isdir(path):
                                 return
-                        except OSError as e2:
-                            raise
-                            msg += "Retry with onerror failed (%s)\n" % e2
 
-                log.debug(msg + "Retrying after %s seconds..." % i)
-                time.sleep(i)
-        # Final time. pass exceptions to caller.
-        shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
+                        if trash:
+                            try:
+                                move_path_to_trash(path)
+                                if not isdir(path):
+                                    return
+                            except OSError as e2:
+                                raise
+                                msg += "Retry with onerror failed (%s)\n" % e2
+
+                    log.debug(msg + "Retrying after %s seconds..." % i)
+                    time.sleep(i)
+            # Final time. pass exceptions to caller.
+            shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
+        finally:
+            # If path was removed, ensure it's not in linked_data_
+            if not isdir(path):
+                delete_linked_data_any(path)
 
 def rm_empty_dir(path):
     """
@@ -825,6 +830,22 @@ def delete_linked_data(prefix, dist, delete=True):
             os.unlink(meta_path)
 
 
+def delete_linked_data_any(path):
+    '''Here, path may be a complete prefix or a dist inside a prefix'''
+    dist = ''
+    while True:
+        if path in linked_data_:
+            if dist:
+                delete_linked_data(path, dist)
+                return True
+            else:
+                del linked_data_[path]
+                return True
+        path, dist = os.path.split(path)
+        if not dist:
+            return False
+
+
 def load_meta(prefix, dist):
     """
     Return the install meta-data for a linked package in a prefix, or None
@@ -888,7 +909,7 @@ def move_to_trash(prefix, f, tempdir=None):
 
     This function is deprecated in favor of `move_path_to_trash`.
     """
-    return move_path_to_trash(join(prefix, f))
+    return move_path_to_trash(join(prefix, f) if f else prefix)
 
 
 def move_path_to_trash(path):
@@ -922,6 +943,7 @@ def move_path_to_trash(path):
         except OSError as e:
             log.debug("Could not move %s to %s (%s)" % (path, trash_dir, e))
         else:
+            delete_linked_data_any(path)
             return True
 
     log.debug("Could not move %s to trash" % path)
