@@ -15,7 +15,7 @@ def ver_eval(vtest, spec):
     return VersionSpec(spec).match(vtest)
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
-version_split_re = re.compile('([0-9]+|[^0-9]+)')
+version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
 class VersionOrder(object):
     '''
     This class implements an order relation between version strings.
@@ -292,6 +292,9 @@ class VersionSpec(object):
     def any_match_(self, vspec):
         return any(s.match(vspec) for s in self.spec[1])
 
+    def triv_match_(self, vspec):
+        return True
+
     def __new__(cls, spec):
         if isinstance(spec, cls):
             return spec
@@ -311,11 +314,9 @@ class VersionSpec(object):
             self.op = opdict[op]
             self.cmp = VersionOrder(b)
             self.match = self.veval_match_
-        elif spec.endswith('*') and '*' not in spec.rstrip('*'):
-            self.op = VersionOrder.startswith
-            self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
-            self.match = self.veval_match_
-        else:
+        elif spec == '*':
+            self.match = self.triv_match_
+        elif '*' in spec.rstrip('*'):
             self.spec = spec
             rx = spec.replace('.', r'\.')
             rx = rx.replace('+', r'\+')
@@ -323,6 +324,10 @@ class VersionSpec(object):
             rx = r'^(?:%s)$' % rx
             self.regex = re.compile(rx)
             self.match = self.regex_match_
+        elif spec.endswith('*'):
+            self.op = VersionOrder.startswith
+            self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
+            self.match = self.veval_match_
         else:
             self.match = self.exact_match_
         return self
