@@ -166,14 +166,22 @@ Contributing
 Contributions to conda are welcome. Just fork the GitHub repository and send a
 pull request.
 
-To develop on conda, the easiest way is to use ``python setup.py develop`` in your
-root conda environment. This will install a link to the local conda source
-code, so that any change you make to conda will be instantly available. To undo
-this, run ``python setup.py develop -u``.  If you are worried about breaking
-your conda installation, you can install a separate instance of `Miniconda
-<http://conda.pydata.org/miniconda.html>`_ and work off it. This is also the
-only way to test conda in both Python 2 and Python 3, as conda can only be
-installed into a root environment.
+To develop on conda, the easiest way is to use a development build. This can be
+accomplished as follows:
+
+* clone the conda git repository to a computer with conda already installed
+* navigate to the root directory of the git clone
+* run ``python setup.py develop`` 
+
+Note building a development file requires git to be installed. 
+
+To undo this, run ``python setup.py develop -u``, then, by hand, remove 
+[which files?].
+
+If you are worried about breaking your conda installation, you can install a 
+separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and 
+work off it. This is also the only way to test conda in both Python 2 and 
+Python 3, as conda can only be installed into a root environment.
 
 Run the conda tests by ``conda install pytest`` and then running ``py.test``
 in the conda directory. The tests are also run by Travis CI when you make a
