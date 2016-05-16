@@ -350,7 +350,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
                           # Default version required, but only used for Python
                           ('lua', None)]:
         ms = names_ms.get(name)
-        if ms and ms.strictness > 1:
+        if ms and not ms.is_simple():
             # if any of the specifications mention the Python/Numpy version,
             # we don't need to add the default spec
             log.debug('H1 %s' % name)
@@ -369,7 +369,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             continue
 
         if (any_depends_on and len(specs) >= 1 and
-                MatchSpec(specs[0]).strictness == 3):
+                MatchSpec(specs[0]).is_exact()):
             # if something depends on Python/Numpy, but the spec is very
             # explicit, we also don't need to add the default spec
             log.debug('H2B %s' % name)

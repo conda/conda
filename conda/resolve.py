@@ -3,8 +3,9 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import defaultdict
 from itertools import chain
+import re
 
-from conda.compat import iterkeys, itervalues, iteritems, string_types
+from conda.compat import iterkeys, itervalues, iteritems
 from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.version import VersionSpec, normalized_version
 from conda.console import setup_handlers
@@ -105,25 +106,20 @@ class NoPackagesFound(RuntimeError):
 
 
 class MatchSpec(object):
-    def __new__(cls, spec, target=None, optional=None):
+    def __new__(cls, spec, target=Ellipsis, optional=Ellipsis, normalize=False):
         if isinstance(spec, cls):
-            return spec
+            if target is Ellipsis and optional is Ellipsis and not normalize:
+                return spec
+            target = spec.target if target is Ellipsis else target
+            optional = spec.optional if optional is Ellipsis else optional
+            spec = spec.spec
         self = object.__new__(cls)
+        self.target = None if target is Ellipsis else target
+        self.optional = False if optional is Ellipsis else bool(optional)
         spec, _, oparts = spec.partition('(')
-        self.spec = spec.strip()
-        if oparts and oparts.strip()[-1] != ')':
-            raise ValueError("Invalid MatchSpec: %s" % spec)
-        parts = spec.split()
-        self.strictness = len(parts)
-        assert 1 <= self.strictness <= 3, repr(spec)
-        self.name = parts[0]
-        if self.strictness == 2:
-            self.vspecs = VersionSpec(parts[1])
-        elif self.strictness == 3:
-            self.ver_build = tuple(parts[1:3])
-        self.target = target
-        self.optional = optional
         if oparts:
+            if oparts.strip()[-1] != ')':
+                raise ValueError("Invalid MatchSpec: %s" % spec)
             for opart in oparts.strip()[:-1].split(','):
                 if opart == 'optional':
                     self.optional = True
@@ -131,32 +127,69 @@ class MatchSpec(object):
                     self.target = opart.split('=')[1].strip()
                 else:
                     raise ValueError("Invalid MatchSpec: %s" % spec)
-        if self.optional is None:
-            self.optional = False
+        spec = self.spec = spec.strip()
+        parts = spec.split()
+        nparts = len(parts)
+        assert 1 <= nparts <= 3, repr(spec)
+        self.name = parts[0]
+        if nparts == 1:
+            self.match_fast = self._match_any
+            return self
+        vspec = VersionSpec(parts[1])
+        if vspec.is_exact():
+            if nparts > 2 and '*' not in parts[2]:
+                self.version, self.build = parts[1:]
+                self.match_fast = self._match_exact
+                return self
+            if normalize:
+                ver = vspec.spec
+                if ver.endswith('.0'):
+                    ver = '%s|%s' % (ver[:-2], ver)
+                ver += '*'
+                parts[1] = ver
+                vspec = VersionSpec(ver)
+                self.spec = ' '.join(parts)
+        self.version = vspec
+        if nparts == 2:
+            self.match_fast = self._match_version
+        else:
+            rx = r'^(?:%s)$' % parts[2].replace('*', r'.*')
+            self.build = re.compile(rx)
+            self.match_fast = self._match_full
         return self
 
-    def match_fast(self, version, build):
-        if self.strictness == 1:
-            return True
-        elif self.strictness == 2:
-            return self.vspecs.match(version)
-        else:
-            return bool((version, build) == self.ver_build)
+    def is_exact(self):
+        return self.match_fast == self._match_exact
+
+    def is_simple(self):
+        return self.match_fast == self._match_any
+
+    def _match_any(self, verison, build):
+        return True
+
+    def _match_version(self, version, build):
+        return self.version.match(version)
+
+    def _match_exact(self, version, build):
+        return build == self.build and self.version == version
+
+    def _match_full(self, version, build):
+        return self.build.match(build) and self.version.match(version)
 
     def match(self, info):
-        if isinstance(info, string_types):
-            name, version, build = info[:-8].rsplit('-', 2)
-        else:
+        if type(info) is dict:
             name = info.get('name')
             version = info.get('version')
             build = info.get('build')
+        else:
+            name, version, build = info[:-8].rsplit('-', 2)
         if name != self.name:
             return False
         return self.match_fast(version, build)
 
     def to_filename(self):
-        if self.strictness == 3 and not self.optional:
-            return self.name + '-%s-%s.tar.bz2' % self.ver_build
+        if self.is_exact() and not self.optional:
+            return self.name + '-%s-%s.tar.bz2' % (self.version, self.build)
         else:
             return None
 
@@ -752,7 +785,7 @@ class Resolve(object):
     def explicit(self, specs):
         """
         Given the specifications, return:
-          A. if one explicit specification (strictness=3) is given, and
+          A. if one explicit specification is given, and
              all dependencies of this package are explicit as well ->
              return the filenames of those dependencies (as well as the
              explicit specification)
