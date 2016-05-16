@@ -470,7 +470,7 @@ def check_write(command, prefix, json=False):
 
 def arg2spec(arg, json=False, update=False):
     try:
-        spec = MatchSpec(spec_from_line(arg))
+        spec = MatchSpec(spec_from_line(arg), normalize=True)
     except:
         error_and_exit('invalid package specification: %s' % arg,
                        json=json, error_type="ValueError")
@@ -479,20 +479,12 @@ def arg2spec(arg, json=False, update=False):
         error_and_exit("specification '%s' is disallowed" % name,
                        json=json,
                        error_type="ValueError")
-    if spec.strictness > 1 and update:
+    if not spec.is_simple() and update:
         error_and_exit("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
     conda install %s""" % (name, ' ' * (len(arg)-len(name)), arg),
                        json=json, error_type="ValueError")
-    if spec.strictness != 2:
-        return str(spec)
-    ver = spec.vspecs.spec
-    if isinstance(ver, tuple) or ver.startswith(('=', '>', '<', '!')) or ver.endswith('*'):
-        return str(spec)
-    elif ver.endswith('.0'):
-        return '%s %s|%s*' % (name, ver[:-2], ver)
-    else:
-        return '%s %s*' % (name, ver)
+    return str(spec)
 
 
 def specs_from_args(args, json=False):
