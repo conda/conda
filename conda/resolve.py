@@ -136,24 +136,24 @@ class MatchSpec(object):
             self.match_fast = self._match_any
             return self
         vspec = VersionSpec(parts[1])
-        if normalize and vspec.is_exact():
-            ver = vspec.spec
-            if ver.endswith('.0'):
-                ver = '%s|%s' % (ver[:-2], ver)
-            ver += '*'
-            parts[1] = ver
-            vspec = VersionSpec(ver)
-            self.spec = ' '.join(parts)
+        if vspec.is_exact():
+            if nparts > 2 and '*' not in parts[2]:
+                self.version, self.build = parts[1:]
+                self.match_fast = self._match_exact
+                return self
+            if normalize:
+                ver = vspec.spec
+                if ver.endswith('.0'):
+                    ver = '%s|%s' % (ver[:-2], ver)
+                ver += '*'
+                parts[1] = ver
+                vspec = VersionSpec(ver)
+                self.spec = ' '.join(parts)
+        self.version = vspec
         if nparts == 2:
-            self.version = vspec
             self.match_fast = self._match_version
-        elif '*' not in parts[2] and vspec.is_exact():
-            self.version = parts[1]
-            self.build = parts[2]
-            self.match_fast = self._match_exact
         else:
             rx = r'^(?:%s)$' % parts[2].replace('*', r'.*')
-            self.version = vspec
             self.build = re.compile(rx)
             self.match_fast = self._match_full
         return self
