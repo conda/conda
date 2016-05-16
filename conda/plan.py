@@ -466,13 +466,14 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
     linked = r.installed
-    mss = list(map(MatchSpec, specs))
 
     if force:
+        mss = list(map(MatchSpec, specs))
         nlinked = {r.package_name(fn): fn[:-8]
                    for fn in linked
                    if not any(r.match(ms, fn) for ms in mss)}
     else:
+        add_defaults_to_specs(r, linked, specs, update=True)
         nlinked = {r.package_name(fn): fn[:-8] for fn in r.remove(specs, linked)}
 
     if pinned:
@@ -491,7 +492,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
             raise RuntimeError(msg % dist)
         if name == 'conda' and name not in nlinked:
-            if any(ms.name == 'conda' for ms in mss):
+            if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
                 msg = ("Error: this 'remove' command cannot be executed because it\n"
