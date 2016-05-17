@@ -15,9 +15,6 @@ Who is this for?
 This tutorial is for Windows, Mac, and Linux users who wish to generate an Anaconda Navigator app
 conda package from a PyPi package. Prior knowledge of conda-build or conda recipes is recommended.
 
-Note: Not all conda packages can be made into applications. Typically, applications are packages
-that have a graphical user interface.
-
 
 Conda build summary
 ~~~~~~~~~~~~~~~~~~~
@@ -42,6 +39,8 @@ Anaconda Navigator the app will appear on the Home pane.
 
 Before you start
 ----------------
+Note: Applications to be built for Anaconda Navigator should have a graphical user interface.
+Not all conda packages have graphical interfaces.
 
 You should already have installed Miniconda_ or Anaconda_.
 
@@ -272,16 +271,21 @@ For more information about Anaconda.org, see the `Anaconda.org documentation pag
 Configure Anaconda Navigator
 ----------------------------
 
-Now that the Rodeo package has been uploaded to your Anaconda Cloud channel we need
-to add the channel to Anaconda Navigator.
+Now that the Rodeo package has been uploaded to your Anaconda Cloud channel you
+need to add the channel to Anaconda Navigator.
 
 Launch the Anaconda Navigator app. In Windows and Linux it will be available
 from the Start Menu. On Mac OS X you can find it either on the Desktop
 or through Spotlight.
 
-Open the Environments pane and click the Channels button.
+Open the Environments pane on the far left. See the image below.
 
-Click the Add button and type in the URL to your Anaconda Cloud channel
+.. image:: rodeo/navigator-home.png
+    :scale: 50%
+
+
+To add your channel first click the Channel button, second click the Add
+button, third type in the URL to your Anaconda Cloud channel
 
 .. code-block:: text
 
@@ -289,7 +293,15 @@ Click the Add button and type in the URL to your Anaconda Cloud channel
 
 Replace CHANNEL with your Anaconda Cloud username.
 
-Finally, restart Anaconda Navigator and the Rodeo app will be displayed on the Home pane.
+Finally, click the Update Channels button. These steps are depicted in the following image.
+
+.. image:: rodeo/navigator-channel.png
+    :scale: 50%
+
+The last step is to close and restart Anaconda Navigator. The Rodeo app will be displayed on the Home pane.
+
+.. image:: rodeo/navigator-rodeo.png
+    :scale: 50%
 
 
 
@@ -300,7 +312,7 @@ Troubleshooting
 
 A. Conda build fails
 ~~~~~~~~~~~~~~~~~~~~
-TBD
+If the conda recipe fails to build consult the :doc:`../troubleshooting` page.
 
 
 B. App does not appear on the home pane
@@ -311,15 +323,29 @@ Check that your channel has been added to the Channels list.
 
 You may have to remove your ``.anaconda/navigator`` directory and restart Navigator.
 
+On Windows, Linux and Mac this directory in your Home directory.
+
+C. App does not launch
+~~~~~~~~~~~~~~~~~~~~~~
+If after installing the application it does not launch check that it works
+correctly on the command line with the following command.
+
+.. code-block:: text
+
+    conda run rodeo
+
+If rodeo starts correctly then you may have to remove your ``.anaconda/navigator``
+directory and restart Navigator.
+
+On Windows, Linux and Mac this directory in your Home directory.
+
 
 
 .. _`help4`:
 
 Additional Information
 ----------------------
-See the full conda skeleton documentation_ for more options.
-
-.. _documentation: http://conda.pydata.org/docs/commands/build/conda-skeleton-pypi.html
+See the :doc:`../commands/build/conda-skeleton-pypi` reference page for more options.
 
 For more information about adding Start Menu entries in Windows see the menuinst_ documentation.
 
