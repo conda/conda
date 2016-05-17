@@ -343,7 +343,7 @@ create_default_packages:
 changeps1: true
 
 # Here is a comment
-always_yes: yes
+always_yes: 'yes'
 """
 
         os.unlink(test_condarc)
