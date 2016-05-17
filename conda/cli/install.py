@@ -16,7 +16,7 @@ from difflib import get_close_matches
 import logging
 import errno
 
-from conda.config import create_default_packages, force_32bit
+from conda.config import create_default_packages, force_32bit, root_env_name
 import conda.plan as plan
 import conda.misc as misc
 from conda.api import get_index
