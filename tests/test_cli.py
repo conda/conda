@@ -16,7 +16,7 @@ class TestArg2Spec(unittest.TestCase):
         self.assertEqual(arg2spec('python=2.6'), 'python 2.6*')
         self.assertEqual(arg2spec('python=2.6*'), 'python 2.6*')
         self.assertEqual(arg2spec('ipython=0.13.2'), 'ipython 0.13.2*')
-        self.assertEqual(arg2spec('ipython=0.13.0'), 'ipython 0.13|0.13.0*')
+        self.assertEqual(arg2spec('ipython=0.13.0'), 'ipython 0.13.0*')
         self.assertEqual(arg2spec('foo=1.3.0=3'), 'foo 1.3.0 3')
 
     def test_pip_style(self):
