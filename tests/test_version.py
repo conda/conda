@@ -137,6 +137,10 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('3.0.0', '>2013b'), False)
         self.assertEqual(ver_eval('1.0.0', '>1.0.0a'), True)
         self.assertEqual(ver_eval('1.0.0', '>1.0.0*'), True)
+        self.assertEqual(ver_eval('1.0', '1.0*'), True)
+        self.assertEqual(ver_eval('1.0.0', '1.0*'), True)
+        self.assertEqual(ver_eval('1.0', '1.0.0*'), True)
+        self.assertEqual(ver_eval('1.0.1', '1.0.0*'), False)
 
     def test_ver_eval_errors(self):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')

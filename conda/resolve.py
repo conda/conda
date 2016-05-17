@@ -141,13 +141,9 @@ class MatchSpec(object):
                 self.version, self.build = parts[1:]
                 self.match_fast = self._match_exact
                 return self
-            if normalize:
-                ver = vspec.spec
-                if ver.endswith('.0'):
-                    ver = '%s|%s' % (ver[:-2], ver)
-                ver += '*'
-                parts[1] = ver
-                vspec = VersionSpec(ver)
+            if normalize and not parts[1].endswith('*'):
+                parts[1] += '*'
+                vspec = VersionSpec(parts[1])
                 self.spec = ' '.join(parts)
         self.version = vspec
         if nparts == 2:

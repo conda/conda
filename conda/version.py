@@ -15,7 +15,7 @@ def ver_eval(vtest, spec):
     return VersionSpec(spec).match(vtest)
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
-version_split_re = re.compile('([0-9]+|[^0-9]+)')
+version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
 class VersionOrder(object):
     '''
     This class implements an order relation between version strings.
@@ -163,7 +163,7 @@ class VersionOrder(object):
         version = version[-1].split('+')
         if len(version) == 1:
             # no local version
-            self.local = ['0']
+            self.local = []
         elif len(version) == 2:
             # local version given
             self.local = version[1].replace('_', '.').split('.')
@@ -200,35 +200,61 @@ class VersionOrder(object):
     def __str__(self):
         return self.norm_version
 
-    def __eq__(self, other):
-        for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
-            for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
-                for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
-                    if c1 != c2:
-                        return False
+    def _eq(self, t1, t2):
+        for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
+            for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
+                if c1 != c2:
+                    return False
         return True
+
+    def __eq__(self, other):
+        return (self._eq(self.version, other.version) and
+                self._eq(self.local, other.local))
+
+    def startswith(self, other):
+        # Tests if the version lists match up to the last element in "other".
+        if other.local:
+            if not self._eq(self.version, other.version):
+                return False
+            t1 = self.local
+            t2 = other.local
+        elif other.version:
+            t1 = self.version
+            t2 = other.version
+        else:
+            return True
+        nt = len(t2) - 1
+        if not self._eq(t1[:nt], t2[:nt]):
+            return False
+        v1 = [] if len(t1) <= nt else t1[nt]
+        v2 = t2[nt]
+        nt = len(v2) - 1
+        if not self._eq([v1[:nt]], [v2[:nt]]):
+            return False
+        c1 = self.fillvalue if len(v1) <= nt else v1[nt]
+        c2 = v2[nt]
+        if isinstance(c2, string_types):
+            return isinstance(c1, string_types) and c1.startswith(c2)
+        return c1 == c2
 
     def __ne__(self, other):
         return not (self == other)
 
     def __lt__(self, other):
         for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
-            for v1, v2 in zip_longest(t1, t2, fillvalue=[self.fillvalue]):
+            for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
                 for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
-                    if isinstance(c1, string_types):
+                    if c1 == c2:
+                        continue
+                    elif isinstance(c1, string_types):
                         if not isinstance(c2, string_types):
                             # str < int
                             return True
-                    else:
-                        if isinstance(c2, string_types):
+                    elif isinstance(c2, string_types):
                             # not (int < str)
                             return False
                     # c1 and c2 have the same type
-                    if c1 < c2:
-                        return True
-                    if c2 < c1:
-                        return False
-                    # c1 == c2 => advance
+                    return c1 < c2
         # self == other
         return False
 
@@ -266,6 +292,9 @@ class VersionSpec(object):
     def any_match_(self, vspec):
         return any(s.match(vspec) for s in self.spec[1])
 
+    def triv_match_(self, vspec):
+        return True
+
     def __new__(cls, spec):
         if isinstance(spec, cls):
             return spec
@@ -285,13 +314,20 @@ class VersionSpec(object):
             self.op = opdict[op]
             self.cmp = VersionOrder(b)
             self.match = self.veval_match_
-        elif '*' in spec:
+        elif spec == '*':
+            self.match = self.triv_match_
+        elif '*' in spec.rstrip('*'):
+            self.spec = spec
             rx = spec.replace('.', r'\.')
             rx = rx.replace('+', r'\+')
             rx = rx.replace('*', r'.*')
             rx = r'^(?:%s)$' % rx
             self.regex = re.compile(rx)
             self.match = self.regex_match_
+        elif spec.endswith('*'):
+            self.op = VersionOrder.startswith
+            self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
+            self.match = self.veval_match_
         else:
             self.match = self.exact_match_
         return self
