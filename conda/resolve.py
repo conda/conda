@@ -5,8 +5,8 @@ import re
 from collections import defaultdict
 from itertools import chain
 
-from conda import config
 from conda.compat import iterkeys, itervalues, iteritems
+from conda.config import subdir, canonical_channel_name, channel_priority
 from conda.console import setup_handlers
 from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.toposort import toposort
@@ -100,7 +100,7 @@ class NoPackagesFound(RuntimeError):
         else:
             what = "Packages/dependencies"
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, config.subdir, bad_deps)
+        msg = '%s missing in current %s channels: %s' % (what, subdir, bad_deps)
         super(NoPackagesFound, self).__init__(msg)
         self.pkgs = deps
 
@@ -230,7 +230,7 @@ class Package(object):
         self.channel = info.get('channel')
         self.schannel = info.get('schannel')
         if self.schannel is None:
-            self.schannel = config.canonical_channel_name(self.channel)
+            self.schannel = canonical_channel_name(self.channel)
         try:
             self.norm_version = normalized_version(self.version)
         except ValueError:
@@ -626,7 +626,7 @@ class Resolve(object):
         cpri = -rec.get('priority', 1)
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
-        return (cpri, ver, bld) if config.channel_priority else (ver, cpri, bld)
+        return (cpri, ver, bld) if channel_priority else (ver, cpri, bld)
 
     def features(self, fkey):
         return set(self.index[fkey].get('features', '').split())
