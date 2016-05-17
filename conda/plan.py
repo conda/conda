@@ -16,12 +16,11 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
-from conda.config import allow_softlinks, always_copy as config_always_copy, root_dir, \
-    default_python, self_update, track_features, foreign
-
 from conda import config
 from conda import install
 from conda import instructions as inst
+from conda.config import (allow_softlinks, always_copy as config_always_copy, root_dir,
+                          default_python, self_update, track_features, foreign)
 from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
