@@ -10,24 +10,24 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import sys
 import os
-from logging import getLogger
+import sys
 from collections import defaultdict
+from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
-from conda import config
 from conda import install
+from conda import instructions as inst
+from conda.config import (always_copy as config_always_copy,
+                          show_channel_urls as config_show_channel_urls,
+                          root_dir, allow_softlinks, default_python, self_update,
+                          track_features, foreign)
+from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
-from conda import instructions as inst
-from conda.exceptions import CondaException
 
 # For backwards compatibility
-from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,  # noqa
-                                RM_FETCHED, PREFIX, PRINT, PROGRESS,
-                                SYMLINK_CONDA)
 
 log = getLogger(__name__)
 
@@ -45,7 +45,7 @@ def print_dists(dists_extras):
 
 def display_actions(actions, index, show_channel_urls=None):
     if show_channel_urls is None:
-        show_channel_urls = config.show_channel_urls
+        show_channel_urls = config_show_channel_urls
 
     def channel_str(s):
         if s is None:
@@ -304,11 +304,11 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
                 index_json = join(ppath, 'index.json')
                 with open(index_json, 'w'):
                     pass
-            if config.always_copy or always_copy:
+            if config_always_copy or always_copy:
                 lt = install.LINK_COPY
             elif install.try_hard_link(fetched_dir, prefix, dist):
                 lt = install.LINK_HARD
-            elif config.allow_softlinks and sys.platform != 'win32':
+            elif allow_softlinks and sys.platform != 'win32':
                 lt = install.LINK_SOFT
             else:
                 lt = install.LINK_COPY
@@ -329,7 +329,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
 
 
 def is_root_prefix(prefix):
-    return abspath(prefix) == abspath(config.root_dir)
+    return abspath(prefix) == abspath(root_dir)
 
 
 def dist2spec3v(dist):
@@ -346,7 +346,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     names_linked = {install.name_dist(dist): dist for dist in linked}
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
-    for name, def_ver in [('python', config.default_python),
+    for name, def_ver in [('python', default_python),
                           # Default version required, but only used for Python
                           ('lua', None)]:
         ms = names_ms.get(name)
@@ -407,7 +407,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     r = Resolve(index)
     linked = r.installed
 
-    if config.self_update and is_root_prefix(prefix):
+    if self_update and is_root_prefix(prefix):
         specs.append('conda')
 
     if pinned:
@@ -416,8 +416,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         specs += pinned_specs
 
     must_have = {}
-    if config.track_features:
-        specs.extend(x + '@' for x in config.track_features)
+    if track_features:
+        specs.extend(x + '@' for x in track_features)
 
     pkgs = r.install(specs, linked, update_deps=update_deps)
 
@@ -429,7 +429,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        for name in config.foreign:
+        for name in foreign:
             if name in must_have:
                 del must_have[name]
     elif basename(prefix).startswith('_'):
@@ -450,7 +450,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         force=force, always_copy=always_copy)
 
     if actions[inst.LINK]:
-        actions[inst.SYMLINK_CONDA] = [config.root_dir]
+        actions[inst.SYMLINK_CONDA] = [root_dir]
 
     for fkey in sorted(linked):
         dist = fkey[:-8]

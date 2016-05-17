@@ -4,22 +4,22 @@
 from __future__ import print_function, division, absolute_import
 
 import os
+import re
 import shutil
 import sys
-import re
 from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath)
 
-from conda import config
 from conda import install
 from conda import utils
 from conda.compat import iteritems, itervalues
+from conda.config import is_url, url_channel, root_dir, envs_dirs
+from conda.fetch import fetch_index
 from conda.instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from conda.plan import execute_actions
-from conda.utils import md5_file
 from conda.resolve import Resolve, MatchSpec
-from conda.fetch import fetch_index
+from conda.utils import md5_file
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -56,7 +56,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
         if m is None:
             sys.exit('Could not parse explicit URL: %s' % spec)
         url, md5 = m.group('url') + '/' + m.group('fn'), m.group('md5')
-        if not config.is_url(url):
+        if not is_url(url):
             if not isfile(url):
                 sys.exit('Error: file not found: %s' % url)
             url = utils.url_path(url)
@@ -69,7 +69,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
 
         # If not, determine the channel name from the URL
         if prefix is None:
-            _, schannel = config.url_channel(url)
+            _, schannel = url_channel(url)
             prefix = '' if schannel == 'defaults' else schannel + '::'
         fn = prefix + fn
         dist = fn[:-8]
@@ -217,7 +217,7 @@ def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
-    if sys.platform == 'win32' and exists(join(config.root_dir, '.nonadmin')):
+    if sys.platform == 'win32' and exists(join(root_dir, '.nonadmin')):
         if not isdir(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin'), 'w') as fo:
@@ -273,7 +273,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
         url = info.get('url')
         if url is None:
             sys.exit('Error: no URL found for package: %s' % dist)
-        _, schannel = config.url_channel(url)
+        _, schannel = url_channel(url)
         index[dist + '.tar.bz2'] = info
         urls[dist] = url
 
@@ -323,7 +323,7 @@ def install_local_packages(prefix, paths, verbose=False):
     explicit(paths, prefix, verbose=verbose)
 
 
-def environment_for_conda_environment(prefix=config.root_dir):
+def environment_for_conda_environment(prefix=root_dir):
     # prepend the bin directory to the path
     fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
     binpath = fmt % abspath(prefix)
@@ -340,7 +340,7 @@ def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
         base_url = dirname(info['channel'])
         icon_fn = info['icon']
-        # icon_cache_path = join(config.pkgs_dir, 'cache', icon_fn)
+        # icon_cache_path = join(pkgs_dir, 'cache', icon_fn)
         # if isfile(icon_cache_path):
         #    return url_path(icon_cache_path)
         return '%s/icons/%s' % (base_url, icon_fn)
@@ -349,7 +349,7 @@ def make_icon_url(info):
 
 def list_prefixes():
     # Lists all the prefixes that conda knows about.
-    for envs_dir in config.envs_dirs:
+    for envs_dir in envs_dirs:
         if not isdir(envs_dir):
             continue
         for dn in sorted(os.listdir(envs_dir)):
@@ -360,4 +360,4 @@ def list_prefixes():
                 prefix = join(envs_dir, dn)
                 yield prefix
 
-    yield config.root_dir
+    yield root_dir
