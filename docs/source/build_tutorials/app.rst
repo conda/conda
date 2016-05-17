@@ -6,14 +6,14 @@ Overview
 --------
 
 This tutorial will build an Anaconda Navigator Application (app)
-for the `Rodeo IDE <https://www.yhat.com/products/rodeo>`_.
+of the `Rodeo IDE <https://www.yhat.com/products/rodeo>`_.
 
 
 Who is this for?
 ----------------
 
-This tutorial is for Windows, Mac, and Linux users who wish to generate an Anaconda Navigator app
-conda package from a PyPi package. Prior knowledge of conda-build or conda recipes is recommended.
+This tutorial is for Windows, OS X, and Linux users who wish to generate an Anaconda Navigator app
+conda package from a PyPI package. Prior knowledge of conda-build or conda recipes is recommended.
 
 
 Conda build summary
@@ -115,11 +115,11 @@ App entry in meta.yaml
 ----------------------
 
 To declare a conda package as an app the ``app`` parameter pust be added to the ``meta.yaml`` file.
-The ``app`` section will contain four keys ``entry``, ``icon``, ``summary`` and type.
+The ``app`` section will contain four keys ``entry``, ``icon``, ``summary`` and ``type``.
 
 In the ``app`` section the ``entry`` tag defines how the package is to be launched by
-Anaconda Navigator. For the Rodeo IDE separate ``entry`` tags are required for Mac OS X,
-Windows and Linux operating systems.
+Anaconda Navigator. For the Rodeo IDE separate ``entry`` tags are required for Windows, OS X,
+and Linux operating systems.
 
 In your text editor open the ``meta.yaml`` file and add the following lines.
 
@@ -132,7 +132,7 @@ On Windows and Linux the ``entry`` tag is
       entry: rodeo .                              [linux]
 
 
-For Mac OSX a launch script must also be provided.
+For OS X a launch script must also be provided.
 In a text editor create a new file in the conda build recipe directory called ``rodeo_mac.command``.
 The contents of this file are
 
@@ -142,7 +142,7 @@ The contents of this file are
 
     $DIR/rodeo ${HOME}
 
-To make sure that the file gets installed you also need to add these lines to the ``build.sh`` script.
+To make sure that the file gets installed add these lines to the ``build.sh`` script.
 
 .. code-block:: bash
 
@@ -157,7 +157,7 @@ Then in ``meta.yaml`` add this line to the ``app`` section.
 
       entry: open ${PREFIX}/bin/rodeo_mac.command [osx]
 
-Finally, a logo PNG file is provided in the conda build reciped that will be displayed
+Finally, a logo PNG file is provided in the conda build recipe that will be displayed
 in Anaconda Navigator. You can download the
 `app.png file <https://github.com/yhat/rodeo/blob/master/resources/app.png>`_ directly
 from the Github repository.
@@ -185,7 +185,7 @@ Build
 -----
 
 Now that you have the conda build recipe ready, you can use the conda-build tool to create the package.
-You will have to build and upload the rodeo package separately on Mac, Linux and Windows machines in
+You will have to build and upload the rodeo package separately on Windows, OS X, and Linux machines in
 order for the package to be available on all platforms.
 
 .. code-block:: bash
@@ -222,9 +222,9 @@ path and filename information for the next step.
 Upload to Anaconda Cloud
 ------------------------
 
-Now you can upload the new local packages to Anaconda.org
+Now you can upload the new local packages to Anaconda Cloud.
 
-First login to Anaconda Cloud from your terminal application
+First login to Anaconda Cloud from your terminal application:
 
 .. code-block:: text
 
@@ -240,7 +240,7 @@ If the login was successful you will see output like the following.
     defusco's Password:
     login successful
 
-Note: this step must be done in the root conda environment.
+Note: This step must be done in the root conda environment.
 
 Now that you are logged into your channel you can upload the Rodeo conda package
 as follows.
@@ -263,7 +263,7 @@ will vary depending on your installation and operating system.
 
 
 
-For more information about Anaconda.org, see the `Anaconda.org documentation page <http://docs.anaconda.org/>`_.
+For more information about Anaconda Cloud, see the `Anaconda Cloud documentation page <http://docs.anaconda.org/>`_.
 
 
 .. _navigator:
@@ -275,17 +275,17 @@ Now that the Rodeo package has been uploaded to your Anaconda Cloud channel you
 need to add the channel to Anaconda Navigator.
 
 Launch the Anaconda Navigator app. In Windows and Linux it will be available
-from the Start Menu. On Mac OS X you can find it either on the Desktop
+from the Start Menu. On OS X you can find it either on the Desktop
 or through Spotlight.
 
-Open the Environments pane on the far left. See the image below.
+Open the Environments pane on the far left:
 
 .. image:: rodeo/navigator-home.png
     :scale: 50%
 
 
 To add your channel first click the Channel button, second click the Add
-button, third type in the URL to your Anaconda Cloud channel
+button, third type in the URL to your Anaconda Cloud channel:
 
 .. code-block:: text
 
@@ -293,7 +293,7 @@ button, third type in the URL to your Anaconda Cloud channel
 
 Replace CHANNEL with your Anaconda Cloud username.
 
-Finally, click the Update Channels button. These steps are depicted in the following image.
+Finally, click the Update Channels button:
 
 .. image:: rodeo/navigator-channel.png
     :scale: 50%
@@ -317,13 +317,13 @@ If the conda recipe fails to build consult the :doc:`../troubleshooting` page.
 
 B. App does not appear on the home pane
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Check that the conda package has been uploaded to your Anaconda.org channel.
+Check that the conda package has been uploaded to your Anaconda Cloud channel.
 
 Check that your channel has been added to the Channels list.
 
 You may have to remove your ``.anaconda/navigator`` directory and restart Navigator.
 
-On Windows, Linux and Mac this directory in your Home directory.
+On Windows, OS X, and Linux this directory is in your Home directory.
 
 C. App does not launch
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -337,7 +337,7 @@ correctly on the command line with the following command.
 If rodeo starts correctly then you may have to remove your ``.anaconda/navigator``
 directory and restart Navigator.
 
-On Windows, Linux and Mac this directory in your Home directory.
+On Windows, OS X, and Linux this directory is in your Home directory.
 
 
 
