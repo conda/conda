@@ -134,12 +134,15 @@ class MatchSpec(object):
         self.name = parts[0]
         if nparts == 1:
             self.match_fast = self._match_any
+            self.strictness = 1
             return self
+        self.strictness = 2
         vspec = VersionSpec(parts[1])
         if vspec.is_exact():
             if nparts > 2 and '*' not in parts[2]:
                 self.version, self.build = parts[1:]
                 self.match_fast = self._match_exact
+                self.strictness = 3
                 return self
             if normalize and not parts[1].endswith('*'):
                 parts[1] += '*'
