@@ -149,7 +149,6 @@ def execute_search(args, parser):
 
     prefix = common.get_prefix(args)
 
-    import conda.config
     import conda.install
 
     linked = conda.install.linked(prefix)

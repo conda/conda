@@ -28,8 +28,13 @@ force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
 
 # ----- operating system and architecture -----
 
-_sys_map = {'linux2': 'linux', 'linux': 'linux',
-            'darwin': 'osx', 'win32': 'win', 'openbsd5': 'openbsd'}
+_sys_map = {
+    'linux2': 'linux',
+    'linux': 'linux',
+    'darwin': 'osx',
+    'win32': 'win',
+    'openbsd5': 'openbsd',
+}
 non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
 platform = _sys_map.get(sys.platform, 'unknown')
 bits = 8 * tuple.__itemsize__

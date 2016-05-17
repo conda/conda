@@ -10,7 +10,7 @@ import sys
 from os.path import isdir, join
 
 import conda
-import conda.config as config
+from conda.config import root_dir
 
 descr = """
 Initialize conda into a regular environment (when conda was installed as a
@@ -38,7 +38,7 @@ def configure_parser(sub_parsers):
 
 
 def is_initialized():
-    return isdir(join(config.root_dir, 'conda-meta'))
+    return isdir(join(root_dir, 'conda-meta'))
 
 
 def write_meta(meta_dir, info):
@@ -50,7 +50,7 @@ def write_meta(meta_dir, info):
         json.dump(info, fo, indent=2, sort_keys=True)
 
 
-def initialize(prefix=config.root_dir):
+def initialize(prefix=root_dir):
     import os
 
     meta_dir = join(prefix, 'conda-meta')
@@ -76,9 +76,9 @@ def initialize(prefix=config.root_dir):
 def execute(args, parser):
     if is_initialized():
         sys.exit('Error: conda appears to be already initalized in: %s' %
-                 config.root_dir)
+                 root_dir)
 
     print(warning, file=sys.stderr)
 
-    print('Initializing conda into: %s' % config.root_dir)
+    print('Initializing conda into: %s' % root_dir)
     initialize()

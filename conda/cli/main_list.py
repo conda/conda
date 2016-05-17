@@ -6,17 +6,16 @@
 
 from __future__ import print_function, division, absolute_import
 
-import re
-import os
-import sys
 import logging
-from os.path import isdir, isfile, join
+import os
+import re
+import sys
 from argparse import RawDescriptionHelpFormatter
+from os.path import isdir, isfile, join
 
 import conda.install as install
-import conda.config as config
 from conda.cli import common
-
+from conda.config import show_channel_urls, subdir, use_pip
 from conda.egg_info import get_egg_info
 
 
@@ -108,7 +107,7 @@ def configure_parser(sub_parsers):
 def print_export_header():
     print('# This file may be used to create an environment using:')
     print('# $ conda create --name <env> --file <this file>')
-    print('# platform: %s' % config.subdir)
+    print('# platform: %s' % subdir)
 
 
 def get_packages(installed, regex):
@@ -123,7 +122,7 @@ def get_packages(installed, regex):
 
 
 def list_packages(prefix, installed, regex=None, format='human',
-                  show_channel_urls=config.show_channel_urls):
+                  show_channel_urls=show_channel_urls):
     res = 1
 
     result = []
@@ -154,7 +153,7 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-                   json=False, show_channel_urls=config.show_channel_urls):
+                   json=False, show_channel_urls=show_channel_urls):
     if not isdir(prefix):
         common.error_and_exit("""\
 Error: environment does not exist: %s
@@ -172,7 +171,7 @@ Error: environment does not exist: %s
             print_export_header()
 
     installed = install.linked(prefix)
-    if piplist and config.use_pip and format == 'human':
+    if piplist and use_pip and format == 'human':
         installed.update(get_egg_info(prefix))
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
