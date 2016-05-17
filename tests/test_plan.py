@@ -132,7 +132,8 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             self.check(specs, added)
 
 def test_display_actions():
-    conda.config.show_channel_urls = False
+    import conda.plan
+    conda.plan.config_show_channel_urls = False
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
@@ -275,7 +276,8 @@ The following packages will be DOWNGRADED:
 
 
 def test_display_actions_show_channel_urls():
-    conda.config.show_channel_urls = True
+    import conda.plan
+    conda.plan.config_show_channel_urls = True
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
@@ -449,7 +451,8 @@ The following packages will be DOWNGRADED:
 
 
 def test_display_actions_link_type():
-    conda.config.show_channel_urls = False
+    import conda.plan
+    conda.plan.config_show_channel_urls = False
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 2', 'dateutil-1.5-py33_0 2',
     'numpy-1.7.1-py33_0 2', 'python-3.3.2-0 2', 'readline-6.2-0 2', 'sqlite-3.7.13-0 2', 'tk-8.5.13-0 2', 'zlib-1.2.7-0 2']})
@@ -600,8 +603,8 @@ The following packages will be DOWNGRADED:
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
 
 """
-
-    conda.config.show_channel_urls = True
+    import conda.plan
+    conda.plan.config_show_channel_urls = True
 
     index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
     index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
@@ -657,7 +660,8 @@ The following packages will be DOWNGRADED:
 """
 
 def test_display_actions_features():
-    conda.config.show_channel_urls = False
+    import conda.plan
+    conda.plan.config_show_channel_urls = False
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
@@ -733,8 +737,8 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
 
 """
-
-    conda.config.show_channel_urls = True
+    import conda.plan
+    conda.plan.config_show_channel_urls = True
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 

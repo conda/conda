@@ -16,11 +16,12 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
-from conda import config
 from conda import install
 from conda import instructions as inst
-from conda.config import (allow_softlinks, always_copy as config_always_copy, root_dir,
-                          default_python, self_update, track_features, foreign)
+from conda.config import (always_copy as config_always_copy,
+                          show_channel_urls as config_show_channel_urls,
+                          root_dir, allow_softlinks, default_python, self_update,
+                          track_features, foreign)
 from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
@@ -44,7 +45,7 @@ def print_dists(dists_extras):
 
 def display_actions(actions, index, show_channel_urls=None):
     if show_channel_urls is None:
-        show_channel_urls = config.show_channel_urls
+        show_channel_urls = config_show_channel_urls
 
     def channel_str(s):
         if s is None:
