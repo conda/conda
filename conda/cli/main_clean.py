@@ -8,14 +8,13 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 from collections import defaultdict
-
-from os.path import join, getsize, isdir
 from os import lstat, walk, listdir
+from os.path import join, getsize, isdir
 
 from conda.cli import common
-import conda.config as config
-from conda.utils import human_bytes
+from conda.config import pkgs_dirs as config_pkgs_dirs, root_dir, envs_dirs
 from conda.install import rm_rf
+from conda.utils import human_bytes
 
 descr = """
 Remove unused packages and caches.
@@ -165,9 +164,9 @@ def find_lock():
 
     from conda.lock import LOCKFN
 
-    lock_dirs = config.pkgs_dirs[:]
-    lock_dirs += [config.root_dir]
-    for envs_dir in config.envs_dirs:
+    lock_dirs = config_pkgs_dirs[:]
+    lock_dirs += [root_dir]
+    for envs_dir in envs_dirs:
         if os.path.exists(envs_dir):
             for fn in os.listdir(envs_dir):
                 if os.path.isdir(join(envs_dir, fn)):
@@ -197,7 +196,7 @@ def rm_lock(locks, verbose=True):
 
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in config.pkgs_dirs:
+    for pkgs_dir in config_pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
         for fn in os.listdir(pkgs_dir):
@@ -262,7 +261,7 @@ def find_pkgs():
 
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in config.pkgs_dirs:
+    for pkgs_dir in config_pkgs_dirs:
         if not os.path.exists(pkgs_dir):
             print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
@@ -346,7 +345,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
 def rm_index_cache():
     from conda.install import rm_rf
 
-    rm_rf(join(config.pkgs_dirs[0], 'cache'))
+    rm_rf(join(config_pkgs_dirs[0], 'cache'))
 
 def find_source_cache():
     try:
@@ -434,7 +433,7 @@ def execute(args, parser):
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
-            'files': [join(config.pkgs_dirs[0], 'cache')]
+            'files': [join(config_pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
 

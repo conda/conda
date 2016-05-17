@@ -1,20 +1,20 @@
 from __future__ import print_function, division, absolute_import
 
-import os
-import sys
-import json
-import time
-import shutil
 import hashlib
+import json
+import os
+import shutil
+import sys
 import tarfile
 import tempfile
+import time
 from os.path import abspath, expanduser, basename, isdir, isfile, islink, join
 
-import conda.config as config
-from conda.api import get_index
-from conda.misc import untracked, discard_conda
 import conda.install as install
 import conda.plan as plan
+from conda.api import get_index
+from conda.config import arch_name, platform, envs_dirs
+from conda.misc import untracked, discard_conda
 
 
 ISO8601 = "%Y-%m-%d %H:%M:%S %z"
@@ -85,8 +85,8 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
         type='bundle',
         bundle_name=bundle_name,
         creator=os.getenv('USER'),
-        platform=config.platform,
-        arch=config.arch_name,
+        platform=platform,
+        arch=arch_name,
         ctime=time.strftime(ISO8601),
         depends=[],
     )
@@ -160,4 +160,4 @@ if __name__ == '__main__':
     except IndexError:
         path = 'bundle-90809033a16372615e953f6961a6a272a4b35a1a.tar.bz2'
     clone_bundle(path,
-                 join(config.envs_dirs[0], 'tc001'))
+                 join(envs_dirs[0], 'tc001'))

@@ -1,17 +1,19 @@
 from __future__ import print_function, division, absolute_import
 
-import re
-import os
-import sys
 import argparse
 import contextlib
-from os.path import abspath, basename, expanduser, isdir, join
+import os
+import re
+import sys
 import textwrap
+from os.path import abspath, basename, expanduser, isdir, join
 
-import conda.config as config
 from conda import console
-from conda.utils import memoize
+from conda.config import (envs_dirs, default_prefix, platform, update_dependencies,
+                          channel_priority, show_channel_urls, always_yes, root_env_name,
+                          root_dir, root_writable, disallow)
 from conda.resolve import MatchSpec
+from conda.utils import memoize
 
 
 class Completer(object):
@@ -50,7 +52,7 @@ class Completer(object):
 class Environments(Completer):
     def _get_items(self):
         res = []
-        for dir in config.envs_dirs:
+        for dir in envs_dirs:
             try:
                 res.extend(os.listdir(dir))
             except OSError:
@@ -105,15 +107,14 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-n', "--name",
         action="store",
-        help="Name of environment (in %s)." % os.pathsep.join(config.envs_dirs),
+        help="Name of environment (in %s)." % os.pathsep.join(envs_dirs),
         metavar="ENVIRONMENT",
         choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
         action="store",
-        help="Full path to environment prefix (default: %s)." %
-             config.default_prefix,
+        help="Full path to environment prefix (default: %s)." % default_prefix,
         metavar='PATH',
     )
 
@@ -203,7 +204,7 @@ def add_parser_pscheck(p):
         "--force-pscheck",
         action="store_true",
         help=("No-op. Included for backwards compatibility (deprecated)."
-              if config.platform == 'win' else argparse.SUPPRESS)
+              if platform == 'win' else argparse.SUPPRESS)
     )
 
 def add_parser_install(p):
@@ -252,21 +253,21 @@ def add_parser_install(p):
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
-        default=config.update_dependencies,
+        default=update_dependencies,
         help="Update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",
         action="store_false",
         dest="update_deps",
-        default=not config.update_dependencies,
+        default=not update_dependencies,
         help="Don't update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=config.channel_priority,
+        default=channel_priority,
         help="Channel priority takes precedence over packaage version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
@@ -274,7 +275,7 @@ def add_parser_install(p):
         "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=not config.channel_priority,
+        default=not channel_priority,
         help="Package version takes precedence over channel priority (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
@@ -331,7 +332,7 @@ def add_parser_show_channel_urls(p):
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=config.show_channel_urls,
+        default=show_channel_urls,
         help="Show channel urls (default: %(default)s).",
     )
     p.add_argument(
@@ -394,7 +395,7 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
         print("Dry run: exiting")
         sys.exit(0)
-    if args.yes or config.always_yes:
+    if args.yes or always_yes:
         return True
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),
@@ -418,11 +419,10 @@ def ensure_name_or_prefix(args, command):
                        error_type="ValueError")
 
 def find_prefix_name(name):
-    if name == config.root_env_name:
-        return config.root_dir
+    if name == root_env_name:
+        return root_dir
     # always search cwd in addition to envs dirs (for relative path access)
-    envs_dirs = config.envs_dirs + [os.getcwd(), ]
-    for envs_dir in envs_dirs:
+    for envs_dir in envs_dirs + [os.getcwd(), ]:
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
@@ -435,29 +435,29 @@ def get_prefix(args, search=True):
                            args.name,
                            json=getattr(args, 'json', False),
                            error_type="ValueError")
-        if args.name == config.root_env_name:
-            return config.root_dir
+        if args.name == root_env_name:
+            return root_dir
         if search:
             prefix = find_prefix_name(args.name)
             if prefix:
                 return prefix
-        return join(config.envs_dirs[0], args.name)
+        return join(envs_dirs[0], args.name)
 
     if args.prefix:
         return abspath(expanduser(args.prefix))
 
-    return config.default_prefix
+    return default_prefix
 
 def inroot_notwritable(prefix):
     """
     return True if the prefix is under root and root is not writeable
     """
-    return (abspath(prefix).startswith(config.root_dir) and
-            not config.root_writable)
+    return (abspath(prefix).startswith(root_dir) and
+            not root_writable)
 
 def name_prefix(prefix):
-    if abspath(prefix) == config.root_dir:
-        return config.root_env_name
+    if abspath(prefix) == root_dir:
+        return root_env_name
     return basename(prefix)
 
 def check_write(command, prefix, json=False):
@@ -475,7 +475,7 @@ def arg2spec(arg, json=False, update=False):
         error_and_exit('invalid package specification: %s' % arg,
                        json=json, error_type="ValueError")
     name = spec.name
-    if name in config.disallow:
+    if name in disallow:
         error_and_exit("specification '%s' is disallowed" % name,
                        json=json,
                        error_type="ValueError")
@@ -652,15 +652,15 @@ def handle_envs_list(acc, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == config.default_prefix else ' '
-        name = (config.root_env_name if prefix == config.root_dir else
+        default = '*' if prefix == default_prefix else ' '
+        name = (root_env_name if prefix == root_dir else
                 basename(prefix))
         if output:
             print(fmt % (name, default, prefix))
 
     for prefix in misc.list_prefixes():
         disp_env(prefix)
-        if prefix != config.root_dir:
+        if prefix != root_dir:
             acc.append(prefix)
 
     if output:

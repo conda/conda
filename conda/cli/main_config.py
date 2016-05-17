@@ -8,16 +8,17 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 
-import conda.config as config
 from conda.cli import common
 from conda.compat import string_types
+from conda.config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
+                          user_rc_path, rc_other)
 from conda.utils import yaml_load, yaml_dump
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
 config command.  Writes to the user .condarc file (%s) by default.
 
-""" % config.user_rc_path
+""" % user_rc_path
 
 # Note, the extra whitespace in the list keys is on purpose. It's so the
 # formatting from help2man is still valid YAML (otherwise it line wraps the
@@ -93,20 +94,20 @@ yaml parser (this will remove any structure or comments from the existing
 
 class SingleValueKey(common.Completer):
     def _get_items(self):
-        return config.rc_bool_keys + \
-               config.rc_string_keys + \
+        return rc_bool_keys + \
+               rc_string_keys + \
                ['yes', 'no', 'on', 'off', 'true', 'false']
 
 class ListKey(common.Completer):
     def _get_items(self):
-        return config.rc_list_keys
+        return rc_list_keys
 
 class BoolOrListKey(common.Completer):
     def __contains__(self, other):
         return other in self.get_items()
 
     def _get_items(self):
-        return config.rc_list_keys + config.rc_bool_keys
+        return rc_list_keys + rc_bool_keys
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -123,16 +124,16 @@ def configure_parser(sub_parsers):
         "--system",
         action="store_true",
         help="""Write to the system .condarc file ({system}). Otherwise writes to the user
-        config file ({user}).""".format(system=config.sys_rc_path,
-                                        user=config.user_rc_path),
+        config file ({user}).""".format(system=sys_rc_path,
+                                        user=user_rc_path),
         )
     location.add_argument(
         "--file",
         action="store",
         help="""Write to the given file. Otherwise writes to the user config file ({user})
 or the file path given by the 'CONDARC' environment variable, if it is set
-(default: %(default)s).""".format(user=config.user_rc_path),
-        default=os.environ.get('CONDARC', config.user_rc_path)
+(default: %(default)s).""".format(user=user_rc_path),
+        default=os.environ.get('CONDARC', user_rc_path)
         )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
@@ -210,11 +211,11 @@ def execute_config(args, parser):
     json_get = {}
 
     if args.system:
-        rc_path = config.sys_rc_path
+        rc_path = sys_rc_path
     elif args.file:
         rc_path = args.file
     else:
-        rc_path = config.user_rc_path
+        rc_path = user_rc_path
 
     # Create the file if it doesn't exist
     if not os.path.exists(rc_path):
@@ -241,8 +242,8 @@ channels:
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in config.rc_list_keys + config.rc_bool_keys + config.rc_string_keys:
-                if key not in config.rc_other:
+            if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
+                if key not in rc_other:
                     message = "unknown key %s" % key
                     if not args.json:
                         print(message, file=sys.stderr)
@@ -268,14 +269,14 @@ channels:
 
     # Add
     for key, item in args.add:
-        if key not in config.rc_list_keys:
+        if key not in rc_list_keys:
             common.error_and_exit("key must be one of %s, not %r" %
-                                  (', '.join(config.rc_list_keys), key), json=args.json,
+                                  (', '.join(rc_list_keys), key), json=args.json,
                                   error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
             bad = rc_config[key].__class__.__name__
             raise CouldntParse("key %r should be a list, not %s." % (key, bad))
-        if key == 'default_channels' and rc_path != config.sys_rc_path:
+        if key == 'default_channels' and rc_path != sys_rc_path:
             msg = "'default_channels' is only configurable for system installs"
             raise NotImplementedError(msg)
         if item in rc_config.get(key, []):
@@ -289,7 +290,7 @@ channels:
         rc_config.setdefault(key, []).insert(0, item)
 
     # Set
-    set_bools, set_strings = set(config.rc_bool_keys), set(config.rc_string_keys)
+    set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
     for key, item in args.set:
         # Check key and value
         yamlitem = yaml_load(item)
