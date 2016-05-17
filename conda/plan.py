@@ -10,24 +10,21 @@ NOTE:
 
 from __future__ import print_function, division, absolute_import
 
-import sys
 import os
-from logging import getLogger
+import sys
 from collections import defaultdict
+from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
 from conda import config
 from conda import install
+from conda import instructions as inst
+from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
-from conda import instructions as inst
-from conda.exceptions import CondaException
 
 # For backwards compatibility
-from conda.instructions import (FETCH, EXTRACT, UNLINK, LINK, RM_EXTRACTED,  # noqa
-                                RM_FETCHED, PREFIX, PRINT, PROGRESS,
-                                SYMLINK_CONDA)
 
 log = getLogger(__name__)
 
