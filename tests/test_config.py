@@ -322,7 +322,7 @@ create_default_packages:
 changeps1: false
 
 # Here is a comment
-always_yes: yes
+always_yes: 'yes'
 """
 
         stdout, stderr = run_conda_command('config', '--file', test_condarc,
