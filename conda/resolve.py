@@ -1,16 +1,16 @@
 from __future__ import print_function, division, absolute_import
 
 import logging
+import re
 from collections import defaultdict
 from itertools import chain
-import re
 
-from conda.compat import iterkeys, itervalues, iteritems
-from conda.logic import minimal_unsatisfiable_subset, Clauses
-from conda.version import VersionSpec, normalized_version
-from conda.console import setup_handlers
 from conda import config
+from conda.compat import iterkeys, itervalues, iteritems
+from conda.console import setup_handlers
+from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.toposort import toposort
+from conda.version import VersionSpec, normalized_version
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
