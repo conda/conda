@@ -3,20 +3,20 @@
 #     new code.
 from __future__ import print_function, division, absolute_import
 
+import hashlib
+import json
 import os
 import re
-import sys
-import json
 import shutil
-import hashlib
+import sys
 import tarfile
 import tempfile
 from os.path import basename, isfile, islink, join
 
-import conda.config as config
 import conda.install as install
-from conda.misc import untracked
 from conda.compat import PY3
+from conda.config import platform, arch_name
+from conda.misc import untracked
 
 
 def get_installed_version(prefix, name):
@@ -31,8 +31,8 @@ def create_info(name, version, build_number, requires_py):
     d = dict(
         name=name,
         version=version,
-        platform=config.platform,
-        arch=config.arch_name,
+        platform=platform,
+        arch=arch_name,
         build_number=int(build_number),
         build=str(build_number),
         depends=[],

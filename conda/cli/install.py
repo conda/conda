@@ -16,7 +16,7 @@ from difflib import get_close_matches
 import logging
 import errno
 
-import conda.config as config
+from conda.config import create_default_packages, force_32bit
 import conda.plan as plan
 import conda.misc as misc
 from conda.api import get_index
@@ -50,7 +50,7 @@ def check_prefix(prefix, json=False):
     error = None
     if name.startswith('.'):
         error = "environment name cannot start with '.': %s" % name
-    if name == config.root_env_name:
+    if name == root_env_name:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
         error = "prefix already exists: %s" % prefix
@@ -130,7 +130,7 @@ def install(args, parser, command='install'):
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix, json=args.json)
-    if config.force_32bit and plan.is_root_prefix(prefix):
+    if force_32bit and plan.is_root_prefix(prefix):
         common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
 
     if isupdate and not (args.file or args.all or args.packages):
@@ -154,9 +154,9 @@ def install(args, parser, command='install'):
                                       error_type="ValueError")
 
     if newenv and not args.no_default_packages:
-        default_packages = config.create_default_packages[:]
+        default_packages = create_default_packages[:]
         # Override defaults if they are specified at the command line
-        for default_pkg in config.create_default_packages:
+        for default_pkg in create_default_packages:
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
                 default_packages.remove(default_pkg)
         args.packages.extend(default_packages)

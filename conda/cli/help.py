@@ -1,12 +1,12 @@
 from os.path import join
 
-import conda.config as config
 from conda.cli.common import name_prefix, error_and_exit
+from conda.config import envs_dirs, root_dir
 
 
 def read_message(fn):
     res = []
-    for envs_dir in config.envs_dirs:
+    for envs_dir in envs_dirs:
         path = join(envs_dir, '.conda-help', fn)
         try:
             with open(path) as fi:
@@ -34,7 +34,7 @@ Missing write permissions in: ${root_dir}
 #
 # $ conda create -n my_${name} --clone=${prefix}
 """
-    msg = msg.replace('${root_dir}', config.root_dir)
+    msg = msg.replace('${root_dir}', root_dir)
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)

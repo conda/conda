@@ -111,8 +111,8 @@ def get_user_site():
 
 
 def pretty_package(pkg):
-    import conda.config as config
     from conda.utils import human_bytes
+    from conda.config import canonical_channel_name
 
     d = OrderedDict([
         ('file name', pkg.fn),
@@ -120,7 +120,7 @@ def pretty_package(pkg):
         ('version', pkg.version),
         ('build number', pkg.build_number),
         ('build string', pkg.build),
-        ('channel', config.canonical_channel_name(pkg.channel)),
+        ('channel', canonical_channel_name(pkg.channel)),
         ('size', human_bytes(pkg.info['size'])),
         ])
     rest = pkg.info
@@ -145,16 +145,19 @@ def execute(args, parser):
     from os.path import dirname
 
     import conda
-    import conda.config as config
+    from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
+                              root_writable, envs_dirs, default_prefix, rc_path,
+                              user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
+                              platform)
     from conda.resolve import Resolve
     from conda.cli.main_init import is_initialized
     from conda.api import get_index
 
     if args.root:
         if args.json:
-            common.stdout_json({'root_prefix': config.root_dir})
+            common.stdout_json({'root_prefix': root_dir})
         else:
-            print(config.root_dir)
+            print(root_dir)
         return
 
     if args.packages:
@@ -196,23 +199,23 @@ def execute(args, parser):
     #   in a future release
     # for now, just ordering the channels for display in a semi-plausible way
     d = defaultdict(list)
-    any(d[v[1]].append(k) for k, v in iteritems(config.get_channel_urls()))
+    any(d[v[1]].append(k) for k, v in iteritems(get_channel_urls()))
     channels = list(chain.from_iterable(d[q] for q in sorted(d, reverse=True)))
 
     info_dict = dict(
-        platform=config.subdir,
+        platform=subdir,
         conda_version=conda.__version__,
         conda_build_version=conda_build_version,
-        root_prefix=config.root_dir,
-        root_writable=config.root_writable,
-        pkgs_dirs=config.pkgs_dirs,
-        envs_dirs=config.envs_dirs,
-        default_prefix=config.default_prefix,
+        root_prefix=root_dir,
+        root_writable=root_writable,
+        pkgs_dirs=pkgs_dirs,
+        envs_dirs=envs_dirs,
+        default_prefix=default_prefix,
         channels=channels,
-        rc_path=config.rc_path,
-        user_rc_path=config.user_rc_path,
-        sys_rc_path=config.sys_rc_path,
-        is_foreign=bool(config.foreign),
+        rc_path=rc_path,
+        user_rc_path=user_rc_path,
+        sys_rc_path=sys_rc_path,
+        is_foreign=bool(foreign),
         envs=[],
         python_version='.'.join(map(str, sys.version_info)),
         requests_version=requests_version,
@@ -225,7 +228,7 @@ def execute(args, parser):
             print(json.dumps({"channels": info_dict["channels"]}))
         return 0
     else:
-        info_dict['channels'] = [config.hide_binstar_tokens(c) for c in
+        info_dict['channels'] = [hide_binstar_tokens(c) for c in
                                  info_dict['channels']]
     if args.all or args.json:
         for option in options:
@@ -255,7 +258,7 @@ Current conda install:
         if not is_initialized():
             print("""\
 # NOTE:
-#     root directory '%s' is uninitialized""" % config.root_dir)
+#     root directory '%s' is uninitialized""" % root_dir)
 
     if args.envs:
         common.handle_envs_list(info_dict['envs'], not args.json)
@@ -281,9 +284,9 @@ Current conda install:
 
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
                  'CIO_TEST', 'CONDA_ENVS_PATH']
-        if config.platform == 'linux':
+        if platform == 'linux':
             evars.append('LD_LIBRARY_PATH')
-        elif config.platform == 'osx':
+        elif platform == 'osx':
             evars.append('DYLD_LIBRARY_PATH')
         for ev in sorted(evars):
             print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
