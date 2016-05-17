@@ -1,10 +1,10 @@
 from logging import getLogger
 
-from conda import config
 from conda import install
-from conda.utils import find_parent_shell
+from conda.config import root_dir
 from conda.exceptions import InvalidInstruction
 from conda.fetch import fetch_pkg
+from conda.utils import find_parent_shell
 
 
 log = getLogger(__name__)
@@ -115,7 +115,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         from conda.console import setup_verbose_handlers
         setup_verbose_handlers()
 
-    state = {'i': None, 'prefix': config.root_dir, 'index': index}
+    state = {'i': None, 'prefix': root_dir, 'index': index}
 
     for instruction, arg in plan:
 

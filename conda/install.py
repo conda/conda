@@ -32,6 +32,7 @@ import functools
 import json
 import logging
 import os
+import re
 import shlex
 import shutil
 import stat
@@ -40,13 +41,12 @@ import sys
 import tarfile
 import time
 import traceback
-import re
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
-from conda.config import url_channel
-from conda.utils import url_path
+
 from conda.compat import iteritems, iterkeys
-from conda import config
+from conda.config import url_channel, pkgs_dirs, root_dir
+from conda.utils import url_path
 
 try:
     from conda.lock import Locked
@@ -645,7 +645,7 @@ def package_cache():
         return package_cache_
     # Stops recursion
     package_cache_['@'] = None
-    for pdir in config.pkgs_dirs:
+    for pdir in pkgs_dirs:
         try:
             data = open(join(pdir, 'urls.txt')).read()
             for url in data.split()[::-1]:
@@ -681,7 +681,7 @@ def find_new_location(dist):
     # Look for a location with no conflicts
     # On the second pass, just pick the first location
     for p in range(2):
-        for pkg_dir in config.pkgs_dirs:
+        for pkg_dir in pkgs_dirs:
             pkg_path = join(pkg_dir, fname)
             prefix = fname_table_.get(pkg_path)
             if p or prefix is None:
@@ -871,8 +871,7 @@ def _get_trash_dir(pkg_dir):
 
 
 def delete_trash(prefix=None):
-    from conda import config
-    for pkg_dir in config.pkgs_dirs:
+    for pkg_dir in pkgs_dirs:
         trash_dir = _get_trash_dir(pkg_dir)
         try:
             log.debug("Trying to delete the trash dir %s" % trash_dir)
@@ -899,9 +898,7 @@ def move_path_to_trash(path):
     # Try deleting the trash every time we use it.
     delete_trash()
 
-    from conda import config
-
-    for pkg_dir in config.pkgs_dirs:
+    for pkg_dir in pkgs_dirs:
         import tempfile
         trash_dir = _get_trash_dir(pkg_dir)
 
@@ -912,7 +909,7 @@ def move_path_to_trash(path):
                 continue
 
         trash_dir = tempfile.mkdtemp(dir=trash_dir)
-        trash_dir = join(trash_dir, relpath(os.path.dirname(path), config.root_dir))
+        trash_dir = join(trash_dir, relpath(os.path.dirname(path), root_dir))
 
         try:
             os.makedirs(trash_dir)

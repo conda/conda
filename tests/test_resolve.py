@@ -873,7 +873,8 @@ def test_channel_priority():
     index2[fn2] = index2[fn1].copy()
     r2 = Resolve(index2)
     rec = r2.index[fn2]
-    config.channel_priority = True
+    import conda.resolve
+    conda.resolve.channel_priority = True
     rec['priority'] = 0
     # Should select the "other", older package because it
     # has a lower channel priority number
@@ -884,7 +885,7 @@ def test_channel_priority():
     installed2 = r2.install(spec)
     # Should also select the newer package because we have
     # turned off channel priority altogether
-    config.channel_priority = False
+    conda.resolve.channel_priority = False
     rec['priority'] = 0
     installed3 = r2.install(spec)
     assert installed1 != installed2
