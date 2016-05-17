@@ -70,6 +70,8 @@ def binpath_from_arg(arg, shelldict):
             prefix.rstrip("\\"),
             os.path.join(prefix, 'Library', 'bin'),
             os.path.join(prefix, 'Scripts'),
+            os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
+            os.path.join(prefix, 'Library', 'usr', 'bin'),
                 ]
     else:
         paths = [
