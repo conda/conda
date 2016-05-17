@@ -86,7 +86,7 @@ class FileTests(unittest.TestCase):
             self.assertEqual(data, '#!/usr/local/bin/python\n'
                                    'echo "Hello"\n')
 
-    @pytest.mark.skipif(on_win)
+    @pytest.mark.skipif(on_win, reason="test is invalid on windows")
     def test_long_default_text(self):
         with open(self.tmpfname, 'w') as fo:
             fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n'
