@@ -111,8 +111,9 @@ environment. The default is ``True``.
 Add PIP as Python Dependency (add_pip_as_python_depedency)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Add pip and setuptools as dependencies of python. This ensures pip and setuptools
-will always be installed any time python is installed. The default is ``True``.
+Add pip, wheel and setuptools as dependencies of python. This ensures pip, wheel
+and setuptools will always be installed any time python is installed.
+The default is ``True``.
 
 .. code-block:: yaml
 
