@@ -18,13 +18,13 @@ environment:
       PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "32"
 
-    - PYTHON: "C:\\Python34_64"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "64"
+    # - PYTHON: "C:\\Python34_64"
+    #   PYTHON_VERSION: "3.4"
+    #   PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python35_32"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "32"
+    # - PYTHON: "C:\\Python35_32"
+    #   PYTHON_VERSION: "3.5"
+    #   PYTHON_ARCH: "32"
 
     - PYTHON: "C:\\Python35_64"
       PYTHON_VERSION: "3.5"
