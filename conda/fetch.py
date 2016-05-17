@@ -20,8 +20,9 @@ from os.path import basename, dirname, isdir, join
 
 import requests
 
-from conda import config
 from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
+from conda.config import pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens, \
+    hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency, ssl_verify, rc
 from conda.connection import CondaSession, unparse_url, RETRIES
 from conda.install import add_cached_package, find_new_location
 from conda.lock import Locked
@@ -37,7 +38,7 @@ fail_unknown_host = False
 
 
 def create_cache_dir():
-    cache_dir = join(config.pkgs_dirs[0], 'cache')
+    cache_dir = join(pkgs_dirs[0], 'cache')
     try:
         os.makedirs(cache_dir)
     except OSError:
@@ -70,7 +71,7 @@ class dotlog_on_return(object):
 
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    if not config.ssl_verify:
+    if not ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
         except ImportError:
@@ -107,7 +108,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except ValueError as e:
         raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
-                           (config.remove_binstar_tokens(url), e))
+                           (remove_binstar_tokens(url), e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
@@ -117,32 +118,32 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                                   use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
-            if url.startswith(config.DEFAULT_CHANNEL_ALIAS):
-                user = config.remove_binstar_tokens(url) \
-                             .split(config.DEFAULT_CHANNEL_ALIAS)[1] \
+            if url.startswith(DEFAULT_CHANNEL_ALIAS):
+                user = remove_binstar_tokens(url) \
+                             .split(DEFAULT_CHANNEL_ALIAS)[1] \
                              .split("/")[0]
                 msg = 'Could not find anaconda.org user %s' % user
             else:
                 if url.endswith('/noarch/'):  # noarch directory might not exist
                     return None
-                msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+                msg = 'Could not find URL: %s' % remove_binstar_tokens(url)
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
         elif (e.response.status_code == 401 and
-                config.rc.get('channel_alias', config.DEFAULT_CHANNEL_ALIAS) in url):
+                rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS) in url):
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to anaconda.org again with "
                    "'anaconda login' to access private packages(%s, %s)" %
-                   (config.hide_binstar_tokens(url), e))
+                   (hide_binstar_tokens(url), e))
             stderrlog.info(msg)
-            return fetch_repodata(config.remove_binstar_tokens(url),
+            return fetch_repodata(remove_binstar_tokens(url),
                                   cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
 
         else:
-            msg = "HTTPError: %s: %s\n" % (e, config.remove_binstar_tokens(url))
+            msg = "HTTPError: %s: %s\n" % (e, remove_binstar_tokens(url))
 
         log.debug(msg)
         raise RuntimeError(msg)
@@ -163,13 +164,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             return fetch_repodata(url, cache_dir=cache_dir,
                                   use_cache=use_cache, session=session)
 
-        msg = "Connection error: %s: %s\n" % (e, config.remove_binstar_tokens(url))
-        stderrlog.info('Could not connect to %s\n' % config.remove_binstar_tokens(url))
+        msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
+        stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
         log.debug(msg)
         if fail_unknown_host:
             raise RuntimeError(msg)
 
-    cache['_url'] = config.remove_binstar_tokens(url)
+    cache['_url'] = remove_binstar_tokens(url)
     try:
         with open(cache_path, 'w') as fo:
             json.dump(cache, fo, indent=2, sort_keys=True)
@@ -188,7 +189,7 @@ def handle_proxy_407(url, session):
     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
     if scheme not in session.proxies:
         sys.exit("""Could not find a proxy for %r. See
-http://conda.pydata.org/docs/config.html#configure-conda-for-use-behind-a-proxy-server
+http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
 for more information on how to configure proxies.""" % scheme)
     username, passwd = get_proxy_username_and_pass(scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
@@ -208,7 +209,7 @@ def get_proxy_username_and_pass(scheme):
 
 def add_unknown(index, priorities):
     maxpri = max(itervalues(priorities)) + 1
-    for pkgs_dir in config.pkgs_dirs:
+    for pkgs_dir in pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
         for dn in os.listdir(pkgs_dir):
@@ -242,13 +243,13 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     if not isinstance(channel_urls, dict):
         channel_urls = {url: pri+1 for pri, url in enumerate(channel_urls)}
     for url in iterkeys(channel_urls):
-        if config.allowed_channels and url not in config.allowed_channels:
+        if allowed_channels and url not in allowed_channels:
             sys.exit("""
 Error: URL '%s' not in allowed channels.
 
 Allowed channels are:
   - %s
-""" % (url, '\n  - '.join(config.allowed_channels)))
+""" % (url, '\n  - '.join(allowed_channels)))
 
     try:
         import concurrent.futures
@@ -286,7 +287,7 @@ Allowed channels are:
     stdoutlog.info('\n')
     if unknown:
         add_unknown(index, channel_urls)
-    if config.add_pip_as_python_dependency:
+    if add_pip_as_python_dependency:
         add_pip_dependency(index)
     return index
 
@@ -330,7 +331,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
     dst_dir = dirname(dst_path)
     session = session or CondaSession()
 
-    if not config.ssl_verify:
+    if not ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
         except ImportError:
