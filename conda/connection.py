@@ -6,24 +6,24 @@
 
 from __future__ import print_function, division, absolute_import
 
-from logging import getLogger
-import re
+import base64
+import cgi
+import email
+import ftplib
 import mimetypes
 import os
-import email
-import base64
-import ftplib
-import cgi
-from io import BytesIO
-import tempfile
 import platform
-
-import conda
-import conda.config as config
-from conda.compat import urlparse, StringIO
-from conda.utils import gnu_get_libc_version
+import re
+import tempfile
+from io import BytesIO
+from logging import getLogger
 
 import requests
+
+import conda
+from conda.compat import urlparse, StringIO
+from conda.config import platform as config_platform, ssl_verify, get_proxy_servers
+from conda.utils import gnu_get_libc_version
 
 RETRIES = 3
 
@@ -37,10 +37,10 @@ _user_agent = ("conda/{conda_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
-if config.platform == 'linux':
+if config_platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
-elif config.platform == 'osx':
+elif config_platform == 'osx':
     dist = 'OSX'
     ver = platform.mac_ver()[0]
 else:
@@ -88,7 +88,7 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        proxies = config.get_proxy_servers()
+        proxies = get_proxy_servers()
         if proxies:
             self.proxies = proxies
 
@@ -109,7 +109,7 @@ class CondaSession(requests.Session):
 
         self.headers['User-Agent'] = user_agent
 
-        self.verify = config.ssl_verify
+        self.verify = ssl_verify
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
