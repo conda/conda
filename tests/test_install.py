@@ -8,11 +8,12 @@ from sys import platform
 from os.path import join, basename
 from os import makedirs, walk
 
+import pytest
 
 from conda import install, config
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, duplicates_to_remove,
-                           delete_trash, move_path_to_trash, _get_trash_dir)
+                           delete_trash, move_path_to_trash, _get_trash_dir, on_win)
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
@@ -85,6 +86,7 @@ class FileTests(unittest.TestCase):
             self.assertEqual(data, '#!/usr/local/bin/python\n'
                                    'echo "Hello"\n')
 
+    @pytest.mark.skipif(on_win)
     def test_long_default_text(self):
         with open(self.tmpfname, 'w') as fo:
             fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n'
