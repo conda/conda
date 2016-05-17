@@ -7,9 +7,9 @@
 from __future__ import print_function, division, absolute_import
 
 from conda.cli import common
+from conda.config import subdir, canonical_channel_name
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound, Package
-from conda import config
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -157,7 +157,7 @@ def execute_search(args, parser):
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
-    if platform and platform != config.subdir:
+    if platform and platform != subdir:
         args.unknown = False
     common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args, dashc=False)
@@ -245,7 +245,7 @@ def execute_search(args, parser):
                 else:
                     json.append(dist)
                 continue
-            if platform and platform != config.subdir:
+            if platform and platform != subdir:
                 inst = ' '
             elif dist in linked:
                 inst = '*'
@@ -259,7 +259,7 @@ def execute_search(args, parser):
                     disp_name, inst,
                     pkg.version,
                     pkg.build,
-                    config.canonical_channel_name(pkg.channel),
+                    canonical_channel_name(pkg.channel),
                     common.disp_features(r.features(pkg.fn)),
                     ))
                 disp_name = ''
@@ -273,7 +273,7 @@ def execute_search(args, parser):
                     'version': pkg.version,
                     'build': pkg.build,
                     'build_number': pkg.build_number,
-                    'channel': config.canonical_channel_name(pkg.channel),
+                    'channel': canonical_channel_name(pkg.channel),
                     'full_channel': pkg.channel,
                     'features': list(r.features(pkg.fn)),
                     'license': pkg.info.get('license'),

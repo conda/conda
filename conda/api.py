@@ -2,9 +2,9 @@ from __future__ import print_function, division, absolute_import
 
 from operator import itemgetter
 
-from conda import config
 from conda import install
 from conda.compat import iteritems, itervalues
+from conda.config import normalize_urls, get_channel_urls
 from conda.fetch import fetch_index
 from conda.resolve import Resolve
 
@@ -21,10 +21,10 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     """
     if use_local:
         channel_urls = ['local'] + list(channel_urls)
-    channel_urls = config.normalize_urls(channel_urls, platform, offline)
+    channel_urls = normalize_urls(channel_urls, platform, offline)
     if prepend:
         pri0 = max(itervalues(channel_urls), key=itemgetter(1))[1] if channel_urls else 0
-        for url, rec in iteritems(config.get_channel_urls(platform, offline)):
+        for url, rec in iteritems(get_channel_urls(platform, offline)):
             channel_urls[url] = (rec[0], rec[1] + pri0)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:

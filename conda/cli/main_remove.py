@@ -6,13 +6,13 @@
 
 from __future__ import print_function, division, absolute_import
 
-from os.path import join
-
-from argparse import RawDescriptionHelpFormatter
 import errno
 import logging
+from argparse import RawDescriptionHelpFormatter
+from os.path import join
 
 from conda.cli import common
+from conda.config import default_prefix
 from conda.console import json_progress_bars
 
 
@@ -98,7 +98,6 @@ def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
     from conda.install import rm_rf, linked
-    from conda import config
 
     if not (args.all or args.package_names):
         common.error_and_exit('no package names supplied,\n'
@@ -107,7 +106,7 @@ def execute(args, parser):
                               error_type="ValueError")
 
     prefix = common.get_prefix(args)
-    if args.all and prefix == config.default_prefix:
+    if args.all and prefix == default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         common.error_and_exit(msg)
     common.check_write('remove', prefix, json=args.json)
