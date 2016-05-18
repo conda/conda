@@ -146,7 +146,7 @@ if on_win:
         else:
             # This one is for bash/cygwin/msys
             with open(dst, "w") as f:
-                f.write("#!/bin/sh \n")
+                f.write("#!/usr/bin/env bash \n")
                 if src.endswith("conda"):
                     f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
                 else:

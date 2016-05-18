@@ -371,9 +371,9 @@ if sys.platform == "win32":
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=cygwin_path_to_win,
             path_to=win_path_to_cygwin
-                      ),
+        ),
         # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
-        #    entry instead.  The only major difference is that it handle's cywin's /cygdrive
+        #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
         #    filesystem root.
         "bash.exe": dict(
             unix_shell_base,
@@ -381,7 +381,7 @@ if sys.platform == "win32":
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=unix_path_to_win,
             path_to=win_path_to_unix
-                        ),
+        ),
     }
 
 else:
