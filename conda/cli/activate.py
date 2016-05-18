@@ -71,10 +71,10 @@ def binpath_from_arg(arg, shelldict):
     if sys.platform == 'win32':
         paths = [
             prefix.rstrip("\\"),
-            os.path.join(prefix, 'Library', 'bin'),
-            os.path.join(prefix, 'Scripts'),
             os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
             os.path.join(prefix, 'Library', 'usr', 'bin'),
+            os.path.join(prefix, 'Library', 'bin'),
+            os.path.join(prefix, 'Scripts'),
                 ]
     else:
         paths = [
