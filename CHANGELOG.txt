@@ -1,13 +1,15 @@
-2016-XX-XX   4.1.0:
+2016-05-XX   4.1.0:
 -------------------
-  * clean up activate and deactivate scripts, moving back to conda repo, #1727, #2265, #2291, #2473
+  * clean up activate and deactivate scripts, moving back to conda repo, #1727,
+    #2265, #2291, #2473, #2501
   * replace pyyaml with ruamel_yaml, #2283, #2321
   * better handling of channel collisions, #2323, #2369 #2402, #2428
   * improve listing of pip packages with conda list, #2275
   * re-license progressbar under BSD 3-clause, #2334
   * reduce the amount of extraneous info in hints, #2261
   * don't show channel urls by default in conda list, #2282
-  * package resolution and solver tweaks, #2443
+  * package resolution and solver tweaks, #2443, #2475, #2480
+  * improved version & build matching, #2442, #2488
   * print progress to the terminal rather than stdout, #2281
   * verify version specs given on command line are valid, #2246
   * fix for try_write function in case of odd permissions, #2301
@@ -20,6 +22,8 @@
   * workaround for boto bug, #2380
   * fix conda info --json, #2445
   * truncate shebangs over 127 characters using /usr/bin/env, #2479
+  * extract packages to a temporary directory then rename, #2425, #2483
+  * fix help in install, #2460
 
 
 2016-05-11   4.0.6:
