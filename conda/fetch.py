@@ -305,7 +305,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = info['channel'] + '/' + fn
     log.debug("url=%r" % url)
     if dst_dir is None:
-        dst_dir = dirname(find_new_location(fn[:-8])[0])
+        dst_dir = find_new_location(fn[:-8])[0]
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
