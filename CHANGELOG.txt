@@ -1,7 +1,7 @@
 2016-05-XX   4.1.0:
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727,
-    #2265, #2291, #2473, #2501
+    #2265, #2291, #2473, #2501, #2484
   * replace pyyaml with ruamel_yaml, #2283, #2321
   * better handling of channel collisions, #2323, #2369 #2402, #2428
   * improve listing of pip packages with conda list, #2275
@@ -24,6 +24,8 @@
   * truncate shebangs over 127 characters using /usr/bin/env, #2479
   * extract packages to a temporary directory then rename, #2425, #2483
   * fix help in install, #2460
+  * fix re-install bug when sha1 differs, #2507
+  * fix a bug with file deletion, #2499
 
 
 2016-05-11   4.0.6:
