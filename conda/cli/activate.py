@@ -48,7 +48,10 @@ activate' from PATH. """)
 
 
 def prefix_from_arg(arg, shelldict):
-    if shelldict['sep'] in arg:
+    'Returns a platform-native path'
+    # MSYS2 converts Unix paths to Windows paths with unix seps
+    # so we must check for the drive identifier too.
+    if shelldict['sep'] in arg and not re.match('[a-zA-Z]:', arg):
         # strip is removing " marks, not \ - look carefully
         native_path = shelldict['path_from'](arg)
         if isdir(abspath(native_path.strip("\""))):
@@ -56,10 +59,10 @@ def prefix_from_arg(arg, shelldict):
         else:
             raise ValueError('could not find environment: %s' % native_path)
     else:
-        prefix = find_prefix_name(arg)
+        prefix = find_prefix_name(arg.replace('/', os.path.sep))
         if prefix is None:
             raise ValueError('could not find environment: %s' % arg)
-    return shelldict['path_to'](prefix)
+    return prefix
 
 
 def binpath_from_arg(arg, shelldict):
@@ -68,10 +71,10 @@ def binpath_from_arg(arg, shelldict):
     if sys.platform == 'win32':
         paths = [
             prefix.rstrip("\\"),
-            os.path.join(prefix, 'Library', 'bin'),
-            os.path.join(prefix, 'Scripts'),
             os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
             os.path.join(prefix, 'Library', 'usr', 'bin'),
+            os.path.join(prefix, 'Library', 'bin'),
+            os.path.join(prefix, 'Scripts'),
                 ]
     else:
         paths = [
