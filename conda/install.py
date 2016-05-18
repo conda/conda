@@ -685,7 +685,7 @@ def find_new_location(dist):
             pkg_path = join(pkg_dir, fname)
             prefix = fname_table_.get(pkg_path)
             if p or prefix is None:
-                return pkg_path, prefix + dname if p else None
+                return pkg_dir, prefix + dname if p else None
 
 
 # ------- package cache ----- fetched

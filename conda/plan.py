@@ -283,6 +283,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
         if not extracted_in and not fetched_in:
             # If there is a cache conflict, clean it up
             fetched_in, conflict = install.find_new_location(dist)
+            fetched_in = join(fetched_in, install._dist2filename(dist))
             if conflict is not None:
                 actions[inst.RM_FETCHED].append(conflict)
             actions[inst.FETCH].append(dist)
