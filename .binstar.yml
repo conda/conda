@@ -37,7 +37,7 @@ before_script:
 ## Put your main computations here!
 script:
   - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || conda install psutil
-  - echo 4.0.6 > conda/.version
+  # - echo 4.1.0rc3 > conda/.version
   - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || conda build conda.recipe --python $PYTHON_VERSION
   - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || conda build conda.recipe --python %PYTHON_VERSION%
 
