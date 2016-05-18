@@ -50,7 +50,7 @@ def main():
             sys.exit("Error: did not expect more than one argument")
 
         paths = [binpath]
-        sys.stderr.write("prepending %s to PATH\n" % binpath)
+        sys.stdout.write("prepending %s to PATH\n" % binpath)
 
     elif sys.argv[1] == '..deactivate':
         if len(sys.argv) != 2:
@@ -62,7 +62,7 @@ def main():
             print(os.environ['PATH'])
             raise
         paths = []
-        sys.stderr.write("discarding %s from PATH\n" % binpath)
+        sys.stdout.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..activateroot':
         if len(sys.argv) != 2:
@@ -84,7 +84,7 @@ def main():
             paths = [rootpath]
         else:
             paths = []
-        sys.stderr.write("discarding %s from PATH\n" % binpath)
+        sys.stdout.write("discarding %s from PATH\n" % binpath)
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 3:
