@@ -3,10 +3,7 @@ from __future__ import print_function, absolute_import
 
 import os
 from os.path import dirname
-import shutil
-import shlex
 import stat
-import subprocess
 import sys
 
 import pytest
@@ -14,8 +11,7 @@ import pytest
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
-from conda.utils import (win_path_to_unix, unix_path_to_win, win_path_to_cygwin, path_identity,
-                                cygwin_path_to_win, translate_stream, run_in, shells)
+from conda.utils import path_identity, run_in, shells
 from conda.cli.activate import pathlist_to_str, binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
@@ -482,7 +478,6 @@ def test_PS1_no_changeps1(shell, bash_profile):
 @pytest.mark.slow
 def test_CONDA_DEFAULT_ENV(shell):
     shell_vars = _format_vars(shell)
-    shelldict = shells[shell]
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
