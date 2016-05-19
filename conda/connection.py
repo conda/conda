@@ -91,6 +91,8 @@ class CondaSession(requests.Session):
         proxies = get_proxy_servers()
         if proxies:
             self.proxies = proxies
+        self.trust_env = False  # disable .netrc file
+                                # also disables REQUESTS_CA_BUNDLE, CURL_CA_BUNDLE env variables
 
         # Configure retries
         if retries:
