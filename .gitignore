@@ -14,3 +14,8 @@ coverage.xml
 junit.xml
 .version
 tmpfile.rc
+node_modules/
+docs/build/
+docs/_theme/basic/static
+docs/_theme/bootstrap/static
+docs/_theme/react/static/js

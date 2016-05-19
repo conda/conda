@@ -1,0 +1,142 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>conda vs. pip vs. virtualenv &mdash; Conda   documentation</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+
+          <div role="main">
+            
+  <div class="section" id="conda-vs-pip-vs-virtualenv">
+<h1>conda vs. pip vs. virtualenv</h1>
+<p>If you’ve used pip and virtualenv in the past, you can use conda to perform all
+of the same operations. Pip is a package manager, and Virtualenv is an
+environment manager. Conda is both.</p>
+<table border="1" cellpadding="0" cellspacing="0">
+<colgroup>
+<col width="17%" />
+<col width="25%" />
+<col width="33%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Task</th>
+<th class="head">Conda package and environment manager command</th>
+<th class="head">Pip package manager command</th>
+<th class="head">Virtualenv environment manager command</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Install a package</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-odd"><td>Update a package</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">update</span> <span class="pre">--name</span> <span class="pre">$ENVIRONMENT_NAME</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--upgrade</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-even"><td>Update package manager</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">update</span> <span class="pre">conda</span></tt></td>
+<td>Linux/OSX: <tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-U</span> <span class="pre">pip</span></tt> Win: <tt class="docutils literal"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-U</span> <span class="pre">pip</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-odd"><td>Uninstall a package</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">remove</span> <span class="pre">--name</span> <span class="pre">$ENVIRONMENT_NAME</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">uninstall</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-even"><td>Create an environment</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">create</span> <span class="pre">--name</span> <span class="pre">$ENVIRONMENT_NAME</span> <span class="pre">python</span></tt></td>
+<td>X</td>
+<td><tt class="docutils literal"><span class="pre">cd</span> <span class="pre">$ENV_BASE_DIR;</span> <span class="pre">virtualenv</span> <span class="pre">$ENVIRONMENT_NAME</span></tt></td>
+</tr>
+<tr class="row-odd"><td>Activate an environment</td>
+<td><tt class="docutils literal"><span class="pre">source</span> <span class="pre">activate</span> <span class="pre">$ENVIRONMENT_NAME</span></tt></td>
+<td>X</td>
+<td><tt class="docutils literal"><span class="pre">source</span> <span class="pre">$ENV_BASE_DIR/$ENVIRONMENT_NAME/bin/activate</span></tt></td>
+</tr>
+<tr class="row-even"><td>Deactivate an environment</td>
+<td><tt class="docutils literal"><span class="pre">source</span> <span class="pre">deactivate</span></tt></td>
+<td>X</td>
+<td><tt class="docutils literal"><span class="pre">deactivate</span></tt></td>
+</tr>
+<tr class="row-odd"><td>Search available packages</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">search</span> <span class="pre">$SEARCH_TERM</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">search</span> <span class="pre">$SEARCH_TERM</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-even"><td>Install package from specific source</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">--channel</span> <span class="pre">$URL</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--index-url</span> <span class="pre">$URL</span> <span class="pre">$PACKAGE_NAME</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-odd"><td>List installed packages</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">list</span> <span class="pre">--name</span> <span class="pre">$ENVIRONMENT_NAME</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">list</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-even"><td>Create requirements file</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">list</span> <span class="pre">--export</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">freeze</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-odd"><td>List all environments</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">info</span> <span class="pre">--envs</span></tt></td>
+<td>X</td>
+<td>Install virtualenv wrapper, then <tt class="docutils literal"><span class="pre">lsvirtualenv</span></tt></td>
+</tr>
+<tr class="row-even"><td>Install other package manager</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">pip</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">conda</span></tt></td>
+<td>X</td>
+</tr>
+<tr class="row-odd"><td>Install Python</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">python=x.x</span></tt></td>
+<td>X</td>
+<td>X</td>
+</tr>
+<tr class="row-even"><td>Update Python</td>
+<td><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">update</span> <span class="pre">python</span></tt> *</td>
+<td>X</td>
+<td>X</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">conda</span> <span class="pre">update</span> <span class="pre">python</span></tt> updates to the most recent in the series, so Python 2 to latest 2.x, Python 3 to latest 3.x, and so on.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Continuum Analytics.
+    </p>
+  </div>
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+</body>
+</html>

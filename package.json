@@ -1,0 +1,14 @@
+{
+  "name": "conda",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conda/conda.git"
+  },
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-connect": "^3.2.1",
+    "gulp-sass": "^2.2.0",
+    "gulp-shell": "^0.5.2"
+  }
+}
