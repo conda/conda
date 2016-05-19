@@ -220,7 +220,7 @@ end
 
 # Faster but less tested (?)
 function __fish_conda_commands
-  command ls --color=none (conda info --root)/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
+  command echo -e "activate\ndeactivate" ;and ls --color=none (conda info --root)/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
 end
 
 function __fish_conda_envs
@@ -253,9 +253,9 @@ end
 complete -f -c conda -n '__fish_conda_needs_command' -a '(__fish_conda_commands)'
 
 # Commands that need environment as parameter
-complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)' -d 'Activate an environment'
+complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)' -d 'Activate this environment'
 
 # Commands that need package as parameter
-complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)' -d 'Uninstall a package'
-complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)' -d 'Update a package'
-complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)' -d 'Update a package'
+complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)' -d 'Uninstall this package'
+complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)' -d 'Update this package'
+complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)' -d 'Update this package'
