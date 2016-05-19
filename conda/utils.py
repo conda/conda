@@ -320,6 +320,13 @@ unix_shell_base = dict(
                        var_format="${}",
 )
 
+msys2_shell_base = dict(
+                        unix_shell_base,
+                        path_from=unix_path_to_win,
+                        path_to=win_path_to_unix,
+                        binpath="/Scripts/",  # mind the trailing slash.
+)
+
 if sys.platform == "win32":
     shells = {
         # "powershell.exe": dict(
@@ -376,11 +383,10 @@ if sys.platform == "win32":
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
         #    filesystem root.
         "bash.exe": dict(
-            unix_shell_base,
-            exe="bash.exe",
-            binpath="/Scripts/",  # mind the trailing slash.
-            path_from=unix_path_to_win,
-            path_to=win_path_to_unix
+            msys2_shell_base, exe="bash.exe",
+        ),
+        "sh.exe": dict(
+            msys2_shell_base, exe="sh.exe",
         ),
     }
 
