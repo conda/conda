@@ -44,10 +44,6 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
-from conda.compat import iteritems, iterkeys
-from conda.config import url_channel, pkgs_dirs, root_dir
-from conda.utils import url_path
-
 try:
     from conda.lock import Locked
 except ImportError:
@@ -64,7 +60,7 @@ except ImportError:
             pass
 
 try:
-    from conda.utils import win_path_to_unix
+    from conda.utils import win_path_to_unix, url_path
 except ImportError:
     def win_path_to_unix(path, root_prefix=""):
         """Convert a path or ;-separated string of paths into a unix representation
@@ -80,11 +76,18 @@ except ImportError:
 
 # Make sure the script stays standalone for the installer
 try:
-    from conda.config import remove_binstar_tokens
+    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
 except ImportError:
     # There won't be any binstar tokens in the installer anyway
     def remove_binstar_tokens(url):
         return url
+
+    # A simpler version of url_channel will do
+    def url_channel(url):
+        return url.rsplit('/', 2)[0], 'defaults'
+
+    # We don't use the package cache or trash logic in the installer
+    pkgs_dirs = []
 
 on_win = bool(sys.platform == "win32")
 
@@ -419,13 +422,15 @@ def create_meta(prefix, dist, info_dir, extra_info):
         meta = json.load(fi)
     # add extra info, add to our intenral cache
     meta.update(extra_info)
-    load_linked_data(prefix, dist, meta)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, _dist2filename(dist, '.json')), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
+    # only update the package cache if it is loaded for this prefix.
+    if prefix in linked_data_:
+        load_linked_data(prefix, dist, meta)
 
 
 def mk_menus(prefix, files, remove=False):
@@ -699,7 +704,7 @@ def fetched():
     """
     Returns the (set of canonical names) of all fetched packages
     """
-    return set(dist for dist, rec in iteritems(package_cache()) if rec['files'])
+    return set(dist for dist, rec in package_cache().items() if rec['files'])
 
 
 def is_fetched(dist):
@@ -735,7 +740,7 @@ def extracted():
     """
     return the (set of canonical names) of all extracted packages
     """
-    return set(dist for dist, rec in iteritems(package_cache()) if rec['dirs'])
+    return set(dist for dist, rec in package_cache().items() if rec['dirs'])
 
 
 def is_extracted(dist):
@@ -874,7 +879,7 @@ def linked(prefix):
     """
     Return the set of canonical names of linked packages in prefix.
     """
-    return set(iterkeys(linked_data(prefix)))
+    return set(linked_data(prefix).keys())
 
 
 def is_linked(prefix, dist):
@@ -918,6 +923,7 @@ def move_path_to_trash(path):
     """
     # Try deleting the trash every time we use it.
     delete_trash()
+    from conda.config import root_dir
 
     for pkg_dir in pkgs_dirs:
         import tempfile
