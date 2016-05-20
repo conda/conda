@@ -15,6 +15,8 @@ from os import stat
 
 from six import iteritems
 
+from toolz.itertoolz import unique
+
 from auxlib._vendor.five import with_metaclass
 from auxlib.exceptions import ThisShouldNeverHappenError
 from auxlib.type_coercion import typify
@@ -151,22 +153,43 @@ def load_raw_configs():
     return raw_data
 
 
-def get_yaml_eol_comment(yaml_dict, key):
+def get_yaml_key_comment(yaml_dict, key):
     try:
-        return yaml_dict._yaml_comment.items[key][2].value
+        return yaml_dict.ca.items[key][2].value.strip()
     except (AttributeError, KeyError):  # probably could add IndexError here too and be just fine
-        return None
+        return ''
 
 
-def extract_value_and_flags(yaml_dict, key):
-    value = typify(yaml_dict[key])
-    comment = get_yaml_eol_comment(yaml_dict, key)
-    is_important = comment and '!important' in comment
-    return value, is_important
+def get_yaml_value_lines_comments(value):
+    items = value.ca.items
+    raw_comment_lines = tuple(first(items.get(q)).value.strip() for q in range(len(value)))
+    return raw_comment_lines
 
 
-Match = namedtuple('Match', ['filepath', 'key', 'value', 'isimportant'])
-NO_MATCH = Match(None, None, None, None)
+def extract_value_and_flags(yaml_dict, key, parameter_type):
+    raw_value = yaml_dict[key]
+    if parameter_type is ParameterType.single:
+        value = typify(raw_value)
+        key_comment = get_yaml_key_comment(yaml_dict, key)
+        important_lines = (0,) if '!important' in key_comment else ()
+    else:
+        value = raw_value
+        key_comment = get_yaml_key_comment(yaml_dict, key)
+        value_comments = get_yaml_value_lines_comments(value)
+        iterable = enumerate(chain((key_comment,), value_comments))
+        important_lines = tuple(q for q, comment in iterable if '!important' in comment)
+        print(important_lines)
+    return value, important_lines
+
+
+Match = namedtuple('Match', ['filepath', 'key', 'value', 'important'])
+NO_MATCH = Match(None, None, None, ())
+
+class ParameterType(Enum):
+    single = 'single'
+    list = 'list'
+    map = 'map'
+
 
 class Parameter(object):
     # inheritance model
@@ -176,12 +199,12 @@ class Parameter(object):
     # default
     # validation?
 
-    def __init__(self, default, aliases=()):
+    def __init__(self, default, aliases=(), parameter_type=ParameterType.single):
         self._name = None
         self._names = None
         self.default = default
-        self.type = type(default)
         self.aliases = aliases
+        self.parameter_type = parameter_type
 
     def set_name(self, name):
         # this is an explicit method, and not a descriptor setter
@@ -201,30 +224,65 @@ class Parameter(object):
             raise ThisShouldNeverHappenError()
         return self._names
 
-    def _get_key_value_isimportant(self, filepath, yaml_dict):
+    def _get_match(self, filepath, yaml_dict):
         keys = self.names & yaml_dict.keys()
         numkeys = len(keys)
+        print(keys)
         if numkeys == 0:
             return NO_MATCH
         elif numkeys == 1:
             key = keys.pop()
-            value, is_important = extract_value_and_flags(yaml_dict, key)
-            return Match(filepath, key, value, is_important)
+            value, important = extract_value_and_flags(yaml_dict, key, self.parameter_type)
+            return Match(filepath, key, value, important)
         else:
             # when multiple aliases exist, default to the named key
             assert self.name in keys, "conda doctor should help here"
             key = self.name
-            value, is_important = extract_value_and_flags(yaml_dict, key)
-            return Match(filepath, key, value, is_important)
+            value, important = extract_value_and_flags(yaml_dict, key, self.parameter_type)
+            return Match(filepath, key, value, important)
 
     def __get__(self, instance, instance_type):
-        array = tuple(self._get_key_value_isimportant(filepath, yaml_dict)
-                      for filepath, yaml_dict in iteritems(instance.raw_data))
-        important_match = first(array, lambda x: x.isimportant, default=NO_MATCH)
-        last_match = last(array, lambda x: x is not NO_MATCH, default=NO_MATCH)
-        final_value = first((important_match.value, last_match.value, self.default),
-                            lambda x: x is not None)
-        return final_value
+        # get all possible values
+        matches = tuple(m for m in (self._get_match(filepath, yaml_dict)
+                                    for filepath, yaml_dict in iteritems(instance.raw_data))
+                        if m is not NO_MATCH)
+
+        if not matches:
+            return self.default
+
+        # now merge, respecting comment directives
+        if self.parameter_type is ParameterType.single:
+            important_match = first(matches, lambda x: x.important, default=NO_MATCH)
+            if important_match is not NO_MATCH:
+                return important_match.value
+            last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
+            if last_match is not NO_MATCH:
+                return last_match.value
+
+        elif self.parameter_type is ParameterType.list:
+            # are there any important keys?
+            #  look for 0 in important, because 0 represents the key
+            important_match = first(matches, lambda x: 0 in x.important, default=NO_MATCH)
+            if important_match is not NO_MATCH:
+                return important_match.value
+
+            # values with important matches
+            def get_important_lines(match):
+                # get important line numbers, but subtract 1, because 0 is the key line
+                line_numbers = (q-1 for q in match.important if q)
+                return tuple(match.value[q] for q in line_numbers)
+            important_lines = tuple(chain.from_iterable(get_important_lines(m) for m in matches))
+
+            # now reverse the matches and concat the lines
+            catted_lines = tuple(chain.from_iterable(m.value for m in reversed(matches)))
+
+            # now important_lines + concatted_lines
+            return tuple(unique(important_lines + catted_lines))
+
+        else:
+            raise NotImplementedError()
+
+        raise ThisShouldNeverHappenError()
 
 
 class ConfigurationType(type):
@@ -254,7 +312,8 @@ class Configuration(object):
     update_dependencies = Parameter(True)
     channel_priority = Parameter(True)
     ssl_verify = Parameter(True)
-    track_features = Parameter(None)
+    track_features = Parameter(None, parameter_type=ParameterType.list)
+    channels = Parameter(None, parameter_type=ParameterType.list)
 
 
 def get_help_dict():
@@ -315,6 +374,7 @@ if __name__ == "__main__":
     assert config.always_yes is False
     assert config.show_channel_urls is None
     assert config.binstar_upload is None
-    assert isinstance(config.track_features, set)
+    print(config.track_features)
+    assert isinstance(config.track_features, tuple), config.track_features
     # import pdb; pdb.set_trace()
 
