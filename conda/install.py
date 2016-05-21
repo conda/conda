@@ -46,6 +46,8 @@ from os.path import (abspath, basename, dirname, isdir, isfile, islink,
 
 try:
     from conda.lock import Locked
+    from conda.utils import win_path_to_unix, url_path
+    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
@@ -59,9 +61,6 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-try:
-    from conda.utils import win_path_to_unix, url_path
-except ImportError:
     def win_path_to_unix(path, root_prefix=""):
         """Convert a path or ;-separated string of paths into a unix representation
 
@@ -80,10 +79,6 @@ except ImportError:
             path = '/' + path.replace(':', '|').replace('\\', '/')
         return 'file://%s' % path
 
-# Make sure the script stays standalone for the installer
-try:
-    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
-except ImportError:
     # There won't be any binstar tokens in the installer anyway
     def remove_binstar_tokens(url):
         return url
@@ -677,7 +672,6 @@ def package_cache():
         for fn in os.listdir(pdir):
             add_cached_package(pdir, fn)
     del package_cache_['@']
-    print(package_cache_)
     return package_cache_
 
 
@@ -969,7 +963,6 @@ def move_path_to_trash(path):
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None):
-    print(prefix, dist, linktype, index)
     """
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
