@@ -76,29 +76,45 @@ class TestConfig(unittest.TestCase):
         assert config.rc.get('channel_alias') == 'https://your.repo/'
         assert config.channel_alias == 'https://your.repo/'
 
-        for channel in iterkeys(config.normalize_urls(['defaults', 'system',
-            'https://anaconda.org/username', 'file:///Users/username/repo',
-            'username'])):
-            assert (channel.endswith('/%s/' % current_platform) or
-                    channel.endswith('/noarch/'))
-        self.assertEqual(config.normalize_urls([
+        normurls = config.normalize_urls([
             'defaults', 'system', 'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 'username'
-            ], 'osx-64'),
-            {'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 6),
-             'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 6),
+            ], 'osx-64')
+        assert normurls == [
+             'http://repo.continuum.io/pkgs/free/osx-64/',
+             'http://repo.continuum.io/pkgs/free/noarch/',
+             'http://repo.continuum.io/pkgs/pro/osx-64/',
+             'http://repo.continuum.io/pkgs/pro/noarch/',
+             'https://your.repo/binstar_username/osx-64/',
+             'https://your.repo/binstar_username/noarch/',
+             'http://some.custom/channel/osx-64/',
+             'http://some.custom/channel/noarch/',
+             'http://repo.continuum.io/pkgs/free/osx-64/',
+             'http://repo.continuum.io/pkgs/free/noarch/',
+             'http://repo.continuum.io/pkgs/pro/osx-64/',
+             'http://repo.continuum.io/pkgs/pro/noarch/',
+             'https://conda.anaconda.org/username/osx-64/',
+             'https://conda.anaconda.org/username/noarch/',
+             'file:///Users/username/repo/osx-64/',
+             'file:///Users/username/repo/noarch/',
+             'https://your.repo/username/osx-64/',
+             'https://your.repo/username/noarch/']
+        priurls = config.prioritize_channels(normurls)
+        assert dict(priurls) == {
+             'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 5),
+             'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 5),
              'http://repo.continuum.io/pkgs/free/noarch/': ('defaults', 1),
              'http://repo.continuum.io/pkgs/free/osx-64/': ('defaults', 1),
              'http://repo.continuum.io/pkgs/pro/noarch/': ('defaults', 1),
              'http://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
              'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
              'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
-             'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 5),
-             'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 5),
+             'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 4),
+             'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 4),
              'https://your.repo/binstar_username/noarch/': ('binstar_username', 2),
              'https://your.repo/binstar_username/osx-64/': ('binstar_username', 2),
-             'https://your.repo/username/noarch/': ('username', 7),
-             'https://your.repo/username/osx-64/': ('username', 7)})
+             'https://your.repo/username/noarch/': ('username', 6),
+             'https://your.repo/username/osx-64/': ('username', 6)}
 
 
 test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')

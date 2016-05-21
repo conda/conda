@@ -22,7 +22,8 @@ import requests
 
 from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from conda.config import pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens, \
-    hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency, ssl_verify, rc
+    hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency, ssl_verify, \
+    rc, prioritize_channels
 from conda.connection import CondaSession, unparse_url, RETRIES
 from conda.install import add_cached_package, find_new_location
 from conda.lock import Locked
@@ -241,7 +242,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         index = {}
     stdoutlog.info("Fetching package metadata ...")
     if not isinstance(channel_urls, dict):
-        channel_urls = {url: pri+1 for pri, url in enumerate(channel_urls)}
+        channel_urls = prioritize_channels(channel_urls)
     for url in iterkeys(channel_urls):
         if allowed_channels and url not in allowed_channels:
             sys.exit("""

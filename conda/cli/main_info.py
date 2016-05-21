@@ -10,13 +10,11 @@ import json
 import os
 import re
 import sys
-from collections import defaultdict, OrderedDict
-from itertools import chain
+from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
 from conda.cli import common
-from conda.compat import iteritems
 
 help = "Display information about current conda install."
 
@@ -195,12 +193,7 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    # this is a hack associated with channel weight until we get the package cache reworked
-    #   in a future release
-    # for now, just ordering the channels for display in a semi-plausible way
-    d = defaultdict(list)
-    any(d[v[1]].append(k) for k, v in iteritems(get_channel_urls()))
-    channels = list(chain.from_iterable(d[q] for q in sorted(d, reverse=True)))
+    channels = get_channel_urls()
 
     info_dict = dict(
         platform=subdir,
