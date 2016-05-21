@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
+
+import os
+import sys
 from collections import OrderedDict, namedtuple
 from glob import glob
 from itertools import chain
 from logging import getLogger
-import os
-from platform import machine
-import sys
-from stat import S_IFREG, S_IFDIR, S_IFMT
-
-from enum import Enum
-from os.path import join, expandvars, expanduser, normpath
 from os import stat
-
-from six import iteritems
-
-from toolz.itertoolz import unique
+from os.path import join, expandvars, expanduser, normpath
+from platform import machine
+from stat import S_IFREG, S_IFDIR, S_IFMT
 
 from auxlib._vendor.five import with_metaclass
 from auxlib.exceptions import ThisShouldNeverHappenError
-from auxlib.type_coercion import typify
 from auxlib.ish import dals
+from auxlib.type_coercion import typify
+from enum import Enum
+from six import iteritems
+from toolz.dicttoolz import merge
+from toolz.functoolz import excepts
+from toolz.itertoolz import concat, unique, concatv
 
 from ..common.yaml import yaml_load
 
@@ -31,16 +31,16 @@ def expand(path):
     return normpath(expanduser(expandvars(path)))
 
 
-def first(iterable, key=lambda x: bool(x), default=None, apply=lambda x: x):
+def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
     """Give the first value that satisfies the key test.
 
     Args:
-        iterable:
+        seq (iterable):
         key (callable): test for each element of iterable
         default: returned when all elements fail test
         apply (callable): applied to element before return
 
-    Returns: first element in iterable mutated with optional apply that passes key
+    Returns: first element in seq that passes key, mutated with optional apply
 
     Examples:
         >>> first([0, False, None, [], (), 42])
@@ -53,6 +53,7 @@ def first(iterable, key=lambda x: bool(x), default=None, apply=lambda x: x):
         >>> m = first(re.match(regex, 'abc') for regex in ['b.*', 'a(.*)'])
         >>> m.group(1)
         'bc'
+
         The optional `key` argument specifies a one-argument predicate function
         like that used for `filter()`.  The `key` argument, if supplied, must be
         in keyword form.  For example:
@@ -60,11 +61,31 @@ def first(iterable, key=lambda x: bool(x), default=None, apply=lambda x: x):
         4
 
     """
-    return next((apply(x) for x in iterable if key(x)), default)
+    return next((apply(x) for x in seq if key(x)), default)
 
 
-def last(iterable, key=lambda x: bool(x), default=None, apply=lambda x: x):
-    return next((apply(x) for x in reversed(iterable) if key(x)), default)
+def cumfirst(seq, key=lambda x: bool(x), apply=lambda x: x):
+    """like first, but cumulative, up to and including first
+
+    unlike first, there is no default; where default would be returned in first, all of seq is returned in cumfirst
+
+    Examples:
+        >>> cumfirst([0, False, None, [], (), 42])
+        (0, False, None, [], (), 42)
+        >>> cumfirst([0, False, 'some', [], (), 42])
+        (0, False, 'some')
+
+    """
+    lst = []
+    for element in seq:
+        lst.append(apply(element))
+        if key(element):
+            break
+    return tuple(lst)
+
+
+def last(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
+    return next((apply(x) for x in reversed(seq) if key(x)), default)
 
 
 class Arch(Enum):
@@ -117,7 +138,7 @@ SEARCH_PATH = (
 )
 
 
-def load_raw_configs():
+def load_raw_configs(search_path=SEARCH_PATH):
     # returns an ordered map of filepath and raw yaml dict
 
     def _load_yaml(full_path):
@@ -144,7 +165,7 @@ def load_raw_configs():
         except OSError:
             return None
 
-    expanded_paths = tuple(expand(path) for path in SEARCH_PATH)
+    expanded_paths = tuple(expand(path) for path in search_path)
     stat_paths = (_get_st_mode(path) for path in expanded_paths)
     load_paths = (_loader[st_mode](path)
                   for path, st_mode in zip(expanded_paths, stat_paths)
@@ -153,37 +174,61 @@ def load_raw_configs():
     return raw_data
 
 
-def get_yaml_key_comment(yaml_dict, key):
+def get_yaml_key_comment(commented_dict, key):
     try:
-        return yaml_dict.ca.items[key][2].value.strip()
-    except (AttributeError, KeyError):  # probably could add IndexError here too and be just fine
+        return commented_dict.ca.items[key][2].value.strip()
+    except (AttributeError, KeyError):
         return ''
 
 
 def get_yaml_value_lines_comments(value):
     items = value.ca.items
-    raw_comment_lines = tuple(first(items.get(q)).value.strip() for q in range(len(value)))
+    raw_comment_lines = tuple(excepts((AttributeError, KeyError, TypeError),
+                                      lambda q: items.get(q)[0].value.strip(),
+                                      lambda _: ''  # default value on exception
+                                      )(q)
+                              for q in range(len(value)))
     return raw_comment_lines
 
 
 def extract_value_and_flags(yaml_dict, key, parameter_type):
-    raw_value = yaml_dict[key]
-    if parameter_type is ParameterType.single:
-        value = typify(raw_value)
+    def __extract_for_single(yaml_dict, key):
+        value = typify(yaml_dict[key])
         key_comment = get_yaml_key_comment(yaml_dict, key)
         important_lines = (0,) if '!important' in key_comment else ()
-    else:
-        value = raw_value
+        return value, important_lines
+
+    def __extract_for_list(yaml_dict, key):
+        yaml_value = yaml_dict[key]
         key_comment = get_yaml_key_comment(yaml_dict, key)
-        value_comments = get_yaml_value_lines_comments(value)
-        iterable = enumerate(chain((key_comment,), value_comments))
-        important_lines = tuple(q for q, comment in iterable if '!important' in comment)
-        print(important_lines)
-    return value, important_lines
+        value_comments = get_yaml_value_lines_comments(yaml_value)
+        seq = enumerate(chain((key_comment,), value_comments))
+        important_lines = tuple(q for q, comment in seq if '!important' in comment)
+        return tuple(value), important_lines
+
+    def __extract_for_map(yaml_dict, key):
+        # important_lines now actually needs to be important_keys
+        yaml_value = yaml_dict[key]
+        key_comment = get_yaml_key_comment(yaml_dict, key)
+        mapkeys = tuple(k for k in yaml_value)
+        mapkeys_comments = tuple(get_yaml_key_comment(yaml_value, mapkey) for mapkey in mapkeys)
+        seq = enumerate(chain((key_comment,), mapkeys_comments))
+        important_lines = tuple(mapkeys[q] if q else q  # return the mapkey, not the index
+                                for q, comment in seq
+                                if '!important' in comment)
+        return dict(yaml_value), important_lines
+
+    __extract = {
+        ParameterType.single: __extract_for_single,
+        ParameterType.list: __extract_for_list,
+        ParameterType.map: __extract_for_map,
+    }
+    return __extract[parameter_type](yaml_dict, key)
 
 
-Match = namedtuple('Match', ['filepath', 'key', 'value', 'important'])
+Match = namedtuple('Match', ('filepath', 'key', 'value', 'important'))
 NO_MATCH = Match(None, None, None, ())
+
 
 class ParameterType(Enum):
     single = 'single'
@@ -224,65 +269,128 @@ class Parameter(object):
             raise ThisShouldNeverHappenError()
         return self._names
 
-    def _get_match(self, filepath, yaml_dict):
+    @staticmethod
+    def __extract_for_single(yaml_dict, key):
+        value = typify(yaml_dict[key])
+        key_comment = get_yaml_key_comment(yaml_dict, key)
+        important_lines = (0,) if '!important' in key_comment else ()
+        return value, important_lines
+
+    @staticmethod
+    def __extract_for_list(yaml_dict, key):
+        yaml_value = yaml_dict[key]
+        key_comment = get_yaml_key_comment(yaml_dict, key)
+        value_comments = get_yaml_value_lines_comments(yaml_value)
+        seq = enumerate(chain((key_comment,), value_comments))
+        important_lines = tuple(q for q, comment in seq if '!important' in comment)
+        return tuple(yaml_value), important_lines
+
+    @staticmethod
+    def __extract_for_map(yaml_dict, key):
+        # important_lines now actually needs to be important_keys
+        yaml_value = yaml_dict[key]
+        key_comment = get_yaml_key_comment(yaml_dict, key)
+        mapkeys = tuple(k for k in yaml_value)
+        mapkeys_comments = tuple(get_yaml_key_comment(yaml_value, mapkey) for mapkey in mapkeys)
+        seq = enumerate(chain((key_comment,), mapkeys_comments))
+        important_lines = tuple(mapkeys[q] if q else q  # return the mapkey, not the index
+                                for q, comment in seq
+                                if '!important' in comment)
+        return dict(yaml_value), important_lines
+
+    __extract = {
+        ParameterType.single: __extract_for_single.__func__,
+        ParameterType.list: __extract_for_list.__func__,
+        ParameterType.map: __extract_for_map.__func__,
+    }
+
+    def __get_match(self, filepath, yaml_dict):
+        # TODO: cleanup
         keys = self.names & yaml_dict.keys()
         numkeys = len(keys)
-        print(keys)
         if numkeys == 0:
             return NO_MATCH
         elif numkeys == 1:
             key = keys.pop()
-            value, important = extract_value_and_flags(yaml_dict, key, self.parameter_type)
+            value, important = self.__extract[self.parameter_type](yaml_dict, key)
             return Match(filepath, key, value, important)
         else:
             # when multiple aliases exist, default to the named key
             assert self.name in keys, "conda doctor should help here"
             key = self.name
-            value, important = extract_value_and_flags(yaml_dict, key, self.parameter_type)
+            value, important = self.__extract[self.parameter_type](yaml_dict, key)
             return Match(filepath, key, value, important)
 
+    @staticmethod
+    def __merge_matches_single(matches):
+        important_match = first(matches, lambda x: x.important, default=NO_MATCH)
+        if important_match is not NO_MATCH:
+            return important_match.value
+
+        last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
+        if last_match is not NO_MATCH:
+            return last_match.value
+
+        raise ThisShouldNeverHappenError()
+
+    @staticmethod
+    def __merge_matches_list(matches):
+        # get matches up to and including first important_match
+        #  look for 0 in important, because 0 represents the key
+        important_matches = cumfirst(matches, lambda x: 0 in x.important)
+
+        # get individual lines from important_matches that were marked important
+        # these will be prepended to the final result
+        def get_important_lines(match):
+            # get important line numbers, but subtract 1, because 0 is the key line
+            line_numbers = (q-1 for q in match.important if q)
+            return tuple(match.value[q] for q in line_numbers)
+        important_lines = concat(get_important_lines(m) for m in important_matches)
+
+        # reverse the matches and concat the lines
+        #   reverse because elements closer to the end of search path that are not marked
+        #   important take precedence
+        catted_lines = concat(m.value for m in reversed(important_matches))
+
+        # now important_lines + concatted_lines
+        return tuple(unique(concatv(important_lines, catted_lines)))
+
+    @staticmethod
+    def __merge_matches_map(matches):
+        # get matches up to and including first important_match
+        #  look for 0 in important, because 0 represents the key
+        important_matches = cumfirst(matches, lambda x: 0 in x.important)
+
+        # mapkeys with important matches
+        def get_important_mapkeys(match):
+            return {q: match.value[q] for q in match.important if q}
+        important_maps = (get_important_mapkeys(m) for m in important_matches)
+
+        # dump all matches in a dict
+        # then overwrite with important matches
+        return merge(concatv((m.value for m in important_matches), reversed(important_maps)))
+
+    __merge_matches = {
+        ParameterType.single: __merge_matches_single.__func__,
+        ParameterType.list: __merge_matches_list.__func__,
+        ParameterType.map: __merge_matches_map.__func__,
+    }
+
     def __get__(self, instance, instance_type):
-        # get all possible values
-        matches = tuple(m for m in (self._get_match(filepath, yaml_dict)
+        # strategy is "extract and merge," which is actually just map and reduce
+        # extract matches from each source in SEARCH_PATH
+        # then merge matches together
+
+        # TODO: cache result on instance object
+
+        matches = tuple(m for m in (self.__get_match(filepath, yaml_dict)
                                     for filepath, yaml_dict in iteritems(instance.raw_data))
                         if m is not NO_MATCH)
 
         if not matches:
             return self.default
-
-        # now merge, respecting comment directives
-        if self.parameter_type is ParameterType.single:
-            important_match = first(matches, lambda x: x.important, default=NO_MATCH)
-            if important_match is not NO_MATCH:
-                return important_match.value
-            last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
-            if last_match is not NO_MATCH:
-                return last_match.value
-
-        elif self.parameter_type is ParameterType.list:
-            # are there any important keys?
-            #  look for 0 in important, because 0 represents the key
-            important_match = first(matches, lambda x: 0 in x.important, default=NO_MATCH)
-            if important_match is not NO_MATCH:
-                return important_match.value
-
-            # values with important matches
-            def get_important_lines(match):
-                # get important line numbers, but subtract 1, because 0 is the key line
-                line_numbers = (q-1 for q in match.important if q)
-                return tuple(match.value[q] for q in line_numbers)
-            important_lines = tuple(chain.from_iterable(get_important_lines(m) for m in matches))
-
-            # now reverse the matches and concat the lines
-            catted_lines = tuple(chain.from_iterable(m.value for m in reversed(matches)))
-
-            # now important_lines + concatted_lines
-            return tuple(unique(important_lines + catted_lines))
-
         else:
-            raise NotImplementedError()
-
-        raise ThisShouldNeverHappenError()
+            return self.__merge_matches[self.parameter_type](matches)
 
 
 class ConfigurationType(type):
@@ -312,8 +420,13 @@ class Configuration(object):
     update_dependencies = Parameter(True)
     channel_priority = Parameter(True)
     ssl_verify = Parameter(True)
-    track_features = Parameter(None, parameter_type=ParameterType.list)
-    channels = Parameter(None, parameter_type=ParameterType.list)
+    track_features = Parameter((), parameter_type=ParameterType.list)
+    channels = Parameter((), parameter_type=ParameterType.list)
+    disallow = Parameter((), parameter_type=ParameterType.list)
+    create_default_packages = Parameter((), parameter_type=ParameterType.list)
+    envs_dirs = Parameter((), parameter_type=ParameterType.list)
+    default_channels = Parameter((), parameter_type=ParameterType.list)
+    proxy_servers = Parameter({}, parameter_type=ParameterType.map)
 
 
 def get_help_dict():
@@ -346,35 +459,90 @@ def get_help_dict():
         'channel_priority': dals("""
             """),
         'ssl_verify': dals("""
+            # ssl_verify can be a boolean value or a filename string
+            """),
+        'track_features': dals("""
+            """),
+        'channels': dals("""
+            """),
+        'disallow': dals("""
+            # set packages disallowed to be installed
+            """),
+        'create_default_packages': dals("""
+            # packages which are added to a newly created environment by default
+            """),
+        'envs_dirs': dals("""
+            """),
+        'default_channels': dals("""
+            """),
+        'proxy_servers': dals("""
             """),
     }
 
 
 
-
-
-# rc_list_keys = [
-#     'channels',
-#     'disallow',
-#     'create_default_packages',
-#     'track_features',
-#     'envs_dirs',
-#     'default_channels',
-# ]
-# disallow = set(rc.get('disallow', []))  # set packages disallowed to be installed
-# create_default_packages = list(rc.get('create_default_packages', []))  # packages which are added to a newly created environment by default
-# track_features = set(rc['track_features'])
-
-
-
-
 if __name__ == "__main__":
+    test_yaml_raw = {
+        'file1': dals("""
+            channels:
+              - kalefranz
+              - defaults  #!important
+              - conda
+
+            always_yes: no #!important
+
+            proxy_servers:
+                http: this-one #!important
+                https: not-this-one
+        """),
+        'file2': dals("""
+            channels:
+              - r
+
+            always_yes: yes #!important
+            changeps1: no
+
+            proxy_servers:
+                http: not-this-one
+                https: this-one
+        """),
+        'file3': dals("""
+            channels: #!important
+              - locked
+
+            always_yes: yes
+
+            proxy_servers: #!important
+                s3: notreallyvalid
+        """),
+        'file4': dals("""
+            proxy_servers:
+                http: http://user:pass@corp.com:8080 #!important
+                https: https://user:pass@corp.com:8080
+        """),
+    }
+
+    import doctest
+    doctest.testmod()
+
+    test_yaml_12 = OrderedDict((f, yaml_load(test_yaml_raw[f])) for f in ('file1', 'file2'))
+    config = Configuration(test_yaml_12)
+    assert config.channels == ('defaults', 'r', 'kalefranz', 'conda')
+
+    test_yaml_312 = OrderedDict((f, yaml_load(test_yaml_raw[f]))
+                                for f in ('file3', 'file1', 'file2'))
+    config = Configuration(test_yaml_312)
+    assert config.channels == ('locked',), config.channels
+    assert config.always_yes == False
+
     config = Configuration(load_raw_configs())
-    print(config.raw_data)
     assert config.always_yes is False
     assert config.show_channel_urls is None
     assert config.binstar_upload is None
-    print(config.track_features)
     assert isinstance(config.track_features, tuple), config.track_features
+
+    test_yaml_4 = OrderedDict((f, yaml_load(test_yaml_raw[f])) for f in ('file4', ))
+    config = Configuration(test_yaml_4)
+    # print(config.proxy_servers)
     # import pdb; pdb.set_trace()
 
