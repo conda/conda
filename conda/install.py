@@ -44,12 +44,10 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
-from conda.compat import iteritems, iterkeys
-from conda.config import url_channel, pkgs_dirs, root_dir
-from conda.utils import url_path
-
 try:
     from conda.lock import Locked
+    from conda.utils import win_path_to_unix, url_path
+    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
@@ -63,9 +61,6 @@ except ImportError:
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-try:
-    from conda.utils import win_path_to_unix
-except ImportError:
     def win_path_to_unix(path, root_prefix=""):
         """Convert a path or ;-separated string of paths into a unix representation
 
@@ -78,13 +73,22 @@ except ImportError:
             return root_prefix + "/" + found
         return re.sub(path_re, translation, path).replace(";/", ":/")
 
-# Make sure the script stays standalone for the installer
-try:
-    from conda.config import remove_binstar_tokens
-except ImportError:
+    def url_path(path):
+        path = abspath(path)
+        if sys.platform == 'win32':
+            path = '/' + path.replace(':', '|').replace('\\', '/')
+        return 'file://%s' % path
+
     # There won't be any binstar tokens in the installer anyway
     def remove_binstar_tokens(url):
         return url
+
+    # A simpler version of url_channel will do
+    def url_channel(url):
+        return None, 'defaults'
+
+    # We don't use the package cache or trash logic in the installer
+    pkgs_dirs = []
 
 on_win = bool(sys.platform == "win32")
 
@@ -419,13 +423,15 @@ def create_meta(prefix, dist, info_dir, extra_info):
         meta = json.load(fi)
     # add extra info, add to our intenral cache
     meta.update(extra_info)
-    load_linked_data(prefix, dist, meta)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, _dist2filename(dist, '.json')), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
+    # only update the package cache if it is loaded for this prefix.
+    if prefix in linked_data_:
+        load_linked_data(prefix, dist, meta)
 
 
 def mk_menus(prefix, files, remove=False):
@@ -493,7 +499,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
 
 def read_url(dist):
-    return package_cache().get(dist, {}).get('urls', (None,))[0]
+    res = package_cache().get(dist, {}).get('urls', (None,))
+    return res[0] if res else None
 
 
 def read_icondata(source_dir):
@@ -595,7 +602,11 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     cache, so that subsequent runs will correctly identify the package.
     """
     package_cache()
-    dist = url.rsplit('/', 1)[-1]
+    if '/' in url:
+        dist = url.rsplit('/', 1)[-1]
+    else:
+        dist = url
+        url = None
     if dist.endswith('.tar.bz2'):
         fname = dist
         dist = dist[:-8]
@@ -614,7 +625,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     if not (xpkg or xdir):
         return
     url = remove_binstar_tokens(url)
-    channel, schannel = url_channel(url)
+    _, schannel = url_channel(url)
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[url_path(xkey)] = prefix
@@ -622,7 +633,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     rec = package_cache_.get(fkey)
     if rec is None:
         rec = package_cache_[fkey] = dict(files=[], dirs=[], urls=[])
-    if url not in rec['urls']:
+    if url and url not in rec['urls']:
         rec['urls'].append(url)
     if xpkg and xpkg not in rec['files']:
         rec['files'].append(xpkg)
@@ -656,10 +667,10 @@ def package_cache():
             for url in data.split()[::-1]:
                 if '/' in url:
                     add_cached_package(pdir, url)
-            for fn in os.listdir(pdir):
-                add_cached_package(pdir, '<unknown>/' + fn)
         except IOError:
-            continue
+            pass
+        for fn in os.listdir(pdir):
+            add_cached_package(pdir, fn)
     del package_cache_['@']
     return package_cache_
 
@@ -699,7 +710,7 @@ def fetched():
     """
     Returns the (set of canonical names) of all fetched packages
     """
-    return set(dist for dist, rec in iteritems(package_cache()) if rec['files'])
+    return set(dist for dist, rec in package_cache().items() if rec['files'])
 
 
 def is_fetched(dist):
@@ -735,7 +746,7 @@ def extracted():
     """
     return the (set of canonical names) of all extracted packages
     """
-    return set(dist for dist, rec in iteritems(package_cache()) if rec['dirs'])
+    return set(dist for dist, rec in package_cache().items() if rec['dirs'])
 
 
 def is_extracted(dist):
@@ -874,7 +885,7 @@ def linked(prefix):
     """
     Return the set of canonical names of linked packages in prefix.
     """
-    return set(iterkeys(linked_data(prefix)))
+    return set(linked_data(prefix).keys())
 
 
 def is_linked(prefix, dist):
@@ -918,6 +929,7 @@ def move_path_to_trash(path):
     """
     # Try deleting the trash every time we use it.
     delete_trash()
+    from conda.config import root_dir
 
     for pkg_dir in pkgs_dirs:
         import tempfile
@@ -1149,14 +1161,15 @@ def main():
     pkgs_dir = join(prefix, 'pkgs')
     if opts.verbose:
         print("prefix: %r" % prefix)
+    pkgs_dirs.append(pkgs_dir)
 
     if opts.file:
         idists = list(yield_lines(join(prefix, opts.file)))
     else:
-        idists = sorted(extracted(pkgs_dir))
+        idists = sorted(extracted())
 
     linktype = (LINK_HARD
-                if try_hard_link(pkgs_dir, prefix, idists[0]) else
+                if idists and try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])
@@ -1164,7 +1177,7 @@ def main():
     for dist in idists:
         if opts.verbose:
             print("linking: %s" % dist)
-        link(pkgs_dir, prefix, dist, linktype)
+        link(prefix, dist, linktype)
 
     messages(prefix)
 
