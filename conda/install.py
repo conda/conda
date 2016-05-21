@@ -74,6 +74,12 @@ except ImportError:
             return root_prefix + "/" + found
         return re.sub(path_re, translation, path).replace(";/", ":/")
 
+    def url_path(path):
+        path = abspath(path)
+        if sys.platform == 'win32':
+            path = '/' + path.replace(':', '|').replace('\\', '/')
+        return 'file://%s' % path
+
 # Make sure the script stays standalone for the installer
 try:
     from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
@@ -84,7 +90,7 @@ except ImportError:
 
     # A simpler version of url_channel will do
     def url_channel(url):
-        return url.rsplit('/', 2)[0], 'defaults'
+        return None, 'defaults'
 
     # We don't use the package cache or trash logic in the installer
     pkgs_dirs = []
@@ -498,7 +504,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
 
 def read_url(dist):
-    return package_cache().get(dist, {}).get('urls', (None,))[0]
+    res = package_cache().get(dist, {}).get('urls', (None,))
+    return res[0] if res else None
 
 
 def read_icondata(source_dir):
@@ -600,7 +607,11 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     cache, so that subsequent runs will correctly identify the package.
     """
     package_cache()
-    dist = url.rsplit('/', 1)[-1]
+    if '/' in url:
+        dist = url.rsplit('/', 1)[-1]
+    else:
+        dist = url
+        url = None
     if dist.endswith('.tar.bz2'):
         fname = dist
         dist = dist[:-8]
@@ -619,7 +630,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     if not (xpkg or xdir):
         return
     url = remove_binstar_tokens(url)
-    channel, schannel = url_channel(url)
+    _, schannel = url_channel(url)
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[url_path(xkey)] = prefix
@@ -627,7 +638,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     rec = package_cache_.get(fkey)
     if rec is None:
         rec = package_cache_[fkey] = dict(files=[], dirs=[], urls=[])
-    if url not in rec['urls']:
+    if url and url not in rec['urls']:
         rec['urls'].append(url)
     if xpkg and xpkg not in rec['files']:
         rec['files'].append(xpkg)
@@ -661,11 +672,12 @@ def package_cache():
             for url in data.split()[::-1]:
                 if '/' in url:
                     add_cached_package(pdir, url)
-            for fn in os.listdir(pdir):
-                add_cached_package(pdir, '<unknown>/' + fn)
         except IOError:
-            continue
+            pass
+        for fn in os.listdir(pdir):
+            add_cached_package(pdir, fn)
     del package_cache_['@']
+    print(package_cache_)
     return package_cache_
 
 
@@ -957,6 +969,7 @@ def move_path_to_trash(path):
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None):
+    print(prefix, dist, linktype, index)
     """
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
@@ -1155,14 +1168,15 @@ def main():
     pkgs_dir = join(prefix, 'pkgs')
     if opts.verbose:
         print("prefix: %r" % prefix)
+    pkgs_dirs.append(pkgs_dir)
 
     if opts.file:
         idists = list(yield_lines(join(prefix, opts.file)))
     else:
-        idists = sorted(extracted(pkgs_dir))
+        idists = sorted(extracted())
 
     linktype = (LINK_HARD
-                if try_hard_link(pkgs_dir, prefix, idists[0]) else
+                if idists and try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])
@@ -1170,7 +1184,7 @@ def main():
     for dist in idists:
         if opts.verbose:
             print("linking: %s" % dist)
-        link(pkgs_dir, prefix, dist, linktype)
+        link(prefix, dist, linktype)
 
     messages(prefix)
 
