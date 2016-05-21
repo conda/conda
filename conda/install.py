@@ -85,10 +85,9 @@ except ImportError:
 
     # A simpler version of url_channel will do
     def url_channel(url):
-        return None, 'defaults'
+        return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
 
-    # We don't use the package cache or trash logic in the installer
-    pkgs_dirs = []
+    pkgs_dirs = [join(sys.prefix, 'pkgs')]
 
 on_win = bool(sys.platform == "win32")
 
@@ -423,13 +422,14 @@ def create_meta(prefix, dist, info_dir, extra_info):
         meta = json.load(fi)
     # add extra info, add to our intenral cache
     meta.update(extra_info)
+    if 'url' not in meta:
+        meta['url'] = read_url(dist)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, _dist2filename(dist, '.json')), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
-    # only update the package cache if it is loaded for this prefix.
     if prefix in linked_data_:
         load_linked_data(prefix, dist, meta)
 
@@ -821,12 +821,15 @@ def load_linked_data(prefix, dist, rec=None):
                 rec = json.load(fi)
         except IOError:
             return None
-        _, schannel = url_channel(rec.get('url'))
     else:
         linked_data(prefix)
+    url = rec.get('url')
+    channel, schannel = url_channel(url)
+    if 'fn' not in rec:
+        rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
+    rec['channel'] = channel
     rec['schannel'] = schannel
     cprefix = '' if schannel == 'defaults' else schannel + '::'
-    rec['fn'] = dname + '.tar.bz2'
     linked_data_[prefix][str(cprefix + dname)] = rec
     return rec
 
@@ -1159,9 +1162,9 @@ def main():
 
     prefix = opts.prefix
     pkgs_dir = join(prefix, 'pkgs')
+    pkgs_dirs[0] = [pkgs_dir]
     if opts.verbose:
         print("prefix: %r" % prefix)
-    pkgs_dirs.append(pkgs_dir)
 
     if opts.file:
         idists = list(yield_lines(join(prefix, opts.file)))
