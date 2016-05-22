@@ -448,5 +448,20 @@ class duplicates_to_remove_TestCase(unittest.TestCase):
         self.assertEqual(duplicates_to_remove(li, [d1, d2]), [])
 
 
+def test_standalone_import():
+    import sys
+    import conda.install
+    tmp_dir = tempfile.mkdtemp()
+    fname = conda.install.__file__.rstrip('co')
+    shutil.copyfile(fname, join(tmp_dir, basename(fname)))
+    opath = [tmp_dir]
+    opath.extend(s for s in sys.path if basename(s) not in ('conda', 'site-packages'))
+    opath, sys.path = sys.path, opath
+    try:
+        import install
+    finally:
+        sys.path = opath
+
+
 if __name__ == '__main__':
     unittest.main()
