@@ -46,6 +46,8 @@ SEARCH_PATH = (
     '/etc/conda/condarc.d/',
     '/var/lib/conda/condarc',
     '/var/lib/conda/condarc.d/',
+    '$CONDA_ROOT/.condarc',
+    '$CONDA_ROOT/condarc.d/',
     '$HOME/.conda/condarc',
     '$HOME/.conda/condarc.d/',
     '$HOME/.condarc',

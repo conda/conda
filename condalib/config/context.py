@@ -4,7 +4,9 @@ from logging import getLogger
 
 from auxlib.ish import dals
 
-from ..common.configuration import Configuration as AppConfiguration, Parameter, ParameterType
+from ..common.configuration import (Configuration as AppConfiguration, Parameter, ParameterType,
+                                    load_raw_configs)
+from .constants import SEARCH_PATH
 
 log = getLogger(__name__)
 
@@ -30,6 +32,9 @@ class Context(AppConfiguration):
     envs_dirs = Parameter((), parameter_type=ParameterType.list)
     default_channels = Parameter((), parameter_type=ParameterType.list)
     proxy_servers = Parameter({}, parameter_type=ParameterType.map)
+
+
+context = Context(load_raw_configs(SEARCH_PATH))
 
 
 def get_help_dict():
