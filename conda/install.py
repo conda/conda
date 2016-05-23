@@ -624,7 +624,8 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
         xdir = None
     if not (xpkg or xdir):
         return
-    url = remove_binstar_tokens(url)
+    if url:
+        url = remove_binstar_tokens(url)
     _, schannel = url_channel(url)
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
