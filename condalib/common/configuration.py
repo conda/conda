@@ -9,7 +9,7 @@ from os import stat
 from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
 
-from auxlib.collection import first, last
+from auxlib.collection import first, last, call_each
 from auxlib.compat import iteritems, with_metaclass
 from auxlib.exceptions import ThisShouldNeverHappenError
 from auxlib.path import expand
@@ -72,13 +72,14 @@ class ParameterType(Enum):
 
 
 class Parameter(object):
+    parameter_type = None
+    _type = None
 
-    def __init__(self, default, aliases=(), parameter_type=ParameterType.single):
+    def __init__(self, default, aliases=()):
         self._name = None
         self._names = None
         self.default = default
         self.aliases = aliases
-        self.parameter_type = parameter_type
 
     def set_name(self, name):
         # this is an explicit method, and not a descriptor setter
@@ -233,11 +234,34 @@ class Parameter(object):
         matches = tuple(m for m in (self.__get_match(filepath, yaml_dict)
                                     for filepath, yaml_dict in iteritems(instance.raw_data))
                         if m is not NO_MATCH)
-
+        call_each(self.__validate(instance, m.value) for m in matches)
         if not matches:
             return self.default
         else:
             return self.__merge_matches[self.parameter_type](matches)
+
+
+    def __validate(self, instance, val):
+        """
+
+        Returns:
+            True: if val is valid
+
+        Raises:
+            ValidationError
+        """
+        # note here calling, but not assigning; could lead to unexpected behavior
+        if isinstance(val, self._type) and (self._validation is None or self._validation(val)):
+            return val
+        elif val is None and self.nullable:
+            return val
+        else:
+            raise ValidationError(getattr(self, 'name', 'undefined name'), val)
+
+
+class BooleanParameter(Parameter):
+    _parameter_interface = ParameterType.single
+    _parameter_type = bool
 
 
 class ConfigurationType(type):
@@ -274,8 +298,8 @@ if __name__ == "__main__":
             always_yes: no #!important
 
             proxy_servers:
-                http: this-one #!important
-                https: not-this-one
+              http: this-one #!important
+              https: not-this-one
         """),
         'file2': dals("""
             channels:
@@ -285,8 +309,8 @@ if __name__ == "__main__":
             changeps1: no
 
             proxy_servers:
-                http: not-this-one
-                https: this-one
+              http: not-this-one
+              https: this-one
         """),
         'file3': dals("""
             channels: #!important
@@ -295,36 +319,44 @@ if __name__ == "__main__":
             always_yes: yes
 
             proxy_servers: #!important
-                s3: notreallyvalid
+              s3: only-this-one
         """),
         'file4': dals("""
             proxy_servers:
-                http: http://user:pass@corp.com:8080 #!important
-                https: https://user:pass@corp.com:8080
+              - http: http://user:pass@corp.com:8080  #!important
+              - https: https://user:pass@corp.com:8080
         """),
     }
+
+    class AppConfiguration(Configuration):
+        channels = Parameter((), parameter_type=ParameterType.list)
+        always_yes = Parameter(False)
+        proxy_servers = Parameter({}, parameter_type=ParameterType.map)
+        changeps1 = Parameter(True)
+
 
     import doctest
     doctest.testmod()
 
     test_yaml_12 = OrderedDict((f, yaml_load(test_yaml_raw[f])) for f in ('file1', 'file2'))
-    config = Configuration(test_yaml_12)
+    print(test_yaml_12)
+    config = AppConfiguration(test_yaml_12)
     assert config.channels == ('defaults', 'r', 'kalefranz', 'conda')
 
     test_yaml_312 = OrderedDict((f, yaml_load(test_yaml_raw[f]))
                                 for f in ('file3', 'file1', 'file2'))
-    config = Configuration(test_yaml_312)
+    config = AppConfiguration(test_yaml_312)
     assert config.channels == ('locked',), config.channels
     assert config.always_yes == False
 
-    config = Configuration(load_raw_configs())
+    config = AppConfiguration(load_raw_configs())
     assert config.always_yes is False
     assert config.show_channel_urls is None
     assert config.binstar_upload is None
     assert isinstance(config.track_features, tuple), config.track_features
 
     test_yaml_4 = OrderedDict((f, yaml_load(test_yaml_raw[f])) for f in ('file4', ))
-    config = Configuration(test_yaml_4)
-    # print(config.proxy_servers)
+    config = AppConfiguration(test_yaml_4)
+    print(config.proxy_servers)
     # import pdb; pdb.set_trace()
 
