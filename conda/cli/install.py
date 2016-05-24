@@ -74,8 +74,8 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
                                   error_type="NoEnvironmentFound")
 
     if not json:
-        print("Source:      %r" % src_prefix)
-        print("Destination: %r" % dst_prefix)
+        print("Source:      %s" % src_prefix)
+        print("Destination: %s" % dst_prefix)
 
     with common.json_progress_bars(json=json and not quiet):
         actions, untracked_files = misc.clone_env(src_prefix, dst_prefix,

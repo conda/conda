@@ -400,17 +400,31 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
+def dist2quad(dist, channel=True):
+    dist = str(dist)
+    if dist.endswith('.tar.bz2'):
+        dist = dist[:-8]
+    parts = dist.rsplit('-', 2)
+    if len(parts) < 3:
+        parts = parts + [''] * (3 - len(parts))
+    chan_name, version, build = parts
+    if not channel:
+        return chan_name, version, build
+    parts = chan_name.split('::')
+    return (parts[-1], version, build,
+            'defaults' if len(parts) < 2 else parts[0])
+
 def _dist2pair(dist):
-    dparts = dist.split('::', 1)
-    return ('defaults', dparts[0]) if len(dparts) == 1 else dparts
+    dparts = dist2quad(dist)
+    return (dparts[3], '-'.join(dparts[:3]))
 
 
 def name_dist(dist):
-    return dist.split('::', 1)[-1].rsplit('-', 2)[0]
+    return dist2quad(dist)[0]
 
 
 def _dist2filename(dist, suffix='.tar.bz2'):
-    return dist.split('::', 1)[-1] + suffix
+    return '-'.join(dist2quad(dist))[:3] + suffix
 
 
 def create_meta(prefix, dist, info_dir, extra_info):
@@ -488,7 +502,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = str(dist).rsplit('-', 2)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], env['PKG_CHANNEL'] = dist2quad(dist)
     if action == 'pre-link':
         env['SOURCE_DIR'] = str(prefix)
     try:
