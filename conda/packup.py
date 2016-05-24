@@ -14,16 +14,15 @@ import tempfile
 from os.path import basename, isfile, islink, join
 
 import conda.install as install
-from conda.compat import PY3
+from conda.compat import PY3, itervalues
 from conda.config import platform, arch_name
 from conda.misc import untracked
 
 
 def get_installed_version(prefix, name):
-    for dist in install.linked(prefix):
-        n, v, b = dist.rsplit('-', 2)
-        if n == name:
-            return v
+    for info in itervalues(install.linked_data(prefix)):
+        if info['name'] == name:
+            return str(info['version'])
     return None
 
 
