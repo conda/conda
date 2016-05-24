@@ -114,7 +114,7 @@ The full ``requirements`` section will look like this.
 App entry in meta.yaml
 ----------------------
 
-To declare a conda package as an app the ``app`` parameter pust be added to the ``meta.yaml`` file.
+To declare a conda package as an app the ``app`` parameter must be added to the ``meta.yaml`` file.
 The ``app`` section will contain four keys ``entry``, ``icon``, ``summary`` and ``type``.
 
 In the ``app`` section the ``entry`` tag defines how the package is to be launched by
