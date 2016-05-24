@@ -173,9 +173,9 @@ def test_activate_bad_directory(shell):
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # another semicolon here for comparison reasons with one above.
-        assert_equals(stderr,
+        assert_equals(stderr.replace('\\', '/'),
                       u'could not find environment: {envpaths3}'
-                      .format(envpaths3=shells[shell]['path_from'](env_dirs[2]).replace('\\', '/')
+                      .format(envpaths3=shells[shell]['path_from'](env_dirs[2])
         ))
         assert_not_in(env_dirs[2], stdout)
 
