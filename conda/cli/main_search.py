@@ -10,6 +10,7 @@ from conda.cli import common
 from conda.config import subdir, canonical_channel_name
 from conda.misc import make_icon_url
 from conda.resolve import NoPackagesFound, Package
+from conda.install import dist2quad
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -222,8 +223,8 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist.rsplit('-', 2)[1] for dist in linked
-                         if dist.rsplit('-', 2)[0] == name]
+            vers_inst = [dist[1] for dist in map(dist2quad, linked)
+                         if dist[0] == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name

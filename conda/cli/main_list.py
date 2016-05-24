@@ -17,6 +17,7 @@ import conda.install as install
 from conda.cli import common
 from conda.config import show_channel_urls, subdir, use_pip
 from conda.egg_info import get_egg_info
+from conda.install import dist2quad
 
 
 descr = "List linked packages in a conda environment."
@@ -132,7 +133,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist.rsplit('-', 2)))
+            result.append('='.join(dist2quad(dist)[:3]))
             continue
 
         try:
@@ -147,7 +148,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug(str(e))
-            result.append('%-25s %-15s %15s' % tuple(dist.rsplit('-', 2)))
+            result.append('%-25s %-15s %15s' % dist2quad(dist, channel=False))
 
     return res, result
 
