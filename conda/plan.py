@@ -333,11 +333,6 @@ def is_root_prefix(prefix):
     return abspath(prefix) == abspath(root_dir)
 
 
-def dist2spec3v(dist):
-    name, version, unused_build = dist.rsplit('-', 2)
-    return '%s %s*' % (name, version[:3])
-
-
 def add_defaults_to_specs(r, linked, specs, update=False):
     # TODO: This should use the pinning mechanism. But don't change the API:
     # cas uses it.
@@ -380,9 +375,12 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             # if Python/Numpy is already linked, we add that instead of the
             # default
             log.debug('H3 %s' % name)
-            spec = dist2spec3v(names_linked[name])
+            fkey = names_linked[name] + '.tar.bz2'
+            info = r.index[fkey]
+            ver = '.'.join(info['version'].split('.', 2)[:2])
+            spec = '%s %s*' % (info['name'], ver)
             if update:
-                spec = '%s (target=%s.tar.bz2)' % (spec, names_linked[name])
+                spec += ' (target=%s)' % fkey
             specs.append(spec)
             continue
 
