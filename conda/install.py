@@ -825,9 +825,11 @@ def load_linked_data(prefix, dist, rec=None):
     else:
         linked_data(prefix)
     url = rec.get('url')
-    channel, schannel = url_channel(url)
     if 'fn' not in rec:
         rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
+    if not url and 'channel' in rec:
+        url = rec['url'] = rec['channel'] + rec['fn']
+    channel, schannel = url_channel(url)
     rec['channel'] = channel
     rec['schannel'] = schannel
     cprefix = '' if schannel == 'defaults' else schannel + '::'
