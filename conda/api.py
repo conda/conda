@@ -26,11 +26,12 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
         priorities = {c: p for c, p in itervalues(channel_urls)}
+        maxp = max(itervalues(priorities)) + 1
         for dist, info in iteritems(install.linked_data(prefix)):
             fn = info['fn']
             schannel = info['schannel']
             prefix = '' if schannel == 'defaults' else schannel + '::'
-            priority = priorities.get(schannel, 0)
+            priority = priorities.get(schannel, maxp)
             key = prefix + fn
             if key in index:
                 # Copy the link information so the resolver knows this is installed
