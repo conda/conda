@@ -273,7 +273,7 @@ def install(args, parser, command='install'):
         args.no_deps = True
 
     if args.no_deps:
-        only_names = set(s.split()[0] for s in specs)
+        only_names = set(s.split()[0] for s in ospecs)
     else:
         only_names = None
 
