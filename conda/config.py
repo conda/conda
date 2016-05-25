@@ -14,7 +14,7 @@ from collections import OrderedDict
 from os.path import abspath, expanduser, isfile, isdir, join
 from platform import machine
 
-from conda.compat import urlparse
+from conda.compat import urlparse, string_types
 from conda.utils import try_write, memoized, yaml_load
 
 log = logging.getLogger(__name__)
@@ -392,6 +392,9 @@ channel_priority = bool(rc.get('channel_priority', True))
 ssl_verify = rc.get('ssl_verify', True)
 
 try:
-    track_features = set(rc['track_features'])
+    track_features = rc['track_features']
+    if isinstance(track_features, string_types):
+        track_features = track_features.split()
+    track_features = set(track_features)
 except KeyError:
     track_features = None

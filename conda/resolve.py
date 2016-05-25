@@ -11,6 +11,7 @@ from conda.console import setup_handlers
 from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.toposort import toposort
 from conda.version import VersionSpec, normalized_version
+from conda import config
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -273,19 +274,29 @@ class Package(object):
 
 
 class Resolve(object):
+    def add_feature(self, fstr, group=True):
+        fpkg = fstr + '@'
+        if fpkg in self.index:
+            return
+        self.index[fpkg] = {
+            'name': fpkg, 'channel': '@', 'priority': 0,
+            'version': '0', 'build_number': 0,
+            'build': '', 'depends': [], 'track_features': fstr}
+        if group:
+            self.groups[fpkg] = [fpkg]
+            self.trackers[fstr] = [fpkg]
+
     def __init__(self, index, sort=False, processed=False):
+        self.index = index
         if not processed:
             for fkey, info in iteritems(index.copy()):
                 for fstr in chain(info.get('features', '').split(),
-                                  info.get('track_features', '').split()):
-                    fpkg = fstr + '@'
-                    if fpkg not in index:
-                        index[fpkg] = {
-                            'name': fpkg, 'channel': '@', 'priority': 0,
-                            'version': '0', 'build_number': 0,
-                            'build': '', 'depends': [], 'track_features': fstr}
+                                  info.get('track_features', '').split(),
+                                  config.track_features or ()):
+                    self.add_feature(fstr, group=False)
                 for fstr in iterkeys(info.get('with_features_depends', {})):
                     index['%s[%s]' % (fkey, fstr)] = info
+                    self.add_feature(fstr, group=False)
 
         groups = {}
         trackers = {}
@@ -297,7 +308,6 @@ class Resolve(object):
             if 'link' in info:
                 installed.add(fkey)
 
-        self.index = index
         self.groups = groups
         self.installed = installed
         self.trackers = trackers
@@ -425,6 +435,7 @@ class Resolve(object):
         for s in specs:
             ms = MatchSpec(s)
             if ms.name[-1] == '@':
+                self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
                 continue
             if not ms.optional:
