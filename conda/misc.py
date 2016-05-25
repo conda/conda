@@ -93,11 +93,9 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
                 _, conflict = install.find_new_location(dist)
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
+                channels[url_p + '/'] = (schannel, 0)
                 actions[FETCH].append(dist)
-                if md5:
-                    # Need to verify against the package index
-                    verifies.append((dist + '.tar.bz2', md5))
-                    channels[url_p + '/'] = (schannel, 0)
+                verifies.append((dist + '.tar.bz2', md5))
             actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
@@ -106,19 +104,21 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
             actions[UNLINK].append(linked[name])
         actions[LINK].append(dist)
 
+    # Pull the repodata for channels we are using
+    if channels:
+        index.update(fetch_index(channels, **fetch_args))
+
     # Finish the MD5 verification
-    if verifies:
-        index = fetch_index(channels, **fetch_args)
-        for fn, md5 in verifies:
-            info = index.get(fn)
-            if info is None:
-                sys.exit("Error: no package '%s' in index" % fn)
-            if 'md5' not in info:
-                sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
-            if info['md5'] != md5:
-                sys.exit(
-                    'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
-                    % (fn, md5, info['md5']))
+    for fn, md5 in verifies:
+        info = index.get(fn)
+        if info is None:
+            sys.exit("Error: no package '%s' in index" % fn)
+        if md5 and 'md5' not in info:
+            sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+        if md5 and info['md5'] != md5:
+            sys.exit(
+                'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
+                % (fn, md5, info['md5']))
 
     execute_actions(actions, index=index, verbose=verbose)
     return actions
