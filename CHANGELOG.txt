@@ -1,3 +1,8 @@
+2016-05-26   4.0.7:
+-------------------
+  * workaround for boto bug, #2380
+
+
 2016-05-11   4.0.6:
 -------------------
   * log "custom" versions as updates rather than downgrades, #2290
