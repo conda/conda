@@ -20,59 +20,61 @@ override this behavior.)
       64-bit.  The value depends on the ``ARCH`` environment variable, and
       defaults to the architecture the interpreter running conda was
       compiled with
-  * - ``CONDA_BUILD=1``
-    - Always set
-  * - ``SRC_DIR``
-    - Path to where source is unpacked (or cloned). If the source file is not
-      a recognized file type (right now, ``.zip``, ``.tar``, ``.tar.bz2``,
-      ``.tar.xz``, and ``.tar``), this is a directory containing a copy of the
-      source file
-  * - ``PREFIX``
-    - Build prefix where build script should install to
-  * - ``RECIPE_DIR``
-    - Directory of recipe
-  * - ``PKG_NAME``
-    - Name of the package being built
-  * - ``PKG_VERSION``
-    - Version of the package being built
-  * - ``PKG_BUILDNUM``
-    - Build number of the package being built
-  * - ``MAKEFLAGS``
-    - Inherited from your shell environment. May be used to set additional 
-      arguments to make, such as `-j2`, which will use 2 CPU cores to build
-      your recipe.
-  * - ``PYTHON``
-    - Path to Python executable in build prefix (note that Python is only
-      installed in the build prefix when it is listed as a build requirement)
-  * - ``PY3K``
-    - ``1`` when Python 3 is installed in build prefix, else ``0``
-  * - ``STDLIB_DIR``
-    - Python standard library location
-  * - ``SP_DIR``
-    - Python's site-packages location
-  * - ``PY_VER``
-    - Python version building against (Set via `--python` arg or via `CONDA_PY` environment variable.)
-  * - ``NPY_VER``
-    - Numpy version building against (Set via `--numpy` arg or via `CONDA_NPY` environment variable.)
-  * - ``R``
-    - Path to R executable in build prefix (note that R is only
-      installed in the build prefix when it is listed as a build requirement).
-  * - ``CPU_COUNT``
-    - Number of CPUs on the system, as reported by
-      ``multiprocessing.cpu_count()``
-  * - ``LANG``
-    - Inherited from your shell environment.
-  * - ``HTTP_PROXY``
-    - Inherited from your shell environment.
-  * - ``HTTPS_PROXY``
-    - Inherited from your shell environment.
-  * - ``PATH``
-    - Inherited from your shell environment, and augmented with ``$PREFIX/bin``
   * - ``CMAKE_GENERATOR``
     - The CMake generator string for the current build environment. On Unix
       systems, this is always "Unix Makefiles". On Windows, it is generated
       according to the Visual Studio version activated at build time,
       e.g. "Visual Studio 9 2008 Win64"
+  * - ``CONDA_BUILD=1``
+    - Always set
+  * - ``CPU_COUNT``
+    - Number of CPUs on the system, as reported by
+      ``multiprocessing.cpu_count()``
+  * - ``DIRTY``
+    - Set to 1 if `--dirty` flag passed to `conda build` command.  May be used to skip parts of
+      build script conditionally (downloads, extraction, other things that need not be repeated
+      for faster iteration time when developing recipes)
+  * - ``HTTP_PROXY``
+    - Inherited from your shell environment.
+  * - ``HTTPS_PROXY``
+    - Inherited from your shell environment.
+  * - ``LANG``
+    - Inherited from your shell environment.
+  * - ``MAKEFLAGS``
+    - Inherited from your shell environment. May be used to set additional
+      arguments to make, such as `-j2`, which will use 2 CPU cores to build
+      your recipe.
+  * - ``NPY_VER``
+    - Numpy version building against (Set via `--numpy` arg or via `CONDA_NPY` environment variable.)
+  * - ``PATH``
+    - Inherited from your shell environment, and augmented with ``$PREFIX/bin``
+  * - ``PREFIX``
+    - Build prefix where build script should install to
+  * - ``PKG_BUILDNUM``
+    - Build number of the package being built
+  * - ``PKG_NAME``
+    - Name of the package being built
+  * - ``PKG_VERSION``
+    - Version of the package being built
+  * - ``PYTHON``
+    - Path to Python executable in build prefix (note that Python is only
+      installed in the build prefix when it is listed as a build requirement)
+  * - ``PY3K``
+    - ``1`` when Python 3 is installed in build prefix, else ``0``
+  * - ``R``
+    - Path to R executable in build prefix (note that R is only
+      installed in the build prefix when it is listed as a build requirement).
+  * - ``RECIPE_DIR``
+    - Directory of recipe
+  * - ``SP_DIR``
+    - Python's site-packages location
+  * - ``SRC_DIR``
+    - Path to where source is unpacked (or cloned). If the source file is not
+      a recognized file type (right now, ``.zip``, ``.tar``, ``.tar.bz2``,
+      ``.tar.xz``, and ``.tar``), this is a directory containing a copy of the
+      source file
+  * - ``STDLIB_DIR``
+    - Python standard library location
 
 When building "Unix-style" packages on Windows, which are then usually
 statically linked to executables, we do this in a special *Library* directory
@@ -81,18 +83,18 @@ defined in Windows:
 
 .. list-table::
 
-  * - ``LIBRARY_PREFIX``
-    - ``<build prefix>\Library``
+  * - ``CYGWIN_PREFIX``
+    - Same as ``PREFIX``, but as a Unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
   * - ``LIBRARY_BIN``
     - ``<build prefix>\Library\bin``
   * - ``LIBRARY_INC``
     - ``<build prefix>\Library\include``
   * - ``LIBRARY_LIB``
     - ``<build prefix>\Library\lib``
+  * - ``LIBRARY_PREFIX``
+    - ``<build prefix>\Library``
   * - ``SCRIPTS``
     - ``<build prefix>\Scripts``
-  * - ``CYGWIN_PREFIX``
-    - Same as ``PREFIX``, but as a Unix-style path, e.g. ``/cygdrive/c/path/to/prefix``
   * - ``VS_MAJOR``
     - The major version number of the Visual Studio version activated within the 
       build, e.g. ``9``
@@ -107,17 +109,15 @@ On non-Windows (Linux and OS X), we have:
 
 .. list-table::
 
-  * - ``PKG_CONFIG_PATH``
-    - Path to ``pkgconfig`` directory
   * - ``HOME``
     - Standard ``$HOME`` environment variable
+  * - ``PKG_CONFIG_PATH``
+    - Path to ``pkgconfig`` directory
 
 On OS X, we have:
 
 .. list-table::
 
-  * - ``OSX_ARCH``
-    - ``i386`` or ``x86_64``, depending on Python build
   * - ``CFLAGS``
     - ``-arch`` flag
   * - ``CXXFLAGS``
@@ -126,6 +126,8 @@ On OS X, we have:
     - Same as ``CFLAGS``
   * - ``MACOSX_DEPLOYMENT_TARGET``
     - Same as the Anaconda Python. Currently ``10.6``
+  * - ``OSX_ARCH``
+    - ``i386`` or ``x86_64``, depending on Python build
 
 On Linux, we have:
 
@@ -142,16 +144,16 @@ or ``path``, the following variables are defined:
 
 .. list-table::
 
-   * - ``GIT_DESCRIBE_TAG``
-     - string denoting the most recent tag from the current commit (based on
-       the output of ``git describe --tags``)
-   * - ``GIT_DESCRIBE_NUMBER``
-     - string denoting the number of commits since the most recent tag
-   * - ``GIT_DESCRIBE_HASH``
-     - the current commit short-hash as displayed from ``git describe --tags``
    * - ``GIT_BUILD_STR``
      - a string that joins ``GIT_DESCRIBE_NUMBER`` and ``GIT_DESCRIBE_HASH``
        by an underscore
+   * - ``GIT_DESCRIBE_HASH``
+     - the current commit short-hash as displayed from ``git describe --tags``
+   * - ``GIT_DESCRIBE_NUMBER``
+     - string denoting the number of commits since the most recent tag
+   * - ``GIT_DESCRIBE_TAG``
+     - string denoting the most recent tag from the current commit (based on
+       the output of ``git describe --tags``)
    * - ``GIT_FULL_HASH``
      - a string with the full SHA1 of the current HEAD
 
