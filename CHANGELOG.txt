@@ -19,13 +19,17 @@
   * fixes a thread safety issue with http requests, #2377, #2383
   * manage BeeGFS hard-links non-POSIX configuration, #2355
   * prevent version downgrades during removes, #2394
-  * workaround for boto bug, #2380
   * fix conda info --json, #2445
   * truncate shebangs over 127 characters using /usr/bin/env, #2479
   * extract packages to a temporary directory then rename, #2425, #2483
   * fix help in install, #2460
   * fix re-install bug when sha1 differs, #2507
   * fix a bug with file deletion, #2499
+
+
+2016-05-26   4.0.7:
+-------------------
+  * workaround for boto bug, #2380
 
 
 2016-05-11   4.0.6:
