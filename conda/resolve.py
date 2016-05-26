@@ -6,19 +6,18 @@ from collections import defaultdict
 from itertools import chain
 
 from conda.compat import iterkeys, itervalues, iteritems
-from conda.config import subdir, canonical_channel_name, channel_priority
 from conda.console import setup_handlers
 from conda.logic import minimal_unsatisfiable_subset, Clauses
 from conda.toposort import toposort
 from conda.version import VersionSpec, normalized_version
-from conda import config
+from conda.install import dist2quad
+from conda.config import subdir, channel_priority, canonical_channel_name, track_features
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
-
 
 def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
@@ -182,7 +181,7 @@ class MatchSpec(object):
             version = info.get('version')
             build = info.get('build')
         else:
-            name, version, build = info[:-8].rsplit('-', 2)
+            name, version, build, schannel = dist2quad(info[:-8])
         if name != self.name:
             return False
         return self.match_fast(version, build)
@@ -292,7 +291,7 @@ class Resolve(object):
             for fkey, info in iteritems(index.copy()):
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
-                                  config.track_features or ()):
+                                  track_features or ()):
                     self.add_feature(fstr, group=False)
                 for fstr in iterkeys(info.get('with_features_depends', {})):
                     index['%s[%s]' % (fkey, fstr)] = info
@@ -644,17 +643,14 @@ class Resolve(object):
     def track_features(self, fkey):
         return set(self.index[fkey].get('track_features', '').split())
 
-    def package_triple(self, fkey):
+    def package_quad(self, fkey):
         rec = self.index.get(fkey, None)
         if rec is None:
-            fkey = fkey.rsplit('[', 1)[0].rsplit('/', 1)[-1]
-            if fkey.endswith('.tar.bz2'):
-                fkey = fkey[:-8]
-            return fkey.rsplit('-', 2)
-        return (rec['name'], rec['version'], rec['build'])
+            return dist2quad(fkey.rsplit('[', 1)[0].rsplit('/', 1)[-1])
+        return (rec['name'], rec['version'], rec['build'], rec.get('schannel', 'defaults'))
 
     def package_name(self, fkey):
-        return self.package_triple(fkey)[0]
+        return self.package_quad(fkey)[0]
 
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
@@ -833,7 +829,7 @@ class Resolve(object):
         match the installed packages as closely as possible.
         If no substitute is found, None is returned.
         """
-        name, version, unused_build = fn.rsplit('-', 2)
+        name, version, unused_build, schannel = dist2quad(fn)
         candidates = {}
         for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
             fn1 = pkg.fn
@@ -861,7 +857,7 @@ class Resolve(object):
                 xtra.append(fn)
             else:
                 dists[fn] = rec
-                specs.append(MatchSpec(' '.join(self.package_triple(fn))))
+                specs.append(MatchSpec(' '.join(self.package_quad(fn)[:3])))
         if xtra:
             log.debug('Packages missing from index: %s' % ', '.join(xtra))
         r2 = Resolve(dists, True, True)
@@ -907,7 +903,7 @@ class Resolve(object):
         for pkg in installed:
             if pkg not in self.index:
                 continue
-            name, version, build = self.package_triple(pkg)
+            name, version, build, schannel = self.package_quad(pkg)
             if name in snames or limit is not None and name not in limit:
                 continue
             # If update_deps=True, set the target package in MatchSpec so that
@@ -935,7 +931,7 @@ class Resolve(object):
         limit, _ = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
-            nm, ver, build = self.package_triple(pkg)
+            nm, ver, build, schannel = self.package_quad(pkg)
             if nm in snames:
                 continue
             elif limit is not None:

@@ -14,6 +14,7 @@ from conda.config import (envs_dirs, default_prefix, platform, update_dependenci
                           root_dir, root_writable, disallow)
 from conda.resolve import MatchSpec
 from conda.utils import memoize
+from conda.install import dist2quad
 
 
 class Completer(object):
@@ -76,7 +77,7 @@ class Packages(Completer):
         if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
-        return [i.rsplit('-', 2)[0] for i in index]
+        return [dist2quad(i)[0] for i in index]
 
 class InstalledPackages(Completer):
     def __init__(self, prefix, parsed_args, **kwargs):
@@ -87,7 +88,7 @@ class InstalledPackages(Completer):
     def _get_items(self):
         import conda.install
         packages = conda.install.linked(get_prefix(self.parsed_args))
-        return [i.rsplit('-', 2)[0] for i in packages]
+        return [dist2quad(i)[0] for i in packages]
 
 def add_parser_help(p):
     """

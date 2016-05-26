@@ -26,6 +26,7 @@ from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
 from conda.utils import md5_file, human_bytes
+from conda.install import dist2quad
 
 # For backwards compatibility
 
@@ -36,8 +37,8 @@ def print_dists(dists_extras):
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
-        _, dist = install._dist2pair(dist)
-        line = fmt % tuple(dist.rsplit('-', 1))
+        dist = dist2quad(dist)
+        line = fmt % (dist[0]+'-'+dist[1], dist[2])
         if extra:
             line += extra
         print(line)
@@ -96,7 +97,7 @@ def display_actions(actions, index, show_channel_urls=None):
         dist, lt = inst.split_linkarg(arg)
         rec = index.get(dist + '.tar.bz2')
         if rec is None:
-            pkg, ver, build = dist.split('::', 2)[-1].rsplit('-', 2)
+            pkg, ver, build, schannel = dist2quad(dist)
             rec = dict(name=pkg, version=ver, build=build, channel=None,
                        schannel='<unknown>',
                        build_number=int(build) if build.isdigit() else 0)
@@ -333,11 +334,6 @@ def is_root_prefix(prefix):
     return abspath(prefix) == abspath(root_dir)
 
 
-def dist2spec3v(dist):
-    name, version, unused_build = dist.rsplit('-', 2)
-    return '%s %s*' % (name, version[:3])
-
-
 def add_defaults_to_specs(r, linked, specs, update=False):
     # TODO: This should use the pinning mechanism. But don't change the API:
     # cas uses it.
@@ -380,9 +376,12 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             # if Python/Numpy is already linked, we add that instead of the
             # default
             log.debug('H3 %s' % name)
-            spec = dist2spec3v(names_linked[name])
+            fkey = names_linked[name] + '.tar.bz2'
+            info = r.index[fkey]
+            ver = '.'.join(info['version'].split('.', 2)[:2])
+            spec = '%s %s*' % (info['name'], ver)
             if update:
-                spec = '%s (target=%s.tar.bz2)' % (spec, names_linked[name])
+                spec += ' (target=%s)' % fkey
             specs.append(spec)
             continue
 

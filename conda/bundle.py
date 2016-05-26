@@ -15,6 +15,7 @@ import conda.plan as plan
 from conda.api import get_index
 from conda.config import arch_name, platform, envs_dirs
 from conda.misc import untracked, discard_conda
+from conda.compat import itervalues
 
 
 ISO8601 = "%Y-%m-%d %H:%M:%S %z"
@@ -105,8 +106,8 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
                 path = join(prefix, f)
                 add_file(t, path, f)
         meta['bundle_prefix'] = prefix
-        meta['depends'] = [' '.join(dist.rsplit('-', 2)) for dist in
-                           sorted(install.linked(prefix))]
+        meta['depends'] = ['%(name)s %(version)s %(build)s' % info
+                           for info in itervalues(install.linked_data(prefix))]
 
     if data_path:
         add_data(t, data_path)

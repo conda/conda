@@ -10,6 +10,7 @@ import errno
 import logging
 
 from conda import install
+from conda.install import dist2quad
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        name, version, unused_build = fn.rsplit('-', 2)
+        name, version, unused_build = dist2quad(fn, channel=False)
         if s.startswith('-'):
             removed[name.lower()] = version
         elif s.startswith('+'):
@@ -207,7 +208,7 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build = pkg[1:].rsplit('-', 2)
+                    name, version, build = dist2quad(pkg[1:], channel=False)
                     if pkg.startswith('+'):
                         added[name.lower()] = (version, build)
                     elif pkg.startswith('-'):
