@@ -424,7 +424,7 @@ def name_dist(dist):
 
 
 def _dist2filename(dist, suffix='.tar.bz2'):
-    return '-'.join(dist2quad(dist))[:3] + suffix
+    return '-'.join(dist2quad(dist)[:3]) + suffix
 
 
 def create_meta(prefix, dist, info_dir, extra_info):
