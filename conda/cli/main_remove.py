@@ -113,13 +113,16 @@ def execute(args, parser):
     common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
-    index = common.get_index_trap(channel_urls=channel_urls,
-                                  prepend=not args.override_channels,
-                                  use_local=args.use_local,
-                                  use_cache=args.use_index_cache,
-                                  json=args.json,
-                                  offline=args.offline,
-                                  prefix=prefix)
+    if not args.features and args.all:
+        index = {}
+    else:
+        index = common.get_index_trap(channel_urls=channel_urls,
+                                      prepend=not args.override_channels,
+                                      use_local=args.use_local,
+                                      use_cache=args.use_index_cache,
+                                      json=args.json,
+                                      offline=args.offline,
+                                      prefix=prefix)
     specs = None
     if args.features:
         features = set(args.package_names)
