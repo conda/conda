@@ -13,6 +13,7 @@ import pytest
 from conda import install, config
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, duplicates_to_remove,
+                           dist2quad, _dist2filename, _dist2pair, name_dist,
                            delete_trash, move_path_to_trash, _get_trash_dir, on_win)
 
 from .decorators import skip_if_no_mock
@@ -447,6 +448,27 @@ class duplicates_to_remove_TestCase(unittest.TestCase):
         self.assertEqual(duplicates_to_remove(li, []), [d1])
         self.assertEqual(duplicates_to_remove(li, [d1, d2]), [])
 
+def test_dist2quad():
+    assert dist2quad('python-2.7.11-0') == ('python', '2.7.11', '0', 'defaults')
+    assert dist2quad('python-2.7.11-0.tar.bz2') == ('python', '2.7.11', '0', 'defaults')
+    assert dist2quad('test::python-2.7.11-0') == ('python', '2.7.11', '0', 'test')
+    assert dist2quad('test::python-2.7.11-0.tar.bz2') == ('python', '2.7.11', '0', 'test')
+    assert dist2quad('python-test-2.7.11-0') == ('python-test', '2.7.11', '0', 'defaults')
+    assert _dist2pair('python-2.7.11-0') == ('defaults', 'python-2.7.11-0')
+    assert _dist2pair('python-2.7.11-0.tar.bz2') == ('defaults', 'python-2.7.11-0')
+    assert _dist2pair('test::python-2.7.11-0') == ('test', 'python-2.7.11-0')
+    assert _dist2pair('test::python-2.7.11-0.tar.bz2') == ('test', 'python-2.7.11-0')
+    assert _dist2pair('python-test-2.7.11-0') == ('defaults', 'python-test-2.7.11-0')
+    assert _dist2filename('python-2.7.11-0') == 'python-2.7.11-0.tar.bz2'
+    assert _dist2filename('python-2.7.11-0.tar.bz2') == 'python-2.7.11-0.tar.bz2'
+    assert _dist2filename('test::python-2.7.11-0') == 'python-2.7.11-0.tar.bz2'
+    assert _dist2filename('test::python-2.7.11-0.tar.bz2') == 'python-2.7.11-0.tar.bz2'
+    assert _dist2filename('python-test-2.7.11-0') == 'python-test-2.7.11-0.tar.bz2'
+    assert name_dist('python-2.7.11-0') == 'python'
+    assert name_dist('python-2.7.11-0.tar.bz2') == 'python'
+    assert name_dist('test::python-2.7.11-0') == 'python'
+    assert name_dist('test::python-2.7.11-0.tar.bz2') == 'python'
+    assert name_dist('python-test-2.7.11-0') == 'python-test'
 
 def test_standalone_import():
     import sys
