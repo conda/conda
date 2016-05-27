@@ -225,7 +225,6 @@ def install(args, parser, command='install'):
                                   use_cache=args.use_index_cache,
                                   unknown=args.unknown,
                                   json=args.json,
-                                  offline=args.offline,
                                   prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
