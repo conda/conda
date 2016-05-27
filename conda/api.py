@@ -8,8 +8,7 @@ from conda.resolve import Resolve
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=False,
-              offline=False, prefix=None):
+              use_local=False, use_cache=False, unknown=False, prefix=None):
     """
     Return the index of packages available on the channels
 
@@ -19,9 +18,9 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     """
     if use_local:
         channel_urls = ['local'] + list(channel_urls)
-    channel_urls = normalize_urls(channel_urls, platform, offline)
+    channel_urls = normalize_urls(channel_urls, platform)
     if prepend:
-        channel_urls.extend(get_channel_urls(platform, offline))
+        channel_urls.extend(get_channel_urls(platform))
     channel_urls = prioritize_channels(channel_urls)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
@@ -45,7 +44,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     return index
 
 
-def get_package_versions(package, offline=False):
-    index = get_index(offline=offline)
+def get_package_versions(package):
+    index = get_index()
     r = Resolve(index)
     return r.get_pkgs(package, emptyok=True)
