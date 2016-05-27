@@ -289,6 +289,8 @@ class Resolve(object):
         self.index = index
         if not processed:
             for fkey, info in iteritems(index.copy()):
+                if fkey.endswith(']'):
+                    continue
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
                                   track_features or ()):
