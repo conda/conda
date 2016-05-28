@@ -148,7 +148,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug(str(e))
-            result.append('%-25s %-15s %15s' % dist2quad(dist, channel=False))
+            result.append('%-25s %-15s %s' % dist2quad(dist)[:3])
 
     return res, result
 

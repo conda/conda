@@ -400,31 +400,36 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
-def dist2quad(dist, channel=True):
+def dist2pair(dist):
     dist = str(dist)
+    if dist.endswith(']'):
+        dist = dist.split('[', 1)[0]
     if dist.endswith('.tar.bz2'):
         dist = dist[:-8]
-    parts = dist.rsplit('-', 2)
-    if len(parts) < 3:
-        parts = parts + [''] * (3 - len(parts))
-    chan_name, version, build = parts
-    if not channel:
-        return chan_name, version, build
-    parts = chan_name.split('::')
-    return (parts[-1], version, build,
-            'defaults' if len(parts) < 2 else parts[0])
-
-def _dist2pair(dist):
-    dparts = dist2quad(dist)
-    return (dparts[3], '-'.join(dparts[:3]))
+    parts = dist.split('::', 1)
+    return 'defaults' if len(parts) < 2 else parts[0], parts[-1]
 
 
-def name_dist(dist):
+def dist2quad(dist):
+    channel, dist = dist2pair(dist)
+    parts = dist.rsplit('-', 2) + ['', '']
+    return (parts[0], parts[1], parts[2], channel)
+
+
+def dist2name(dist):
     return dist2quad(dist)[0]
 
 
-def _dist2filename(dist, suffix='.tar.bz2'):
-    return '-'.join(dist2quad(dist)[:3]) + suffix
+def name_dist(dist):
+    return dist2name(dist)
+
+
+def dist2filename(dist, suffix='.tar.bz2'):
+    return dist2pair(dist)[1] + suffix
+
+
+def dist2dirname(dist):
+    return dist2filename(dist, '')
 
 
 def create_meta(prefix, dist, info_dir, extra_info):
@@ -442,7 +447,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
-    with open(join(meta_dir, _dist2filename(dist, '.json')), 'w') as fo:
+    with open(join(meta_dir, dist2filename(dist, '.json')), 'w') as fo:
         json.dump(meta, fo, indent=2, sort_keys=True)
     if prefix in linked_data_:
         load_linked_data(prefix, dist, meta)
@@ -573,7 +578,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
 # ========================== begin API functions =========================
 
 def try_hard_link(pkgs_dir, prefix, dist):
-    dist = _dist2filename(dist, '')
+    dist = dist2filename(dist, '')
     src = join(pkgs_dir, dist, 'info', 'index.json')
     dst = join(prefix, '.tmp-%s' % dist)
     assert isfile(src), src
@@ -707,7 +712,7 @@ def find_new_location(dist):
     rec = package_cache().get(dist)
     if rec:
         return dirname((rec['files'] or rec['dirs'])[0]), None
-    fname = _dist2filename(dist)
+    fname = dist2filename(dist)
     dname = fname[:-8]
     # Look for a location with no conflicts
     # On the second pass, just pick the first location
@@ -828,7 +833,7 @@ linked_data_ = {}
 
 
 def load_linked_data(prefix, dist, rec=None):
-    schannel, dname = _dist2pair(dist)
+    schannel, dname = dist2pair(dist)
     if rec is None:
         meta_file = join(prefix, 'conda-meta', dname + '.json')
         try:
@@ -856,7 +861,7 @@ def delete_linked_data(prefix, dist, delete=True):
     if recs and dist in recs:
         del recs[dist]
     if delete:
-        meta_path = join(prefix, 'conda-meta', _dist2filename(dist, '.json'))
+        meta_path = join(prefix, 'conda-meta', dist2filename(dist, '.json'))
         if isfile(meta_path):
             os.unlink(meta_path)
 
@@ -1050,7 +1055,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
         try:
-            alt_files_path = join(prefix, 'conda-meta', _dist2filename(dist, '.files'))
+            alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
             meta_dict['files'] = list(yield_lines(alt_files_path))
             os.unlink(alt_files_path)
         except IOError:
