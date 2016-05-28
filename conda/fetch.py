@@ -209,7 +209,7 @@ def get_proxy_username_and_pass(scheme):
     return username, passwd
 
 def add_unknown(index, priorities):
-    maxpri = max(itervalues(priorities)) + 1
+    maxp = max(itervalues(priorities)) + 1 if priorities else 1
     for pkgs_dir in pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
@@ -225,7 +225,7 @@ def add_unknown(index, priorities):
             channel = meta.setdefault('channel', '')
             url = meta[url] = channel + fn
             meta.setdefault('depends', [])
-            meta.setdefault('priority', priorities.get(channel, maxpri))
+            meta.setdefault('priority', priorities.get(channel, maxp))
             log.debug("adding cached pkg to index: %s" % url)
             index[url] = meta
 
