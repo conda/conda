@@ -26,7 +26,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
         priorities = {c: p for c, p in itervalues(channel_urls)}
-        maxp = max(itervalues(priorities)) + 1
+        maxp = max(itervalues(priorities)) + 1 if priorities else 1
         for dist, info in iteritems(install.linked_data(prefix)):
             fn = info['fn']
             schannel = info['schannel']
