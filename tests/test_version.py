@@ -20,6 +20,8 @@ class TestVersionSpec(unittest.TestCase):
            (VersionOrder("0.5z"),       [[0], [0], [5, 'z']]),
            (VersionOrder("0.5za"),      [[0], [0], [5, 'za']]),
            (VersionOrder("0.5"),        [[0], [0], [5]]),
+           (VersionOrder("0.5_5"),      [[0], [0], [5], [5]]),
+           (VersionOrder("0.5-5"),      [[0], [0], [5], [5]]),
            (VersionOrder("0.9.6"),      [[0], [0], [9], [6]]),
            (VersionOrder("0.960923"),   [[0], [0], [960923]]),
            (VersionOrder("1.0"),        [[0], [1], [0]]),
@@ -68,6 +70,8 @@ class TestVersionSpec(unittest.TestCase):
         with self.assertRaises(ValueError):
             VersionOrder("  ")
         with self.assertRaises(ValueError):
+            VersionOrder("3.5&1")
+        with self.assertRaises(ValueError):
             VersionOrder("5.5++")
         with self.assertRaises(ValueError):
             VersionOrder("5.5..mw")
@@ -77,6 +81,8 @@ class TestVersionSpec(unittest.TestCase):
             VersionOrder("!")
         with self.assertRaises(ValueError):
             VersionOrder("a!1.0")
+        with self.assertRaises(ValueError):
+            VersionOrder("a!b!1.0")
 
         # check __eq__
         self.assertEqual(VersionOrder("  0.4.rc  "), VersionOrder("0.4.RC"))
@@ -141,6 +147,14 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.0.0', '1.0*'), True)
         self.assertEqual(ver_eval('1.0', '1.0.0*'), True)
         self.assertEqual(ver_eval('1.0.1', '1.0.0*'), False)
+        self.assertEqual(ver_eval('2013a', '2013a*'), True)
+        self.assertEqual(ver_eval('2013a', '2013b*'), False)
+        self.assertEqual(ver_eval('2013ab', '2013a*'), True)
+        self.assertEqual(ver_eval('1.3.4', '1.2.4*'), False)
+        self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.3*'), True)
+        self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.3+4*'), True)
+        self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.3+5*'), False)
+        self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.4+5*'), False)
 
     def test_ver_eval_errors(self):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
@@ -153,8 +167,13 @@ class TestVersionSpec(unittest.TestCase):
             ('1.7', False),   ('1.5*', False),    ('>=1.5', True),
             ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
             ('==1.7', False), ('==1.7.2', False), ('==1.7.1.0', True),
+            ('1.7*|1.8*', True), ('1.8*|1.9*', False),
+            ('>1.7,<1.8', True), ('>1.7.1,<1.8', False)
             ]:
             m = VersionSpec(vspec)
+            assert VersionSpec(m) is m
+            assert str(m) == vspec
+            assert repr(m) == "VersionSpec('%s')"%vspec
             self.assertEqual(m.match('1.7.1'), res)
 
     def test_local_identifier(self):
