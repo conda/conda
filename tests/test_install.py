@@ -11,9 +11,9 @@ from os import makedirs, walk
 import pytest
 
 from conda import install, config
-from conda.install import (PaddingError, binary_replace, update_prefix,
-                           warn_failed_remove, duplicates_to_remove,
-                           dist2quad, _dist2filename, _dist2pair, name_dist,
+from conda.install import (PaddingError, binary_replace, update_prefix, 
+                           warn_failed_remove, duplicates_to_remove, dist2quad,
+                           dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
                            delete_trash, move_path_to_trash, _get_trash_dir, on_win)
 
 from .decorators import skip_if_no_mock
@@ -448,27 +448,23 @@ class duplicates_to_remove_TestCase(unittest.TestCase):
         self.assertEqual(duplicates_to_remove(li, []), [d1])
         self.assertEqual(duplicates_to_remove(li, [d1, d2]), [])
 
-def test_dist2quad():
-    assert dist2quad('python-2.7.11-0') == ('python', '2.7.11', '0', 'defaults')
-    assert dist2quad('python-2.7.11-0.tar.bz2') == ('python', '2.7.11', '0', 'defaults')
-    assert dist2quad('test::python-2.7.11-0') == ('python', '2.7.11', '0', 'test')
-    assert dist2quad('test::python-2.7.11-0.tar.bz2') == ('python', '2.7.11', '0', 'test')
-    assert dist2quad('python-test-2.7.11-0') == ('python-test', '2.7.11', '0', 'defaults')
-    assert _dist2pair('python-2.7.11-0') == ('defaults', 'python-2.7.11-0')
-    assert _dist2pair('python-2.7.11-0.tar.bz2') == ('defaults', 'python-2.7.11-0')
-    assert _dist2pair('test::python-2.7.11-0') == ('test', 'python-2.7.11-0')
-    assert _dist2pair('test::python-2.7.11-0.tar.bz2') == ('test', 'python-2.7.11-0')
-    assert _dist2pair('python-test-2.7.11-0') == ('defaults', 'python-test-2.7.11-0')
-    assert _dist2filename('python-2.7.11-0') == 'python-2.7.11-0.tar.bz2'
-    assert _dist2filename('python-2.7.11-0.tar.bz2') == 'python-2.7.11-0.tar.bz2'
-    assert _dist2filename('test::python-2.7.11-0') == 'python-2.7.11-0.tar.bz2'
-    assert _dist2filename('test::python-2.7.11-0.tar.bz2') == 'python-2.7.11-0.tar.bz2'
-    assert _dist2filename('python-test-2.7.11-0') == 'python-test-2.7.11-0.tar.bz2'
-    assert name_dist('python-2.7.11-0') == 'python'
-    assert name_dist('python-2.7.11-0.tar.bz2') == 'python'
-    assert name_dist('test::python-2.7.11-0') == 'python'
-    assert name_dist('test::python-2.7.11-0.tar.bz2') == 'python'
-    assert name_dist('python-test-2.7.11-0') == 'python-test'
+def test_dist2():
+    for name in ('python', 'python-hyphen', ''):
+        for version in ('2.7.0', '2.7.0rc1', ''):
+            for build in ('0', 'py27_0', 'py35_0+g34fe21', ''):
+                for channel in ('defaults', 'test', 'test-hyphen', 'http://bremen', 'https://anaconda.org/mcg', '<unknown>'):
+                    dist_noprefix = name + '-' + version + '-' + build
+                    quad = (name, version, build, channel)
+                    dist = dist_noprefix if channel == 'defaults' else channel + '::' + dist_noprefix
+                    for suffix in ('', '.tar.bz2', '[debug]', '.tar.bz2[debug]'):
+                        test = dist + suffix
+                        assert dist2quad(test) == quad
+                        assert dist2pair(test) == (channel, dist_noprefix)
+                        assert dist2name(test) == name
+                        assert name_dist(test) == name
+                        assert dist2dirname(test) == dist_noprefix
+                        assert dist2filename(test) == dist_noprefix + '.tar.bz2'
+                        assert dist2filename(test, '') == dist_noprefix
 
 def test_standalone_import():
     import sys
