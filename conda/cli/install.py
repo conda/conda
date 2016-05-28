@@ -332,7 +332,7 @@ environment does not exist: %s
             packages = {index[fn]['name'] for fn in index}
 
             nfound = 0
-            for pkg in e.pkgs:
+            for pkg in sorted(e.pkgs):
                 pkg = pkg.split()[0]
                 if pkg in packages:
                     continue
