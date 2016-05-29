@@ -3,7 +3,7 @@
 @REM   For debugging, remove the @ on the section you need to study.
 @SETLOCAL
 
-@CALL ECHO "%~1"| @FIND /I "-h" 1>NUL
+@CALL ECHO "%~1"| @%SystemRoot%\System32\find.exe /I "-h" 1>NUL
 @IF NOT ERRORLEVEL 1 (
     @call "%~dp0\..\Scripts\conda.exe" ..deactivate -h
 ) else (
