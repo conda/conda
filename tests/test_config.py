@@ -31,16 +31,15 @@ try:
 except KeyError:
     pass
 
-
 class TestConfig(unittest.TestCase):
 
     # These tests are mostly to ensure API stability
 
     def __init__(self, *args, **kwargs):
         config.rc = config.load_condarc(config.rc_path)
-        # Otherwise normalization tests will fail if the user is logged into
-        # binstar.
-        config.rc['add_binstar_token'] = False
+        # This primes _init_binstar to enter "test" mode
+        config._binstar['TEST_TOKEN'] = 'test-12345'
+        config._init_binstar(force=True)
         config.channel_alias = config.rc['channel_alias']
         super(TestConfig, self).__init__(*args, **kwargs)
 
@@ -92,8 +91,8 @@ class TestConfig(unittest.TestCase):
              'http://repo.continuum.io/pkgs/free/noarch/',
              'http://repo.continuum.io/pkgs/pro/osx-64/',
              'http://repo.continuum.io/pkgs/pro/noarch/',
-             'https://conda.anaconda.org/username/osx-64/',
-             'https://conda.anaconda.org/username/noarch/',
+             'https://conda.anaconda.org/t/test-12345/username/osx-64/',
+             'https://conda.anaconda.org/t/test-12345/username/noarch/',
              'file:///Users/username/repo/osx-64/',
              'file:///Users/username/repo/noarch/',
              'https://your.repo/username/osx-64/',
@@ -108,6 +107,10 @@ class TestConfig(unittest.TestCase):
              'http://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
              'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
              'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
+             'https://conda.anaconda.org/t/test-12345/username/noarch/': ('https://conda.anaconda.org/username', 4),
+             'https://conda.anaconda.org/t/test-12345/username/osx-64/': ('https://conda.anaconda.org/username', 4),
+             'https://conda.anaconda.org/t/<TOKEN>/username/noarch/': ('https://conda.anaconda.org/username', 4),
+             'https://conda.anaconda.org/t/<TOKEN>/username/osx-64/': ('https://conda.anaconda.org/username', 4),
              'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 4),
              'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 4),
              'https://your.repo/binstar_username/noarch/': ('binstar_username', 2),

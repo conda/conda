@@ -15,7 +15,7 @@ from os.path import abspath, expanduser, isfile, isdir, join
 from platform import machine
 
 from conda.compat import urlparse, string_types
-from conda.utils import try_write, memoized, yaml_load
+from conda.utils import try_write, yaml_load
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -102,6 +102,7 @@ rc_other = [
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 local_channel = []
+_test_token = ''
 
 def get_rc_path():
     path = os.getenv('CONDARC')
@@ -225,83 +226,98 @@ def get_rc_urls():
 def is_url(url):
     return urlparse.urlparse(url).scheme != ""
 
-@memoized
-def binstar_channel_alias(channel_alias):
-    if channel_alias.startswith('file:/'):
-        return channel_alias
-    if rc.get('add_anaconda_token',
-              rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
-        try:
+_empty = re.compile(r'$')
+_binstar = {'token': '', 'nt_re': _empty, 't_re': _empty}
+_empty = _binstar
+def _init_binstar(force=False):
+    if force:
+        _binstar.update(_empty)
+    elif 'bs' in _binstar:
+        return
+    _binstar['bs'] = None
+    try:
+        if 'TEST_TOKEN' in _binstar:
+            token = _binstar['TEST_TOKEN']
+            domain = _binstar.get('TEST_DOMAIN', DEFAULT_CHANNEL_ALIAS)
+        else:
             from binstar_client.utils import get_binstar
-            bs = get_binstar()
-            bs_domain = bs.domain.replace("api", "conda").rstrip('/') + '/'
-            if channel_alias.startswith(bs_domain) and bs.token:
-                channel_alias += 't/%s/' % bs.token
-        except ImportError:
-            log.debug("Could not import binstar")
-            pass
-        except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
-    return channel_alias
+            bs = _binstar['bs'] = get_binstar()
+            domain = bs.domain
+            token = bs.token
+        domain = re.escape(domain.replace("api", "conda").rstrip('/') + '/')
+        _binstar['t_re'] = re.compile(r'(%s)t/[0-9a-zA-Z\-<>]{4,}/' % domain)
+        if rc.get('add_anaconda_token',
+                  rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)) and token:
+            _binstar['token'] = r'\1t/%s/' % token
+            _binstar['nt_re'] = re.compile(r'(%s)(?!t/[0-9a-zA-Z\-<>]{4,}/)' % domain)
+    except ImportError:
+        log.debug("Could not import binstar")
+    except Exception as e:
+        stderrlog.info("Warning: could not import binstar_client (%s)" % e)
 
 channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
+channel_alias = channel_alias.rstrip('/') + '/'
 
-channel_alias = channel_alias.rstrip('/')
-_binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
-BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
+def binstar_channel_alias(url):
+    _init_binstar()
+    return _binstar['nt_re'].sub(_binstar['token'], url)
+
+def has_binstar_token(url):
+    return bool(_binstar['t_re'].match(url))
 
 def hide_binstar_tokens(url):
-    return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
+    return _binstar['t_re'].sub(r'\1t/<TOKEN>/', url)
 
 def remove_binstar_tokens(url):
-    return BINSTAR_TOKEN_PAT.sub(r'\1', url)
+    return _binstar['t_re'].sub(r'\1', url)
 
-channel_alias = remove_binstar_tokens(channel_alias + '/')
-
-def prioritize_channels(channels):
-    newchans = OrderedDict()
-    lastchan = None
-    priority = 0
+def prioritize_channels(channels, priorities=None):
+    if priorities is None:
+        priorities = OrderedDict()
+    if priorities:
+        lastchan = max(priorities, key=lambda x: priorities[x][1])
+        lastchan, priority = priorities[lastchan]
+    else:
+        lastchan = None
+        priority = 0
     for channel in channels:
         channel = channel.rstrip('/') + '/'
-        if channel not in newchans:
+        if channel not in priorities:
             channel_s = canonical_channel_name(channel.rsplit('/', 2)[0])
             priority += channel_s != lastchan
-            newchans[channel] = (channel_s, priority)
+            value = (channel_s, priority)
+            priorities[channel] = value
+            if has_binstar_token(channel):
+                priorities[remove_binstar_tokens(channel)] = value
+                priorities[hide_binstar_tokens(channel)] = value
             lastchan = channel_s
-    return newchans
+    return priorities
 
 def normalize_urls(urls, platform=None, offline_only=False):
-    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
-    alias = None
     newurls = []
-    while urls:
-        url = urls[0]
-        urls = urls[1:]
-        if url == "system" and rc_path:
-            urls = get_rc_urls() + urls
-            continue
-        elif url in ("defaults", "system"):
-            t_urls = defaults
-        elif url == "local":
-            t_urls = get_local_urls()
-        else:
-            t_urls = [url]
-        for url0 in t_urls:
-            url0 = url0.rstrip('/')
-            if not is_url(url0):
-                if alias is None:
-                    alias = binstar_channel_alias(channel_alias)
-                url0 = alias + url0
-            if offline_only and not url0.startswith('file:'):
-                continue
-            for plat in (platform or subdir, 'noarch'):
-                newurls.append('%s/%s/' % (url0, plat))
-    return newurls
+    platforms = (platform or subdir, 'noarch')
 
-offline = bool(rc.get('offline', False))
+    def normalize_(urls):
+        for url in urls:
+            if url == "system" and rc_path:
+                normalize_(get_rc_urls())
+            elif url in ("defaults", "system"):
+                normalize_(get_default_urls())
+            elif url == "local":
+                normalize_(get_local_urls())
+            else:
+                url0 = url.rstrip('/') + '/'
+                if not is_url(url0):
+                    url0 = channel_alias + url0
+                if offline_only and not url0.startswith('file:'):
+                    continue
+                url0 = binstar_channel_alias(url0)
+                for plat in platforms:
+                    newurls.append('%s%s/' % (url0, plat))
+    normalize_(urls)
+    return newurls
 
 def get_channel_urls(platform=None, offline=False):
     if os.getenv('CIO_TEST'):
