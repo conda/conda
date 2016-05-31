@@ -27,7 +27,6 @@ examples:
     conda env create -f=/path/to/requirements.txt -n deathstar
 """
 
-
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'create',
@@ -42,13 +41,23 @@ def configure_parser(sub_parsers):
         help='environment definition file (default: environment.yml)',
         default='environment.yml',
     )
-    p.add_argument(
-        '-n', '--name',
-        action='store',
-        help='environment definition',
-        default=None,
-        dest='name'
-    )
+    # p.add_argument(
+        # '-n', '--name',
+        # action='store',
+        # help='environment definition',
+        # default=None,
+        # dest='name'
+    # )
+    # p.add_argument(
+        # '-p', '--prefix',
+        # action='store',
+        # help='full path',
+        # default=None,
+        # dest='pathPrefix'
+    # )
+
+    common.add_parser_prefix(p)
+
     p.add_argument(
         '-q', '--quiet',
         action='store_true',
@@ -79,19 +88,23 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     name = args.remote_definition or args.name
+
     try:
         spec = specs.detect(name=name, filename=args.file,
                             directory=os.getcwd(), selectors=args.select)
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix
-        if args.name is None:
+        if args.prefix is None:
             args.name = env.name
+
+        #print("Args name is {}".format(args.name))
 
     except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
 
     prefix = common.get_prefix(args, search=False)
+
     if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
