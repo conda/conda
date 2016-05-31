@@ -51,7 +51,7 @@ def from_environment(name, prefix, no_builds=False):
 
     channels = config.get_rc_urls()
 
-    return Environment(name=name, dependencies=dependencies, channels=channels)
+    return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
 
 
 def from_yaml(yamlstr, **kwargs):
@@ -167,9 +167,10 @@ class Dependencies(OrderedDict):
 
 class Environment(object):
     def __init__(self, name=None, filename=None, channels=None,
-                 dependencies=None, selectors=None):
+                 dependencies=None, selectors=None, prefix=None):
         self.name = name
         self.filename = filename
+        self.prefix = prefix
         self.dependencies = Dependencies(dependencies)
 
         if channels is None:
@@ -194,6 +195,8 @@ class Environment(object):
             d['dependencies'] = self.dependencies.raw
         if self.selectors:
             d['selectors'] = self.selectors
+        if self.prefix:
+            d['prefix'] = self.prefix
         return d
 
     def to_yaml(self, stream=None):
