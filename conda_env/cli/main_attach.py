@@ -32,6 +32,13 @@ def configure_parser(sub_parsers):
         default=None
     )
     group.add_argument(
+        '-p', "--prefix",
+        action="store",
+        help="Full path to environment prefix",
+        metavar='PATH',
+        default=None
+    )
+    group.add_argument(
         '-r', '--remote',
         action='store',
         help='remote environment definition',
@@ -61,7 +68,11 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    if args.name is not None:
+    # if args.name is not None:
+        # prefix = common.get_prefix(args)
+        # content = from_environment(args.name, prefix, no_builds=args.no_builds).to_dict()
+
+    if args.prefix is None:
         prefix = common.get_prefix(args)
         content = from_environment(args.name, prefix, no_builds=args.no_builds).to_dict()
     else:
