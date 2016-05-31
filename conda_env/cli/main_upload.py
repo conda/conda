@@ -1,5 +1,4 @@
 import textwrap
-
 from argparse import RawDescriptionHelpFormatter
 from conda.cli import common
 from .. import exceptions
