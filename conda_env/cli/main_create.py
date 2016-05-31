@@ -41,20 +41,6 @@ def configure_parser(sub_parsers):
         help='environment definition file (default: environment.yml)',
         default='environment.yml',
     )
-    # p.add_argument(
-        # '-n', '--name',
-        # action='store',
-        # help='environment definition',
-        # default=None,
-        # dest='name'
-    # )
-    # p.add_argument(
-        # '-p', '--prefix',
-        # action='store',
-        # help='full path',
-        # default=None,
-        # dest='pathPrefix'
-    # )
 
     common.add_parser_prefix(p)
 
