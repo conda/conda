@@ -545,6 +545,21 @@ def _get_trash_dir(pkg_dir):
     unc_prefix = u'\\\\?\\' if sys.platform == 'win32' else ''
     return unc_prefix + join(pkg_dir, '.trash')
 
+
+def _safe_relpath(path, start_path):
+    """
+    Used in the move_to_trash flow. Ensures that the result does not
+    start with any '..' which would allow to escape the trash folder
+    (and root prefix) and potentially ruin the user's system.
+    """
+    result = normpath(relpath(path, start_path))
+    parts = result.rsplit(os.sep)
+    for idx, part in enumerate(parts):
+        if part != u'..':
+            return os.sep.join(parts[idx:])
+    return u''
+
+
 def delete_trash(prefix=None):
     from conda import config
     for pkg_dir in config.pkgs_dirs:
@@ -557,7 +572,7 @@ def delete_trash(prefix=None):
 
 def move_to_trash(prefix, f, tempdir=None):
     """
-    Move a file f from prefix to the trash
+    Move a file or folder f from prefix to the trash
 
     tempdir is a deprecated parameter, and will be ignored.
 
@@ -585,7 +600,7 @@ def move_path_to_trash(path):
                 continue
 
         trash_dir = tempfile.mkdtemp(dir=trash_dir)
-        trash_dir = join(trash_dir, relpath(os.path.dirname(path), config.root_dir))
+        trash_dir = join(trash_dir, _safe_relpath(os.path.dirname(path), config.root_dir))
 
         try:
             os.makedirs(trash_dir)
