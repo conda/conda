@@ -5,7 +5,7 @@ import stat
 import tempfile
 import unittest
 from sys import platform
-from os.path import join, basename
+from os.path import join, basename, relpath, exists
 from os import makedirs, walk
 
 import pytest
@@ -135,6 +135,16 @@ class FileTests(unittest.TestCase):
         contents = [basename(dp) for dp, dn, fn in walk(trash)]
         self.assertTrue(longfoldername not in contents)
 
+    def test_trash_outside_prefix(self):
+        from conda.config import root_dir
+        tmp_dir = tempfile.mkdtemp()
+        rel = relpath(tmp_dir, root_dir)
+        self.assertTrue(rel.startswith(u'..'))
+        move_path_to_trash(tmp_dir)
+        self.assertFalse(exists(tmp_dir))
+        makedirs(tmp_dir)
+        move_path_to_trash(tmp_dir)
+        self.assertFalse(exists(tmp_dir))
 
 class remove_readonly_TestCase(unittest.TestCase):
     def test_takes_three_args(self):
