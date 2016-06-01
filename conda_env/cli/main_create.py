@@ -43,6 +43,7 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
 
+    # Add name and prefix args
     common.add_parser_prefix(p)
 
     p.add_argument(
@@ -84,8 +85,6 @@ def execute(args, parser):
         # FIXME conda code currently requires args to have a name or prefix
         if args.prefix is None:
             args.name = env.name
-
-        #print("Args name is {}".format(args.name))
 
     except exceptions.SpecNotFound as e:
         common.error_and_exit(str(e), json=args.json)
