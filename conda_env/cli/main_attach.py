@@ -68,11 +68,6 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    # if args.name is not None:
-
-        # prefix = common.get_prefix(args)
-        # content = from_environment(args.name, prefix, no_builds=args.no_builds).to_dict()
-
 
     if args.prefix is None:
         prefix = common.get_prefix(args)
