@@ -567,7 +567,7 @@ variables are defined. Unless otherwise stated, the variables are booleans.
    * - ``py35``
      - True if the Python version is 3.5
    * - ``np``
-     - The NumPy version as a two digit string (like ``'17'``).  See also the
+     - The NumPy version as an integer (like ``111``).  See also the
        ``CONDA_NPY`` environment variable :ref:`below <build-envs>`.
 
 Because the selector is any valid Python expression, complicated logic is
