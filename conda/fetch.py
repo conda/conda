@@ -16,16 +16,17 @@ import tempfile
 import warnings
 from functools import wraps
 from logging import getLogger
-from os.path import basename, dirname, isdir, join
+from os.path import basename, dirname, join
 
 import requests
 
 from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from conda.config import pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens, \
     hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency, ssl_verify, \
-    rc, prioritize_channels
+    rc, prioritize_channels, url_channel
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.install import add_cached_package, find_new_location
+from conda.install import add_cached_package, find_new_location, \
+    package_cache, _dist2filename
 from conda.lock import Locked
 from conda.utils import memoized
 
@@ -209,25 +210,29 @@ def get_proxy_username_and_pass(scheme):
     return username, passwd
 
 def add_unknown(index, priorities):
-    maxpri = max(itervalues(priorities)) + 1
-    for pkgs_dir in pkgs_dirs:
-        if not isdir(pkgs_dir):
+    maxp = max(itervalues(priorities)) + 1 if priorities else 1
+    for fkey, info in iteritems(package_cache()):
+        if fkey in index or not info['dirs']:
             continue
-        for dn in os.listdir(pkgs_dir):
-            fn = dn + '.tar.bz2'
-            if fn in index:
-                continue
-            try:
-                with open(join(pkgs_dir, dn, 'info', 'index.json')) as fi:
-                    meta = json.load(fi)
-            except IOError:
-                continue
-            channel = meta.setdefault('channel', '')
-            url = meta[url] = channel + fn
-            meta.setdefault('depends', [])
-            meta.setdefault('priority', priorities.get(channel, maxpri))
-            log.debug("adding cached pkg to index: %s" % url)
-            index[url] = meta
+        try:
+            with open(join(info['dirs'][0], 'info', 'index.json')) as fi:
+                meta = json.load(fi)
+        except IOError:
+            continue
+        fname = _dist2filename(fkey)
+        if info['urls']:
+            url = info['urls'][0]
+        elif 'url' in meta:
+            url = meta['url']
+        else:
+            url = meta.get('channel', '<unknown>/') + fname
+        channel, schannel = url_channel(url)
+        priority = priorities.get(schannel, maxp)
+        meta.update({'fn': fname, 'url': url, 'channel': channel,
+                     'schannel': channel, 'priority': priority})
+        meta.setdefault('depends', [])
+        log.debug("adding cached pkg to index: %s" % url)
+        index[url] = meta
 
 def add_pip_dependency(index):
     for info in itervalues(index):

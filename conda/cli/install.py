@@ -330,16 +330,23 @@ environment does not exist: %s
         else:
             packages = {index[fn]['name'] for fn in index}
 
-            for pkg in e.pkgs:
+            nfound = 0
+            for pkg in sorted(e.pkgs):
+                pkg = pkg.split()[0]
+                if pkg in packages:
+                    continue
                 close = get_close_matches(pkg, packages, cutoff=0.7)
-                if close:
-                    error_message += ("\n\nDid you mean one of these?"
-                                      "\n\n    %s" % (', '.join(close)))
-            error_message += '\n\nYou can search for this package on anaconda.org with'
+                if not close:
+                    continue
+                if nfound == 0:
+                    error_message += "\n\nClose matches found; did you mean one of these?\n"
+                error_message += "\n    %s: %s" % (pkg, ', '.join(close))
+                nfound += 1
+            error_message += '\n\nYou can search for packages on anaconda.org with'
             error_message += '\n\n    anaconda search -t conda %s' % pkg
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
-                error_message += '\n\n (and similarly for the other packages)'
+                error_message += '\n\n(and similarly for the other packages)'
 
             if not find_executable('anaconda', include_others=False):
                 error_message += '\n\nYou may need to install the anaconda-client'
