@@ -20,6 +20,11 @@ from contextlib import contextmanager
 import conda.cli as cli
 from conda.compat import StringIO
 
+expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
+def strip_expected(stderr):
+    if expected_error_prefix and stderr.startswith(expected_error_prefix):
+        stderr = stderr[len(expected_error_prefix):].lstrip()
+    return stderr
 
 def raises(exception, func, string=None):
     try:
@@ -39,7 +44,7 @@ def run_conda_command(*args):
 
     stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
                       for stream in p.communicate()]
-    return stdout, stderr
+    return stdout, strip_expected(stderr)
 
 
 class CapturedText(object):
@@ -70,7 +75,7 @@ def captured(disallow_stderr=True):
     c = CapturedText()
     yield c
     c.stdout = outfile.getvalue()
-    c.stderr = errfile.getvalue()
+    c.stderr = strip_expected(errfile.getvalue())
     sys.stdout = stdout
     sys.stderr = stderr
     if disallow_stderr and c.stderr:
@@ -99,7 +104,7 @@ def capture_with_argv(*argv):
     print('>>>>>>>>> stderr >>>>>>>>>')
     print(stderr)
     print('>>>>>>>>>')
-    return stdout, stderr
+    return stdout, strip_expected(stderr)
 
 
 def capture_json_with_argv(*argv, **kwargs):
