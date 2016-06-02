@@ -144,6 +144,14 @@ environment variables or the system. Setting them here overrides that default.
       http: http://user:pass@corp.com:8080
       https: https://user:pass@corp.com:8080
 
+To give a proxy for a specific scheme and host, use the scheme://hostname form
+for the key. This will match for any request to the given scheme and exact hostname.
+
+.. code-block:: yaml
+
+  proxy_servers:
+    'http://10.20.1.128': 'http://10.10.1.10:5323'
+
 Note: If you do not include the username and password, of if authentication
 fails, conda will prompt for a username and password.
 
