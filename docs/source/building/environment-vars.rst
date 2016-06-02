@@ -180,6 +180,27 @@ so the ``git_url`` is ``../``:
      source:
        git_url: ../
 
+It is also possible to use the older syntax for these environment variables,
+although it is somewhat more verbose, and the newer syntax checks to make sure
+the variable is defined and produces a clear error if it is not. This is the
+example above using the older syntax:
+
+.. code-block:: yaml
+
+     package:
+       name: mypkg
+       version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+
+     build:
+       number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+
+       # Note that this will override the default build string with the Python
+       # and NumPy versions
+       string: {{ environ.get('GIT_BUILD_STR', '') }}
+
+     source:
+       git_url: ../
+
 All of the above environment variables are also set during the test process,
 except with the test prefix instead of the build prefix everywhere.
 
