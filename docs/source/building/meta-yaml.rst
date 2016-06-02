@@ -556,12 +556,8 @@ variables are defined. Unless otherwise stated, the variables are booleans.
      - True if the Python major version is 3
    * - ``py2k``
      - True if the Python major version is 2
-   * - ``py26``
-     - True if the Python version is 2.6
    * - ``py27``
      - True if the Python version is 2.7
-   * - ``py33``
-     - True if the Python version is 3.3
    * - ``py34``
      - True if the Python version is 3.4
    * - ``py35``
