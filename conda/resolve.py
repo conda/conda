@@ -407,16 +407,18 @@ class Resolve(object):
         Returns:
             A list of tuples, or an empty list if the MatchSpec is valid.
         """
-        def chains_(spec, top=None):
-            if spec.name == top or self.valid(spec, filter):
-                return []
-            notfound = set()
+        def chains_(spec, names):
+            if spec.name in names or self.valid(spec, filter):
+                return
+            names.add(spec.name)
             specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
+            if not specs:
+                yield (spec,)
             for fkey in specs:
                 for m2 in self.ms_depends(fkey):
-                    notfound.update(chains_(m2))
-            return [(spec,) + x for x in notfound] if notfound else [(spec,)]
-        return chains_(spec)
+                    for x in chains_(m2, names):
+                        yield (spec,) + x
+        return list(chains_(spec, set()))
 
     def verify_specs(self, specs):
         """Perform a quick verification that specs and dependencies are reasonable.
