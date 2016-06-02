@@ -21,12 +21,11 @@ from os.path import basename, dirname, join
 import requests
 
 from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
-from conda.config import pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens, \
-    hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency, ssl_verify, \
-    rc, prioritize_channels, url_channel
+from conda.config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
+                          hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
+                          ssl_verify, rc, prioritize_channels, url_channel)
 from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.install import add_cached_package, find_new_location, \
-    package_cache, _dist2filename
+from conda.install import add_cached_package, find_new_location, package_cache, dist2filename
 from conda.lock import Locked
 from conda.utils import memoized
 
@@ -219,7 +218,7 @@ def add_unknown(index, priorities):
                 meta = json.load(fi)
         except IOError:
             continue
-        fname = _dist2filename(fkey)
+        fname = dist2filename(fkey)
         if info['urls']:
             url = info['urls'][0]
         elif 'url' in meta:
