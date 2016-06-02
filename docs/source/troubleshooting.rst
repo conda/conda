@@ -10,6 +10,7 @@ Table of contents:
 #. :ref:`unknown-locale`
 #. :ref:`AttributeError-getproxies`
 #. :ref:`shell-command-location`
+#. :ref:`wrong-python`
 
 .. _permission-denied:
 
@@ -193,8 +194,8 @@ On Windows ``PYTHONPATH`` can be cleared in the environment variable settings.
 On OS X and Linux it can typically be cleared by removing it from the bash
 profile and restarting the shell.
 
-.. _shell-command-location:
 
+.. _shell-command-location:
 
 Issue:  Shell commands open from wrong location
 ===============================================
@@ -230,6 +231,9 @@ The command ``type command_name`` will always tell you exactly what is being
 run (this is better than ``which command_name``, which ignores hashed commands
 and searches the ``PATH`` directly), and ``hash -r`` (in bash) or ``rehash``
 (in zsh) will reset the hash, or you can run ``source activate``.
+
+
+.. _wrong-python:
 
 Issue:  Programs fail due to invoking conda Python and not system Python
 ========================================================================
