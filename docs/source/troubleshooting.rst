@@ -230,3 +230,31 @@ The command ``type command_name`` will always tell you exactly what is being
 run (this is better than ``which command_name``, which ignores hashed commands
 and searches the ``PATH`` directly), and ``hash -r`` (in bash) or ``rehash``
 (in zsh) will reset the hash, or you can run ``source activate``.
+
+Issue:  Programs fail due to invoking conda Python and not system Python
+========================================================================
+
+After installing Anaconda or miniconda, programs that run ``python`` will switch
+from invoking the system Python to invoking the Python in the root conda
+environment. If these programs rely on the system Python to have certain
+configurations or dependencies that are not in the root conda environment
+Python, the programs may crash. For example, some users of the Cinnamon desktop
+environment on Linux Mint have reported these crashes.
+
+Resolution: Fix the ``PATH`` environment variable
+-------------------------------------------------
+
+Edit your ``.bash_profile`` and ``.bashrc`` files so that the conda binary
+directory (such as ``~/miniconda3/bin``) is no longer added to the ``PATH``
+environment variable. ``conda`` ``activate`` and ``deactivate`` may still be run
+by using their full path names such as ``~/miniconda3/bin/conda``.
+
+You may also create a folder with symbolic links to ``conda`` ``activate`` and
+``deactivate``, and edit your ``.bash_profile`` or ``.bashrc`` file to add this
+folder to your ``PATH``. Then running ``python`` will invoke the system Python,
+but running ``conda`` commands, ``source activate MyEnv``, ``source activate root``,
+or ``source deactivate`` will work normally.
+
+After running ``source activate`` to activate any environment, including after 
+running ``source activate root``, running ``python`` will invoke the Python in
+the active conda environment.
