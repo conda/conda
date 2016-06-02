@@ -165,7 +165,7 @@ def execute_search(args, parser):
     index = common.get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
                                   platform=args.platform, use_local=args.use_local,
                                   use_cache=args.use_index_cache, prefix=prefix,
-                                  unknown=args.unknown, json=args.json, offline=args.offline)
+                                  unknown=args.unknown, json=args.json)
 
     r = Resolve(index)
 

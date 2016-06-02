@@ -9,6 +9,7 @@ import textwrap
 from os.path import abspath, basename, expanduser, isdir, join
 
 from conda import console
+from conda import config
 from conda.config import (envs_dirs, default_prefix, platform, update_dependencies,
                           channel_priority, show_channel_urls, always_yes, root_env_name,
                           root_dir, root_writable, disallow)
@@ -310,11 +311,15 @@ def add_parser_use_local(p):
         help="Use locally built packages.",
     )
 
+class OfflineAction(argparse.Action):
+    def __call__(self, *args, **kwargs):
+        config.offline = True
+
 def add_parser_offline(p):
     p.add_argument(
         "--offline",
-        action="store_true",
-        default=False,
+        action=OfflineAction,
+        default=config.offline,
         help="Offline mode, don't connect to the Internet.",
     )
 
