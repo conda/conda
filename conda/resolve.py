@@ -306,7 +306,7 @@ class Resolve(object):
             groups.setdefault(info['name'], []).append(fkey)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(fkey)
-            if 'link' in info:
+            if 'link' in info and not fkey.endswith(']'):
                 installed.add(fkey)
 
         self.groups = groups

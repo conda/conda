@@ -284,7 +284,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
         if not extracted_in and not fetched_in:
             # If there is a cache conflict, clean it up
             fetched_in, conflict = install.find_new_location(dist)
-            fetched_in = join(fetched_in, install._dist2filename(dist))
+            fetched_in = join(fetched_in, install.dist2filename(dist))
             if conflict is not None:
                 actions[inst.RM_FETCHED].append(conflict)
             actions[inst.FETCH].append(dist)
@@ -340,7 +340,8 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
-    names_linked = {install.name_dist(dist): dist for dist in linked}
+    linked = [fn if fn.endswith('.tar.bz2') else fn + '.tar.bz2' for fn in linked]
+    names_linked = {r.index[fn]['name']: fn for fn in linked}
     names_ms = {MatchSpec(s).name: MatchSpec(s) for s in specs}
 
     for name, def_ver in [('python', default_python),
@@ -376,7 +377,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             # if Python/Numpy is already linked, we add that instead of the
             # default
             log.debug('H3 %s' % name)
-            fkey = names_linked[name] + '.tar.bz2'
+            fkey = names_linked[name]
             info = r.index[fkey]
             ver = '.'.join(info['version'].split('.', 2)[:2])
             spec = '%s %s*' % (info['name'], ver)

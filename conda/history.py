@@ -36,7 +36,9 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        name, version, unused_build = dist2quad(fn, channel=False)
+        name, version, _, channel = dist2quad(fn)
+        if channel != 'defaults':
+            version += ' (%s)' % channel
         if s.startswith('-'):
             removed[name.lower()] = version
         elif s.startswith('+'):
@@ -208,11 +210,11 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build = dist2quad(pkg[1:], channel=False)
+                    name, version, build, channel = dist2quad(pkg[1:])
                     if pkg.startswith('+'):
-                        added[name.lower()] = (version, build)
+                        added[name.lower()] = (version, build, channel)
                     elif pkg.startswith('-'):
-                        removed[name.lower()] = (version, build)
+                        removed[name.lower()] = (version, build, channel)
 
                 changed = set(added) & set(removed)
                 for name in sorted(changed):
