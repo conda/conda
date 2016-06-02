@@ -121,6 +121,7 @@ def execute(args, parser):
                                       use_local=args.use_local,
                                       use_cache=args.use_index_cache,
                                       json=args.json,
+                                      offline=args.offline,
                                       prefix=prefix)
     specs = None
     if args.features:

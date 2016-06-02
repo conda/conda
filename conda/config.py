@@ -124,7 +124,6 @@ def load_condarc(path):
 
 rc = load_condarc(rc_path)
 sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
-offline = bool(rc.get('offline', False))
 
 # ----- local directories -----
 
@@ -228,8 +227,6 @@ def is_url(url):
 
 @memoized
 def binstar_channel_alias(channel_alias):
-    if offline:
-        return channel_alias
     if rc.get('add_anaconda_token',
               rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
         try:
@@ -275,7 +272,7 @@ def prioritize_channels(channels):
             lastchan = channel_s
     return newchans
 
-def normalize_urls(urls, platform=None):
+def normalize_urls(urls, platform=None, offline_only=False):
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
     alias = binstar_channel_alias(channel_alias)
     newurls = []
@@ -295,13 +292,15 @@ def normalize_urls(urls, platform=None):
             url0 = url0.rstrip('/')
             if not is_url(url0):
                 url0 = alias + url0
-            if offline and not url0.startswith('file:'):
+            if offline_only and not url0.startswith('file:'):
                 continue
             for plat in (platform or subdir, 'noarch'):
                 newurls.append('%s/%s/' % (url0, plat))
     return newurls
 
-def get_channel_urls(platform=None):
+offline = bool(rc.get('offline', False))
+
+def get_channel_urls(platform=None, offline=False):
     if os.getenv('CIO_TEST'):
         import cio_test
         base_urls = cio_test.base_urls
@@ -309,7 +308,7 @@ def get_channel_urls(platform=None):
         base_urls = ['system']
     else:
         base_urls = ['defaults']
-    res = normalize_urls(base_urls, platform)
+    res = normalize_urls(base_urls, platform, offline)
     return res
 
 def canonical_channel_name(channel):
