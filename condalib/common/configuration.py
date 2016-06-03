@@ -9,9 +9,10 @@ from os import stat
 from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
 
-from auxlib.collection import first, last, call_each
-from auxlib.compat import iteritems, with_metaclass
-from auxlib.exceptions import ThisShouldNeverHappenError
+from auxlib.collection import first, last, call_each, firstitem
+from auxlib.compat import (iteritems, with_metaclass, itervalues, string_types,
+                           primitive_types, text_type)
+from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
 from auxlib.path import expand
 from auxlib.type_coercion import typify
 from enum import Enum
@@ -22,7 +23,99 @@ from toolz.itertoolz import concat, unique, concatv
 from .yaml import yaml_load
 
 
+from ruamel.yaml.comments import CommentedSeq, CommentedMap
+
+
 log = getLogger(__name__)
+
+
+Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
+NO_MATCH = Match(None, None, None)
+
+
+class ParameterType(Enum):
+    single = 'primitive'
+    list = 'sequence'
+    map = 'map'
+
+
+class ParameterFlag(Enum):
+    none = 'none'
+    important = 'important'
+
+    @classmethod
+    def from_string(cls, string):
+        if string and 'important' in string:
+            return cls.important
+        return cls.none
+
+
+class RawParameter(object):
+
+    def __init__(self, key, value, parameter_type, keyflag=None, valueflags=None):
+        self.key = key
+        self.value = value
+        self.parameter_type = parameter_type
+        self.keyflag = keyflag
+        self.valueflags = valueflags
+
+    def __repr__(self):
+        return text_type(vars(self))
+
+    @classmethod
+    def make_raw_parameters(cls, from_object):
+        return dict((key, cls(from_object, key)) for key in from_object)
+
+
+class YamlRawParameter(RawParameter):
+    # this class should all direct use of ruamel.yaml in this module
+
+    def __init__(self, ruamel_yaml_object, key):
+        rawvalue = ruamel_yaml_object[key]
+        keycomment = self._get_yaml_key_comment(ruamel_yaml_object, key)
+        keyflag = ParameterFlag.from_string(keycomment)
+        if isinstance(rawvalue, CommentedSeq):
+            valuecomments = self._get_yaml_list_comments(rawvalue)
+            valueflags = tuple(ParameterFlag.from_string(s) for s in valuecomments)
+            parameter_type = ParameterType.list
+            value = tuple(rawvalue)
+        elif isinstance(rawvalue, CommentedMap):
+            valuecomments = self._get_yaml_map_comments(rawvalue)
+            valueflags = dict((k, ParameterFlag.from_string(v))
+                              for k, v in iteritems(valuecomments) if v is not None)
+            parameter_type = ParameterType.map
+            value = dict(rawvalue)
+        elif isinstance(rawvalue, primitive_types):
+            valueflags = ParameterFlag.none
+            value = rawvalue
+            parameter_type = ParameterType.single
+        else:
+            raise ThisShouldNeverHappenError()
+        super(YamlRawParameter, self).__init__(key, value, parameter_type, keyflag, valueflags)
+
+    @staticmethod
+    def _get_yaml_key_comment(commented_dict, key):
+        try:
+            return commented_dict.ca.items[key][2].value.strip()
+        except (AttributeError, KeyError):
+            return None
+
+    @staticmethod
+    def _get_yaml_list_comments(value):
+        items = value.ca.items
+        raw_comment_lines = tuple(excepts((AttributeError, KeyError, TypeError),
+                                          lambda q: items.get(q)[0].value.strip() or None,
+                                          lambda _: None  # default value on exception
+                                          )(q)
+                                  for q in range(len(value)))
+        return raw_comment_lines
+
+    @staticmethod
+    def _get_yaml_map_comments(rawvalue):
+        return dict((key, excepts(AttributeError,
+                                  lambda k: first(k.ca.items.values())[2].value.strip() or None,
+                                  lambda _: None  # default value on exception
+                                  )(key)) for key in rawvalue)
 
 
 def load_raw_configs(search_path):
@@ -30,7 +123,8 @@ def load_raw_configs(search_path):
 
     def _load_yaml(full_path):
         with open(full_path, 'r') as fh:
-            return yaml_load(fh)
+            ruamel_yaml = yaml_load(fh)
+        return YamlRawParameter.make_raw_parameters(ruamel_yaml)
 
     def _file_yaml_loader(fullpath):
         yield fullpath, _load_yaml(fullpath)
@@ -61,25 +155,16 @@ def load_raw_configs(search_path):
     return raw_data
 
 
-Match = namedtuple('Match', ('filepath', 'key', 'value', 'important'))
-NO_MATCH = Match(None, None, None, ())
-
-
-class ParameterType(Enum):
-    single = 'single'
-    list = 'list'
-    map = 'map'
-
-
 class Parameter(object):
-    parameter_type = None
-    _type = None
+    _parameter_interface = None
+    _parameter_type = None
 
-    def __init__(self, default, aliases=()):
+    def __init__(self, default, aliases=(), validation=None):
         self._name = None
         self._names = None
         self.default = default
         self.aliases = aliases
+        self._validation = validation
 
     def set_name(self, name):
         # this is an explicit method, and not a descriptor setter
@@ -99,130 +184,24 @@ class Parameter(object):
             raise ThisShouldNeverHappenError()
         return self._names
 
-    @staticmethod
-    def __get_yaml_key_comment(commented_dict, key):
-        try:
-            return commented_dict.ca.items[key][2].value.strip()
-        except (AttributeError, KeyError):
-            return ''
-
-    @staticmethod
-    def __get_yaml_value_lines_comments(value):
-        items = value.ca.items
-        raw_comment_lines = tuple(excepts((AttributeError, KeyError, TypeError),
-                                          lambda q: items.get(q)[0].value.strip(),
-                                          lambda _: ''  # default value on exception
-                                          )(q)
-                                  for q in range(len(value)))
-        return raw_comment_lines
-
-    @staticmethod
-    def __extract_for_single(yaml_dict, key):
-        value = typify(yaml_dict[key])
-        key_comment = Parameter.__get_yaml_key_comment(yaml_dict, key)
-        important_lines = (0,) if '!important' in key_comment else ()
-        return value, important_lines
-
-    @staticmethod
-    def __extract_for_list(yaml_dict, key):
-        yaml_value = yaml_dict[key]
-        key_comment = Parameter.__get_yaml_key_comment(yaml_dict, key)
-        value_comments = Parameter.__get_yaml_value_lines_comments(yaml_value)
-        seq = enumerate(chain((key_comment,), value_comments))
-        important_lines = tuple(q for q, comment in seq if '!important' in comment)
-        return tuple(yaml_value), important_lines
-
-    @staticmethod
-    def __extract_for_map(yaml_dict, key):
-        # important_lines now actually needs to be important_keys
-        yaml_value = yaml_dict[key]
-        key_comment = Parameter.__get_yaml_key_comment(yaml_dict, key)
-        mapkeys = tuple(k for k in yaml_value)
-        mapkeys_comments = tuple(Parameter.__get_yaml_key_comment(yaml_value, mapkey)
-                                 for mapkey in mapkeys)
-        seq = enumerate(chain((key_comment,), mapkeys_comments))
-        important_lines = tuple(mapkeys[q] if q else q  # return the mapkey, not the index
-                                for q, comment in seq
-                                if '!important' in comment)
-        return dict(yaml_value), important_lines
-
-    __extract = {
-        ParameterType.single: __extract_for_single.__func__,
-        ParameterType.list: __extract_for_list.__func__,
-        ParameterType.map: __extract_for_map.__func__,
-    }
-
-    def __get_match(self, filepath, yaml_dict):
+    def _get_match(self, filepath, raw_parameters):
         # TODO: cleanup
-        keys = self.names & yaml_dict.keys()
+        keys = self.names & raw_parameters.keys()
         numkeys = len(keys)
         if numkeys == 0:
             return NO_MATCH
         elif numkeys == 1:
             key = keys.pop()
-            value, important = self.__extract[self.parameter_type](yaml_dict, key)
-            return Match(filepath, key, value, important)
+            return Match(filepath, key, raw_parameters[key])
         else:
             # when multiple aliases exist, default to the named key
             assert self.name in keys, "conda doctor should help here"
             key = self.name
-            value, important = self.__extract[self.parameter_type](yaml_dict, key)
-            return Match(filepath, key, value, important)
+            return Match(filepath, key, raw_parameters[key])
 
     @staticmethod
-    def __merge_matches_single(matches):
-        important_match = first(matches, lambda x: x.important, default=NO_MATCH)
-        if important_match is not NO_MATCH:
-            return important_match.value
-
-        last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
-        if last_match is not NO_MATCH:
-            return last_match.value
-
-        raise ThisShouldNeverHappenError()
-
-    @staticmethod
-    def __merge_matches_list(matches):
-        # get matches up to and including first important_match
-        #  look for 0 in important, because 0 represents the key
-        important_matches = takewhile(lambda x: 0 in x.important, matches)
-
-        # get individual lines from important_matches that were marked important
-        # these will be prepended to the final result
-        def get_important_lines(match):
-            # get important line numbers, but subtract 1, because 0 is the key line
-            line_numbers = (q-1 for q in match.important if q)
-            return tuple(match.value[q] for q in line_numbers)
-        important_lines = concat(get_important_lines(m) for m in important_matches)
-
-        # reverse the matches and concat the lines
-        #   reverse because elements closer to the end of search path that are not marked
-        #   important take precedence
-        catted_lines = concat(m.value for m in reversed(important_matches))
-
-        # now important_lines + concatted_lines
-        return tuple(unique(concatv(important_lines, catted_lines)))
-
-    @staticmethod
-    def __merge_matches_map(matches):
-        # get matches up to and including first important_match
-        #  look for 0 in important, because 0 represents the key
-        important_matches = takewhile(lambda x: 0 in x.important, matches)
-
-        # mapkeys with important matches
-        def get_important_mapkeys(match):
-            return {q: match.value[q] for q in match.important if q}
-        important_maps = (get_important_mapkeys(m) for m in important_matches)
-
-        # dump all matches in a dict
-        # then overwrite with important matches
-        return merge(concatv((m.value for m in important_matches), reversed(important_maps)))
-
-    __merge_matches = {
-        ParameterType.single: __merge_matches_single.__func__,
-        ParameterType.list: __merge_matches_list.__func__,
-        ParameterType.map: __merge_matches_map.__func__,
-    }
+    def _merge(matches):
+        raise NotImplementedError()
 
     def __get__(self, instance, instance_type):
         # strategy is "extract and merge," which is actually just map and reduce
@@ -231,37 +210,117 @@ class Parameter(object):
 
         # TODO: cache result on instance object
 
-        matches = tuple(m for m in (self.__get_match(filepath, yaml_dict)
-                                    for filepath, yaml_dict in iteritems(instance.raw_data))
+        matches = tuple(m for m in (self._get_match(filepath, raw_parameters)
+                                    for filepath, raw_parameters in iteritems(instance.raw_data))
                         if m is not NO_MATCH)
-        call_each(self.__validate(instance, m.value) for m in matches)
         if not matches:
             return self.default
         else:
-            return self.__merge_matches[self.parameter_type](matches)
+            merged = self._merge(matches)
+            return self.validate(instance, merged)
 
-
-    def __validate(self, instance, val):
-        """
-
-        Returns:
-            True: if val is valid
-
-        Raises:
-            ValidationError
-        """
-        # note here calling, but not assigning; could lead to unexpected behavior
-        if isinstance(val, self._type) and (self._validation is None or self._validation(val)):
-            return val
-        elif val is None and self.nullable:
+    def validate(self, instance, val):
+        if (isinstance(val, self._parameter_type) and
+                (self._validation is None or self._validation(val))):
             return val
         else:
             raise ValidationError(getattr(self, 'name', 'undefined name'), val)
 
+    @staticmethod
+    def _match_key_is_important(match):
+        return match.raw_parameter.keyflag is ParameterFlag.important
 
-class BooleanParameter(Parameter):
+
+class SingleParameter(Parameter):
     _parameter_interface = ParameterType.single
-    _parameter_type = bool
+
+    def __init__(self, default, aliases=(), validation=None, parameter_type=None):
+        if parameter_type is None:
+            self._parameter_type = type(default)
+        super(SingleParameter, self).__init__(default, aliases, validation)
+
+    @staticmethod
+    def _merge(matches):
+        important_match = first(matches, Parameter._match_key_is_important, default=NO_MATCH)
+        if important_match is not NO_MATCH:
+            return typify(important_match.raw_parameter.value)
+
+        last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
+        if last_match is not NO_MATCH:
+            return typify(last_match.raw_parameter.value)
+
+        raise ThisShouldNeverHappenError()
+
+
+class ListParameter(Parameter):
+    _parameter_interface = ParameterType.list
+    _parameter_type = tuple
+
+    def __init__(self, element_type, default=(), aliases=(), validation=None):
+        self._element_type = element_type
+        super(ListParameter, self).__init__(default, aliases, validation)
+
+    def validate(self, instance, val):
+        et = self._element_type
+        for el in val:
+            if not isinstance(el, et):
+                raise ValidationError(self.name, el, et)
+        return super(ListParameter, self).validate(instance, val)
+
+    @staticmethod
+    def _merge(matches):
+        # get matches up to and including first important_match
+        #   but if no important_match, then all matches are important_matches
+        important_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
+
+        # get individual lines from important_matches that were marked important
+        # these will be prepended to the final result
+        def get_important_lines(match):
+            rp = match.raw_parameter
+            return tuple(line for line, flag in zip(rp.value, rp.valueflags)
+                         if flag is ParameterFlag.important)
+        important_lines = concat(get_important_lines(m) for m in important_matches)
+
+        # reverse the matches and concat the lines
+        #   reverse because elements closer to the end of search path that are not marked
+        #   important take precedence
+        catted_lines = concat(m.raw_parameter.value for m in reversed(important_matches))
+
+        # now de-dupe important_lines + concatted_lines
+        return tuple(unique(concatv(important_lines, catted_lines)))
+
+
+class MapParameter(Parameter):
+    _parameter_interface = ParameterType.map
+    _parameter_type = dict
+
+    def __init__(self, element_type, default=None, aliases=(), validation=None):
+        self._element_type = element_type
+        super(MapParameter, self).__init__(default or dict(), aliases, validation)
+
+    def validate(self, instance, val):
+        et = self._element_type
+        call_each(Raise(ValidationError(self.name, v, et))
+                  for v in itervalues(val) if not isinstance(v, et))
+        return super(MapParameter, self).validate(instance, val)
+
+    @staticmethod
+    def _merge(matches):
+        # get matches up to and including first important_match
+        #   but if no important_match, then all matches are important_matches
+        important_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
+
+        # mapkeys with important matches
+        def get_important_mapkeys(match):
+            rp = match.raw_parameter
+            return dict((k, rp.value[k]) for k in rp.value
+                        if rp.valueflags.get(k) is ParameterFlag.important)
+        important_maps = tuple(get_important_mapkeys(m) for m in important_matches)
+
+        # dump all matches in a dict
+        # then overwrite with important matches
+        return merge(concatv((m.raw_parameter.value for m in important_matches),
+                             reversed(important_maps)))
 
 
 class ConfigurationType(type):
@@ -323,40 +382,47 @@ if __name__ == "__main__":
         """),
         'file4': dals("""
             proxy_servers:
-              - http: http://user:pass@corp.com:8080  #!important
-              - https: https://user:pass@corp.com:8080
+              http: http://user:pass@corp.com:8080  #!important
+              https: https://user:pass@corp.com:8080
         """),
     }
 
+
     class AppConfiguration(Configuration):
-        channels = Parameter((), parameter_type=ParameterType.list)
-        always_yes = Parameter(False)
-        proxy_servers = Parameter({}, parameter_type=ParameterType.map)
-        changeps1 = Parameter(True)
+        channels = ListParameter(string_types)
+        always_yes = SingleParameter(False)
+        proxy_servers = MapParameter(string_types)
+        changeps1 = SingleParameter(True)
 
 
     import doctest
     doctest.testmod()
 
-    test_yaml_12 = OrderedDict((f, yaml_load(test_yaml_raw[f])) for f in ('file1', 'file2'))
-    print(test_yaml_12)
-    config = AppConfiguration(test_yaml_12)
-    assert config.channels == ('defaults', 'r', 'kalefranz', 'conda')
+    def load_from_above(*seq):
+        return OrderedDict((f, YamlRawParameter.make_raw_parameters(yaml_load(test_yaml_raw[f])))
+                           for f in seq)
 
-    test_yaml_312 = OrderedDict((f, yaml_load(test_yaml_raw[f]))
-                                for f in ('file3', 'file1', 'file2'))
+    test_yaml_12 = load_from_above('file1', 'file2')
+    config = AppConfiguration(test_yaml_12)
+    assert config.changeps1 is False
+    assert config.channels == ('defaults', 'r', 'kalefranz', 'conda'), config.channels
+
+    test_yaml_312 = load_from_above('file3', 'file1', 'file2')
     config = AppConfiguration(test_yaml_312)
     assert config.channels == ('locked',), config.channels
-    assert config.always_yes == False
-
-    config = AppConfiguration(load_raw_configs())
     assert config.always_yes is False
-    assert config.show_channel_urls is None
-    assert config.binstar_upload is None
-    assert isinstance(config.track_features, tuple), config.track_features
 
-    test_yaml_4 = OrderedDict((f, yaml_load(test_yaml_raw[f])) for f in ('file4', ))
+    # config = AppConfiguration(load_raw_configs())
+    # assert config.always_yes is False
+    # assert config.show_channel_urls is None
+    # assert config.binstar_upload is None
+    # assert isinstance(config.track_features, tuple), config.track_features
+
+    test_yaml_4 = load_from_above('file4',)
     config = AppConfiguration(test_yaml_4)
-    print(config.proxy_servers)
+    assert config.proxy_servers == {'http': 'http://user:pass@corp.com:8080',
+                                    'https': 'https://user:pass@corp.com:8080'}
     # import pdb; pdb.set_trace()
+
+    load_raw_configs(['~/.condarc'])
 

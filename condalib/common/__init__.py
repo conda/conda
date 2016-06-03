@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
-from logging import getLogger
-
-log = getLogger(__name__)
+# What often gets called "utils" or "misc."
+# All code must be able to stand independently on its own. (Think `@staticmethod`.)
+# Does NOT import from conda modules other than those in conda.common.
