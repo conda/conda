@@ -1,4 +1,4 @@
-2016-05-XX   4.1.0:
+2016-06-XX   4.1.0:
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727,
     #2265, #2291, #2473, #2501, #2484
@@ -25,6 +25,11 @@
   * fix help in install, #2460
   * fix re-install bug when sha1 differs, #2507
   * fix a bug with file deletion, #2499
+
+
+2016-06-03   4.0.8:
+-------------------
+  * fix a potential problem with moving files to trash, #2587
 
 
 2016-05-26   4.0.7:
