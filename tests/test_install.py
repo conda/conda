@@ -11,7 +11,7 @@ from os import makedirs, walk
 import pytest
 
 from conda import install, config
-from conda.install import (PaddingError, binary_replace, update_prefix, 
+from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, duplicates_to_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
                            delete_trash, move_path_to_trash, _get_trash_dir, on_win)
@@ -145,6 +145,7 @@ class FileTests(unittest.TestCase):
         makedirs(tmp_dir)
         move_path_to_trash(tmp_dir)
         self.assertFalse(exists(tmp_dir))
+
 
 class remove_readonly_TestCase(unittest.TestCase):
     def test_takes_three_args(self):
