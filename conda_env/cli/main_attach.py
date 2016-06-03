@@ -1,5 +1,5 @@
 from argparse import RawDescriptionHelpFormatter
-from ..utils.notebooks import current_env, Notebook
+from ..utils.notebooks import Notebook
 from conda.cli import common
 from ..env import from_environment
 
@@ -38,6 +38,13 @@ def configure_parser(sub_parsers):
         default=None
     )
     p.add_argument(
+        '-p', "--prefix",
+        action="store",
+        help="Full path to environment prefix",
+        metavar='PATH',
+        default=None
+    )
+    p.add_argument(
         '--force',
         action='store_true',
         default=False,
@@ -61,8 +68,13 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    if args.name is not None:
+
+    if args.prefix is None:
         prefix = common.get_prefix(args)
+    else:
+        prefix = args.prefix
+
+    if args.name is not None:
         content = from_environment(args.name, prefix, no_builds=args.no_builds).to_dict()
     else:
         content = {'remote': args.remote}
