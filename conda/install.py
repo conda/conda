@@ -689,8 +689,9 @@ def package_cache():
                     add_cached_package(pdir, url)
         except IOError:
             pass
-        for fn in os.listdir(pdir):
-            add_cached_package(pdir, fn)
+        if isdir(pdir):
+            for fn in os.listdir(pdir):
+                add_cached_package(pdir, fn)
     del package_cache_['@']
     return package_cache_
 
