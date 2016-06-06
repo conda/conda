@@ -213,7 +213,7 @@ A list of globs for files that should always be copied and never soft linked or 
 
   build:
     no_link:
-      - bin/*.py # Don't link any .py files in bin/
+      - bin/\*.py # Don't link any .py files in bin/
 
 Script
 ~~~~~~
@@ -311,6 +311,18 @@ Default is False.
 
   build:
     skip: True  # [not win]
+
+Architecture independent packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The conda build system allows you to specify "no architecture" when building a package, thus making it compatible
+with all platforms and architectures. Noarch packages can be installed on any platform.
+
+
+.. code-block:: yaml
+
+     build:
+       noarch_python: True
 
 Requirements section
 --------------------
