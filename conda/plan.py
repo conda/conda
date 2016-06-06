@@ -375,9 +375,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             fkey = names_linked[name] + '.tar.bz2'
             info = r.index[fkey]
             ver = '.'.join(info['version'].split('.', 2)[:2])
-            spec = '%s %s*' % (info['name'], ver)
-            if update:
-                spec += ' (target=%s)' % fkey
+            spec = '%s %s* (target=%s)' % (info['name'], ver, fkey)
             specs.append(spec)
             continue
 

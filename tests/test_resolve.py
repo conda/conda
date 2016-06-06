@@ -67,6 +67,9 @@ class TestMatchSpec(unittest.TestCase):
         self.assertTrue(m2.spec == m3.spec and m2.optional == m3.optional and m2.target != m3.target)
         self.assertTrue(m == m4)
 
+        self.assertRaises(ValueError, MatchSpec, 'blas (optional')
+        self.assertRaises(ValueError, MatchSpec, 'blas (optional,test)')
+
     def test_to_filename(self):
         ms = MatchSpec('foo 1.7 52')
         self.assertEqual(ms.to_filename(), 'foo-1.7-52.tar.bz2')
