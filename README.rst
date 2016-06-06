@@ -10,9 +10,9 @@ Conda
    :alt: Travis-CI Build Status
    :target: https://travis-ci.org/conda/conda
 
-.. image:: https://ci.appveyor.com/api/projects/status/9k80kxa9gra9cjr9/branch/master?svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/o9o7fnmkr7khv8yv/branch/master?svg=true
    :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ironmancio54716/conda/branch/master
+   :target: https://ci.appveyor.com/project/KaleFranz87777/conda/branch/master
 
 .. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
    :alt: Codecov Status
