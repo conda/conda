@@ -4,7 +4,7 @@ Conda license
 
 Except where noted below, conda is released under the following terms:
 
-(c) 2015 Continuum Analytics, Inc. / http://continuum.io
+(c) 2016 Continuum Analytics, Inc. / http://continuum.io
 All Rights Reserved
 
 Redistribution and use in source and binary forms, with or without
