@@ -2,8 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 from os.path import join
 
-from conda.cli.common import name_prefix, error_and_exit
-from conda.config import envs_dirs, root_dir
+from .common import name_prefix, error_and_exit
+from ..config import envs_dirs, root_dir
 
 
 def read_message(fn):
