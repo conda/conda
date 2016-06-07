@@ -634,6 +634,20 @@ class Resolve(object):
             self.ms_depends_[fkey] = deps
         return deps
 
+    def depends_on(self, spec, target):
+        touched = set()
+
+        def depends_on_(spec):
+            if spec.name == target:
+                return True
+            if spec.name in touched:
+                return False
+            touched.add(spec.name)
+            return any(depends_on_(ms)
+                       for fn in self.find_matches(spec)
+                       for ms in self.ms_depends(fn))
+        return depends_on_(MatchSpec(spec))
+
     def version_key(self, fkey, vtype=None):
         rec = self.index[fkey]
         cpri = -rec.get('priority', 1)
