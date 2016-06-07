@@ -227,15 +227,15 @@ def is_url(url):
 
 @memoized
 def binstar_channel_alias(channel_alias):
+    if channel_alias.startswith('file:/'):
+        return channel_alias
     if rc.get('add_anaconda_token',
               rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
         try:
             from binstar_client.utils import get_binstar
             bs = get_binstar()
-            channel_alias = bs.domain.replace("api", "conda")
-            if not channel_alias.endswith('/'):
-                channel_alias += '/'
-            if bs.token:
+            bs_domain = bs.domain.replace("api", "conda").rstrip('/') + '/'
+            if channel_alias.startswith(bs_domain) and bs.token:
                 channel_alias += 't/%s/' % bs.token
         except ImportError:
             log.debug("Could not import binstar")
@@ -248,6 +248,7 @@ channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
 if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
     channel_alias = sys_rc['channel_alias']
 
+channel_alias = channel_alias.rstrip('/')
 _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
 BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
 
@@ -257,7 +258,7 @@ def hide_binstar_tokens(url):
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
-channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
+channel_alias = remove_binstar_tokens(channel_alias + '/')
 
 def prioritize_channels(channels):
     newchans = OrderedDict()
@@ -274,7 +275,7 @@ def prioritize_channels(channels):
 
 def normalize_urls(urls, platform=None, offline_only=False):
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
-    alias = binstar_channel_alias(channel_alias)
+    alias = None
     newurls = []
     while urls:
         url = urls[0]
@@ -291,6 +292,8 @@ def normalize_urls(urls, platform=None, offline_only=False):
         for url0 in t_urls:
             url0 = url0.rstrip('/')
             if not is_url(url0):
+                if alias is None:
+                    alias = binstar_channel_alias(channel_alias)
                 url0 = alias + url0
             if offline_only and not url0.startswith('file:'):
                 continue
