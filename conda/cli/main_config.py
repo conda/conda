@@ -8,11 +8,12 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 
-from conda.cli import common
-from conda.compat import string_types
-from conda.config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
-                          user_rc_path, rc_other)
-from conda.utils import yaml_load, yaml_dump
+from .common import (Completer, add_parser_json, error_and_exit, exception_and_exit,
+                     stdout_json_success)
+from ..compat import string_types
+from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
+                      user_rc_path, rc_other)
+from ..utils import yaml_load, yaml_dump
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -92,17 +93,17 @@ class CouldntParse(NotImplementedError):
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
 
-class SingleValueKey(common.Completer):
+class SingleValueKey(Completer):
     def _get_items(self):
         return rc_bool_keys + \
                rc_string_keys + \
                ['yes', 'no', 'on', 'off', 'true', 'false']
 
-class ListKey(common.Completer):
+class ListKey(Completer):
     def _get_items(self):
         return rc_list_keys
 
-class BoolOrListKey(common.Completer):
+class BoolOrListKey(Completer):
     def __contains__(self, other):
         return other in self.get_items()
 
@@ -115,8 +116,8 @@ def configure_parser(sub_parsers):
         description=descr,
         help=descr,
         epilog=additional_descr + example,
-        )
-    common.add_parser_json(p)
+    )
+    add_parser_json(p)
 
     # TODO: use argparse.FileType
     location = p.add_mutually_exclusive_group()
@@ -126,7 +127,7 @@ def configure_parser(sub_parsers):
         help="""Write to the system .condarc file ({system}). Otherwise writes to the user
         config file ({user}).""".format(system=sys_rc_path,
                                         user=user_rc_path),
-        )
+    )
     location.add_argument(
         "--file",
         action="store",
@@ -134,7 +135,7 @@ def configure_parser(sub_parsers):
 or the file path given by the 'CONDARC' environment variable, if it is set
 (default: %(default)s).""".format(user=user_rc_path),
         default=os.environ.get('CONDARC', user_rc_path)
-        )
+    )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
@@ -148,7 +149,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=None,
         metavar=('KEY'),
         choices=BoolOrListKey()
-        )
+    )
     action.add_argument(
         "--add",
         nargs=2,
@@ -158,7 +159,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         choices=ListKey(),
         metavar=('KEY', 'VALUE'),
-        )
+    )
     action.add_argument(
         "--set",
         nargs=2,
@@ -167,7 +168,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         choices=SingleValueKey(),
         metavar=('KEY', 'VALUE'),
-        )
+    )
     action.add_argument(
         "--remove",
         nargs=2,
@@ -176,7 +177,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     all instances of the value.""",
         default=[],
         metavar=('KEY', 'VALUE'),
-        )
+    )
     action.add_argument(
         "--remove-key",
         nargs=1,
@@ -184,14 +185,14 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="""Remove a configuration key (and all its values).""",
         default=[],
         metavar="KEY",
-        )
+    )
 
     p.add_argument(
         "-f", "--force",
         action="store_true",
         help="""Write to the config file using the yaml parser.  This will
         remove any comments or structure from the file."""
-        )
+    )
 
     p.set_defaults(func=execute)
 
@@ -201,7 +202,7 @@ def execute(args, parser):
         execute_config(args, parser)
     except (CouldntParse, NotImplementedError) as e:
         if args.json:
-            common.exception_and_exit(e, json=True)
+            exception_and_exit(e, json=True)
         else:
             raise
 
@@ -270,9 +271,9 @@ channels:
     # Add
     for key, item in args.add:
         if key not in rc_list_keys:
-            common.error_and_exit("key must be one of %s, not %r" %
-                                  (', '.join(rc_list_keys), key), json=args.json,
-                                  error_type="ValueError")
+            error_and_exit("key must be one of %s, not %r" %
+                           (', '.join(rc_list_keys), key), json=args.json,
+                           error_type="ValueError")
         if not isinstance(rc_config.get(key, []), list):
             bad = rc_config[key].__class__.__name__
             raise CouldntParse("key %r should be a list, not %s." % (key, bad))
@@ -296,31 +297,31 @@ channels:
         yamlitem = yaml_load(item)
         if key in set_bools:
             if not isinstance(yamlitem, bool):
-                common.error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
-                                      json=args.json, error_type="TypeError")
+                error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
+                               json=args.json, error_type="TypeError")
             rc_config[key] = yamlitem
         elif key in set_strings:
             rc_config[key] = yamlitem
         else:
-            common.error_and_exit("Error key must be one of %s, not %s" %
-                                  (', '.join(set_bools | set_strings), key), json=args.json,
-                                  error_type="ValueError")
+            error_and_exit("Error key must be one of %s, not %s" %
+                           (', '.join(set_bools | set_strings), key), json=args.json,
+                           error_type="ValueError")
 
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
-            common.error_and_exit("key %r is not in the config file" % key, json=args.json,
-                                  error_type="KeyError")
+            error_and_exit("key %r is not in the config file" % key, json=args.json,
+                           error_type="KeyError")
         if item not in rc_config[key]:
-            common.error_and_exit("%r is not in the %r key of the config file" %
-                                  (item, key), json=args.json, error_type="KeyError")
+            error_and_exit("%r is not in the %r key of the config file" %
+                           (item, key), json=args.json, error_type="KeyError")
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
-            common.error_and_exit("key %r is not in the config file" % key, json=args.json,
-                                  error_type="KeyError")
+            error_and_exit("key %r is not in the config file" % key, json=args.json,
+                           error_type="KeyError")
         del rc_config[key]
 
     # config.rc_keys
@@ -328,7 +329,7 @@ channels:
         rc.write(yaml_dump(rc_config))
 
     if args.json:
-        common.stdout_json_success(
+        stdout_json_success(
             rc_path=rc_path,
             warnings=json_warnings,
             get=json_get
