@@ -25,6 +25,8 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
+from __future__ import absolute_import, division, print_function
+
 from itertools import chain, combinations
 from conda.compat import iteritems, string_types
 import logging
