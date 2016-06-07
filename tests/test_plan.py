@@ -85,6 +85,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
     def check(self, specs, added):
         new_specs = list(specs + added)
         plan.add_defaults_to_specs(r, self.linked, specs)
+        specs = [s.split(' (')[0] for s in specs]
         self.assertEqual(specs, new_specs)
 
     def test_1(self):

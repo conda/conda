@@ -18,10 +18,10 @@ from os.path import abspath, basename, dirname, join, exists
 
 from conda import install
 from conda import instructions as inst
-from conda.config import (always_copy as config_always_copy,
+from conda.config import (always_copy as config_always_copy, url_channel,
                           show_channel_urls as config_show_channel_urls,
                           root_dir, allow_softlinks, default_python, self_update,
-                          track_features, foreign)
+                          track_features, foreign, canonical_channel_name)
 from conda.exceptions import CondaException
 from conda.history import History
 from conda.resolve import MatchSpec, Resolve, Package
@@ -48,15 +48,21 @@ def display_actions(actions, index, show_channel_urls=None):
     if show_channel_urls is None:
         show_channel_urls = config_show_channel_urls
 
-    def channel_str(s):
-        if s is None:
-            return ''
-        if show_channel_urls is None:
-            return '' if s == 'defaults' else s
-        return s if show_channel_urls else ''
+    def channel_str(rec):
+        if 'schannel' in rec:
+            return rec['schannel']
+        if 'url' in rec:
+            return url_channel(rec['url'])[1]
+        if 'channel' in rec:
+            return canonical_channel_name(rec['channel'])
+        return '<unknown>'
 
-    def channel_len(s):
-        return len(channel_str(s))
+    def channel_filt(s):
+        if show_channel_urls is False:
+            return ''
+        if show_channel_urls is None and s == 'defaults':
+            return ''
+        return s
 
     if actions.get(inst.FETCH):
         print("\nThe following packages will be downloaded:\n")
@@ -65,7 +71,7 @@ def display_actions(actions, index, show_channel_urls=None):
         for dist in actions[inst.FETCH]:
             info = index[dist + '.tar.bz2']
             extra = '%15s' % human_bytes(info['size'])
-            schannel = channel_str(info.get('schannel', '<unknown>'))
+            schannel = channel_filt(channel_str(info))
             if schannel:
                 extra += '  ' + schannel
             disp_lst.append((dist, extra))
@@ -80,45 +86,46 @@ def display_actions(actions, index, show_channel_urls=None):
     # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
     features = defaultdict(lambda: list(('', '')))
-
-    # This assumes each package will appear in LINK no more than once.
-    Packages = {}
+    channels = defaultdict(lambda: list(('', '')))
+    records = defaultdict(lambda: list((None, None)))
     linktypes = {}
+
     for arg in actions.get(inst.LINK, []):
         dist, lt = inst.split_linkarg(arg)
-        rec = index[dist + '.tar.bz2']
+        fkey = dist + '.tar.bz2'
+        rec = index[fkey]
         pkg = rec['name']
+        channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
-        dist = pkg + '-' + packages[pkg][1]
-        Packages[dist] = Package(dist + '.tar.bz2', rec)
+        records[pkg][1] = Package(fkey, rec)
         linktypes[pkg] = lt
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
         dist, lt = inst.split_linkarg(arg)
-        rec = index.get(dist + '.tar.bz2')
+        fkey = dist + '.tar.bz2'
+        rec = index.get(fkey)
         if rec is None:
             pkg, ver, build, schannel = dist2quad(dist)
             rec = dict(name=pkg, version=ver, build=build, channel=None,
                        schannel='<unknown>',
                        build_number=int(build) if build.isdigit() else 0)
         pkg = rec['name']
+        channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
-        dist = pkg + '-' + packages[pkg][0]
-        Packages[dist] = Package(dist + '.tar.bz2', rec)
+        records[pkg][0] = Package(fkey, rec)
         features[pkg][0] = rec.get('features', '')
 
     #                     Put a minimum length here---.    .--For the :
     #                                                 v    v
-    maxpkg = max(len(max(packages or [''], key=len)), 0) + 1
-    maxoldver = len(max(packages.values() or [['']], key=lambda i: len(i[0]))[0])
-    maxnewver = len(max(packages.values() or [['', '']], key=lambda i: len(i[1]))[1])
-    maxoldfeatures = len(max(features.values() or [['']], key=lambda i: len(i[0]))[0])
-    maxnewfeatures = len(max(features.values() or [['', '']], key=lambda i: len(i[1]))[1])
 
-    maxoldchannel = max([channel_len(Packages[p + '-' + packages[p][0]].schannel)
-                         for p in packages if packages[p][0]] or [0])
-    maxnewchannel = max([channel_len(Packages[p + '-' + packages[p][1]].schannel)
-                         for p in packages if packages[p][1]] or [0])
+    if packages:
+        maxpkg = max(len(p) for p in packages) + 1
+        maxoldver = max(len(p[0]) for p in packages.values())
+        maxnewver = max(len(p[1]) for p in packages.values())
+        maxoldfeatures = max(len(p[0]) for p in features.values())
+        maxnewfeatures = max(len(p[1]) for p in features.values())
+        maxoldchannels = max(len(channel_filt(p[0])) for p in channels.values())
+        maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
     updated = set()
@@ -129,14 +136,14 @@ def display_actions(actions, index, show_channel_urls=None):
         # That's right. I'm using old-style string formatting to generate a
         # string with new-style string formatting.
         oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
-        if maxoldchannel:
-            oldfmt[pkg] += ' {channel[0]:<%s}' % maxoldchannel
+        if maxoldchannels:
+            oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
         if packages[pkg][0]:
             newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
         else:
             newfmt[pkg] = '{pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
-        if maxnewchannel:
-            newfmt[pkg] += ' {channel[1]:<%s}' % maxnewchannel
+        if maxnewchannels:
+            newfmt[pkg] += ' {channels[1]:<%s}' % maxnewchannels
         # TODO: Should we also care about the old package's link type?
         if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
             newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
@@ -148,8 +155,8 @@ def display_actions(actions, index, show_channel_urls=None):
 
         if pkg in new or pkg in removed:
             continue
-        P0 = Packages[pkg + '-' + packages[pkg][0]]
-        P1 = Packages[pkg + '-' + packages[pkg][1]]
+        P0 = records[pkg][0]
+        P1 = records[pkg][1]
         try:
             # <= here means that unchanged packages will be put in updated
             newer = ((P0.name, P0.norm_version, P0.build_number) <=
@@ -166,12 +173,9 @@ def display_actions(actions, index, show_channel_urls=None):
     lead = ' ' * 4
 
     def format(s, pkg):
-        channel = ['', '']
-        for i in range(2):
-            if packages[pkg][i]:
-                channel[i] = channel_str(Packages[pkg + '-' + packages[pkg][i]].schannel)
+        chans = [channel_filt(c) for c in channels[pkg]]
         return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
-                               channel=channel, features=features[pkg])
+                               channels=chans, features=features[pkg])
 
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
