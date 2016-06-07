@@ -3,9 +3,10 @@ from __future__ import absolute_import, division, print_function
 from logging import getLogger
 
 from auxlib.ish import dals
+from auxlib.compat import string_types
 
-from ..common.configuration import (Configuration as AppConfiguration, Parameter, ParameterType,
-                                    load_raw_configs)
+from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
+                                    SequenceParameter, MapParameter)
 from .constants import SEARCH_PATH
 
 log = getLogger(__name__)
@@ -13,28 +14,28 @@ log = getLogger(__name__)
 
 class Context(AppConfiguration):
 
-    add_pip_as_python_dependency = Parameter(default=True)
-    always_yes = Parameter(False)
-    always_copy = Parameter(False)
-    changeps1 = Parameter(True)
-    use_pip = Parameter(True)
-    binstar_upload = Parameter(None, aliases=('anaconda_upload', ))
-    allow_softlinks = Parameter(True)
-    self_update = Parameter(True)
-    show_channel_urls = Parameter(None)
-    update_dependencies = Parameter(True)
-    channel_priority = Parameter(True)
-    ssl_verify = Parameter(True)
-    track_features = Parameter((), parameter_type=ParameterType.list)
-    channels = Parameter((), parameter_type=ParameterType.list)
-    disallow = Parameter((), parameter_type=ParameterType.list)
-    create_default_packages = Parameter((), parameter_type=ParameterType.list)
-    envs_dirs = Parameter((), parameter_type=ParameterType.list)
-    default_channels = Parameter((), parameter_type=ParameterType.list)
-    proxy_servers = Parameter({}, parameter_type=ParameterType.map)
+    add_pip_as_python_dependency = PrimitiveParameter(True)
+    always_yes = PrimitiveParameter(False)
+    always_copy = PrimitiveParameter(False)
+    changeps1 = PrimitiveParameter(True)
+    use_pip = PrimitiveParameter(True)
+    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload', ))
+    allow_softlinks = PrimitiveParameter(True)
+    self_update = PrimitiveParameter(True)
+    show_channel_urls = PrimitiveParameter(None)
+    update_dependencies = PrimitiveParameter(True)
+    channel_priority = PrimitiveParameter(True)
+    ssl_verify = PrimitiveParameter(True)
+    track_features = SequenceParameter(string_types)
+    channels = SequenceParameter(string_types)
+    disallow = SequenceParameter(string_types)
+    create_default_packages = SequenceParameter(string_types)
+    envs_dirs = SequenceParameter(string_types)
+    default_channels = SequenceParameter(string_types)
+    proxy_servers = MapParameter(string_types)
 
 
-context = Context(load_raw_configs(SEARCH_PATH))
+context = Context.from_search_path(SEARCH_PATH)
 
 
 def get_help_dict():
