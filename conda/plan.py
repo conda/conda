@@ -118,6 +118,14 @@ def display_actions(actions, index, show_channel_urls=None):
     #                     Put a minimum length here---.    .--For the :
     #                                                 v    v
 
+    new = {p for p in packages if not packages[p][0]}
+    removed = {p for p in packages if not packages[p][1]}
+    # New packages are actually listed in the left-hand column,
+    # so let's move them over there
+    for pkg in new:
+        for var in (packages, features, channels, records):
+            var[pkg] = var[pkg][::-1]
+
     if packages:
         maxpkg = max(len(p) for p in packages) + 1
         maxoldver = max(len(p[0]) for p in packages.values())
@@ -126,8 +134,6 @@ def display_actions(actions, index, show_channel_urls=None):
         maxnewfeatures = max(len(p[1]) for p in features.values())
         maxoldchannels = max(len(channel_filt(p[0])) for p in channels.values())
         maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
-    new = {p for p in packages if not packages[p][0]}
-    removed = {p for p in packages if not packages[p][1]}
     updated = set()
     downgraded = set()
     oldfmt = {}
@@ -138,23 +144,22 @@ def display_actions(actions, index, show_channel_urls=None):
         oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
         if maxoldchannels:
             oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
-        if packages[pkg][0]:
-            newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
-        else:
-            newfmt[pkg] = '{pkg:<%s} {vers[1]:<%s}' % (maxpkg, maxnewver)
-        if maxnewchannels:
-            newfmt[pkg] += ' {channels[1]:<%s}' % maxnewchannels
-        # TODO: Should we also care about the old package's link type?
-        if pkg in linktypes and linktypes[pkg] != install.LINK_HARD:
-            newfmt[pkg] += ' (%s)' % install.link_name_map[linktypes[pkg]]
-
         if features[pkg][0]:
             oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
+
+        lt = linktypes.get(pkg, install.LINK_HARD)
+        lt = '' if lt == install.LINK_HARD else (' (%s)' % install.link_name_map[lt])
+        if pkg in removed or pkg in new:
+            oldfmt[pkg] += lt
+            continue
+
+        newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
+        if maxnewchannels:
+            newfmt[pkg] += ' {channels[1]:<%s}' % maxnewchannels
         if features[pkg][1]:
             newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
+        newfmt[pkg] += lt
 
-        if pkg in new or pkg in removed:
-            continue
         P0 = records[pkg][0]
         P1 = records[pkg][1]
         try:
@@ -180,7 +185,8 @@ def display_actions(actions, index, show_channel_urls=None):
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
     for pkg in sorted(new):
-        print(format(newfmt[pkg], pkg))
+        # New packages have been moved to the "old" column for display
+        print(format(oldfmt[pkg], pkg))
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
