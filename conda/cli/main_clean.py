@@ -11,10 +11,10 @@ from collections import defaultdict
 from os import lstat, walk, listdir
 from os.path import join, getsize, isdir
 
-from conda.cli import common
-from conda.config import pkgs_dirs as config_pkgs_dirs, root_dir, envs_dirs
-from conda.install import rm_rf
-from conda.utils import human_bytes
+from .common import add_parser_json, add_parser_yes, confirm_yn, error_and_exit, stdout_json
+from ..config import pkgs_dirs as config_pkgs_dirs, root_dir, envs_dirs
+from ..install import rm_rf
+from ..utils import human_bytes
 
 descr = """
 Remove unused packages and caches.
@@ -33,8 +33,8 @@ def configure_parser(sub_parsers):
         help=descr,
         epilog=example,
     )
-    common.add_parser_yes(p)
-    common.add_parser_json(p)
+    add_parser_yes(p)
+    add_parser_json(p)
     p.add_argument(
         "-a", "--all",
         action="store_true",
@@ -239,7 +239,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         print()
 
     if not args.json:
-        common.confirm_yn(args)
+        confirm_yn(args)
     if args.json and args.dry_run:
         return
 
@@ -331,7 +331,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
         print()
 
     if not args.json:
-        common.confirm_yn(args)
+        confirm_yn(args)
     if args.json and args.dry_run:
         return
 
@@ -381,7 +381,7 @@ def find_source_cache():
         'cache_dirs': cache_dirs,
         'cache_sizes': sizes,
         'total_size': totalsize,
-        }
+    }
 
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
@@ -400,7 +400,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     print("%-40s %10s" % ("Total:", human_bytes(total_size)))
 
     if not args.json:
-        common.confirm_yn(args)
+        confirm_yn(args)
     if args.json and args.dry_run:
         return
 
@@ -457,10 +457,10 @@ def execute(args, parser):
 
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):
-        common.error_and_exit(
+        error_and_exit(
             "One of {--lock, --tarballs, --index-cache, --packages, "
             "--source-cache, --all} required",
             error_type="ValueError")
 
     if args.json:
-        common.stdout_json(json_result)
+        stdout_json(json_result)

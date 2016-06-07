@@ -171,7 +171,7 @@ accomplished as follows:
 
 * clone the conda git repository to a computer with conda already installed
 * navigate to the root directory of the git clone
-* run ``$CONDA/bin/python setup.py develop`` where ``$CONDA` is the path to your
+* run ``$CONDA/bin/python setup.py develop`` where ``$CONDA`` is the path to your
   miniconda installation
 
 Note building a development file requires git to be installed.
@@ -179,8 +179,8 @@ Note building a development file requires git to be installed.
 To undo this, run ``$CONDA/bin/python setup.py develop -u``.  Note that if you
 used a python other than ``$CONDA/bin/python`` to install, you may have to manually
 delete the conda executable.  For example, on OS X, if you use a homebrew python
-located at `/usr/local/bin/python`, then you'll need to `rm /usr/local/bin/conda`
-so that `which -a conda` lists first your miniconda installation.
+located at ``/usr/local/bin/python``, then you'll need to ``rm /usr/local/bin/conda``
+so that ``which -a conda`` lists first your miniconda installation.
 
 If you are worried about breaking your conda installation, you can install a
 separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and
