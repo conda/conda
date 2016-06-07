@@ -1,16 +1,15 @@
 from __future__ import print_function, division, absolute_import
 
+import errno
+import logging
 import os
 import re
 import sys
 import time
-from os.path import isdir, isfile, join
 import warnings
-import errno
-import logging
+from os.path import isdir, isfile, join
 
-from conda import install
-from conda.install import dist2quad
+from .install import linked, dist2quad
 
 log = logging.getLogger(__name__)
 
@@ -76,7 +75,7 @@ class History(object):
     def init_log_file(self, force=False):
         if not force and isfile(self.path):
             return
-        self.write_dists(install.linked(self.prefix))
+        self.write_dists(linked(self.prefix))
 
     def update(self):
         """
@@ -90,7 +89,7 @@ class History(object):
                 warnings.warn("Error in %s: %s" % (self.path, e),
                               CondaHistoryWarning)
                 return
-            curr = set(install.linked(self.prefix))
+            curr = set(linked(self.prefix))
             if last == curr:
                 return
             self.write_changes(last, curr)

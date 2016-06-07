@@ -9,9 +9,9 @@ import re
 import sys
 from os.path import isdir, isfile, join
 
-from conda.compat import itervalues
-from conda.install import linked_data
-from conda.misc import rel_path
+from .compat import itervalues
+from .install import linked_data
+from .misc import rel_path
 
 
 def get_site_packages_dir(installed_pkgs):

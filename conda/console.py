@@ -1,14 +1,14 @@
 from __future__ import print_function, division, absolute_import
 
-import os
-import sys
+import contextlib
 import json
 import logging
-import contextlib
+import os
+import sys
 
-from conda.utils import memoized
-from conda.progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
-                               ProgressBar)
+from .progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
+                          ProgressBar)
+from .utils import memoized
 
 
 try:

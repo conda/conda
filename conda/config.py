@@ -14,8 +14,8 @@ from collections import OrderedDict
 from os.path import abspath, expanduser, isfile, isdir, join
 from platform import machine
 
-from conda.compat import urlparse, string_types
-from conda.utils import try_write, memoized, yaml_load
+from .compat import urlparse, string_types
+from .utils import try_write, memoized, yaml_load
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -192,12 +192,12 @@ def get_local_urls(clear_cache=True):
     # remove the cache such that a refetch is made,
     # this is necessary because we add the local build repo URL
     if clear_cache:
-        from conda.fetch import fetch_index
+        from .fetch import fetch_index
         fetch_index.cache = {}
     if local_channel:
         return local_channel
     from os.path import exists
-    from conda.utils import url_path
+    from .utils import url_path
     try:
         from conda_build.config import croot
         if exists(croot):

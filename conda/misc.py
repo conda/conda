@@ -11,15 +11,15 @@ from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath)
 
-from conda import install
-from conda import utils
-from conda.compat import iteritems, itervalues
-from conda.config import is_url, url_channel, root_dir, envs_dirs
-from conda.fetch import fetch_index
-from conda.instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
-from conda.plan import execute_actions
-from conda.resolve import Resolve, MatchSpec
-from conda.utils import md5_file
+from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
+                      linked_data, find_new_location, cached_url)
+from .compat import iteritems, itervalues
+from .config import is_url, url_channel, root_dir, envs_dirs
+from .fetch import fetch_index
+from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from .plan import execute_actions
+from .resolve import Resolve, MatchSpec
+from .utils import md5_file, url_path as utils_url_path
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -28,8 +28,8 @@ def conda_installed_files(prefix, exclude_self_build=False):
     a given prefix.
     """
     res = set()
-    for dist in install.linked(prefix):
-        meta = install.is_linked(prefix, dist)
+    for dist in install_linked(prefix):
+        meta = is_linked(prefix, dist)
         if exclude_self_build and 'file_hash' in meta:
             continue
         res.update(set(meta['files']))
@@ -42,7 +42,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
-    linked = {install.name_dist(dist): dist for dist in install.linked(prefix)}
+    linked = {name_dist(dist): dist for dist in install_linked(prefix)}
     fetch_args = fetch_args or {}
     index = {}
     verifies = []
@@ -59,13 +59,13 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
         if not is_url(url):
             if not isfile(url):
                 sys.exit('Error: file not found: %s' % url)
-            url = utils.url_path(url)
+            url = utils_url_path(url)
         url_p, fn = url.rsplit('/', 1)
 
         # See if the URL refers to a package in our cache
         prefix = pkg_path = dir_path = None
         if url_p.startswith('file://'):
-            prefix = install.cached_url(url)
+            prefix = cached_url(url)
 
         # If not, determine the channel name from the URL
         if prefix is None:
@@ -74,8 +74,8 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
         fn = prefix + fn
         dist = fn[:-8]
 
-        pkg_path = install.is_fetched(dist)
-        dir_path = install.is_extracted(dist)
+        pkg_path = is_fetched(dist)
+        dir_path = is_extracted(dist)
 
         # Don't re-fetch unless there is an MD5 mismatch
         if pkg_path and (md5 and md5_file(pkg_path) != md5):
@@ -90,7 +90,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
 
         if not dir_path:
             if not pkg_path:
-                _, conflict = install.find_new_location(dist)
+                _, conflict = find_new_location(dist)
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
                 channels[url_p + '/'] = (schannel, 0)
@@ -99,7 +99,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
             actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
-        name = install.name_dist(dist)
+        name = name_dist(dist)
         if name in linked:
             actions[UNLINK].append(linked[name])
         actions[LINK].append(dist)
@@ -203,14 +203,14 @@ def which_package(path):
     prefix = which_prefix(path)
     if prefix is None:
         raise RuntimeError("could not determine conda prefix from: %s" % path)
-    for dist in install.linked(prefix):
-        meta = install.is_linked(prefix, dist)
+    for dist in install_linked(prefix):
+        meta = is_linked(prefix, dist)
         if any(abspath(join(prefix, f)) == path for f in meta['files']):
             yield dist
 
 
 def discard_conda(dists):
-    return [dist for dist in dists if not install.name_dist(dist) == 'conda']
+    return [dist for dist in dists if not name_dist(dist) == 'conda']
 
 
 def touch_nonadmin(prefix):
@@ -242,7 +242,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
     untracked_files = untracked(prefix1)
 
     # Discard conda and any package that depends on it
-    drecs = install.linked_data(prefix1)
+    drecs = linked_data(prefix1)
     filter = {}
     found = True
     while found:
