@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 '''Compatability methods and classes for the progressbar module'''
+from __future__ import absolute_import, division, print_function
 
 
 # Python 3.x (and backports) use a modified iterator syntax
