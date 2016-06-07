@@ -11,9 +11,16 @@ import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
-from conda.cli import common
-from conda.config import default_prefix
-from conda.console import json_progress_bars
+from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
+                     add_parser_channels, add_parser_prefix, add_parser_quiet,
+                     add_parser_no_use_index_cache, add_parser_use_index_cache,
+                     add_parser_use_local, add_parser_offline, add_parser_pscheck,
+                     InstalledPackages, error_and_exit, get_prefix, check_write,
+                     ensure_use_local, ensure_override_channels_requires_channel,
+                     get_index_trap, specs_from_args, names_in_specs, root_no_rm, stdout_json,
+                     confirm_yn)
+from ..config import default_prefix
+from ..console import json_progress_bars
 
 
 help = "%s a list of packages from a specified conda environment."
@@ -54,9 +61,9 @@ def configure_parser(sub_parsers, name='remove'):
             epilog=example % name,
             add_help=False,
         )
-    common.add_parser_help(p)
-    common.add_parser_yes(p)
-    common.add_parser_json(p)
+    add_parser_help(p)
+    add_parser_yes(p)
+    add_parser_json(p)
     p.add_argument(
         "--all",
         action="store_true",
@@ -74,23 +81,23 @@ def configure_parser(sub_parsers, name='remove'):
              "Using this option will usually leave your environment in a broken and "
              "inconsistent state.",
     )
-    common.add_parser_no_pin(p)
-    common.add_parser_channels(p)
-    common.add_parser_prefix(p)
-    common.add_parser_quiet(p)
+    add_parser_no_pin(p)
+    add_parser_channels(p)
+    add_parser_prefix(p)
+    add_parser_quiet(p)
     # Putting this one first makes it the default
-    common.add_parser_no_use_index_cache(p)
-    common.add_parser_use_index_cache(p)
-    common.add_parser_use_local(p)
-    common.add_parser_offline(p)
-    common.add_parser_pscheck(p)
+    add_parser_no_use_index_cache(p)
+    add_parser_use_index_cache(p)
+    add_parser_use_local(p)
+    add_parser_offline(p)
+    add_parser_pscheck(p)
     p.add_argument(
         'package_names',
         metavar='package_name',
         action="store",
         nargs='*',
         help="Package names to %s from the environment." % name,
-    ).completer = common.InstalledPackages
+    ).completer = InstalledPackages
     p.set_defaults(func=execute)
 
 
@@ -100,29 +107,29 @@ def execute(args, parser):
     from conda.install import rm_rf, linked
 
     if not (args.all or args.package_names):
-        common.error_and_exit('no package names supplied,\n'
-                              '       try "conda remove -h" for more details',
-                              json=args.json,
-                              error_type="ValueError")
+        error_and_exit('no package names supplied,\n'
+                       '       try "conda remove -h" for more details',
+                       json=args.json,
+                       error_type="ValueError")
 
-    prefix = common.get_prefix(args)
+    prefix = get_prefix(args)
     if args.all and prefix == default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
-        common.error_and_exit(msg)
-    common.check_write('remove', prefix, json=args.json)
-    common.ensure_use_local(args)
-    common.ensure_override_channels_requires_channel(args)
+        error_and_exit(msg)
+    check_write('remove', prefix, json=args.json)
+    ensure_use_local(args)
+    ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
     if not args.features and args.all:
         index = {}
     else:
-        index = common.get_index_trap(channel_urls=channel_urls,
-                                      prepend=not args.override_channels,
-                                      use_local=args.use_local,
-                                      use_cache=args.use_index_cache,
-                                      json=args.json,
-                                      offline=args.offline,
-                                      prefix=prefix)
+        index = get_index_trap(channel_urls=channel_urls,
+                               prepend=not args.override_channels,
+                               use_local=args.use_local,
+                               use_cache=args.use_index_cache,
+                               json=args.json,
+                               offline=args.offline,
+                               prefix=prefix)
     specs = None
     if args.features:
         features = set(args.package_names)
@@ -130,23 +137,22 @@ def execute(args, parser):
 
     elif args.all:
         if plan.is_root_prefix(prefix):
-            common.error_and_exit('cannot remove root environment,\n'
-                                  '       add -n NAME or -p PREFIX option',
-                                  json=args.json,
-                                  error_type="CantRemoveRoot")
+            error_and_exit('cannot remove root environment,\n'
+                           '       add -n NAME or -p PREFIX option',
+                           json=args.json,
+                           error_type="CantRemoveRoot")
 
         actions = {inst.PREFIX: prefix}
         for dist in sorted(linked(prefix)):
             plan.add_unlink(actions, dist)
 
     else:
-        specs = common.specs_from_args(args.package_names)
-        if (plan.is_root_prefix(prefix) and
-                common.names_in_specs(common.root_no_rm, specs)):
-            common.error_and_exit('cannot remove %s from root environment' %
-                                  ', '.join(common.root_no_rm),
-                                  json=args.json,
-                                  error_type="CantRemoveFromRoot")
+        specs = specs_from_args(args.package_names)
+        if (plan.is_root_prefix(prefix) and names_in_specs(root_no_rm, specs)):
+            error_and_exit('cannot remove %s from root environment' %
+                           ', '.join(root_no_rm),
+                           json=args.json,
+                           error_type="CantRemoveFromRoot")
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 
@@ -155,15 +161,15 @@ def execute(args, parser):
             rm_rf(prefix)
 
             if args.json:
-                common.stdout_json({
+                stdout_json({
                     'success': True,
                     'actions': actions
                 })
             return
-        common.error_and_exit('no packages found to remove from '
-                              'environment: %s' % prefix,
-                              json=args.json,
-                              error_type="PackageNotInstalled")
+        error_and_exit('no packages found to remove from '
+                       'environment: %s' % prefix,
+                       json=args.json,
+                       error_type="PackageNotInstalled")
 
     if not args.json:
         print()
@@ -171,7 +177,7 @@ def execute(args, parser):
         plan.display_actions(actions, index)
 
     if args.json and args.dry_run:
-        common.stdout_json({
+        stdout_json({
             'success': True,
             'dry_run': True,
             'actions': actions
@@ -179,7 +185,7 @@ def execute(args, parser):
         return
 
     if not args.json:
-        common.confirm_yn(args)
+        confirm_yn(args)
 
     if args.json and not args.quiet:
         with json_progress_bars():
@@ -200,7 +206,7 @@ def execute(args, parser):
         rm_rf(prefix)
 
     if args.json:
-        common.stdout_json({
+        stdout_json({
             'success': True,
             'actions': actions
         })
