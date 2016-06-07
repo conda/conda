@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import pytest
 from contextlib import contextmanager
 from logging import getLogger
 from os.path import exists, isdir, isfile, join
@@ -9,14 +10,14 @@ from shutil import rmtree
 from tempfile import gettempdir
 from uuid import uuid1
 
-import pytest
-
 from conda import config
 from conda.cli import conda_argparse
-from conda.cli.main_create import configure_parser
+from conda.cli.main_create import configure_parser as create_configure_parser
+from conda.cli.main_install import configure_parser as install_configure_parser
+from conda.install import on_win
 
 log = getLogger(__name__)
-
+bindir = 'Scripts' if on_win else 'bin'
 
 def make_temp_env_path():
     tempdir = gettempdir()
@@ -38,9 +39,9 @@ def make_temp_env(*packages):
         
         p = conda_argparse.ArgumentParser()
         sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-        configure_parser(sub_parsers)
+        create_configure_parser(sub_parsers)
 
-        command = "create -p {0} {1}".format(env_path, " ".join(packages))
+        command = "create -y -p {0} {1}".format(env_path, " ".join(packages))
 
         args = p.parse_args(split(command))
         args.func(args, p)
@@ -50,25 +51,47 @@ def make_temp_env(*packages):
         rmtree(env_path, ignore_errors=True)
 
 
-@pytest.mark.timeout(600)
+def install_in_env(env_path, *packages):
+    p = conda_argparse.ArgumentParser()
+    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
+    install_configure_parser(sub_parsers)
+
+    command = "install -y -p {0} {1}".format(env_path, " ".join(packages))
+
+    args = p.parse_args(split(command))
+    args.func(args, p)
+
+
 def test_just_python3():
     with make_temp_env("python=3") as env_path:
-        assert exists(join(env_path, 'bin/python3'))
+        assert exists(join(env_path, bindir, 'python3'))
 
 
-@pytest.mark.timeout(600)
 def test_just_python2():
     with make_temp_env("python=2") as env_path:
-        assert exists(join(env_path, 'bin/python2'))
+        assert exists(join(env_path, bindir, 'python2'))
+
+
+def test_python2_install_numba():
+    with make_temp_env("python=2") as env_path:
+        assert exists(join(env_path, bindir, 'python2'))
+        install_in_env(env_path, "numba")
+        assert isfile(join(env_path, bindir, 'numba'))
+
+
+def test_dash_c_usage_replacing_python():
+    with make_temp_env("-c conda-forge python=3.5") as env_path:
+        assert exists(join(env_path, bindir, 'python3.5'))
+        install_in_env(env_path, "decorator")
+        # TODO @mcg1969: now what?
 
 
 @pytest.mark.timeout(600)
 def test_python2_anaconda():
     with make_temp_env("python=2 anaconda") as env_path:
-        assert isfile(join(env_path, 'bin/python2'))
-        assert isfile(join(env_path, 'bin/numba'))
+        assert isfile(join(env_path, bindir, 'python2'))
+        assert isfile(join(env_path, bindir, 'numba'))
 
 
 if __name__ == '__main__':
-    test_just_python3()
-    test_just_python2()
+    test_python2_install_numba()
