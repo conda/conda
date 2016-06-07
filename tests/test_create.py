@@ -14,9 +14,10 @@ from conda import config
 from conda.cli import conda_argparse
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
+from conda.install import on_win
 
 log = getLogger(__name__)
-
+bindir = 'Scripts' if on_win else 'bin'
 
 def make_temp_env_path():
     tempdir = gettempdir()
@@ -63,24 +64,24 @@ def install_in_env(env_path, *packages):
 
 def test_just_python3():
     with make_temp_env("python=3") as env_path:
-        assert exists(join(env_path, 'bin/python3'))
+        assert exists(join(env_path, bindir, 'python3'))
 
 
 def test_just_python2():
     with make_temp_env("python=2") as env_path:
-        assert exists(join(env_path, 'bin/python2'))
+        assert exists(join(env_path, bindir, 'python2'))
 
 
 def test_python2_install_numba():
     with make_temp_env("python=2") as env_path:
-        assert exists(join(env_path, 'bin/python2'))
+        assert exists(join(env_path, bindir, 'python2'))
         install_in_env(env_path, "numba")
-        assert isfile(join(env_path, 'bin/numba'))
+        assert isfile(join(env_path, bindir, 'numba'))
 
 
 def test_dash_c_usage_replacing_python():
     with make_temp_env("-c conda-forge python=3.5") as env_path:
-        assert exists(join(env_path, 'bin/python3.5'))
+        assert exists(join(env_path, bindir, 'python3.5'))
         install_in_env(env_path, "decorator")
         # TODO @mcg1969: now what?
 
@@ -88,8 +89,8 @@ def test_dash_c_usage_replacing_python():
 @pytest.mark.timeout(600)
 def test_python2_anaconda():
     with make_temp_env("python=2 anaconda") as env_path:
-        assert isfile(join(env_path, 'bin/python2'))
-        assert isfile(join(env_path, 'bin/numba'))
+        assert isfile(join(env_path, bindir, 'python2'))
+        assert isfile(join(env_path, bindir, 'numba'))
 
 
 if __name__ == '__main__':
