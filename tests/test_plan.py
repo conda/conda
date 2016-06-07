@@ -228,7 +228,7 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0 \n\
+    numpy:    1.7.1-py33_0
 
 The following packages will be REMOVED:
 
@@ -375,7 +375,7 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0  <unknown>
+    numpy:    1.7.1-py33_0 <unknown>
 
 The following packages will be REMOVED:
 
