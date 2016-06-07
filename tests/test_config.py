@@ -11,7 +11,6 @@ import pytest
 
 import conda.config as config
 from conda.utils import get_yaml
-from conda.compat import iterkeys
 
 from tests.helpers import run_conda_command
 
