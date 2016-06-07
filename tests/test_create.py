@@ -58,14 +58,14 @@ def make_env(*packages):
 def test_just_python():
     with make_env("python") as env_path:
         os.system('ls -al {0}'.format(os.path.join(env_path, 'bin')))
-        assert os.path.isfile(os.path.join(env_path, 'bin/python3'))
+        assert os.path.exists(os.path.join(env_path, 'bin/python3'))
 
 
 @pytest.mark.timeout(600)
 def test_just_python2():
     with make_env("python=2") as env_path:
         os.system('ls -al {0}'.format(os.path.join(env_path, 'bin')))
-        assert os.path.isfile(os.path.join(env_path, 'bin/python2'))
+        assert os.path.exists(os.path.join(env_path, 'bin/python2'))
 
 
 # @pytest.mark.timeout(600)
