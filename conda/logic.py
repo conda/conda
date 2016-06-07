@@ -27,10 +27,11 @@ through the Require and Prevent functions.
 """
 from __future__ import absolute_import, division, print_function
 
-from itertools import chain, combinations
-from conda.compat import iteritems, string_types
 import logging
 import pycosat
+from itertools import chain, combinations
+
+from .compat import iteritems, string_types
 
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
@@ -598,7 +599,7 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
 
     """
     if log:
-        from conda.console import setup_verbose_handlers
+        from .console import setup_verbose_handlers
         setup_verbose_handlers()
 
         def start(x):

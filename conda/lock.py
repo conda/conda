@@ -21,7 +21,7 @@ import logging
 import os
 import time
 
-from conda.exceptions import LockError
+from .exceptions import LockError
 
 LOCKFN = '.conda_lock'
 

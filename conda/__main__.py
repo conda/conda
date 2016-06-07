@@ -1,4 +1,5 @@
 import sys
-from conda.cli import main
+
+from .cli import main
 
 sys.exit(main())

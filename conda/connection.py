@@ -14,16 +14,15 @@ import mimetypes
 import os
 import platform
 import re
+import requests
 import tempfile
 from io import BytesIO
 from logging import getLogger
 
-import requests
-
-import conda
-from conda.compat import urlparse, StringIO
-from conda.config import platform as config_platform, ssl_verify, get_proxy_servers
-from conda.utils import gnu_get_libc_version
+from . import __version__ as VERSION
+from .compat import urlparse, StringIO
+from .config import platform as config_platform, ssl_verify, get_proxy_servers
+from .utils import gnu_get_libc_version
 
 RETRIES = 3
 
@@ -47,7 +46,7 @@ else:
     dist = platform.system()
     ver = platform.version()
 
-user_agent = _user_agent.format(conda_ver=conda.__version__,
+user_agent = _user_agent.format(conda_ver=VERSION,
                                 requests_ver=requests.__version__,
                                 python=platform.python_implementation(),
                                 py_ver=platform.python_version(),
