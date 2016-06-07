@@ -6,15 +6,14 @@
 
 from __future__ import print_function, division, absolute_import
 
-import sys
 import argparse
 import os
 import subprocess
-
+import sys
 from difflib import get_close_matches
 
-from conda.cli.find_commands import find_commands, find_executable
-from conda.cli import common
+from .common import add_parser_help
+from .find_commands import find_commands, find_executable
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
                   'pipbuild', 'develop', 'convert'}
@@ -88,7 +87,7 @@ class ArgumentParser(argparse.ArgumentParser):
         super(ArgumentParser, self).__init__(*args, **kwargs)
 
         if add_custom_help:
-            common.add_parser_help(self)
+            add_parser_help(self)
 
         if self.description:
             self.description += "\n\nOptions:\n"
@@ -112,7 +111,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         import re
         import subprocess
-        from conda.cli.find_commands import find_executable
+        from .find_commands import find_executable
 
         exc = sys.exc_info()[1]
         if exc:
@@ -159,7 +158,7 @@ Error: You need to install conda-build in order to use the 'conda %s'
         super(ArgumentParser, self).print_help()
 
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
-            from conda.cli.find_commands import help
+            from .find_commands import help
             help()
 
     def parse_args(self, *args, **kwargs):

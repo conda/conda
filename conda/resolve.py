@@ -5,13 +5,13 @@ import re
 from collections import defaultdict
 from itertools import chain
 
-from conda.compat import iterkeys, itervalues, iteritems
-from conda.console import setup_handlers
-from conda.logic import minimal_unsatisfiable_subset, Clauses
-from conda.toposort import toposort
-from conda.version import VersionSpec, normalized_version
-from conda.install import dist2quad
-from conda.config import subdir, channel_priority, canonical_channel_name, track_features
+from .compat import iterkeys, itervalues, iteritems
+from .config import subdir, channel_priority, canonical_channel_name, track_features
+from .console import setup_handlers
+from .install import dist2quad
+from .logic import minimal_unsatisfiable_subset, Clauses
+from .toposort import toposort
+from .version import VersionSpec, normalized_version
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')

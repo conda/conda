@@ -5,5 +5,4 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function
 
-from conda.cli.main import main
-assert main  # shut up pyflakes
+from .main import main  # NOQA
