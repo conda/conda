@@ -1,6 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
-from conda.cli import common
+from .common import add_parser_prefix, add_parser_quiet, add_parser_json, get_prefix
 
 descr = 'Create or extract a "bundle package" (EXPERIMENTAL)'
 
@@ -24,8 +24,8 @@ def configure_parser(sub_parsers):
                          help="Dump metadata of bundle at PATH.",
                          metavar="PATH")
 
-    common.add_parser_prefix(p)
-    common.add_parser_quiet(p)
+    add_parser_prefix(p)
+    add_parser_quiet(p)
     p.add_argument("--bundle-name",
                    action="store",
                    help="Name of bundle.",
@@ -45,7 +45,7 @@ def configure_parser(sub_parsers):
                    action="store_true",
                    help="No environment.",
                    )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
@@ -53,15 +53,15 @@ def execute(args, parser):
     import sys
     import json
 
-    import conda.bundle as bundle
-    from conda.fetch import TmpDownload
+    from .. import bundle
+    from ..fetch import TmpDownload
 
     if not (args.create or args.extract or args.metadump):
         sys.exit("""Error:
     either one of the following options is required:
        -c/--create  -x/--extract  --metadump
     (see -h for more details)""")
-    prefix = common.get_prefix(args)
+    prefix = get_prefix(args)
     if args.no_env:
         prefix = None
 
