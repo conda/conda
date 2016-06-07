@@ -48,23 +48,15 @@ def make_env(*packages):
         print(env_path)
 
 
-# def test_config():
-#     from conda import config
-#     assert config.changeps1, config.changeps1
-#     config.rc = config.load_condarc('')
-#     assert not config.get_proxy_servers(), config.get_proxy_servers()
-
 @pytest.mark.timeout(600)
-def test_just_python():
-    with make_env("python") as env_path:
-        os.system('ls -al {0}'.format(os.path.join(env_path, 'bin')))
+def test_just_python3():
+    with make_env("python=3") as env_path:
         assert os.path.exists(os.path.join(env_path, 'bin/python3'))
 
 
 @pytest.mark.timeout(600)
 def test_just_python2():
     with make_env("python=2") as env_path:
-        os.system('ls -al {0}'.format(os.path.join(env_path, 'bin')))
         assert os.path.exists(os.path.join(env_path, 'bin/python2'))
 
 
@@ -76,6 +68,6 @@ def test_just_python2():
 
 
 if __name__ == '__main__':
-    test_just_python()
+    test_just_python3()
     test_just_python2()
     # test_python2_anaconda()
