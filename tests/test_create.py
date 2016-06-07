@@ -78,6 +78,13 @@ def test_python2_install_numba():
         assert isfile(join(env_path, 'bin/numba'))
 
 
+def test_dash_c_usage_replacing_python():
+    with make_temp_env("-c conda-forge python=3.5") as env_path:
+        assert exists(join(env_path, 'bin/python3.5'))
+        install_in_env(env_path, "decorator")
+        # TODO @mcg1969: now what?
+
+
 @pytest.mark.timeout(600)
 def test_python2_anaconda():
     with make_temp_env("python=2 anaconda") as env_path:
