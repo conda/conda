@@ -6,8 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-from conda.cli import common, install
-
+from .common import add_parser_install, add_parser_json
+from .install import install
 
 help = "Create a new conda environment from a list of specified packages. "
 descr = (help +
@@ -29,8 +29,8 @@ def configure_parser(sub_parsers):
         help=help,
         epilog=example,
     )
-    common.add_parser_install(p)
-    common.add_parser_json(p)
+    add_parser_install(p)
+    add_parser_json(p)
     p.add_argument(
         "--clone",
         action="store",
@@ -46,4 +46,4 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
-    install.install(args, parser, 'create')
+    install(args, parser, 'create')
