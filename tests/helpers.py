@@ -38,6 +38,7 @@ def raises(exception, func, string=None):
 
 
 def run_conda_command(*args):
+    # used in tests_config (31 times) and test_info (6 times)
     env = os.environ.copy()
     p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, env=env)
@@ -83,6 +84,7 @@ def captured(disallow_stderr=True):
 
 
 def capture_with_argv(*argv):
+    # only used in capture_json_with_argv()
     sys.argv = argv
     stdout, stderr = StringIO(), StringIO()
     oldstdout, oldstderr = sys.stdout, sys.stderr
@@ -108,6 +110,7 @@ def capture_with_argv(*argv):
 
 
 def capture_json_with_argv(*argv, **kwargs):
+    # used in test_config (6 times), test_info (2 times), test_list (5 times), and test_search (10 times)
     stdout, stderr = capture_with_argv(*argv)
 
     if kwargs.get('relaxed'):
