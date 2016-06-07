@@ -29,6 +29,21 @@ Please follow the :doc:`Quick install</install/quick>` instructions.
 OPTIONAL: If you wish to upload packages to Anaconda.org , an `Anaconda.org <http://anaconda.org>`_ 
 account and client are required.
 
+Update conda build
+~~~~~~~~~~~~~~~~~~
+
+It is important to keep your version of ``conda build`` up to date to take advantage of
+bug fixes and new features.
+
+**All platforms:** Upgrade conda-build:
+
+.. code-block:: bash
+
+  conda update conda
+  conda update conda-build
+
+Release notes are available on the `conda-build Github page. <https://github.com/conda/conda-build/releases>`_
+
 Conda recipe files overview
 ===========================
 
