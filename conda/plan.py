@@ -16,17 +16,18 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
-from conda import install
-from conda import instructions as inst
-from conda.config import (always_copy as config_always_copy, url_channel,
-                          show_channel_urls as config_show_channel_urls,
-                          root_dir, allow_softlinks, default_python, self_update,
-                          track_features, foreign, canonical_channel_name)
-from conda.exceptions import CondaException
-from conda.history import History
-from conda.resolve import MatchSpec, Resolve, Package
-from conda.utils import md5_file, human_bytes
-from conda.install import dist2quad
+from . import instructions as inst
+from .config import (always_copy as config_always_copy,
+                     show_channel_urls as config_show_channel_urls,
+                     root_dir, allow_softlinks, default_python, self_update,
+                     track_features, foreign, url_channel, canonical_channel_name)
+from .exceptions import CondaException
+from .history import History
+from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
+                      is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
+                      LINK_SOFT, try_hard_link, rm_rf)
+from .resolve import MatchSpec, Resolve, Package
+from .utils import md5_file, human_bytes
 
 # For backwards compatibility
 
@@ -147,8 +148,8 @@ def display_actions(actions, index, show_channel_urls=None):
         if features[pkg][0]:
             oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
 
-        lt = linktypes.get(pkg, install.LINK_HARD)
-        lt = '' if lt == install.LINK_HARD else (' (%s)' % install.link_name_map[lt])
+        lt = linktypes.get(pkg, LINK_HARD)
+        lt = '' if lt == LINK_HARD else (' (%s)' % link_name_map[lt])
         if pkg in removed or pkg in new:
             oldfmt[pkg] += lt
             continue
@@ -266,8 +267,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
                            inst.EXTRACT, inst.UNLINK, inst.LINK)
     for dist in dists:
-        fetched_in = install.is_fetched(dist)
-        extracted_in = install.is_extracted(dist)
+        fetched_in = is_fetched(dist)
+        extracted_in = is_extracted(dist)
 
         if fetched_in and index is not None:
             # Test the MD5, and possibly re-fetch
@@ -282,7 +283,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
             except KeyError:
                 sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
 
-        if not force and install.is_linked(prefix, dist):
+        if not force and is_linked(prefix, dist):
             continue
 
         if extracted_in and force:
@@ -293,8 +294,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
         # Otherwise we need to extract, and possibly fetch
         if not extracted_in and not fetched_in:
             # If there is a cache conflict, clean it up
-            fetched_in, conflict = install.find_new_location(dist)
-            fetched_in = join(fetched_in, install.dist2filename(dist))
+            fetched_in, conflict = find_new_location(dist)
+            fetched_in = join(fetched_in, dist2filename(dist))
             if conflict is not None:
                 actions[inst.RM_FETCHED].append(conflict)
             actions[inst.FETCH].append(dist)
@@ -310,20 +311,20 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
             if not extracted_in:
                 # If not already extracted, create some dummy
                 # data to test with
-                install.rm_rf(fetched_dist)
+                rm_rf(fetched_dist)
                 ppath = join(fetched_dist, 'info')
                 os.makedirs(ppath)
                 index_json = join(ppath, 'index.json')
                 with open(index_json, 'w'):
                     pass
             if config_always_copy or always_copy:
-                lt = install.LINK_COPY
-            elif install.try_hard_link(fetched_dir, prefix, dist):
-                lt = install.LINK_HARD
+                lt = LINK_COPY
+            elif try_hard_link(fetched_dir, prefix, dist):
+                lt = LINK_HARD
             elif allow_softlinks and sys.platform != 'win32':
-                lt = install.LINK_SOFT
+                lt = LINK_SOFT
             else:
-                lt = install.LINK_COPY
+                lt = LINK_COPY
             actions[inst.LINK].append('%s %d' % (dist, lt))
         except (OSError, IOError):
             actions[inst.LINK].append(dist)
@@ -331,7 +332,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
             if not extracted_in:
                 # Remove the dummy data
                 try:
-                    install.rm_rf(fetched_dist)
+                    rm_rf(fetched_dist)
                 except (OSError, IOError):
                     pass
 
@@ -350,7 +351,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
-    names_linked = {install.name_dist(dist): dist for dist in linked}
+    names_linked = {name_dist(dist): dist for dist in linked}
     mspecs = list(map(MatchSpec, specs))
 
     for name, def_ver in [('python', default_python),
@@ -427,7 +428,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     for fn in pkgs:
         dist = fn[:-8]
-        name = install.name_dist(dist)
+        name = name_dist(dist)
         if not name or only_names and name not in only_names:
             continue
         must_have[name] = dist
@@ -458,7 +459,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     for fkey in sorted(linked):
         dist = fkey[:-8]
-        name = install.name_dist(dist)
+        name = name_dist(dist)
         replace_existing = name in must_have and dist != must_have[name]
         prune_it = prune and dist not in smh
         if replace_existing or prune_it:
