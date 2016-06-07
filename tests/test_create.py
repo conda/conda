@@ -60,11 +60,11 @@ def test_just_python2():
         assert os.path.exists(os.path.join(env_path, 'bin/python2'))
 
 
-# @pytest.mark.timeout(600)
-# def test_python2_anaconda():
-#     with make_env("python=2 anaconda") as env_path:
-#         assert os.path.isfile(os.path.join(env_path, 'bin/python2'))
-#         assert os.path.isfile(os.path.join(env_path, 'bin/numba'))
+@pytest.mark.timeout(600)
+def test_python2_anaconda():
+    with make_env("python=2 anaconda") as env_path:
+        assert os.path.isfile(os.path.join(env_path, 'bin/python2'))
+        assert os.path.isfile(os.path.join(env_path, 'bin/numba'))
 
 
 if __name__ == '__main__':
