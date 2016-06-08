@@ -3,12 +3,14 @@ from __future__ import absolute_import, division, print_function
 
 import pytest
 from contextlib import contextmanager
+from glob import glob
 from logging import getLogger
-from os.path import exists, isdir, isfile, join
+from os.path import exists, isdir, isfile, join, relpath
 from shlex import split
 from shutil import rmtree
 from tempfile import gettempdir
 from uuid import uuid4
+import os
 
 from conda import config
 from conda.cli import conda_argparse
@@ -16,6 +18,7 @@ from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
+from conda.config import pkgs_dirs
 from conda.install import linked as install_linked
 from conda.install import on_win
 
@@ -123,8 +126,23 @@ def test_python3():
             assert_package_is_installed(prefix, 'flask')
 
             remove_from_env(prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
+
+            # regression test for #2626
+            # install tarball with full path
+            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-*.tar.bz2'))[-1]
+            install_in_env(prefix, flask_tar_file)
+            assert_package_is_installed(prefix, 'flask-0.')
+
+            remove_from_env(prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.')
+
+            # regression test for #2626
+            # install tarball with relative path
+            flask_tar_file = relpath(flask_tar_file)
+            install_in_env(prefix, flask_tar_file)
+            assert_package_is_installed(prefix, 'flask-0.')
 
 
 def test_just_python2():
@@ -166,4 +184,4 @@ def test_python2_pandas():
 
 
 if __name__ == '__main__':
-    test_dash_c_usage_replacing_python()
+    test_python3()
