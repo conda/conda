@@ -15,7 +15,7 @@ from os.path import abspath, expanduser, isfile, isdir, join
 from platform import machine
 
 from .compat import urlparse, string_types
-from .utils import try_write, memoized, yaml_load
+from .utils import try_write, yaml_load
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -102,6 +102,7 @@ rc_other = [
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 local_channel = []
+rc = root_dir = root_writable = BINSTAR_TOKEN_PAT = channel_alias = None
 
 def get_rc_path():
     path = os.getenv('CONDARC')
@@ -116,23 +117,19 @@ def get_rc_path():
 
 rc_path = get_rc_path()
 
-def load_condarc(path):
+def load_condarc_(path):
     if not path or not isfile(path):
         return {}
     with open(path) as f:
         return yaml_load(f) or {}
 
-rc = load_condarc(rc_path)
-sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
+sys_rc = load_condarc_(sys_rc_path) if isfile(sys_rc_path) else {}
 
 # ----- local directories -----
 
 # root_dir should only be used for testing, which is why don't mention it in
 # the documentation, to avoid confusion (it can really mess up a lot of
 # things)
-root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
-                                        rc.get('root_dir', sys.prefix))))
-root_writable = try_write(root_dir)
 root_env_name = 'root'
 
 def _default_envs_dirs():
@@ -155,34 +152,11 @@ def _pathsep_env(name):
             res.append(path)
     return res
 
-envs_dirs = [abspath(expanduser(path)) for path in (
-        _pathsep_env('CONDA_ENVS_PATH') or
-        rc.get('envs_dirs') or
-        _default_envs_dirs()
-        )]
-
 def pkgs_dir_from_envs_dir(envs_dir):
     if abspath(envs_dir) == abspath(join(root_dir, 'envs')):
         return join(root_dir, 'pkgs32' if force_32bit else 'pkgs')
     else:
         return join(envs_dir, '.pkgs')
-
-pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
-
-# ----- default environment prefix -----
-
-_default_env = os.getenv('CONDA_DEFAULT_ENV')
-if _default_env in (None, root_env_name):
-    default_prefix = root_dir
-elif os.sep in _default_env:
-    default_prefix = abspath(_default_env)
-else:
-    for envs_dir in envs_dirs:
-        default_prefix = join(envs_dir, _default_env)
-        if isdir(default_prefix):
-            break
-    else:
-        default_prefix = join(envs_dirs[0], _default_env)
 
 # ----- channels -----
 
@@ -207,11 +181,8 @@ def get_local_urls(clear_cache=True):
     return local_channel
 
 def get_default_urls():
-    if isfile(sys_rc_path):
-        sys_rc = load_condarc(sys_rc_path)
-        if 'default_channels' in sys_rc:
-            return sys_rc['default_channels']
-
+    if 'default_channels' in sys_rc:
+        return sys_rc['default_channels']
     return ['https://repo.continuum.io/pkgs/free',
             'https://repo.continuum.io/pkgs/pro']
 
@@ -225,7 +196,6 @@ def get_rc_urls():
 def is_url(url):
     return urlparse.urlparse(url).scheme != ""
 
-@memoized
 def binstar_channel_alias(channel_alias):
     if channel_alias.startswith('file:/'):
         return channel_alias
@@ -244,21 +214,11 @@ def binstar_channel_alias(channel_alias):
             stderrlog.info("Warning: could not import binstar_client (%s)" % e)
     return channel_alias
 
-channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
-if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
-    channel_alias = sys_rc['channel_alias']
-
-channel_alias = channel_alias.rstrip('/')
-_binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
-BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
-
 def hide_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
 
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
-
-channel_alias = remove_binstar_tokens(channel_alias + '/')
 
 def prioritize_channels(channels):
     newchans = OrderedDict()
@@ -300,8 +260,6 @@ def normalize_urls(urls, platform=None, offline_only=False):
             for plat in (platform or subdir, 'noarch'):
                 newurls.append('%s/%s/' % (url0, plat))
     return newurls
-
-offline = bool(rc.get('offline', False))
 
 def get_channel_urls(platform=None, offline=False):
     if os.getenv('CIO_TEST'):
@@ -363,41 +321,85 @@ def get_proxy_servers():
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
 
-# ----- foreign -----
+def load_condarc(path):
+    rc = load_condarc_(path)
 
-try:
-    with open(join(root_dir, 'conda-meta', 'foreign')) as fi:
-        foreign = fi.read().split()
-except IOError:
-    foreign = [] if isdir(join(root_dir, 'conda-meta')) else ['python']
+    root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
+                                            rc.get('root_dir', sys.prefix))))
+    root_writable = try_write(root_dir)
 
-# ----- misc -----
+    globals().update(locals())
 
-add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
-always_yes = bool(rc.get('always_yes', False))
-always_copy = bool(rc.get('always_copy', False))
-changeps1 = bool(rc.get('changeps1', True))
-use_pip = bool(rc.get('use_pip', True))
-binstar_upload = rc.get('anaconda_upload',
-                        rc.get('binstar_upload', None))  # None means ask
-allow_softlinks = bool(rc.get('allow_softlinks', True))
-self_update = bool(rc.get('self_update', True))
-# show channel URLs when displaying what is going to be downloaded
-show_channel_urls = rc.get('show_channel_urls', None)  # None means letting conda decide
-# set packages disallowed to be installed
-disallow = set(rc.get('disallow', []))
-# packages which are added to a newly created environment by default
-create_default_packages = list(rc.get('create_default_packages', []))
-update_dependencies = bool(rc.get('update_dependencies', True))
-channel_priority = bool(rc.get('channel_priority', True))
+    envs_dirs = [abspath(expanduser(p)) for p in (
+            _pathsep_env('CONDA_ENVS_PATH') or
+            rc.get('envs_dirs') or
+            _default_envs_dirs()
+            )]
 
-# ssl_verify can be a boolean value or a filename string
-ssl_verify = rc.get('ssl_verify', True)
+    pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
 
-try:
-    track_features = rc['track_features']
-    if isinstance(track_features, string_types):
-        track_features = track_features.split()
-    track_features = set(track_features)
-except KeyError:
-    track_features = None
+    _default_env = os.getenv('CONDA_DEFAULT_ENV')
+    if _default_env in (None, root_env_name):
+        default_prefix = root_dir
+    elif os.sep in _default_env:
+        default_prefix = abspath(_default_env)
+    else:
+        for envs_dir in envs_dirs:
+            default_prefix = join(envs_dir, _default_env)
+            if isdir(default_prefix):
+                break
+        else:
+            default_prefix = join(envs_dirs[0], _default_env)
+
+    # ----- foreign -----
+
+    try:
+        with open(join(root_dir, 'conda-meta', 'foreign')) as fi:
+            foreign = fi.read().split()
+    except IOError:
+        foreign = [] if isdir(join(root_dir, 'conda-meta')) else ['python']
+
+    channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+    if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
+        channel_alias = sys_rc['channel_alias']
+
+    channel_alias = channel_alias.rstrip('/')
+    _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
+    BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
+    channel_alias = BINSTAR_TOKEN_PAT.sub(r'\1', channel_alias + '/')
+
+    offline = bool(rc.get('offline', False))
+
+    add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
+    always_yes = bool(rc.get('always_yes', False))
+    always_copy = bool(rc.get('always_copy', False))
+    changeps1 = bool(rc.get('changeps1', True))
+    use_pip = bool(rc.get('use_pip', True))
+    binstar_upload = rc.get('anaconda_upload',
+                            rc.get('binstar_upload', None))  # None means ask
+    allow_softlinks = bool(rc.get('allow_softlinks', True))
+    self_update = bool(rc.get('self_update', True))
+    # show channel URLs when displaying what is going to be downloaded
+    show_channel_urls = rc.get('show_channel_urls', None)  # None means letting conda decide
+    # set packages disallowed to be installed
+    disallow = set(rc.get('disallow', []))
+    # packages which are added to a newly created environment by default
+    create_default_packages = list(rc.get('create_default_packages', []))
+    update_dependencies = bool(rc.get('update_dependencies', True))
+    channel_priority = bool(rc.get('channel_priority', True))
+
+    # ssl_verify can be a boolean value or a filename string
+    ssl_verify = rc.get('ssl_verify', True)
+
+    try:
+        track_features = rc.get('track_features', [])
+        if isinstance(track_features, string_types):
+            track_features = track_features.split()
+        track_features = set(track_features)
+    except KeyError:
+        track_features = None
+
+    globals().update(locals())
+    return rc
+
+load_condarc(rc_path)

@@ -20,7 +20,7 @@ from ..cli import common
 from ..cli.find_commands import find_executable
 from ..config import create_default_packages, force_32bit, root_env_name
 from ..install import linked as install_linked
-from ..install import name_dist, rm_rf, is_linked
+from ..install import name_dist, is_linked
 from ..misc import explicit, clone_env, append_env, touch_nonadmin
 from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defaults_to_specs,
                     display_actions, revert_actions, nothing_to_do, execute_actions)
