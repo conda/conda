@@ -369,7 +369,9 @@ def replace_long_shebang(mode, data):
 def replace_prefix(mode, data, placeholder, new_prefix):
     if mode == 'text':
         data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
-    elif mode == 'binary':
+    # Skip binary replacement in Windows.  Some files do have prefix information embedded, but
+    #    this should not matter, as it is not used for things like RPATH.
+    elif mode == 'binary' and sys.platform != "win32":
         data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     else:
         sys.exit("Invalid mode:" % mode)
@@ -377,8 +379,8 @@ def replace_prefix(mode, data, placeholder, new_prefix):
 
 
 def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
-    if on_win and (placeholder != prefix_placeholder) and ('/' in placeholder):
-        # original prefix uses unix-style path separators
+    if on_win:
+        # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
         new_prefix = new_prefix.replace('\\', '/')
 
