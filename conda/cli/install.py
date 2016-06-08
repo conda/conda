@@ -308,7 +308,8 @@ environment does not exist: %s
                                           pinned=args.pinned,
                                           always_copy=args.copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=args.update_deps)
+                                          update_deps=args.update_deps,
+                                          shortcuts=args.shortcuts)
     except NoPackagesFound as e:
         error_message = e.args[0]
 

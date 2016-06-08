@@ -5,6 +5,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from __future__ import print_function, division, absolute_import
+import sys
 
 from .common import add_parser_install, add_parser_json
 from .install import install
@@ -53,6 +54,12 @@ def configure_parser(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
+    if sys.platform == "win32":
+        p.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help="Install start menu shortcuts"
+        )
     add_parser_install(p)
     add_parser_json(p)
     p.set_defaults(func=execute)
