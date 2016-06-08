@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import logging
 import pytest
 from contextlib import contextmanager
 from logging import getLogger
@@ -8,7 +9,7 @@ from os.path import exists, isdir, isfile, join
 from shlex import split
 from shutil import rmtree
 from tempfile import gettempdir
-from uuid import uuid1
+from uuid import uuid4
 
 from conda import config
 from conda.cli import conda_argparse
@@ -20,12 +21,14 @@ from conda.install import linked as install_linked
 from conda.install import on_win
 
 log = getLogger(__name__)
+
 bindir = 'Scripts' if on_win else 'bin'
+python_bindir = '' if on_win else 'bin'
 
 
 def make_temp_prefix():
     tempdir = gettempdir()
-    dirname = str(uuid1())[:8]
+    dirname = str(uuid4())[:8]
     prefix = join(tempdir, dirname)
     if exists(prefix):
         # rm here because create complains if directory exists
@@ -110,7 +113,7 @@ def assert_package_is_installed(prefix, package):
 def test_python3():
     with disable_dotlog():
         with make_temp_env("python=3") as prefix:
-            assert exists(join(prefix, bindir, 'python3'))
+            assert exists(join(prefix, python_bindir, 'python3'))
             assert_package_is_installed(prefix, 'python-3')
 
             install_in_env(prefix, 'flask=0.10')
@@ -128,14 +131,14 @@ def test_python3():
 def test_just_python2():
     with disable_dotlog():
         with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, bindir, 'python2'))
+            assert exists(join(prefix, python_bindir, 'python2'))
             assert_package_is_installed(prefix, 'python-2')
 
 
 def test_python2_install_numba():
     with disable_dotlog():
         with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, bindir, 'python2'))
+            assert exists(join(prefix, python_bindir, 'python2'))
             assert not package_is_installed(prefix, 'numba')
             install_in_env(prefix, "numba")
             assert_package_is_installed(prefix, 'numba')
@@ -146,7 +149,7 @@ def test_dash_c_usage_replacing_python():
     # a regression test for #2606
     with disable_dotlog():
         with make_temp_env("-c conda-forge python=3.5") as prefix:
-            assert exists(join(prefix, bindir, 'python3.5'))
+            assert exists(join(prefix, python_bindir, 'python3.5'))
             install_in_env(prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
@@ -159,7 +162,7 @@ def test_dash_c_usage_replacing_python():
 def test_python2_pandas():
     with disable_dotlog():
         with make_temp_env("python=2 pandas") as prefix:
-            assert isfile(join(prefix, bindir, 'python2'))
+            assert isfile(join(prefix, python_bindir, 'python2'))
             assert_package_is_installed(prefix, 'numpy')
 
 
