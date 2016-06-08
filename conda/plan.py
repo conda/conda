@@ -351,6 +351,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
+    linked = [d if d.endswith('.tar.bz2') else d + '.tar.bz2' for d in linked]
     names_linked = {name_dist(dist): dist for dist in linked}
     mspecs = list(map(MatchSpec, specs))
 
@@ -384,8 +385,6 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             # default
             log.debug('H3 %s' % name)
             fkey = names_linked[name]
-            if not fkey.endswith('.tar.bz2'):
-                fkey += '.tar.bz2'
             info = r.index[fkey]
             ver = '.'.join(info['version'].split('.', 2)[:2])
             spec = '%s %s* (target=%s)' % (info['name'], ver, fkey)
