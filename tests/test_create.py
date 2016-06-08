@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import logging
 import pytest
 from contextlib import contextmanager
 from logging import getLogger
@@ -8,7 +9,7 @@ from os.path import exists, isdir, isfile, join
 from shlex import split
 from shutil import rmtree
 from tempfile import gettempdir
-from uuid import uuid1
+from uuid import uuid4
 
 from conda import config
 from conda.cli import conda_argparse
@@ -20,13 +21,16 @@ from conda.install import linked as install_linked
 from conda.install import on_win
 
 log = getLogger(__name__)
+logging.disable(logging.NOTSET)
+logging.basicConfig(level=logging.DEBUG)
+
 bindir = 'Scripts' if on_win else 'bin'
 python_bindir = '' if on_win else 'bin'
 
 
 def make_temp_prefix():
     tempdir = gettempdir()
-    dirname = str(uuid1())[:8]
+    dirname = str(uuid4())[:8]
     prefix = join(tempdir, dirname)
     if exists(prefix):
         # rm here because create complains if directory exists
