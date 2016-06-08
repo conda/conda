@@ -13,14 +13,14 @@ import tarfile
 import tempfile
 from os.path import basename, isfile, islink, join
 
-import conda.install as install
-from conda.compat import PY3, itervalues
-from conda.config import platform, arch_name
-from conda.misc import untracked
+from .compat import PY3, itervalues
+from .config import platform, arch_name
+from .install import prefix_placeholder, linked_data
+from .misc import untracked
 
 
 def get_installed_version(prefix, name):
-    for info in itervalues(install.linked_data(prefix)):
+    for info in itervalues(linked_data(prefix)):
         if info['name'] == name:
             return str(info['version'])
     return None
@@ -53,7 +53,7 @@ def fix_shebang(tmp_dir, path):
     if not (m and 'python' in m.group()):
         return False
 
-    data = shebang_pat.sub('#!%s/bin/python' % install.prefix_placeholder,
+    data = shebang_pat.sub('#!%s/bin/python' % prefix_placeholder,
                            data, count=1)
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, 'w') as fo:

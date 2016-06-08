@@ -6,8 +6,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-from conda.cli import common, install
-
+from .common import add_parser_install, add_parser_json
+from .install import install
 
 help = "Installs a list of packages into a specified conda environment."
 descr = help + """
@@ -53,10 +53,10 @@ def configure_parser(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
-    common.add_parser_install(p)
-    common.add_parser_json(p)
+    add_parser_install(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
-    install.install(args, parser, 'install')
+    install(args, parser, 'install')

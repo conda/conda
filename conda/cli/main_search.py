@@ -6,11 +6,15 @@
 
 from __future__ import print_function, division, absolute_import
 
-from conda.cli import common
-from conda.config import subdir, canonical_channel_name
-from conda.misc import make_icon_url
-from conda.resolve import NoPackagesFound, Package
-from conda.install import dist2quad
+from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
+                     add_parser_use_index_cache, add_parser_offline, add_parser_channels,
+                     add_parser_json, add_parser_use_local, exception_and_exit, error_and_exit,
+                     ensure_use_local, ensure_override_channels_requires_channel,
+                     get_index_trap, get_prefix, stdout_json, disp_features)
+from ..config import subdir, canonical_channel_name
+from ..install import dist2quad
+from ..misc import make_icon_url
+from ..resolve import NoPackagesFound, Package
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -38,7 +42,7 @@ platform are shown):
    conda search --platform linux-64
 '''
 
-class Platforms(common.Completer):
+class Platforms(Completer):
     """
     Tab completion for platforms
 
@@ -55,7 +59,7 @@ def configure_parser(sub_parsers):
         help=descr,
         epilog=example,
     )
-    common.add_parser_prefix(p)
+    add_parser_prefix(p)
     p.add_argument(
         "--canonical",
         action="store_true",
@@ -71,8 +75,8 @@ def configure_parser(sub_parsers):
         action="store_true",
         help="Output only package names.",
     )
-    common.add_parser_known(p)
-    common.add_parser_use_index_cache(p)
+    add_parser_known(p)
+    add_parser_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
         action="store_true",
@@ -107,18 +111,18 @@ package.""",
         nargs="?",
         help="""Package specification or Python regular expression to search for (default: display
         all packages).""",
-    ).completer = common.Packages
-    common.add_parser_offline(p)
-    common.add_parser_channels(p)
-    common.add_parser_json(p)
-    common.add_parser_use_local(p)
+    ).completer = Packages
+    add_parser_offline(p)
+    add_parser_channels(p)
+    add_parser_json(p)
+    add_parser_use_local(p)
     p.set_defaults(func=execute)
 
 def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFound as e:
-        common.exception_and_exit(e, json=args.json)
+        exception_and_exit(e, json=args.json)
 
 def execute_search(args, parser):
     import re
@@ -142,13 +146,13 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
-                common.error_and_exit(
+                error_and_exit(
                     "'%s' is not a valid regex pattern (exception: %s)" %
                     (regex, e),
                     json=args.json,
                     error_type="ValueError")
 
-    prefix = common.get_prefix(args)
+    prefix = get_prefix(args)
 
     import conda.install
 
@@ -159,13 +163,13 @@ def execute_search(args, parser):
     platform = args.platform or ''
     if platform and platform != subdir:
         args.unknown = False
-    common.ensure_use_local(args)
-    common.ensure_override_channels_requires_channel(args, dashc=False)
+    ensure_use_local(args)
+    ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
-    index = common.get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
-                                  platform=args.platform, use_local=args.use_local,
-                                  use_cache=args.use_index_cache, prefix=prefix,
-                                  unknown=args.unknown, json=args.json, offline=args.offline)
+    index = get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
+                           platform=args.platform, use_local=args.use_local,
+                           use_cache=args.use_index_cache, prefix=prefix,
+                           unknown=args.unknown, json=args.json, offline=args.offline)
 
     r = Resolve(index)
 
@@ -260,7 +264,7 @@ def execute_search(args, parser):
                     pkg.version,
                     pkg.build,
                     canonical_channel_name(pkg.channel),
-                    common.disp_features(r.features(pkg.fn)),
+                    disp_features(r.features(pkg.fn)),
                     ))
                 disp_name = ''
             else:
@@ -287,4 +291,4 @@ def execute_search(args, parser):
                 json[name].append(data)
 
     if args.json:
-        common.stdout_json(json)
+        stdout_json(json)

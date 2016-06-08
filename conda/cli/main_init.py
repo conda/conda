@@ -9,8 +9,8 @@ from __future__ import print_function, division, absolute_import
 import sys
 from os.path import isdir, join
 
-import conda
-from conda.config import root_dir
+from .. import __version__ as VERSION
+from ..config import root_dir
 
 descr = """
 Initialize conda into a regular environment (when conda was installed as a
@@ -63,7 +63,7 @@ def initialize(prefix=root_dir):
         if sys.platform != 'win32':
             fo.write('zlib sqlite readline tk openssl system\n')
     write_meta(meta_dir, dict(name='conda',
-                              version=conda.__version__.split('-')[0],
+                              version=VERSION.split('-')[0],
                               build_number=0))
     write_meta(meta_dir, dict(name='python',
                               version=sys.version[:5],

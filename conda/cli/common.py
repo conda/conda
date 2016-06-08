@@ -8,13 +8,13 @@ import sys
 import textwrap
 from os.path import abspath, basename, expanduser, isdir, join
 
-from conda import console
-from conda.config import (envs_dirs, default_prefix, platform, update_dependencies,
-                          channel_priority, show_channel_urls, always_yes, root_env_name,
-                          root_dir, root_writable, disallow)
-from conda.resolve import MatchSpec
-from conda.utils import memoize
-from conda.install import dist2quad
+from .. import console
+from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
+                      channel_priority, show_channel_urls, always_yes, root_env_name,
+                      root_dir, root_writable, disallow)
+from ..install import dist2quad
+from ..resolve import MatchSpec
+from ..utils import memoize
 
 
 class Completer(object):
@@ -67,7 +67,7 @@ class Packages(Completer):
 
     def _get_items(self):
         # TODO: Include .tar.bz2 files for local installs.
-        from conda.api import get_index
+        from ..api import get_index
         args = self.parsed_args
         call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
@@ -463,7 +463,7 @@ def name_prefix(prefix):
 
 def check_write(command, prefix, json=False):
     if inroot_notwritable(prefix):
-        from conda.cli.help import root_read_only
+        from .help import root_read_only
 
         root_read_only(command, prefix, json=json)
 
@@ -520,7 +520,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from conda.fetch import TmpDownload
+    from ..fetch import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:
@@ -610,7 +610,7 @@ def get_index_trap(*args, **kwargs):
     Retrieves the package index, but traps exceptions and reports them as
     JSON if necessary.
     """
-    from conda.api import get_index
+    from ..api import get_index
 
     if 'json' in kwargs:
         json = kwargs['json']

@@ -10,12 +10,12 @@ import tempfile
 import time
 from os.path import abspath, expanduser, basename, isdir, isfile, islink, join
 
-import conda.install as install
-import conda.plan as plan
-from conda.api import get_index
-from conda.config import arch_name, platform, envs_dirs
-from conda.misc import untracked, discard_conda
-from conda.compat import itervalues
+from .api import get_index
+from .compat import itervalues
+from .config import arch_name, platform, envs_dirs
+from .install import linked_data
+from .misc import untracked, discard_conda
+from .plan import ensure_linked_actions, display_actions, execute_actions
 
 
 ISO8601 = "%Y-%m-%d %H:%M:%S %z"
@@ -107,7 +107,7 @@ def create_bundle(prefix=None, data_path=None, bundle_name=None,
                 add_file(t, path, f)
         meta['bundle_prefix'] = prefix
         meta['depends'] = ['%(name)s %(version)s %(build)s' % info
-                           for info in itervalues(install.linked_data(prefix))]
+                           for info in itervalues(linked_data(prefix))]
 
     if data_path:
         add_data(t, data_path)
@@ -140,10 +140,10 @@ def clone_bundle(path, prefix=None, bundle_name=None):
             t.extract(m, path=prefix)
         dists = discard_conda('-'.join(s.split())
                               for s in meta.get('depends', []))
-        actions = plan.ensure_linked_actions(dists, prefix)
+        actions = ensure_linked_actions(dists, prefix)
         index = get_index()
-        plan.display_actions(actions, index)
-        plan.execute_actions(actions, index, verbose=True)
+        display_actions(actions, index)
+        execute_actions(actions, index, verbose=True)
 
     bundle_dir = abspath(expanduser('~/bundles/%s' %
                                     (bundle_name or meta.get('bundle_name'))))

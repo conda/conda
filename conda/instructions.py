@@ -1,10 +1,13 @@
+from __future__ import absolute_import, division, print_function
+
 from logging import getLogger
 
-from conda import install
-from conda.config import root_dir
-from conda.exceptions import InvalidInstruction
-from conda.fetch import fetch_pkg
-from conda.utils import find_parent_shell
+from .config import root_dir
+from .exceptions import InvalidInstruction
+from .fetch import fetch_pkg
+from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
+                      link, unlink, symlink_conda, name_dist)
+from .utils import find_parent_shell
 
 
 log = getLogger(__name__)
@@ -53,35 +56,35 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
-    if not install.is_extracted(arg):
-        install.extract(arg)
+    if not is_extracted(arg):
+        extract(arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
-    install.rm_extracted(arg)
+    rm_extracted(arg)
 
 
 def RM_FETCHED_CMD(state, arg):
-    install.rm_fetched(arg)
+    rm_fetched(arg)
 
 
 def split_linkarg(arg):
     "Return tuple(dist, linktype)"
     parts = arg.split()
-    return parts[0], int(install.LINK_HARD if len(parts) < 2 else parts[1])
+    return parts[0], int(LINK_HARD if len(parts) < 2 else parts[1])
 
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
-    install.link(state['prefix'], dist, lt, index=state['index'])
+    link(state['prefix'], dist, lt, index=state['index'])
 
 
 def UNLINK_CMD(state, arg):
-    install.unlink(state['prefix'], arg)
+    unlink(state['prefix'], arg)
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    install.symlink_conda(state['prefix'], arg, find_parent_shell())
+    symlink_conda(state['prefix'], arg, find_parent_shell())
 
 # Map instruction to command (a python function)
 commands = {
@@ -112,7 +115,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         _commands = commands
 
     if verbose:
-        from conda.console import setup_verbose_handlers
+        from .console import setup_verbose_handlers
         setup_verbose_handlers()
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
@@ -123,7 +126,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((install.name_dist(arg),
+            getLogger('progress.update').info((name_dist(arg),
                                                state['i'] - 1))
         cmd = _commands.get(instruction)
 
@@ -137,4 +140,4 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             state['i'] = None
             getLogger('progress.stop').info(None)
 
-    install.messages(state['prefix'])
+    messages(state['prefix'])
