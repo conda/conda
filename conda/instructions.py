@@ -69,14 +69,14 @@ def RM_FETCHED_CMD(state, arg):
 
 
 def split_linkarg(arg):
-    "Return tuple(dist, linktype)"
+    "Return tuple(dist, linktype, shortcuts)"
     parts = arg.split()
-    return parts[0], int(LINK_HARD if len(parts) < 2 else parts[1])
+    return parts[0], int(LINK_HARD if len(parts) < 2 else parts[1]), False if len(parts) < 3 else bool(parts[2])
 
 
 def LINK_CMD(state, arg):
-    dist, lt = split_linkarg(arg)
-    link(state['prefix'], dist, lt, index=state['index'])
+    dist, lt, shortcuts = split_linkarg(arg)
+    link(state['prefix'], dist, lt, index=state['index'], shortcuts=shortcuts)
 
 
 def UNLINK_CMD(state, arg):

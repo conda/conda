@@ -1005,7 +1005,7 @@ def move_path_to_trash(path):
     return False
 
 
-def link(prefix, dist, linktype=LINK_HARD, index=None):
+def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     """
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
@@ -1065,7 +1065,8 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
                 sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
                          (placeholder, dist))
 
-        mk_menus(prefix, files, remove=False)
+        if shortcuts:
+            mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
@@ -1194,6 +1195,13 @@ def main():
     p.add_option('-v', '--verbose',
                  action="store_true")
 
+    if sys.platform == "win32":
+        p.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help="Install start menu shortcuts"
+        )
+
     opts, args = p.parse_args()
     if args:
         p.error('no arguments expected')
@@ -1220,7 +1228,7 @@ def main():
     for dist in idists:
         if opts.verbose:
             print("linking: %s" % dist)
-        link(prefix, dist, linktype)
+        link(prefix, dist, linktype, opts.shortcuts)
 
     messages(prefix)
 
