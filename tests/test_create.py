@@ -21,8 +21,6 @@ from conda.install import linked as install_linked
 from conda.install import on_win
 
 log = getLogger(__name__)
-logging.disable(logging.NOTSET)
-logging.basicConfig(level=logging.DEBUG)
 
 bindir = 'Scripts' if on_win else 'bin'
 python_bindir = '' if on_win else 'bin'
@@ -164,7 +162,7 @@ def test_dash_c_usage_replacing_python():
 def test_python2_pandas():
     with disable_dotlog():
         with make_temp_env("python=2 pandas") as prefix:
-            assert isfile(join(prefix, bindir, 'python2'))
+            assert isfile(join(prefix, python_bindir, 'python2'))
             assert_package_is_installed(prefix, 'numpy')
 
 
