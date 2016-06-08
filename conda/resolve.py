@@ -935,9 +935,8 @@ class Resolve(object):
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
-        len0 = len(specs)
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
-        pkgs = self.solve(specs, len0=len0, returnall=returnall)
+        pkgs = self.solve(specs, returnall=returnall)
         self.restore_bad(pkgs, preserve)
         return pkgs
 
@@ -966,15 +965,14 @@ class Resolve(object):
         self.restore_bad(pkgs, preserve)
         return pkgs
 
-    def solve(self, specs, len0=None, returnall=False):
+    def solve(self, specs, returnall=False):
         try:
             stdoutlog.info("Solving package specifications ...")
             dotlog.debug("Solving for %s" % (specs,))
 
             # Find the compliant packages
+            len0 = len(specs)
             specs = list(map(MatchSpec, specs))
-            if len0 is None:
-                len0 = len(specs)
             dists, new_specs = self.get_dists(specs)
             if not dists:
                 return False if dists is None else ([[]] if returnall else [])
@@ -1003,7 +1001,7 @@ class Resolve(object):
                 if s.name in specm:
                     specm.remove(s.name)
                 if not s.optional:
-                    (specr if k < len0 else speca).append(s)
+                    (speca if s.target or k > len0 else specr).append(s)
                 elif any(r2.find_matches(s)):
                     s = MatchSpec(s.name, optional=True, target=s.target)
                     speco.append(s)
