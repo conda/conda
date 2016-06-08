@@ -10,6 +10,7 @@ import getpass
 import hashlib
 import json
 import os
+import requests
 import shutil
 import sys
 import tempfile
@@ -18,16 +19,14 @@ from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
 
-import requests
-
-from conda.compat import itervalues, input, urllib_quote, iterkeys, iteritems
-from conda.config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
-                          hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
-                          ssl_verify, rc, prioritize_channels, url_channel)
-from conda.connection import CondaSession, unparse_url, RETRIES
-from conda.install import add_cached_package, find_new_location, package_cache, dist2filename
-from conda.lock import Locked
-from conda.utils import memoized
+from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
+from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
+                     hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
+                     ssl_verify, rc, prioritize_channels, url_channel)
+from .connection import CondaSession, unparse_url, RETRIES
+from .install import add_cached_package, find_new_location, package_cache, dist2filename
+from .lock import Locked
+from .utils import memoized
 
 
 log = getLogger(__name__)
@@ -315,7 +314,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
-        from conda.signature import verify, SignatureError
+        from .signature import verify, SignatureError
 
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
@@ -452,7 +451,7 @@ class TmpDownload(object):
             return self.url
         else:
             if self.verbose:
-                from conda.console import setup_handlers
+                from .console import setup_handlers
                 setup_handlers()
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))

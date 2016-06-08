@@ -8,8 +8,7 @@ from __future__ import print_function, division, absolute_import
 import os
 from os.path import dirname, join
 
-from conda.cli import common
-
+from .common import add_parser_prefix, get_prefix
 
 descr = "Low-level conda package utility. (EXPERIMENTAL)"
 
@@ -20,7 +19,7 @@ def configure_parser(sub_parsers):
         description=descr,
         help=descr,
     )
-    common.add_parser_prefix(p)
+    add_parser_prefix(p)
     p.add_argument(
         '-w', "--which",
         metavar="PATH",
@@ -80,7 +79,7 @@ def execute(args, parser):
     from conda.misc import untracked, which_package
     from conda.packup import make_tarbz2
 
-    prefix = common.get_prefix(args)
+    prefix = get_prefix(args)
 
     if args.which:
         for path in args.which:

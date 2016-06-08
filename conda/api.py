@@ -1,10 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
-from conda import install
-from conda.compat import iteritems, itervalues
-from conda.config import normalize_urls, prioritize_channels, get_channel_urls
-from conda.fetch import fetch_index
-from conda.resolve import Resolve
+from . import install
+from .compat import iteritems, itervalues
+from .config import normalize_urls, prioritize_channels, get_channel_urls
+from .fetch import fetch_index
+from .resolve import Resolve
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,

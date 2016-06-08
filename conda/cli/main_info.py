@@ -14,7 +14,8 @@ from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
-from conda.cli import common
+from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
+                     handle_envs_list)
 
 help = "Display information about current conda install."
 
@@ -32,7 +33,7 @@ def configure_parser(sub_parsers):
         help=help,
         epilog=example,
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.add_argument(
         '-a', "--all",
         action="store_true",
@@ -84,7 +85,7 @@ def show_pkg_info(name):
             print('    %-15s %15s  %s' % (
                     pkg.version,
                     pkg.build,
-                    common.disp_features(r.features(pkg.fn))))
+                    disp_features(r.features(pkg.fn))))
     else:
         print('    not available')
     # TODO
@@ -153,7 +154,7 @@ def execute(args, parser):
 
     if args.root:
         if args.json:
-            common.stdout_json({'root_prefix': root_dir})
+            stdout_json({'root_prefix': root_dir})
         else:
             print(root_dir)
         return
@@ -162,14 +163,14 @@ def execute(args, parser):
         index = get_index()
         r = Resolve(index)
         if args.json:
-            common.stdout_json({
+            stdout_json({
                 package: [p._asdict()
-                          for p in sorted(r.get_pkgs(common.arg2spec(package)))]
+                          for p in sorted(r.get_pkgs(arg2spec(package)))]
                 for package in args.packages
             })
         else:
             for package in args.packages:
-                versions = r.get_pkgs(common.arg2spec(package))
+                versions = r.get_pkgs(arg2spec(package))
                 for pkg in sorted(versions):
                     pretty_package(pkg)
         return
@@ -254,7 +255,7 @@ Current conda install:
 #     root directory '%s' is uninitialized""" % root_dir)
 
     if args.envs:
-        common.handle_envs_list(info_dict['envs'], not args.json)
+        handle_envs_list(info_dict['envs'], not args.json)
 
     if args.system and not args.json:
         from conda.cli.find_commands import find_commands, find_executable
@@ -296,4 +297,4 @@ WARNING: could not import _license.show_info
 # $ conda install -n root _license""")
 
     if args.json:
-        common.stdout_json(info_dict)
+        stdout_json(info_dict)

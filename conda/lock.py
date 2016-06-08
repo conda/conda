@@ -15,12 +15,13 @@ globally (such as downloading packages).
 
 We don't raise an error if the lock is named with the current PID
 """
+from __future__ import absolute_import, division, print_function
 
 import logging
 import os
 import time
 
-from conda.exceptions import LockError
+from .exceptions import LockError
 
 LOCKFN = '.conda_lock'
 

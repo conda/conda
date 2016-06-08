@@ -2,6 +2,7 @@
 For compatibility between Python versions.
 Taken mostly from six.py by Benjamin Peterson.
 """
+from __future__ import absolute_import, division, print_function
 
 import sys
 import types

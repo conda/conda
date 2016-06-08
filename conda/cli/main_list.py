@@ -13,11 +13,13 @@ import sys
 from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile, join
 
-import conda.install as install
-from conda.cli import common
-from conda.config import show_channel_urls, subdir, use_pip
-from conda.egg_info import get_egg_info
-from conda.install import dist2quad
+from .common import (add_parser_help, add_parser_prefix, add_parser_json,
+                     add_parser_show_channel_urls, disp_features, error_and_exit, stdout_json,
+                     get_prefix)
+from ..config import show_channel_urls, subdir, use_pip
+from ..egg_info import get_egg_info
+from ..install import dist2quad
+from ..install import name_dist, is_linked, linked
 
 
 descr = "List linked packages in a conda environment."
@@ -54,10 +56,10 @@ def configure_parser(sub_parsers):
         epilog=examples,
         add_help=False,
     )
-    common.add_parser_help(p)
-    common.add_parser_prefix(p)
-    common.add_parser_json(p)
-    common.add_parser_show_channel_urls(p)
+    add_parser_help(p)
+    add_parser_prefix(p)
+    add_parser_json(p)
+    add_parser_show_channel_urls(p)
     p.add_argument(
         '-c', "--canonical",
         action="store_true",
@@ -115,7 +117,7 @@ def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
 
     for dist in sorted(installed, key=str.lower):
-        name = install.name_dist(dist)
+        name = name_dist(dist)
         if pat and pat.search(name) is None:
             continue
 
@@ -138,10 +140,10 @@ def list_packages(prefix, installed, regex=None, format='human',
 
         try:
             # Returns None if no meta-file found (e.g. pip install)
-            info = install.is_linked(prefix, dist)
+            info = is_linked(prefix, dist)
             features = set(info.get('features', '').split())
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
-            disp += '  %s' % common.disp_features(features)
+            disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
             if show_channel_urls or show_channel_urls is None and schannel != 'defaults':
                 disp += '  %s' % schannel
@@ -156,13 +158,13 @@ def list_packages(prefix, installed, regex=None, format='human',
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=show_channel_urls):
     if not isdir(prefix):
-        common.error_and_exit("""\
+        error_and_exit("""\
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before listing its packages.""" %
-                              prefix,
-                              json=json,
-                              error_type="NoEnvironmentFound")
+                       prefix,
+                       json=json,
+                       error_type="NoEnvironmentFound")
 
     if not json:
         if format == 'human':
@@ -171,7 +173,7 @@ Error: environment does not exist: %s
         if format == 'export':
             print_export_header()
 
-    installed = install.linked(prefix)
+    installed = linked(prefix)
     if piplist and use_pip and format == 'human':
         installed.update(get_egg_info(prefix))
 
@@ -180,7 +182,7 @@ Error: environment does not exist: %s
     if not json:
         print('\n'.join(output))
     else:
-        common.stdout_json(output)
+        stdout_json(output)
     return exitcode
 
 
@@ -188,7 +190,7 @@ def print_explicit(prefix, add_md5=False):
     import json
 
     if not isdir(prefix):
-        common.error_and_exit("Error: environment does not exist: %s" % prefix)
+        error_and_exit("Error: environment does not exist: %s" % prefix)
     print_export_header()
     print("@EXPLICIT")
 
@@ -226,7 +228,7 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
-    prefix = common.get_prefix(args)
+    prefix = get_prefix(args)
 
     regex = args.regex
     if args.full_name:
@@ -240,11 +242,11 @@ def execute(args, parser):
             if not args.json:
                 h.print_log()
             else:
-                common.stdout_json(h.object_log())
+                stdout_json(h.object_log())
         else:
-            common.error_and_exit("No revision log found: %s\n" % h.path,
-                                  json=args.json,
-                                  error_type="NoRevisionLog")
+            error_and_exit("No revision log found: %s\n" % h.path,
+                           json=args.json,
+                           error_type="NoRevisionLog")
         return
 
     if args.explicit:

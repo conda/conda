@@ -54,8 +54,8 @@ try:
 except ImportError:
     pass
 
-from conda.progressbar.compat import *
-from conda.progressbar.widgets import *
+from .compat import *
+from .widgets import *
 
 
 __author__ = 'Nilton Volpato'

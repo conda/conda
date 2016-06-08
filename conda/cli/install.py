@@ -6,26 +6,29 @@
 
 from __future__ import print_function, division, absolute_import
 
+import errno
+import logging
 import os
-import sys
 import shutil
+import sys
 import tarfile
 import tempfile
-from os.path import isdir, join, basename, exists, abspath
 from difflib import get_close_matches
-import logging
-import errno
+from os.path import isdir, join, basename, exists, abspath
 
-from conda.config import create_default_packages, force_32bit, root_env_name
-import conda.plan as plan
-import conda.misc as misc
-from conda.api import get_index
-from conda.cli import common
-from conda.cli.find_commands import find_executable
-from conda.resolve import NoPackagesFound, Unsatisfiable, Resolve
-import conda.install as ci
+from ..api import get_index
+from ..cli import common
+from ..cli.find_commands import find_executable
+from ..config import create_default_packages, force_32bit, root_env_name
+from ..install import linked as install_linked
+from ..install import name_dist, rm_rf, is_linked
+from ..misc import explicit, clone_env, append_env, touch_nonadmin
+from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defaults_to_specs,
+                    display_actions, revert_actions, nothing_to_do, execute_actions)
+from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
 
 log = logging.getLogger(__name__)
+
 
 def install_tar(prefix, tar_path, verbose=False):
     if not exists(tar_path):
@@ -41,7 +44,7 @@ def install_tar(prefix, tar_path, verbose=False):
             if fn.endswith('.tar.bz2'):
                 paths.append(join(root, fn))
 
-    misc.explicit(paths, prefix, verbose=verbose)
+    explicit(paths, prefix, verbose=verbose)
     shutil.rmtree(tmp_dir)
 
 
@@ -78,10 +81,10 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
         print("Destination: %s" % dst_prefix)
 
     with common.json_progress_bars(json=json and not quiet):
-        actions, untracked_files = misc.clone_env(src_prefix, dst_prefix,
-                                                  verbose=not json,
-                                                  quiet=quiet,
-                                                  fetch_args=fetch_args)
+        actions, untracked_files = clone_env(src_prefix, dst_prefix,
+                                             verbose=not json,
+                                             quiet=quiet,
+                                             fetch_args=fetch_args)
 
     if json:
         common.stdout_json_success(
@@ -93,7 +96,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
 
 
 def print_activate(arg):
-    from conda.utils import find_parent_shell
+    from ..utils import find_parent_shell
     print("#")
     print("# To activate this environment, use:")
     if find_parent_shell() in ["powershell.exe", "cmd.exe"]:
@@ -130,7 +133,7 @@ def install(args, parser, command='install'):
     prefix = common.get_prefix(args, search=not newenv)
     if newenv:
         check_prefix(prefix, json=args.json)
-    if force_32bit and plan.is_root_prefix(prefix):
+    if force_32bit and is_root_prefix(prefix):
         common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
 
     if isupdate and not (args.file or args.all or args.packages):
@@ -142,8 +145,8 @@ def install(args, parser, command='install'):
                               json=args.json,
                               error_type="ValueError")
 
-    linked = ci.linked(prefix)
-    lnames = {ci.name_dist(d) for d in linked}
+    linked = install_linked(prefix)
+    lnames = {name_dist(d) for d in linked}
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=args.json, update=True)
@@ -172,7 +175,7 @@ def install(args, parser, command='install'):
         for fpath in args.file:
             specs.extend(common.specs_from_url(fpath, json=args.json))
         if '@EXPLICIT' in specs:
-            misc.explicit(specs, prefix, verbose=not args.quiet)
+            explicit(specs, prefix, verbose=not args.quiet)
             return
     elif getattr(args, 'all', False):
         if not linked:
@@ -190,7 +193,7 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            misc.explicit(args.packages, prefix, verbose=not args.quiet)
+            explicit(args.packages, prefix, verbose=not args.quiet)
             return
         else:
             common.error_and_exit(
@@ -213,8 +216,8 @@ def install(args, parser, command='install'):
         clone(args.clone, prefix, json=args.json, quiet=args.quiet,
               fetch_args={'use_cache': args.use_index_cache,
                           'unknown': args.unknown})
-        misc.append_env(prefix)
-        misc.touch_nonadmin(prefix)
+        append_env(prefix)
+        touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
         return
@@ -229,12 +232,12 @@ def install(args, parser, command='install'):
                                   prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
-    plan.add_defaults_to_specs(r, linked, specs, update=isupdate)
+    add_defaults_to_specs(r, linked, specs, update=isupdate)
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
-        installed_metadata = [ci.is_linked(prefix, dist) for dist in linked]
+        installed_metadata = [is_linked(prefix, dist) for dist in linked]
         for name in orig_packages:
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
@@ -258,7 +261,7 @@ def install(args, parser, command='install'):
                     latest.build_number == build_inst[0]):
                 args.packages.remove(name)
         if not args.packages:
-            from conda.cli.main_list import print_packages
+            from .main_list import print_packages
 
             if not args.json:
                 regex = '^(%s)$' % '|'.join(orig_packages)
@@ -297,16 +300,16 @@ environment does not exist: %s
 
     try:
         if isinstall and args.revision:
-            actions = plan.revert_actions(prefix, get_revision(args.revision))
+            actions = revert_actions(prefix, get_revision(args.revision))
         else:
             with common.json_progress_bars(json=args.json and not args.quiet):
-                actions = plan.install_actions(prefix, index, specs,
-                                               force=args.force,
-                                               only_names=only_names,
-                                               pinned=args.pinned,
-                                               always_copy=args.copy,
-                                               minimal_hint=args.alt_hint,
-                                               update_deps=args.update_deps)
+                actions = install_actions(prefix, index, specs,
+                                          force=args.force,
+                                          only_names=only_names,
+                                          pinned=args.pinned,
+                                          always_copy=args.copy,
+                                          minimal_hint=args.alt_hint,
+                                          update_deps=args.update_deps)
     except NoPackagesFound as e:
         error_message = e.args[0]
 
@@ -354,7 +357,7 @@ environment does not exist: %s
                 error_message += ' command line client with'
                 error_message += '\n\n    conda install anaconda-client'
 
-            pinned_specs = plan.get_pinned_specs(prefix)
+            pinned_specs = get_pinned_specs(prefix)
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
                 error_message += "\n\nNote that you have pinned specs in %s:" % path
@@ -370,8 +373,8 @@ environment does not exist: %s
                                   error_text=False,
                                   error_type=error_type)
 
-    if plan.nothing_to_do(actions):
-        from conda.cli.main_list import print_packages
+    if nothing_to_do(actions):
+        from .main_list import print_packages
 
         if not args.json:
             regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
@@ -385,7 +388,7 @@ environment does not exist: %s
     if not args.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
-        plan.display_actions(actions, index, show_channel_urls=args.show_channel_urls)
+        display_actions(actions, index, show_channel_urls=args.show_channel_urls)
 
     if command in {'install', 'update'}:
         common.check_write(command, prefix)
@@ -398,7 +401,7 @@ environment does not exist: %s
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         try:
-            plan.execute_actions(actions, index, verbose=not args.quiet)
+            execute_actions(actions, index, verbose=not args.quiet)
             if not (command == 'update' and args.all):
                 try:
                     with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
@@ -419,8 +422,8 @@ environment does not exist: %s
             common.exception_and_exit(e, json=args.json)
 
     if newenv:
-        misc.append_env(prefix)
-        misc.touch_nonadmin(prefix)
+        append_env(prefix)
+        touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
 
@@ -435,11 +438,11 @@ def check_install(packages, platform=None, channel_urls=(), prepend=True,
         specs = common.specs_from_args(packages)
         index = get_index(channel_urls=channel_urls, prepend=prepend,
                           platform=platform, prefix=prefix)
-        linked = ci.linked(prefix)
-        plan.add_defaults_to_specs(Resolve(index), linked, specs)
-        actions = plan.install_actions(prefix, index, specs, pinned=False,
-                                       minimal_hint=minimal_hint)
-        plan.display_actions(actions, index)
+        linked = install_linked(prefix)
+        add_defaults_to_specs(Resolve(index), linked, specs)
+        actions = install_actions(prefix, index, specs, pinned=False,
+                                  minimal_hint=minimal_hint)
+        display_actions(actions, index)
         return actions
     finally:
-        ci.rm_rf(prefix)
+        rm_rf(prefix)
