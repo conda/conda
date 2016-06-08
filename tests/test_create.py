@@ -14,84 +14,114 @@ from conda import config
 from conda.cli import conda_argparse
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
+from conda.install import linked as install_linked
 from conda.install import on_win
 
 log = getLogger(__name__)
 bindir = 'Scripts' if on_win else 'bin'
 
-def make_temp_env_path():
+def make_temp_prefix():
     tempdir = gettempdir()
     dirname = str(uuid1())[:8]
-    env_path = join(tempdir, dirname)
-    if exists(env_path):
+    prefix = join(tempdir, dirname)
+    if exists(prefix):
         # rm here because create complains if directory exists
-        rmtree(env_path)
+        rmtree(prefix)
     assert isdir(tempdir)
-    return env_path
+    return prefix
+
+
+@contextmanager
+def disable_dotlog():
+    dotlogger = getLogger('dotupdate')
+    saved_handlers = dotlogger.handlers
+    dotlogger.handlers = []
+    yield
+    dotlogger.handlers = saved_handlers
 
 
 @contextmanager
 def make_temp_env(*packages):
-    env_path = make_temp_env_path()
+    prefix = make_temp_prefix()
     try:
         # try to clear any config that's been set by other tests
         config.rc = config.load_condarc('')
-        
+
         p = conda_argparse.ArgumentParser()
         sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
         create_configure_parser(sub_parsers)
 
-        command = "create -y -p {0} {1}".format(env_path, " ".join(packages))
+        command = "create -y -q -p {0} {1}".format(prefix, " ".join(packages))
 
         args = p.parse_args(split(command))
         args.func(args, p)
 
-        yield env_path
+        yield prefix
     finally:
-        rmtree(env_path, ignore_errors=True)
+        rmtree(prefix, ignore_errors=True)
 
 
-def install_in_env(env_path, *packages):
+def install_in_env(prefix, *packages):
     p = conda_argparse.ArgumentParser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     install_configure_parser(sub_parsers)
 
-    command = "install -y -p {0} {1}".format(env_path, " ".join(packages))
+    command = "install -y -q -p {0} {1}".format(prefix, " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
 
 
+def package_is_installed(prefix, package):
+    return any(p.startswith(package) for p in install_linked(prefix))
+
+
+def assert_package_is_installed(prefix, package):
+    if not package_is_installed(prefix, package):
+        print([p for p in install_linked(prefix)])
+        raise AssertionError("package {0} is not in prefix".format(package))
+
+
 def test_just_python3():
-    with make_temp_env("python=3") as env_path:
-        assert exists(join(env_path, bindir, 'python3'))
+    with disable_dotlog():
+        with make_temp_env("python=3") as prefix:
+            assert exists(join(prefix, bindir, 'python3'))
+            assert_package_is_installed(prefix, 'python-3')
 
 
 def test_just_python2():
-    with make_temp_env("python=2") as env_path:
-        assert exists(join(env_path, bindir, 'python2'))
+    with disable_dotlog():
+        with make_temp_env("python=2") as prefix:
+            assert exists(join(prefix, bindir, 'python2'))
+            assert_package_is_installed(prefix, 'python-2')
 
 
 def test_python2_install_numba():
-    with make_temp_env("python=2") as env_path:
-        assert exists(join(env_path, bindir, 'python2'))
-        install_in_env(env_path, "numba")
-        assert isfile(join(env_path, bindir, 'numba'))
-
-
-def test_dash_c_usage_replacing_python():
-    with make_temp_env("-c conda-forge python=3.5") as env_path:
-        assert exists(join(env_path, bindir, 'python3.5'))
-        install_in_env(env_path, "decorator")
-        # TODO @mcg1969: now what?
+    with disable_dotlog():
+        with make_temp_env("python=2") as prefix:
+            assert exists(join(prefix, bindir, 'python2'))
+            assert not package_is_installed(prefix, 'numba')
+            install_in_env(prefix, "numba")
+            assert_package_is_installed(prefix, 'numba')
 
 
 @pytest.mark.timeout(600)
-def test_python2_anaconda():
-    with make_temp_env("python=2 anaconda") as env_path:
-        assert isfile(join(env_path, bindir, 'python2'))
-        assert isfile(join(env_path, bindir, 'numba'))
+def test_dash_c_usage_replacing_python():
+    # a regression test for #2606
+    with disable_dotlog():
+        with make_temp_env("-c conda-forge python=3.5") as prefix:
+            assert exists(join(prefix, bindir, 'python3.5'))
+            install_in_env(prefix, "decorator")
+            assert_package_is_installed(prefix, 'conda-forge::python-3.5')
+
+
+@pytest.mark.timeout(600)
+def test_python2_pandas():
+    with disable_dotlog():
+        with make_temp_env("python=2 pandas") as prefix:
+            assert isfile(join(prefix, bindir, 'python2'))
+            assert_package_is_installed(prefix, 'numpy')
 
 
 if __name__ == '__main__':
-    test_python2_install_numba()
+    test_dash_c_usage_replacing_python()
