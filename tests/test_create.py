@@ -150,6 +150,10 @@ def test_dash_c_usage_replacing_python():
             install_in_env(prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
+            with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
+                assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
+                assert_package_is_installed(clone_prefix, "decorator")
+
 
 @pytest.mark.timeout(600)
 def test_python2_pandas():
