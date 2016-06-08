@@ -16,7 +16,6 @@ import tempfile
 from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
-from ..api import get_index
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..config import create_default_packages, force_32bit, root_env_name
@@ -429,20 +428,3 @@ environment does not exist: %s
 
     if args.json:
         common.stdout_json_success(actions=actions)
-
-
-def check_install(packages, platform=None, channel_urls=(), prepend=True,
-                  minimal_hint=False):
-    try:
-        prefix = tempfile.mkdtemp('conda')
-        specs = common.specs_from_args(packages)
-        index = get_index(channel_urls=channel_urls, prepend=prepend,
-                          platform=platform, prefix=prefix)
-        linked = install_linked(prefix)
-        add_defaults_to_specs(Resolve(index), linked, specs)
-        actions = install_actions(prefix, index, specs, pinned=False,
-                                  minimal_hint=minimal_hint)
-        display_actions(actions, index)
-        return actions
-    finally:
-        rm_rf(prefix)
