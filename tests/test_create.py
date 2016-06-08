@@ -122,6 +122,7 @@ def test_python3():
 
             remove_from_env(prefix, 'flask')
             assert not package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
 
 
 def test_just_python2():

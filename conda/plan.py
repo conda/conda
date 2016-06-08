@@ -383,7 +383,9 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             # if Python/Numpy is already linked, we add that instead of the
             # default
             log.debug('H3 %s' % name)
-            fkey = names_linked[name] + '.tar.bz2'
+            fkey = names_linked[name]
+            if not fkey.endswith('.tar.bz2'):
+                fkey += '.tar.bz2'
             info = r.index[fkey]
             ver = '.'.join(info['version'].split('.', 2)[:2])
             spec = '%s %s* (target=%s)' % (info['name'], ver, fkey)
