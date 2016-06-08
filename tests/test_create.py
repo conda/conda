@@ -14,7 +14,6 @@ from conda import config
 from conda.cli import conda_argparse
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
-from conda.cli.main_list import list_packages
 from conda.install import linked as install_linked
 from conda.install import on_win
 
@@ -78,7 +77,9 @@ def package_is_installed(prefix, package):
 
 
 def assert_package_is_installed(prefix, package):
-    assert package_is_installed(prefix, package), install_linked(prefix)
+    if not package_is_installed(prefix, package):
+        print([p for p in install_linked(prefix)])
+        raise AssertionError("package {0} is not in prefix".format(package))
 
 
 def test_just_python3():
@@ -106,6 +107,7 @@ def test_python2_install_numba():
 
 @pytest.mark.timeout(600)
 def test_dash_c_usage_replacing_python():
+    # a regression test for #2606
     with disable_dotlog():
         with make_temp_env("-c conda-forge python=3.5") as prefix:
             assert exists(join(prefix, bindir, 'python3.5'))
