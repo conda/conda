@@ -14,11 +14,14 @@ from conda import config
 from conda.cli import conda_argparse
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
+from conda.cli.main_remove import configure_parser as remove_configure_parser
+from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.install import linked as install_linked
 from conda.install import on_win
 
 log = getLogger(__name__)
 bindir = 'Scripts' if on_win else 'bin'
+
 
 def make_temp_prefix():
     tempdir = gettempdir()
@@ -72,6 +75,28 @@ def install_in_env(prefix, *packages):
     args.func(args, p)
 
 
+def update_in_env(prefix, *packages):
+    p = conda_argparse.ArgumentParser()
+    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
+    update_configure_parser(sub_parsers)
+
+    command = "update -y -q -p {0} {1}".format(prefix, " ".join(packages))
+
+    args = p.parse_args(split(command))
+    args.func(args, p)
+
+
+def remove_from_env(prefix, *packages):
+    p = conda_argparse.ArgumentParser()
+    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
+    remove_configure_parser(sub_parsers)
+
+    command = "remove -y -q -p {0} {1}".format(prefix, " ".join(packages))
+
+    args = p.parse_args(split(command))
+    args.func(args, p)
+
+
 def package_is_installed(prefix, package):
     return any(p.startswith(package) for p in install_linked(prefix))
 
@@ -82,10 +107,21 @@ def assert_package_is_installed(prefix, package):
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
-def test_just_python3():
+def test_python3():
     with disable_dotlog():
         with make_temp_env("python=3") as prefix:
             assert exists(join(prefix, bindir, 'python3'))
+            assert_package_is_installed(prefix, 'python-3')
+
+            install_in_env(prefix, 'flask=0.10')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+
+            update_in_env(prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'flask')
+
+            remove_from_env(prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
 
 
@@ -113,6 +149,10 @@ def test_dash_c_usage_replacing_python():
             assert exists(join(prefix, bindir, 'python3.5'))
             install_in_env(prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
+
+            with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
+                assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
+                assert_package_is_installed(clone_prefix, "decorator")
 
 
 @pytest.mark.timeout(600)
