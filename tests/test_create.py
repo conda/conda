@@ -77,6 +77,7 @@ def make_temp_env(*packages):
     finally:
         rmtree(prefix, ignore_errors=True)
 
+
 class Commands:
     INSTALL = "install"
     UPDATE = "update"
