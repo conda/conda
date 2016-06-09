@@ -52,7 +52,7 @@ def disable_dotlog():
     return saved_handlers
 
 
-def enable_dotlog(handlers):
+def reenable_dotlog(handlers):
     dotlogger = getLogger('dotupdate')
     dotlogger.handlers = handlers
 
@@ -127,7 +127,7 @@ class IntegrationTests(TestCase):
         self.saved_dotlog_handlers = disable_dotlog()
 
     def tearDown(self):
-        enable_dotlog(self.saved_dotlog_handlers)
+        reenable_dotlog(self.saved_dotlog_handlers)
 
     def test_python3(self):
         with make_temp_env("python=3") as prefix:
@@ -172,7 +172,7 @@ class IntegrationTests(TestCase):
             install_in_env(prefix, "numba")
             assert_package_is_installed(prefix, 'numba')
 
-    @pytest.mark.skipif(on_win and bits == 32, "no 32-bit windows python on conda-forge")
+    @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # a regression test for #2606
