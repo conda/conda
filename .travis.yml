@@ -1,0 +1,40 @@
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    packages:
+    - zsh
+
+env:
+  global:
+    - PYTHONUNBUFFERED=yes
+    - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
+  matrix:
+    - PY_VERSION=2.7
+    - PY_VERSION=3.4
+    - PY_VERSION=3.5
+
+install:
+  - printenv
+  - source ./utils/travis-bootstrap-conda.sh
+  - conda install psutil ruamel_yaml
+  - conda install flake8 pytest mock
+  - conda install pip
+  - pip install auxlib pytest-cov pytest-timeout radon
+  - python setup.py install
+
+script:
+  - py.test --cov-report xml tests --shell=bash --shell=zsh
+  - radon cc --ignore "build,tests,ve,_vendor,auxlib,progressbar" --no-assert -nb --total-average -s conda
+  - radon mi --ignore "build,tests,ve,_vendor,auxlib,progressbar" -na -m -s conda
+  - flake8 --statistics
+  - conda install --help
+
+sudo: false
+
+after_success:
+  - pip install codecov
+  - codecov --env PY_VERSION
+  # - travis_build_and_upload
