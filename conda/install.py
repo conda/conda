@@ -374,7 +374,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
     elif mode == 'binary' and sys.platform != "win32":
         data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     else:
-        sys.exit("Invalid mode:" % mode)
+        sys.exit("Invalid mode: %s" % mode)
     return data
 
 
