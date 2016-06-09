@@ -5,10 +5,10 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
 from __future__ import print_function, division, absolute_import
-import sys
 
 from .common import add_parser_install, add_parser_json
 from .install import install
+from conda.install import on_win
 
 help = "Installs a list of packages into a specified conda environment."
 descr = help + """
@@ -54,7 +54,7 @@ def configure_parser(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
-    if sys.platform == "win32":
+    if on_win:
         p.add_argument(
             "--shortcuts",
             action="store_true",

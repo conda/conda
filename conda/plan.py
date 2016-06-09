@@ -256,6 +256,7 @@ def plan_from_actions(actions):
             res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
             res.append((op, arg))
+
     return res
 
 
@@ -327,6 +328,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             else:
                 lt = LINK_COPY
             actions[inst.LINK].append('%s %d %s' % (dist, lt, shortcuts))
+
         except (OSError, IOError):
             actions[inst.LINK].append(dist, LINK_COPY, shortcuts)
         finally:
