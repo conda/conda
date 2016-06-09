@@ -44,6 +44,9 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
+
+on_win = bool(sys.platform == "win32")
+
 try:
     from conda.lock import Locked
     from conda.utils import win_path_to_unix, url_path
@@ -75,7 +78,7 @@ except ImportError:
 
     def url_path(path):
         path = abspath(path)
-        if sys.platform == 'win32':
+        if on_win:
             path = '/' + path.replace(':', '|').replace('\\', '/')
         return 'file://%s' % path
 
@@ -88,8 +91,6 @@ except ImportError:
         return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
 
     pkgs_dirs = [join(sys.prefix, 'pkgs')]
-
-on_win = bool(sys.platform == "win32")
 
 if on_win:
     import ctypes
@@ -371,7 +372,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
         data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     # Skip binary replacement in Windows.  Some files do have prefix information embedded, but
     #    this should not matter, as it is not used for things like RPATH.
-    elif mode == 'binary' and sys.platform != "win32":
+    elif mode == 'binary' and on_win:
         data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     else:
         sys.exit("Invalid mode: %s" % mode)
@@ -926,7 +927,7 @@ def is_linked(prefix, dist):
 
 
 def _get_trash_dir(pkg_dir):
-    unc_prefix = u'\\\\?\\' if sys.platform == 'win32' else ''
+    unc_prefix = u'\\\\?\\' if on_win else ''
     return unc_prefix + join(pkg_dir, '.trash')
 
 
