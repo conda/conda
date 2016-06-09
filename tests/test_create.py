@@ -7,7 +7,7 @@ from glob import glob
 from logging import getLogger, Handler
 from os.path import exists, isdir, join, relpath
 from shlex import split
-from shutil import rmtree
+from shutil import rmtree, copyfile
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
@@ -19,7 +19,7 @@ from conda.cli.main_install import configure_parser as install_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.config import pkgs_dirs, bits
-from conda.install import linked as install_linked
+from conda.install import linked as install_linked, linked_data_
 from conda.install import on_win
 
 log = getLogger(__name__)
@@ -111,12 +111,14 @@ def remove_from_env(prefix, *packages):
     args.func(args, p)
 
 
-def package_is_installed(prefix, package):
+def package_is_installed(prefix, package, exact=False):
+    if exact:
+        return any(p == package for p in install_linked(prefix))
     return any(p.startswith(package) for p in install_linked(prefix))
 
 
-def assert_package_is_installed(prefix, package):
-    if not package_is_installed(prefix, package):
+def assert_package_is_installed(prefix, package, exact=False):
+    if not package_is_installed(prefix, package, exact):
         print([p for p in install_linked(prefix)])
         raise AssertionError("package {0} is not in prefix".format(package))
 
@@ -147,7 +149,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #2626
             # install tarball with full path
-            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-*.tar.bz2'))[-1]
+            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
             install_in_env(prefix, flask_tar_file)
             assert_package_is_installed(prefix, 'flask-0.')
 
@@ -158,6 +160,14 @@ class IntegrationTests(TestCase):
             # install tarball with relative path
             flask_tar_file = relpath(flask_tar_file)
             install_in_env(prefix, flask_tar_file)
+            assert_package_is_installed(prefix, 'flask-0.')
+
+            # regression test for #2599
+            linked_data_.clear()
+            flask_metadata = glob(join(prefix, 'conda-meta', 'flask-0.*.json'))[-1]
+            bad_metadata = join(prefix, 'conda-meta', 'flask.json')
+            copyfile(flask_metadata, bad_metadata)
+            assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
     def test_just_python2(self):
