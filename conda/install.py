@@ -507,7 +507,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], env['PKG_CHANNEL'] = dist2quad(dist)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], \
+        _unused_channel = dist2quad(dist)
     if action == 'pre-link':
         env['SOURCE_DIR'] = str(prefix)
     try:
