@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 from contextlib import contextmanager
 from glob import glob
-from logging import getLogger
+from logging import getLogger, Handler
 from os.path import exists, isdir, join, relpath
 from shlex import split
 from shutil import rmtree
@@ -18,7 +18,7 @@ from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.config import pkgs_dirs
+from conda.config import pkgs_dirs, bits
 from conda.install import linked as install_linked
 from conda.install import on_win
 
@@ -41,13 +41,20 @@ def make_temp_prefix():
     return prefix
 
 
-@contextmanager
 def disable_dotlog():
+    class NullHandler(Handler):
+        def emit(self, record):
+            pass
     dotlogger = getLogger('dotupdate')
     saved_handlers = dotlogger.handlers
     dotlogger.handlers = []
-    yield
-    dotlogger.handlers = saved_handlers
+    dotlogger.addHandler(NullHandler())
+    return saved_handlers
+
+
+def enable_dotlog(handlers):
+    dotlogger = getLogger('dotupdate')
+    dotlogger.handlers = handlers
 
 
 @contextmanager
@@ -117,14 +124,10 @@ def assert_package_is_installed(prefix, package):
 class IntegrationTests(TestCase):
 
     def setUp(self):
-        # disable dotlog
-        dotlogger = getLogger('dotupdate')
-        self.saved_dotlog_handlers = dotlogger.handlers
-        dotlogger.handlers = []
+        self.saved_dotlog_handlers = disable_dotlog()
 
     def tearDown(self):
-        dotlogger = getLogger('dotupdate')
-        dotlogger.handlers = self.saved_dotlog_handlers
+        enable_dotlog(self.saved_dotlog_handlers)
 
     def test_python3(self):
         with make_temp_env("python=3") as prefix:
@@ -169,7 +172,7 @@ class IntegrationTests(TestCase):
             install_in_env(prefix, "numba")
             assert_package_is_installed(prefix, 'numba')
 
-    @pytest.mark.skipif(on_win, "no 64-bit windows python on conda-forge")
+    @pytest.mark.skipif(on_win and bits == 32, "no 32-bit windows python on conda-forge")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # a regression test for #2606
