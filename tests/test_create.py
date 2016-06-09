@@ -23,8 +23,10 @@ from conda.install import on_win
 log = getLogger(__name__)
 
 bindir = 'Scripts' if on_win else 'bin'
-python_bindir = '' if on_win else 'bin'
+python_bin = 'python.exe' if on_win else 'bin/python'
 
+def esc(p):
+    return p.replace('\\', '\\\\')
 
 def make_temp_prefix():
     tempdir = gettempdir()
@@ -57,7 +59,7 @@ def make_temp_env(*packages):
         sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
         create_configure_parser(sub_parsers)
 
-        command = "create -y -q -p {0} {1}".format(prefix, " ".join(packages))
+        command = "create -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
 
         args = p.parse_args(split(command))
         args.func(args, p)
@@ -72,7 +74,7 @@ def install_in_env(prefix, *packages):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     install_configure_parser(sub_parsers)
 
-    command = "install -y -q -p {0} {1}".format(prefix, " ".join(packages))
+    command = "install -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -83,7 +85,7 @@ def update_in_env(prefix, *packages):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     update_configure_parser(sub_parsers)
 
-    command = "update -y -q -p {0} {1}".format(prefix, " ".join(packages))
+    command = "update -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -94,7 +96,7 @@ def remove_from_env(prefix, *packages):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     remove_configure_parser(sub_parsers)
 
-    command = "remove -y -q -p {0} {1}".format(prefix, " ".join(packages))
+    command = "remove -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -113,7 +115,7 @@ def assert_package_is_installed(prefix, package):
 def test_python3():
     with disable_dotlog():
         with make_temp_env("python=3") as prefix:
-            assert exists(join(prefix, python_bindir, 'python3'))
+            assert exists(join(prefix, python_bin))
             assert_package_is_installed(prefix, 'python-3')
 
             install_in_env(prefix, 'flask=0.10')
@@ -131,38 +133,39 @@ def test_python3():
 def test_just_python2():
     with disable_dotlog():
         with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, python_bindir, 'python2'))
+            assert exists(join(prefix, python_bin))
             assert_package_is_installed(prefix, 'python-2')
 
 
 def test_python2_install_numba():
     with disable_dotlog():
         with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, python_bindir, 'python2'))
+            assert exists(join(prefix, python_bin))
             assert not package_is_installed(prefix, 'numba')
             install_in_env(prefix, "numba")
             assert_package_is_installed(prefix, 'numba')
 
+# No 64-bit windows python on conda-forge
+if not on_win:
+    @pytest.mark.timeout(600)
+    def test_dash_c_usage_replacing_python():
+        # a regression test for #2606
+        with disable_dotlog():
+            with make_temp_env("-c conda-forge python=3.5") as prefix:
+                assert exists(join(prefix, python_bin))
+                install_in_env(prefix, "decorator")
+                assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
-@pytest.mark.timeout(600)
-def test_dash_c_usage_replacing_python():
-    # a regression test for #2606
-    with disable_dotlog():
-        with make_temp_env("-c conda-forge python=3.5") as prefix:
-            assert exists(join(prefix, python_bindir, 'python3.5'))
-            install_in_env(prefix, "decorator")
-            assert_package_is_installed(prefix, 'conda-forge::python-3.5')
-
-            with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
-                assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
-                assert_package_is_installed(clone_prefix, "decorator")
+                with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
+                    assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
+                    assert_package_is_installed(clone_prefix, "decorator")
 
 
 @pytest.mark.timeout(600)
 def test_python2_pandas():
     with disable_dotlog():
         with make_temp_env("python=2 pandas") as prefix:
-            assert isfile(join(prefix, python_bindir, 'python2'))
+            assert exists(join(prefix, python_bin))
             assert_package_is_installed(prefix, 'numpy')
 
 
