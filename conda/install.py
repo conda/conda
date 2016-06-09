@@ -372,8 +372,11 @@ def replace_prefix(mode, data, placeholder, new_prefix):
         data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     # Skip binary replacement in Windows.  Some files do have prefix information embedded, but
     #    this should not matter, as it is not used for things like RPATH.
-    elif mode == 'binary' and not on_win:
-        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+    elif mode == 'binary':
+        if not on_win:
+            data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+        else:
+            logging.debug("Skipping prefix replacement in binary on Windows")
     else:
         sys.exit("Invalid mode: %s" % mode)
     return data
