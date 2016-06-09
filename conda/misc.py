@@ -9,7 +9,7 @@ import shutil
 import sys
 from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
-                     isdir, isfile, islink, join, relpath)
+                     isdir, isfile, islink, join, relpath, curdir)
 
 from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
                       linked_data, find_new_location, cached_url)
@@ -35,8 +35,8 @@ def conda_installed_files(prefix, exclude_self_build=False):
         res.update(set(meta['files']))
     return res
 
-
-url_pat = re.compile(r'(?P<url>.+)/(?P<fn>[^/#]+\.tar\.bz2)'
+url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
+                     r'(?P<fn>[^/\\#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
 def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
     actions = defaultdict(list)
@@ -55,12 +55,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
         m = url_pat.match(spec)
         if m is None:
             sys.exit('Could not parse explicit URL: %s' % spec)
-        url, md5 = m.group('url') + '/' + m.group('fn'), m.group('md5')
-        if not is_url(url):
-            if not isfile(url):
-                sys.exit('Error: file not found: %s' % url)
-            url = utils_url_path(url)
-        url_p, fn = url.rsplit('/', 1)
+        url_p, fn, md5 = m.group('url_p'), m.group('fn'), m.group('md5')
+        if not is_url(url_p):
+            if url_p is None:
+                url_p = curdir
+            elif not isdir(url_p):
+                sys.exit('Error: file not found: %s' % join(url_p, fn))
+            url_p = utils_url_path(url_p).rstrip('/')
+        url = "{0}/{1}".format(url_p, fn)
 
         # See if the URL refers to a package in our cache
         prefix = pkg_path = dir_path = None
