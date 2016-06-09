@@ -5,12 +5,12 @@ import pytest
 from contextlib import contextmanager
 from glob import glob
 from logging import getLogger
-from os.path import exists, isdir, isfile, join, relpath
+from os.path import exists, isdir, join, relpath
 from shlex import split
 from shutil import rmtree
 from tempfile import gettempdir
+from unittest import TestCase
 from uuid import uuid4
-import os
 
 from conda import config
 from conda.cli import conda_argparse
@@ -23,12 +23,10 @@ from conda.install import linked as install_linked
 from conda.install import on_win
 
 log = getLogger(__name__)
-
-bindir = 'Scripts' if on_win else 'bin'
-python_bin = 'python.exe' if on_win else 'bin/python'
+PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
 
-def esc(p):
+def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
@@ -63,7 +61,7 @@ def make_temp_env(*packages):
         sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
         create_configure_parser(sub_parsers)
 
-        command = "create -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
+        command = "create -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
 
         args = p.parse_args(split(command))
         args.func(args, p)
@@ -78,7 +76,7 @@ def install_in_env(prefix, *packages):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     install_configure_parser(sub_parsers)
 
-    command = "install -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
+    command = "install -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -89,7 +87,7 @@ def update_in_env(prefix, *packages):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     update_configure_parser(sub_parsers)
 
-    command = "update -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
+    command = "update -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -100,7 +98,7 @@ def remove_from_env(prefix, *packages):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     remove_configure_parser(sub_parsers)
 
-    command = "remove -y -q -p {0} {1}".format(esc(prefix), " ".join(packages))
+    command = "remove -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -116,10 +114,21 @@ def assert_package_is_installed(prefix, package):
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
-def test_python3():
-    with disable_dotlog():
+class IntegrationTests(TestCase):
+
+    def setUp(self):
+        # disable dotlog
+        dotlogger = getLogger('dotupdate')
+        self.saved_dotlog_handlers = dotlogger.handlers
+        dotlogger.handlers = []
+
+    def tearDown(self):
+        dotlogger = getLogger('dotupdate')
+        dotlogger.handlers = self.saved_dotlog_handlers
+
+    def test_python3(self):
         with make_temp_env("python=3") as prefix:
-            assert exists(join(prefix, python_bin))
+            assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
             install_in_env(prefix, 'flask=0.10')
@@ -148,45 +157,33 @@ def test_python3():
             install_in_env(prefix, flask_tar_file)
             assert_package_is_installed(prefix, 'flask-0.')
 
-
-def test_just_python2():
-    with disable_dotlog():
+    def test_just_python2(self):
         with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, python_bin))
+            assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
-
-def test_python2_install_numba():
-    with disable_dotlog():
+    def test_python2_install_numba(self):
         with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, python_bin))
+            assert exists(join(prefix, PYTHON_BINARY))
             assert not package_is_installed(prefix, 'numba')
             install_in_env(prefix, "numba")
             assert_package_is_installed(prefix, 'numba')
 
-# No 64-bit windows python on conda-forge
-if not on_win:
+    @pytest.mark.skipif(on_win, "no 64-bit windows python on conda-forge")
     @pytest.mark.timeout(600)
-    def test_dash_c_usage_replacing_python():
+    def test_dash_c_usage_replacing_python(self):
         # a regression test for #2606
-        with disable_dotlog():
-            with make_temp_env("-c conda-forge python=3.5") as prefix:
-                assert exists(join(prefix, python_bin))
-                install_in_env(prefix, "decorator")
-                assert_package_is_installed(prefix, 'conda-forge::python-3.5')
+        with make_temp_env("-c conda-forge python=3.5") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            install_in_env(prefix, "decorator")
+            assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
-                with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
-                    assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
-                    assert_package_is_installed(clone_prefix, "decorator")
+            with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
+                assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
+                assert_package_is_installed(clone_prefix, "decorator")
 
-
-@pytest.mark.timeout(600)
-def test_python2_pandas():
-    with disable_dotlog():
+    @pytest.mark.timeout(600)
+    def test_python2_pandas(self):
         with make_temp_env("python=2 pandas") as prefix:
-            assert exists(join(prefix, python_bin))
+            assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
-
-
-if __name__ == '__main__':
-    test_python3()
