@@ -78,34 +78,27 @@ def make_temp_env(*packages):
         rmtree(prefix, ignore_errors=True)
 
 
-def install_in_env(prefix, *packages):
+class Commands:
+    INSTALL = "install"
+    UPDATE = "update"
+    REMOVE = "remove"
+
+
+parser_config = {
+    Commands.INSTALL: install_configure_parser,
+    Commands.UPDATE: update_configure_parser,
+    Commands.REMOVE: remove_configure_parser,
+}
+
+
+def run_command(command, prefix, *arguments):
     p = conda_argparse.ArgumentParser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    install_configure_parser(sub_parsers)
+    parser_config[command](sub_parsers)
 
-    command = "install -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
-
-    args = p.parse_args(split(command))
-    args.func(args, p)
-
-
-def update_in_env(prefix, *packages):
-    p = conda_argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    update_configure_parser(sub_parsers)
-
-    command = "update -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
-
-    args = p.parse_args(split(command))
-    args.func(args, p)
-
-
-def remove_from_env(prefix, *packages):
-    p = conda_argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    remove_configure_parser(sub_parsers)
-
-    command = "remove -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
+    command = "{0} -y -q -p {1} {2}".format(command,
+                                            escape_for_winpath(prefix),
+                                            " ".join(arguments))
 
     args = p.parse_args(split(command))
     args.func(args, p)
@@ -136,30 +129,31 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
-            install_in_env(prefix, 'flask=0.10')
+            run_command(Commands.INSTALL, prefix, 'flask=0.10')
             assert_package_is_installed(prefix, 'flask-0.10.1')
 
-            update_in_env(prefix, 'flask')
+            run_command(Commands.UPDATE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'flask')
 
-            remove_from_env(prefix, 'flask')
+            run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
             # regression test for #2626
             # install tarball with full path
             flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
-            install_in_env(prefix, flask_tar_file)
+            run_command(Commands.INSTALL, prefix, flask_tar_file)
+
             assert_package_is_installed(prefix, 'flask-0.')
 
-            remove_from_env(prefix, 'flask')
+            run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2626
             # install tarball with relative path
             flask_tar_file = relpath(flask_tar_file)
-            install_in_env(prefix, flask_tar_file)
+            run_command(Commands.INSTALL,  prefix, flask_tar_file)
             assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2599
@@ -179,7 +173,7 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert not package_is_installed(prefix, 'numba')
-            install_in_env(prefix, "numba")
+            run_command(Commands.INSTALL, prefix, "numba")
             assert_package_is_installed(prefix, 'numba')
 
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
@@ -188,7 +182,7 @@ class IntegrationTests(TestCase):
         # a regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            install_in_env(prefix, "decorator")
+            run_command(Commands.INSTALL, prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
             with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
