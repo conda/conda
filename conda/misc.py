@@ -63,7 +63,6 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
                 sys.exit('Error: file not found: %s' % join(url_p, fn))
             url_p = utils_url_path(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
-        url_p = url.rsplit('/', 1)[0]
 
         # See if the URL refers to a package in our cache
         prefix = pkg_path = dir_path = None
