@@ -143,21 +143,21 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
-            # regression test for #2626
-            # install tarball with full path
-            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
+            # # regression test for #2626
+            # # install tarball with full path
+            # flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
             # run_command(Commands.INSTALL, prefix, flask_tar_file)
             #
             # assert_package_is_installed(prefix, 'flask-0.')
             #
             # run_command(Commands.REMOVE, prefix, 'flask')
             # assert not package_is_installed(prefix, 'flask-0.')
-
-            # regression test for #2626
-            # install tarball with relative path
-            flask_tar_file = relpath(flask_tar_file)
-            run_command(Commands.INSTALL,  prefix, flask_tar_file)
-            assert_package_is_installed(prefix, 'flask-0.')
+            #
+            # # regression test for #2626
+            # # install tarball with relative path
+            # flask_tar_file = relpath(flask_tar_file)
+            # run_command(Commands.INSTALL,  prefix, flask_tar_file)
+            # assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2599
             linked_data_.clear()
