@@ -169,6 +169,9 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
+            run_command(Commands.REMOVE, prefix, '--all')
+            assert not exists(prefix)
+
     def test_python2_install_numba(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
