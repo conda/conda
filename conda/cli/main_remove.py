@@ -21,6 +21,7 @@ from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parse
                      confirm_yn)
 from ..config import default_prefix
 from ..console import json_progress_bars
+from ..compat import iteritems, iterkeys
 
 
 help = "%s a list of packages from a specified conda environment."
@@ -104,7 +105,7 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.install import rm_rf, linked
+    from conda.install import rm_rf, linked_data
 
     if not (args.all or args.package_names):
         error_and_exit('no package names supplied,\n'
@@ -121,7 +122,8 @@ def execute(args, parser):
     ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
     if not args.features and args.all:
-        index = {}
+        index = linked_data(prefix)
+        index = {dist + '.tar.bz2': info for dist, info in iteritems(index)}
     else:
         index = get_index_trap(channel_urls=channel_urls,
                                prepend=not args.override_channels,
@@ -143,8 +145,8 @@ def execute(args, parser):
                            error_type="CantRemoveRoot")
 
         actions = {inst.PREFIX: prefix}
-        for dist in sorted(linked(prefix)):
-            plan.add_unlink(actions, dist)
+        for fkey in sorted(iterkeys(index)):
+            plan.add_unlink(actions, fkey[:-8])
 
     else:
         specs = specs_from_args(args.package_names)
