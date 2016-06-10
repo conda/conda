@@ -124,6 +124,7 @@ class IntegrationTests(TestCase):
     def tearDown(self):
         reenable_dotlog(self.saved_dotlog_handlers)
 
+    @pytest.mark.timeout(300)
     def test_python3(self):
         with make_temp_env("python=3") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -164,11 +165,13 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
+    @pytest.mark.timeout(120)
     def test_just_python2(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
+    @pytest.mark.timeout(300)
     def test_python2_install_numba(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -177,7 +180,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'numba')
 
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.timeout(600)
+    @pytest.mark.timeout(300)
     def test_dash_c_usage_replacing_python(self):
         # a regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
@@ -189,7 +192,7 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
                 assert_package_is_installed(clone_prefix, "decorator")
 
-    @pytest.mark.timeout(600)
+    @pytest.mark.timeout(300)
     def test_python2_pandas(self):
         with make_temp_env("python=2 pandas") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
