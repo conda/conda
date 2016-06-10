@@ -279,7 +279,7 @@ class Resolve(object):
             return
         self.index[fpkg] = {
             'name': fpkg, 'channel': '@', 'priority': 0,
-            'version': '0', 'build_number': 0,
+            'version': '0', 'build_number': 0, 'fn': fpkg,
             'build': '', 'depends': [], 'track_features': fstr}
         if group:
             self.groups[fpkg] = [fpkg]
