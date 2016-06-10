@@ -4,7 +4,7 @@ Using R with conda
 
 For Linux, OS X and Windows
 
-If you have conda installed, you can easily install R and over 80 of the most used R packages for data science with one command. Conda helps you keep your packages and dependencies up to date. You can also easily create and share your own custom R packages.
+If you have conda installed, you can easily install the R computer language and over 80 of the most used R packages for data science with one command. Conda helps you keep your packages and dependencies up to date. You can also easily create and share your own custom R packages.
 
 R-Essentials works very much like Anaconda:
 
@@ -37,6 +37,6 @@ Your friends and colleagues now have access to your Custom-R-Bundle from any com
 
   conda install -c <your anaconda.org username> custom-r-bundle
 
-For more information, see Christine Doig's blog post `Jupyter and conda for R <https://www.continuum.io/blog/developer/jupyter-and-conda-r>`_.
+For more information, see Christine Doig's blog post `Jupyter and conda for R language <https://www.continuum.io/blog/developer/jupyter-and-conda-r>`_.
 
 Next, let's look at :doc:`mro`.
