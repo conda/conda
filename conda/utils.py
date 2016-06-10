@@ -147,7 +147,7 @@ def md5_file(path):
 def url_path(path):
     path = abspath(path)
     if sys.platform == 'win32':
-        path = '/' + path.replace(':', '|').replace('\\', '/')
+        path = '/' + path.replace('\\', '/')
     return 'file://%s' % path
 
 
