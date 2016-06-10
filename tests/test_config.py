@@ -5,6 +5,8 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 import os
 from os.path import dirname, join, exists
+from contextlib import contextmanager
+from tempfile import mktemp
 import unittest
 
 import pytest
@@ -116,9 +118,20 @@ class TestConfig(unittest.TestCase):
              'https://your.repo/username/osx-64/': ('username', 6)}
 
 
-test_condarc = os.path.join(os.path.dirname(__file__), 'test_condarc')
-def _read_test_condarc():
-    with open(test_condarc) as f:
+@contextmanager
+def make_temp_condarc(value=None):
+    try:
+        tempfile = mktemp()
+        if value:
+            with open(tempfile, 'w') as f:
+                f.write(value)
+        yield tempfile
+    finally:
+        if exists(tempfile):
+            os.remove(tempfile)
+
+def _read_test_condarc(rc):
+    with open(rc) as f:
         return f.read()
 
 # Tests for the conda config command
@@ -126,69 +139,56 @@ def _read_test_condarc():
 @pytest.mark.slow
 def test_config_command_basics():
 
-    try:
         # Test that creating the file adds the defaults channel
-        assert not os.path.exists('test_condarc')
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
+          'channels', 'test')
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == """\
+channels:
+  - test
+  - defaults
+"""
+    with make_temp_condarc() as rc:
+        # When defaults is explicitly given, it should not be added
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
+            'channels', 'test', '--add', 'channels', 'defaults')
+        assert stdout == stderr == ''
+        assert _read_test_condarc(rc) == """\
+channels:
+  - defaults
+  - test
+"""
+    # Duplicate keys should not be added twice
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'channels', 'test')
         assert stdout == stderr == ''
-        assert _read_test_condarc() == """\
-channels:
-  - test
-  - defaults
-"""
-        os.unlink(test_condarc)
-
-        # When defaults is explicitly given, it should not be added
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
-    'channels', 'test', '--add', 'channels', 'defaults')
-        assert stdout == stderr == ''
-        assert _read_test_condarc() == """\
-channels:
-  - defaults
-  - test
-"""
-        os.unlink(test_condarc)
-
-        # Duplicate keys should not be added twice
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
-        'channels', 'test')
-        assert stdout == stderr == ''
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
-        'channels', 'test')
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
+            'channels', 'test')
         assert stdout == ''
         assert stderr == "Skipping channels: test, item already exists"
-        assert _read_test_condarc() == """\
+        assert _read_test_condarc(rc) == """\
 channels:
   - test
   - defaults
 """
-        os.unlink(test_condarc)
 
-        # Test creating a new file with --set
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
-        '--set', 'always_yes', 'true')
+    # Test creating a new file with --set
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc,
+            '--set', 'always_yes', 'true')
         assert stdout == stderr == ''
-        assert _read_test_condarc() == """\
+        assert _read_test_condarc(rc) == """\
 always_yes: true
 """
-        os.unlink(test_condarc)
-
-    finally:
-        try:
-            pass
-            os.unlink(test_condarc)
-        except OSError:
-            pass
 
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
 def test_config_command_get():
-    try:
-        # Test --get
-        with open(test_condarc, 'w') as f:
-            f.write("""\
+    # Test --get
+    condarc = """\
 channels:
   - test
   - defaults
@@ -204,9 +204,9 @@ always_yes: true
 invalid_key: true
 
 channel_alias: http://alpha.conda.anaconda.org
-""")
-
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
+"""
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get')
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
@@ -218,7 +218,7 @@ channel_alias: http://alpha.conda.anaconda.org
 """
         assert stderr == "unknown key invalid_key"
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
         '--get', 'channels')
 
         assert stdout == """\
@@ -227,7 +227,7 @@ channel_alias: http://alpha.conda.anaconda.org
 """
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
         '--get', 'changeps1')
 
         assert stdout == """\
@@ -235,7 +235,7 @@ channel_alias: http://alpha.conda.anaconda.org
 """
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--get', 'changeps1', 'channels')
 
         assert stdout == """\
@@ -245,49 +245,38 @@ channel_alias: http://alpha.conda.anaconda.org
 """
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
         '--get', 'allow_softlinks')
 
         assert stdout == ""
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
         '--get', 'track_features')
 
         assert stdout == ""
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
         '--get', 'invalid_key')
 
         assert stdout == ""
         assert "invalid choice: 'invalid_key'" in stderr
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
         '--get', 'not_valid_key')
 
         assert stdout == ""
         assert "invalid choice: 'not_valid_key'" in stderr
 
-        os.unlink(test_condarc)
-
-
-    finally:
-        try:
-            pass
-            os.unlink(test_condarc)
-        except OSError:
-            pass
-
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
 def test_config_command_parser():
-    try:
-        # Now test the YAML "parser"
-        # Channels is normal content.
-        # create_default_packages has extra spaces in list items
-        condarc = """\
+    # Now test the YAML "parser"
+    # Channels is normal content.
+    # create_default_packages has extra spaces in list items
+    condarc = """\
 channels:
   - test
   - defaults
@@ -301,15 +290,13 @@ changeps1: false
 # Here is a comment
 always_yes: yes
 """
-        # First verify that this itself is valid YAML
-        assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
-            'create_default_packages': ['ipython', 'numpy'], 'changeps1':
-            False, 'always_yes': 'yes'}
+    # First verify that this itself is valid YAML
+    assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
+        'create_default_packages': ['ipython', 'numpy'], 'changeps1':
+        False, 'always_yes': 'yes'}
 
-        with open(test_condarc, 'w') as f:
-            f.write(condarc)
-
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--get')
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get')
 
         assert stdout == """\
 --set always_yes yes
@@ -320,11 +307,11 @@ always_yes: yes
 --add create_default_packages 'ipython'\
 """
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'channels', 'mychannel')
         assert stdout == stderr == ''
 
-        assert _read_test_condarc() == """\
+        assert _read_test_condarc(rc) == """\
 channels:
   - mychannel
   - test
@@ -340,12 +327,12 @@ changeps1: false
 always_yes: 'yes'
 """
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--set', 'changeps1', 'true')
 
         assert stdout == stderr == ''
 
-        assert _read_test_condarc() == """\
+        assert _read_test_condarc(rc) == """\
 channels:
   - mychannel
   - test
@@ -361,11 +348,9 @@ changeps1: true
 always_yes: 'yes'
 """
 
-        os.unlink(test_condarc)
-
         # Test adding a new list key. We couldn't test this above because it
         # doesn't work yet with odd whitespace
-        condarc = """\
+    condarc = """\
 channels:
   - test
   - defaults
@@ -373,171 +358,121 @@ channels:
 always_yes: true
 """
 
-        with open(test_condarc, 'w') as f:
-            f.write(condarc)
-
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'disallow', 'perl')
         assert stdout == stderr == ''
-        assert _read_test_condarc() == condarc + """\
+        assert _read_test_condarc(rc) == condarc + """\
 disallow:
   - perl
 """
-        os.unlink(test_condarc)
-
-
-    finally:
-        try:
-            pass
-            os.unlink(test_condarc)
-        except OSError:
-            pass
 
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
 def test_config_command_remove_force():
-    try:
-        # Finally, test --remove, --remove-key
-        run_conda_command('config', '--file', test_condarc, '--add',
+    # Finally, test --remove, --remove-key
+    with make_temp_condarc() as rc:
+        run_conda_command('config', '--file', rc, '--add',
             'channels', 'test')
-        run_conda_command('config', '--file', test_condarc, '--set',
+        run_conda_command('config', '--file', rc, '--set',
             'always_yes', 'true')
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults'],
+        assert yaml.load(_read_test_condarc(rc), Loader=yaml.RoundTripLoader) == {'channels': ['defaults'],
             'always_yes': True}
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'channels', 'test', '--force')
         assert stdout == ''
         assert stderr == "Error: 'test' is not in the 'channels' key of the config file"
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
         assert stderr == "Error: key 'disallow' is not in the config file"
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc(), Loader=yaml.RoundTripLoader) == {'channels': ['defaults']}
+        assert yaml.load(_read_test_condarc(rc), Loader=yaml.RoundTripLoader) == {'channels': ['defaults']}
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
         assert stderr == "Error: key 'always_yes' is not in the config file"
-        os.unlink(test_condarc)
-
-    finally:
-        try:
-            pass
-            os.unlink(test_condarc)
-        except OSError:
-            pass
 
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
 def test_config_command_bad_args():
-    try:
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--add',
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'notarealkey', 'test')
         assert stdout == ''
 
-        assert not exists(test_condarc)
+        assert not exists(rc)
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc, '--set',
+        stdout, stderr = run_conda_command('config', '--file', rc, '--set',
             'notarealkey', 'true')
         assert stdout == ''
 
-        assert not exists(test_condarc)
-
-    finally:
-        try:
-            pass
-            os.unlink(test_condarc)
-        except OSError:
-            pass
+        assert not exists(rc)
 
 def test_invalid_rc():
     # Some tests for unexpected input in the condarc, like keys that are the
     # wrong type
-    try:
-        condarc = """\
+    condarc = """\
 channels:
 """
 
-        with open(test_condarc, 'w') as f:
-            f.write(condarc)
-
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--add', 'channels', 'test')
         assert stdout == ''
         assert stderr == """\
 Error: Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: key 'channels' should be a list, not NoneType."""
-        assert _read_test_condarc() == condarc
+        assert _read_test_condarc(rc) == condarc
 
-        os.unlink(test_condarc)
-    finally:
-        try:
-            pass
-            os.unlink(test_condarc)
-        except OSError:
-            pass
 
 def test_config_set():
     # Test the config set command
     # Make sure it accepts only boolean values for boolean keys and any value for string keys
 
-    try:
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'always_yes', 'yes')
 
         assert stdout == ''
         assert stderr == 'Error: Key: always_yes; yes is not a YAML boolean.'
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'always_yes', 'no')
 
         assert stdout == ''
         assert stderr == 'Error: Key: always_yes; no is not a YAML boolean.'
 
-    finally:
-        try:
-            os.unlink(test_condarc)
-        except OSError:
-            pass
-
 def test_set_rc_string():
     # Test setting string keys in .condarc
 
     # We specifically test ssl_verify since it can be either a boolean or a string
-    try:
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'ssl_verify', 'yes')
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
+        verify = yaml.load(open(rc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
         assert verify == 'yes'
 
-        stdout, stderr = run_conda_command('config', '--file', test_condarc,
+        stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'ssl_verify', 'test_string.crt')
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(test_condarc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
+        verify = yaml.load(open(rc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
         assert verify == 'test_string.crt'
-
-
-        os.unlink(test_condarc)
-    finally:
-        try:
-            os.unlink(test_condarc)
-        except OSError:
-            pass
