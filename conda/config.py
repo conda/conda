@@ -194,7 +194,7 @@ def get_rc_urls():
     return rc['channels']
 
 def is_url(url):
-    return urlparse.urlparse(url).scheme != ""
+    return url and urlparse.urlparse(url).scheme != ""
 
 def binstar_channel_alias(channel_alias):
     if channel_alias.startswith('file:/'):
