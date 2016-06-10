@@ -12,14 +12,15 @@ from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath, curdir)
 
 from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
-                      linked_data, find_new_location, cached_url)
+                      linked_data, find_new_location, cached_url, dist2filename)
 from .compat import iteritems, itervalues
-from .config import is_url, url_channel, root_dir, envs_dirs
+from .config import is_url, url_channel, root_dir, envs_dirs, subdir
 from .fetch import fetch_index
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, url_path as utils_url_path
+from .api import get_index
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -38,13 +39,13 @@ def conda_installed_files(prefix, exclude_self_build=False):
 url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
                      r'(?P<fn>[^/\\#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
-def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
+def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, index=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
     linked = {name_dist(dist): dist for dist in install_linked(prefix)}
     fetch_args = fetch_args or {}
-    index = {}
+    index = index or {}
     verifies = []
     channels = {}
     for spec in specs:
@@ -95,7 +96,8 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None):
                 _, conflict = find_new_location(dist)
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
-                channels[url_p + '/'] = (schannel, 0)
+                if fn not in index or index[fn].get(not_fetched):
+                    channels[url_p + '/'] = (schannel, 0)
                 actions[FETCH].append(dist)
                 verifies.append((dist + '.tar.bz2', md5))
             actions[EXTRACT].append(dist)
@@ -261,25 +263,51 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
                 if MatchSpec(dep).name in filter:
                     filter[name] = dist
                     found = True
-    if not quiet and filter:
-        print('The following packages cannot be cloned out of the root environment:')
-        for pkg in itervalues(filter):
-            print(' - ' + pkg)
+    if filter:
+        if not quiet:
+            print('The following packages cannot be cloned out of the root environment:')
+            for pkg in itervalues(filter):
+                print(' - ' + pkg)
+            drecs = {dist: info for dist, info in iteritems(drecs) if info['name'] not in filter}
+
+    # Resolve URLs for packages that do not have URLs
+    r = None
+    index = {}
+    unknowns = [dist for dist, info in iteritems(drecs) if 'url' not in info]
+    notfound = []
+    if unknowns:
+        fetch_args = fetch_args or {}
+        index = get_index(**fetch_args)
+        r = Resolve(index, sort=True)
+        for dist in unknowns:
+            name = name_dist(dist)
+            fn = dist2filename(dist)
+            fkeys = [d for d in r.index.keys() if r.index[d]['fn'] == fn]
+            if fkeys:
+                del drecs[dist]
+                dist = sorted(fkeys, key=r.version_key, reverse=True)[0]
+                drecs[dist] = r.index[dist]
+            else:
+                notfound.append(fn)
+    if notfound:
+        what = "Package%s " % ('' if len(notfound) == 1 else 's')
+        notfound = '\n'.join(' - ' + fn for fn in notfound)
+        msg = '%s missing in current %s channels:%s' % (what, subdir, notfound)
+        raise RuntimeError(msg)
 
     # Assemble the URL and channel list
     urls = {}
-    index = {}
+    resolver = None
     for dist, info in iteritems(drecs):
-        if info['name'] in filter:
-            continue
-        url = info.get('url')
-        if url is None:
-            sys.exit('Error: no URL found for package: %s' % dist)
-        _, schannel = url_channel(url)
-        index[dist + '.tar.bz2'] = info
-        urls[dist] = url
+        fkey = dist + '.tar.bz2'
+        if fkey not in index:
+            info['not_fetched'] = True
+            index[fkey] = info
+            r = None
+        urls[dist] = info['url']
 
-    r = Resolve(index)
+    if r is None:
+        r = Resolve(index)
     dists = r.dependency_sort(urls.keys())
     urls = [urls[d] for d in dists]
 
@@ -316,7 +344,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
             fo.write(data)
         shutil.copystat(src, dst)
 
-    actions = explicit(urls, prefix2, verbose=not quiet,
+    actions = explicit(urls, prefix2, verbose=not quiet, index=index,
                        force_extract=False, fetch_args=fetch_args)
     return actions, untracked_files
 
