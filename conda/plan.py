@@ -352,7 +352,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
         return
     log.debug('H0 specs=%r' % specs)
     linked = [d if d.endswith('.tar.bz2') else d + '.tar.bz2' for d in linked]
-    names_linked = {name_dist(dist): dist for dist in linked}
+    names_linked = {r.index[fn]['name']: fn for fn in linked if fn in r.index}
     mspecs = list(map(MatchSpec, specs))
 
     for name, def_ver in [('python', default_python),
