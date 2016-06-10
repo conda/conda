@@ -2,6 +2,8 @@
 from __future__ import absolute_import, division, print_function
 
 import pytest
+import os
+import json
 from contextlib import contextmanager
 from glob import glob
 from logging import getLogger, Handler
@@ -179,15 +181,30 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
-        # a regression test for #2606
+        # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             run_command(Commands.INSTALL, prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
-            with make_temp_env("--clone {0}".format(prefix)) as clone_prefix:
+            with make_temp_env("--clone", prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
                 assert_package_is_installed(clone_prefix, "decorator")
+
+            # Regression test for 2645
+            fn = glob(join(prefix, 'conda-meta', 'python-3.5*.json'))[-1]
+            with open(fn) as f:
+                data = json.load(f)
+            for field in ('url', 'channel', 'schannel'):
+                if field in data:
+                    del data[field]
+            with open(fn, 'w') as f:
+                json.dump(data, f)
+            linked_data_.clear()
+
+            with make_temp_env("--clone", prefix) as clone_prefix:
+                assert_package_is_installed(clone_prefix, 'python-3.5')
+                assert_package_is_installed(clone_prefix, 'decorator')
 
     @pytest.mark.timeout(600)
     def test_python2_pandas(self):

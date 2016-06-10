@@ -96,7 +96,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
                 _, conflict = find_new_location(dist)
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
-                if fn not in index or index[fn].get(not_fetched):
+                if fn not in index or index[fn].get('not_fetched'):
                     channels[url_p + '/'] = (schannel, 0)
                 actions[FETCH].append(dist)
                 verifies.append((dist + '.tar.bz2', md5))
@@ -297,7 +297,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
 
     # Assemble the URL and channel list
     urls = {}
-    resolver = None
     for dist, info in iteritems(drecs):
         fkey = dist + '.tar.bz2'
         if fkey not in index:
