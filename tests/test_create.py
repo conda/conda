@@ -125,9 +125,8 @@ class IntegrationTests(TestCase):
     def tearDown(self):
         reenable_dotlog(self.saved_dotlog_handlers)
 
-    @pytest.mark.skipif(on_win, reason="get windows passing")
-    @pytest.mark.timeout(300)
-    def test_python3(self):
+    @pytest.mark.timeout(120)
+    def test_create_install_update_remove(self):
         with make_temp_env("python=3") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
@@ -143,15 +142,24 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
+    @pytest.mark.skipif(on_win, reason="get windows passing")
+    @pytest.mark.timeout(120)
+    def test_tarball_install_and_bad_metadata(self):
+        with make_temp_env("python flask=0.10.1") as prefix:
+            assert_package_is_installed(prefix, 'flask-0.')
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.')
+            assert_package_is_installed(prefix, 'python')
+
             # regression test for #2626
             # install tarball with full path
-            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
+            flask_tar_file = glob(join(pkgs_dirs[0], 'flask.*.tar.bz2'))[-1]
             if not on_win:
                 run_command(Commands.INSTALL, prefix, flask_tar_file)
-                assert_package_is_installed(prefix, 'flask-0.')
+                assert_package_is_installed(prefix, 'flask.')
 
                 run_command(Commands.REMOVE, prefix, 'flask')
-                assert not package_is_installed(prefix, 'flask-0.')
+                assert not package_is_installed(prefix, 'flask.')
 
             # regression test for #2626
             # install tarball with relative path
@@ -168,7 +176,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.')
 
     @pytest.mark.timeout(120)
-    def test_just_python2(self):
+    def test_remove_all(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
@@ -176,16 +184,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
-    @pytest.mark.skipif(on_win, reason="get windows passing")
-    @pytest.mark.timeout(300)
-    def test_python2_install_numba(self):
-        with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert not package_is_installed(prefix, 'numba')
-            run_command(Commands.INSTALL, prefix, "numba")
-            assert_package_is_installed(prefix, 'numba')
-
-    @pytest.mark.skipif(on_win, reason="no 32-bit windows python on conda-forge")  #  and bits == 32
+    @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.timeout(300)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
@@ -214,7 +213,7 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'decorator')
 
     @pytest.mark.skipif(on_win, reason="get windows passing")
-    @pytest.mark.timeout(600)
+    @pytest.mark.timeout(300)
     def test_python2_pandas(self):
         with make_temp_env("python=2 pandas") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
