@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from auxlib.collection import first, last, call_each
 from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
 from auxlib.path import expand
@@ -24,8 +24,8 @@ from .yaml import yaml_load
 
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
-except ImportError:
-    from ruamel.yaml.comments import CommentedSeq, CommentedMap
+except ImportError:  # pragma: no cover
+    from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
 
 
 __all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
@@ -116,7 +116,7 @@ class YamlRawParameter(RawParameter):
             valueflags = None
             value = rawvalue
         else:
-            raise ThisShouldNeverHappenError()
+            raise ThisShouldNeverHappenError()  # pragma: no cover
         super(YamlRawParameter, self).__init__(key, value, keyflag, valueflags)
 
     @staticmethod
@@ -205,13 +205,13 @@ class Parameter(object):
     @property
     def name(self):
         if self._name is None:
-            raise ThisShouldNeverHappenError()
+            raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._name
 
     @property
     def names(self):
         if self._names is None:
-            raise ThisShouldNeverHappenError()
+            raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._names
 
     def _get_match(self, filepath, raw_parameters):
@@ -229,8 +229,9 @@ class Parameter(object):
             key = self.name
             return Match(filepath, key, raw_parameters[key])
 
+    @abstractmethod
     def _merge(self, matches):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def __get__(self, instance, instance_type):
         # strategy is "extract and merge," which is actually just map and reduce
@@ -277,7 +278,7 @@ class PrimitiveParameter(Parameter):
         if last_match is not NO_MATCH:
             return typify(last_match.raw_parameter.value)
 
-        raise ThisShouldNeverHappenError()
+        raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
 class SequenceParameter(Parameter):
