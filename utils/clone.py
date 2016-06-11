@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
 import hashlib
 import json
@@ -80,7 +79,7 @@ class Repo(object):
         for arch in self.architectures:
             directory = expand(self.local_path, self.repo_name, arch)
             if not os.path.exists(directory):
-                os.makedirs(directory, 02775)
+                os.makedirs(directory, 0o02775)
             os.chdir(directory)
             if not self._update_is_needed(arch):
                 log.info("Directory {0} is up-to-date.".format(directory))
@@ -193,7 +192,7 @@ class Repo(object):
 def main():
     try:
         set_logger("repo-clone", logging.DEBUG)
-        repo_name = sys.argv[1] if len(sys.argv) >=2 else 'default'
+        repo_name = sys.argv[1] if len(sys.argv) >= 2 else 'default'
         Repo(repo_name).update()
         return 0
     except IntegrityError:
