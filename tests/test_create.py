@@ -5,7 +5,8 @@ from contextlib import contextmanager
 from glob import glob
 import json
 from logging import getLogger, Handler
-from os.path import exists, isdir, join, relpath
+from os.path import exists, isdir, isfile, join, relpath
+import os
 from shlex import split
 from shutil import rmtree, copyfile
 import subprocess
@@ -14,7 +15,6 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from menuinst.win32 import dirs as win_locations
 import pytest
 
 from conda import config
@@ -228,6 +228,7 @@ class IntegrationTests(TestCase):
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message():
+    from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
         cmd = ["conda", "create", '-y', '--shortcuts', '-p', join(tmp, '_conda'), "console_shortcut"]
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -239,6 +240,7 @@ def test_shortcut_in_underscore_env_shows_message():
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_not_attempted_without_shortcuts_arg():
+    from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
         cmd = ["conda", "create", '-y', '-p', join(tmp, '_conda'), "console_shortcut"]
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -252,6 +254,7 @@ def test_shortcut_not_attempted_without_shortcuts_arg():
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_creation_installs_shortcut():
+    from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
         subprocess.check_call(["conda", "create", '-y', '--shortcuts', '-p',
                                join(tmp, 'conda'), "console_shortcut"])
@@ -267,11 +270,13 @@ def test_shortcut_creation_installs_shortcut():
         try:
             assert not isfile(shortcut_file)
         finally:
-            os.remove(shortcut_file)
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
 
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_absent_does_not_barf_on_uninstall():
+    from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
         # not including --shortcuts, should not get shortcuts installed
         subprocess.check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
