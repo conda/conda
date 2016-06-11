@@ -263,7 +263,13 @@ def test_shortcut_creation_installs_shortcut():
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
         shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
-        assert isfile(shortcut_file)
+
+        try:
+            assert isfile(shortcut_file)
+        except AssertionError:
+            print("Shortcut not found in menu dir.  Contents of dir:")
+            print(os.listdir(shortcut_dir))
+            raise
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
         subprocess.check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
@@ -277,13 +283,19 @@ def test_shortcut_creation_installs_shortcut():
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_absent_does_not_barf_on_uninstall():
     from menuinst.win32 import dirs as win_locations
+
+    if isfile(shortcut_file):
+        os.remove(shortcut_file)
+
+    user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+    shortcut_dir = win_locations[user_mode]["start"]
+    shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
+    assert not isfile(join(shortcut_dir, "Anaconda Prompt (conda).lnk"))
+
     with TemporaryDirectory() as tmp:
         # not including --shortcuts, should not get shortcuts installed
         subprocess.check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
 
-        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-        shortcut_dir = win_locations[user_mode]["start"]
-        shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
         assert not isfile(join(shortcut_dir, "Anaconda Prompt (conda).lnk"))
 
         # make sure that cleanup does not barf trying to remove non-existent shortcuts
