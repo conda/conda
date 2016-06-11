@@ -1104,6 +1104,7 @@ def unlink(prefix, dist):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
+        # Always try to run this - it should not throw errors where menus do not exist
         mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
 
