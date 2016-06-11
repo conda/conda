@@ -1065,6 +1065,14 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
                          (placeholder, dist))
 
+        # make sure that the child environment behaves like the parent,
+        #    wrt user/system install on win
+        # This is critical for doing shortcuts correctly
+        if on_win:
+            nonadmin = join(sys.prefix, ".nonadmin")
+            if isfile(nonadmin):
+                open(join(prefix, ".nonadmin"), 'w').close()
+
         if shortcuts:
             mk_menus(prefix, files, remove=False)
 
