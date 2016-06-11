@@ -184,7 +184,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
-    @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.skipif(on_win, reason="no 32-bit windows python on conda-forge")  # and bits == 32
     @pytest.mark.timeout(300)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
