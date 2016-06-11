@@ -1,30 +1,35 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from abc import ABCMeta
+from auxlib.collection import first, last, call_each
+from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
+from auxlib.path import expand
+from auxlib.type_coercion import typify
 from collections import OrderedDict, namedtuple
+from enum import Enum
 from glob import glob
 from itertools import chain, takewhile
 from logging import getLogger
 from os import environ, stat
 from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
-
-from auxlib.collection import first, last, call_each, firstitem
-from auxlib.compat import (iteritems, with_metaclass, itervalues, string_types,
-                           primitive_types, text_type, odict)
-from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
-from auxlib.path import expand
-from auxlib.type_coercion import typify
-from enum import Enum
 from toolz.dicttoolz import merge
 from toolz.functoolz import excepts
 from toolz.itertoolz import concat, unique, concatv
 
+from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
+                     text_type, odict)
 from .yaml import yaml_load
 
+try:
+    from ruamel_yaml.comments import CommentedSeq, CommentedMap
+except ImportError:
+    from ruamel.yaml.comments import CommentedSeq, CommentedMap
 
-from ruamel.yaml.comments import CommentedSeq, CommentedMap
 
+__all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
+           "SequenceParameter", "MapParameter"]
 
 log = getLogger(__name__)
 
@@ -33,28 +38,34 @@ Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
 NO_MATCH = Match(None, None, None)
 
 
-class ParameterType(Enum):
-    primitive = 'primitive'
-    sequence = 'sequence'
-    map = 'map'
-
-
 class ParameterFlag(Enum):
     important = 'important'
+    top = "top"
+    bottom = "bottom"
+
+    @classmethod
+    def from_name(cls, name):
+        return cls[name]
+
+    @classmethod
+    def from_value(cls, value):
+        return cls(value)
 
     @classmethod
     def from_string(cls, string):
-        if string and 'important' in string:
-            return cls.important
-        return None
+        try:
+            string = string.strip('!#')
+            return cls.from_value(string)
+        except (ValueError, AttributeError):
+            return None
 
 
+@with_metaclass(ABCMeta)
 class RawParameter(object):
 
-    def __init__(self, key, value, parameter_type, keyflag=None, valueflags=None):
+    def __init__(self, key, value, keyflag=None, valueflags=None):
         self.key = key
         self.value = value
-        self.parameter_type = parameter_type
         self.keyflag = keyflag
         self.valueflags = valueflags
 
@@ -74,9 +85,8 @@ class EnvRawParameter(RawParameter):
         important_split_value = raw_value.split("!important")
         keyflag = ParameterFlag.important if len(important_split_value) >= 2 else None
         value = typify(important_split_value[0].strip())
-        parameter_type = ParameterType.primitive
         valueflags = None
-        super(EnvRawParameter, self).__init__(key, value, parameter_type, keyflag, valueflags)
+        super(EnvRawParameter, self).__init__(key, value, keyflag, valueflags)
 
     @classmethod
     def make_raw_parameters(cls, appname):
@@ -96,21 +106,18 @@ class YamlRawParameter(RawParameter):
         if isinstance(rawvalue, CommentedSeq):
             valuecomments = self._get_yaml_list_comments(rawvalue)
             valueflags = tuple(ParameterFlag.from_string(s) for s in valuecomments)
-            parameter_type = ParameterType.sequence
             value = tuple(rawvalue)
         elif isinstance(rawvalue, CommentedMap):
             valuecomments = self._get_yaml_map_comments(rawvalue)
             valueflags = dict((k, ParameterFlag.from_string(v))
                               for k, v in iteritems(valuecomments) if v is not None)
-            parameter_type = ParameterType.map
             value = dict(rawvalue)
         elif isinstance(rawvalue, primitive_types):
             valueflags = None
             value = rawvalue
-            parameter_type = ParameterType.primitive
         else:
             raise ThisShouldNeverHappenError()
-        super(YamlRawParameter, self).__init__(key, value, parameter_type, keyflag, valueflags)
+        super(YamlRawParameter, self).__init__(key, value, keyflag, valueflags)
 
     @staticmethod
     def _get_yaml_key_comment(commented_dict, key):
@@ -153,8 +160,8 @@ def load_raw_configs(search_path):
 
     def _dir_yaml_loader(fullpath):
         for filepath in glob(join(fullpath, "*.yml")):
-            assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
-            yield filepath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
+            assert filepath.endswith(".yml") or filepath.endswith("condarc"), filepath
+            yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
 
     # map a stat result to a file loader or a directory loader
     _loader = {
@@ -178,9 +185,9 @@ def load_raw_configs(search_path):
     return raw_data
 
 
+@with_metaclass(ABCMeta)
 class Parameter(object):
-    _parameter_interface = None
-    _parameter_type = None
+    _type = None
 
     def __init__(self, default, aliases=(), validation=None):
         self._name = None
@@ -222,8 +229,7 @@ class Parameter(object):
             key = self.name
             return Match(filepath, key, raw_parameters[key])
 
-    @staticmethod
-    def _merge(matches):
+    def _merge(self, matches):
         raise NotImplementedError()
 
     def __get__(self, instance, instance_type):
@@ -231,19 +237,21 @@ class Parameter(object):
         # extract matches from each source in SEARCH_PATH
         # then merge matches together
 
-        # TODO: cache result on instance object
+        if self.name in instance._cache:
+            return instance._cache[self.name]
 
         matches = tuple(m for m in (self._get_match(filepath, raw_parameters)
                                     for filepath, raw_parameters in iteritems(instance.raw_data))
                         if m is not NO_MATCH)
         if not matches:
-            return self.default
+            result = self.default
         else:
-            merged = self._merge(matches)
-            return self.validate(instance, merged)
+            result = self.validate(instance, self._merge(matches))
+        instance._cache[self.name] = result
+        return result
 
     def validate(self, instance, val):
-        if (isinstance(val, self._parameter_type) and
+        if (isinstance(val, self._type) and
                 (self._validation is None or self._validation(val))):
             return val
         else:
@@ -257,11 +265,10 @@ class Parameter(object):
 class PrimitiveParameter(Parameter):
 
     def __init__(self, default, aliases=(), validation=None, parameter_type=None):
-        self._parameter_type = type(default) if parameter_type is None else parameter_type
+        self._type = type(default) if parameter_type is None else parameter_type
         super(PrimitiveParameter, self).__init__(default, aliases, validation)
 
-    @staticmethod
-    def _merge(matches):
+    def _merge(self, matches):
         important_match = first(matches, Parameter._match_key_is_important, default=NO_MATCH)
         if important_match is not NO_MATCH:
             return typify(important_match.raw_parameter.value)
@@ -274,7 +281,7 @@ class PrimitiveParameter(Parameter):
 
 
 class SequenceParameter(Parameter):
-    _parameter_type = tuple
+    _type = tuple
 
     def __init__(self, element_type, default=(), aliases=(), validation=None):
         self._element_type = element_type
@@ -287,8 +294,7 @@ class SequenceParameter(Parameter):
                 raise ValidationError(self.name, el, et)
         return super(SequenceParameter, self).validate(instance, val)
 
-    @staticmethod
-    def _merge(matches):
+    def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
         important_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
@@ -311,7 +317,7 @@ class SequenceParameter(Parameter):
 
 
 class MapParameter(Parameter):
-    _parameter_type = dict
+    _type = dict
 
     def __init__(self, element_type, default=None, aliases=(), validation=None):
         self._element_type = element_type
@@ -323,8 +329,7 @@ class MapParameter(Parameter):
                   for v in itervalues(val) if not isinstance(v, et))
         return super(MapParameter, self).validate(instance, val)
 
-    @staticmethod
-    def _merge(matches):
+    def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
         important_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
@@ -343,12 +348,13 @@ class MapParameter(Parameter):
 
 
 class ConfigurationType(type):
+    """metaclass for Configuration"""
 
     def __init__(cls, name, bases, attr):
         super(ConfigurationType, cls).__init__(name, bases, attr)
-        any(field.set_name(name)
-            for name, field in iteritems(cls.__dict__)
-            if isinstance(field, Parameter))
+
+        # call set_name for each
+        any(p.set_name(name) for name, p in iteritems(cls.__dict__) if isinstance(p, Parameter))
 
 
 @with_metaclass(ConfigurationType)
@@ -358,95 +364,18 @@ class Configuration(object):
         self.raw_data = raw_data or odict()
         if app_name is not None:
             self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
+        self._cache = dict()
 
     @classmethod
-    def from_search_path(cls, search_path):
-        return cls(load_raw_configs(search_path))
+    def from_search_path(cls, search_path, app_name=None):
+        """Builds a configuration instance from the given files and directories.
 
+        Args:
+            search_path (Iterable[str]): List of paths to search for configuration information.
+            app_name (str): The name of the application. Used to search for relevant
+                environment variables.
 
-if __name__ == "__main__":
-    from auxlib.ish import dals
-    test_yaml_raw = {
-        'file1': dals("""
-            channels:
-              - kalefranz
-              - defaults  #!important
-              - conda
-
-            always_yes: no #!important
-
-            proxy_servers:
-              http: this-one #!important
-              https: not-this-one
-        """),
-        'file2': dals("""
-            channels:
-              - r
-
-            always_yes: yes #!important
-            changeps1: no
-
-            proxy_servers:
-              http: not-this-one
-              https: this-one
-        """),
-        'file3': dals("""
-            channels: #!important
-              - locked
-
-            always_yes: yes
-
-            proxy_servers: #!important
-              s3: only-this-one
-        """),
-        'file4': dals("""
-            proxy_servers:
-              http: http://user:pass@corp.com:8080  #!important
-              https: https://user:pass@corp.com:8080
-        """),
-    }
-
-
-    class AppConfiguration(Configuration):
-        channels = SequenceParameter(string_types)
-        always_yes = PrimitiveParameter(False)
-        proxy_servers = MapParameter(string_types)
-        changeps1 = PrimitiveParameter(True)
-
-
-    import doctest
-    doctest.testmod()
-
-    def load_from_above(*seq):
-        return OrderedDict((f, YamlRawParameter.make_raw_parameters(yaml_load(test_yaml_raw[f])))
-                           for f in seq)
-
-    test_yaml_12 = load_from_above('file1', 'file2')
-    config = AppConfiguration(test_yaml_12)
-    assert config.changeps1 is False
-    assert config.channels == ('defaults', 'r', 'kalefranz', 'conda'), config.channels
-
-    test_yaml_312 = load_from_above('file3', 'file1', 'file2')
-    config = AppConfiguration(test_yaml_312)
-    assert config.channels == ('locked',), config.channels
-    assert config.always_yes is False
-
-    # config = AppConfiguration(load_raw_configs())
-    # assert config.always_yes is False
-    # assert config.show_channel_urls is None
-    # assert config.binstar_upload is None
-    # assert isinstance(config.track_features, tuple), config.track_features
-
-    test_yaml_4 = load_from_above('file4',)
-    config = AppConfiguration(test_yaml_4)
-    assert config.proxy_servers == {'http': 'http://user:pass@corp.com:8080',
-                                    'https': 'https://user:pass@corp.com:8080'}
-
-    load_raw_configs(['~/.condarc'])
-
-    import os
-    appname = "myapp"
-    os.environ["{0}_{1}".format(appname.upper(), 'always_yes'.upper())] = 'yes'
-    config = AppConfiguration(app_name=appname)
-    assert config.always_yes is True, config.always_yes
-
+        Returns:
+            Configuration:
+        """
+        return cls(load_raw_configs(search_path), app_name)
