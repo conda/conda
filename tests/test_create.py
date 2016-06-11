@@ -142,7 +142,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
-    @pytest.mark.skipif(on_win, reason="get windows passing")
+    @pytest.mark.skipif(on_win, reason="windows tarball is broken still")
     @pytest.mark.timeout(120)
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1") as prefix:
@@ -212,7 +212,6 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
-    @pytest.mark.skipif(on_win, reason="get windows passing")
     @pytest.mark.timeout(300)
     def test_python2_pandas(self):
         with make_temp_env("python=2 pandas") as prefix:
