@@ -12,7 +12,8 @@ from unittest import TestCase
 from conda.utils import yaml_load
 from condalib.common.compat import (string_types, odict)
 from condalib.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
-                                           MapParameter, YamlRawParameter, load_raw_configs)
+                                           MapParameter, YamlRawParameter, load_raw_configs,
+                                           ParameterFlag)
 test_yaml_raw = {
     'file1': dals("""
         always_yes: no
@@ -147,6 +148,7 @@ class ConfigurationTests(TestCase):
             condarcd = join(tempdir, 'condarc.d')
             f1 = join(condarcd, 'file1.yml')
             f2 = join(condarcd, 'file2.yml')
+            not_a_file = join(tempdir, 'not_a_file')
 
             mkdir(condarcd)
 
@@ -156,9 +158,11 @@ class ConfigurationTests(TestCase):
                 fh.write(test_yaml_raw['file2'])
             with open(condarc, 'w') as fh:
                 fh.write(test_yaml_raw['file3'])
-            search_path = [condarc, condarcd]
+            search_path = [condarc, not_a_file, condarcd]
 
             raw_data = load_raw_configs(search_path)
+            assert not_a_file not in raw_data
+            assert 'valueflags' in repr(raw_data[f1])
 
             assert raw_data[condarc]['channels'].value[0] == "wile"
             assert raw_data[f1]['always_yes'].value == "no"
@@ -193,5 +197,5 @@ class ConfigurationTests(TestCase):
     def test_validation(self):
         pass
 
-
-
+    def test_parameter(self):
+        assert ParameterFlag.from_name('top') is ParameterFlag.top
