@@ -125,7 +125,7 @@ class IntegrationTests(TestCase):
     def tearDown(self):
         reenable_dotlog(self.saved_dotlog_handlers)
 
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(300)
     def test_create_install_update_remove(self):
         with make_temp_env("python=3") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -153,13 +153,13 @@ class IntegrationTests(TestCase):
 
             # regression test for #2626
             # install tarball with full path
-            flask_tar_file = glob(join(pkgs_dirs[0], 'flask.*.tar.bz2'))[-1]
+            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
             if not on_win:
                 run_command(Commands.INSTALL, prefix, flask_tar_file)
-                assert_package_is_installed(prefix, 'flask.')
+                assert_package_is_installed(prefix, 'flask-0.')
 
                 run_command(Commands.REMOVE, prefix, 'flask')
-                assert not package_is_installed(prefix, 'flask.')
+                assert not package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2626
             # install tarball with relative path
