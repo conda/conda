@@ -9,15 +9,16 @@ from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
 
+from pytest import raises
+
 from conda.utils import yaml_load
 from condalib.common.compat import (string_types, odict)
 from condalib.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
                                            MapParameter, YamlRawParameter, load_raw_configs,
-                                           ParameterFlag)
+                                           ParameterFlag, ValidationError)
 test_yaml_raw = {
     'file1': dals("""
         always_yes: no
-        always_yes_altname1: yes
 
         proxy_servers:
           http: taz
@@ -68,6 +69,13 @@ test_yaml_raw = {
           - marv
           - sam
     """),
+    'bad_boolean': "always_yes: yeah",
+    'too_many_aliases': dals("""
+        always_yes: yes
+        always_yes_altname2: yes
+    """),
+
+
 }
 
 
@@ -77,21 +85,6 @@ class TestConfiguration(Configuration):
     proxy_servers = MapParameter(string_types)
     changeps1 = PrimitiveParameter(True)
 
-
-# @contextmanager
-# def load_from_string_data(*seq):
-#     directory_name = mkdtemp()
-#     def make_file_from_string(string):
-#         # with NamedTemporaryFile() as fh:
-#         #     fh.write(string.encode('utf-8'))
-#         # fh = NamedTemporaryFile()
-#         fh = mkstemp()
-#         fh.write(string.encode('utf-8'))
-#         # fh.seek(0)
-#         # with open(fh.name, 'r') as f:
-#         #     print(f.read())
-#         return fh
-#     return odict((f, YamlRawParameter.build(make_file_from_string(test_yaml_raw[f]))) for f in seq)
 
 def load_from_string_data(*seq):
     return odict((f, YamlRawParameter.make_raw_parameters(yaml_load(test_yaml_raw[f])))
@@ -135,6 +128,7 @@ class ConfigurationTests(TestCase):
 
         try:
             environ.update(test_dict)
+            assert 'MYAPP_ALWAYS_YES' in environ
             config = TestConfiguration(load_from_string_data('file1', 'file2'), appname)
             assert config.changeps1 is False
             assert config.always_yes is True
@@ -192,10 +186,11 @@ class ConfigurationTests(TestCase):
         pass
 
     def test_validation(self):
-        pass
+        config = TestConfiguration(load_from_string_data('bad_boolean'))
+        raises(ValidationError, lambda: config.always_yes)
 
-    def test_validation(self):
-        pass
+        config = TestConfiguration(load_from_string_data('too_many_aliases'))
+        raises(ValidationError, lambda: config.always_yes)
 
     def test_parameter(self):
         assert ParameterFlag.from_name('top') is ParameterFlag.top

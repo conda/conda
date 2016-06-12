@@ -152,7 +152,7 @@ class YamlRawParameter(RawParameter):
 
 
 def load_raw_configs(search_path):
-    # returns an ordered map of filepath and raw yaml dict
+    # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
         assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
@@ -197,10 +197,11 @@ class Parameter(object):
         self._validation = validation
 
     def set_name(self, name):
-        # this is an explicit method, and not a descriptor setter
+        # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
         self._name = name
         self._names = frozenset(x for x in chain(self.aliases, (name, )))
+        return name
 
     @property
     def name(self):
@@ -214,8 +215,7 @@ class Parameter(object):
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._names
 
-    def _get_match(self, filepath, raw_parameters):
-        # TODO: cleanup
+    def _pull_match_from_raw(self, raw_parameters, filepath):
         keys = self.names & raw_parameters.keys()
         numkeys = len(keys)
         if numkeys == 0:
@@ -224,10 +224,13 @@ class Parameter(object):
             key = keys.pop()
             return Match(filepath, key, raw_parameters[key])
         else:
-            # when multiple aliases exist, default to the named key
-            assert self.name in keys, "conda doctor should help here"
-            key = self.name
-            return Match(filepath, key, raw_parameters[key])
+            raise ValidationError(None, msg="Multiple aliased keys in file {0}:\n"
+                                            "  - {1}".format(filepath, "\n  - ".join(keys)))
+
+    def _get_all_matches(self, instance):
+        return tuple(m for m in (self._pull_match_from_raw(raw_parameters, filepath)
+                                 for filepath, raw_parameters in iteritems(instance.raw_data))
+                     if m is not NO_MATCH)
 
     @abstractmethod
     def _merge(self, matches):
@@ -241,9 +244,7 @@ class Parameter(object):
         if self.name in instance._cache:
             return instance._cache[self.name]
 
-        matches = tuple(m for m in (self._get_match(filepath, raw_parameters)
-                                    for filepath, raw_parameters in iteritems(instance.raw_data))
-                        if m is not NO_MATCH)
+        matches = self._get_all_matches(instance)
         if not matches:
             result = self.default
         else:
@@ -355,7 +356,8 @@ class ConfigurationType(type):
         super(ConfigurationType, cls).__init__(name, bases, attr)
 
         # call set_name for each
-        any(p.set_name(name) for name, p in iteritems(cls.__dict__) if isinstance(p, Parameter))
+        cls.parameters_names = tuple(p.set_name(name) for name, p in iteritems(cls.__dict__)
+                                     if isinstance(p, Parameter))
 
 
 @with_metaclass(ConfigurationType)
@@ -380,3 +382,6 @@ class Configuration(object):
             Configuration:
         """
         return cls(load_raw_configs(search_path), app_name)
+
+    def dump(self):
+        Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
