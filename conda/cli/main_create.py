@@ -8,6 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from .common import add_parser_install, add_parser_json
 from .install import install
+from conda.install import on_win
 
 help = "Create a new conda environment from a list of specified packages. "
 descr = (help +
@@ -29,6 +30,13 @@ def configure_parser(sub_parsers):
         help=help,
         epilog=example,
     )
+    if on_win:
+        p.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help="Install start menu shortcuts"
+        )
+
     add_parser_install(p)
     add_parser_json(p)
     p.add_argument(

@@ -36,8 +36,9 @@ class TestMisc(unittest.TestCase):
 
     def test_split_linkarg(self):
         for arg, res in [
-            ('w3-1.2-0', ('w3-1.2-0', LINK_HARD)),
-            ('w3-1.2-0 1', ('w3-1.2-0', 1))]:
+            ('w3-1.2-0', ('w3-1.2-0', LINK_HARD, False)),
+            ('w3-1.2-0 1', ('w3-1.2-0', 1, False)),
+            ('w3-1.2-0 1 True', ('w3-1.2-0', 1, True))]:
             self.assertEqual(inst.split_linkarg(arg), res)
 
 

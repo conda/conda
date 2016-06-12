@@ -8,6 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from .common import add_parser_install, add_parser_json
 from .install import install
+from conda.install import on_win
 
 help = "Installs a list of packages into a specified conda environment."
 descr = help + """
@@ -53,6 +54,12 @@ def configure_parser(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
+    if on_win:
+        p.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help="Install start menu shortcuts"
+        )
     add_parser_install(p)
     add_parser_json(p)
     p.set_defaults(func=execute)

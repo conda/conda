@@ -58,7 +58,7 @@ install:
   - conda install -q python=%PYTHON_VERSION%
   - conda install -q pytest requests mock
   - conda install -q pycrypto pyflakes pycosat
-  - conda install -q git git
+  - conda install -q git menuinst
   - pip install auxlib flake8 pytest-cov pytest-timeout
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
