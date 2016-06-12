@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-import pytest
-import json
 from contextlib import contextmanager
 from glob import glob
+import json
 from logging import getLogger, Handler
-from os.path import exists, isdir, join, relpath
+from os.path import exists, isdir, isfile, join, relpath
+import os
 from shlex import split
 from shutil import rmtree, copyfile
+import subprocess
+import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+
+import pytest
 
 from conda import config
 from conda.cli import conda_argparse
@@ -22,6 +26,7 @@ from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.config import pkgs_dirs, bits
 from conda.install import linked as install_linked, linked_data_
 from conda.install import on_win
+from conda.compat import PY3, TemporaryDirectory
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -219,3 +224,83 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=2 pandas") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
+
+
+@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+def test_shortcut_in_underscore_env_shows_message():
+    from menuinst.win32 import dirs as win_locations
+    with TemporaryDirectory() as tmp:
+        cmd = ["conda", "create", '-y', '--shortcuts', '-p', join(tmp, '_conda'), "console_shortcut"]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = p.communicate()
+        if PY3:
+            error = error.decode("UTF-8")
+        assert "Environment name starts with underscore '_'.  Skipping menu installation." in error
+
+
+@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+def test_shortcut_not_attempted_without_shortcuts_arg():
+    from menuinst.win32 import dirs as win_locations
+    with TemporaryDirectory() as tmp:
+        cmd = ["conda", "create", '-y', '-p', join(tmp, '_conda'), "console_shortcut"]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = p.communicate()
+        if PY3:
+            error = error.decode("UTF-8")
+        # This test is sufficient, because it effectively verifies that the code
+        #  path was not visited.
+        assert "Environment name starts with underscore '_'.  Skipping menu installation." not in error
+
+
+@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+def test_shortcut_creation_installs_shortcut():
+    from menuinst.win32 import dirs as win_locations
+    with TemporaryDirectory() as tmp:
+        subprocess.check_call(["conda", "create", '-y', '--shortcuts', '-p',
+                               join(tmp, 'conda'), "console_shortcut"])
+
+        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
+
+        try:
+            assert isfile(shortcut_file)
+        except AssertionError:
+            print("Shortcut not found in menu dir.  Contents of dir:")
+            print(os.listdir(shortcut_dir))
+            raise
+
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        subprocess.check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+        try:
+            assert not isfile(shortcut_file)
+        finally:
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
+
+
+@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+def test_shortcut_absent_does_not_barf_on_uninstall():
+    from menuinst.win32 import dirs as win_locations
+
+    user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+    shortcut_dir = win_locations[user_mode]["start"]
+    shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
+    shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
+
+    # kill shortcut from any other misbehaving test
+    if isfile(shortcut_file):
+        os.remove(shortcut_file)
+
+    assert not isfile(shortcut_file)
+
+    with TemporaryDirectory() as tmp:
+        # not including --shortcuts, should not get shortcuts installed
+        subprocess.check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+
+        # make sure it didn't get created
+        assert not isfile(shortcut_file)
+
+        # make sure that cleanup does not barf trying to remove non-existent shortcuts
+        subprocess.check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])

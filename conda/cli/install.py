@@ -297,6 +297,8 @@ environment does not exist: %s
                                   json=args.json,
                                   error_type="NoEnvironmentFound")
 
+    shortcuts = args.shortcuts if hasattr(args, "shortcuts") else None
+
     try:
         if isinstall and args.revision:
             actions = revert_actions(prefix, get_revision(args.revision))
@@ -308,7 +310,8 @@ environment does not exist: %s
                                           pinned=args.pinned,
                                           always_copy=args.copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=args.update_deps)
+                                          update_deps=args.update_deps,
+                                          shortcuts=shortcuts)
     except NoPackagesFound as e:
         error_message = e.args[0]
 
