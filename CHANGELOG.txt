@@ -1,4 +1,4 @@
-2016-06-XX   4.1.0:
+2016-06-13   4.1.0:
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727,
     #2265, #2291, #2473, #2501, #2484
@@ -7,6 +7,8 @@
   * improve listing of pip packages with conda list, #2275
   * re-license progressbar under BSD 3-clause, #2334
   * reduce the amount of extraneous info in hints, #2261
+  * add --shortcuts option to install shortcuts on windows, #2623
+  * skip binary replacement on windows, #2630
   * don't show channel urls by default in conda list, #2282
   * package resolution and solver tweaks, #2443, #2475, #2480
   * improved version & build matching, #2442, #2488
@@ -25,6 +27,11 @@
   * fix help in install, #2460
   * fix re-install bug when sha1 differs, #2507
   * fix a bug with file deletion, #2499
+  * disable .netrc files, #2514
+  * dont fetch index on remove --all, #2553
+  * allow track_features to be a string *or* a list in .condarc, #2541
+  * fix #2415 infinite recursion in invalid_chains, #2566
+  * allow channel_alias to be different than binstar, #2564
 
 
 2016-06-03   4.0.8:
