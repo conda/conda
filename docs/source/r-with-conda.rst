@@ -4,7 +4,7 @@ Using R with conda
 
 For Linux, OS X and Windows
 
-If you have conda installed, you can easily install the R computer language and over 80 of the most used R packages for data science with one command. Conda helps you keep your packages and dependencies up to date. You can also easily create and share your own custom R packages.
+If you have conda installed, you can easily install the R programming language and over 80 of the most used R packages for data science with one command. Conda helps you keep your packages and dependencies up to date. You can also easily create and share your own custom R packages.
 
 R-Essentials works very much like Anaconda:
 

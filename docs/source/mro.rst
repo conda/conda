@@ -2,7 +2,7 @@
 Using Microsoft R Open
 ======================
 
-You can easily install `Microsoft R Open (MRO) language <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ by using conda. The MRO R language package and many more are available from the `Anaconda Cloud channel named MRO <https://anaconda.org/mro/packages/>`_.
+You can easily install the `Microsoft R Open (MRO) <https://mran.revolutionanalytics.com/download/mro-for-mrs/>`_ distribution of the R language by using conda. The MRO R language package and many more are available from the `Anaconda Cloud channel named MRO <https://anaconda.org/mro/packages/>`_.
 
 Operating systems supported 
 ---------------------------
@@ -26,7 +26,7 @@ Use MRO or R language packages
 
 To use MRO or R language packages, first activate the conda environment where they are installed to set your environment variables properly. 
 
-NOTE: You must first activate the program, then execute the program. Errors may result if you try to execute a  program at the pathname in that environment without first activating the environment.
+NOTE: You must first activate the program's environment, then execute the program. Errors may result if you try to execute a program at the pathname in that environment without first activating the environment.
 
 NOTE: Each conda environment may have packages installed from the channel "r" OR the channel "mro", but no conda environment should contain packages from both channels. Doing so may result in errors. If this occurs, you may remove the packages that were installed incorrectly by using the command ``conda remove``, or simply create a new environment and install the correct packages there.
 
