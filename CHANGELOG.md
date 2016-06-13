@@ -5,7 +5,7 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
-#### v2.5.0 (04/XX/16)
+#### v2.5.0 (06/13/16)
 
 - Add a mechanism to let an environment disable the default channels (@mwiebe, #229)
 - Fix conda env create <username>/<env name> (@oyse, #228)
