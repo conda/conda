@@ -255,8 +255,16 @@ def find_parent_shell(path=False):
         #          "To proceed, please conda install psutil")
         return None
     process = psutil.Process()
-    while "conda" in process.parent().name():
-        process = process.parent()
+    pname = process.parent().name().lower()
+    while any(proc in pname for proc in ["conda", "python", "py.test"]):
+        if process:
+            process = process.parent()
+        else:
+            # fallback defaults to system default
+            if sys.platform == 'win32':
+                return 'cmd.exe'
+            else:
+                return 'bash'
     if path:
         return process.parent().exe()
     return process.parent().name()
