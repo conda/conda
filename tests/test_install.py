@@ -99,6 +99,7 @@ class FileTests(unittest.TestCase):
             self.assertEqual(data, '#!/usr/bin/env python -O\n'
                                    'echo "Hello"\n')
 
+    @pytest.mark.skipif(on_win, reason="no binary replacement done on win")
     def test_binary(self):
         with open(self.tmpfname, 'wb') as fo:
             fo.write(b'\x7fELF.../some-placeholder/lib/libfoo.so\0')
