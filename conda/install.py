@@ -44,6 +44,9 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
+
+on_win = bool(sys.platform == "win32")
+
 try:
     from conda.lock import Locked
     from conda.utils import win_path_to_unix, url_path
@@ -75,7 +78,7 @@ except ImportError:
 
     def url_path(path):
         path = abspath(path)
-        if sys.platform == 'win32':
+        if on_win:
             path = '/' + path.replace(':', '|').replace('\\', '/')
         return 'file://%s' % path
 
@@ -88,8 +91,6 @@ except ImportError:
         return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
 
     pkgs_dirs = [join(sys.prefix, 'pkgs')]
-
-on_win = bool(sys.platform == "win32")
 
 if on_win:
     import ctypes
@@ -369,16 +370,21 @@ def replace_long_shebang(mode, data):
 def replace_prefix(mode, data, placeholder, new_prefix):
     if mode == 'text':
         data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+    # Skip binary replacement in Windows.  Some files do have prefix information embedded, but
+    #    this should not matter, as it is not used for things like RPATH.
     elif mode == 'binary':
-        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+        if not on_win:
+            data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+        else:
+            logging.debug("Skipping prefix replacement in binary on Windows")
     else:
-        sys.exit("Invalid mode:" % mode)
+        sys.exit("Invalid mode: %s" % mode)
     return data
 
 
 def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
-    if on_win and (placeholder != prefix_placeholder) and ('/' in placeholder):
-        # original prefix uses unix-style path separators
+    if on_win:
+        # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
         new_prefix = new_prefix.replace('\\', '/')
 
@@ -507,7 +513,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ
     env['ROOT_PREFIX'] = sys.prefix
     env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], env['PKG_CHANNEL'] = dist2quad(dist)
+    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], _ = dist2quad(dist)
     if action == 'pre-link':
         env['SOURCE_DIR'] = str(prefix)
     try:
@@ -835,8 +841,8 @@ linked_data_ = {}
 
 def load_linked_data(prefix, dist, rec=None):
     schannel, dname = dist2pair(dist)
+    meta_file = join(prefix, 'conda-meta', dname + '.json')
     if rec is None:
-        meta_file = join(prefix, 'conda-meta', dname + '.json')
         try:
             with open(meta_file) as fi:
                 rec = json.load(fi)
@@ -849,6 +855,9 @@ def load_linked_data(prefix, dist, rec=None):
         rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
     if not url and 'channel' in rec:
         url = rec['url'] = rec['channel'] + rec['fn']
+    if rec['fn'][:-8] != dname:
+        log.debug('Ignoring invalid package metadata file: %s' % meta_file)
+        return None
     channel, schannel = url_channel(url)
     rec['channel'] = channel
     rec['schannel'] = schannel
@@ -924,7 +933,7 @@ def is_linked(prefix, dist):
 
 
 def _get_trash_dir(pkg_dir):
-    unc_prefix = u'\\\\?\\' if sys.platform == 'win32' else ''
+    unc_prefix = u'\\\\?\\' if on_win else ''
     return unc_prefix + join(pkg_dir, '.trash')
 
 
@@ -1002,7 +1011,7 @@ def move_path_to_trash(path):
     return False
 
 
-def link(prefix, dist, linktype=LINK_HARD, index=None):
+def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     """
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
@@ -1062,7 +1071,16 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
                 sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
                          (placeholder, dist))
 
-        mk_menus(prefix, files, remove=False)
+        # make sure that the child environment behaves like the parent,
+        #    wrt user/system install on win
+        # This is critical for doing shortcuts correctly
+        if on_win:
+            nonadmin = join(sys.prefix, ".nonadmin")
+            if isfile(nonadmin):
+                open(join(prefix, ".nonadmin"), 'w').close()
+
+        if shortcuts:
+            mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
             sys.exit("Error: post-link failed for: %s" % dist)
@@ -1092,6 +1110,7 @@ def unlink(prefix, dist):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
+        # Always try to run this - it should not throw errors where menus do not exist
         mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
 
@@ -1191,6 +1210,13 @@ def main():
     p.add_option('-v', '--verbose',
                  action="store_true")
 
+    if sys.platform == "win32":
+        p.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help="Install start menu shortcuts"
+        )
+
     opts, args = p.parse_args()
     if args:
         p.error('no arguments expected')
@@ -1217,7 +1243,7 @@ def main():
     for dist in idists:
         if opts.verbose:
             print("linking: %s" % dist)
-        link(prefix, dist, linktype)
+        link(prefix, dist, linktype, opts.shortcuts)
 
     messages(prefix)
 

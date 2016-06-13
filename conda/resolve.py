@@ -279,7 +279,7 @@ class Resolve(object):
             return
         self.index[fpkg] = {
             'name': fpkg, 'channel': '@', 'priority': 0,
-            'version': '0', 'build_number': 0,
+            'version': '0', 'build_number': 0, 'fn': fpkg,
             'build': '', 'depends': [], 'track_features': fstr}
         if group:
             self.groups[fpkg] = [fpkg]
@@ -1001,7 +1001,7 @@ class Resolve(object):
                 if s.name in specm:
                     specm.remove(s.name)
                 if not s.optional:
-                    (speca if s.target or k > len0 else specr).append(s)
+                    (speca if s.target or k >= len0 else specr).append(s)
                 elif any(r2.find_matches(s)):
                     s = MatchSpec(s.name, optional=True, target=s.target)
                     speco.append(s)

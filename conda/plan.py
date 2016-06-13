@@ -92,7 +92,7 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(inst.LINK, []):
-        dist, lt = inst.split_linkarg(arg)
+        dist, lt, shortcuts = inst.split_linkarg(arg)
         fkey = dist + '.tar.bz2'
         rec = index[fkey]
         pkg = rec['name']
@@ -102,7 +102,7 @@ def display_actions(actions, index, show_channel_urls=None):
         linktypes[pkg] = lt
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
-        dist, lt = inst.split_linkarg(arg)
+        dist, lt, shortcuts = inst.split_linkarg(arg)
         fkey = dist + '.tar.bz2'
         rec = index.get(fkey)
         if rec is None:
@@ -256,12 +256,14 @@ def plan_from_actions(actions):
             res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
             res.append((op, arg))
+
     return res
 
 
 # force_linked_actions has now been folded into this function, and is enabled by
 # supplying an index and setting force=True
-def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=False):
+def ensure_linked_actions(dists, prefix, index=None, force=False,
+                          always_copy=False, shortcuts=False):
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
@@ -325,9 +327,10 @@ def ensure_linked_actions(dists, prefix, index=None, force=False, always_copy=Fa
                 lt = LINK_SOFT
             else:
                 lt = LINK_COPY
-            actions[inst.LINK].append('%s %d' % (dist, lt))
+            actions[inst.LINK].append('%s %d %s' % (dist, lt, shortcuts))
+
         except (OSError, IOError):
-            actions[inst.LINK].append(dist)
+            actions[inst.LINK].append(dist, LINK_COPY, shortcuts)
         finally:
             if not extracted_in:
                 # Remove the dummy data
@@ -352,7 +355,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
         return
     log.debug('H0 specs=%r' % specs)
     linked = [d if d.endswith('.tar.bz2') else d + '.tar.bz2' for d in linked]
-    names_linked = {name_dist(dist): dist for dist in linked}
+    names_linked = {r.index[fn]['name']: fn for fn in linked if fn in r.index}
     mspecs = list(map(MatchSpec, specs))
 
     for name, def_ver in [('python', default_python),
@@ -409,7 +412,8 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                    shortcuts=False):
     r = Resolve(index)
     linked = r.installed
 
@@ -453,7 +457,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     actions = ensure_linked_actions(
         smh, prefix,
         index=index if force else None,
-        force=force, always_copy=always_copy)
+        force=force, always_copy=always_copy,
+        shortcuts=shortcuts)
 
     if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [root_dir]
