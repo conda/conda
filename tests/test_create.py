@@ -176,6 +176,12 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.')
 
     @pytest.mark.timeout(300)
+    def test_install_python2(self):
+        with make_temp_env("python=2") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-2')
+
+    @pytest.mark.timeout(300)
     def test_remove_all(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
