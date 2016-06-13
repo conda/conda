@@ -175,7 +175,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
-    @pytest.mark.timeout(300)
+    @pytest.mark.timeout(600)
     def test_install_python2(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
