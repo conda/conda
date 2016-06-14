@@ -253,8 +253,8 @@ def find_parent_shell(path=False):
     try:
         import psutil
     except ImportError:
-        logger.warn("No psutil available.\n"
-                    "To proceed, please conda install psutil")
+        stderrlog.warn("No psutil available.\n"
+                       "To proceed, please conda install psutil")
         return None
     process = psutil.Process()
     pname = process.parent().name().lower()
