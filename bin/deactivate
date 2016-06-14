@@ -4,14 +4,25 @@
 if [[ -n $BASH_VERSION ]]; then
     _SCRIPT_LOCATION=${BASH_SOURCE[0]}
     export PROMPT_VAR="PS1"
+    SHELL="bash"
 elif [[ -n $ZSH_VERSION ]]; then
     _SCRIPT_LOCATION=${funcstack[1]}
     export PROMPT_VAR="PROMPT"
+    SHELL="zsh"
 else
     echo "Only bash and zsh are supported"
     return 1
 fi
 _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")
+
+case "$(uname -s)" in
+    CYGWIN*|MINGW32*|MSYS*)
+        EXT=".exe"
+        ;;
+    *)
+        EXT=""
+        ;;
+esac
 
 # shift over all args.  We don't accept any, so it's OK that we ignore them all here.
 while [[ $# > 0 ]]
@@ -38,7 +49,7 @@ if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" 
     (>&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
 ")
-    "$_CONDA_DIR/conda" ..deactivate -h
+    "$_CONDA_DIR/conda" ..deactivate -h $SHELL$EXT
     exit 1
 fi
 
