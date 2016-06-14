@@ -251,3 +251,23 @@ Environment variables that affect the build process
    * - ``CONDA_NPY``
      - This is the NumPy version used to build the package, such as ``19``,
        ``110``, or ``111``.
+
+.. _build-features:
+
+Environment variables to set build features
+-------------------------------------------
+
+Three environment variables are inherited from the process running ``conda build``.
+These three variables control :ref:`features` as defined in :doc:`meta-yaml`.
+
+.. list-table::
+
+   * - ``FEATURE_NOMKL``
+     - Adds the ``nomkl`` feature to the built package.
+     - Accepts ``0`` for off and ``1`` for on.
+   * - ``FEATURE_DEBUG``
+     - Adds the ``debug`` feature to the built package
+     - Accepts ``0`` for off and ``1`` for on.
+   * - ``FEATURE_OPT``
+     - Adds the ``opt`` feature to the built package
+     - Accepts ``0`` for off and ``1`` for on.
