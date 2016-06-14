@@ -46,6 +46,7 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
+    getLogger('progress.update').info("fetching package")
     fetch_pkg(state['index'][arg + '.tar.bz2'])
 
 
@@ -121,7 +122,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
-    to_download = []
+    to_download = None
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
@@ -138,12 +139,17 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         # if it is fetch command
         # put that command in a list for future multi-thread processing
         if cmd == FETCH_CMD:
-            to_download.append((state, arg))
+            if to_download:
+                to_download.append((state, arg))
+            else:
+                to_download = []
+                to_download.append((state, arg))
             continue
 
         # if it is a extract command
         # start the fetch multi-thread process
-        if cmd == EXTRACT_CMD:
+        if (cmd == EXTRACT_CMD or cmd == RM_EXTRACTED_CMD ) and to_download:
+
             try:
                 import concurrent.futures
                 executor = concurrent.futures.ThreadPoolExecutor(3)
@@ -151,8 +157,10 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 # concurrent.futures is only available in Python >= 3.2 or if futures is installed
                 # RuntimeError is thrown if number of threads are limited by OS
 
-                for state, arg in to_download:
-                    FETCH_CMD(state, arg)
+                for state_download, arg_download in to_download:
+                    FETCH_CMD(state_download, arg_download)
+                    getLogger('downloading %s ' % str(arg_download)).info(None)
+                to_download = None
             else:
                 try:
 
@@ -160,6 +168,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                                           arg) for state, arg in to_download)
                 finally:
                     executor.shutdown(wait=True)
+                    to_download = None
 
         cmd(state, arg)
 
