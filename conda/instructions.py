@@ -144,8 +144,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         # if it is a extract command
         # start the fetch multi-thread process
-        if (cmd == EXTRACT_CMD or cmd == RM_EXTRACTED_CMD ) and to_download:
-            print ("what to download",to_download)
+        if (cmd == EXTRACT_CMD or cmd == RM_EXTRACTED_CMD) and to_download:
+            
             try:
                 import concurrent.futures
                 executor = concurrent.futures.ThreadPoolExecutor(3)
