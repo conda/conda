@@ -247,6 +247,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         if cmd is None:
             raise InvalidInstruction(instruction)
 
+
         if instruction not in progress_cmds:
             if isinstance(arg, list):
                 for ar in arg:
