@@ -12,7 +12,7 @@ is a flat directory holding metadata and the scripts needed to build the package
 The conda package is then built from the conda recipe using the ``conda build`` command.
 
 Conda packages can be built from a variety of source code projects, most notably Python.
-Please refer to the `Setuptools documentation <https://setuptools.readthedocs.io/en/latest/`_
+Please refer to the `Setuptools documentation <https://setuptools.readthedocs.io/en/latest/>`_
 for help packing a Python project.
 
 TIP: If you are new to building packages with conda, we recommend taking our series 
