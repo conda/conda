@@ -25,6 +25,7 @@ from ..misc import explicit, clone_env, append_env, touch_nonadmin
 from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defaults_to_specs,
                     display_actions, revert_actions, nothing_to_do, execute_actions)
 from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
+from ..utils import find_parent_shell
 
 log = logging.getLogger(__name__)
 
@@ -95,10 +96,10 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
 
 
 def print_activate(arg):
-    from ..utils import find_parent_shell
+    shell = find_parent_shell(path=False)
     print("#")
     print("# To activate this environment, use:")
-    if find_parent_shell() in ["powershell.exe", "cmd.exe"]:
+    if shell in ["powershell.exe", "cmd.exe"]:
         print("# > activate %s" % arg)
         print("#")
         print("# To deactivate this environment, use:")

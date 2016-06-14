@@ -30,7 +30,7 @@ do
     key="$1"
     case $key in
         -h|--help)
-            "$_CONDA_DIR/conda" ..deactivate -h
+            "$_CONDA_DIR/conda" ..deactivate $SHELL$EXT -h
             if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
                 exit 0
             else
