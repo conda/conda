@@ -945,7 +945,6 @@ def linked_data(prefix):
             import concurrent.futures
             executor = concurrent.futures.ThreadPoolExecutor(10)
         except (ImportError, RuntimeError):
-
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
             # RuntimeError is thrown if number of threads are limited by OS
             for fn in json_files:
