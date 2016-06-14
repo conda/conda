@@ -247,23 +247,23 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
 
+
+
     for instruction, arg in plan.iteritems():
-
-
-    for instruction, arg in plan:
         log.debug(' %s(%r)' % (instruction, arg))
         cmd = _commands.get(instruction)
-        print(cmd)
         if cmd is None:
             raise InvalidInstruction(instruction)
+
 
         if instruction not in progress_cmds:
             if isinstance(arg, list):
                 for ar in arg:
                     cmd(state, ar)
-
             else:
                 cmd(state, arg)
+            continue
+        packages_multithread_cmd(cmd, state, arg)
     messages(state['prefix'])
 
 
