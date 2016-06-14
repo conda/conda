@@ -27,7 +27,6 @@ requirements:
     - python
     - conda-env
     - menuinst  [win]
-    - psutil
     - pycosat >=0.6.1
     - pyyaml
     - ruamel_yaml
@@ -36,7 +35,6 @@ requirements:
     - python
     - conda-env
     - menuinst  [win]
-    - psutil
     - pycosat >=0.6.1
     - pyyaml
     - ruamel_yaml
