@@ -3,8 +3,10 @@
 # Determine the directory containing this script
 if [[ -n $BASH_VERSION ]]; then
     _SCRIPT_LOCATION=${BASH_SOURCE[0]}
+    SHELL="bash"
 elif [[ -n $ZSH_VERSION ]]; then
     _SCRIPT_LOCATION=${funcstack[1]}
+    SHELL="zsh"
 else
     echo "Only bash and zsh are supported"
     return 1
@@ -17,6 +19,15 @@ if [ $# -gt 1 ]; then
     return 1
 fi
 
+case "$(uname -s)" in
+    CYGWIN*|MINGW32*|MSYS*)
+        EXT=".exe"
+        ;;
+    *)
+        EXT=""
+        ;;
+esac
+
 # Export whatever PS setting we have, so it is available to Python subprocesses
 export PS1
 
@@ -27,11 +38,11 @@ if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "activate" ]]
     (>&2 echo "Error: activate must be sourced. Run 'source activate envname'
 instead of 'activate envname'.
 ")
-    "$_CONDA_DIR/conda" ..activate -h
+    "$_CONDA_DIR/conda" ..activate $SHELL$EXT -h
     exit 1
 fi
 
-"$_CONDA_DIR/conda" ..checkenv "$@"
+"$_CONDA_DIR/conda" ..checkenv $SHELL$EXT "$@"
 if (( $? != 0 )); then
     return 1
 fi
@@ -41,7 +52,7 @@ fi
 args=$@
 source "$_CONDA_DIR/deactivate"
 
-_NEW_PATH=$("$_CONDA_DIR/conda" ..activate "$args")
+_NEW_PATH=$("$_CONDA_DIR/conda" ..activate $SHELL$EXT "$args")
 if (( $? == 0 )); then
     export CONDA_PATH_BACKUP="$PATH"
     # export this to restore it upon deactivation
@@ -59,7 +70,7 @@ if (( $? == 0 )); then
     #    Last date of change: 2016-04-18
     export CONDA_ENV_PATH=$CONDA_DEFAULT_ENV
 
-    export PS1="$( "$_CONDA_DIR/conda" ..setps1 "$args" )"
+    export PS1="$( "$_CONDA_DIR/conda" ..setps1 $SHELL$EXT "$args" )"
 
     # Load any of the scripts found $PREFIX/etc/conda/activate.d AFTER activation
     _CONDA_D="${CONDA_DEFAULT_ENV}/etc/conda/activate.d"

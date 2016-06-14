@@ -71,7 +71,6 @@ setup(
         'sdist': auxlib.SDistCommand,
     },
     install_requires=[
-        'psutil',
         'pycosat >=0.6.1',
         'pyyaml',
         'requests',

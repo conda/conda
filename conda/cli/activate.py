@@ -7,19 +7,18 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import (find_parent_shell, shells, run_in)
+from conda.utils import (shells, run_in)
 
 
 on_win = sys.platform == "win32"
 
 
-def help(command):
+def help(command, shell):
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
     # get grandparent process name to see which shell we're using
-    win_process = find_parent_shell()
     if command in ('..activate', '..checkenv'):
-        if win_process in ["cmd.exe", "powershell.exe"]:
+        if shell in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: activate ENV
 
 Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to the front of PATH.
@@ -33,7 +32,7 @@ Adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
     elif command == '..deactivate':
-        if win_process in ["cmd.exe", "powershell.exe"]:
+        if shell in ["cmd.exe", "powershell.exe"]:
             sys.exit("""Usage: deactivate
 
 Removes the environment prefix, 'Scripts' and 'Library\\bin' directory
@@ -113,18 +112,18 @@ def main():
     from conda.config import root_env_name, root_dir, changeps1
     import conda.install
     if '-h' in sys.argv or '--help' in sys.argv:
-        help(sys.argv[1])
+        # all execution paths sys.exit at end.
+        help(sys.argv[1], sys.argv[2])
 
-    path = None
-    shell = find_parent_shell(path=False)
+    shell = sys.argv[2]
     shelldict = shells[shell]
     if sys.argv[1] == '..activate':
         path = get_path(shelldict)
-        if len(sys.argv) == 2 or sys.argv[2].lower() == root_env_name.lower():
+        if len(sys.argv) == 3 or sys.argv[3].lower() == root_env_name.lower():
             binpath = binpath_from_arg(root_env_name, shelldict=shelldict)
             rootpath = None
-        elif len(sys.argv) == 3:
-            binpath = binpath_from_arg(sys.argv[2], shelldict=shelldict)
+        elif len(sys.argv) == 4:
+            binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
             rootpath = binpath_from_arg(root_env_name, shelldict=shelldict)
         else:
             sys.exit("Error: did not expect more than one argument")
@@ -142,17 +141,17 @@ def main():
     #    It is done in shell scripts because they handle state much better than we can here.
 
     elif sys.argv[1] == '..checkenv':
-        if len(sys.argv) < 3:
+        if len(sys.argv) < 4:
             sys.argv.append(root_env_name)
-        if len(sys.argv) > 3:
+        if len(sys.argv) > 4:
             sys.exit("Error: did not expect more than one argument.")
-        if sys.argv[2].lower() == root_env_name.lower():
+        if sys.argv[3].lower() == root_env_name.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
 
         # this should throw an error and exit if the env or path can't be found.
         try:
-            prefix = prefix_from_arg(sys.argv[2], shelldict=shelldict)
+            prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
         except ValueError as e:
             sys.exit(getattr(e, 'message', e))
 
@@ -179,7 +178,7 @@ def main():
                 path = '$P$G'
         # strip off previous prefix, if any:
         path = re.sub(".*\(\(.*\)\)\ ", "", path, count=1)
-        env_path = sys.argv[2]
+        env_path = sys.argv[3]
         if changeps1 and env_path:
             path = "(({0})) {1}".format(os.path.split(env_path)[-1], path)
 

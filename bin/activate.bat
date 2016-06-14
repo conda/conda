@@ -5,6 +5,15 @@
 
 @set "CONDA_NEW_ENV=%~1"
 
+:: this finds either --help or -h and shows the help text
+@CALL ECHO "%~1"| @%SystemRoot%\System32\find.exe /I "-h" 1>NUL
+@IF NOT ERRORLEVEL 1 (
+    @call "%~dp0\..\Scripts\conda.exe" ..activate "cmd.exe" -h
+) else (
+    :: reset errorlevel to 0
+    cmd /c "exit /b 0"
+)
+
 @if "%~2" == "" @goto skiptoomanyargs
     (@echo Error: did not expect more than one argument.) 1>&2
     (@echo     ^(Got %*^)) 1>&2
@@ -19,7 +28,7 @@
 @SET "CONDA_EXE=%~dp0\..\Scripts\conda.exe"
 
 @REM Ensure that path or name passed is valid before deactivating anything
-@call "%CONDA_EXE%" ..checkenv "%CONDA_NEW_ENV%"
+@call "%CONDA_EXE%" ..checkenv "cmd.exe" "%CONDA_NEW_ENV%"
 @if errorlevel 1 exit /b 1
 
 @call %~dp0\deactivate.bat
@@ -28,11 +37,11 @@
 @REM take a snapshot of pristine state for later
 @SET "CONDA_PATH_BACKUP=%PATH%"
 @REM Activate the new environment
-@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "%CONDA_NEW_ENV%"') DO @SET "PATH=%%i"
+@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "PATH=%%i"
 
 @REM take a snapshot of pristine state for later
 @set "CONDA_OLD_PS1=%PROMPT%"
-@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..setps1 "%CONDA_NEW_ENV%"') DO @SET "PROMPT=%%i"
+@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..setps1 "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "PROMPT=%%i"
 
 @REM Replace CONDA_NEW_ENV with the full path, if it is anything else
 @REM   (name or relative path).  This is to remove any ambiguity.
