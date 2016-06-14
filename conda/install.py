@@ -931,13 +931,29 @@ def linked_data(prefix):
     """
     # Manually memoized so it can be updated
     recs = linked_data_.get(prefix)
+    json_files = []
     if recs is None:
         recs = linked_data_[prefix] = {}
         meta_dir = join(prefix, 'conda-meta')
         if isdir(meta_dir):
             for fn in os.listdir(meta_dir):
                 if fn.endswith('.json'):
-                    load_linked_data(prefix, fn[:-5])
+                    json_files.append(fn[:-5])
+        try:
+            import concurrent.futures
+            executor = concurrent.futures.ThreadPoolExecutor(10)
+        except (ImportError, RuntimeError):
+        # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+        # RuntimeError is thrown if number of threads are limited by OS
+
+            for fn in json_files:
+                load_linked_data(prefix, fn)
+        else:
+            try:
+                json_files_tuple = tuple(json_files)
+                futures = tuple(executor.submit(load_linked_data, prefix, json_file) for json_file in json_files_tuple)
+            finally:
+                executor.shutdown(wait=True)
     return recs
 
 
