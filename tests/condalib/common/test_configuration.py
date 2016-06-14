@@ -74,16 +74,37 @@ test_yaml_raw = {
         always_yes: yes
         always_yes_altname2: yes
     """),
+    'not_an_int': "always_an_int: nope",
+    'good_boolean_map': dals("""
+        boolean_map:
+          a_true: true
+          a_yes: yes
+          a_1: 1
+          a_false: False
+          a_no: no
+          a_0: 0
+    """),
+    'bad_boolean_map': dals("""
+        boolean_map:
+          a_string: not true
+          an_int: 2
+          a_float: 1.2
+          a_complex: 1+2j
+    """),
 
 
 }
 
 
 class TestConfiguration(Configuration):
-    channels = SequenceParameter(string_types, aliases=('channels_altname', ))
     always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'always_yes_altname2'))
-    proxy_servers = MapParameter(string_types)
     changeps1 = PrimitiveParameter(True)
+    proxy_servers = MapParameter(string_types)
+    channels = SequenceParameter(string_types, aliases=('channels_altname', ))
+
+    always_an_int = PrimitiveParameter(0)
+    boolean_map = MapParameter(bool)
+
 
 
 def load_from_string_data(*seq):
@@ -93,7 +114,7 @@ def load_from_string_data(*seq):
 
 class ConfigurationTests(TestCase):
 
-    def test_simple_merges(self):
+    def test_simple_merges_and_caching(self):
         config = TestConfiguration(load_from_string_data('file1', 'file2'))
         assert config.changeps1 is False
         assert config.always_yes is True
@@ -169,7 +190,7 @@ class ConfigurationTests(TestCase):
         finally:
             rmtree(tempdir, ignore_errors=True)
 
-    def test_important_merges(self):
+    def test_important_primitive_map_merges(self):
         config = TestConfiguration(load_from_string_data('file1', 'file3', 'file2'))
         assert config.changeps1 is False
         assert config.always_yes is True
@@ -182,6 +203,26 @@ class ConfigurationTests(TestCase):
         assert config.channels == ('wile', 'bugs', 'daffy', 'tweety', 'porky', 'elmer', 'foghorn')
         assert config.proxy_servers == {'http': 'taz', 'https': 'sly', 's3': 'pepé'}
 
+        config = TestConfiguration(load_from_string_data('file4', 'file3', 'file1'))
+        assert config.changeps1 is False
+        assert config.always_yes is True
+        assert config.proxy_servers == {'https': 'daffy', 'http': 'bugs'}
+
+        config = TestConfiguration(load_from_string_data('file1', 'file4', 'file3', 'file2'))
+        assert config.changeps1 is False
+        assert config.always_yes is True
+        assert config.proxy_servers == {'http': 'marv', 'https': 'sam', 's3': 'porky'}
+
+        config = TestConfiguration(load_from_string_data('file1', 'file2', 'file3', 'file4'))
+        assert config.changeps1 is False
+        assert config.always_yes is True
+        assert config.proxy_servers == {'https': 'daffy', 'http': 'bugs', 's3': 'porky'}
+
+        config = TestConfiguration(load_from_string_data('file3', 'file1'))
+        assert config.changeps1 is True
+        assert config.always_yes is True
+        assert config.proxy_servers == {'https': 'sly', 'http': 'taz', 's3': 'pepé'}
+
     def test_list_merges(self):
         pass
 
@@ -191,6 +232,20 @@ class ConfigurationTests(TestCase):
 
         config = TestConfiguration(load_from_string_data('too_many_aliases'))
         raises(ValidationError, lambda: config.always_yes)
+
+        config = TestConfiguration(load_from_string_data('not_an_int'))
+        raises(ValidationError, lambda: config.always_an_int)
+
+        config = TestConfiguration(load_from_string_data('bad_boolean_map'))
+        raises(ValidationError, lambda: config.boolean_map)
+
+        config = TestConfiguration(load_from_string_data('good_boolean_map'))
+        assert config.boolean_map['a_true'] is True
+        assert config.boolean_map['a_yes'] is True
+        assert config.boolean_map['a_1'] is True
+        assert config.boolean_map['a_false'] is False
+        assert config.boolean_map['a_no'] is False
+        assert config.boolean_map['a_0'] is False
 
     def test_parameter(self):
         assert ParameterFlag.from_name('top') is ParameterFlag.top
