@@ -2,9 +2,10 @@
    conda.pydata.org. If you update this file, be sure to cd to the web
    directory and run ``make html; make live``
 
-=====
-Conda
-=====
+.. image:: https://s3.amazonaws.com/conda-dev/conda_logo.svg
+   :alt: Conda Logo
+
+----------------------------------------
 
 .. image:: https://travis-ci.org/conda/conda.svg?branch=master
    :alt: Travis-CI Build Status
