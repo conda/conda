@@ -52,8 +52,14 @@ def PRINT_CMD(state, arg):
     pass
 
 
+<<<<<<< HEAD
 def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
+=======
+def FETCH_CMD(state, arg):
+    getLogger('progress.update').info("fetching package")
+    fetch_pkg(state['index'][arg + '.tar.bz2'])
+>>>>>>> fix bug for download packages
 
 
 def PROGRESS_CMD(state, arg):
@@ -240,24 +246,24 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
+
     for instruction, arg in plan.iteritems():
+
+
+    for instruction, arg in plan:
         log.debug(' %s(%r)' % (instruction, arg))
         cmd = _commands.get(instruction)
         print(cmd)
         if cmd is None:
             raise InvalidInstruction(instruction)
 
-
         if instruction not in progress_cmds:
             if isinstance(arg, list):
                 for ar in arg:
                     cmd(state, ar)
+
             else:
                 cmd(state, arg)
-            continue
-
-        packages_multithread_cmd(cmd, state, arg)
-
     messages(state['prefix'])
 
 
