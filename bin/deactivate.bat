@@ -3,9 +3,10 @@
 @REM   For debugging, remove the @ on the section you need to study.
 @SETLOCAL
 
+:: this finds either --help or -h and shows the help text
 @CALL ECHO "%~1"| @%SystemRoot%\System32\find.exe /I "-h" 1>NUL
 @IF NOT ERRORLEVEL 1 (
-    @call "%~dp0\..\Scripts\conda.exe" ..deactivate -h
+    @call "%~dp0\..\Scripts\conda.exe" ..deactivate -h "cmd.exe"
 ) else (
     :: reset errorlevel to 0
     cmd /c "exit /b 0"

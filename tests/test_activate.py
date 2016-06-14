@@ -585,14 +585,20 @@ def test_activate_relative_path(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs = gen_test_env_paths(envs, shell)
         env_dir = os.path.basename(env_dirs[0])
+        work_dir = os.path.dirname(env_dir)
         commands = (shell_vars['command_setup'] + """
+        cd {work_dir}
         {source} "{syspath}{binpath}activate" "{env_dir}"
         {printdefaultenv}
-        """).format(envs=envs, env_dir=env_dir, **shell_vars)
+        """).format(work_dir=envs, envs=envs, env_dir=env_dir, **shell_vars)
         cwd = os.getcwd()
+        # this is not effective for running bash on windows.  It starts
+        #    in your home dir no matter what.  That's what the cd is for above.
         os.chdir(envs)
         try:
             stdout, stderr = run_in(commands, shell, cwd=envs)
+        except:
+            raise
         finally:
             os.chdir(cwd)
         assert_equals(stdout.rstrip(), env_dirs[0], stderr)

@@ -245,31 +245,6 @@ def human_bytes(n):
     return '%.2f GB' % g
 
 
-# @memoized
-def find_parent_shell(path=False):
-    """return process name or path of parent.  Default is to return only name of process."""
-    try:
-        import psutil
-    except ImportError:
-        # sys.exit("No psutil available.\n"
-        #          "To proceed, please conda install psutil")
-        return None
-    process = psutil.Process()
-    pname = process.parent().name().lower()
-    while any(proc in pname for proc in ["conda", "python", "py.test"]):
-        if process:
-            process = process.parent()
-        else:
-            # fallback defaults to system default
-            if sys.platform == 'win32':
-                return 'cmd.exe'
-            else:
-                return 'bash'
-    if path:
-        return process.parent().exe()
-    return process.parent().name()
-
-
 @memoized
 def get_yaml():
     try:
