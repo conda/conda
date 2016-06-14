@@ -8,7 +8,7 @@
 :: this finds either --help or -h and shows the help text
 @CALL ECHO "%~1"| @%SystemRoot%\System32\find.exe /I "-h" 1>NUL
 @IF NOT ERRORLEVEL 1 (
-    @call "%~dp0\..\Scripts\conda.exe" ..activate -h "cmd.exe"
+    @call "%~dp0\..\Scripts\conda.exe" ..activate "cmd.exe" -h
 ) else (
     :: reset errorlevel to 0
     cmd /c "exit /b 0"
