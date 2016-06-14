@@ -225,10 +225,11 @@ def execute_config(args, parser):
     else:
         rc_config = {}
 
-    # add `defaults` channel if creating new file or channel key doesn't exist in current file
-    if not os.path.exists(rc_path) or 'channels' not in rc_config:
+    # add `defaults` channel if creating new condarc file or channel key doesn't exist currently
+    if 'channels' not in rc_config:
+        # now check to see if user wants to modify channels at all
         if any('channels' in item[0] for item in args.add):
-            # don't need to add if it's already in args
+            # don't need to insert defaults if it's already in args
             if not ['channels', 'defaults'] in args.add:
                 args.add.insert(0, ['channels', 'defaults'])
 
