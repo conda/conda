@@ -6,7 +6,7 @@ from auxlib.collection import first, last, call_each
 from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
 from auxlib.path import expand
 from auxlib.type_coercion import typify
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple, Sequence
 from enum import Enum
 from glob import glob
 from itertools import chain, takewhile
@@ -19,7 +19,7 @@ from toolz.functoolz import excepts
 from toolz.itertoolz import concat, unique, concatv
 
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
-                     text_type, odict)
+                     text_type, odict, isiterable)
 from .yaml import yaml_load
 
 try:
@@ -97,7 +97,7 @@ class EnvRawParameter(RawParameter):
 
 
 class YamlRawParameter(RawParameter):
-    # this class should all direct use of ruamel.yaml in this module
+    # this class should encapsulate all direct use of ruamel.yaml in this module
 
     def __init__(self, ruamel_yaml_object, key):
         rawvalue = ruamel_yaml_object[key]
@@ -206,12 +206,14 @@ class Parameter(object):
     @property
     def name(self):
         if self._name is None:
+            # The Configuration metaclass should call the `set_name` method.
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._name
 
     @property
     def names(self):
         if self._names is None:
+            # The Configuration metaclass should call the `set_name` method.
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._names
 
@@ -246,18 +248,32 @@ class Parameter(object):
 
         matches = self._get_all_matches(instance)
         if not matches:
-            result = self.default
+            result = self.validate(instance, self.default)
         else:
+            print(self._merge(matches))
             result = self.validate(instance, self._merge(matches))
         instance._cache[self.name] = result
         return result
 
-    def validate(self, instance, val):
-        if (isinstance(val, self._type) and
-                (self._validation is None or self._validation(val))):
-            return val
+    def validate(self, instance, value):
+        """Validate a Parameter value.
+
+        Args:
+            instance (Configuration): The instance object to which the Parameter descriptor is
+                attached.
+            value: The value to be validated.
+
+        Returns:
+            A valid value.
+
+        Raises:
+            ValidationError:
+        """
+        if (isinstance(value, self._type) and
+                (self._validation is None or self._validation(value))):
+            return value
         else:
-            raise ValidationError(getattr(self, 'name', 'undefined name'), val)
+            raise ValidationError(getattr(self, 'name', 'undefined name'), value)
 
     @staticmethod
     def _match_key_is_important(match):
@@ -265,8 +281,23 @@ class Parameter(object):
 
 
 class PrimitiveParameter(Parameter):
+    """Parameter type for a Configuration class that holds a single python primitive value.
+
+    The python primitive types are str, int, float, complex, bool, and NoneType. In addition,
+    python 2 has long and unicode types.
+    """
 
     def __init__(self, default, aliases=(), validation=None, parameter_type=None):
+        """
+        Args:
+            default (Mapping):  The parameter's default value.
+            aliases (Iterable[str]): Alternate names for the parameter.
+            validation (callable): Given a parameter value as input, return a boolean indicating
+                validity, or alternately return a string describing an invalid value.
+            parameter_type (type or Tuple[type]): Type-validation of parameter's value. If None,
+                type(default) is used.
+
+        """
         self._type = type(default) if parameter_type is None else parameter_type
         super(PrimitiveParameter, self).__init__(default, aliases, validation)
 
@@ -283,18 +314,31 @@ class PrimitiveParameter(Parameter):
 
 
 class SequenceParameter(Parameter):
+    """Parameter type for a Configuration class that holds a sequence (i.e. list) of python
+    primitive values.
+    """
     _type = tuple
 
     def __init__(self, element_type, default=(), aliases=(), validation=None):
+        """
+        Args:
+            element_type (type or Iterable[type]): The generic type of each element in
+                the sequence.
+            default (Mapping):  The parameter's default value.
+            aliases (Iterable[str]): Alternate names for the parameter.
+            validation (callable): Given a parameter value as input, return a boolean indicating
+                validity, or alternately return a string describing an invalid value.
+
+        """
         self._element_type = element_type
         super(SequenceParameter, self).__init__(default, aliases, validation)
 
-    def validate(self, instance, val):
+    def validate(self, instance, value):
         et = self._element_type
-        for el in val:
+        for el in value:
             if not isinstance(el, et):
                 raise ValidationError(self.name, el, et)
-        return super(SequenceParameter, self).validate(instance, val)
+        return super(SequenceParameter, self).validate(instance, value)
 
     def _merge(self, matches):
         # get matches up to and including first important_match
@@ -319,33 +363,55 @@ class SequenceParameter(Parameter):
 
 
 class MapParameter(Parameter):
+    """Parameter type for a Configuration class that holds a map (i.e. dict) of python
+    primitive values.
+    """
     _type = dict
 
     def __init__(self, element_type, default=None, aliases=(), validation=None):
+        """
+        Args:
+            element_type (type or Iterable[type]): The generic type of each element.
+            default (Mapping):  The parameter's default value. If None, will be an empty dict.
+            aliases (Iterable[str]): Alternate names for the parameter.
+            validation (callable): Given a parameter value as input, return a boolean indicating
+                validity, or alternately return a string describing an invalid value.
+
+        """
         self._element_type = element_type
         super(MapParameter, self).__init__(default or dict(), aliases, validation)
 
-    def validate(self, instance, val):
+    def validate(self, instance, value):
         et = self._element_type
         call_each(Raise(ValidationError(self.name, v, et))
-                  for v in itervalues(val) if not isinstance(v, et))
-        return super(MapParameter, self).validate(instance, val)
+                  for v in itervalues(value) if not isinstance(v, et))
+        return super(MapParameter, self).validate(instance, value)
 
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        important_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
+        relevant_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
+
+        # typify values
+        type_hint = None if isiterable(self._element_type) else self._element_type
+        try:
+            relevant_maps = tuple(dict((k, typify(v, type_hint))
+                                       for k, v in iteritems(m.raw_parameter.value))
+                                  for m in relevant_matches)
+        except ValueError as e:
+            # raised by typify through boolify
+            log.exception(e)
+            raise ValidationError(self.name)
 
         # mapkeys with important matches
-        def get_important_mapkeys(match):
-            rp = match.raw_parameter
-            return dict((k, rp.value[k]) for k in rp.value
-                        if rp.valueflags.get(k) is ParameterFlag.important)
-        important_maps = tuple(get_important_mapkeys(m) for m in important_matches)
+        def key_is_important(match, key):
+            return match.raw_parameter.valueflags.get(key) is ParameterFlag.important
+        important_maps = tuple(dict((k, map[k]) for k in map if key_is_important(match, k))
+                               for match, map in zip(relevant_matches, relevant_maps))
 
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.raw_parameter.value for m in important_matches),
+        return merge(concatv((m for m in relevant_maps),
                              reversed(important_maps)))
 
 
@@ -385,3 +451,8 @@ class Configuration(object):
 
     def dump(self):
         Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
+
+    def validate_all(self):
+        # validate any raw data
+        # validate env_var
+        pass
