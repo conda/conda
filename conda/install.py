@@ -951,7 +951,8 @@ def linked_data(prefix):
         else:
             try:
                 json_files_tuple = tuple(json_files)
-                futures = tuple(executor.submit(load_linked_data, prefix, json_file) for json_file in json_files_tuple)
+                futures = tuple(executor.submit(load_linked_data, prefix,
+                                                json_file) for json_file in json_files_tuple)
             finally:
                 executor.shutdown(wait=True)
     return recs
