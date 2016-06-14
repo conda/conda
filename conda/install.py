@@ -870,8 +870,9 @@ def load_linked_data(prefix, dist, rec=None):
         try:
             with open(meta_file) as fi:
                 rec = json.load(fi)
-        except IOError:
-            return None
+        except IOError as e:
+            raise RuntimeError("Could not open '%s'" % e)
+
     else:
         linked_data(prefix)
     url = rec.get('url')
