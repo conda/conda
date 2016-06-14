@@ -121,6 +121,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
+    to_download = []
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
@@ -133,6 +134,32 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if cmd is None:
             raise InvalidInstruction(instruction)
+
+        # if it is fetch command
+        # put that command in a list for future multi-thread processing
+        if cmd == FETCH_CMD:
+            to_download.append((state,arg))
+            continue
+
+        # if it is a extract command
+        # start the fetch multi-thread process
+        if cmd == EXTRACT_CMD:
+            try:
+                import concurrent.futures
+                executor = concurrent.futures.ThreadPoolExecutor(3)
+            except (ImportError, RuntimeError):
+                # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+                # RuntimeError is thrown if number of threads are limited by OS
+
+                for state, arg in to_download:
+                    FETCH_CMD(state,arg)
+            else:
+                try:
+
+                    tuple(executor.submit(FETCH_CMD, state,
+                                          arg) for state, arg in to_download)
+                finally:
+                    executor.shutdown(wait=True)
 
         cmd(state, arg)
 
