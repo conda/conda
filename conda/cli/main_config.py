@@ -218,25 +218,19 @@ def execute_config(args, parser):
     else:
         rc_path = user_rc_path
 
-    # Create the file if it doesn't exist
-    if not os.path.exists(rc_path):
-        has_defaults = ['channels', 'defaults'] in args.add
-        if args.add and 'channels' in list(zip(*args.add))[0] and not has_defaults:
-            # If someone adds a channel and their .condarc doesn't exist, make
-            # sure it includes the defaults channel, or else they will end up
-            # with a broken conda.
-            rc_text = """\
-channels:
-  - defaults
-"""
-        else:
-            rc_text = ""
+    # read existing condarc
+    if os.path.exists(rc_path):
+        with open(rc_path, 'r') as fh:
+            rc_config = yaml_load(fh)
     else:
-        with open(rc_path, 'r') as rc:
-            rc_text = rc.read()
-    rc_config = yaml_load(rc_text)
-    if rc_config is None:
         rc_config = {}
+
+    # add `defaults` channel if creating new file or channel key doesn't exist in current file
+    if not os.path.exists(rc_path) or 'channels' not in rc_config:
+        if any('channels' in item[0] for item in args.add):
+            # don't need to add if it's already in args
+            if not ['channels', 'defaults'] in args.add:
+                args.add.insert(0, ['channels', 'defaults'])
 
     # Get
     if args.get is not None:
