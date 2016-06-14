@@ -2,11 +2,11 @@
 from __future__ import absolute_import, division, print_function
 
 from abc import ABCMeta, abstractmethod
-from auxlib.collection import first, last, call_each
+from auxlib.collection import first, last, call_each, frozendict
 from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
 from auxlib.path import expand
-from auxlib.type_coercion import typify
-from collections import OrderedDict, namedtuple, Sequence
+from auxlib.type_coercion import typify_data_structure
+from collections import namedtuple, Mapping
 from enum import Enum
 from glob import glob
 from itertools import chain, takewhile
@@ -19,7 +19,7 @@ from toolz.functoolz import excepts
 from toolz.itertoolz import concat, unique, concatv
 
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
-                     text_type, odict, isiterable)
+                     text_type, odict, string_types, isiterable)
 from .yaml import yaml_load
 
 try:
@@ -34,8 +34,8 @@ __all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
 log = getLogger(__name__)
 
 
-Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
-NO_MATCH = Match(None, None, None)
+Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter', 'typed_value', 'typing_error'))
+NO_MATCH = Match(None, None, None, None, None)
 
 
 class ParameterFlag(Enum):
@@ -60,12 +60,21 @@ class ParameterFlag(Enum):
             return None
 
 
+def make_immutable(value):
+    if isinstance(value, Mapping):
+        return frozendict(value)
+    elif isiterable(value):
+        return tuple(value)
+    else:
+        return value
+
+
 @with_metaclass(ABCMeta)
 class RawParameter(object):
 
     def __init__(self, key, value, keyflag=None, valueflags=None):
         self.key = key
-        self.value = value
+        self.value = make_immutable(value)
         self.keyflag = keyflag
         self.valueflags = valueflags
 
@@ -84,7 +93,7 @@ class EnvRawParameter(RawParameter):
         raw_value = groomed_env[key]
         important_split_value = raw_value.split("!important")
         keyflag = ParameterFlag.important if len(important_split_value) >= 2 else None
-        value = typify(important_split_value[0].strip())
+        value = important_split_value[0].strip()
         valueflags = None
         super(EnvRawParameter, self).__init__(key, value, keyflag, valueflags)
 
@@ -181,13 +190,14 @@ def load_raw_configs(search_path):
     load_paths = (_loader[st_mode](path)
                   for path, st_mode in zip(expanded_paths, stat_paths)
                   if st_mode is not None)
-    raw_data = OrderedDict(kv for kv in chain.from_iterable(load_paths))
+    raw_data = odict(kv for kv in chain.from_iterable(load_paths))
     return raw_data
 
 
 @with_metaclass(ABCMeta)
 class Parameter(object):
     _type = None
+    _element_type = None
 
     def __init__(self, default, aliases=(), validation=None):
         self._name = None
@@ -196,7 +206,7 @@ class Parameter(object):
         self.aliases = aliases
         self._validation = validation
 
-    def set_name(self, name):
+    def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
         self._name = name
@@ -206,31 +216,38 @@ class Parameter(object):
     @property
     def name(self):
         if self._name is None:
-            # The Configuration metaclass should call the `set_name` method.
+            # The Configuration metaclass should call the `_set_name` method.
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._name
 
     @property
     def names(self):
         if self._names is None:
-            # The Configuration metaclass should call the `set_name` method.
+            # The Configuration metaclass should call the `_set_name` method.
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._names
 
-    def _pull_match_from_raw(self, raw_parameters, filepath):
+    def _pull_match_from_single_raw(self, raw_parameters, filepath):
         keys = self.names & raw_parameters.keys()
         numkeys = len(keys)
         if numkeys == 0:
             return NO_MATCH
         elif numkeys == 1:
             key = keys.pop()
-            return Match(filepath, key, raw_parameters[key])
+            raw_value = raw_parameters[key]
+            try:
+                typed_value = typify_data_structure(raw_value.value, self._element_type)
+                return Match(filepath, key, raw_value, typed_value, None)
+            except ValueError as e:
+                # from typify
+                return Match(filepath, key, raw_value, None, e)
         else:
-            raise ValidationError(None, msg="Multiple aliased keys in file {0}:\n"
-                                            "  - {1}".format(filepath, "\n  - ".join(keys)))
+            return Match(filepath, self.name, keys, None,
+                         ValidationError(self.name, msg="Multiple aliased keys in file {0}:\n"
+                                                        "  - {1}".format(filepath, "\n  - ".join(keys))))
 
     def _get_all_matches(self, instance):
-        return tuple(m for m in (self._pull_match_from_raw(raw_parameters, filepath)
+        return tuple(m for m in (self._pull_match_from_single_raw(raw_parameters, filepath)
                                  for filepath, raw_parameters in iteritems(instance.raw_data))
                      if m is not NO_MATCH)
 
@@ -247,11 +264,11 @@ class Parameter(object):
             return instance._cache[self.name]
 
         matches = self._get_all_matches(instance)
-        if not matches:
-            result = self.validate(instance, self.default)
+        if matches:
+            result = self._merge(matches)
         else:
-            print(self._merge(matches))
-            result = self.validate(instance, self._merge(matches))
+            result = self.default
+        self.validate(instance, result)
         instance._cache[self.name] = result
         return result
 
@@ -299,16 +316,17 @@ class PrimitiveParameter(Parameter):
 
         """
         self._type = type(default) if parameter_type is None else parameter_type
+        self._element_type = self._type
         super(PrimitiveParameter, self).__init__(default, aliases, validation)
 
     def _merge(self, matches):
         important_match = first(matches, Parameter._match_key_is_important, default=NO_MATCH)
         if important_match is not NO_MATCH:
-            return typify(important_match.raw_parameter.value)
+            return important_match.typed_value
 
         last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
         if last_match is not NO_MATCH:
-            return typify(last_match.raw_parameter.value)
+            return last_match.typed_value
 
         raise ThisShouldNeverHappenError()  # pragma: no cover
 
@@ -348,15 +366,15 @@ class SequenceParameter(Parameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_important_lines(match):
-            rp = match.raw_parameter
-            return tuple(line for line, flag in zip(rp.value, rp.valueflags)
+            return tuple(line
+                         for line, flag in zip(match.typed_value, match.raw_parameter.valueflags)
                          if flag is ParameterFlag.important)
         important_lines = concat(get_important_lines(m) for m in important_matches)
 
         # reverse the matches and concat the lines
         #   reverse because elements closer to the end of search path that are not marked
         #   important take precedence
-        catted_lines = concat(m.raw_parameter.value for m in reversed(important_matches))
+        catted_lines = concat(m.typed_value for m in reversed(important_matches))
 
         # now de-dupe important_lines + concatted_lines
         return tuple(unique(concatv(important_lines, catted_lines)))
@@ -383,8 +401,8 @@ class MapParameter(Parameter):
 
     def validate(self, instance, value):
         et = self._element_type
-        call_each(Raise(ValidationError(self.name, v, et))
-                  for v in itervalues(value) if not isinstance(v, et))
+        [Raise(ValidationError(self.name, v, et))
+         for v in itervalues(value) if not isinstance(v, et)]  # TODO: cleanup
         return super(MapParameter, self).validate(instance, value)
 
     def _merge(self, matches):
@@ -392,27 +410,21 @@ class MapParameter(Parameter):
         #   but if no important_match, then all matches are important_matches
         relevant_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
 
-        # typify values
-        type_hint = None if isiterable(self._element_type) else self._element_type
-        try:
-            relevant_maps = tuple(dict((k, typify(v, type_hint))
-                                       for k, v in iteritems(m.raw_parameter.value))
-                                  for m in relevant_matches)
-        except ValueError as e:
-            # raised by typify through boolify
-            log.exception(e)
-            raise ValidationError(self.name)
+        # # typify values
+        # relevant_maps = tuple(dict((k, v) for k, v in iteritems(m.typed_value))
+        #                       for m in relevant_matches)
 
         # mapkeys with important matches
         def key_is_important(match, key):
             return match.raw_parameter.valueflags.get(key) is ParameterFlag.important
-        important_maps = tuple(dict((k, map[k]) for k in map if key_is_important(match, k))
-                               for match, map in zip(relevant_matches, relevant_maps))
+        important_maps = tuple(dict((k, v)
+                                    for k, v in iteritems(match.typed_value)
+                                    if key_is_important(match, k))
+                               for match in relevant_matches)
 
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m for m in relevant_maps),
-                             reversed(important_maps)))
+        return merge(concatv((m.typed_value for m in relevant_matches), reversed(important_maps)))
 
 
 class ConfigurationType(type):
@@ -421,9 +433,9 @@ class ConfigurationType(type):
     def __init__(cls, name, bases, attr):
         super(ConfigurationType, cls).__init__(name, bases, attr)
 
-        # call set_name for each
-        cls.parameters_names = tuple(p.set_name(name) for name, p in iteritems(cls.__dict__)
-                                     if isinstance(p, Parameter))
+        # call _set_name for each
+        cls.parameter_names = tuple(p._set_name(name) for name, p in iteritems(cls.__dict__)
+                                    if isinstance(p, Parameter))
 
 
 @with_metaclass(ConfigurationType)
@@ -434,6 +446,7 @@ class Configuration(object):
         if app_name is not None:
             self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
         self._cache = dict()
+        self._validation_errors = dict()
 
     @classmethod
     def from_search_path(cls, search_path, app_name=None):
@@ -454,5 +467,22 @@ class Configuration(object):
 
     def validate_all(self):
         # validate any raw data
-        # validate env_var
-        pass
+        for filepath, raw_parameters in iteritems(self.raw_data):
+            for key in self.parameter_names:
+                parameter = self.__class__.__dict__[key]
+                try:
+                    match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
+                except ValidationError as e:
+                    self._validation_errors[match] =
+                    print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
+                          .format(key, raw_parameters[key].value, filepath, text_type(e)))
+                    continue
+                if match is NO_MATCH:
+                    continue
+                v = parameter.validate(self, match.typed_value)
+                if v is not True:
+                    msg = ("The parameter '{0}' has invalid value '{1}' in {2}."
+                           .format(match.key, match.raw_parameter.value, match.filepath))
+                    if isinstance(v, string_types):
+                        msg += "\n{0}".format(v)
+                    print(msg)

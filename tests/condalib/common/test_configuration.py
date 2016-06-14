@@ -249,3 +249,13 @@ class ConfigurationTests(TestCase):
 
     def test_parameter(self):
         assert ParameterFlag.from_name('top') is ParameterFlag.top
+
+    def test_validate_all(self):
+        config = TestConfiguration(load_from_string_data('file1'))
+        config.validate_all()
+
+        config = TestConfiguration(load_from_string_data('bad_boolean_map'))
+        config.validate_all()
+
+        assert False
+        # raises(ValidationError, config.validate_all)
