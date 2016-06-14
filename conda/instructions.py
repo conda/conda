@@ -138,7 +138,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         # if it is fetch command
         # put that command in a list for future multi-thread processing
         if cmd == FETCH_CMD:
-            to_download.append((state,arg))
+            to_download.append((state, arg))
             continue
 
         # if it is a extract command
@@ -152,7 +152,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 # RuntimeError is thrown if number of threads are limited by OS
 
                 for state, arg in to_download:
-                    FETCH_CMD(state,arg)
+                    FETCH_CMD(state, arg)
             else:
                 try:
 
