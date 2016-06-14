@@ -38,6 +38,23 @@ you want and use conda to download and install them. Miniconda can be used when 
 space is limited or if you do not wish to take the time to download and install all
 the Anaconda packages at once.
 
+6. Do I need to uninstall other Python installations or packages to use conda?
+
+No. Even if you already have a system Python, another Python installation from a
+source such as the OS X Homebrew package manager, and globally installed
+packages from pip such as pandas and numpy, you do not need to uninstall,
+remove, or clean up any of them before using conda.
+
+Just install Anaconda or Miniconda normally, and let the installer add the conda
+installation of Python to your PATH environment variable. There is no need to
+set the PYTHONPATH environment variable.
+
+To examine your PATH variable and see if the conda installation of Python is in
+it, you can use ``echo $PATH`` on OS X or Linux or ``echo %PATH%`` on Windows.
+To see which Python installation is currently set as the default,
+use ``which python`` on OS X or Linux and ``where python`` on Windows. To see
+which packages are installed in your current conda environment and their version
+numbers, use ``conda list``.
 
 Getting help
 ============
