@@ -1,4 +1,4 @@
-2016-06-13   4.1.0:
+2016-06-14   4.1.0:
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727,
     #2265, #2291, #2473, #2501, #2484
