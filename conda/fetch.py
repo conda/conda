@@ -24,7 +24,7 @@ from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc, prioritize_channels, url_channel)
 from .connection import CondaSession, unparse_url, RETRIES
-from .install import add_cached_package, find_new_location, package_cache, dist2filename
+from .install import add_cached_package, find_new_location, package_cache, dist2pair
 from .lock import Locked
 from .utils import memoized
 
@@ -208,8 +208,12 @@ def get_proxy_username_and_pass(scheme):
     return username, passwd
 
 def add_unknown(index, priorities):
+    priorities = {p[0]: p[1] for p in itervalues(priorities)}
     maxp = max(itervalues(priorities)) + 1 if priorities else 1
-    for fkey, info in iteritems(package_cache()):
+    for dist, info in iteritems(package_cache()):
+        schannel, dname = dist2pair(dist)
+        fname = dname + '.tar.bz2'
+        fkey = dist + '.tar.bz2'
         if fkey in index or not info['dirs']:
             continue
         try:
@@ -217,20 +221,25 @@ def add_unknown(index, priorities):
                 meta = json.load(fi)
         except IOError:
             continue
-        fname = dist2filename(fkey)
         if info['urls']:
             url = info['urls'][0]
         elif 'url' in meta:
             url = meta['url']
+        elif 'channel' in meta:
+            url = meta['channel'].rstrip('/') + '/' + fname
         else:
-            url = meta.get('channel', '<unknown>/') + fname
-        channel, schannel = url_channel(url)
+            url = '<unknown>/' + fname
+        if url.rsplit('/', 1)[-1] != fname:
+            continue
+        channel, schannel2 = url_channel(url)
+        if schannel2 != schannel:
+            continue
         priority = priorities.get(schannel, maxp)
         meta.update({'fn': fname, 'url': url, 'channel': channel,
-                     'schannel': channel, 'priority': priority})
+                     'schannel': schannel, 'priority': priority})
         meta.setdefault('depends', [])
-        log.debug("adding cached pkg to index: %s" % url)
-        index[url] = meta
+        log.debug("adding cached pkg to index: %s" % fkey)
+        index[fkey] = meta
 
 def add_pip_dependency(index):
     for info in itervalues(index):
