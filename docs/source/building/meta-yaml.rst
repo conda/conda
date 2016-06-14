@@ -538,7 +538,7 @@ variables are defined. Unless otherwise stated, the variables are booleans.
 .. list-table::
 
    * - ``x86``
-     - True if the system architecture is x86 (32-bit) for Intel or AMD chips
+     - True if the system architecture is x86 (32-bit and 64-bit) for Intel or AMD chips
    * - ``x86_64``
      - True if the system architecture is x86_64 (64-bit) for Intel or AMD chips
    * - ``linux``
