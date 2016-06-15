@@ -248,7 +248,7 @@ def human_bytes(n):
 # activation instructions on Windows, depending on the shell type.  It would be great to
 # get rid of it, but I don't know how to otherwise detect which shell is used to create
 # or install conda packages.
-def find_parent_shell(path=False):
+def find_parent_shell(path=False, max_stack_depth=10):
     """return process name or path of parent.  Default is to return only name of process."""
     try:
         import psutil
@@ -258,9 +258,12 @@ def find_parent_shell(path=False):
         return None
     process = psutil.Process()
     pname = process.parent().name().lower()
-    while any(proc in pname for proc in ["conda", "python", "py.test"]):
+    stack_depth = 0
+    while (any(proc in pname for proc in ["conda", "python", "py.test"]) and
+           stack_depth < max_stack_depth):
         if process:
             process = process.parent()
+            stack_depth += 1
         else:
             # fallback defaults to system default
             if sys.platform == 'win32':
