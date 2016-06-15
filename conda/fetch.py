@@ -358,7 +358,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
     import hashlib
     print("reach here")
 
-    with Locked(dst_dir, hashlib.md5(url).hexdigest):
+    with Locked(dst_dir, url):
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()

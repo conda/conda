@@ -20,7 +20,7 @@ from __future__ import absolute_import, division, print_function
 import logging
 import os
 import time
-
+import hashlib
 from .exceptions import LockError
 
 LOCKFN = '.conda_lock'
@@ -35,9 +35,10 @@ class Locked(object):
     """
     def __init__(self, path, file_tmp, retries=10):
         self.path = path
-        self.file = "-" + str(file_tmp)
+        h = hashlib.md5(file_tmp.encode('utf-8'))
+        self.file_tmp = "-" + str(h.hexdigest())
         self.end = "-" + str(os.getpid())
-        self.lock_path = os.path.join(self.path, LOCKFN + self.end + self.file)
+        self.lock_path = os.path.join(self.path, LOCKFN + self.end + self.file_tmp)
         self.retries = retries
 
     def __enter__(self):
