@@ -1,0 +1,34 @@
+{
+  "arch": "x86_64", 
+  "build": "3", 
+  "build_number": 3, 
+  "channel": "https://repo.continuum.io/pkgs/free/osx-64", 
+  "date": "2016-05-25", 
+  "depends": [], 
+  "files": [
+    "include/zconf.h", 
+    "include/zlib.h", 
+    "lib/libz.1.2.8.dylib", 
+    "lib/libz.1.dylib", 
+    "lib/libz.a", 
+    "lib/libz.dylib", 
+    "lib/pkgconfig/zlib.pc"
+  ], 
+  "fn": "zlib-1.2.8-3.tar.bz2", 
+  "license": "zlib (http://zlib.net/zlib_license.html)", 
+  "license_family": "Other", 
+  "link": {
+    "source": "/Users/zhangtian/anaconda2/pkgs/zlib-1.2.8-3", 
+    "type": "hard-link"
+  }, 
+  "md5": "49b15627e7048317806615d519a5b581", 
+  "name": "zlib", 
+  "platform": "osx", 
+  "priority": 1, 
+  "requires": [], 
+  "schannel": "defaults", 
+  "size": 91019, 
+  "subdir": "osx-64", 
+  "url": "https://repo.continuum.io/pkgs/free/osx-64/zlib-1.2.8-3.tar.bz2", 
+  "version": "1.2.8"
+}
