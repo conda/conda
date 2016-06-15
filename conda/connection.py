@@ -90,8 +90,8 @@ class CondaSession(requests.Session):
         proxies = get_proxy_servers()
         if proxies:
             self.proxies = proxies
-        self.trust_env = False  # disable .netrc file
-                                # also disables REQUESTS_CA_BUNDLE, CURL_CA_BUNDLE env variables
+        self.auth = NullAuth()  # disable .netrc file. for reference, see
+                                #   https://github.com/Anaconda-Platform/anaconda-client/pull/298
 
         # Configure retries
         if retries:
@@ -111,6 +111,22 @@ class CondaSession(requests.Session):
         self.headers['User-Agent'] = user_agent
 
         self.verify = ssl_verify
+
+
+class NullAuth(requests.auth.AuthBase):
+    '''force requests to ignore the ``.netrc``
+    Some sites do not support regular authentication, but we still
+    want to store credentials in the ``.netrc`` file and submit them
+    as form elements. Without this, requests would otherwise use the
+    .netrc which leads, on some sites, to a 401 error.
+    https://github.com/kennethreitz/requests/issues/2773
+    Use with::
+        requests.get(url, auth=NullAuth())
+    '''
+
+    def __call__(self, r):
+        return r
+
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
