@@ -410,7 +410,8 @@ else:
         "zsh": dict(
             unix_shell_base, exe="zsh",
                    ),
-        # "fish": dict(unix_shell_base, exe="fish",
-        #             shell_suffix=".fish",
-        #             source_setup=""),
+        "fish": dict(
+            unix_shell_base, exe="fish",
+            pathsep=" ",
+                    ),
     }

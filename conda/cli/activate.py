@@ -134,8 +134,11 @@ def main():
         if rootpath:
             path = path.replace(shelldict['pathsep'].join(rootpath), "")
 
+        path = path.lstrip()
         # prepend our new entries onto the existing path and make sure that the separator is native
         path = shelldict['pathsep'].join(binpath + [path, ])
+        # Clean up any doubled-up path separators
+        path = path.replace(shelldict['pathsep'] * 2, shelldict['pathsep'])
 
     # deactivation is handled completely in shell scripts - it restores backups of env variables.
     #    It is done in shell scripts because they handle state much better than we can here.
