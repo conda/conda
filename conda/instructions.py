@@ -166,7 +166,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 finally:
                     executor.shutdown(wait=True)
                     to_download = None
-                    while not all(f.down() for f in future):
+                    while not all(f.done() for f in future):
                         print("Busy waiting for multiprocess")
                     print("The finish of  downloading")
 
