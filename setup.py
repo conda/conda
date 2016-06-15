@@ -36,7 +36,9 @@ with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
 scripts = ['bin/activate',
-           'bin/deactivate', ]
+           'bin/deactivate',
+           'bin/conda.fish',
+           ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
     scripts.extend(['bin/activate.bat',
