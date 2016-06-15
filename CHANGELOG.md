@@ -1,4 +1,4 @@
-## Chagelog
+## Changelog
 
 If you need more details about the changes made visit the
 [releases](https://github.com/conda/conda-env/releases) page
