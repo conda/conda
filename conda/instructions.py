@@ -123,6 +123,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
     to_download = []
+    print(plan)
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
@@ -145,6 +146,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         # if it is a extract command
         # start the fetch multi-thread process
         if (cmd == EXTRACT_CMD or cmd == RM_EXTRACTED_CMD) and to_download:
+            print("To download" , to_download)
             try:
                 import concurrent.futures
                 executor = concurrent.futures.ThreadPoolExecutor(3)
