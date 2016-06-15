@@ -300,7 +300,6 @@ def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
-
     session = session or CondaSession()
 
     fn = info['fn']
@@ -435,7 +434,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         if urlstxt:
             add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
 
-
+        print("Finish download from", url)
 class TmpDownload(object):
     """
     Context manager to handle downloads to a tempfile
