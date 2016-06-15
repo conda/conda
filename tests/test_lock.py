@@ -26,7 +26,6 @@ def test_lock_locks(tmpdir):
 
         with pytest.raises(LockError) as execinfo:
             with Locked(tmpdir.strpath, file_tmp, retries=1) as lock2:
-
                 assert False  # this should never happen
             assert lock2.lock_path == lock1.lock_path
         assert "LOCKERROR" in str(execinfo)
