@@ -46,7 +46,7 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
-    getLogger('progress.update').info("fetching package")
+    print("fetch the index ,", arg)
     fetch_pkg(state['index'][arg + '.tar.bz2'])
 
 
