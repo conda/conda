@@ -246,6 +246,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         if cmd is None:
             raise InvalidInstruction(instruction)
 
+<<<<<<< HEAD
         if instruction not in progress_cmds:
             if isinstance(arg, list):
                 for ar in arg:
@@ -254,6 +255,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 cmd(state, arg)
             continue
         packages_multithread_cmd(cmd, state, arg)
+
     messages(state['prefix'])
 
 class ProgressBar:

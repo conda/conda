@@ -50,6 +50,7 @@ class Locked(object):
     If you are sure that conda is not running, remove it and try again.
     You can also use: $ conda clean --lock\n""")
         sleeptime = 1
+
         for _ in range(self.retries):
             if os.path.exists(self.lock_path):
                 stdoutlog.info(lockstr % self.lock_path)
@@ -60,7 +61,6 @@ class Locked(object):
                 if not os.path.exists(self.path):
                     os.makedirs(self.path)
                 open(self.lock_path, 'a')
-
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
