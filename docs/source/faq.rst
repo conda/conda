@@ -40,9 +40,9 @@ the Anaconda packages at once.
 
 6. Do I need to uninstall other Python installations or packages to use conda?
 
-No. Even if you already have a system Python, another Python installation from a
-source such as the OS X Homebrew package manager, and globally installed
-packages from pip such as pandas and numpy, you do not need to uninstall,
+No. Even if you already have a system Python, another Python installation from a 
+source such as the OS X Homebrew package manager, and globally installed 
+packages from pip such as pandas and numpy, you do not need to uninstall, 
 remove, or change any of them before using conda.
 
 Just install Anaconda or Miniconda normally, and let the installer add the conda
