@@ -25,8 +25,6 @@ if defined FOUND (
 echo "%PREFIX%\Scripts\activate.bat" %%* > %PREFIX%\exec\activate.bat
 echo "%PREFIX%\Scripts\conda.exe" %%* > %PREFIX%\exec\conda.bat
 
-mkdir %PREFIX%\etc
-mkdir %PREFIX%\etc\fish
 mkdir %PREFIX%\etc\fish\conf.d
 echo "%SRC_DIR%\shell\conda.fish" %%* > %PREFIX%\etc\fish\conf.d\conda.fish
 

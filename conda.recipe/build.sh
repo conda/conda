@@ -9,4 +9,4 @@ ln -s $PREFIX/bin/activate $PREFIX/exec/activate
 ln -s $PREFIX/bin/conda $PREFIX/exec/conda
 
 mkdir -p $PREFIX/etc/fish/conf.d/
-cp $SRC_DIR/shell/conda.fish etc/fish/conf.d/
+cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/
