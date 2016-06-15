@@ -149,7 +149,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             print("To download", len(to_download))
             try:
                 import concurrent.futures
-                executor = concurrent.futures.ThreadPoolExecutor(10)
+                executor = concurrent.futures.ProcessPoolExecutor()
             except (ImportError, RuntimeError):
                 # concurrent.futures is only available in Python >= 3.2 or if futures is installed
                 # RuntimeError is thrown if number of threads are limited by OS
