@@ -44,7 +44,7 @@ import traceback
 import random
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
-
+import hashlib
 
 on_win = bool(sys.platform == "win32")
 
@@ -777,16 +777,17 @@ def rm_fetched(dist):
     Checks to see if the requested package is in the cache; and if so, it removes both
     the package itself and its extracted contents.
     """
+
     rec = package_cache().get(dist)
     if rec is None:
         return
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[url_path(fname)]
-        with Locked(dirname(fname)):
+        with Locked(dirname(fname), hashlib.md5(dist).hexdigest()):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with Locked(dirname(fname), hashlib.md5(dist).hexdigest()):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -817,7 +818,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with Locked(dirname(fname), hashlib.md5(dist).hexdigest()):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -835,7 +836,7 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
-    with Locked(pkgs_dir):
+    with Locked(pkgs_dir, hashlib.md5(dist).hexdigest()):
         path = fname[:-8]
         temp_path = path + '.tmp'
         rm_rf(temp_path)
@@ -871,7 +872,8 @@ def load_linked_data(prefix, dist, rec=None):
             with open(meta_file) as fi:
                 rec = json.load(fi)
         except IOError as e:
-            raise RuntimeError("Could not open '%s'" % e)
+            log.debug("Could not open '%s'" % e)
+            raise
 
     else:
         linked_data(prefix)
@@ -1074,7 +1076,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
-    with Locked(prefix), Locked(pkgs_dir):
+    with Locked(prefix, hashlib.md5(dist).hexdigest()), Locked(pkgs_dir, hashlib.md5(dist).hexdigest()):
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1149,7 +1151,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with Locked(prefix, hashlib.md5(dist).hexdigest()):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
