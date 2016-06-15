@@ -149,7 +149,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             print("To download", len(to_download))
             try:
                 import concurrent.futures
-                executor = concurrent.futures.ThreadPoolExecutor(3)
+                executor = concurrent.futures.ThreadPoolExecutor(10)
             except (ImportError, RuntimeError):
                 # concurrent.futures is only available in Python >= 3.2 or if futures is installed
                 # RuntimeError is thrown if number of threads are limited by OS
@@ -160,9 +160,9 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 to_download = None
             else:
                 try:
-
-                    tuple(executor.submit(FETCH_CMD, state,
-                                          arg) for state, arg in to_download)
+                    print("using multi thread")
+                    tuple(executor.submit(FETCH_CMD, state_download,
+                                          arg_download) for state_download, arg_download in to_download)
                 finally:
                     executor.shutdown(wait=True)
                     to_download = None
