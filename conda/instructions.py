@@ -6,7 +6,7 @@ from .config import root_dir
 from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
-                      link, unlink, symlink_conda, name_dist)
+                      link, unlink, symlink_conda, name_dist, package_cache)
 from .utils import find_parent_shell
 
 
@@ -165,11 +165,11 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                                                    arg_d) for (state_d, arg_d) in to_download)
                 finally:
                     executor.shutdown(wait=True)
-                    to_download = None
                     while not all(f.done() for f in future):
                         print("Busy waiting for multiprocess")
                     print("The finish of  downloading")
-
+                    assert all(arg_d in package_cache() for arg_d in to_download)
+                    to_download = None
         cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
