@@ -66,6 +66,8 @@ class Locked(object):
         stdoutlog.error("Exceeded max retries, giving up")
         raise LockError(lockstr % self.lock_path)
 
+
+
     def __exit__(self, exc_type, exc_value, traceback):
         try:
             os.remove(self.lock_path)
