@@ -174,8 +174,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                         print(arg_d)
                         assert arg_d in package_cache()
                     to_download = None
-
-
         cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
