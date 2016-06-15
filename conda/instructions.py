@@ -161,8 +161,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             else:
                 try:
                     print("using multi thread")
-                    tuple(executor.submit(FETCH_CMD, state_download,
-                                          arg_download) for state_download, arg_download in to_download)
+                    tuple(executor.submit(FETCH_CMD, state_d,
+                                          arg_d) for state_d, arg_d in to_download)
                 finally:
                     executor.shutdown(wait=True)
                     to_download = None
