@@ -43,7 +43,6 @@ import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
-import hashlib
 
 on_win = bool(sys.platform == "win32")
 
