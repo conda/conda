@@ -121,7 +121,6 @@ def multithread_download(download_list):
     :param download_list: the list of packages and metadata for  downloadinh
     :return: nothing
     """
-    print ("enter this function")
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(10)
@@ -129,14 +128,14 @@ def multithread_download(download_list):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
         # RuntimeError is thrown if number of threads are limited by OS
         for state_download, arg_download in download_list:
-            FETCH_CMD(state_download, arg_download)
+            multithread_fetch(state_download, arg_download)
             getLogger('downloading %s ' % str(arg_download)).info(None)
-            return None
+        return None
     else:
         try:
             print("using multi thread")
             future = tuple(executor.submit(multithread_fetch, state_d,
-                                               arg_d) for (state_d, arg_d) in download_list)
+                                           arg_d) for (state_d, arg_d) in download_list)
         finally:
             executor.shutdown(wait=True)
             while not all(f.done() for f in future):
