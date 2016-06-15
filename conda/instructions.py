@@ -249,7 +249,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             if isinstance(arg, list):
                 for ar in arg:
                     cmd(state, ar)
-
             else:
                 cmd(state, arg)
             continue
