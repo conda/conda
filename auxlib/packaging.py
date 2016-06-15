@@ -95,7 +95,7 @@ def call(path, command, raise_on_error=True):
     p = Popen(split(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
-    print("{0} $  {1}\n"
+    log.debug("{0} $  {1}\n"
               "  stdout: {2}\n"
               "  stderr: {3}\n"
               "  rc: {4}"
