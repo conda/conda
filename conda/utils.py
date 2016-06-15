@@ -261,6 +261,7 @@ def find_parent_shell(path=False):
     while any(proc in pname for proc in ["conda", "python", "py.test"]):
         if process:
             process = process.parent()
+            pname = process.parent().name().lower()
         else:
             # fallback defaults to system default
             if sys.platform == 'win32':
