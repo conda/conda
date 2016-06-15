@@ -263,6 +263,7 @@ def find_parent_shell(path=False, max_stack_depth=10):
            stack_depth < max_stack_depth):
         if process:
             process = process.parent()
+            pname = process.parent().name().lower()
             stack_depth += 1
         else:
             # fallback defaults to system default
