@@ -168,7 +168,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                     while not all(f.done() for f in future):
                         print("Busy waiting for multiprocess")
                     print("The finish of  downloading")
-                    assert all(arg_d in package_cache() for arg_d in to_download)
+                    assert all(arg_d in package_cache() for state_d, arg_d in to_download)
                     to_download = None
         cmd(state, arg)
 
