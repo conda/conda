@@ -51,15 +51,8 @@ def PRINT_CMD(state, arg):
     # getLogger('print').info(arg)
     pass
 
-
-<<<<<<< HEAD
 def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
-=======
-def FETCH_CMD(state, arg):
-    getLogger('progress.update').info("fetching package")
-    fetch_pkg(state['index'][arg + '.tar.bz2'])
->>>>>>> fix bug for download packages
 
 
 def PROGRESS_CMD(state, arg):
