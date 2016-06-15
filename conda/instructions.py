@@ -260,7 +260,6 @@ class ProgressBar:
     """
         A class for download progress bar using click progress bar
     """
-
     def __init__(self, length, label, cmd):
         self.length = length
         self.label = label
