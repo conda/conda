@@ -454,6 +454,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
 
         return None
 
+
 class TmpDownload(object):
     """
     Context manager to handle downloads to a tempfile
