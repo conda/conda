@@ -1,7 +1,8 @@
 os:
   - linux
   - osx
-
+git:
+  depth: 500
 addons:
   apt:
     packages:
