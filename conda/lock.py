@@ -54,18 +54,17 @@ class Locked(object):
             if os.path.exists(self.lock_path):
                 stdoutlog.info(lockstr % self.lock_path)
                 stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
-
                 time.sleep(sleeptime)
                 sleeptime *= 2
             else:
                 if not os.path.exists(self.path):
                     os.makedirs(self.path)
                 open(self.lock_path, 'a')
+
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
         raise LockError(lockstr % self.lock_path)
-
 
 
     def __exit__(self, exc_type, exc_value, traceback):
