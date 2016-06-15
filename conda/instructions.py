@@ -256,7 +256,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         packages_multithread_cmd(cmd, state, arg)
     messages(state['prefix'])
 
-
 class ProgressBar:
     """
         A class for download progress bar using click progress bar
