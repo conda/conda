@@ -1,0 +1,13 @@
+# Package Information for pkg-config
+
+prefix=/Users/zhangtian/Dropbox/Austin/Intern/conda/clear
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: SQLite
+Description: SQL database engine
+Version: 3.13.0
+Libs: -L${libdir} -lsqlite3
+Libs.private: 
+Cflags: -I${includedir}

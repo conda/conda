@@ -1,0 +1,14 @@
+# tcl pkg-config source file
+
+prefix=/Users/zhangtian/Dropbox/Austin/Intern/conda/clear
+exec_prefix=/Users/zhangtian/Dropbox/Austin/Intern/conda/clear
+libdir=/Users/zhangtian/Dropbox/Austin/Intern/conda/clear/lib
+includedir=${prefix}/include
+
+Name: Tool Command Language
+Description: Tcl is a powerful, easy-to-learn dynamic programming language, suitable for a wide range of uses.
+URL: http://www.tcl.tk/
+Version: 8.5.18
+Libs: -L${libdir} -ltcl8.5
+Libs.private:   -framework CoreFoundation 
+Cflags: -I${includedir}
