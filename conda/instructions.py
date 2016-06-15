@@ -103,6 +103,51 @@ commands = {
 }
 
 
+def multithread_fetch(state, arg):
+    """
+    :param state:
+    :param arg:
+    :return:
+    """
+    FETCH_CMD(state, arg)
+    if state['i'] is not None and state['maxval'] == state['i']:
+        state['i'] = None
+        getLogger('progress.stop').info(None)
+
+
+def multithread_download(download_list):
+    """
+
+    :param download_list: the list of packages and metadata for  downloadinh
+    :return: nothing
+    """
+    print ("enter this function")
+    try:
+        import concurrent.futures
+        executor = concurrent.futures.ThreadPoolExecutor(10)
+    except (ImportError, RuntimeError):
+        # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+        # RuntimeError is thrown if number of threads are limited by OS
+        for state_download, arg_download in download_list:
+            FETCH_CMD(state_download, arg_download)
+            getLogger('downloading %s ' % str(arg_download)).info(None)
+            return None
+    else:
+        try:
+            print("using multi thread")
+            future = tuple(executor.submit(multithread_fetch, state_d,
+                                               arg_d) for (state_d, arg_d) in download_list)
+        finally:
+            executor.shutdown(wait=True)
+            while not all(f.done() for f in future):
+                print("Busy waiting for multiprocess")
+
+            print("The finish of  downloading")
+            for state_d, arg_d in download_list:
+                print(arg_d)
+                assert arg_d in package_cache()
+
+
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
     """
     Execute the instructions in the plan
@@ -123,19 +168,19 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
     to_download = []
-    print(plan)
+
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
+        cmd = _commands.get(instruction)
+
+        if cmd is None:
+            raise InvalidInstruction(instruction)
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
             getLogger('progress.update').info((name_dist(arg),
                                                state['i'] - 1))
-        cmd = _commands.get(instruction)
-
-        if cmd is None:
-            raise InvalidInstruction(instruction)
 
         # if it is fetch command
         # put that command in a list for future multi-thread processing
@@ -146,34 +191,9 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         # if it is a extract command
         # start the fetch multi-thread process
         if (cmd == EXTRACT_CMD or cmd == RM_EXTRACTED_CMD) and to_download:
-            print("To download", len(to_download))
-            try:
-                import concurrent.futures
-                executor = concurrent.futures.ThreadPoolExecutor(10)
-            except (ImportError, RuntimeError):
-                # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-                # RuntimeError is thrown if number of threads are limited by OS
+            multithread_download(to_download)
+            to_download = None
 
-                for state_download, arg_download in to_download:
-                    FETCH_CMD(state_download, arg_download)
-                    getLogger('downloading %s ' % str(arg_download)).info(None)
-                to_download = None
-            else:
-
-                try:
-                    print("using multi thread")
-                    future = tuple(executor.submit(FETCH_CMD, state_d,
-                                                   arg_d) for (state_d, arg_d) in to_download)
-                finally:
-                    executor.shutdown(wait=True)
-                    while not all(f.done() for f in future):
-                        print("Busy waiting for multiprocess")
-
-                    print("The finish of  downloading")
-                    for state_d, arg_d in to_download:
-                        print(arg_d)
-                        assert arg_d in package_cache()
-                    to_download = None
         cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
