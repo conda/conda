@@ -90,43 +90,33 @@ end
 
 function __conda_echo_env
     set_color normal
-    echo -n '('
     set_color -o green
-    echo -n $CONDA_DEFAULT_ENV
+    echo -n (conda '..setps1' 'fish' $CONDA_DEFAULT_ENV)
     set_color normal
-    echo -n ') '
 end
 
 
 # Inject environment name into fish_right_prompt / fish_prompt
 function __conda_update_prompt
-    if [ (conda '..changeps1') -eq 1 ]
-        switch $argv[1]
-            case activate
-                __conda_restore_prompt
-                __conda_backup_prompt
-                function fish_prompt
-                    if set -q CONDA_LEFT_PROMPT
-                        __conda_echo_env
-                    end
-                    __fish_prompt_orig
-                end
-                function fish_right_prompt
-                    if not set -q CONDA_LEFT_PROMPT
-                        __conda_echo_env
-                    end
-                    __fish_right_prompt_orig
-                end
-            case deactivate
-                __conda_restore_prompt
-        end
-    end
-end
-
-
-# Convert colon-separated path to a legit fish list
-function __conda_set_path
-    set -gx PATH (echo $argv[1] | tr : \n)
+      switch $argv[1]
+          case activate
+              __conda_restore_prompt
+              __conda_backup_prompt
+              function fish_prompt
+                  if set -q CONDA_LEFT_PROMPT
+                      __conda_echo_env
+                  end
+                  __fish_prompt_orig
+              end
+              function fish_right_prompt
+                  if not set -q CONDA_LEFT_PROMPT
+                      __conda_echo_env
+                  end
+                  __fish_right_prompt_orig
+              end
+          case deactivate
+              __conda_restore_prompt
+      end
 end
 
 
@@ -151,6 +141,23 @@ function conda
 end
 
 
+# Equivalent to bash version of conda deactivate script
+function deactivate --description 'Deactivate the current conda environment.'
+    if set -q CONDA_DEFAULT_ENV  # don't deactivate the root environment
+          # check if there are any *.fish scripts in deactivate.d
+          set -l deactivate_d $CONDA_DEFAULT_ENV/etc/conda/deactivate.d
+          if test -d "$deactivate_d"
+              source $deactivate_d/*.fish
+          end
+          set -gx PATH $CONDA_BACKUP_PATH
+          set -e CONDA_DEFAULT_ENV
+          set -e CONDA_BACKUP_PATH
+          __conda_update_prompt deactivate
+    end
+    # return 0
+end
+
+
 # Equivalent to bash version of conda activate script
 function activate --description 'Activate a conda environment.'
     if [ (count $argv) -lt 1 ]
@@ -160,10 +167,9 @@ function activate --description 'Activate a conda environment.'
 
     # deactivate an environment first if it's set
     if set -q CONDA_DEFAULT_ENV
-        conda '..checkenv' $argv[1]
+        conda '..checkenv' 'fish' $argv[1]
         if [ $status = 0 ]
-            __conda_set_path (conda '..deactivate')
-            set -e CONDA_DEFAULT_ENV
+            deactivate
             __conda_update_prompt deactivate
         else
             return 1
@@ -171,44 +177,21 @@ function activate --description 'Activate a conda environment.'
     end
 
     # try to activate the environment
-    set -l NEW_PATH (conda '..activate' $argv[1])
+    set -l NEW_PATH (conda '..activate' 'fish' $argv[1])
     if [ $status = 0 ]
-        __conda_set_path $NEW_PATH
-        if [ (echo $argv[1] | grep '/') ]
-            pushd (dirname $argv[1])
-            set -gx CONDA_DEFAULT_ENV (pwd)/(basename $argv[1])
-            popd
-        else
-            set -gx CONDA_DEFAULT_ENV $argv[1]
-        end
+        set -gx CONDA_BACKUP_PATH $PATH
+        # break up new path by spaces
+        set NEW_ARRAY (echo $NEW_PATH | tr " " "\n")
+        set -gx PATH $NEW_ARRAY[1] $PATH
+        set -gx CONDA_DEFAULT_ENV (echo $PATH[1] | sed 's|/bin$||g')
+
         # check if there are any *.fish scripts in activate.d
-        set -l activate_d (conda info --root)/envs/$argv[1]/etc/conda/activate.d
+        set -l activate_d $CONDA_DEFAULT_ENV/etc/conda/activate.d
         if test -d "$activate_d"
-            source $activate_d/*.fish
+            . $activate_d/*.fish
         end
         __conda_update_prompt activate
     else
         return $status
     end
-end
-
-
-# Equivalent to bash version of conda deactivate script
-function deactivate --description 'Deactivate the current conda environment.'
-    if set -q CONDA_DEFAULT_ENV  # don't deactivate the root environment
-        set -l NEW_PATH (conda '..deactivate' $argv[1])
-        if [ $status = 0 ]
-            __conda_set_path $NEW_PATH
-            set -e CONDA_DEFAULT_ENV
-            # check if there are any *.fish scripts in deactivate.d
-            set -l deactivate_d (conda info --root)/envs/$argv[1]/etc/conda/deactivate.d
-            if test -d "$deactivate_d"
-                source $deactivate_d/*.fish
-            end
-            __conda_update_prompt deactivate
-        else
-            return $status
-        end
-    end
-    # return 0
 end
