@@ -37,7 +37,6 @@ with open(os.path.join(here, "README.rst")) as f:
 
 scripts = ['bin/activate',
            'bin/deactivate',
-           'bin/conda.fish',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
