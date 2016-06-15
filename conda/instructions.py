@@ -51,14 +51,9 @@ def PRINT_CMD(state, arg):
     # getLogger('print').info(arg)
     pass
 
-<<<<<<< HEAD
+
 def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
-=======
-def FETCH_CMD(state, arg):
-    print("fetch the index ,", arg)
-    fetch_pkg(state['index'][arg + '.tar.bz2'])
->>>>>>> print the fetching info
 
 
 def PROGRESS_CMD(state, arg):
@@ -260,7 +255,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             continue
         packages_multithread_cmd(cmd, state, arg)
     messages(state['prefix'])
-
 
 
 class ProgressBar:
