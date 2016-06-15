@@ -256,6 +256,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     messages(state['prefix'])
 
 
+
 class ProgressBar:
     """
         A class for download progress bar using click progress bar
