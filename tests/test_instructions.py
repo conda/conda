@@ -114,6 +114,10 @@ class TestExecutePlan(unittest.TestCase):
                     ]
 
         self.assertEqual(h.records, expected)
+    def test_download(self):
+
+        index = {"This is an index": True}
+        plan = {}
 
 if __name__ == '__main__':
     unittest.main()
