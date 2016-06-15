@@ -147,8 +147,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
-    @pytest.mark.skipif(on_win, reason="windows tarball is broken still")
-    @pytest.mark.timeout(300)
+    @pytest.mark.timeout(1200)
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.')
