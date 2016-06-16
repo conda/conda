@@ -37,6 +37,7 @@
 @REM take a snapshot of pristine state for later
 @SET "CONDA_PATH_BACKUP=%PATH%"
 @REM Activate the new environment
+@set "CONDA_PATH=%PATH%"
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "PATH=%%i"
 
 @REM take a snapshot of pristine state for later
