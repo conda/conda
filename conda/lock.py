@@ -50,7 +50,6 @@ class Locked(object):
     If you are sure that conda is not running, remove it and try again.
     You can also use: $ conda clean --lock\n""")
         sleeptime = 1
-        print(self.lock_path)
         for _ in range(self.retries):
             if os.path.exists(self.lock_path):
                 stdoutlog.info(lockstr % self.lock_path)

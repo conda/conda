@@ -355,10 +355,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
 
     if retries is None:
         retries = RETRIES
-    import hashlib
-    print("reach here")
 
-    with Locked(dst_dir, url):
+    with Locked(dst_dir, url.rsplit("/", 1)[1]):
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
@@ -395,7 +393,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         if size:
             size = int(size)
             fn = basename(dst_path)
-            getLogger('fetch.start').info((fn[:14], size))
+            #getLogger('fetch.start').info((fn[:14], size))
 
         n = 0
         if md5:
@@ -417,7 +415,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                     # update n with actual bytes read
                     n = resp.raw.tell()
                     if size and 0 <= n <= size:
-                        getLogger('fetch.update').info(n)
+                        pass
+                        #getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
                 # try again
@@ -427,7 +426,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
         if size:
-            getLogger('fetch.stop').info(None)
+            pass
+            #getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
@@ -438,6 +438,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
+        print("Finish download from", url)
 
         try:
             os.rename(pp, dst_path)
@@ -448,7 +449,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         if urlstxt:
             add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
 
-        print("Finish download from", url)
+        return None
+
 class TmpDownload(object):
     """
     Context manager to handle downloads to a tempfile
