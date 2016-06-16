@@ -1,3 +1,16 @@
+2016-06-16   4.1.1:
+-------------------
+  * add auto_update_conda config parameter, #2686
+  * fix #2669 conda config --add channels can leave out defaults, #2670
+  * fix #2703 ignore activate symlink error if links already exist, #2705
+  * fix #2693 install duplicate packages with older version of Anaconda, #2701
+  * fix #2677 respect HTTP_PROXY, #2695
+  * fix #2680 broken fish integration, #2685, #2694
+  * fix an issue with conda never exiting, #2689
+  * fix #2688 explicit file installs, #2708
+  * fix #2700 conda list UnicodeDecodeError, #2706
+
+
 2016-06-14   4.1.0:
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727,
