@@ -316,6 +316,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             continue
 
         packages_multithread_cmd(cmd, state, arg)
+
     messages(state['prefix'])
 
 class ProgressBar:
