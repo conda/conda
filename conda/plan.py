@@ -330,7 +330,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             actions[inst.LINK].append('%s %d %s' % (dist, lt, shortcuts))
 
         except (OSError, IOError):
-            actions[inst.LINK].append(dist, LINK_COPY, shortcuts)
+            actions[inst.LINK].append('%s %d %s' % (dist, LINK_COPY, shortcuts))
         finally:
             if not extracted_in:
                 # Remove the dummy data
