@@ -19,7 +19,7 @@ from os.path import abspath, basename, dirname, join, exists
 from . import instructions as inst
 from .config import (always_copy as config_always_copy,
                      show_channel_urls as config_show_channel_urls,
-                     root_dir, allow_softlinks, default_python, self_update,
+                     root_dir, allow_softlinks, default_python, auto_update_conda,
                      track_features, foreign, url_channel, canonical_channel_name)
 from .exceptions import CondaException
 from .history import History
@@ -417,7 +417,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     r = Resolve(index)
     linked = r.installed
 
-    if self_update and is_root_prefix(prefix):
+    if auto_update_conda and is_root_prefix(prefix):
         specs.append('conda')
 
     if pinned:

@@ -34,6 +34,11 @@
   * allow channel_alias to be different than binstar, #2564
 
 
+2016-06-15  4.0.9:
+------------------
+  * add auto_update_conda config parameter, #2686
+
+
 2016-06-03   4.0.8:
 -------------------
   * fix a potential problem with moving files to trash, #2587
