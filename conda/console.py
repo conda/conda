@@ -3,7 +3,6 @@ from __future__ import print_function, division, absolute_import
 import contextlib
 import json
 import logging
-import os
 import sys
 
 from .progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
@@ -11,18 +10,11 @@ from .progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
 from .utils import memoized
 
 
-try:
-    tty = open(os.ctermid(), 'w')
-except (IOError, AttributeError):
-    # apparently `os.ctermid` not available on Windows, and throws AttributeError
-    tty = sys.stdout
+fetch_progress = ProgressBar(
+    widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
+             FileTransferSpeed()])
 
-fetch_progress = ProgressBar(widgets=['', ' ', Percentage(), ' ', Bar(),
-                                      ' ', ETA(), ' ', FileTransferSpeed()],
-                             fd=tty)
-
-progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()],
-                       fd=tty)
+progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()])
 
 
 class FetchProgressHandler(logging.Handler):
@@ -146,9 +138,10 @@ class PrintHandler(logging.Handler):
 class DotHandler(logging.Handler):
     def emit(self, record):
         try:
-            tty.write('.')
-            tty.flush()
+            sys.stdout.write('.')
+            sys.stdout.flush()
         except IOError:
+            # sys.stdout.flush doesn't work in pythonw
             pass
 
 class SysStdoutWriteHandler(logging.Handler):
