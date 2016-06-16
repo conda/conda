@@ -302,6 +302,10 @@ class VersionSpec(object):
         self.spec = spec
         if isinstance(spec, tuple):
             self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
+        elif spec.startswith("^") and spec.endswith("$"):
+            self.spec = spec
+            self.regex = re.compile(spec)
+            self.match = self.regex_match_
         elif '|' in spec:
             return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
         elif ',' in spec:
