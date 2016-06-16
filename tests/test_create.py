@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from glob import glob
 import json
 from logging import getLogger, Handler
-from os.path import exists, isdir, isfile, join, relpath
+from os.path import exists, isdir, isfile, join, relpath, basename
 import os
 from shlex import split
 from shutil import rmtree, copyfile
@@ -24,7 +24,7 @@ from conda.cli.main_install import configure_parser as install_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.config import pkgs_dirs, bits
-from conda.install import linked as install_linked, linked_data_
+from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win
 from conda.compat import PY3, TemporaryDirectory
 
@@ -63,37 +63,18 @@ def reenable_dotlog(handlers):
     dotlogger.handlers = handlers
 
 
-@contextmanager
-def make_temp_env(*packages):
-    prefix = make_temp_prefix()
-    try:
-        # try to clear any config that's been set by other tests
-        config.rc = config.load_condarc('')
-
-        p = conda_argparse.ArgumentParser()
-        sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-        create_configure_parser(sub_parsers)
-
-        command = "create -y -q -p {0} {1}".format(escape_for_winpath(prefix), " ".join(packages))
-
-        args = p.parse_args(split(command))
-        args.func(args, p)
-
-        yield prefix
-    finally:
-        rmtree(prefix, ignore_errors=True)
-
-
 class Commands:
     INSTALL = "install"
     UPDATE = "update"
     REMOVE = "remove"
+    CREATE = "create"
 
 
 parser_config = {
     Commands.INSTALL: install_configure_parser,
     Commands.UPDATE: update_configure_parser,
     Commands.REMOVE: remove_configure_parser,
+    Commands.CREATE: create_configure_parser,
 }
 
 
@@ -102,23 +83,38 @@ def run_command(command, prefix, *arguments):
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     parser_config[command](sub_parsers)
 
-    command = "{0} -y -q -p {1} {2}".format(command,
-                                            escape_for_winpath(prefix),
-                                            " ".join(arguments))
+    prefix = escape_for_winpath(prefix)
+    arguments = list(map(escape_for_winpath, arguments))
+    command = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
 
     args = p.parse_args(split(command))
     args.func(args, p)
 
 
+@contextmanager
+def make_temp_env(*packages):
+    prefix = make_temp_prefix()
+    try:
+        # try to clear any config that's been set by other tests
+        config.rc = config.load_condarc('')
+        run_command(Commands.CREATE, prefix, *packages)
+        yield prefix
+    finally:
+        rmtree(prefix, ignore_errors=True)
+
+
 def package_is_installed(prefix, package, exact=False):
+    packages = list(install_linked(prefix))
+    if '::' not in package:
+        packages = list(map(dist2dirname, packages))
     if exact:
-        return any(p == package for p in install_linked(prefix))
-    return any(p.startswith(package) for p in install_linked(prefix))
+        return package in packages
+    return any(p.startswith(package) for p in packages)
 
 
 def assert_package_is_installed(prefix, package, exact=False):
     if not package_is_installed(prefix, package, exact):
-        print([p for p in install_linked(prefix)])
+        print(list(install_linked(prefix)))
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
@@ -147,29 +143,29 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
-    @pytest.mark.skipif(on_win, reason="windows tarball is broken still")
     @pytest.mark.timeout(300)
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1") as prefix:
-            assert_package_is_installed(prefix, 'flask-0.')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask-0.')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
             # regression test for #2626
             # install tarball with full path
             flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
-            if not on_win:
-                run_command(Commands.INSTALL, prefix, flask_tar_file)
-                assert_package_is_installed(prefix, 'flask-0.')
+            tar_new_path = join(prefix, basename(flask_tar_file))
+            copyfile(flask_tar_file, tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0')
 
-                run_command(Commands.REMOVE, prefix, 'flask')
-                assert not package_is_installed(prefix, 'flask-0.')
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0')
 
             # regression test for #2626
             # install tarball with relative path
-            flask_tar_file = relpath(flask_tar_file)
-            run_command(Commands.INSTALL,  prefix, flask_tar_file)
+            tar_new_path = relpath(tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
             assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2599
