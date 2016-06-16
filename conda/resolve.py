@@ -228,6 +228,7 @@ class Package(object):
         self.build_number = info.get('build_number')
         self.channel = info.get('channel')
         self.schannel = info.get('schannel')
+        self.priority = info.get('priority', None)
         if self.schannel is None:
             self.schannel = canonical_channel_name(self.channel)
         try:

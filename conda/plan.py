@@ -17,7 +17,7 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
 from . import instructions as inst
-from .config import (always_copy as config_always_copy,
+from .config import (always_copy as config_always_copy, channel_priority,
                      show_channel_urls as config_show_channel_urls,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
                      track_features, foreign, url_channel, canonical_channel_name)
@@ -137,6 +137,7 @@ def display_actions(actions, index, show_channel_urls=None):
         maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
     updated = set()
     downgraded = set()
+    channeled = set()
     oldfmt = {}
     newfmt = {}
     for pkg in packages:
@@ -163,14 +164,31 @@ def display_actions(actions, index, show_channel_urls=None):
 
         P0 = records[pkg][0]
         P1 = records[pkg][1]
+        pri0 = P0.priority
+        pri1 = P1.priority
+        if pri0 is None or pri1 is None:
+            pri0 = pri1 = 1
         try:
-            # <= here means that unchanged packages will be put in updated
-            newer = ((P0.name, P0.norm_version, P0.build_number) <=
-                     (P1.name, P1.norm_version, P1.build_number))
+            if str(P1.version) == 'custom':
+                newver = str(P0.version) != 'custom'
+                oldver = not newver
+            else:
+                # <= here means that unchanged packages will be put in updated
+                newver = P0.norm_version < P1.norm_version
+                oldver = P0.norm_version > P1.norm_version
         except TypeError:
-            newer = ((P0.name, P0.version, P0.build_number) <=
-                     (P1.name, P1.version, P1.build_number))
-        if newer or str(P1.version) == 'custom':
+            newver = P0.version < P1.version
+            oldver = P0.version > P1.version
+        oldbld = P0.build_number > P1.build_number
+        if channel_priority and pri1 < pri0 and (oldver or not newver and oldbld):
+            channeled.add(pkg)
+        elif newver:
+            updated.add(pkg)
+        elif pri1 < pri0 and (oldver or not newver and oldbld):
+            channeled.add(pkg)
+        elif oldver:
+            downgraded.add(pkg)
+        elif not oldbld:
             updated.add(pkg)
         else:
             downgraded.add(pkg)
@@ -191,18 +209,23 @@ def display_actions(actions, index, show_channel_urls=None):
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
-    for pkg in sorted(removed):
-        print(format(oldfmt[pkg], pkg))
+        for pkg in sorted(removed):
+            print(format(oldfmt[pkg], pkg))
 
     if updated:
         print("\nThe following packages will be UPDATED:\n")
-    for pkg in sorted(updated):
-        print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+        for pkg in sorted(updated):
+            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
+    if channeled:
+        print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
+        for pkg in sorted(channeled):
+            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if downgraded:
-        print("\nThe following packages will be DOWNGRADED:\n")
-    for pkg in sorted(downgraded):
-        print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+        print("\nThe following packages will be DOWNGRADED due to dependency conflicts:\n")
+        for pkg in sorted(downgraded):
+            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     print()
 
