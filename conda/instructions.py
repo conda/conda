@@ -212,7 +212,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             if to_download:
                 packages_multithread_cmd(multithread_fetch, to_download)
                 to_download = None
-            to_extract.append((state,arg))
+            to_extract.append((state, arg))
             continue
 
         # if it is a link command
