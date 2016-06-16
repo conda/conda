@@ -392,10 +392,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-            fn = basename(dst_path)
-            #getLogger('fetch.start').info((fn[:14], size))
+            # fn = basename(dst_path)
+            # getLogger('fetch.start').info((fn[:14], size))
 
-        n = 0
         if md5:
             h = hashlib.new('md5')
         try:
@@ -416,7 +415,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                     n = resp.raw.tell()
                     if size and 0 <= n <= size:
                         pass
-                        #getLogger('fetch.update').info(n)
+                        # getLogger('fetch.update').info(n)
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
                 # try again
@@ -427,7 +426,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
 
         if size:
             pass
-            #getLogger('fetch.stop').info(None)
+            # getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
