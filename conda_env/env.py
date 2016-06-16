@@ -6,6 +6,8 @@ import re
 import sys
 
 # TODO This should never have to import from conda.cli
+from itertools import chain
+
 from conda.cli import common
 from conda import install
 from conda import config
@@ -96,6 +98,31 @@ class Dependencies(OrderedDict):
         self.parse()
 
 
+def unique(seq, key=None):
+    """ Return only unique elements of a sequence
+    >>> tuple(unique((1, 2, 3)))
+    (1, 2, 3)
+    >>> tuple(unique((1, 2, 1, 3)))
+    (1, 2, 3)
+    Uniqueness can be defined by key keyword
+    >>> tuple(unique(['cat', 'mouse', 'dog', 'hen'], key=len))
+    ('cat', 'mouse')
+    """
+    seen = set()
+    seen_add = seen.add
+    if key is None:
+        for item in seq:
+            if item not in seen:
+                seen_add(item)
+                yield item
+    else:  # calculate key
+        for item in seq:
+            val = key(item)
+            if val not in seen:
+                seen_add(val)
+                yield item
+
+
 class Environment(object):
     def __init__(self, name=None, filename=None, channels=None,
                  dependencies=None, prefix=None):
@@ -108,8 +135,8 @@ class Environment(object):
             channels = []
         self.channels = channels
 
-    def add_channels(self, channels=[]):
-        self.channels = list(set(self.channels + channels))
+    def add_channels(self, channels):
+        self.channels = list(unique(chain.from_iterable((channels, self.channels))))
 
     def remove_channels(self):
         self.channels = []
