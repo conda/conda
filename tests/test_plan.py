@@ -213,7 +213,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython: 0.19.1-py33_0 --> 0.19-py33_0
 
@@ -239,7 +239,7 @@ The following packages will be UPDATED:
 
     cython:   0.19-py33_0  --> 0.19.1-py33_0
 
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     dateutil: 2.1-py33_1   --> 1.5-py33_0   \n\
 
@@ -268,7 +268,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 --> 0.19-py33_0
     dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
@@ -359,7 +359,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
 
@@ -386,7 +386,7 @@ The following packages will be UPDATED:
 
     cython:   0.19-py33_0  <unknown> --> 0.19.1-py33_0 <unknown>
 
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
 
@@ -414,7 +414,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
     dateutil: 2.1-py33_1    <unknown> --> 1.5-py33_0  <unknown>
@@ -444,7 +444,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown> \n\
     dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel
@@ -499,7 +499,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 --> 0.19-py33_0 (soft-link)
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (soft-link)
@@ -549,7 +549,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 --> 0.19-py33_0
     dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
@@ -599,7 +599,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 --> 0.19-py33_0 (copy)
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
@@ -654,7 +654,7 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown>  (copy)
     dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel (copy)
@@ -697,7 +697,7 @@ The following packages will be REMOVED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]
 
@@ -775,7 +775,7 @@ The following packages will be REMOVED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.0-py33_p0 <unknown> [mkl]
 
@@ -841,7 +841,7 @@ The following packages will be REMOVED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     numpy: 2.0.0-py33_1 <unknown> --> 1.7.1-py33_0 <unknown>
 
@@ -856,7 +856,7 @@ The following packages will be DOWNGRADED:
         display_actions(actions, index)
 
     assert c.stdout == """
-The following packages will be DOWNGRADED:
+The following packages will be DOWNGRADED due to dependency conflicts:
 
     tk: 8.5.13-1 <unknown> --> 8.5.13-0 <unknown>
 
