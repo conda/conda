@@ -153,7 +153,8 @@ channels:
         # When defaults is explicitly given, it should not be added
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'channels', 'test', '--add', 'channels', 'defaults')
-        assert stdout == stderr == ''
+        assert stdout == ''
+        assert stderr == "Warning: 'defaults' already in 'channels' list, moving to the front"
         assert _read_test_condarc(rc) == """\
 channels:
   - defaults
@@ -167,12 +168,37 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'channels', 'test')
         assert stdout == ''
-        assert stderr == "Skipping channels: test, item already exists"
+        assert stderr == "Warning: 'test' already in 'channels' list, moving to the front"
         assert _read_test_condarc(rc) == """\
 channels:
   - test
   - defaults
 """
+
+    # Test append
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
+            'channels', 'test')
+        assert stdout == stderr == ''
+        stdout, stderr = run_conda_command('config', '--file', rc, '--append',
+            'channels', 'test')
+        assert stdout == ''
+        assert stderr == "Warning: 'test' already in 'channels' list, moving to the back"
+        assert _read_test_condarc(rc) == """\
+channels:
+  - defaults
+  - test
+"""
+
+    # Test duoble remove of defaults
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
+            'channels', 'defaults')
+        assert stdout == stderr == ''
+        stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
+            'channels', 'defaults')
+        assert stdout == ''
+        assert stderr == "Error: 'defaults' is not in the 'channels' key of the config file"
 
     # Test creating a new file with --set
     with make_temp_condarc() as rc:
