@@ -195,7 +195,9 @@ def get_rc_urls():
     return rc['channels']
 
 def is_url(url):
-    return url and urlparse.urlparse(url).scheme != ""
+    if url:
+        p = urlparse.urlparse(url)
+        return p.netloc != "" or p.scheme == "file"
 
 def binstar_channel_alias(channel_alias):
     if channel_alias.startswith('file:/'):
