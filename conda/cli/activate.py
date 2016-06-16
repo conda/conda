@@ -93,19 +93,6 @@ def pathlist_to_str(paths, escape_backslashes=True):
     return path
 
 
-def get_path(shelldict):
-    """Get path using a subprocess call.
-
-    os.getenv path isn't good for us, since bash on windows has a wildly different
-    path from Windows.
-
-    This returns PATH in the native representation of the shell - not necessarily
-    the native representation of the platform
-    """
-    from conda.utils import run_in
-    return run_in(shelldict["printpath"], shelldict)[0]
-
-
 def main():
     from conda.config import root_env_name, root_dir
     from conda.utils import shells
@@ -117,12 +104,9 @@ def main():
         shell = sys.argv[2]
         shelldict = shells[shell]
     if sys.argv[1] == '..activate':
-        if len(sys.argv) == 3 or sys.argv[3].lower() == root_env_name.lower():
-            binpath = binpath_from_arg(root_env_name, shelldict=shelldict)
-        elif len(sys.argv) == 4:
-            binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
-        else:
-            sys.exit("Error: did not expect more than one argument")
+        if len(sys.argv) != 4:
+            sys.exit("Error: ..activate expected exactly two arguments: shell and env name")
+        binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
         pathlist_str = pathlist_to_str(binpath)
         sys.stderr.write("prepending %s to PATH\n" % shelldict['path_to'](pathlist_str))
 

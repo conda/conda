@@ -20,8 +20,13 @@ if [ $# -gt 1 ]; then
 fi
 
 case "$(uname -s)" in
-    CYGWIN*|MINGW32*|MSYS*)
+    CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
+        export MSYS2_ENV_CONV_EXCL=CONDA_PATH
+        # ignore any windows backup paths from bat-based activation
+        if [ "${CONDA_PATH_BACKUP:0:1}" != "/"  ]; then
+           unset CONDA_PATH_BACKUP
+        fi
         ;;
     *)
         EXT=""
@@ -88,6 +93,8 @@ if (( $? == 0 )); then
 else
     return $?
 fi
+
+unset CONDA_PATH
 
 if [[ -n $BASH_VERSION ]]; then
     hash -r
