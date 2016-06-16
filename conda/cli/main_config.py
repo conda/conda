@@ -154,6 +154,16 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         "--add",
         nargs=2,
         action="append",
+        help="""Add one configuration value to the beginning of a list key.
+        To add to the end of the list, use --append.""",
+        default=[],
+        choices=ListKey(),
+        metavar=('KEY', 'VALUE'),
+    )
+    action.add_argument(
+        "--append",
+        nargs=2,
+        action="append",
         help="""Add one configuration value to a list key. The default
         behavior is to prepend.""",
         default=[],
@@ -255,31 +265,32 @@ def execute_config(args, parser):
                     # Use repr so that it can be pasted back in to conda config --add
                     print("--add", key, repr(item))
 
-    # Add
-    for key, item in args.add:
-        if key == 'channels' and key not in rc_config:
-            rc_config[key] = ['defaults']
-        if key not in rc_list_keys:
-            error_and_exit("key must be one of %s, not %r" %
-                           (', '.join(rc_list_keys), key), json=args.json,
-                           error_type="ValueError")
-        if not isinstance(rc_config.get(key, []), list):
-            bad = rc_config[key].__class__.__name__
-            raise CouldntParse("key %r should be a list, not %s." % (key, bad))
-        if key == 'default_channels' and rc_path != sys_rc_path:
-            msg = "'default_channels' is only configurable for system installs"
-            raise NotImplementedError(msg)
-        if item in rc_config.get(key, []):
-            # Right now, all list keys should not contain duplicates
-            message = "Skipping %s: %s, item already exists" % (key, item)
-            if not args.json:
-                print(message, file=sys.stderr)
-            else:
-                json_warnings.append(message)
-            continue
-        if key == 'channels':
-            rc_config[key] = [p for p in rc_config[key] if p != item]
-        rc_config.setdefault(key, []).insert(0, item)
+    # Add, append
+    for arg, prepend in zip((args.add, args.append), (True, False)):
+        for key, item in arg:
+            if key == 'channels' and key not in rc_config:
+                rc_config[key] = ['defaults']
+            if key not in rc_list_keys:
+                error_and_exit("key must be one of %s, not %r" %
+                               (', '.join(rc_list_keys), key), json=args.json,
+                               error_type="ValueError")
+            if not isinstance(rc_config.get(key, []), list):
+                bad = rc_config[key].__class__.__name__
+                raise CouldntParse("key %r should be a list, not %s." % (key, bad))
+            if key == 'default_channels' and rc_path != sys_rc_path:
+                msg = "'default_channels' is only configurable for system installs"
+                raise NotImplementedError(msg)
+            arglist = rc_config.setdefault(key, [])
+            if item in arglist:
+                # Right now, all list keys should not contain duplicates
+                message = "Warning: %s already in %s, moving to the %s" % (
+                    item, key, "front" if prepend else "back")
+                arglist = rc_config[key] = [p for p in arglist if p != item]
+                if not args.json:
+                    print(message, file=sys.stderr)
+                else:
+                    json_warnings.append(message)
+            arglist.insert(0 if prepend else len(arglist), item)
 
     # Set
     set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
