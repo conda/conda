@@ -77,6 +77,7 @@ rc_bool_keys = [
     'always_yes',
     'always_copy',
     'allow_softlinks',
+    'auto_update_conda',
     'changeps1',
     'use_pip',
     'offline',
@@ -321,6 +322,7 @@ def get_proxy_servers():
         return res
     sys.exit("Error: proxy_servers setting not a mapping")
 
+
 def load_condarc(path):
     rc = load_condarc_(path)
 
@@ -378,7 +380,7 @@ def load_condarc(path):
     binstar_upload = rc.get('anaconda_upload',
                             rc.get('binstar_upload', None))  # None means ask
     allow_softlinks = bool(rc.get('allow_softlinks', True))
-    self_update = bool(rc.get('self_update', True))
+    auto_update_conda = bool(rc.get('auto_update_conda', rc.get('self_update', True)))
     # show channel URLs when displaying what is going to be downloaded
     show_channel_urls = rc.get('show_channel_urls', None)  # None means letting conda decide
     # set packages disallowed to be installed
