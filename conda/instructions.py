@@ -231,7 +231,6 @@ def multithread_fetch(state, arg):
     FETCH_CMD(state, arg)
 
 
-
 def multithread_extract(state, arg):
     """
     Function wrapper for the FETCH_CMD
