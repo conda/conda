@@ -80,7 +80,10 @@ def get_egg_info(prefix, all_pkgs=False):
     for path in get_egg_info_files(join(prefix, sp_dir)):
         f = rel_path(prefix, path)
         if all_pkgs or f not in conda_files:
-            dist = parse_egg_info(path)
+            try:
+                dist = parse_egg_info(path)
+            except UnicodeDecodeError:
+                dist = None
             if dist:
                 res.add(dist)
     return res
