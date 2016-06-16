@@ -221,17 +221,9 @@ def execute_config(args, parser):
     # read existing condarc
     if os.path.exists(rc_path):
         with open(rc_path, 'r') as fh:
-            rc_config = yaml_load(fh)
+            rc_config = yaml_load(fh) or {}
     else:
         rc_config = {}
-
-    # add `defaults` channel if creating new condarc file or channel key doesn't exist currently
-    if 'channels' not in rc_config:
-        # now check to see if user wants to modify channels at all
-        if any('channels' in item[0] for item in args.add):
-            # don't need to insert defaults if it's already in args
-            if not ['channels', 'defaults'] in args.add:
-                args.add.insert(0, ['channels', 'defaults'])
 
     # Get
     if args.get is not None:
@@ -265,6 +257,8 @@ def execute_config(args, parser):
 
     # Add
     for key, item in args.add:
+        if key == 'channels' and key not in rc_config:
+            rc_config[key] = ['defaults']
         if key not in rc_list_keys:
             error_and_exit("key must be one of %s, not %r" %
                            (', '.join(rc_list_keys), key), json=args.json,
@@ -283,6 +277,8 @@ def execute_config(args, parser):
             else:
                 json_warnings.append(message)
             continue
+        if key == 'channels':
+            rc_config[key] = [p for p in rc_config[key] if p != item]
         rc_config.setdefault(key, []).insert(0, item)
 
     # Set
@@ -305,8 +301,10 @@ def execute_config(args, parser):
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
-            error_and_exit("key %r is not in the config file" % key, json=args.json,
-                           error_type="KeyError")
+            if key != 'channels':
+                error_and_exit("key %r is not in the config file" % key, json=args.json,
+                               error_type="KeyError")
+            rc_config[key] = ['defaults']
         if item not in rc_config[key]:
             error_and_exit("%r is not in the %r key of the config file" %
                            (item, key), json=args.json, error_type="KeyError")
