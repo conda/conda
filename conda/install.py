@@ -1219,7 +1219,7 @@ def main():
                  action="store_true")
 
     if sys.platform == "win32":
-        p.add_argument(
+        p.add_option(
             "--shortcuts",
             action="store_true",
             help="Install start menu shortcuts"
