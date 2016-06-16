@@ -91,7 +91,6 @@ except ImportError:
     def url_channel(url):
         return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
 
-
     pkgs_dirs = [join(sys.prefix, 'pkgs')]
 
 if on_win:
@@ -233,6 +232,7 @@ def exp_backoff_fn(fn, *args):
         try:
             result = fn(*args)
         except Exception as e:
+            log.debug(repr(e))
             if n == max_retries-1:
                 raise
             time.sleep((2 ** n) + (random.randint(0, 1000) / 1000))
