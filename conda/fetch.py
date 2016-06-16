@@ -235,6 +235,8 @@ def add_unknown(index, priorities):
         if schannel2 != schannel:
             continue
         priority = priorities.get(schannel, maxp)
+        if 'link' in meta:
+            del meta['link']
         meta.update({'fn': fname, 'url': url, 'channel': channel,
                      'schannel': schannel, 'priority': priority})
         meta.setdefault('depends', [])
