@@ -614,6 +614,8 @@ need to put the same selector on multiple lines.
 
 .. _features:
 
+NOTE: The fully rendered recipe file will be written back to the directory as ``meta.yaml.rendered``.
+
 Features
 --------
 
