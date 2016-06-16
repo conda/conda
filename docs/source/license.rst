@@ -2,7 +2,7 @@
 Conda license
 =============
 
-Except where noted below, conda is released under the following terms:
+Conda is released under the following terms:
 
 (c) 2016 Continuum Analytics, Inc. / http://continuum.io
 All Rights Reserved
@@ -31,18 +31,29 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Exceptions
-==========
+Dependencies
+============
 
-versioneer.py is Public Domain
+versioneer.py is Public Domain.
 
-verlib.py is Public Domain
+The ProgressBar package is redistributed under the BSD 3-clause license
+as per the terms of its license:
 
-The ProgressBar package is released under the following terms: ProgressBar - Text progress bar library for Python is copyright (c) 2005 Nilton Volpato.
+ProgressBar License
+===================
+
+You can redistribute and/or modify this library under the terms of the
+GNU LGPL license or BSD license (or both).
+
+LGPL
+----
+
+progressbar - Text progress bar library for python.
+Copyright (C) 2005 Nilton Volpato
 
 This library is free software; you can redistribute it and/or
-modify it under the terms of the `GNU Lesser General Public License <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html>`_
-as published by the Free Software Foundation; either
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
 version 2.1 of the License, or (at your option) any later version.
 
 This library is distributed in the hope that it will be useful,
@@ -53,3 +64,35 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+BSD
+---
+
+progressbar - Text progress bar library for python
+Copyright (c) 2008 Nilton Volpato
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ a. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+ b. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ c. Neither the name of the author nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
