@@ -123,6 +123,8 @@ Patches may optionally be applied to the source:
     patches:
       - my.patch # the patch file is expected to be found in the recipe
 
+NOTE: Conda-build will automatically determine the patch strip level.
+
 
 Build section
 -------------
