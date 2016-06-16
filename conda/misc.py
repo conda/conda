@@ -76,12 +76,17 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
             prefix = '' if schannel == 'defaults' else schannel + '::'
         fn = prefix + fn
         dist = fn[:-8]
+        is_file = fn.startswith('file://')
+        # Add file to index so we'll see it later
+        if is_file:
+            index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': None}
 
         pkg_path = is_fetched(dist)
         dir_path = is_extracted(dist)
 
         # Don't re-fetch unless there is an MD5 mismatch
-        if pkg_path and (md5 and md5_file(pkg_path) != md5):
+        # Also remove explicit tarballs from cache
+        if pkg_path and (is_file or md5 and md5_file(pkg_path) != md5):
             # This removes any extracted copies as well
             actions[RM_FETCHED].append(dist)
             pkg_path = dir_path = None
@@ -96,10 +101,11 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
                 _, conflict = find_new_location(dist)
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
-                if fn not in index or index[fn].get('not_fetched'):
-                    channels[url_p + '/'] = (schannel, 0)
+                if not is_file:
+                    if fn not in index or index[fn].get('not_fetched'):
+                        channels[url_p + '/'] = (schannel, 0)
+                    verifies.append((dist + '.tar.bz2', md5))
                 actions[FETCH].append(dist)
-                verifies.append((dist + '.tar.bz2', md5))
             actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
