@@ -168,7 +168,11 @@ class TestVersionSpec(unittest.TestCase):
             ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
             ('==1.7', False), ('==1.7.2', False), ('==1.7.1.0', True),
             ('1.7*|1.8*', True), ('1.8*|1.9*', False),
-            ('>1.7,<1.8', True), ('>1.7.1,<1.8', False)
+            ('>1.7,<1.8', True), ('>1.7.1,<1.8', False),
+            ('^1.7.1$', True), ('^1\.7\.1$', True), ('^1\.7\.[0-9]+$', True),
+            ('^1\.8.*$', False), ('^1\.[5-8]\.1$', True), ('^[^1].*$', False),
+            ('^[0-9+]+\.[0-9+]+\.[0-9]+$', True), ('^$', False),
+            ('^.*$', True),
             ]:
             m = VersionSpec(vspec)
             assert VersionSpec(m) is m
