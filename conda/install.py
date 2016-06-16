@@ -861,6 +861,7 @@ def load_linked_data(prefix, dist, rec=None):
     channel, schannel = url_channel(url)
     rec['channel'] = channel
     rec['schannel'] = schannel
+    rec['link'] = rec.get('link') or True
     cprefix = '' if schannel == 'defaults' else schannel + '::'
     linked_data_[prefix][str(cprefix + dname)] = rec
     return rec
