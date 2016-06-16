@@ -1217,6 +1217,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 
 
 def main():
+    # This CLI is only invoked from the self-extracting shell installers
     from optparse import OptionParser
 
     p = OptionParser(description="conda link tool used by installer")
@@ -1234,13 +1235,6 @@ def main():
 
     p.add_option('-v', '--verbose',
                  action="store_true")
-
-    if sys.platform == "win32":
-        p.add_option(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts"
-        )
 
     opts, args = p.parse_args()
     if args:
@@ -1268,7 +1262,7 @@ def main():
     for dist in idists:
         if opts.verbose:
             print("linking: %s" % dist)
-        link(prefix, dist, linktype, opts.shortcuts)
+        link(prefix, dist, linktype)
 
     messages(prefix)
 
