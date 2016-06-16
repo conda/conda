@@ -229,9 +229,7 @@ def multithread_fetch(state, arg):
     :return:
     """
     FETCH_CMD(state, arg)
-    if state['i'] is not None and state['maxval'] == state['i']:
-        state['i'] = None
-        getLogger('progress.stop').info(None)
+
 
 
 def multithread_extract(state, arg):
@@ -260,7 +258,7 @@ def packages_multithread_cmd(cmd, package_list):
     """
     try:
         import concurrent.futures
-        executor = concurrent.futures.ThreadPoolExecutor(10)
+        executor = concurrent.futures.ThreadPoolExecutor(5)
     except (ImportError, RuntimeError):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
         # RuntimeError is thrown if number of threads are limited by OS
@@ -272,13 +270,15 @@ def packages_multithread_cmd(cmd, package_list):
         try:
             future = tuple(executor.submit(cmd, state_d,
                                            arg_d) for (state_d, arg_d) in package_list)
+            log.debug(f.result() for f in future)
         finally:
             executor.shutdown(wait=True)
-            log.debug(f.result() for f in future)
-
+            while not all(f.done() for f in future):
+                print("I am busy waiting")
             # Check for download result
             if cmd == multithread_fetch:
                 for state_d, arg_d in package_list:
+
                     assert arg_d in package_cache()
 
 
@@ -314,9 +314,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             else:
                 cmd(state, arg)
             continue
-
         packages_multithread_cmd(cmd, state, arg)
-
     messages(state['prefix'])
 
 class ProgressBar:

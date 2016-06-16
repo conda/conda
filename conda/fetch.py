@@ -391,9 +391,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-            # fn = basename(dst_path)
-            # getLogger('fetch.start').info((fn[:14], size))
-
+            fn = basename(dst_path)
         if md5:
             h = hashlib.new('md5')
         try:
@@ -430,7 +428,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
 
         if size:
             pass
-            # getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
@@ -441,6 +438,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
+        print("Finish download from", url)
 
         try:
             os.rename(pp, dst_path)
@@ -452,7 +450,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
             add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
 
         return None
-
 
 class TmpDownload(object):
     """
