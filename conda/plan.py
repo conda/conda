@@ -562,7 +562,6 @@ def revert_actions(prefix, revision=-1):
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    print(plan)
     with History(actions[inst.PREFIX]):
         inst.execute_instructions(plan, index, verbose)
 
