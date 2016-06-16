@@ -7,3 +7,6 @@ CONDA_DEFAULT_ENV='' python setup.py --version > __conda_version__.txt
 mkdir -p $PREFIX/exec
 ln -s $PREFIX/bin/activate $PREFIX/exec/activate
 ln -s $PREFIX/bin/conda $PREFIX/exec/conda
+
+mkdir -p $PREFIX/etc/fish/conf.d/
+cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/

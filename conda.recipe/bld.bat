@@ -25,6 +25,9 @@ if defined FOUND (
 echo "%PREFIX%\Scripts\activate.bat" %%* > %PREFIX%\exec\activate.bat
 echo "%PREFIX%\Scripts\conda.exe" %%* > %PREFIX%\exec\conda.bat
 
+mkdir %PREFIX%\etc\fish\conf.d
+echo "%SRC_DIR%\shell\conda.fish" %%* > %PREFIX%\etc\fish\conf.d\conda.fish
+
 :: TODO: powershell?  Not tested.  Needs PR https://github.com/conda/conda/issues/626
 :: echo "& ""%PREFIX%\Scripts\activate.ps1"" $argumentList" > %PREFIX\exec\activate.ps1
 :: echo "& ""%PREFIX%\Scripts\conda.exe"" $argumentList" > %PREFIX\exec\conda.ps1
