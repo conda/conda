@@ -4,6 +4,7 @@ installed Python packages, e.g. using "python setup.py install", or "pip".
 """
 from __future__ import absolute_import, division, print_function
 
+from io import open
 import os
 import re
 import sys
@@ -46,7 +47,7 @@ def parse_egg_info(path):
     Parse an .egg-info file and return its canonical distribution name
     """
     info = {}
-    for line in open(path):
+    for line in open(path, encoding='utf-8'):
         line = line.strip()
         m = pat.match(line)
         if m:
