@@ -12,7 +12,7 @@ import unittest
 import pytest
 
 import conda.config as config
-from conda.utils import get_yaml
+from conda.utils import get_yaml, yaml_bool
 
 from tests.helpers import run_conda_command
 
@@ -441,20 +441,17 @@ yaml parser (this will remove any structure or comments from the existing
 
 def test_config_set():
     # Test the config set command
-    # Make sure it accepts only boolean values for boolean keys and any value for string keys
+    # Make sure it accepts any YAML 1.1 boolean values
+    assert yaml_bool(True) is True
+    assert yaml_bool(False) is False
+    for str in ('yes', 'Yes', 'YES', 'on', 'On', 'ON',
+                'off', 'Off', 'OFF', 'no', 'No', 'NO'):
+      with make_temp_condarc() as rc:
+          stdout, stderr = run_conda_command('config', '--file', rc,
+                                             '--set', 'always_yes', str)
+          assert stdout == ''
+          assert stderr == ''
 
-    with make_temp_condarc() as rc:
-        stdout, stderr = run_conda_command('config', '--file', rc,
-                                           '--set', 'always_yes', 'yes')
-
-        assert stdout == ''
-        assert stderr == 'Error: Key: always_yes; yes is not a YAML boolean.'
-
-        stdout, stderr = run_conda_command('config', '--file', rc,
-                                           '--set', 'always_yes', 'no')
-
-        assert stdout == ''
-        assert stderr == 'Error: Key: always_yes; no is not a YAML boolean.'
 
 def test_set_rc_string():
     # Test setting string keys in .condarc
