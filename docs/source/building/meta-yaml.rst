@@ -324,6 +324,17 @@ with all platforms and architectures. Noarch packages can be installed on any pl
      build:
        noarch_python: True
 
+Ignore prefix files
+~~~~~~~~~~~~~~~~~~~
+
+Individual files can be added to the ``ignore_prefix_files`` key to exclude them from the prefix path when the package is installed.
+
+.. code-block:: yaml
+
+    build:
+      ignore_prefix_files:
+        - file1
+
 Requirements section
 --------------------
 
