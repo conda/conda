@@ -223,6 +223,7 @@ def packages_multithread_cmd(cmd, state, package_list):
 
 def multithread_fetch(state, arg):
     """
+    Function wrapper for the FETCH_CMD
     :param state:
     :param arg:
     :return:
@@ -233,11 +234,29 @@ def multithread_fetch(state, arg):
         getLogger('progress.stop').info(None)
 
 
-def multithread_download(download_list):
+def multithread_extract(state, arg):
     """
+    Function wrapper for the FETCH_CMD
+    :param state:
+    :param arg:
+    :return:
+    """
+    EXTRACT_CMD(state, arg)
+    if state['i'] is not None and state['maxval'] == state['i']:
+        state['i'] = None
+        getLogger('progress.stop').info(None)
 
+
+def packages_multithread_cmd(cmd, package_list):
+    """
+    Try to download the packages in multi-thread
     :param download_list: the list of packages and metadata for  downloadinh
     :return: nothing
+    """
+    """
+     Try to import the concurrent futures library
+     If successes, use multi-thread pool to download
+     Otherwise, download in series
     """
     try:
         import concurrent.futures
@@ -245,24 +264,22 @@ def multithread_download(download_list):
     except (ImportError, RuntimeError):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
         # RuntimeError is thrown if number of threads are limited by OS
-        for state_download, arg_download in download_list:
-            multithread_fetch(state_download, arg_download)
-            getLogger('downloading %s ' % str(arg_download)).info(None)
+        for state_download, arg_download in package_list:
+            cmd(state_download, arg_download)
+
         return None
     else:
         try:
-            print("using multi thread")
-            future = tuple(executor.submit(multithread_fetch, state_d,
-                                           arg_d) for (state_d, arg_d) in download_list)
+            future = tuple(executor.submit(cmd, state_d,
+                                           arg_d) for (state_d, arg_d) in package_list)
         finally:
             executor.shutdown(wait=True)
-            while not all(f.done() for f in future):
-                print("Busy waiting for multiprocess")
+            log.debug(f.result() for f in future)
 
-            print("The finish of  downloading")
-            for state_d, arg_d in download_list:
-                print(arg_d)
-                assert arg_d in package_cache()
+            # Check for download result
+            if cmd == multithread_fetch:
+                for state_d, arg_d in package_list:
+                    assert arg_d in package_cache()
 
 
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
@@ -297,6 +314,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             else:
                 cmd(state, arg)
             continue
+
         packages_multithread_cmd(cmd, state, arg)
     messages(state['prefix'])
 
