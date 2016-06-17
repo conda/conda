@@ -1,8 +1,9 @@
-2016-06-16   4.1.2:
+2016-06-17   4.1.2:
 -------------------
   * improve messaging for "downgrades" due to channel priority, #2718
   * support conda config channel append/prepend, handle duplicates, #2730
   * remove --shortcuts option to internal CLI code, #2723
+  * fix an issue concerning space characters in paths in activate.bat, #2740
   * fix #2732 restore yes/no/on/off for booleans on the command line, #2734
   * fix #2642 tarball install on Windows, #2729
   * fix #2687, #2697 WindowsError when creating environments on Windows, #2717
