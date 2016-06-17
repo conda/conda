@@ -10,6 +10,7 @@ from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched,
 from .utils import find_parent_shell
 import threading
 import click
+
 import sys
 
 if float(sys.version.split()[0][:3]) < 2.8:
@@ -53,7 +54,6 @@ def PREFIX_CMD(state, arg):
 def PRINT_CMD(state, arg):
     # getLogger('print').info(arg)
     pass
-
 
 def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
