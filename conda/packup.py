@@ -123,31 +123,3 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t.close()
     shutil.rmtree(tmp_dir)
     return warnings
-
-
-def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
-                files=None):
-    if files is None:
-        files = untracked(prefix)
-    print("# files: %d" % len(files))
-    if len(files) == 0:
-        print("# failed: nothing to do")
-        return None
-
-    if any('/site-packages/' in f for f in files):
-        python_version = get_installed_version(prefix, 'python')
-        assert python_version is not None
-        requires_py = tuple(int(x) for x in python_version[:3].split('.'))
-    else:
-        requires_py = False
-
-    info = create_info(name, version, build_number, requires_py)
-    tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
-    create_conda_pkg(prefix, files, info, tarbz2_fn)
-    print('# success')
-    print(tarbz2_fn)
-    return tarbz2_fn
-
-
-if __name__ == '__main__':
-    make_tarbz2(sys.prefix)

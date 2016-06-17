@@ -203,22 +203,6 @@ def which_prefix(path):
         prefix = dirname(prefix)
 
 
-def which_package(path):
-    """
-    given the path (of a (presumably) conda installed file) iterate over
-    the conda packages the file came from.  Usually the iteration yields
-    only one package.
-    """
-    path = abspath(path)
-    prefix = which_prefix(path)
-    if prefix is None:
-        raise RuntimeError("could not determine conda prefix from: %s" % path)
-    for dist in install_linked(prefix):
-        meta = is_linked(prefix, dist)
-        if any(abspath(join(prefix, f)) == path for f in meta['files']):
-            yield dist
-
-
 def discard_conda(dists):
     return [dist for dist in dists if not name_dist(dist) == 'conda']
 
