@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
-from argparse import RawDescriptionHelpFormatter
-import os
-import sys
-import textwrap
 
-from conda.cli import common
+import os
+import textwrap
+from argparse import RawDescriptionHelpFormatter
+
 from conda import config
+from conda.cli import common
 
 from ..env import from_environment
 
