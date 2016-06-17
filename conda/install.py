@@ -1228,7 +1228,7 @@ def main():
 
     prefix = opts.prefix
     pkgs_dir = join(prefix, 'pkgs')
-    pkgs_dirs[0] = [pkgs_dir]
+    pkgs_dirs = [pkgs_dir]
     if opts.verbose:
         print("prefix: %r" % prefix)
 
