@@ -9,7 +9,6 @@ from __future__ import print_function, division, absolute_import
 import logging
 import os
 import re
-import sys
 from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile, join
 
