@@ -117,14 +117,19 @@ def main():
         logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
-    args_func(args, p)
+    exit_code = args_func(args, p)
+    if isinstance(exit_code, int):
+        return exit_code
+
 
 def args_func(args, p):
     from conda.cli import common
 
     use_json = getattr(args, 'json', False)
     try:
-        args.func(args, p)
+        exit_code = args.func(args, p)
+        if isinstance(exit_code, int):
+            return exit_code
     except RuntimeError as e:
         if 'maximum recursion depth exceeded' in str(e):
             print_issue_message(e, use_json=use_json)
@@ -133,6 +138,7 @@ def args_func(args, p):
     except Exception as e:
         print_issue_message(e, use_json=use_json)
         raise  # as if we did not catch it
+
 
 def print_issue_message(e, use_json=False):
     from conda.cli import common
