@@ -10,7 +10,6 @@ from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched,
 from .utils import find_parent_shell
 import threading
 import click
-
 import sys
 
 if float(sys.version.split()[0][:3]) < 2.8:
@@ -35,7 +34,6 @@ SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 
 progress_cmds = set([FETCH, EXTRACT, RM_EXTRACTED, LINK, UNLINK])
-
 action_codes = (
     FETCH,
     EXTRACT,
@@ -54,6 +52,7 @@ def PREFIX_CMD(state, arg):
 def PRINT_CMD(state, arg):
     # getLogger('print').info(arg)
     pass
+
 
 def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
@@ -224,7 +223,6 @@ def packages_multithread_cmd(cmd, state, package_list):
                         assert arg_d in package_cache()
 
 
-
 def packages_multithread_cmd(cmd, package_list):
     """
     Try to download the packages in multi-thread
@@ -257,7 +255,8 @@ def packages_multithread_cmd(cmd, package_list):
         label = "[ Downloading Packages " + res + " ]"
         with DownloadBar(size, label):
             try:
-                futures = tuple(executor.submit(cmd, state_d, arg_d, q) for state_d, arg_d in package_list)
+                futures = tuple(executor.submit(cmd, state_d, arg_d,
+                                                q) for state_d, arg_d in package_list)
                 log.debug((f.result() for f in futures))
             finally:
                 executor.shutdown(wait=True)
@@ -337,3 +336,4 @@ class ProgressBar:
                         self.s += size
         finally:
             self.lock.release()
+
