@@ -8,9 +8,10 @@ from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
                       link, unlink, symlink_conda, name_dist, package_cache)
 from .utils import find_parent_shell
-
-
+import threading, click
+from Queue import  Queue
 log = getLogger(__name__)
+q = Queue(500)
 
 # op codes
 FETCH = 'FETCH'
@@ -25,7 +26,7 @@ PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 
-progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+progress_cmds = set([RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
     FETCH,
     EXTRACT,
@@ -42,12 +43,11 @@ def PREFIX_CMD(state, arg):
 
 
 def PRINT_CMD(state, arg):
-    getLogger('print').info(arg)
+    # getLogger('print').info(arg)
+    pass
 
-
-def FETCH_CMD(state, arg):
-    print("fetch the index ,", arg)
-    fetch_pkg(state['index'][arg + '.tar.bz2'])
+def FETCH_CMD(state, arg, bar):
+    fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
 
 
 def PROGRESS_CMD(state, arg):
@@ -103,28 +103,6 @@ commands = {
 }
 
 
-def multithread_fetch(state, arg):
-    """
-    Function wrapper for the FETCH_CMD
-    :param state:
-    :param arg:
-    :return:
-    """
-    FETCH_CMD(state, arg)
-
-
-def multithread_extract(state, arg):
-    """
-    Function wrapper for the FETCH_CMD
-    :param state:
-    :param arg:
-    :return:
-    """
-    EXTRACT_CMD(state, arg)
-    if state['i'] is not None and state['maxval'] == state['i']:
-        state['i'] = None
-        getLogger('progress.stop').info(None)
-
 
 def packages_multithread_cmd(cmd, package_list):
     """
@@ -139,6 +117,7 @@ def packages_multithread_cmd(cmd, package_list):
     """
     try:
         import concurrent.futures
+
         executor = concurrent.futures.ThreadPoolExecutor(5)
     except (ImportError, RuntimeError):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
@@ -148,18 +127,21 @@ def packages_multithread_cmd(cmd, package_list):
 
         return None
     else:
-        try:
-            future = tuple(executor.submit(cmd, state_d,
-                                           arg_d) for (state_d, arg_d) in package_list)
-            log.debug(f.result() for f in future)
-        finally:
-            executor.shutdown(wait=True)
-            while not all(f.done() for f in future):
-                print("I am busy waiting")
-            # Check for download result
-            if cmd == multithread_fetch:
-                for state_d, arg_d in package_list:
+        assert cmd == FETCH_CMD
 
+        size = 0
+        for state_d, arg_d in package_list:
+            size += state_d['index'][arg_d + '.tar.bz2']['size']
+        res = " ".join([ar for st, ar in package_list])
+        label = "[ Downloading Packages " + res + " ]"
+        with DownloadBar(size, label):
+            try:
+                futures = tuple(executor.submit(cmd, state_d, arg_d, q) for state_d, arg_d in package_list)
+                log.debug((f.result() for f in futures))
+            finally:
+                executor.shutdown(wait=True)
+                # Check for download result
+                for state_d, arg_d in package_list:
                     assert arg_d in package_cache()
 
 
@@ -195,8 +177,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((name_dist(arg),
-                                               state['i'] - 1))
+            getLogger('progress.update').info((name_dist(arg), state['i'] - 1))
 
         # if it is fetch command
         # put that command in a list for future multi-thread processing
@@ -209,18 +190,19 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         # and put extract into a list
         if cmd == EXTRACT_CMD:
             if to_download:
-                packages_multithread_cmd(multithread_fetch, to_download)
+                packages_multithread_cmd(FETCH_CMD, to_download)
                 to_download = None
-            to_extract.append((state, arg))
-            continue
+            # to_extract.append((state, arg))
+            # continue
 
         # if it is a link command
         # start the extract multi-thread process
+        """
         if cmd == PRINT_CMD:
             if to_extract:
-                packages_multithread_cmd(multithread_extract, to_extract)
+                packages_multithread_cmd(EXTRACT_CMD, to_extract)
                 to_extract = None
-
+        """
         cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
@@ -229,3 +211,33 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             getLogger('progress.stop').info(None)
 
     messages(state['prefix'])
+
+
+class DownloadBar:
+    """
+        A class for download progress bar using click progress bar
+    """
+
+    def __init__(self,length, label):
+        self.length = length
+        self.label = label
+        self.t = threading.Thread(target=self.consumer, args=(self.length, self.label))
+
+    def __enter__(self):
+        self.t.daemon = True
+        self.t.start()
+
+    def __exit__(self, *args):
+        self.t.join(timeout=0.01)
+        self.t.is_alive()
+
+    @staticmethod
+    def consumer(length, label):
+        with click.progressbar(length=length, label=label) as bar:
+            while True:
+                if not q.empty():
+                    size = q.get(True)
+                    bar.update(size)
+
+    def producer(self, size):
+        q.put(size)

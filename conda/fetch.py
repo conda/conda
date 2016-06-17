@@ -296,12 +296,11 @@ Allowed channels are:
     return index
 
 
-def fetch_pkg(info, dst_dir=None, session=None):
+def fetch_pkg(info, bar=None, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
     session = session or CondaSession()
-
     fn = info['fn']
     url = info.get('url')
     if url is None:
@@ -311,7 +310,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         dst_dir = find_new_location(fn[:-8])[0]
     path = join(dst_dir, fn)
 
-    download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    download(url, path, session=session, md5=info['md5'], urlstxt=True, bar=bar)
     if info.get('sig'):
         from .signature import verify, SignatureError
 
@@ -319,7 +318,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/')) + '/' + fn2
         log.debug("signature url=%r" % url)
-        download(url, join(dst_dir, fn2), session=session)
+        download(url, join(dst_dir, fn2), session=session, bar=bar)
         try:
             if verify(path):
                 return
@@ -328,8 +327,9 @@ def fetch_pkg(info, dst_dir=None, session=None):
         sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
 
 
-def download(url, dst_path, session=None, md5=None, urlstxt=False,
+def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
              retries=None):
+
     pp = dst_path + '.part'
     dst_dir = dirname(dst_path)
     session = session or CondaSession()
@@ -354,7 +354,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 handle_proxy_407(url, session)
                 # Try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
+                                urlstxt=urlstxt, bar=bar, retries=retries)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
@@ -369,7 +369,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                 handle_proxy_407(url, session)
                 # try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
+                                urlstxt=urlstxt,bar=bar, retries=retries)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
@@ -387,24 +387,28 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
         if md5:
             h = hashlib.new('md5')
         try:
-            with open(pp, 'wb') as fo:
-                more = True
-                while more:
-                    # Use resp.raw so that requests doesn't decode gz files
-                    chunk = resp.raw.read(2**14)
-                    if not chunk:
-                        more = False
-                    try:
-                        fo.write(chunk)
-                    except IOError:
-                        raise RuntimeError("Failed to write to %r." % pp)
-                    if md5:
-                        h.update(chunk)
-                    # update n with actual bytes read
-                    n = resp.raw.tell()
-                    if size and 0 <= n <= size:
-                        pass
-                        # getLogger('fetch.update').info(n)
+            # from click import progressbar
+            # label = "[    Downloading " + str(url.rsplit("/", 1)[1] + "       ]")
+            if 1 == 1:
+                with open(pp, 'wb') as fo:
+                    more = True
+                    while more:
+                        # Use resp.raw so that requests doesn't decode gz files
+                        chunk = resp.raw.read(2**14)
+                        if not chunk:
+                            more = False
+                        try:
+                            fo.write(chunk)
+                        except IOError:
+                            raise RuntimeError("Failed to write to %r." % pp)
+                        if md5:
+                            h.update(chunk)
+                        # update n with actual bytes read
+                        n = resp.raw.tell()
+                        if size and 0 <= n <= size:
+                            if bar:
+                                bar.put(n, False)
+
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
                 # try again
@@ -426,7 +430,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
-        print("Finish download from", url)
 
         try:
             os.rename(pp, dst_path)
