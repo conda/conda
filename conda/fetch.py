@@ -395,27 +395,24 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
             fn = basename(dst_path)
             getLogger('fetch.start').info((fn[:14], size))
 
-        n = 0
         if md5:
             h = hashlib.new('md5')
         try:
             with open(pp, 'wb') as fo:
-                more = True
-                while more:
-                    # Use resp.raw so that requests doesn't decode gz files
-                    chunk = resp.raw.read(2**14)
-                    if not chunk:
-                        more = False
+                index = 0
+                for chunk in resp.iter_content(2**14):
+                    index += len(chunk)
                     try:
                         fo.write(chunk)
                     except IOError:
                         raise RuntimeError("Failed to write to %r." % pp)
+
                     if md5:
                         h.update(chunk)
-                    # update n with actual bytes read
-                    n = resp.raw.tell()
-                    if size and 0 <= n <= size:
-                        getLogger('fetch.update').info(n)
+
+                    if size and 0 <= index <= size:
+                        getLogger('fetch.update').info(index)
+
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
                 # try again
