@@ -1,3 +1,16 @@
+2016-06-16   4.1.2:
+-------------------
+  * improve messaging for "downgrades" due to channel priority, #2718
+  * support conda config channel append/prepend, handle duplicates, #2730
+  * remove --shortcuts option to internal CLI code, #2723
+  * fix #2732 restore yes/no/on/off for booleans on the command line, #2734
+  * fix #2642 tarball install on Windows, #2729
+  * fix #2687, #2697 WindowsError when creating environments on Windows, #2717
+  * fix #2710 link instruction in conda create causes TypeError, #2715
+  * revert #2514, #2695, disabling of .netrc files, #2736
+  * revert #2281 printing progress bar to terminal, #2707
+
+
 2016-06-16   4.1.1:
 -------------------
   * add auto_update_conda config parameter, #2686
