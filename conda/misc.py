@@ -203,10 +203,6 @@ def which_prefix(path):
         prefix = dirname(prefix)
 
 
-def discard_conda(dists):
-    return [dist for dist in dists if not name_dist(dist) == 'conda']
-
-
 def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
