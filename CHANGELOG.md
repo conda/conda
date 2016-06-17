@@ -5,6 +5,13 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
+#### v2.5.0 (06/16/16)
+
+- Remove selectors. (@kalefranz, #253)
+- Add integration tests. (@malev, #206)
+- Fix conda env remove by proxying to conda remove --all. (@mcg1969, #251)
+- Fix unexpected prune parameter in pip installer. (@kdeldycke, #246)
+
 #### v2.5.0 (06/13/16)
 
 - Add a mechanism to let an environment disable the default channels (@mwiebe, #229)
