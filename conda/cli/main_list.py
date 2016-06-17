@@ -265,4 +265,4 @@ def execute(args, parser):
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
                               json=args.json,
                               show_channel_urls=args.show_channel_urls)
-    sys.exit(exitcode)
+    return exitcode

@@ -101,11 +101,8 @@ def capture_with_argv(*argv):
     stderr.seek(0)
     stdout, stderr = stdout.read(), stderr.read()
 
-    print('>>>>>>>>> stdout >>>>>>>>>')
     print(stdout)
-    print('>>>>>>>>> stderr >>>>>>>>>')
-    print(stderr)
-    print('>>>>>>>>>')
+    print(stderr, file=sys.stderr)
     return stdout, strip_expected(stderr)
 
 
