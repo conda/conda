@@ -1186,7 +1186,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
     """
     Returns the (sorted) list of distributions to be removed, such that
     only one distribution (for each name) remains.  `keep_dists` is an
-    interable of distributions (which are not allowed to be removed).
+    iterable of distributions (which are not allowed to be removed).
     """
     from collections import defaultdict
 
