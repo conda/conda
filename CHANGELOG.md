@@ -5,7 +5,7 @@ If you need more details about the changes made visit the
 on Github. Every release commit has all the information about
 the changes in the source code.
 
-#### v2.5.0 (06/16/16)
+#### v2.5.1 (06/16/16)
 
 - Remove selectors. (@kalefranz, #253)
 - Add integration tests. (@malev, #206)
