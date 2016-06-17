@@ -13,7 +13,7 @@ from .common import (Completer, add_parser_json, error_and_exit, exception_and_e
 from ..compat import string_types
 from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
-from ..utils import yaml_load, yaml_dump
+from ..utils import yaml_load, yaml_dump, yaml_bool
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -296,14 +296,14 @@ def execute_config(args, parser):
     set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
     for key, item in args.set:
         # Check key and value
-        yamlitem = yaml_load(item)
         if key in set_bools:
-            if not isinstance(yamlitem, bool):
+            itemb = yaml_bool(item)
+            if itemb is None:
                 error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
                                json=args.json, error_type="TypeError")
-            rc_config[key] = yamlitem
+            rc_config[key] = itemb
         elif key in set_strings:
-            rc_config[key] = yamlitem
+            rc_config[key] = item
         else:
             error_and_exit("Error key must be one of %s, not %s" %
                            (', '.join(set_bools | set_strings), key), json=args.json,
