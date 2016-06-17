@@ -31,7 +31,7 @@
 @call "%CONDA_EXE%" ..checkenv "cmd.exe" "%CONDA_NEW_ENV%"
 @if errorlevel 1 exit /b 1
 
-@call %~dp0\deactivate.bat
+@call "%~dp0\deactivate.bat"
 @if errorlevel 1 exit /b 1
 
 @REM take a snapshot of pristine state for later
