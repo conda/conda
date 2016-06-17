@@ -354,23 +354,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
     return actions, untracked_files
 
 
-def install_local_packages(prefix, paths, verbose=False):
-    explicit(paths, prefix, verbose=verbose)
-
-
-def environment_for_conda_environment(prefix=root_dir):
-    # prepend the bin directory to the path
-    fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
-    binpath = fmt % abspath(prefix)
-    path = os.path.pathsep.join([binpath, os.getenv('PATH')])
-    env = {'PATH': path}
-    # copy existing environment variables, but not anything with PATH in it
-    for k, v in iteritems(os.environ):
-        if k != 'PATH':
-            env[k] = v
-    return binpath, env
-
-
 def make_icon_url(info):
     if 'channel' in info and 'icon' in info:
         base_url = dirname(info['channel'])
