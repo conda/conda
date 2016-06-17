@@ -135,9 +135,11 @@ class IntegrationTests(TestCase):
     def tearDown(self):
         reenable_dotlog(self.saved_dotlog_handlers)
 
+    @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
-            pip_binary = join(prefix, 'pip.exe' if on_win else 'bin/pip')
+            pip_binary = join(prefix, 'Scripts' if on_win else 'bin',
+                              'pip.exe' if on_win else 'pip')
             check_call(split("{0} install --egg --no-use-wheel flask==0.10.1".format(pip_binary)))
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
