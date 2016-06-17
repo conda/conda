@@ -212,7 +212,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         """
         cmd(state, arg)
 
-        if state['i'] is not None and instruction in progress_cmds and state['maxval'] == state['i']:
+        if state['i'] is not None and instruction in \
+                progress_cmds and state['maxval'] == state['i']:
             state['i'] = None
             getLogger('progress.stop').info(None)
 
