@@ -16,7 +16,7 @@ install:
 - python setup.py install
 script:
 - nosetests
-- conda --help
+- conda env --help
 sudo: false
 notifications:
   email: false
