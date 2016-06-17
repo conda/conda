@@ -9,7 +9,14 @@ from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched,
                       link, unlink, symlink_conda, name_dist, package_cache)
 from .utils import find_parent_shell
 import threading, click
-from Queue import  Queue
+import sys
+
+if float(sys.version.split()[0][:3]) < 2.8:
+    from Queue import Queue
+else:
+    from queue import Queue
+
+
 log = getLogger(__name__)
 q = Queue(500)
 
@@ -46,7 +53,7 @@ def PRINT_CMD(state, arg):
     # getLogger('print').info(arg)
     pass
 
-def FETCH_CMD(state, arg, bar):
+def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
 
 
