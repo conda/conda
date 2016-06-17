@@ -29,12 +29,11 @@ are supported:
 All arguments are case-sensitive. The installation path must be the last argument and should **NOT** be wrapped in
 quotation marks.
 
-The following command installs Miniconda for all users without registering Python as the system's default:
+The following command installs Miniconda for the current user without registering Python as the system's default:
 
 .. code-block:: bat
 
-    Miniconda2-latest-Windows-x86_64.exe /InstallationType=AllUsers /RegisterPython=0 \
-        /S /D=C:\Program Files\Miniconda3
+    start /wait "" Miniconda4-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
 
 
 Linux and OS X
