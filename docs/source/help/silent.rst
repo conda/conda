@@ -17,8 +17,8 @@ is up to date with a simple:
 Windows
 ~~~~~~~
 
-The Windows installer of Miniconda can be run in silent mode using the ``/S`` argument. The following optional arguments
-are supported:
+The Windows installer of Miniconda can be run in silent mode using
+the ``/S`` argument. The following optional arguments are supported:
 
 - ``/InstallationType=[JustMe|AllUsers]``, default: ``JustMe``
 - ``/AddToPath=[0|1]``, default: ``1``
@@ -26,10 +26,11 @@ are supported:
 - ``/S``
 - ``/D=<installation path>``
 
-All arguments are case-sensitive. The installation path must be the last argument and should **NOT** be wrapped in
-quotation marks.
+All arguments are case-sensitive. The installation path must be the last
+argument and should **NOT** be wrapped in quotation marks.
 
-The following command installs Miniconda for the current user without registering Python as the system's default:
+The following command installs Miniconda for the current user without
+registering Python as the system's default:
 
 .. code-block:: bat
 
@@ -56,4 +57,3 @@ A complete example:
     wget http://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda
     export PATH="$HOME/miniconda/bin:$PATH"
-
