@@ -18,6 +18,7 @@ else:
     from queue import Queue
 
 log = getLogger(__name__)
+q = Queue(500)
 
 # op codes
 FETCH = 'FETCH'
@@ -31,7 +32,9 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
+
 progress_cmds = set([FETCH, EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+
 action_codes = (
     FETCH,
     EXTRACT,
@@ -221,28 +224,6 @@ def packages_multithread_cmd(cmd, state, package_list):
                         assert arg_d in package_cache()
 
 
-def multithread_fetch(state, arg):
-    """
-    Function wrapper for the FETCH_CMD
-    :param state:
-    :param arg:
-    :return:
-    """
-    FETCH_CMD(state, arg)
-
-
-def multithread_extract(state, arg):
-    """
-    Function wrapper for the FETCH_CMD
-    :param state:
-    :param arg:
-    :return:
-    """
-    EXTRACT_CMD(state, arg)
-    if state['i'] is not None and state['maxval'] == state['i']:
-        state['i'] = None
-        getLogger('progress.stop').info(None)
-
 
 def packages_multithread_cmd(cmd, package_list):
     """
@@ -257,6 +238,7 @@ def packages_multithread_cmd(cmd, package_list):
     """
     try:
         import concurrent.futures
+
         executor = concurrent.futures.ThreadPoolExecutor(5)
     except (ImportError, RuntimeError):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
@@ -266,18 +248,21 @@ def packages_multithread_cmd(cmd, package_list):
 
         return None
     else:
-        try:
-            future = tuple(executor.submit(cmd, state_d,
-                                           arg_d) for (state_d, arg_d) in package_list)
-            log.debug(f.result() for f in future)
-        finally:
-            executor.shutdown(wait=True)
-            while not all(f.done() for f in future):
-                print("I am busy waiting")
-            # Check for download result
-            if cmd == multithread_fetch:
-                for state_d, arg_d in package_list:
+        assert cmd == FETCH_CMD
 
+        size = 0
+        for state_d, arg_d in package_list:
+            size += state_d['index'][arg_d + '.tar.bz2']['size']
+        res = " ".join([ar for st, ar in package_list])
+        label = "[ Downloading Packages " + res + " ]"
+        with DownloadBar(size, label):
+            try:
+                futures = tuple(executor.submit(cmd, state_d, arg_d, q) for state_d, arg_d in package_list)
+                log.debug((f.result() for f in futures))
+            finally:
+                executor.shutdown(wait=True)
+                # Check for download result
+                for state_d, arg_d in package_list:
                     assert arg_d in package_cache()
 
 
@@ -328,9 +313,11 @@ class ProgressBar:
         self.lock = threading.Lock()
         self.cmd = cmd
 
+
     def __enter__(self):
         self.t.daemon = True
         self.t.start()
+
         return self
 
     def __exit__(self, *args):

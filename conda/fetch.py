@@ -379,7 +379,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                 handle_proxy_407(url, session)
                 # try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, bar=bar, retries=retries)
+
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
@@ -415,7 +415,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                         n = resp.raw.tell()
                         if size and 0 <= n <= size:
                             if bar:
-                                # from .instructions import q
                                 bar.put(n, False)
 
         except IOError as e:
@@ -438,7 +437,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
-        print("Finish download from", url)
 
         try:
             os.rename(pp, dst_path)
