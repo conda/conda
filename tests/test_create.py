@@ -127,6 +127,14 @@ def assert_package_is_installed(prefix, package, exact=False):
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
+def get_conda_list_tuple(prefix, package_name):
+    stdout, stderr = run_command(Commands.LIST, prefix)
+    stdout_lines = stdout.split('\n')
+    package_line = next((line for line in stdout_lines
+                         if line.lower().startswith(package_name + " ")), None)
+    return package_line.split()
+
+
 class IntegrationTests(TestCase):
 
     def setUp(self):
@@ -248,19 +256,15 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
 
-            stdout, stderr = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split('\n')
-            numpy_line = next((line for line in stdout_lines
-                               if line.lower().startswith("numpy ")), None)
-            numpy_details = numpy_line.split()
+    @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
+    @pytest.mark.timeout(300)
+    def test_install_features(self):
+        with make_temp_env("python=2 numpy") as prefix:
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
 
             run_command(Commands.INSTALL, prefix, "nomkl")
-            stdout, stderr = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split('\n')
-            numpy_line = next((line for line in stdout_lines
-                               if line.lower().startswith("numpy ")), None)
-            numpy_details = numpy_line.split()
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
 
 
