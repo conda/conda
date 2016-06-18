@@ -135,19 +135,6 @@ class IntegrationTests(TestCase):
     def tearDown(self):
         reenable_dotlog(self.saved_dotlog_handlers)
 
-    @pytest.mark.timeout(300)
-    def test_list_with_pip_egg(self):
-        with make_temp_env("python=3 pip") as prefix:
-            pip_binary = join(prefix, 'Scripts' if on_win else 'bin',
-                              'pip.exe' if on_win else 'pip')
-            check_call(split("{0} install --egg --no-use-wheel flask==0.10.1".format(pip_binary)))
-            stdout, stderr = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split('\n')
-            assert next((line.endswith("<egg_info>")
-                         for line in stdout_lines
-                         if line.lower().startswith("flask")),
-                        False)
-
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
         with make_temp_env("python=3") as prefix:
@@ -164,6 +151,20 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, '--revision 0')
+            assert not package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+
+    @pytest.mark.timeout(300)
+    def test_list_with_pip_egg(self):
+        with make_temp_env("python=3 pip") as prefix:
+            check_call(split("{0} -m pip install --egg --no-use-wheel flask==0.10.1"
+                             .format(join(prefix, PYTHON_BINARY))))
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            assert any(line.endswith("<egg_info>") for line in stdout_lines
+                       if line.lower().startswith("flask"))
 
     @pytest.mark.timeout(300)
     def test_tarball_install_and_bad_metadata(self):
