@@ -9,7 +9,6 @@ from __future__ import print_function, division, absolute_import
 import logging
 import os
 import re
-import sys
 from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile, join
 
@@ -265,4 +264,4 @@ def execute(args, parser):
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
                               json=args.json,
                               show_channel_urls=args.show_channel_urls)
-    sys.exit(exitcode)
+    return exitcode
