@@ -159,8 +159,8 @@ class IntegrationTests(TestCase):
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
-            check_call(split("{0} -m pip install --egg --no-use-wheel flask==0.10.1"
-                             .format(join(prefix, PYTHON_BINARY))))
+            check_call(PYTHON_BINARY + " -m pip install --egg --no-use-wheel flask==0.10.1",
+                       cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
             assert any(line.endswith("<egg_info>") for line in stdout_lines
@@ -247,6 +247,21 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=2 pandas") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
+
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            numpy_line = next((line for line in stdout_lines
+                               if line.lower().startswith("numpy ")), None)
+            numpy_details = numpy_line.split()
+            assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
+
+            run_command(Commands.INSTALL, prefix, "nomkl")
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            numpy_line = next((line for line in stdout_lines
+                               if line.lower().startswith("numpy ")), None)
+            numpy_details = numpy_line.split()
+            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
 
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
