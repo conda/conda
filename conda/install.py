@@ -1236,9 +1236,10 @@ def main():
         idists = list(yield_lines(join(prefix, opts.file)))
     else:
         idists = sorted(extracted())
+    assert idists
 
     linktype = (LINK_HARD
-                if idists and try_hard_link(pkgs_dir, prefix, idists[0]) else
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])
