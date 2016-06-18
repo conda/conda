@@ -221,6 +221,7 @@ def unix_path_to_win(path, root_prefix=""):
 def win_path_to_cygwin(path):
     return win_path_to_unix(path, "/cygdrive")
 
+
 def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
@@ -284,11 +285,8 @@ def get_yaml():
         try:
             import ruamel.yaml as yaml
         except ImportError:
-            try:
-                import yaml
-            except ImportError:
-                sys.exit("No yaml library available.\n"
-                         "To proceed, please conda install ruamel_yaml")
+            raise ImportError("No yaml library available.\n"
+                              "To proceed, please conda install ruamel_yaml")
     return yaml
 
 
@@ -308,20 +306,15 @@ def yaml_bool(s, passthrough=None):
 
 def yaml_load(filehandle):
     yaml = get_yaml()
-    try:
-        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
-    except AttributeError:
-        return yaml.load(filehandle)
+    return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
 
 
 def yaml_dump(string):
     yaml = get_yaml()
-    try:
-        return yaml.dump(string, Dumper=yaml.RoundTripDumper,
-                         block_seq_indent=2, default_flow_style=False,
-                         indent=4)
-    except AttributeError:
-        return yaml.dump(string, default_flow_style=False)
+    return yaml.dump(string, Dumper=yaml.RoundTripDumper,
+                     block_seq_indent=2, default_flow_style=False,
+                     indent=4)
+
 
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
