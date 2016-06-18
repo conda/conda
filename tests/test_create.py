@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import json
+import os
+import sys
 from contextlib import contextmanager
 from glob import glob
-import json
 from logging import getLogger, Handler
 from os.path import exists, isdir, isfile, join, relpath, basename
-import os
 from shlex import split
 from shutil import rmtree, copyfile
-import subprocess
-import sys
+from subprocess import check_call, Popen, PIPE
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
@@ -21,12 +21,14 @@ from conda import config
 from conda.cli import conda_argparse
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
+from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
+from conda.compat import PY3, TemporaryDirectory
 from conda.config import pkgs_dirs, bits
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win
-from conda.compat import PY3, TemporaryDirectory
+from tests.helpers import captured
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -68,13 +70,15 @@ class Commands:
     UPDATE = "update"
     REMOVE = "remove"
     CREATE = "create"
+    LIST = "list"
 
 
 parser_config = {
-    Commands.INSTALL: install_configure_parser,
-    Commands.UPDATE: update_configure_parser,
-    Commands.REMOVE: remove_configure_parser,
     Commands.CREATE: create_configure_parser,
+    Commands.INSTALL: install_configure_parser,
+    Commands.LIST: list_configure_parser,
+    Commands.REMOVE: remove_configure_parser,
+    Commands.UPDATE: update_configure_parser,
 }
 
 
@@ -85,10 +89,15 @@ def run_command(command, prefix, *arguments):
 
     prefix = escape_for_winpath(prefix)
     arguments = list(map(escape_for_winpath, arguments))
-    command = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
+    flags = "" if command is Commands.LIST else "-y -q"
+    command_line = "{0} {1} -p {2} {3}".format(command, flags, prefix, " ".join(arguments))
 
-    args = p.parse_args(split(command))
-    args.func(args, p)
+    args = p.parse_args(split(command_line))
+    with captured(disallow_stderr=False) as c:
+        args.func(args, p)
+    print(c.stdout)
+    print(c.stderr, file=sys.stderr)
+    return c.stdout, c.stderr
 
 
 @contextmanager
@@ -118,6 +127,14 @@ def assert_package_is_installed(prefix, package, exact=False):
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
+def get_conda_list_tuple(prefix, package_name):
+    stdout, stderr = run_command(Commands.LIST, prefix)
+    stdout_lines = stdout.split('\n')
+    package_line = next((line for line in stdout_lines
+                         if line.lower().startswith(package_name + " ")), None)
+    return package_line.split()
+
+
 class IntegrationTests(TestCase):
 
     def setUp(self):
@@ -142,6 +159,20 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, '--revision 0')
+            assert not package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+
+    @pytest.mark.timeout(300)
+    def test_list_with_pip_egg(self):
+        with make_temp_env("python=3 pip") as prefix:
+            check_call(PYTHON_BINARY + " -m pip install --egg --no-use-wheel flask==0.10.1",
+                       cwd=prefix, shell=True)
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            assert any(line.endswith("<egg_info>") for line in stdout_lines
+                       if line.lower().startswith("flask"))
 
     @pytest.mark.timeout(300)
     def test_tarball_install_and_bad_metadata(self):
@@ -225,13 +256,23 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
 
+    @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
+    @pytest.mark.timeout(300)
+    def test_install_features(self):
+        with make_temp_env("python=2 numpy") as prefix:
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
+            assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
+
+            run_command(Commands.INSTALL, prefix, "nomkl")
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
+            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message():
-    from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
         cmd = ["conda", "create", '-y', '--shortcuts', '-p', join(tmp, '_conda'), "console_shortcut"]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         if PY3:
             error = error.decode("UTF-8")
@@ -240,10 +281,9 @@ def test_shortcut_in_underscore_env_shows_message():
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_not_attempted_without_shortcuts_arg():
-    from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
         cmd = ["conda", "create", '-y', '-p', join(tmp, '_conda'), "console_shortcut"]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         if PY3:
             error = error.decode("UTF-8")
@@ -256,8 +296,8 @@ def test_shortcut_not_attempted_without_shortcuts_arg():
 def test_shortcut_creation_installs_shortcut():
     from menuinst.win32 import dirs as win_locations
     with TemporaryDirectory() as tmp:
-        subprocess.check_call(["conda", "create", '-y', '--shortcuts', '-p',
-                               join(tmp, 'conda'), "console_shortcut"])
+        check_call(["conda", "create", '-y', '--shortcuts', '-p',
+                    join(tmp, 'conda'), "console_shortcut"])
 
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
@@ -272,7 +312,7 @@ def test_shortcut_creation_installs_shortcut():
             raise
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        subprocess.check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+        check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
         try:
             assert not isfile(shortcut_file)
         finally:
@@ -297,10 +337,10 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
 
     with TemporaryDirectory() as tmp:
         # not including --shortcuts, should not get shortcuts installed
-        subprocess.check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
 
         # make sure it didn't get created
         assert not isfile(shortcut_file)
 
         # make sure that cleanup does not barf trying to remove non-existent shortcuts
-        subprocess.check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+        check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
