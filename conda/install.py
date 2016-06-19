@@ -41,7 +41,6 @@ import sys
 import tarfile
 import time
 import traceback
-import random
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
@@ -49,10 +48,14 @@ from os.path import (abspath, basename, dirname, isdir, isfile, islink,
 on_win = bool(sys.platform == "win32")
 
 try:
-    from conda.lock import Locked
-    from conda.utils import win_path_to_unix, url_path
-    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
-except ImportError:
+    from .lock import Locked
+    from .utils import win_path_to_unix, url_path
+    from .config import remove_binstar_tokens, pkgs_dirs, url_channel
+    import random
+
+    def randsec():
+        return random.randint(0, 1000) / 1000
+except (SystemError, ValueError):  # Py3 raises SystemError, Py2 ValueError
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
     class Locked(object):
@@ -90,6 +93,9 @@ except ImportError:
     # A simpler version of url_channel will do
     def url_channel(url):
         return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
+
+    def randsec():
+        return 0
 
     pkgs_dirs = [join(sys.prefix, 'pkgs')]
 
@@ -235,7 +241,7 @@ def exp_backoff_fn(fn, *args):
             log.debug(repr(e))
             if n == max_retries-1:
                 raise
-            time.sleep((2 ** n) + (random.randint(0, 1000) / 1000))
+            time.sleep((2 ** n) + randsec())
         else:
             return result
 
@@ -1064,6 +1070,9 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
             if os.path.exists(dst):
+                # One single exception for 'urls.txt'
+                if dst == join(prefix, 'pkgs', 'urls.txt'):
+                    continue
                 log.warn("file already exists: %r" % dst)
                 try:
                     os.unlink(dst)
@@ -1219,6 +1228,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 def main():
     # This CLI is only invoked from the self-extracting shell installers
     from optparse import OptionParser
+    import glob
 
     p = OptionParser(description="conda link tool used by installer")
 
@@ -1243,18 +1253,27 @@ def main():
     logging.basicConfig()
 
     prefix = opts.prefix
-    pkgs_dir = join(prefix, 'pkgs')
-    pkgs_dirs[0] = [pkgs_dir]
     if opts.verbose:
         print("prefix: %r" % prefix)
+
+    global pkgs_dirs
+    pkgs_dir = join(prefix, 'pkgs')
+    pkgs_dirs = [pkgs_dir]
+
+    # Copy the urls.txt file so the package cache can resolve channels
+    urlsrc = glob.glob(join(pkgs_dir, '_cache-*', 'pkgs', 'urls.txt'))
+    urldst = join(pkgs_dir, 'urls.txt')
+    if urlsrc and isfile(urlsrc[0]):
+        _link(urlsrc[0], urldst, LINK_COPY)
 
     if opts.file:
         idists = list(yield_lines(join(prefix, opts.file)))
     else:
         idists = sorted(extracted())
+    assert idists
 
     linktype = (LINK_HARD
-                if idists and try_hard_link(pkgs_dir, prefix, idists[0]) else
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])
