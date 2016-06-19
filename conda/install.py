@@ -1202,6 +1202,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 
 def main():
     # This CLI is only invoked from the self-extracting shell installers
+    global pkgs_dirs
     from optparse import OptionParser
 
     p = OptionParser(description="conda link tool used by installer")
